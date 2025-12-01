@@ -1,4 +1,4 @@
-const BASE_URL = 'http://dikshiserver/jewellbisreact/api';
+const BASE_URL = 'http://dikshiserver/spstores/api';
 
 export const API_ENDPOINTS = {
   // Item Group Creation
