@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
 
-import PopupListSelector from '../components/PopupListSelector.jsx';
+import PopupListSelector from '../components/Listpopup/PopupListSelector.jsx';
+import { 
+  ActionButtons, 
+  AddButton, 
+  EditButton, 
+  DeleteButton 
+} from '../components/Buttons/ActionButtons.jsx';
 
 const ExampleUsage = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+const [activeButton, setActiveButton] = useState("add");
 
   // Mock API function with proper pagination
   const fetchItems = async (page, search) => {
@@ -49,6 +56,17 @@ const ExampleUsage = () => {
 
   return (
     <div>
+        <div style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 'bold',width:'17%' }}>
+    <ActionButtons 
+      activeButton={activeButton}
+  onButtonClick={(type) => setActiveButton(type)}
+    >
+    <AddButton buttonType="add" />
+    <EditButton buttonType="edit" />
+    <DeleteButton buttonType="delete" />
+    </ActionButtons>
+</div>
+
       <button 
         variant="contained" 
         onClick={() => setIsPopupOpen(true)}
