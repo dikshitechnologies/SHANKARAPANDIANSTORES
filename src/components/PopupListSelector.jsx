@@ -3,13 +3,11 @@ import {
   Modal, 
   Input, 
   Button, 
-  Spin,
-  Typography
+  Spin 
 } from 'antd';
 import {
   SearchOutlined,
-  CloseOutlined,
-  DownOutlined
+  CloseOutlined
 } from '@ant-design/icons';
 import styles from './PopupListSelector.module.css';
 
@@ -28,7 +26,7 @@ const PopupListSelector = ({
   tableStyles = {},
   maxHeight = '70vh',
   searchPlaceholder = 'Search...',
-  responsiveBreakpoint = 768 // pixels for responsive mode
+  responsiveBreakpoint = 768 
 }) => {
   const [searchText, setSearchText] = useState('');
   const [data, setData] = useState([]);
@@ -39,11 +37,13 @@ const PopupListSelector = ({
   const [hasMore, setHasMore] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isResponsive, setIsResponsive] = useState(false);
+
   const listRef = useRef(null);
   const searchInputRef = useRef(null);
-  const modalRef = useRef(null);
-
-  // Check screen size for responsiveness
+  
+  // -------------------------
+  // Responsive Mode
+  // -------------------------
   useEffect(() => {
     const checkResponsive = () => {
       setIsResponsive(window.innerWidth <= responsiveBreakpoint);
@@ -57,34 +57,48 @@ const PopupListSelector = ({
     };
   }, [responsiveBreakpoint]);
 
-  // Fetch data on mount and search
+  // -------------------------
+  // Initial Loading When Popup Opens
+  // -------------------------
   useEffect(() => {
     if (open) {
       setInitialLoading(true);
+      setPage(1);
+      setHasMore(true);
+
       loadData(1, '', true);
-      if (searchInputRef.current) {
-        setTimeout(() => searchInputRef.current.focus(), 100);
-      }
+
+      setTimeout(() => {
+        if (searchInputRef.current) searchInputRef.current.focus();
+      }, 100);
     }
   }, [open]);
 
+  // -------------------------
+  // Debounced Search
+  // -------------------------
   useEffect(() => {
-    const delayDebounce = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (open) {
+        setPage(1);
+        setHasMore(true);
         loadData(1, searchText, true);
       }
     }, 300);
-    
-    return () => clearTimeout(delayDebounce);
+
+    return () => clearTimeout(timer);
   }, [searchText]);
 
+  // -------------------------
+  // Fetch + Filter Data
+  // -------------------------
   const loadData = async (pageNum, search, reset = false) => {
     setLoading(true);
     if (reset) setInitialLoading(true);
-    
+
     try {
       const items = await fetchItems(pageNum, search);
-      
+
       if (reset) {
         setData(items);
         setFilteredData(filterItems(items, searchText));
@@ -92,12 +106,12 @@ const PopupListSelector = ({
         setData(prev => [...prev, ...items]);
         setFilteredData(prev => [...prev, ...filterItems(items, searchText)]);
       }
-      
+
       if (items.length < 20) {
         setHasMore(false);
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
+    } catch (err) {
+      console.error("Error loading items:", err);
     } finally {
       setLoading(false);
       setInitialLoading(false);
@@ -107,26 +121,42 @@ const PopupListSelector = ({
   const filterItems = (items, search) => {
     if (!search || searchFields.length === 0) return items;
     
-    return items.filter(item => 
-      searchFields.some(field => 
+    return items.filter(item =>
+      searchFields.some(field =>
         item[field]?.toString().toLowerCase().includes(search.toLowerCase())
       )
     );
   };
 
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      loadData(nextPage, searchText);
-    }
-  };
+  // -------------------------
+  // Infinite Scroll Logic
+  // -------------------------
+  useEffect(() => {
+    const list = listRef.current;
 
-  const handleSelect = (item) => {
-    onSelect(item);
-    handleClose();
-  };
+    if (!list) return;
 
+    const handleScroll = () => {
+      if (loading || !hasMore) return;
+
+      const isBottom =
+        list.scrollTop + list.clientHeight >= list.scrollHeight - 10;
+
+      if (isBottom) {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        loadData(nextPage, searchText);
+      }
+    };
+
+    list.addEventListener('scroll', handleScroll);
+
+    return () => list.removeEventListener('scroll', handleScroll);
+  }, [loading, hasMore, page, searchText]);
+
+  // -------------------------
+  // Close Popup
+  // -------------------------
   const handleClose = () => {
     if (onCustomClose) onCustomClose();
     if (clearSearch) clearSearch();
@@ -135,26 +165,31 @@ const PopupListSelector = ({
     onClose();
   };
 
+  // -------------------------
+  // Keyboard Navigation
+  // -------------------------
   const handleKeyDown = useCallback((e) => {
     if (!open) return;
-    
-    switch(e.key) {
+
+    switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < filteredData.length - 1 ? prev + 1 : prev
-        );
+        setSelectedIndex(prev => prev < filteredData.length - 1 ? prev + 1 : prev);
         break;
+
       case 'ArrowUp':
         e.preventDefault();
         setSelectedIndex(prev => prev > 0 ? prev - 1 : prev);
         break;
+
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0 && filteredData[selectedIndex]) {
-          handleSelect(filteredData[selectedIndex]);
+          onSelect(filteredData[selectedIndex]);
+          handleClose();
         }
         break;
+
       case 'Escape':
         e.preventDefault();
         handleClose();
@@ -167,7 +202,9 @@ const PopupListSelector = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Scroll selected item into view
+  // -------------------------
+  // Auto Scroll Selected
+  // -------------------------
   useEffect(() => {
     if (selectedIndex >= 0 && listRef.current) {
       const selectedElement = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
@@ -177,72 +214,47 @@ const PopupListSelector = ({
     }
   }, [selectedIndex]);
 
-  // Responsive display logic
   const getDisplayFields = () => {
     if (!isResponsive) return displayFieldKeys;
-    
-    // Show only first 2 columns in responsive mode
     return displayFieldKeys.slice(0, 2);
   };
 
   const getHeaderNames = () => {
     if (!isResponsive) return headerNames;
-    
-    // Show only first 2 headers in responsive mode
     return headerNames.slice(0, 2);
   };
 
   const renderItem = (item, index) => {
     const isSelected = selectedIndex === index;
     const displayFields = getDisplayFields();
-    
+
     return (
       <div
-        key={item.id || index}
-        className={`${styles.listItem} ${isSelected ? styles.selected : ''}`}
-        onClick={() => handleSelect(item)}
+        key={index}
         data-index={index}
+        className={`${styles.listItem} ${isSelected ? styles.selected : ''}`}
+        onClick={() => { onSelect(item); handleClose(); }}
       >
         {!isResponsive ? (
-          // Desktop view: horizontal layout
           <div className={styles.columnContainer}>
-            {displayFields.map((key, idx) => {
-              if (!item[key]) return null;
-              
-              const width = columnWidths[key] || `${100 / displayFieldKeys.length}%`;
-              
-              let textClass = styles.primaryText;
-              if (idx === 1) textClass = styles.secondaryText;
-              else if (idx > 1) textClass = styles.tertiaryText;
-              
-              return (
-                <div key={key} className={styles.columnItem} style={{ width }}>
-                  <div className={textClass}>
-                    {item[key]}
-                  </div>
-                </div>
-              );
-            })}
+            {displayFields.map((key, idx) => (
+              <div 
+                key={idx}
+                className={styles.columnItem}
+                style={{ width: columnWidths[key] || `${100/displayFieldKeys.length}%` }}
+              >
+                <div className={styles.primaryText}>{item[key]}</div>
+              </div>
+            ))}
           </div>
         ) : (
-          // Mobile view: vertical layout - first 2 fields
           <div className={styles.responsiveItem}>
-            <div className={styles.responsiveRow}>
-              <div className={styles.responsivePrimary}>
-                {item[displayFields[0]] || 'N/A'}
-              </div>
+            <div className={styles.responsivePrimary}>
+              {item[displayFields[0]]}
             </div>
-            {displayFields.length > 1 && (
-              <div className={styles.responsiveRow}>
-                <div className={styles.responsiveSecondary}>
-                  {item[displayFields[1]] || 'N/A'}
-                </div>
-              </div>
-            )}
-            {/* Show additional fields as hidden info */}
-            {displayFieldKeys.length > 2 && (
-              <div className={styles.moreInfo}>
-                +{displayFieldKeys.length - 2} more fields
+            {displayFields[1] && (
+              <div className={styles.responsiveSecondary}>
+                {item[displayFields[1]]}
               </div>
             )}
           </div>
@@ -257,58 +269,18 @@ const PopupListSelector = ({
       onCancel={handleClose}
       footer={null}
       width="auto"
-      style={{ 
-        maxWidth: '800px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        padding: 0
-      }}
-      styles={{
-        content: {
-          padding: 0,
-          borderRadius: '16px',
-          overflow: 'hidden',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-          animation: 'popupFadeIn 0.3s ease-out'
-        },
-        mask: {
-          animation: 'fadeIn 0.3s ease-out'
-        }
-      }}
+      style={{ maxWidth: '800px', top: '50%', transform: 'translateY(-50%)' }}
       closeIcon={null}
-      transitionName=""
-      maskTransitionName=""
-      wrapClassName={styles.modalWrapper}
     >
-      <div 
-        className={styles.container} 
-        style={{ maxHeight: isResponsive ? '60vh' : maxHeight }}
-      >
+      <div className={styles.container} style={{ maxHeight }}>
         {/* Header */}
-        <div 
-          className={styles.header}
-          style={{ 
-            background: tableStyles.headerBackground || 'linear-gradient(135deg, #307AC8 0%, #06A7EA 100%)',
-            padding: isResponsive ? '12px 16px' : '16px 20px'
-          }}
-        >
-          <div className={styles.headerTitle}>
-            {title}
-          </div>
-          <Button
-            type="text"
-            icon={<CloseOutlined />}
-            onClick={handleClose}
-            className={styles.closeBtn}
-            size={isResponsive ? 'small' : 'middle'}
-          />
+        <div className={styles.header}>
+          <div className={styles.headerTitle}>{title}</div>
+          <Button type="text" icon={<CloseOutlined />} onClick={handleClose} className={styles.closeBtn} />
         </div>
-        
+
         {/* Search */}
-        <div 
-          className={styles.searchContainer}
-          style={{ padding: isResponsive ? '12px 16px' : '16px 20px' }}
-        >
+        <div className={styles.searchContainer}>
           <Input
             ref={searchInputRef}
             placeholder={searchPlaceholder}
@@ -316,36 +288,24 @@ const PopupListSelector = ({
             onChange={(e) => setSearchText(e.target.value)}
             prefix={<SearchOutlined />}
             className={styles.searchInput}
-            size={isResponsive ? 'small' : 'middle'}
           />
         </div>
-        
+
         {/* Table Header */}
-        {headerNames.length > 0 && !isResponsive && (
-          <div 
-            className={styles.tableHeader}
-            style={{ padding: isResponsive ? '8px 16px' : '12px 20px' }}
-          >
+        {!isResponsive && headerNames.length > 0 && (
+          <div className={styles.tableHeader}>
             <div className={styles.columnContainer}>
-              {headerNames.map((header, idx) => {
-                const width = columnWidths[header] || `${100 / headerNames.length}%`;
-                return (
-                  <div key={idx} className={styles.columnItem} style={{ width }}>
-                    <div className={styles.headerText}>
-                      {header}
-                    </div>
-                  </div>
-                );
-              })}
+              {getHeaderNames().map((header, idx) => (
+                <div key={idx} className={styles.columnItem}>
+                  <div className={styles.headerText}>{header}</div>
+                </div>
+              ))}
             </div>
           </div>
         )}
-        
-        {/* List Container */}
-        <div 
-          className={styles.listContent}
-          ref={listRef}
-        >
+
+        {/* List */}
+        <div className={styles.listContent} ref={listRef}>
           {initialLoading ? (
             <div className={styles.emptyState}>
               <Spin size="large" />
@@ -353,41 +313,19 @@ const PopupListSelector = ({
             </div>
           ) : filteredData.length === 0 ? (
             <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>📭</div>
-              <div className={styles.emptyText}>
-                {searchText ? 'No items match your search' : 'No items available'}
-              </div>
-              <div className={styles.emptySubtext}>
-                {searchText ? 'Try a different search term' : 'Check back later'}
-              </div>
+              <div>No items found</div>
             </div>
           ) : (
-            <>
-              <div className={styles.listItems}>
-                {filteredData.map((item, index) => renderItem(item, index))}
-              </div>
-              
-              {hasMore && !loading && (
-                <div className={styles.loadMore}>
-                  <Button
-                    type="text"
-                    icon={<DownOutlined />}
-                    onClick={handleLoadMore}
-                    className={styles.loadMoreBtn}
-                    size={isResponsive ? 'small' : 'middle'}
-                  >
-                    Load More
-                  </Button>
-                </div>
-              )}
-              
-              {loading && (
-                <div className={styles.loadingMore}>
-                  <Spin size="small" />
-                  <span className={styles.loadingMoreText}>Loading more...</span>
-                </div>
-              )}
-            </>
+            <div className={styles.listItems}>
+              {filteredData.map((item, index) => renderItem(item, index))}
+            </div>
+          )}
+
+          {loading && (
+            <div className={styles.loadingMore}>
+              <Spin size="small" />
+              <span className={styles.loadingMoreText}>Loading...</span>
+            </div>
           )}
         </div>
       </div>

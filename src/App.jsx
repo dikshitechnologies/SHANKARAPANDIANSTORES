@@ -17,7 +17,6 @@ function App() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="test" element={<Test />} />
           <Route path="sales-invoice" element={<SalesInvoice />} />
           <Route path="/masters/ledger-creation" element={<LedgerCreation />} />
           <Route path="/masters/item-creation" element={<ItemCreation />} />
