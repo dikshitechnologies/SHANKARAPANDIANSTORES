@@ -7,6 +7,9 @@ import LedgerCreation from './pages/Ledgercreation/Ledgercreation'
 import ItemCreation from './pages/ItemCreation/ItemCreation'
 import LedgerGroupCreation from './pages/Ledgergroupcreation/Ledgergroupcreation'
 import ItemGroupCreation from './pages/ItemGroupCreation/ItemGroupCreation'
+import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
+import UnitCreation from './pages/UnitCreation/UnitCreation'
+
 function App() {
   return (
     <div className="app">
@@ -15,10 +18,12 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="test" element={<Test />} />
+          <Route path="sales-invoice" element={<SalesInvoice />} />
           <Route path="/masters/ledger-creation" element={<LedgerCreation />} />
           <Route path="/masters/item-creation" element={<ItemCreation />} />
           <Route path="/masters/ledger-group-creation" element={<LedgerGroupCreation />} />
           <Route path="/masters/item-group-creation" element={<ItemGroupCreation />} />
+          <Route path="/masters/unit-creation" element={<UnitCreation />} />
         </Routes>
       </main>
     </div>
