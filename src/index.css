@@ -21,7 +21,7 @@ html, body {
 }
 
 .main-content {
-  padding-top: 80px; /* Space for fixed navbar */
+  /* padding-top: 80px;  */
   min-height: calc(100vh - 120px);
 }
 
@@ -38,7 +38,7 @@ html, body {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .main-content {
-    padding-top: 70px;
+    /* padding-top: 70px; */
   }
   
   .page-container {

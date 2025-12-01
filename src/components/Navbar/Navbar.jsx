@@ -73,6 +73,7 @@ const Navbar = () => {
 
   const masterItems = [
     { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <AppstoreOutlined /> },
+    { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
     { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined /> },
     { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <ShopOutlined /> },
     { name: 'Item Creation', path: '/masters/item-creation', icon: <BuildOutlined /> },
