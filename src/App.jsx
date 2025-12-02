@@ -6,6 +6,7 @@ import LedgerCreation from './pages/Ledgercreation/Ledgercreation'
 import ItemCreation from './pages/ItemCreation/ItemCreation'
 import LedgerGroupCreation from './pages/Ledgergroupcreation/Ledgergroupcreation'
 import ItemGroupCreation from './pages/ItemGroupCreation/ItemGroupCreation'
+import Scrap from './pages/Scrap/Scrap'
 import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
 import UnitCreation from './pages/UnitCreation/UnitCreation'
@@ -23,6 +24,7 @@ function App() {
           <Route path="/masters/item-creation" element={<ItemCreation />} />
           <Route path="/masters/ledger-group-creation" element={<LedgerGroupCreation />} />
           <Route path="/masters/item-group-creation" element={<ItemGroupCreation />} />
+          <Route path="/transactions/scrap" element={<Scrap />} />
           <Route path="/popup-list-selector-example" element={<ExampleUsage />} />
           <Route path="/masters/unit-creation" element={<UnitCreation />} />
           <Route path="/transactions/purchase-invoice" element={<PurchaseInvoice />} />

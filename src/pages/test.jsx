@@ -56,7 +56,7 @@ const [activeButton, setActiveButton] = useState("add");
 
   return (
     <div>
-        <div style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 'bold',width:'17%' }}>
+        <div style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 'bold',width:'300px' }}>
     <ActionButtons 
       activeButton={activeButton}
   onButtonClick={(type) => setActiveButton(type)}

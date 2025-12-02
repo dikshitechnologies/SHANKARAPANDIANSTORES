@@ -87,7 +87,8 @@ const Navbar = () => {
     { name: 'Sales Invoice', path: 'sales-invoice', icon: <FileTextOutlined /> },
     { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
-    { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> }
+    { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> },
+    {name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> }
   ];
 
   // Desktop hover handlers

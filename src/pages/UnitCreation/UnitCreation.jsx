@@ -1,1208 +1,1145 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { motion } from "framer-motion";
-import apiService from "../../api/apiService";
-import { API_ENDPOINTS } from "../../api/endpoints";
-
-
-// --- SVG Icons for better UI ---
-const CreateIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    fill="currentColor"
-    viewBox="0 0 16 16"
-  >
-    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-  </svg>
-);
-const EditIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    fill="currentColor"
-    viewBox="0 0 16 16"
-  >
-    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
-    <path
-      fillRule="evenodd"
-      d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"
-    />
-  </svg>
-);
-const DeleteIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    fill="currentColor"
-    viewBox="0 0 16 16"
-  >
-    <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5zM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11zm-7.487 1a.5.5 0 0 1 .528.47l.8 10a1 1 0 0 0 .997.93h6.23a1 1 0 0 0 .997-.93l.8-10a.5.5 0 0 1 .528-.47H3.513zM5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5z" />
-  </svg>
-);
-const SearchIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    fill="currentColor"
-    viewBox="0 0 16 16"
-  >
-    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-  </svg>
-);
-const CloseIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    fill="currentColor"
-    viewBox="0 0 16 16"
-  >
-    <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z" />
-  </svg>
-);
-
-// Popup Component for Edit/Delete Selection
-const SizeSelectionPopup = ({
-  isOpen,
-  onClose,
-  sizes,
-  onSelect,
-  title,
-  action
-}) => {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredSizes = sizes.filter(
-    (item) =>
-      item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.size.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  if (!isOpen) return null;
-
-  return (
-    <motion.div
-      className="popup-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.div
-        className="popup-content"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-      >
-        <div className="popup-header">
-          <h3>{title}</h3>
-          <button className="close-btn" onClick={onClose}>
-            <CloseIcon />
-          </button>
-        </div>
-
-        <div className="popup-body">
-          <div className="search-bar">
-            <span className="search-icon">
-              <SearchIcon />
-            </span>
-            <input
-              type="text"
-              placeholder="Search by code or size..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="popup-table-container">
-            <table className="popup-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "30%" }}>Code</th>
-                  <th style={{ width: "70%" }}>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSizes.length ? (
-                  filteredSizes.map((item) => (
-                    <tr
-                      key={item.code}
-                      onClick={() => {
-                        onSelect(item);
-                        onClose();
-                      }}
-                      className="popup-row"
-                    >
-                      <td>{item.code}</td>
-                      <td>{item.size}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="2"
-                      style={{ textAlign: "center", color: "#888", padding: "2rem" }}
-                    >
-                      No sizes found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import apiService from '../../api/apiService';
+import { API_ENDPOINTS } from '../../api/endpoints';
+import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+// --- Inline SVG icons (matching ItemGroupCreation style) ---
+const Icon = {
+  Plus: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" />
+    </svg>
+  ),
+  Edit: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+    </svg>
+  ),
+  Trash: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+    </svg>
+  ),
+  Search: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
+    </svg>
+  ),
+  Close: ({ size = 18 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 16.88 16.88z" />
+    </svg>
+  ),
+  Refresh: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M17.65 6.35A8 8 0 103.95 15.5H6a6 6 0 118.9-5.31l-1.9-1.9h6v6l-2.35-2.35z" />
+    </svg>
+  ),
+  Check: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+    </svg>
+  ),
+  Info: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+    </svg>
+  ),
 };
 
-// --- Simple TreeNode for Units (flat list rendered as tree for consistent UX) ---
-function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey }) {
-  const hasChildren = node.children && node.children.length > 0;
-  const isExpanded = expandedKeys.has(node.key);
-  const isSelected = selectedKey === node.key;
+export default function UnitCreation() {
+  // ---------- state ----------
+  const [units, setUnits] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState(null);
 
+  const [form, setForm] = useState({ 
+    fuCode: "", 
+    unitName: ""
+  });
+  
+  const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
+  const [editingId, setEditingId] = useState(null);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+
+  // modals & queries
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editQuery, setEditQuery] = useState("");
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteQuery, setDeleteQuery] = useState("");
+
+  const [existingQuery, setExistingQuery] = useState("");
+
+  // refs for step-by-step Enter navigation
+  const unitCodeRef = useRef(null);
+  const unitNameRef = useRef(null);
+
+  // Screen width state for responsive design
+  const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Base URL for API
+
+  // ---------- API functions ----------
+  const fetchNextUnitCode = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.NEXT_SIZE_CODE);
+      // Support both string and object responses
+      if (typeof data === 'string' && data.trim()) {
+        setForm(prev => ({ ...prev, fuCode: data.trim() }));
+      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
+        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
+      }
+      return data;
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to load next unit code" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUnits = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GET_SIZE_ITEMS);
+      setUnits(data || []);
+      setMessage(null);
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to load units" });
+      console.error("API Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getUnitByCode = async (code) => {
+    try {
+      setLoading(true);
+      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GETUNITCODE(code));
+      return data;
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to fetch unit" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createUnit = async (unitData) => {
+    try {
+      setLoading(true);
+      const data = await apiService.post(API_ENDPOINTS.UNITCREATION.CREATE_SIZE, unitData);
+      return data;
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to create unit" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUnit = async (unitData) => {
+    try {
+      setLoading(true);
+      const data = await apiService.put(API_ENDPOINTS.UNITCREATION.UPDATE_SIZE(unitData.fuCode), unitData);
+      return data;
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to update unit" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteUnit = async (unitCode) => {
+    try {
+      setLoading(true);
+      const data = await apiService.del(API_ENDPOINTS.UNITCREATION.DELETE_SIZE(unitCode));
+      return data;
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Failed to delete unit" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ---------- effects ----------
+  useEffect(() => {
+    loadInitial();
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setScreenWidth(width);
+      setIsMobile(width <= 768);
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (unitCodeRef.current) unitCodeRef.current.focus();
+  }, []);
+
+  // ---------- handlers ----------
+  const loadInitial = async () => {
+    await Promise.all([fetchUnits(), fetchNextUnitCode()]);
+  };
+
+  const handleEdit = async () => {
+    if (!form.fuCode || !form.unitName) {
+      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to update unit "${form.unitName}"?`)) return;
+
+    try {
+      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
+      await updateUnit(unitData);
+      await loadInitial();
+      
+      setMessage({ type: "success", text: "Unit updated successfully." });
+      resetForm(true);
+    } catch (err) {
+      // Error message already set in updateUnit
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!form.fuCode) {
+      setMessage({ type: "error", text: "Please select a unit to delete." });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to delete unit "${form.unitName}"?`)) return;
+
+    try {
+      await deleteUnit(form.fuCode);
+      await loadInitial();
+      
+      setMessage({ type: "success", text: "Unit deleted successfully." });
+      resetForm();
+    } catch (err) {
+      // Special handling for referenced units
+      if (err.message.includes("used in related tables") || err.message.includes("409")) {
+        setMessage({ 
+          type: "error", 
+          text: `Cannot delete unit "${form.unitName}". It is referenced in other tables and cannot be removed.` 
+        });
+      }
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!form.fuCode || !form.unitName) {
+      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to create unit "${form.unitName}"?`)) return;
+
+    try {
+      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
+      await createUnit(unitData);
+      await loadInitial();
+      
+      setMessage({ type: "success", text: "Unit created successfully." });
+      resetForm(true);
+    } catch (err) {
+      // Error message already set in createUnit
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (actionType === "Add") await handleAdd();
+    else if (actionType === "edit") await handleEdit();
+    else if (actionType === "delete") await handleDelete();
+  };
+
+  const resetForm = (keepAction = false) => {
+    fetchNextUnitCode();
+    setForm(prev => ({ ...prev, unitName: "" }));
+    setEditingId(null);
+    setDeleteTargetId(null);
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
+    setTimeout(() => unitNameRef.current?.focus(), 60);
+  };
+
+  const openEditModal = () => {
+    setEditQuery("");
+    setEditModalOpen(true);
+  };
+
+  const handleEditRowClick = (u) => {
+    setForm({ fuCode: u.uCode, unitName: u.unitName });
+    setActionType("edit");
+    setEditingId(u.uCode);
+    setEditModalOpen(false);
+    setTimeout(() => unitNameRef.current?.focus(), 60);
+  };
+
+  const openDeleteModal = () => {
+    setDeleteQuery("");
+    setDeleteModalOpen(true);
+  };
+
+  // Fetch items for popup list selector (simple client-side paging/filtering)
+  const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
+    const pageSize = 20;
+    const q = (search || '').trim().toLowerCase();
+    const filtered = q
+      ? units.filter(u => (u.uCode || '').toLowerCase().includes(q) || (u.unitName || '').toLowerCase().includes(q))
+      : units;
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [units]);
+
+  const handleDeleteRowClick = (u) => {
+    setForm({ fuCode: u.uCode, unitName: u.unitName });
+    setActionType("delete");
+    setDeleteTargetId(u.uCode);
+    setDeleteModalOpen(false);
+    setTimeout(() => unitNameRef.current?.focus(), 60);
+  };
+
+  const onUnitCodeKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      unitNameRef.current?.focus();
+    }
+  };
+
+  const onUnitNameKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const stopEnterPropagation = (e) => {
+    if (e.key === "Enter") {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  };
+
+  // ---------- filters ----------
+  const filteredEditUnits = useMemo(() => {
+    const q = editQuery.trim().toLowerCase();
+    if (!q) return units;
+    return units.filter(
+      (u) =>
+        (u.uCode || "").toLowerCase().includes(q) ||
+        (u.unitName || "").toLowerCase().includes(q)
+    );
+  }, [editQuery, units]);
+
+  const filteredDeleteUnits = useMemo(() => {
+    const q = deleteQuery.trim().toLowerCase();
+    if (!q) return units;
+    return units.filter(
+      (u) =>
+        (u.uCode || "").toLowerCase().includes(q) ||
+        (u.unitName || "").toLowerCase().includes(q)
+    );
+  }, [deleteQuery, units]);
+
+  const filteredExisting = useMemo(() => {
+    const q = existingQuery.trim().toLowerCase();
+    if (!q) return units;
+    return units.filter(
+      (u) => 
+        (u.uCode || "").toLowerCase().includes(q) || 
+        (u.unitName || "").toLowerCase().includes(q)
+    );
+  }, [existingQuery, units]);
+
+  // ---------- render ----------
   return (
-    <div className="tree-node" style={{ paddingLeft: `${12 + level * 16}px` }}>
-      <div
-        className={`tree-row ${isSelected ? "selected" : ""}`}
-        onClick={() => onSelect(node)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && onSelect(node)}
-      >
-        {hasChildren ? (
-          <button
-            className="chev"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleExpand(node.key);
-            }}
-            aria-label={isExpanded ? "Collapse" : "Expand"}
-          >
-            <span className={`chev-rot ${isExpanded ? "open" : ""}`}>▸</span>
-          </button>
-        ) : (
-          <span className="chev-placeholder" />
-        )}
+    <div className="uc-root" role="region" aria-labelledby="unit-creation-title">
+      {/* Google/Local font */}
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
-        <span className="node-text" title={node.displayName} style={{ marginLeft: 6 }}>
-          {node.displayName}
-        </span>
+      <style>{`
+        :root{
+          /* blue theme (matching ItemGroupCreation) */
+          --bg-1: #f0f7fb;
+          --bg-2: #f7fbff;
+          --glass: rgba(255,255,255,0.55);
+          --glass-2: rgba(255,255,255,0.35);
+          --accent: #307AC8; /* primary */
+          --accent-2: #1B91DA; /* secondary */
+          --accent-3: #06A7EA; /* tertiary */
+          --success: #06A7EA;
+          --danger: #ef4444;
+          --warning: #f59e0b;
+          --muted: #64748b;
+          --card-shadow: 0 8px 30px rgba(16,24,40,0.08);
+          --glass-border: rgba(255,255,255,0.45);
+        }
+
+        /* Page layout */
+        .uc-root {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px 16px;
+          background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+          font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+          font-size: 18px; /* increased base font size */
+          box-sizing: border-box;
+        }
+
+        /* Main dashboard card (glass) */
+        .dashboard {
+          width: 100%;
+          max-width: 1100px;
+          border-radius: 16px;
+          padding: 20px;
+          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
+          box-shadow: var(--card-shadow);
+          backdrop-filter: blur(8px) saturate(120%);
+          border: 1px solid rgba(255,255,255,0.6);
+          overflow: visible;
+          transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+        }
+        .dashboard:hover { transform: translateY(-6px); }
+
+        /* header */
+        .top-row {
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:12px;
+          margin-bottom: 18px;
+          flex-wrap: wrap;
+        }
+        .title-block {
+          display:flex;
+          align-items: center;
+          gap:12px;
+        }
+        .title-block h2 {
+          margin:0;
+          font-family: 'Poppins', 'Inter', sans-serif;
+          font-size: 24px; /* slightly larger title */
+          color: #0f172a;
+          letter-spacing: -0.2px;
+        }
+        .subtitle {
+          color: var(--muted);
+          font-size: 16px;
+        }
+
+        /* action pills */
+        .actions {
+          display:flex;
+          gap:10px;
+          align-items:center;
+          flex-wrap:wrap;
+        }
+        .action-pill {
+          display:inline-flex;
+          gap:8px;
+          align-items:center;
+          padding:10px 12px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(250,250,252,0.9));
+          border: 1px solid var(--glass-border);
+          cursor:pointer;
+          box-shadow: 0 6px 16px rgba(2,6,23,0.04);
+          font-weight: 600;
+          font-size: 18px;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .action-pill:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 20px rgba(2,6,23,0.08);
+        }
+        .action-pill:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+        .action-pill.primary { color:white; background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
+        .action-pill.warn { color:white; background: linear-gradient(180deg, var(--warning), #f97316); }
+        .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
+
+        /* grid layout */
+        .grid {
+          display:grid;
+          grid-template-columns: 1fr 360px;
+          gap:18px;
+          align-items:start;
+        }
+
+        /* left card (form) */
+        .card {
+          background: rgba(255,255,255,0.85);
+          border-radius: 12px;
+          padding: 16px;
+          border: 1px solid rgba(15,23,42,0.04);
+          box-shadow: 0 6px 20px rgba(12,18,35,0.06);
+        }
+
+        label.field-label {
+          display:block;
+          margin-bottom:6px;
+          font-weight:700;
+          color:#0f172a;
+          font-size:18px;
+          text-align: left;
+          width: 100%;
+        }
+        .asterisk {
+          color: var(--danger);
+          font-weight: 700;
+        }
+
+        .field { margin-bottom:12px; display:flex; flex-direction:column; align-items:flex-start; }
+
+        .row { 
+          display:flex; 
+          gap:8px; 
+          align-items:center; 
+          width:100%;
+          flex-wrap: wrap;
+        }
+        .input, .search {
+          flex:1;
+          min-width: 0;
+          padding:10px 12px;
+          border-radius:10px;
+          border: 1px solid rgba(15,23,42,0.06);
+          background: linear-gradient(180deg, #fff, #fbfdff);
+          font-size:18px;
+          color:#0f172a;
+          box-sizing:border-box;
+          transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
+          text-align: left;
+        }
+        .input:focus, .search:focus { 
+          outline:none; 
+          box-shadow: 0 8px 26px rgba(48,122,200,0.08); 
+          transform: translateY(-1px); 
+          border-color: rgba(48,122,200,0.25); 
+        }
+        .input:read-only {
+          background: #f8fafc;
+          color: var(--muted);
+          cursor: not-allowed;
+        }
+
+        .btn {
+          padding:10px 12px;
+          border-radius:10px;
+          border:1px solid rgba(12,18,35,0.06);
+          background: linear-gradient(180deg,#fff,#f8fafc);
+          cursor:pointer;
+          min-width:86px;
+          font-weight:600;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+        .btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(12,18,35,0.1);
+        }
+        .btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+
+        /* right side panel */
+        .side {
+          display:flex;
+          flex-direction:column;
+          gap:12px;
+        }
+        .stat {
+          background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(250,251,255,0.7));
+          border-radius: 12px;
+          padding:12px;
+          border: 1px solid rgba(12,18,35,0.04);
+        }
+        .muted { color: var(--muted); font-size:15px; }
+
+        /* message */
+        .message {
+          margin-top:8px;
+          padding:12px;
+          border-radius:10px;
+          font-weight:600;
+          font-size: 16px;
+        }
+        .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
+        .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
+        .message.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
+        /* submit row */
+        .submit-row { 
+          display:flex; 
+          gap:12px; 
+          margin-top:14px; 
+          align-items:center; 
+          flex-wrap:wrap; 
+          justify-content: flex-end;
+        }
+        .submit-primary {
+          padding:12px 16px;
+          background: linear-gradient(180deg,var(--accent),var(--accent-2));
+          color:white;
+          border-radius:10px;
+          border:none;
+          font-weight:700;
+          cursor:pointer;
+          min-width: 120px;
+          transition: all 0.2s;
+          font-size: 18px;
+        }
+        .submit-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(48,122,200,0.25);
+        }
+        .submit-primary:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+        .submit-clear {
+          padding:10px 12px;
+          background:#fff;
+          border:1px solid rgba(12,18,35,0.06);
+          border-radius:10px;
+          cursor:pointer;
+          transition: all 0.2s;
+          font-size: 18px;
+
+        }
+        .submit-clear:hover:not(:disabled) {
+          background: #f8fafc;
+          border-color: rgba(48,122,200,0.3);
+          transform: translateY(-1px);
+        }
+        
+        /* search container */
+        .search-container {
+          position: relative;
+          width: 100%;
+        }
+
+        .search-with-clear {
+          width: 100%;
+          padding: 12px 40px 12px 16px;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          font-size: 16px;
+          transition: all 0.2s;
+          background: #fff;
+        }
+
+        .search-with-clear:focus {
+          outline: none;
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px rgba(48, 122, 200, 0.1);
+        }
+
+        .clear-search-btn {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: transparent;
+          border: none;
+          padding: 4px;
+          cursor: pointer;
+          color: #6b7280;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .clear-search-btn:hover {
+          background: #f3f4f6;
+          color: #374151;
+        }
+
+        /* units table */
+        .units-table-container {
+          max-height: 400px;
+          overflow-y: auto;
+          border-radius: 8px;
+          border: 1px solid rgba(12,18,35,0.04);
+          margin-top: 12px;
+        }
+
+        .units-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 18px;
+        }
+
+        .units-table th {
+          position: sticky;
+          top: 0;
+          background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+          padding: 12px;
+          text-align: left;
+          font-weight: 700;
+          color: var(--accent);
+          border-bottom: 2px solid var(--accent);
+          font-size: 18px;
+          z-index: 1;
+        }
+
+        .units-table td {
+          padding: 12px;
+          border-bottom: 1px solid rgba(230, 244, 255, 0.8);
+          color: #3a4a5d;
+        }
+
+        .units-table tr:hover {
+          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
+          cursor: pointer;
+        }
+
+        .units-table tr.selected {
+          background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
+          box-shadow: inset 2px 0 0 var(--accent);
+        }
+
+        /* modal overlay (glass) */
+        .modal-overlay {
+          position:fixed; 
+          inset:0; 
+          display:flex; 
+          align-items:center; 
+          justify-content:center; 
+          background: rgba(2,6,23,0.46); 
+          z-index:1200; 
+          padding:20px;
+          backdrop-filter: blur(4px);
+        }
+        .modal {
+          width:100%; 
+          max-width:720px; 
+          max-height:80vh; 
+          overflow:auto; 
+          background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
+          border-radius:12px; 
+          padding:14px;
+          border:1px solid rgba(255,255,255,0.5);
+          box-shadow: 0 18px 50px rgba(2,6,23,0.36);
+          backdrop-filter: blur(8px);
+        }
+
+        .dropdown-list { 
+          max-height:50vh; 
+          overflow:auto; 
+          border-top:1px solid rgba(12,18,35,0.03); 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          padding:6px 0; 
+        }
+        .dropdown-item { 
+          padding:12px; 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          cursor:pointer; 
+          display:flex; 
+          flex-direction:column; 
+          gap:4px; 
+          text-align: left;
+          transition: all 0.2s;
+        }
+        .dropdown-item:hover { 
+          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
+          transform: translateX(6px); 
+        }
+
+        /* tips panel */
+        .tips-panel {
+          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
+          border-left: 3px solid var(--accent);
+        }
+
+        /* Responsive styles */
+        @media (max-width: 1024px) {
+          .grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+          .side {
+            order: 2;
+          }
+          .card {
+            order: 1;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .uc-root {
+            padding: 16px 12px;
+          }
+          .dashboard {
+            padding: 16px;
+          }
+          .top-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+          }
+          .actions {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .action-pill {
+            flex: 1;
+            justify-content: center;
+            min-width: 0;
+          }
+          .units-table-container {
+            max-height: 300px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .uc-root {
+            padding: 12px 8px;
+          }
+          .dashboard {
+            padding: 12px;
+            border-radius: 12px;
+          }
+          .title-block h2 {
+            font-size: 18px;
+          }
+          .action-pill {
+            padding: 8px 10px;
+            font-size: 12px;
+          }
+          .input, .search {
+            padding: 8px 10px;
+            font-size: 13px;
+          }
+          .btn {
+            padding: 8px 10px;
+            min-width: 70px;
+            font-size: 13px;
+          }
+          .submit-primary, .submit-clear {
+            flex: 1;
+            min-width: 0;
+          }
+          .units-table th,
+          .units-table td {
+            padding: 8px;
+            font-size: 12px;
+          }
+          .modal-overlay {
+            padding: 12px;
+          }
+          .modal {
+            padding: 12px;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .uc-root {
+            padding: 8px 6px;
+          }
+          .dashboard {
+            padding: 10px;
+          }
+          .title-block {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+          .actions {
+            gap: 6px;
+          }
+          .action-pill {
+            padding: 6px 8px;
+            font-size: 11px;
+          }
+          .card {
+            padding: 12px;
+          }
+          .stat {
+            padding: 10px;
+          }
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .loading {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+      `}</style>
+
+      <div className="dashboard" aria-labelledby="unit-creation-title">
+        <div className="top-row">
+          <div className="title-block">
+            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div>
+              <h2 id="unit-creation-title">Unit Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete measurement units.</div>
+            </div>
+          </div>
+
+          <div className="actions" role="toolbar" aria-label="actions">
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "delete"} />
+          </div>
+        </div>
+
+        <div className="grid" role="main">
+          <div className="card" aria-live="polite">
+            {/* Unit Code field */}
+            <div className="field">
+              <label className="field-label">
+                Unit Code <span className="asterisk">*</span>
+              </label>
+              <div className="row">
+                <input
+                  ref={unitCodeRef}
+                  className="input"
+                  value={form.fuCode}
+                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
+                  placeholder="Unit code (auto-generated)"
+                  onKeyDown={onUnitCodeKeyDown}
+                  disabled={loading}
+                  aria-label="Unit Code"
+                  readOnly={actionType === "edit" || actionType === "delete"}
+                />
+                  {/* <button
+                    className="btn"
+                    onClick={fetchNextUnitCode}
+                    disabled={loading || actionType === "edit" || actionType === "delete"}
+                    type="button"
+                    aria-label="Refresh unit code"
+                    title="Get next unit code"
+                  >
+                    <Icon.Refresh />
+                  </button> */}
+              </div>
+            </div>
+
+            {/* Unit Name field */}
+            <div className="field">
+              <label className="field-label">
+                Unit Name <span className="asterisk">*</span>
+              </label>
+              <div className="row">
+                <input 
+                  ref={unitNameRef} 
+                  className="input" 
+                  value={form.unitName} 
+                  onChange={(e) => setForm(s => ({ ...s, unitName: e.target.value }))} 
+                  placeholder="Enter unit name (e.g., M.T, KGS, PCS)" 
+                  onKeyDown={onUnitNameKeyDown}
+                  disabled={loading}
+                  aria-label="Unit Name"
+                  readOnly={actionType === "delete"}
+                />
+              </div>
+            </div>
+
+            {/* Message display */}
+            {message && (
+              <div className={`message ${message.type}`} role="alert">
+                {message.text}
+              </div>
+            )}
+
+            {/* Submit controls */}
+            <div className="submit-row">
+              <button
+                className="submit-primary"
+                onClick={handleSubmit}
+                disabled={loading}
+                type="button"
+              >
+                {loading ? "Processing..." : actionType}
+              </button>
+              <button
+                className="submit-clear"
+                onClick={resetForm}
+                disabled={loading}
+                type="button"
+              >
+                Clear
+              </button>
+            </div>
+               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Units</div>
+              <div className="search-container" style={{ marginBottom: "10px" }}>
+                <input
+                  className="search-with-clear"
+                  placeholder="Search existing units..."
+                  value={existingQuery}
+                  onChange={(e) => setExistingQuery(e.target.value)}
+                  aria-label="Search existing units"
+                />
+                {existingQuery && (
+                  <button
+                    className="clear-search-btn"
+                    onClick={() => setExistingQuery("")}
+                    type="button"
+                    aria-label="Clear search"
+                  >
+                    <Icon.Close size={16} />
+                  </button>
+                )}
+              </div>
+              
+              <div className="units-table-container">
+                {loading ? (
+                  <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
+                    Loading units...
+                  </div>
+                ) : filteredExisting.length === 0 ? (
+                  <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
+                    {units.length === 0 ? "No units found" : "No matching units"}
+                  </div>
+                ) : (
+                  <table className="units-table">
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>Unit Name</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredExisting.map((u) => (
+                        <tr 
+                          key={u.uCode}
+                          className={form.fuCode === u.uCode ? "selected" : ""}
+                          onClick={() => {
+                            setForm({ fuCode: u.uCode, unitName: u.unitName });
+                            setActionType("edit");
+                          }}
+                        >
+                          <td>{u.uCode}</td>
+                          <td>{u.unitName}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right side panel */}
+          <div className="side" aria-live="polite">
+            <div className="stat">
+              <div className="muted">Current Action</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Unit" : "Delete Unit"}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Unit Code</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.fuCode || "Auto-generated"}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Unit Name</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.unitName || "Not set"}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Existing Units</div>
+              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
+                {units.length}
+              </div>
+            </div>
+
+            <div className="stat tips-panel">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <Icon.Info />
+                <div style={{ fontWeight: 700 }}>Quick Tips</div>
+              </div>
+              
+              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Unit code is auto-generated for new units</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>For edit/delete, use search modals to find units</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Common units: KG, M.T, PCS, LTR, MTR</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Existing Units Table */}
+         
+          </div>
+        </div>
       </div>
 
-      {hasChildren && (
-        <div
-          className={`node-children ${isExpanded ? "show" : ""}`}
-          style={{
-            height: isExpanded ? "auto" : 0,
-            overflow: isExpanded ? "visible" : "hidden",
-            transition: "all 220ms cubic-bezier(.2,.8,.2,1)",
-          }}
-        >
-          {isExpanded &&
-            node.children.map((child) => (
-              <TreeNode
-                key={child.key}
-                node={child}
-                level={level + 1}
-                onSelect={onSelect}
-                expandedKeys={expandedKeys}
-                toggleExpand={toggleExpand}
-                selectedKey={selectedKey}
-              />
-            ))}
-        </div>
-      )}
+      <PopupListSelector
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
+        fetchItems={fetchItemsForModal}
+        title="Select Unit to Edit"
+        displayFieldKeys={[ 'unitName', 'uCode' ]}
+        searchFields={[ 'unitName', 'uCode' ]}
+        headerNames={[ 'Unit Name', 'Code' ]}
+        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        maxHeight="60vh"
+      />
+
+      <PopupListSelector
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
+        fetchItems={fetchItemsForModal}
+        title="Select Unit to Delete"
+        displayFieldKeys={[ 'unitName', 'uCode' ]}
+        searchFields={[ 'unitName', 'uCode' ]}
+        headerNames={[ 'Unit Name', 'Code' ]}
+        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        maxHeight="60vh"
+      />
     </div>
   );
 }
-
-const UnitCreation = () => {
-  const [selectedAction, setSelectedAction] = useState(ACTION_TYPES.CREATE);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [tableData, setTableData] = useState([]);
-  const [selectedCode, setSelectedCode] = useState("");
-  const [size, setSize] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
-  const [popupTitle, setPopupTitle] = useState("");
-  // Tree / left-pane state (to match LedgerGroupCreation UX)
-  const [expandedKeys, setExpandedKeys] = useState(new Set());
-  const [isTreeOpen, setIsTreeOpen] = useState(true);
-  const [searchTree, setSearchTree] = useState("");
-
-  // Alert modal hook
-  const { alertState, showAlert } = useAlertModal();
-
-  // Refs for keyboard navigation
-  const sizeRef = useRef(null);
-
-  // Form permissions hook
-  const { canCreate, canEdit, canDelete } = useFormPermissions("FRMSIZE");
-
-  // Set global alert function for actionHandlers
-  useEffect(() => {
-    setGlobalAlert(showAlert);
-  }, [showAlert]);
-
-  //   Fetch next code
-  const fetchNextCode = async () => {
-    try {
-      const res = await apiService.get(API_ENDPOINTS.NEXT_SIZE_CODE);
-      const cleanCode = typeof res === "string" ? res.trim() : res;
-      setSelectedCode(cleanCode);
-    } catch (err) {
-      console.error("Error fetching next code:", err);
-      // Fallback to default code if API fails
-      setSelectedCode("0002");
-    }
-  };
-
-  //   Fetch all sizes
-  const fetchData = async () => {
-    try {
-      const res = await apiService.get(API_ENDPOINTS.GET_SIZE_ITEMS);
-      const formatted = res.map((item) => ({
-        code: item.fcode,
-        size: item.fsize
-      }));
-      setTableData(formatted);
-    } catch (err) {
-      console.error("Error fetching sizes:", err);
-    }
-  };
-
-  //   Fetch data on component mount
-  useEffect(() => {
-    fetchNextCode();
-    fetchData();
-  }, []);
-
-  // Auto-focus first field on component mount and after clear
-  useEffect(() => {
-    if (sizeRef.current && selectedAction !== ACTION_TYPES.DELETE) {
-      sizeRef.current.focus();
-    }
-  }, [selectedAction]);
-
-  // Update clearForm to focus first field after clear
-  const clearForm = () => {
-    setSize("");
-    fetchNextCode();
-
-    // Focus first field after clear
-    setTimeout(() => {
-      if (sizeRef.current) {
-        sizeRef.current.focus();
-      }
-    }, 100);
-  };
-
-  // Handle Enter key press to move to next field
-  const handleKeyPress = (e, nextFieldRef) => {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // Prevent form submission
-      if (nextFieldRef && nextFieldRef.current) {
-        nextFieldRef.current.focus();
-      }
-    }
-  };
-
-  // Handle action button clicks
-  const handleActionClick = (action) => {
-    setSelectedAction(action);
-
-    if (action === ACTION_TYPES.EDIT || action === ACTION_TYPES.DELETE) {
-      setPopupTitle(action === ACTION_TYPES.EDIT ? "Select Size to Edit" : "Select Size to Delete");
-      setShowPopup(true);
-    }
-  };
-
-  // Handle selection from popup
-  const handlePopupSelect = (item) => {
-    setSelectedCode(item.code);
-    setSize(item.size);
-  };
-
-  const toggleExpand = (key) => {
-    setExpandedKeys((prev) => {
-      const s = new Set(prev);
-      if (s.has(key)) s.delete(key);
-      else s.add(key);
-      return s;
-    });
-  };
-
-  const handleSelectNode = (node) => {
-    setSelectedCode(node.key);
-    setSize(node.displayName);
-    if (selectedAction === ACTION_TYPES.CREATE) setSelectedAction(ACTION_TYPES.EDIT);
-    setShowPopup(false);
-  };
-
-  const nodes = useMemo(
-    () =>
-      tableData.map((item) => ({ key: item.code, displayName: item.size, children: [] })),
-    [tableData]
-  );
-
-  const filteredTree = useMemo(() => {
-    if (!searchTree) return nodes;
-    const q = searchTree.toLowerCase();
-    return nodes.filter((n) => n.key.toLowerCase().includes(q) || n.displayName.toLowerCase().includes(q));
-  }, [nodes, searchTree]);
-
-  //   Create / Update / Delete methods
-  const saveData = async () => {
-    // Validate input
-    const validation = validateAction.create(
-      { size },
-      ['size']
-    );
-
-    if (!validation.isValid) {
-      await showAlert({
-        title: 'Validation Error',
-        message: validation.message,
-        confirmText: 'OK',
-        cancelText: null,
-        variant: 'warning'
-      });
-      return;
-    }
-
-    // Show confirmation dialog
-    const confirmed = await showActionConfirmation(ACTION_TYPES.CREATE, 'size');
-    if (!confirmed) return;
-
-    setLoading(true);
-    try {
-      const payload = {
-        fcode: selectedCode,
-        fsize: size.trim()
-      };
-
-      const response = await apiService.post(
-        API_ENDPOINTS.CREATE_SIZE,
-        payload
-      );
-
-      // Handle success message
-      const messages = getActionMessages(ACTION_TYPES.CREATE, 'size');
-      const successMessage = typeof response === 'object'
-        ? messages.success
-        : response || messages.success;
-
-      await showAlert({
-        title: 'Success',
-        message: successMessage,
-        confirmText: 'OK',
-        cancelText: null,
-        variant: 'primary'
-      });
-      fetchData();
-      clearForm();
-    } catch (err) {
-      console.error("Failed to save size:", err);
-
-      // Handle error message
-      const messages = getActionMessages(ACTION_TYPES.CREATE, 'size');
-      const errorMessage = err.response?.data?.message
-        || err.response?.data
-        || err.message
-        || messages.error;
-
-      await showAlert({
-        title: 'Error',
-        message: errorMessage,
-        confirmText: 'OK',
-        cancelText: null,
-        variant: 'danger'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateData = async () => {
-    // Validate input
-    const validation = validateAction.edit(
-      { code: selectedCode, size },
-      ['size']
-    );
-
-    if (!validation.isValid) {
-      await showAlert({
-        title: 'Validation Error',
-        message: validation.message,
-        confirmText: 'OK',
-        cancelText: null,
-        variant: 'warning'
-      });
-      return;
-    }
-
-    // Show confirmation dialog
-    const confirmed = await showActionConfirmation(ACTION_TYPES.EDIT, 'size');
-    if (!confirmed) return;
-
-    setLoading(true);
-    try {
-      const payload = {
-        fcode: selectedCode,
-        fsize: size.trim()
-      };
-
-      const response = await apiService.put(
-        API_ENDPOINTS.UPDATE_SIZE,
-        payload
-      );
-
-      // Handle success message
-      const messages = getActionMessages(ACTION_TYPES.EDIT, 'size');
-      const successMessage = typeof response === 'object'
-        ? messages.success
-        : response || messages.success;
-
-      await showAlert({
-        title: 'Success',
-        message: successMessage,
-        confirmText: 'OK',
-        cancelText: null,
-        variant: 'primary'
-      });
-      fetchData();
-      clearForm();
-    } catch (err) {
-      console.error("Failed to update size:", err);
-
-      // Handle error message
-      const messages = getActionMessages(ACTION_TYPES.EDIT, 'size');
-      const errorMessage = err.response?.data?.message
-        || err.response?.data
-        || err.message
-        || messages.error;
-
-      await showAlert({
-        title: 'Error',
-        message: errorMessage,
-        confirmText: 'OK',
-        cancelText: null,
-        variant: 'danger'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteData = async () => {
-    // Validate selection
-    const validation = validateAction.delete({ code: selectedCode });
-
-    if (!validation.isValid) {
-      await showAlert({
-        title: 'Validation Error',
-        message: validation.message,
-        confirmText: 'OK',
-        cancelText: null,
-        variant: 'warning'
-      });
-      return;
-    }
-
-    // Show confirmation dialog with size name
-    const confirmed = await showActionConfirmation(ACTION_TYPES.DELETE, `size "${size}"`);
-    if (!confirmed) return;
-
-    setLoading(true);
-    try {
-      const response = await apiService.del(
-        API_ENDPOINTS.DELETE_SIZE(selectedCode)
-      );
-
-      // Handle success message
-      const messages = getActionMessages(ACTION_TYPES.DELETE, 'size');
-      const successMessage = typeof response === 'object'
-        ? messages.success
-        : response || messages.success;
-
-      await showAlert({
-        title: 'Success',
-        message: successMessage,
-        confirmText: 'OK',
-        cancelText: null,
-        variant: 'primary'
-      });
-      fetchData();
-      clearForm();
-    } catch (err) {
-      console.error("Failed to delete size:", err);
-
-      // Handle error message
-      const messages = getActionMessages(ACTION_TYPES.DELETE, 'size');
-      const errorMessage = err.response?.data?.message
-        || err.response?.data
-        || err.message
-        || messages.error;
-
-      await showAlert({
-        title: 'Error',
-        message: errorMessage,
-        confirmText: 'OK',
-        cancelText: null,
-        variant: 'danger'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = () => {
-    if (selectedAction === ACTION_TYPES.CREATE) saveData();
-    else if (selectedAction === ACTION_TYPES.EDIT) updateData();
-    else if (selectedAction === ACTION_TYPES.DELETE) deleteData();
-  };
-
-  const filteredData = tableData.filter(
-    (item) =>
-      item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.size.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  return (
-    <>
-      <style>{`
-  :root {
-    --primary-main: #02a85a;
-    --primary-dark: #027238;
-    --primary-light: #e8f5e9;
-    --primary-gradient: linear-gradient(90deg, #027238, #02a85a);
-
-    --warning-main: #fbc02d;
-    --warning-dark: #f57f17;
-    --warning-light: #fff8e1;
-    --warning-gradient: linear-gradient(90deg, #f57f17, #fbc02d);
-
-    --danger-main: #e53935;
-    --danger-dark: #c62828;
-    --danger-light: #ffebee;
-    --danger-gradient: linear-gradient(90deg, #c62828, #e53935);
-
-    --text-primary: #212529;
-    --text-secondary: #6c757d;
-    --background-light: #f8f9fa;
-    --background-white: #ffffff;
-    --border-color: #dee2e6;
-    --shadow: 0 4px 20px rgba(0,0,0,0.05);
-    --border-radius: 12px;
-  }
-
-  body {
-    font-family: "Poppins", sans-serif;
-    background: var(--background-light);
-    margin: 0;
-    color: var(--text-primary);
-  }
-
-  .page-wrapper {
-    padding: 2rem;
-    margin-top: 30px;
- 
-    transition: margin 0.3s ease;
-    background: var(--background-light);
-    min-height: calc(100vh - 60px);
-  }
-  
-  .main-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  
-  .left-column, .right-column {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-  
-  .right-column {
-    order: -1;
-  }
-
-  .action-buttons {
-    display: flex;
-    background: var(--background-white);
-    border-radius: 50px;
-    padding: 0.4rem;
-    box-shadow: var(--shadow);
-    position: absolute;
-    top: 1.5rem;
-    right: 1.5rem;
-  }
-
-  .action-btn {
-    border: none;
-    border-radius: 50px;
-    padding: 0.6rem 1.2rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
-    background-color: transparent;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .action-btn.active {
-    color: #fff;
-  }
-
-  .action-btn.create.active { background: var(--primary-dark); }
-  .action-btn.edit.active { background: var(--warning-dark); }
-  .action-btn.delete.active { background: var(--danger-dark); }
-
-  .card {
-    background: var(--background-white);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-  
-  .form-card {
-    position: relative;
-    padding-top: 5rem; 
-  }
-
-  .table-card {
-    flex-grow: 1; 
-    display: flex;
-    flex-direction: column;
-    min-height: 400px;
-  }
-
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-    margin-bottom: 1.5rem;
-  }
-
-  @media (min-width: 768px) {
-    .form-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .input-group {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
-  }
-
-  .input-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    text-align: left;
-  }
-
-  .input-group input, .input-group select {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    transition: border-color 0.2s, box-shadow 0.2s;
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
-
-  .input-group input:focus, .input-group select:focus {
-    outline: none;
-    border-color: var(--primary-main);
-    box-shadow: 0 0 0 3px rgba(2, 114, 56, 0.1);
-  }
-
-  .input-group input:read-only {
-    background-color: var(--background-light);
-    color: var(--text-secondary);
-    cursor: not-allowed;
-  }
-
-  .button-row {
-    display: flex;
-    gap: 1rem;
-    margin-top: auto;
-    flex-wrap: wrap;
-  }
-
-  .submit-btn, .clear-btn {
-    flex: 1;
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-
-  .submit-btn {
-    background: linear-gradient(90deg, #027238, #02a85a);
-  }
-
-  .submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-  }
-
-  .clear-btn {
-    background: var(--background-white);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
-  }
-
-  .clear-btn:hover {
-    background: var(--background-light);
-    border-color: #adb5bd;
-  }
-
-  .search-bar {
-    position: relative;
-    margin-bottom: 1.5rem;
-  }
-
-  .search-bar .search-icon {
-    position: absolute;
-    top: 50%;
-    left: 1rem;
-    transform: translateY(-50%);
-    color: var(--text-secondary);
-  }
-
-  .search-bar input {
-    width: 100%;
-    padding: 0.8rem 1rem 0.8rem 2.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: 50px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    box-sizing: border-box;
-  }
-
-  .search-bar input:focus {
-    outline: none;
-    border-color: var(--primary-main);
-    box-shadow: 0 0 0 3px rgba(2, 114, 56, 0.1);
-  }
-
-  .table-wrapper {
-    overflow-y: auto;
-    flex-grow: 1;
-    max-height: 400px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-  }
-
-  .table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .table th, .table td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-    word-wrap: break-word;
-  }
-
-  .table th {
-    background: var(--background-light);
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .table tbody tr {
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-
-  .table tbody tr:hover {
-    background: var(--background-light);
-  }
-
-  .table tr.selected-row {
-    background: var(--primary-light) !important;
-    border-left: 4px solid var(--primary-dark);
-  }
-
-  .table tr.selected-row td:first-child {
-    font-weight: bold;
-    color: var(--primary-dark);
-  }
-
-  .image-container {
-    padding: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    order: 2;
-  }
-
-  .company-image {
-    max-width: 100%;
-    max-height: 250px;
-    object-fit: contain;
-    border-radius: 8px;
-  }
-
-  /* Popup Styles */
-  .popup-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-  }
-
-  .popup-content {
-    background: var(--background-white);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .popup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--primary-gradient);
-    color: white;
-  }
-
-  .popup-header h3 {
-    margin: 0;
-    font-size: 1.2rem;
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-  }
-
-  .close-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .popup-body {
-    padding: 1.5rem;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .popup-table-container {
-    overflow-y: auto;
-    flex-grow: 1;
-    max-height: 400px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    margin-top: 1rem;
-  }
-
-  .popup-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .popup-table th, .popup-table td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .popup-table th {
-    background: var(--background-light);
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    position: sticky;
-    top: 0;
-  }
-
-  .popup-row {
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-
-  .popup-row:hover {
-    background: var(--primary-light);
-  }
-
-  /* Responsive Adjustments */
-  @media (min-width: 1024px) {
-    .main-layout {
-      grid-template-columns: 1fr 1fr;
-    }
-    .right-column {
-      order: 0;
-    }
-    .image-container {
-      order: 0;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .page-wrapper {
-      padding: 1rem;
-      margin-left: 0;
-    }
-    .card {
-      padding: 1.5rem;
-    }
-    .form-card {
-      padding-top: 6rem;
-    }
-    .action-buttons {
-      top: 1rem;
-      right: 1rem;
-    }
-    .action-btn {
-      padding: 0.5rem 1rem;
-    }
-    .button-row {
-      flex-direction: column;
-    }
-    .table-wrapper {
-      max-height: 300px;
-    }
-    .popup-content {
-      width: 95%;
-      max-height: 90vh;
-    }
-  }
-`}</style>
-
-      <div className="page-wrapper">
-        <div className="main-layout">
-          {/* Left Column */}
-          <div className="left-column">
-            <motion.div
-              className="card table-card"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h3 style={{ color: "#027238", marginBottom: "10px" }}>
-                Existing Sizes
-              </h3>
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "#666",
-                  marginBottom: "15px",
-                  flexShrink: 0,
-                }}
-              >
-                💡 Click a row to load size details.
-              </p>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                  <span className="search-icon">
-                    <SearchIcon />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Search units..."
-                    value={searchTree}
-                    onChange={(e) => setSearchTree(e.target.value)}
-                    style={{ width: '100%', padding: '0.6rem 0.8rem 0.6rem 0.6rem', borderRadius: 8, border: '1px solid var(--border-color)' }}
-                  />
-                </div>
-
-                <button
-                  onClick={() => setIsTreeOpen((s) => !s)}
-                  className="clear-btn"
-                  style={{ width: 120 }}
-                >
-                  {isTreeOpen ? 'Collapse' : 'Expand'}
-                </button>
-              </div>
-
-              <div className="table-wrapper" style={{ padding: 12 }}>
-                {filteredTree.length ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {filteredTree.map((node) => (
-                      <TreeNode
-                        key={node.key}
-                        node={node}
-                        onSelect={handleSelectNode}
-                        expandedKeys={expandedKeys}
-                        toggleExpand={toggleExpand}
-                        selectedKey={selectedCode}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', color: '#888', padding: '2rem' }}>No units found</div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Right Column */}
-          <div className="right-column">
-            <motion.div
-              className="card form-card"
-              key={selectedAction}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="action-buttons">
-                <button
-                  className={`action-btn create ${selectedAction === ACTION_TYPES.CREATE ? "active" : ""
-                    }`}
-                  onClick={() => setSelectedAction(ACTION_TYPES.CREATE)}
-                  disabled={!canCreate}
-                  title={!canCreate ? "You don't have permission to create" : ""}
-                >
-                  <CreateIcon /> Add
-                </button>
-                <button
-                  className={`action-btn edit ${selectedAction === ACTION_TYPES.EDIT ? "active" : ""
-                    }`}
-                  onClick={() => handleActionClick(ACTION_TYPES.EDIT)}
-                  disabled={!canEdit}
-                  title={!canEdit ? "You don't have permission to edit" : ""}
-                >
-                  <EditIcon /> Edit
-                </button>
-                <button
-                  className={`action-btn delete ${selectedAction === ACTION_TYPES.DELETE ? "active" : ""
-                    }`}
-                  onClick={() => handleActionClick(ACTION_TYPES.DELETE)}
-                  disabled={!canDelete}
-                  title={!canDelete ? "You don't have permission to delete" : ""}
-                >
-                  <DeleteIcon /> Delete
-                </button>
-              </div>
-
-              <div className="form-grid">
-                <div className="input-group">
-                  <label>Code</label>
-                  <input type="text" value={selectedCode} readOnly />
-                </div>
-
-                <div className="input-group">
-                  <label>Size</label>
-                  <input
-                    ref={sizeRef}
-                    type="text"
-                    placeholder="Enter size"
-                    value={size}
-                    onChange={(e) => setSize(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, null)}
-                    disabled={selectedAction === ACTION_TYPES.DELETE}
-                  />
-                </div>
-              </div>
-
-              <div className="button-row">
-                <button
-                  className="submit-btn"
-                  onClick={handleSubmit}
-                  disabled={loading || (selectedAction === ACTION_TYPES.CREATE ? !canCreate : selectedAction === ACTION_TYPES.EDIT ? !canEdit : !canDelete)}
-                  title={selectedAction === ACTION_TYPES.CREATE && !canCreate ? "You don't have permission to create" : selectedAction === ACTION_TYPES.EDIT && !canEdit ? "You don't have permission to edit" : selectedAction === ACTION_TYPES.DELETE && !canDelete ? "You don't have permission to delete" : ""}
-                >
-                  {loading ? "Processing..." : "Submit"}
-                </button>
-                <button className="clear-btn" onClick={clearForm}>
-                  Clear
-                </button>
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="image-container"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <img src={image} alt="Company" className="company-image" />
-            </motion.div>
-          </div>
-        </div>
-      </div>
-
-      {/* Size Selection Popup */}
-      <SizeSelectionPopup
-        isOpen={showPopup}
-        onClose={() => setShowPopup(false)}
-        sizes={tableData}
-        onSelect={handlePopupSelect}
-        title={popupTitle}
-        action={selectedAction}
-      />
-
-      {/* Alert Modal */}
-      <AlertModal
-        isOpen={alertState.isOpen}
-        onConfirm={alertState.onConfirm}
-        onCancel={alertState.onCancel}
-        title={alertState.title}
-        message={alertState.message}
-        confirmText={alertState.confirmText}
-        cancelText={alertState.cancelText}
-        variant={alertState.variant}
-      />
-    </>
-  );
-};
-
-export default UnitCreation;
