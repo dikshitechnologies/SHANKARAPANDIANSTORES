@@ -73,16 +73,18 @@ const Navbar = () => {
 
   const masterItems = [
     { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <AppstoreOutlined /> },
+    { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
     { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined /> },
     { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <ShopOutlined /> },
     { name: 'Item Creation', path: '/masters/item-creation', icon: <BuildOutlined /> },
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined /> },
     { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },
+    { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined /> },
     { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined /> }
   ];
 
   const transactionItems = [
-    { name: 'Sales Invoice', path: '/transactions/sales-invoice', icon: <FileTextOutlined /> },
+    { name: 'Sales Invoice', path: 'sales-invoice', icon: <FileTextOutlined /> },
     { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
     { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> },

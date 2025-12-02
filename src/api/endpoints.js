@@ -1,4 +1,3 @@
-
 export const API_ENDPOINTS = {
 
 LEDGER_CREATION_ENDPOINTS: {
@@ -36,5 +35,14 @@ ITEM_GROUP: {
     putEdit: "ItemGroupCreation/ItemGroupCreationPut",
     delete: (fCode) => `ItemGroupCreation/ItemGroupCreationDelete/${fCode}`,
   },
+
+UNITCREATION: {
+    NEXT_SIZE_CODE : "UnitCreation/NextBillNo", 
+    GET_SIZE_ITEMS : "UnitCreation/GetUnits",
+    GETUNITCODE : (code) => `UnitCreation/GetUnit/${code}`, 
+    CREATE_SIZE: "UnitCreation/CreationUnit",
+    UPDATE_SIZE: (code) => `UnitCreation/UpdateUnit/${code}`,
+    DELETE_SIZE: (code) => `UnitCreation/DeleteUnit/${code}`,
+  },    
 
 }

@@ -1,0 +1,336 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { 
+  Modal, 
+  Input, 
+  Button, 
+  Spin 
+} from 'antd';
+import {
+  SearchOutlined,
+  CloseOutlined
+} from '@ant-design/icons';
+import styles from './PopupListSelector.module.css';
+
+const PopupListSelector = ({
+  open,
+  onClose,
+  onSelect,
+  fetchItems,
+  title = 'Select Item',
+  displayFieldKeys = [],
+  searchFields = [],
+  onCustomClose,
+  clearSearch,
+  headerNames = [],
+  columnWidths = {},
+  tableStyles = {},
+  maxHeight = '70vh',
+  searchPlaceholder = 'Search...',
+  responsiveBreakpoint = 768 
+}) => {
+  const [searchText, setSearchText] = useState('');
+  const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isResponsive, setIsResponsive] = useState(false);
+
+  const listRef = useRef(null);
+  const searchInputRef = useRef(null);
+  
+  // -------------------------
+  // Responsive Mode
+  // -------------------------
+  useEffect(() => {
+    const checkResponsive = () => {
+      setIsResponsive(window.innerWidth <= responsiveBreakpoint);
+    };
+    
+    checkResponsive();
+    window.addEventListener('resize', checkResponsive);
+    
+    return () => {
+      window.removeEventListener('resize', checkResponsive);
+    };
+  }, [responsiveBreakpoint]);
+
+  // -------------------------
+  // Initial Loading When Popup Opens
+  // -------------------------
+  useEffect(() => {
+    if (open) {
+      setInitialLoading(true);
+      setPage(1);
+      setHasMore(true);
+
+      loadData(1, '', true);
+
+      setTimeout(() => {
+        if (searchInputRef.current) searchInputRef.current.focus();
+      }, 100);
+    }
+  }, [open]);
+
+  // -------------------------
+  // Debounced Search
+  // -------------------------
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (open) {
+        setPage(1);
+        setHasMore(true);
+        loadData(1, searchText, true);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  // -------------------------
+  // Fetch + Filter Data
+  // -------------------------
+  const loadData = async (pageNum, search, reset = false) => {
+    setLoading(true);
+    if (reset) setInitialLoading(true);
+
+    try {
+      const items = await fetchItems(pageNum, search);
+
+      if (reset) {
+        setData(items);
+        setFilteredData(filterItems(items, searchText));
+      } else {
+        setData(prev => [...prev, ...items]);
+        setFilteredData(prev => [...prev, ...filterItems(items, searchText)]);
+      }
+
+      if (items.length < 20) {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Error loading items:", err);
+    } finally {
+      setLoading(false);
+      setInitialLoading(false);
+    }
+  };
+
+  const filterItems = (items, search) => {
+    if (!search || searchFields.length === 0) return items;
+    
+    return items.filter(item =>
+      searchFields.some(field =>
+        item[field]?.toString().toLowerCase().includes(search.toLowerCase())
+      )
+    );
+  };
+
+  // -------------------------
+  // Infinite Scroll Logic
+  // -------------------------
+  useEffect(() => {
+    const list = listRef.current;
+
+    if (!list) return;
+
+    const handleScroll = () => {
+      if (loading || !hasMore) return;
+
+      const isBottom =
+        list.scrollTop + list.clientHeight >= list.scrollHeight - 10;
+
+      if (isBottom) {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        loadData(nextPage, searchText);
+      }
+    };
+
+    list.addEventListener('scroll', handleScroll);
+
+    return () => list.removeEventListener('scroll', handleScroll);
+  }, [loading, hasMore, page, searchText]);
+
+  // -------------------------
+  // Close Popup
+  // -------------------------
+  const handleClose = () => {
+    if (onCustomClose) onCustomClose();
+    if (clearSearch) clearSearch();
+    setSearchText('');
+    setSelectedIndex(-1);
+    onClose();
+  };
+
+  // -------------------------
+  // Keyboard Navigation
+  // -------------------------
+  const handleKeyDown = useCallback((e) => {
+    if (!open) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => prev < filteredData.length - 1 ? prev + 1 : prev);
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : prev);
+        break;
+
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && filteredData[selectedIndex]) {
+          onSelect(filteredData[selectedIndex]);
+          handleClose();
+        }
+        break;
+
+      case 'Escape':
+        e.preventDefault();
+        handleClose();
+        break;
+    }
+  }, [open, filteredData, selectedIndex]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  // -------------------------
+  // Auto Scroll Selected
+  // -------------------------
+  useEffect(() => {
+    if (selectedIndex >= 0 && listRef.current) {
+      const selectedElement = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [selectedIndex]);
+
+  const getDisplayFields = () => {
+    if (!isResponsive) return displayFieldKeys;
+    return displayFieldKeys.slice(0, 2);
+  };
+
+  const getHeaderNames = () => {
+    if (!isResponsive) return headerNames;
+    return headerNames.slice(0, 2);
+  };
+
+  const renderItem = (item, index) => {
+    const isSelected = selectedIndex === index;
+    const displayFields = getDisplayFields();
+
+    return (
+      <div
+        key={index}
+        data-index={index}
+        className={`${styles.listItem} ${isSelected ? styles.selected : ''}`}
+        onClick={() => { onSelect(item); handleClose(); }}
+      >
+        {!isResponsive ? (
+          <div className={styles.columnContainer}>
+            {displayFields.map((key, idx) => (
+              <div 
+                key={idx}
+                className={styles.columnItem}
+                style={{ width: columnWidths[key] || `${100/displayFieldKeys.length}%` }}
+              >
+                <div className={styles.primaryText}>{item[key]}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={styles.responsiveItem}>
+            <div className={styles.responsivePrimary}>
+              {item[displayFields[0]]}
+            </div>
+            {displayFields[1] && (
+              <div className={styles.responsiveSecondary}>
+                {item[displayFields[1]]}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Modal
+      open={open}
+      onCancel={handleClose}
+      footer={null}
+      width="auto"
+      style={{ maxWidth: '800px', top: '50%', transform: 'translateY(-50%)' }}
+      closeIcon={null}
+    >
+      <div className={styles.container} style={{ maxHeight }}>
+        {/* Header */}
+        <div className={styles.header}>
+          <div className={styles.headerTitle}>{title}</div>
+          <Button type="text" icon={<CloseOutlined />} onClick={handleClose} className={styles.closeBtn} />
+        </div>
+
+        {/* Search */}
+        <div className={styles.searchContainer}>
+          <Input
+            ref={searchInputRef}
+            placeholder={searchPlaceholder}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            prefix={<SearchOutlined />}
+            className={styles.searchInput}
+          />
+        </div>
+
+        {/* Table Header */}
+        {!isResponsive && headerNames.length > 0 && (
+          <div className={styles.tableHeader}>
+            <div className={styles.columnContainer}>
+              {getHeaderNames().map((header, idx) => (
+                <div key={idx} className={styles.columnItem}>
+                  <div className={styles.headerText}>{header}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* List */}
+        <div className={styles.listContent} ref={listRef}>
+          {initialLoading ? (
+            <div className={styles.emptyState}>
+              <Spin size="large" />
+              <div className={styles.loadingText}>Loading items...</div>
+            </div>
+          ) : filteredData.length === 0 ? (
+            <div className={styles.emptyState}>
+              <div>No items found</div>
+            </div>
+          ) : (
+            <div className={styles.listItems}>
+              {filteredData.map((item, index) => renderItem(item, index))}
+            </div>
+          )}
+
+          {loading && (
+            <div className={styles.loadingMore}>
+              <Spin size="small" />
+              <span className={styles.loadingMoreText}>Loading...</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+export default PopupListSelector;
