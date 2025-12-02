@@ -153,7 +153,7 @@ const SalesInvoices = () => {
   // --- STYLES (Inline CSS) ---
   const styles = {
     container: {
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: 'Poppins, Arial, sans-serif',
       backgroundColor: '#f5f7fa',
       minHeight: '100vh',
       display: 'flex',
@@ -181,7 +181,7 @@ const SalesInvoices = () => {
     },
     label: {
       fontWeight: '600',
-      fontSize: '13px',
+      fontSize: '14px',
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
       color: 'white',
@@ -192,7 +192,7 @@ const SalesInvoices = () => {
       borderRadius: '4px',
       border: '1px solid #ddd',
       outline: 'none',
-      fontSize: '15px',
+      fontSize: '16px',
       fontWeight: '500',
       color: '#333',
       backgroundColor: 'white',
@@ -203,7 +203,7 @@ const SalesInvoices = () => {
       borderRadius: '4px',
       border: 'none',
       cursor: 'pointer',
-      fontSize: '14px',
+      fontSize: '15px',
       backgroundColor: '#1B91DA',
       fontWeight: '600',
       color: 'white',
@@ -225,7 +225,7 @@ const SalesInvoices = () => {
       alignItems: 'center',
       gap: '6px',
       fontWeight: '600',
-      fontSize: '13px',
+      fontSize: '14px',
       transition: 'all 0.2s ease',
       boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
     },
@@ -249,7 +249,7 @@ const SalesInvoices = () => {
       color: 'white',
       padding: '10px 8px',
       textAlign: 'center',
-      fontSize: '14px',
+      fontSize: '15px',
       fontWeight: '700',
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
@@ -262,7 +262,7 @@ const SalesInvoices = () => {
     td: {
       padding: '8px 6px',
       textAlign: 'center',
-      fontSize: '15px',
+      fontSize: '16px',
       borderBottom: '1px solid #f0f0f0',
       color: '#333',
       fontWeight: '500',
@@ -272,7 +272,7 @@ const SalesInvoices = () => {
       padding: '6px 8px',
       border: '1px solid #e0e0e0',
       borderRadius: '4px',
-      fontSize: '14px',
+      fontSize: '15px',
       textAlign: 'center',
       backgroundColor: 'white',
       outline: 'none',
@@ -310,7 +310,7 @@ const SalesInvoices = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '32px',
-      fontSize: '22px',
+      fontSize: '26px',
       fontWeight: '700',
       boxShadow: '0 4px 12px rgba(27, 145, 218, 0.3)',
       minWidth: 'max-content'
@@ -331,7 +331,7 @@ const SalesInvoices = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
-      fontSize: '13px',
+      fontSize: '14px',
       transition: 'all 0.2s ease',
       boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)'
     },
@@ -346,7 +346,7 @@ const SalesInvoices = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
-      fontSize: '13px',
+      fontSize: '14px',
       transition: 'all 0.2s ease',
       boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)'
     },
