@@ -7,6 +7,7 @@ import LedgerCreation from './pages/Ledgercreation/Ledgercreation'
 import ItemCreation from './pages/ItemCreation/ItemCreation'
 import LedgerGroupCreation from './pages/Ledgergroupcreation/Ledgergroupcreation'
 import ItemGroupCreation from './pages/ItemGroupCreation/ItemGroupCreation'
+import Scrap from './pages/Scrap/Scrap'
 function App() {
   return (
     <div className="app">
@@ -19,6 +20,7 @@ function App() {
           <Route path="/masters/item-creation" element={<ItemCreation />} />
           <Route path="/masters/ledger-group-creation" element={<LedgerGroupCreation />} />
           <Route path="/masters/item-group-creation" element={<ItemGroupCreation />} />
+          <Route path="/transactions/scrap" element={<Scrap />} />
         </Routes>
       </main>
     </div>

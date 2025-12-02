@@ -250,18 +250,17 @@ export default function ItemGroupCreation() {
     );
   }, [subGroupOptions, searchDropdown]);
 
-  const resetForm = (keepAction = false) => {
-    setMainGroup("");
-    setSubGroup("");
-    setFCode("");
-    setSelectedNode(null);
-    setMessage(null);
-    setSearchDropdown("");
-    setSearchTree("");
-    setIsDropdownOpen(false);
-    setIsTreeOpen(true);
-    if (!keepAction) setActionType("Add");
-  };
+  const resetForm = () => {
+  setMainGroup("");
+  setSubGroup("");
+  setFCode("");
+  setSelectedNode(null);
+  setMessage(null);
+  setSearchDropdown("");
+  setSearchTree("");
+  setIsDropdownOpen(false);
+  setIsTreeOpen(true);
+};
 
   const validateForSubmit = () => {
     if (!mainGroup?.trim()) {
@@ -281,99 +280,100 @@ export default function ItemGroupCreation() {
 
   // Add / Edit / Delete handlers
   const handleAdd = async () => {
-    // Check permission before allowing action
-    if (!formPermissions.add) {
-      setMessage({ type: "error", text: "You don't have permission to add item groups." });
-      return;
+  // Check permission before allowing action
+  if (!formPermissions.add) {
+    setMessage({ type: "error", text: "You don't have permission to add item groups." });
+    return;
+  }
+  if (!validateForSubmit()) return;
+  if (!window.confirm("Do you want to save?")) return;
+  setSubmitting(true);
+  setMessage(null);
+  try {
+    const payload = {
+      fitemcode: "",
+      subGroup: subGroup.trim(),
+      mainGroup: mainGroup.trim(),
+      fitemlevel: "",
+    };
+    const resp = await api.post(endpoints.postCreate, payload);
+    if (resp.status === 200 || resp.status === 201) {
+      setMessage({ type: "success", text: "Saved successfully." });
+      resetForm(); // <--- Remove keepAction parameter
+      await loadInitial();
+    } else {
+      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
     }
-    if (!validateForSubmit()) return;
-    if (!window.confirm("Do you want to save?")) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const payload = {
-        fitemcode: "",
-        subGroup: subGroup.trim(),
-        mainGroup: mainGroup.trim(),
-        fitemlevel: "",
-      };
-      const resp = await api.post(endpoints.postCreate, payload);
-      if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Saved successfully." });
-        resetForm(true);
-        await loadInitial();
-      } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
-      }
-    } catch (err) {
-      console.error("Add error:", err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Save failed" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch (err) {
+    console.error("Add error:", err);
+    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Save failed" });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
-  const handleEdit = async () => {
-    // Check permission before allowing action
-    if (!formPermissions.edit) {
-      setMessage({ type: "error", text: "You don't have permission to edit item groups." });
-      return;
+ const handleEdit = async () => {
+  // Check permission before allowing action
+  if (!formPermissions.edit) {
+    setMessage({ type: "error", text: "You don't have permission to edit item groups." });
+    return;
+  }
+  if (!validateForSubmit()) return;
+  if (!window.confirm("Do you want to modify?")) return;
+  setSubmitting(true);
+  setMessage(null);
+  try {
+    const payload = {
+      fitemcode: fCode,
+      subGroup: subGroup.trim(),
+      mainGroup: mainGroup.trim(),
+      fitemlevel: "",
+    };
+    const resp = await api.put(endpoints.putEdit, payload);
+    if (resp.status === 200 || resp.status === 201) {
+      setMessage({ type: "success", text: "Updated successfully." });
+      setActionType("Add"); // <--- ADD THIS LINE HERE
+      resetForm(); // <--- Remove keepAction parameter
+      await loadInitial();
+    } else {
+      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
     }
-    if (!validateForSubmit()) return;
-    if (!window.confirm("Do you want to modify?")) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const payload = {
-        fitemcode: fCode,
-        subGroup: subGroup.trim(),
-        mainGroup: mainGroup.trim(),
-        fitemlevel: "",
-      };
-      const resp = await api.put(endpoints.putEdit, payload);
-      if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Updated successfully." });
-        resetForm(true);
-        await loadInitial();
-      } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
-      }
-    } catch (err) {
-      console.error("Edit error:", err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch (err) {
+    console.error("Edit error:", err);
+    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleDelete = async () => {
-    // Check permission before allowing action
-    if (!formPermissions.delete) {
-      setMessage({ type: "error", text: "You don't have permission to delete item groups." });
-      return;
+  // Check permission before allowing action
+  if (!formPermissions.delete) {
+    setMessage({ type: "error", text: "You don't have permission to delete item groups." });
+    return;
+  }
+  if (!validateForSubmit()) return;
+  if (!window.confirm("Do you want to delete?")) return;
+  setSubmitting(true);
+  setMessage(null);
+  try {
+    const deleteEndpoint = typeof endpoints.delete === 'function' ? endpoints.delete(fCode) : endpoints.delete;
+    const resp = await api.delete(deleteEndpoint);
+    if (resp.status === 200 || resp.status === 201) {
+      setMessage({ type: "success", text: "Deleted successfully." });
+      setActionType("Add"); // <--- ADD THIS LINE HERE
+      resetForm(); // <--- Remove keepAction parameter
+      await loadInitial();
+    } else {
+      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
     }
-    if (!validateForSubmit()) return;
-    if (!window.confirm("Do you want to delete?")) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const deleteEndpoint = typeof endpoints.delete === 'function' ? endpoints.delete(fCode) : endpoints.delete;
-      const resp = await api.delete(deleteEndpoint);
-      if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Deleted successfully." });
-        resetForm(true);
-        await loadInitial();
-      } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
-      }
-    } catch (err) {
-      console.error("Delete error:", err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+  } catch (err) {
+    console.error("Delete error:", err);
+    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
+  } finally {
+    setSubmitting(false);
+  }
+};
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
     else if (actionType === "edit") await handleEdit();
@@ -411,16 +411,16 @@ export default function ItemGroupCreation() {
         }
 
         /* Page layout */
-        .lg-root {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px 16px;
-          background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
-          font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-          box-sizing: border-box;
-        }
+        // .lg-root {
+        //   min-height: 100vh;
+        //   display: flex;
+        //   align-items: center;
+        //   justify-content: center;
+        //   padding: 20px 16px;
+        //   background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+        //   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        //   box-sizing: border-box;
+        // }
 
         /* Main dashboard card (glass) */
         .dashboard {
@@ -434,6 +434,7 @@ export default function ItemGroupCreation() {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          margin-top: -80px;
         }
         .dashboard:hover { transform: translateY(-6px); }
 
@@ -840,7 +841,7 @@ export default function ItemGroupCreation() {
           <div className="actions" role="toolbar" aria-label="actions">
             <button
               className={`action-pill ${actionType === "Add" ? "primary" : ""}`}
-              onClick={() => { setActionType("Add"); resetForm(true); }}
+              onClick={() => { setActionType("Add"); resetForm(); }}
               disabled={submitting || !formPermissions.add}
               type="button"
               title={!formPermissions.add ? "You don't have permission to add" : "Add new item group"}
@@ -850,7 +851,7 @@ export default function ItemGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "edit" ? "warn" : ""}`}
-              onClick={() => { setActionType("edit"); resetForm(true); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("edit"); resetForm(); setIsDropdownOpen(true); }}
               disabled={submitting || !formPermissions.edit}
               type="button"
               title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing item group"}
@@ -860,7 +861,7 @@ export default function ItemGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "delete" ? "danger" : ""}`}
-              onClick={() => { setActionType("delete"); resetForm(true); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("delete"); resetForm(); setIsDropdownOpen(true); }}
               disabled={submitting || !formPermissions.delete}
               type="button"
               title={!formPermissions.delete ? "You don't have permission to delete" : "Delete item group"}
@@ -1195,3 +1196,4 @@ export default function ItemGroupCreation() {
     </div>
   );
 }
+
