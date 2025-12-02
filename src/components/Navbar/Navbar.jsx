@@ -78,7 +78,7 @@ const Navbar = () => {
     { name: 'Item Creation', path: '/masters/item-creation', icon: <BuildOutlined /> },
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined /> },
     { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },
-    { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined /> }
+    { name: 'Company Creation', path: 'Company', icon: <BuildOutlined /> }
   ];
 
   const transactionItems = [

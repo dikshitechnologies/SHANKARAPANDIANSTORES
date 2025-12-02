@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import image from '../../assets/dikshi.png';
 import './Company.css';
-import apiService from "../../services/apiService";
+import apiService from "../../api/apiService";
+import { API_ENDPOINTS } from '../../api/endpoints';
+
 
 // --- SVG Icons ---
 const CreateIcon = () => (
@@ -72,6 +74,8 @@ const CompanySelectionPopup = ({
 
   if (!isOpen) return null;
 
+  
+
   return (
     <div className="popup-overlay">
       <div className="popup-content">
@@ -136,18 +140,8 @@ const CompanySelectionPopup = ({
     </div>
   );
 };
+  
 
-// Mock API endpoints (replace with your actual endpoints)
-const API_ENDPOINTS = {
-  NEXT_COMPANY_CODE: "/CompanyCreation/NextCompanyCode",
-  GET_COMPANY_LIST: "/api/company/list",
-  GET_COMPANY_ADMINS: "/api/company/admins",
-  GET_USER_CREDENTIALS: "/api/user/credentials",
-  GET_COMPANY_DETAILS: (code) => `/api/company/${code}`,
-  CREATE_COMPANY: "/api/company/create",
-  UPDATE_COMPANY: "/api/company/update",
-  DELETE_COMPANY: (code) => `/api/company/${code}`
-};
 
 // Mock permissions hook (replace with your actual implementation)
 const useFormPermissions = (formType) => {
@@ -170,7 +164,6 @@ const Company = () => {
     tngst: "",
     state: "",
     phone1: "",
-    state: "",
     phone2: "",
     statecode : "",
     phone3: "",
@@ -214,6 +207,8 @@ const Company = () => {
     showstock: "",
     cpinsales: "",
     backuppath: "",
+    cpcode: "",
+    backupdbi: "",
     desc1: "", 
   });
   const [narrationToggle, setNarrationToggle] = useState("N");
@@ -297,7 +292,7 @@ const Company = () => {
   // ✅ Fetch next code
   const fetchNextCode = async () => {
     try {
-      const res = await apiService.get(API_ENDPOINTS.NEXT_COMPANY_CODE);
+      const res = await apiService.get(API_ENDPOINTS.COMPANY_ENDPOINTS.NEXT_COMPANY_CODE);
       const cleanCode = typeof res === "string" ? res.trim() : res;
       setFormData(prev => ({ ...prev, fcompcode: cleanCode }));
     } catch (err) {
@@ -308,7 +303,7 @@ const Company = () => {
   // ✅ Fetch company list
   const fetchCompanyList = async () => {
     try {
-      const res = await apiService.get(API_ENDPOINTS.GET_COMPANY_LIST);
+      const res = await apiService.get(API_ENDPOINTS.COMPANY_ENDPOINTS.GET_COMPANY_LIST);
       const formatted = res.map((item) => ({
         code: item.fcompcode,
         name: item.fcompname,
@@ -320,86 +315,93 @@ const Company = () => {
     }
   };
 
-  // ✅ Fetch company admins
-  const fetchCompanyAdmins = async () => {
-    try {
-      const res = await apiService.get(API_ENDPOINTS.GET_COMPANY_ADMINS);
-      setCompanyAdmins(res);
-    } catch (err) {
-      console.error("Error fetching company admins:", err);
-    }
-  };
-
-  // ✅ Fetch user credentials
-  const fetchUserCredentials = async () => {
-    try {
-      const res = await apiService.get(API_ENDPOINTS.GET_USER_CREDENTIALS);
-      setUserCredentials(res);
-    } catch (err) {
-      console.error("Error fetching user credentials:", err);
-    }
-  };
 
   // ✅ Fetch company details
-  const fetchCompanyDetails = async (code) => {
+  const fetchCompanyDetails = async (compCode) => {
     try {
-      const res = await apiService.get(API_ENDPOINTS.GET_COMPANY_DETAILS(code));
-      if (res && res.length > 0) {
-        const company = res[0];
-        setFormData({
-          fcompcode: company.fcompcode || "",
-          fcompname: company.fcompname || "",
-          tngst: company.tngst || "",
-          phone1: company.phone1 || "",
-          state: company.state || "",
-          phone2: company.phone2 || "",
-          statecode : company.statecode || "",
-          phone3: company.phone3 || "",
-          phone4: company.phone4 || "",
-          shopno: company.shopno || "",
-          fcompadd1: company.fcompadd1 || "",
-          fcompadd2: company.fcompadd2 || "",
-          fcompadd3: company.fcompadd3 || "",
-          fprintname: company.fprintname || "",
-          fusername: company.fusername || "",
-          fdescription: company.fdescription || "",
-          fprintgap: company.fprintgap || "",
-          fpassword: company.fpassword || "",
-          fconfirmpass: company.fpassword || "",
-          fprefix: company.fprefix || "",
-          fdefaultmode: company.fdefaultmode || "",
-          note1: company.note1 || "",
-          note2: company.note2 || "",
-          note3: company.note3 || "",
-          note4: company.note4 || "",
-          note5: company.note5 || "",
-          bankname: company.bankname || "",
-          branch: company.branch || "",
-          ifscode: company.ifscode || "",
-          accno: company.accno || "",
-          printing: company.printing || "",
-          gstmode: company.gstmode || "",
-          salesrate: company.salesrate || "",
-          salestype: company.salestype || "",
-          tagprint: company.tagprint || "",
-          billprefix: company.billprefix || "",
-          template: company.template || "",
-          noofprint: company.noofprint || "",
-          message: company.message || "",
-          jewellerysales: company.jewellerysales || "",
-          senderid: company.senderid || "",
-          lessqty: company.lessqty || "",
-          qtyformat: company.qtyformat || "",
-          barcode: company.barcode || "",
-          balinsales: company.balinsales || "",
-          calculation: company.calculation || "",
-          showstock: company.showstock || "",
-          cpinsales: company.cpinsales || "",
-          backuppath: company.backuppath || "",
-          desc1: company.desc1 || "",
-          narrationToggle: company.narrationToggle || "N"
-        });
+      console.log("Fetching details for company code:", compCode);
+      const res = await apiService.get(API_ENDPOINTS.COMPANY_ENDPOINTS.GET_COMPANY_DETAILS(compCode));
+      console.log("Response from API:", res);
+
+      // Normalize response to a single company object. API may return { success, data }, an array, or the object directly.
+      let company = null;
+      if (!res) return;
+      if (res.data && !Array.isArray(res.data) && typeof res.data === 'object') {
+        company = res.data;
+      } else if (Array.isArray(res) && res.length > 0) {
+        company = res[0];
+      } else if (Array.isArray(res.data) && res.data.length > 0) {
+        company = res.data[0];
+      } else if (typeof res === 'object') {
+        // fallback: response itself looks like the data object
+        company = res;
       }
+
+      if (!company) {
+        console.warn('No company details found for', compCode, res);
+        return;
+      }
+
+      console.log("Company details fetched:", JSON.stringify(company, null, 2));
+
+      setFormData({
+        fcompcode: company.compCode || company.compcode || "",
+        fcompname: company.compName || company.compname || "",
+        tngst: company.gstinNO || company.gstin || "",
+        state: company.state || "",
+        phone1: company.phonE1 || company.phon1 || "",
+        phone2: company.phonE2 || "",
+        statecode: company.stateCode || company.statecode || "",
+        phone3: company.phonE3 || "",
+        phone4: company.phonE4 || "",
+        fcompadd1: company.address || (company.shopNo != null ? String(company.shopNo) : "") || "",
+        fcompadd2: company.address2 || "",
+        fcompadd3: company.address3 || "",
+        fprintname: company.printName || "",
+        fusername: company.userName || company.userName || "",
+        fdescription: company.description || "",
+        fprintgap: company.printGAP || company.printGap || "",
+        fpassword: company.password || "",
+        fconfirmpass: company.password || "",
+        fprefix: company.prefix || "",
+        fdefaultmode: company.defultMode || company.defaultMode || "",
+        note1: company.note1 || "",
+        note2: company.note2 || "",
+        note3: company.note3 || "",
+        note4: company.note4 || "",
+        note5: company.note5 || "",
+        bankname: company.bankName || "",
+        branch: company.branchName || "",
+        ifscode: company.ifsCode || "",
+        accno: company.accountNumber || "",
+        printing: company.print || "",
+        gstmode: company.gstType || "",
+        salesrate: company.salesRate || "",
+        salestype: company.salType || company.salesType || "",
+        tagprint: company.tagPrint || "",
+        billprefix: company.billprefix || company.billPrefix || "",
+        template: company.template || "",
+        noofprint: company.noOfPrint != null ? String(company.noOfPrint) : "",
+        message: company.message || "",
+        jewellerysales: company.jewellSales || "N",
+        senderid: company.senderID || "",
+        lessqty: company.flessqty || "N",
+        qtyformat: company.qtyFormat || "",
+        barcode: company.barcode || "N",
+        balinsales: company.balInSales || "N",
+        calculation: company.calculation || "",
+        showstock: company.stock || "N",
+        cpinsales: company.cpinsales || "N",
+        backuppath: company.bkDrivepath || "",
+        cpcode: company.cpCode || "",
+        backupdbi: company.backupDBI || "",
+        desc1: company.desc1 || "",
+        narrationToggle: company.narration != null ? company.narration : "N"
+      });
+
+      // Update color pickers if provided
+      setCompanyColor(company.companyPrintColor || company.companyprintcolor || "#ff0000");
+      setAddressColor(company.printAddressColor || company.printaddresscolor || "#00ff00");
     } catch (err) {
       console.error("Error fetching company details:", err);
     }
@@ -409,8 +411,7 @@ const Company = () => {
   useEffect(() => {
     fetchNextCode();
     fetchCompanyList();
-    fetchCompanyAdmins();
-    fetchUserCredentials();
+    
   }, []);
 
   // Auto-focus first field
@@ -423,12 +424,11 @@ const Company = () => {
   // Update clearForm to focus first field after clear
   const clearForm = () => {
     setFormData({
-       fcompcode: "",
+      fcompcode: "",
       fcompname: "",
       tngst: "",
       state: "",
       phone1: "",
-      state: "",
       phone2: "",
       statecode : "",
       phone3: "",
@@ -462,23 +462,25 @@ const Company = () => {
       template: "",
       noofprint: "",
       message: "",
-      jewellerysales: "",
+      jewellerysales: "N",
       senderid: "",
-      lessqty: "",
+      lessqty: "N",
       qtyformat: "",
-      barcode: "",
-      balinsales: "",
+      barcode: "N",
+      balinsales: "N",
       calculation: "",
-      showstock: "",
-      cpinsales: "",
+      showstock: "N",
+      cpinsales: "N",
       backuppath: "",
+      cpcode: "",
+      backupdbi: "",
       desc1: "",
       narrationToggle: "N"
     });
     setCompanyColor("#ff0000");
     setAddressColor("#00ff00");
     fetchNextCode();
-    
+    setSelectedAction("create");
     // Focus first field after clear
     setTimeout(() => {
       if (companyNameRef.current) {
@@ -529,6 +531,7 @@ const Company = () => {
   };
   // Handle selection from popup
   const handlePopupSelect = (item) => {
+    console.log("Selected company from popup:", item);
     fetchCompanyDetails(item.code);
   };
 
@@ -543,8 +546,12 @@ const Company = () => {
       alert("Please enter Company Name");
       return false;
     }
-    if (!formData.tngst.trim()) {
-      alert("Please enter GSTIN");
+    if (!formData.fpassword.trim()) {
+      alert("Please enter Password");
+      return false;
+    }
+    if (!formData.fusername.trim()) {
+      alert("Please enter UserName");
       return false;
     }
     if (formData.fpassword !== formData.fconfirmpass) {
@@ -561,64 +568,71 @@ const Company = () => {
     setLoading(true);
     try {
       const payload = {
-        fcompcode: formData.fcompcode,
-        fcompname: formData.fcompname.trim(),
-        tngst: formData.tngst.trim(),
-        phone1: formData.phone1 || "",
+        compCode: formData.fcompcode,
+        compName: formData.fcompname.trim(),
+        gstinNO: formData.tngst.trim(),
+        phonE1: formData.phone1 || "",
         state: formData.state || "",
-        phone2: formData.phone2 || "",
-        statecode : formData.statecode || "",
-        phone3: formData.phone3 || "",
-        phone4: formData.phone4 || "",
-        shopno: formData.shopno || "",
-        fcompadd1: formData.fcompadd1 || "",
-        fcompadd2: formData.fcompadd2 || "",
-        fcompadd3: formData.fcompadd3 || "",
-        fprintname: formData.fprintname || "",
-        username: formData.username || "",
-        fdescription: formData.fdescription || "",
-        fprintgap: formData.fprintgap || "",  
-        fpassword: formData.fpassword || "",
-        fconfirmpass: formData.fconfirmpass || "",
-        fprefix: formData.fprefix || "",
-        fdefaultmode: formData.fdefaultmode || "",
+        phonE2: formData.phone2 || "",
+        stateCode : formData.statecode || "",
+        phonE3: formData.phone3 || "",
+        phonE4: formData.phone4 || "",
+        shopNo: formData.shopno || "",
+        address: formData.fcompadd1 || "",
+        address2: formData.fcompadd2 || "",
+        address3: formData.fcompadd3 || "",
+        printName: formData.fprintname || "",
+        userName: formData.fusername || "",
+        description: formData.fdescription || "",
+        printGAP: formData.fprintgap || "",  
+        password: formData.fpassword || "",
+        prefix: formData.fprefix || "",
+        defultMode: formData.fdefaultmode || "",
         note1: formData.note1 || "",
         note2: formData.note2 || "",
         note3: formData.note3 || "",
         note4: formData.note4 || "",
         note5: formData.note5 || "",
-        bankname: formData.bankname || "",
-        branch: formData.branch || "",
-        ifscode: formData.ifscode || "",
-        accno: formData.accno || "",
-        printing: formData.printing || "",
-        gstmode: formData.gstmode || "",
-        salesrate: formData.salesrate || "",
-        salestype: formData.salestype || "",
-        tagprint: formData.tagprint || "",
+        bankName: formData.bankname || "",
+        branchName: formData.branch || "",
+        ifsCode: formData.ifscode || "",
+        accountNumber: formData.accno || "",
+        print: formData.printing || "",
+        gstType: formData.gstmode || "",
+        salesRate: formData.salesrate || "",
+        salType: formData.salestype || "",
+        tagPrint: formData.tagprint || "",
         billprefix: formData.billprefix || "",
         template: formData.template || "",
-        noofprint: formData.noofprint || "",
+        noOfPrint: formData.noofprint || "",
         message: formData.message || "",
-        jewellerysales: formData.jewellerysales || "",
-        senderid: formData.senderid || "",
-        lessqty: formData.lessqty || "",
-        qtyformat: formData.qtyformat || "",
-        barcode: formData.barcode || "",
-        balinsales: formData.balinsales || "",
+        jewellSales: formData.jewellerysales || "N",
+        senderID: formData.senderid || "",
+        flessqty: "1",//formData.lessqty || 
+        qtyFormat: formData.qtyformat || "",
+        barcode: formData.barcode || "N",
+        balInSales: formData.balinsales || "N",
         calculation: formData.calculation || "",
-        showstock: formData.showstock || "",
-        cpinsales: formData.cpinsales || "",
-        backuppath: formData.backuppath || "",
+        stock: formData.showstock || "N",
+        cpinsales: formData.cpinsales || "N",
+        bkDrivepath: formData.backuppath || "",
+        cpCode: formData.cpcode || "",
+        backupDBI: formData.backupdbi || "",
         desc1: formData.desc1 || "",
-        narrationToggle: formData.narrationToggle || "N"
+        narration: formData.narrationToggle || "N",
+        companyPrintColor: companycolor || "#ff0000",
+        printAddressColor: addresscolor || "#00ff00",
+        c:""
       };
-      
+       console.log("Save response:", JSON.stringify(payload));
       const response = await apiService.post(
-        API_ENDPOINTS.CREATE_COMPANY,
+        API_ENDPOINTS.COMPANY_ENDPOINTS.CREATE_COMPANY,
         payload
       );
+     
+     
       
+
       const successMessage = typeof response === 'object' 
         ? '✅ Company created successfully!' 
         : response || '✅ Company created successfully!';
@@ -646,61 +660,65 @@ const Company = () => {
     setLoading(true);
     try {
       const payload = {
-        fcompcode: formData.fcompcode,
-        fcompname: formData.fcompname.trim(),
-        tngst: formData.tngst.trim(),
-        phone1: formData.phone1 || "",
+        compCode: formData.fcompcode,
+        compName: formData.fcompname.trim(),
+        gstinNO: formData.tngst.trim(),
+        phonE1: formData.phone1 || "",
         state: formData.state || "",
-        phone2: formData.phone2 || "",
-        statecode : formData.statecode || "",
-        phone3: formData.phone3 || "",
-        phone4: formData.phone4 || "",
-        shopno: formData.shopno || "",
-        fcompadd1: formData.fcompadd1 || "",
-        fcompadd2: formData.fcompadd2 || "",
-        fcompadd3: formData.fcompadd3 || "",
-        fprintname: formData.fprintname || "",
-        username: formData.username || "",
-        fdescription: formData.fdescription || "",
-        fprintgap: formData.fprintgap || "",  
-        fpassword: formData.fpassword || "",
-        fconfirmpass: formData.fconfirmpass || "",
-        fprefix: formData.fprefix || "",
-        fdefaultmode: formData.fdefaultmode || "",
+        phonE2: formData.phone2 || "",
+        stateCode : formData.statecode || "",
+        phonE3: formData.phone3 || "",
+        phonE4: formData.phone4 || "",
+        shopNo: formData.shopno || "",
+        address: formData.fcompadd1 || "",
+        address2: formData.fcompadd2 || "",
+        address3: formData.fcompadd3 || "",
+        printName: formData.fprintname || "",
+        userName: formData.fusername || "",
+        description: formData.fdescription || "",
+        printGAP: formData.fprintgap || "",  
+        password: formData.fpassword || "",
+        prefix: formData.fprefix || "",
+        defultMode: formData.fdefaultmode || "",
         note1: formData.note1 || "",
         note2: formData.note2 || "",
         note3: formData.note3 || "",
         note4: formData.note4 || "",
         note5: formData.note5 || "",
-        bankname: formData.bankname || "",
-        branch: formData.branch || "",
-        ifscode: formData.ifscode || "",
-        accno: formData.accno || "",
-        printing: formData.printing || "",
-        gstmode: formData.gstmode || "",
-        salesrate: formData.salesrate || "",
-        salestype: formData.salestype || "",
-        tagprint: formData.tagprint || "",
+        bankName: formData.bankname || "",
+        branchName: formData.branch || "",
+        ifsCode: formData.ifscode || "",
+        accountNumber: formData.accno || "",
+        print: formData.printing || "",
+        gstType: formData.gstmode || "",
+        salesRate: formData.salesrate || "",
+        salType: formData.salestype || "",
+        tagPrint: formData.tagprint || "",
         billprefix: formData.billprefix || "",
         template: formData.template || "",
-        noofprint: formData.noofprint || "",
+        noOfPrint: formData.noofprint || "",
         message: formData.message || "",
-        jewellerysales: formData.jewellerysales || "",
-        senderid: formData.senderid || "",
-        lessqty: formData.lessqty || "",
-        qtyformat: formData.qtyformat || "",
-        barcode: formData.barcode || "",
-        balinsales: formData.balinsales || "",
+        jewellSales: formData.jewellerysales || "N",
+        senderID: formData.senderid || "",
+        flessqty: "1",//formData.lessqty || 
+        qtyFormat: formData.qtyformat || "",
+        barcode: formData.barcode || "N",
+        balInSales: formData.balinsales || "N",
         calculation: formData.calculation || "",
-        showstock: formData.showstock || "",
-        cpinsales: formData.cpinsales || "",
-        backuppath: formData.backuppath || "",
+        stock: formData.showstock || "N",
+        cpinsales: formData.cpinsales || "N",
+        bkDrivepath: formData.backuppath || "",
+        cpCode: formData.cpcode || "",
+        backupDBI: formData.backupdbi || "",
         desc1: formData.desc1 || "",
-        narrationToggle: formData.narrationToggle || "N"
+        narration: formData.narrationToggle || "N",
+        companyPrintColor: companycolor || "#ff0000",
+        printAddressColor: addresscolor || "#00ff00",
+        c:""
       };
-      
-      const response = await apiService.put(
-        API_ENDPOINTS.UPDATE_COMPANY,
+       console.log("Save response:", JSON.stringify(payload));      
+      const response = await apiService.post(
+        API_ENDPOINTS.COMPANY_ENDPOINTS.UPDATE_COMPANY,
         payload
       );
       
@@ -732,7 +750,7 @@ const Company = () => {
     setLoading(true);
     try {
       const response = await apiService.del(
-        API_ENDPOINTS.DELETE_COMPANY(formData.fcompcode)
+        API_ENDPOINTS.COMPANY_ENDPOINTS.DELETE_COMPANY(formData.fcompcode)
       );
       
       const successMessage = typeof response === 'object' 
@@ -775,18 +793,19 @@ const Company = () => {
   
 
   // Render the form inputs with proper keyboard navigation
-  const renderInput = (field, label, type = "text", isRequired = false, ref, index, placeholder = "") => {
+  const renderInput = (field, label, type = "text", isRequired = false, ref, index, placeholder = "", maxLength = null) => {
     return (
       <div className={`input-group ${isRequired ? 'required-field' : ''}`}>
         <label>{label}</label>
         <input
           ref={ref}
           type={type}
+          maxLength={maxLength}
           placeholder={placeholder}
           value={formData[field]}
           onChange={(e) => handleInputChange(field, e.target.value)}
           onKeyDown={(e) => handleKeyDown(e, index)}
-          disabled={ selectedAction === "delete" || (field === 'fdescription' && narrationToggle === "N") }
+          disabled={ selectedAction === "delete"  }
           readOnly={field === 'fcompcode'}
         />
       </div>
@@ -831,7 +850,7 @@ const Company = () => {
               <div className="form-grid">
                 {renderInput('fcompcode', 'Code', 'text', false, companyNameRef, -1)}
                 {renderInput('fcompname', 'Company Name', 'text', true, companyNameRef, 0, 'Enter Company Name')}
-                {renderInput('tngst', 'GSTIN', 'text', true, gstinRef, 1, 'Enter GSTIN')}
+                {renderInput('tngst', 'GSTIN', 'text', false, gstinRef, 1, 'Enter GSTIN')}
                 {renderInput('phone1', 'Phone 1', 'text', false, phone1Ref, 2, 'Enter Phone1')}
                 {renderInput('state', 'State', 'text', false, stateRef, 3, 'Enter State')}
                 {renderInput('phone2', 'Phone 2', 'text', false, phone2Ref, 4, 'Enter Phone2')}
@@ -843,21 +862,47 @@ const Company = () => {
                 {renderInput('fcompadd3', 'Address1', 'text', false, address1Ref, 10, 'Enter Address1')}
                 {renderInput('fax', 'Address2', 'text', false, address2Ref, 11, 'Enter Address2')}
                 {renderInput('fprintname', 'Printer Name', 'text', false, printerNameRef, 12, 'Enter Printer Name')}
-                {renderInput('fusername', 'UserName', 'text', false, usernameRef, 13, 'Enter UserName')}
-                {renderInput(
-                  'fdescription',
-                  'Description',
-                  'text',
-                  false,
-                  descriptionRef,
-                  14,
-                  narrationToggle === "N" ? "Enable Narration (Y)" : "Enter Description"
-                )}
-                {renderInput('fprintgap', 'Print GAP', 'text', false, printgapRef, 15, 'Enter Print GAP')}
-                {renderInput('fpassword', 'Password', 'password', false, passwordRef, 16, 'Password')}
-                {renderInput('fconfirmpass', 'Confirm Password', 'password', false, confirmPasswordRef, 17, 'Repeat Password')}
-                {renderInput('fprefix', 'Prefix', 'text', false, prefixRef, 18, 'Enter Prefix')}
-                {renderInput('fdefaultmode', 'Default Mode', 'text', false, defaultModeRef, 19, 'Enter Default Mode')}
+                {renderInput('fusername', 'UserName', 'text', true, usernameRef, 13, 'Enter UserName')}
+                <div className="input-group">
+                  <label>Description</label>
+                  <input
+                    ref={descriptionRef} type ="text"
+                    value={formData.fdescription}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('fdescription', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('fdescription', formData.fdescription === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="Y or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Print GAP</label>
+                  <input
+                    ref={printgapRef} type ="text"
+                    value={formData.fprintgap}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('fprintgap', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('fprintgap', formData.fprintgap === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="Y or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+                {renderInput('fpassword', 'Password', 'password', true, passwordRef, 16, 'Password')}
+                {renderInput('fconfirmpass', 'Confirm Password', 'password', true, confirmPasswordRef, 17, 'Repeat Password')}
+                {renderInput('fprefix', 'Prefix', 'text', false, prefixRef, 18, 'Enter Prefix',2)}
+                {renderInput('fdefaultmode', 'Default Mode', 'text', false, defaultModeRef, 19, 'Enter Default Mode',1)}
                 {renderInput('note1', 'Note 1', 'text', false, note1Ref, 20, 'Enter Note 1')}
                 {renderInput('note2', 'Note 2', 'text', false, note2Ref, 21, 'Enter Note 2')}
                 {renderInput('note3', 'Note 3', 'text', false, note3Ref, 22, 'Enter Note 3')}
@@ -868,15 +913,105 @@ const Company = () => {
                 {renderInput('ifscode', 'IFS Code', 'text', false, ifsCodeRef, 27, 'Enter IFSC Code')}
                 {renderInput('accno', 'A/C No', 'text', false, accountNumberRef, 28, 'Enter A/C No')}
                 {renderInput('printing', 'Printing', 'text', false, printingRef, 29, 'Enter Printing')}
-                {renderInput('gstmode', 'GST Mode', 'text', false, gstModeRef, 30, 'Enter GST Mode')}
-                {renderInput('salesrate', 'Sales Rate', 'text', false, salesRateRef, 31, 'Enter Sales Rate')}
-                {renderInput('salestype', 'Sales Type', 'text', false, salesTypeRef, 32, 'Enter Sales Type')}
-                {renderInput('tagprint', 'Tag Print', 'text', false, tagPrintRef, 33, 'Enter Tag Print')}
-                {renderInput('billprefix', 'Bill Prefix', 'text', false, billPrefixRef, 34, 'Enter Bill Prefix')}
+                 <div className="input-group">
+                  <label>GST Mode</label>
+                  <input
+                    ref={gstModeRef} type ="text"
+                    value={formData.gstmode}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "I" || v === "E") handleInputChange('gstmode', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('gstmode', formData.gstmode === "I" ? "E" : "I");
+                      }
+                    }}
+                    placeholder="I or E"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+                 <div className="input-group">
+                  <label>Sales Rate</label>
+                  <input
+                    ref={salesRateRef} type ="text"
+                    value={formData.salesrate}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "I" || v === "P") handleInputChange('salesrate', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('salesrate', formData.salesrate === "P" ? "I" : "P");
+                      }
+                    }}
+                    placeholder="I or P"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+                 <div className="input-group">
+  <label>Sales Type</label>
+  <input
+    ref={salesTypeRef}
+    type="text"
+    value={formData.salestype}
+    onChange={(e) => {
+      const v = e.target.value.toUpperCase();
+      if (v === "W" || v === "R" || v === "A") handleInputChange('salestype', v);
+    }}
+    onKeyDown={(e) => {
+      if (e.key === " ") {
+        const current = formData.salestype;
+        if (current === "W") handleInputChange('salestype', "R");
+        else if (current === "R") handleInputChange('salestype', "A");
+        else if (current === "A") handleInputChange('salestype', "W");
+        else handleInputChange('salestype', "W"); // default
+      }
+    }}
+    placeholder="W, R, or A"
+    style={{ textAlign: "center" }}
+  />
+</div>
+                {renderInput('tagprint', 'Tag Print', 'text', false, tagPrintRef, 33, 'Enter Tag Print',15)}
+                 <div className="input-group">
+                  <label>Bill Prefix</label>
+                  <input
+                    ref={billPrefixRef} type ="text"
+                    value={formData.billprefix}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('billprefix', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('billprefix', formData.billprefix === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="Y or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
                 {renderInput('template', 'Template', 'text', false, templateRef, 35, 'Enter Template')}
-                {renderInput('noofprint', 'No Of Print', 'text', false, numberOfPrintRef, 36, 'Enter No Of Print')}
+                {renderInput('noofprint', 'No Of Print', 'number', false, numberOfPrintRef, 36, 'Enter No Of Print')}
                 {renderInput('message', 'Message', 'text', false, messageRef, 37, 'Enter Message')}
-                {renderInput('jewellerysales', 'Jewellery Sales', 'text', false, jewellerySalesRef, 38, 'Enter Jewellery Sales')}
+                <div className="input-group">
+                  <label>Jewellery Sales</label>
+                  <input
+                    ref={jewellerySalesRef} type ="text"
+                    value={formData.jewellerysales}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('jewellerysales', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('jewellerysales', formData.jewellerysales === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="Y or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
                 <div className="input-group">
                   <label>Narration (Y/N)</label>
                   <input
@@ -892,20 +1027,140 @@ const Company = () => {
                     if (e.key === " ") setNarrationToggle(prev => prev === "N" ? "Y" : "N");
                     }}
                     placeholder="Y or N"
+                    style={{ textAlign: "center" }}
                   />
-                </div>  
-                {renderInput('senderid', 'Sender ID', 'text', false, senderIdRef, 40, 'Enter Sender ID')}
-                {renderInput('lessqty', 'Less Quantity', 'text', false, lessQuantityRef, 41, 'Enter Less Quantity')}
-                {renderInput('qtyformat', 'Qty Format', 'text', false, quantityFormatRef, 42, 'Enter Qty Format')}
-                {renderInput('barcode', 'Bar Code', 'text', false, barcodeRef, 43, 'Enter Bar Code')}
-                {renderInput('balinsales', 'Bal in Sales', 'text', false, balInSalesRef, 44, 'Enter Bal in Sales')}
-                {renderInput('calculation', 'Calculation', 'text', false, calculationRef, 45, 'Enter Calculation')}
-                {renderInput('showstock', 'Show Stock', 'text', false, showStockRef, 46, 'Enter Show Stock')}
-                {renderInput('cpinsales', 'CP in Sales', 'text', false, cpInSalesRef, 47, 'Enter CP in Sales')}
+                </div> 
+                {renderInput('senderID', 'Sender ID', 'text', false, senderIdRef, 41, 'Enter Sender ID',10)} 
+                <div className="input-group">
+                  <label>Less Qty</label>
+                  <input
+                    ref={lessQuantityRef} type ="text"
+                    value={formData.lessqty}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('lessqty', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('lessqty', formData.lessqty === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="Y or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+                {renderInput('qtyformat', 'Qty Format', 'text', false, quantityFormatRef, 42, 'Enter Qty Format',6)}
+                <div className="input-group">
+                  <label>Bar Code</label>
+                  <input
+                    ref={barcodeRef} type ="text"
+                    value={formData.barcode}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('barcode', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('barcode', formData.barcode === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="Y or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Bal in Sales</label>
+                  <input
+                    ref={balInSalesRef} type ="text"
+                    value={formData.balinsales}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('balinsales', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('balinsales', formData.balinsales === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="Y or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+                 <div className="input-group">
+                  <label>Calculation</label>
+                  <input
+                    ref={calculationRef} type ="text"
+                    value={formData.calculation}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Q" || v === "A") handleInputChange('calculation', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('calculation', formData.calculation === "A" ? "Q" : "A");
+                      }
+                    }}
+                    placeholder="Q or A"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Show Stock</label>
+                  <input
+                    ref={showStockRef} type ="text"
+                    value={formData.showstock}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('showstock', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('showstock', formData.showstock === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="Y or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+                <div className="input-group">
+                  <label>CP in Sales </label>
+                  <input
+                    ref={cpInSalesRef} type ="text"
+                    value={formData.cpinsales}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('cpinsales', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('cpinsales', formData.cpinsales === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="Y or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
                 {renderInput('backuppath', 'Backup Path', 'text', false, backupPathRef, 48, 'Enter Backup Path')}
-                {renderInput('cpcode', 'CP Code', 'text', false, cpCodeRef, 49, 'Enter CP Code')}
+                {renderInput('cpcode', 'CP Code', 'text', false, cpCodeRef, 49, 'Enter CP Code',10)}
                 {renderInput('backupdbi', 'Backup DBI', 'text', false, backupDbiRef, 50, 'Enter Backup DBI')}
-                {renderInput('desc1', 'Desc 1', 'text', false, desc1Ref, 51, 'Enter Desc 1')}
+                <div className="input-group">
+                  <label>Desc 1</label>
+                  <input
+                    ref={desc1Ref} type ="text"
+                    value={formData.desc1}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "N" || v === "Y") handleInputChange('desc1', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('desc1', formData.desc1 === "N" ? "Y" : "N");
+                      }
+                    }}
+                    placeholder="N or Y"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
 
                 {/* Color inputs */}
                 <div className="input-group">

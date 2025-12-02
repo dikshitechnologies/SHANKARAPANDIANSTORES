@@ -37,4 +37,18 @@ ITEM_GROUP: {
     delete: (fCode) => `ItemGroupCreation/ItemGroupCreationDelete/${fCode}`,
   },
 
+  COMPANY_ENDPOINTS: {
+    NEXT_COMPANY_CODE: "CompanyCreation/NextCompanyCode",
+    CREATE_COMPANY: "CompanyCreation/CreateCompany?selecttype=true",
+    UPDATE_COMPANY: "CompanyCreation/CreateCompany?selecttype=false",
+    GET_COMPANY_LIST: "CompanyCreation/GetCompanyList",
+    GET_COMPANY_DETAILS: (compCode) => `CompanyCreation/GetCompany/${compCode}`,
+    DELETE_COMPANY: (fcompcode) => `CompanyCreation/DeleteCompany/${fcompcode}`,
+  //  /api/CompanyCreation/GetCompany/{compCode}
+    // CompanyCreation/GetCompanyList (compCode) => `CompanyCreation/GetCompany/${compCode}`,
+    
+    
+    
+  },
+
 }
