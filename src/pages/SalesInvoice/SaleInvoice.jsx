@@ -16,7 +16,7 @@ const SalesInvoices = () => {
 
   // 2. Table Items State
   const [items, setItems] = useState([
-    { id: 1, barcode: '', name: '', sub: '', stock: 0, mrp: 0, uom: '', hsn: '', tax: 0, rate: 0, qty: 1 }
+    { id: 1, barcode: '', name: '', sub: '', stock: 0, mrp: 0, uom: '', hsn: '', tax: 0, rate: 0, qty: 0 }
   ]);
 
   // 3. Totals State
@@ -171,14 +171,13 @@ const SalesInvoices = () => {
       gap: '12px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       flexShrink: 0,
-      border: 'none',
-      borderRadius: '0',
-      margin: '0'
+      margin:'10px',
+      borderRadius:'8px'
     },
     inputGroup: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '6px',
+      width:'50%'
     },
     label: {
       fontWeight: '600',
@@ -363,8 +362,10 @@ const SalesInvoices = () => {
       
       {/* --- TOP INPUT SECTION --- */}
       <div style={styles.topSection}>
-        
-        <div style={styles.inputGroup}>
+
+        <div>
+
+          <div style={styles.inputGroup}>
           <label style={styles.label}>Bill No</label>
           <input 
             style={styles.input} 
@@ -388,6 +389,9 @@ const SalesInvoices = () => {
           />
         </div>
 
+        </div>
+
+        <div>
         <div style={styles.inputGroup}>
           <label style={styles.label}>Sale Man</label>
           <input 
@@ -411,7 +415,10 @@ const SalesInvoices = () => {
             onKeyDown={(e) => handleKeyDown(e, customerRef)}
           />
         </div>
+        </div>
+        
 
+      <div>
         <div style={styles.inputGroup}>
           <label style={styles.label}>Customer Name</label>
           <input 
@@ -431,6 +438,10 @@ const SalesInvoices = () => {
             <option>Wholesale</option>
           </select>
         </div>
+      </div>
+
+
+
 
         <div style={{...styles.inputGroup, gridColumn: 'span 2'}}>
           <label style={styles.label}>Barcode / SKU</label>
@@ -446,20 +457,18 @@ const SalesInvoices = () => {
                 if(e.key === 'Enter') handleAddItem();
               }}
             />
+              <button style={styles.btnBlue} onClick={handleAddRow}>
+              <span>➕</span> ADD ROW
+            </button>
             <button style={styles.btnBlue} onClick={handleAddItem} ref={addBtnRef}>
               <span>+</span> ADD
             </button>
-            <button style={styles.btnBlue} onClick={handleAddRow}>
-              <span>➕</span> ADD ROW
-            </button>
+
             <button style={styles.btnBlue}>
               <span>✎</span> EDIT
             </button>
             <button style={styles.btnBlue} onClick={handleDelete}>
               <span>🗑</span> DELETE
-            </button>
-            <button style={styles.btnBlue}>
-              <span>🖨</span> PRINT
             </button>
           </div>
         </div>

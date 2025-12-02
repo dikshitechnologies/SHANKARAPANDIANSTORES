@@ -10,6 +10,7 @@ import Scrap from './pages/Scrap/Scrap'
 import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
 import UnitCreation from './pages/UnitCreation/UnitCreation'
+import Tender from './pages/Tender/Tender'
 import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           <Route path="/transactions/scrap" element={<Scrap />} />
           <Route path="/popup-list-selector-example" element={<ExampleUsage />} />
           <Route path="/masters/unit-creation" element={<UnitCreation />} />
+          <Route path="/Transaction/Tender" element={<Tender />} />
           <Route path="/transactions/purchase-invoice" element={<PurchaseInvoice />} />
         </Routes>
       </main>

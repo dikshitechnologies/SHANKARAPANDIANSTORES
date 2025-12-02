@@ -88,6 +88,7 @@ const Navbar = () => {
     { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
     { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> },
+    { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
     {name: 'Scrap Procurement', path: '/transactions/scrap', icon: <BuildOutlined /> }
   ];
 
