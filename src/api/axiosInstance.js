@@ -3,7 +3,7 @@ import axios from "axios";
 
 const axiosInstance = axios.create({
   // Use http to match the API host used in your environment (dikshiserver)
-  baseURL: "http://dikshiserver/jewellbisreact/api/",
+  baseURL: "http://dikshiserver/spstores/api/",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

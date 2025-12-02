@@ -78,7 +78,7 @@ const Navbar = () => {
     { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <ShopOutlined /> },
     { name: 'Item Creation', path: '/masters/item-creation', icon: <BuildOutlined /> },
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined /> },
-    { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },
+    { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },   
     { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined /> },
     { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined /> }
   ];
