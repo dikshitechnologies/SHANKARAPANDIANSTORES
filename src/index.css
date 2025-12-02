@@ -5,6 +5,20 @@
   box-sizing: border-box;
 }
 
+/* Color Theme Variables */
+:root {
+  --accent: #1B91DA; /* primary */
+  --accent-2: #307AC8; /* secondary */
+  --accent-3: #06A7EA; /* tertiary */
+  --accent-dark: #1A4A8A; /* dark shade */
+  --accent-light: #F1F5FB; /* light shade */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --border-color: #E8EEF5;
+  --background: #F0F2F5;
+  --white: #FFFFFF;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f8f9fa;
@@ -21,7 +35,7 @@ html, body {
 }
 
 .main-content {
-  /* padding-top: 80px; Space for fixed navbar */
+  padding-top: 10px;
   min-height: calc(100vh - 120px);
 }
 
@@ -38,7 +52,7 @@ html, body {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .main-content {
-    padding-top: 70px;
+    /* padding-top: 70px; */
   }
   
   .page-container {

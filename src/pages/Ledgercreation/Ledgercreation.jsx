@@ -607,6 +607,7 @@ export default function LedgerCreation({ onCreated }) {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+        
         }
         .dashboard:hover { transform: translateY(-6px); }
 
@@ -619,23 +620,25 @@ export default function LedgerCreation({ onCreated }) {
           margin-bottom: 18px;
           flex-wrap: wrap;
         }
-        .title-block {
-          display:flex;
-          align-items: center;
-          gap:12px;
-        }
-        .title-block h2 {
-          margin:0;
-          font-family: "Poppins", "Inter", sans-serif;
-          font-size: 20px;
-          color: #0f172a;
-          letter-spacing: -0.2px;
-        }
-        .subtitle {
-          color: var(--muted);
-          font-size: 13px;
-        }
+       .title-block {
+  display: flex;
+  flex-direction: column; /* Change from row to column */
+  align-items: flex-start; /* Align items to the left */
+  gap: 4px; /* Adjust spacing between title and subtitle */
+}
 
+.title-block h2 {
+  margin: 0;
+  font-family: "Poppins", "Inter", sans-serif;
+  font-size: 20px;
+  color: #0f172a;
+  letter-spacing: -0.2px;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 13px;
+}
         /* action pills */
         .actions {
           display:flex;
@@ -1148,7 +1151,7 @@ export default function LedgerCreation({ onCreated }) {
         <div className="top-row">
           <div className="title-block">
             <h2 id="ledger-title">Ledger Creation</h2>
-            <span className="subtitle">Create and manage ledger accounts</span>
+            <div className="subtitle">Create and manage ledger accounts</div>
           </div>
           <div className="actions">
             <div

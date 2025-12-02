@@ -582,6 +582,7 @@ const ItemCreation = ({ onCreated }) => {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          
         }
         .dashboard:hover { transform: translateY(-6px); }
 
@@ -706,6 +707,7 @@ const ItemCreation = ({ onCreated }) => {
           background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(250,251,255,0.6));
           border: 1px solid rgba(12,18,35,0.04);
           padding:10px;
+          width: 100%;
         }
         .tree-scroll { max-height:260px; overflow:auto; padding-right:6px; }
 
@@ -1032,10 +1034,10 @@ const ItemCreation = ({ onCreated }) => {
       <div className="dashboard" aria-labelledby="item-title">
         <div className="top-row">
           <div className="title-block">
-            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+            {/* <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#ecfdf5" />
               <path d="M6 12h12M6 8h12M6 16h12" stroke="var(--accent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            </svg> */}
             <div>
               <h2 id="item-title">Item Creation</h2>
               <div className="subtitle muted">Create, edit, or delete items — organized & fast.</div>

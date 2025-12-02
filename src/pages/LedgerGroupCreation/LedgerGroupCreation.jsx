@@ -248,18 +248,17 @@ export default function LedgerGroupCreation() {
   }, [subGroupOptions, searchDropdown]);
 
   // resetForm now keeps the tree open by default (user requested always open)
-  const resetForm = (keepAction = false) => {
-    setMainGroup("");
-    setSubGroup("");
-    setFCode("");
-    setSelectedNode(null);
-    setMessage(null);
-    setSearchDropdown("");
-    setSearchTree("");
-    setIsDropdownOpen(false);
-    setIsTreeOpen(true); // <-- keep tree open after reset
-    if (!keepAction) setActionType("Add");
-  };
+  const resetForm = () => {
+  setMainGroup("");
+  setSubGroup("");
+  setFCode("");
+  setSelectedNode(null);
+  setMessage(null);
+  setSearchDropdown("");
+  setSearchTree("");
+  setIsDropdownOpen(false);
+  setIsTreeOpen(true); 
+};
 
   const validateForSubmit = () => {
     if (!mainGroup?.trim()) {
@@ -298,7 +297,7 @@ export default function LedgerGroupCreation() {
   const resp = await api.post(endpoints.postCreate || endpoints.postAdd, payload);
       if (resp.status === 200 || resp.status === 201) {
         setMessage({ type: "success", text: "Saved successfully." });
-        resetForm(true);
+        resetForm();
         await loadInitial();
       } else {
         setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
@@ -311,65 +310,67 @@ export default function LedgerGroupCreation() {
     }
   };
 
-  const handleEdit = async () => {
-    // Check permission before allowing action
-    if (!formPermissions.edit) {
-      setMessage({ type: "error", text: "You don't have permission to edit ledger groups." });
-      return;
+ const handleEdit = async () => {
+  // Check permission before allowing action
+  if (!formPermissions.edit) {
+    setMessage({ type: "error", text: "You don't have permission to edit ledger groups." });
+    return;
+  }
+  if (!validateForSubmit()) return;
+  if (!window.confirm("Do you want to modify?")) return;
+  setSubmitting(true);
+  setMessage(null);
+  try {
+    const payload = {
+      fcode: fCode,
+      subGroup: subGroup.trim(),
+      mainGroup: mainGroup.trim(),
+      faclevel: "",
+    };
+    const resp = await api.put(endpoints.putEdit, payload);
+    if (resp.status === 200 || resp.status === 201) {
+      setMessage({ type: "success", text: "Updated successfully." });
+      setActionType("Add"); // <--- ADD THIS LINE
+      resetForm(); // <--- Remove keepAction parameter
+      await loadInitial();
+    } else {
+      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
     }
-    if (!validateForSubmit()) return;
-    if (!window.confirm("Do you want to modify?")) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const payload = {
-        fcode: fCode,
-        subGroup: subGroup.trim(),
-        mainGroup: mainGroup.trim(),
-        faclevel: "",
-      };
-      const resp = await api.put(endpoints.putEdit, payload);
-      if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Updated successfully." });
-        resetForm(true);
-        await loadInitial();
-      } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch (err) {
+    console.error(err);
+    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
-  const handleDelete = async () => {
-    // Check permission before allowing action
-    if (!formPermissions.delete) {
-      setMessage({ type: "error", text: "You don't have permission to delete ledger groups." });
-      return;
+ const handleDelete = async () => {
+  // Check permission before allowing action
+  if (!formPermissions.delete) {
+    setMessage({ type: "error", text: "You don't have permission to delete ledger groups." });
+    return;
+  }
+  if (!validateForSubmit()) return;
+  if (!window.confirm("Do you want to delete?")) return;
+  setSubmitting(true);
+  setMessage(null);
+  try {
+    const resp = await api.delete(endpoints.delete(fCode));
+    if (resp.status === 200 || resp.status === 201) {
+      setMessage({ type: "success", text: "Deleted successfully." });
+      setActionType("Add"); // <--- ADD THIS LINE
+      resetForm(); // <--- Remove keepAction parameter
+      await loadInitial();
+    } else {
+      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
     }
-    if (!validateForSubmit()) return;
-    if (!window.confirm("Do you want to delete?")) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const resp = await api.delete(endpoints.delete(fCode));
-      if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Deleted successfully." });
-        resetForm(true);
-        await loadInitial();
-      } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch (err) {
+    console.error(err);
+    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
@@ -417,6 +418,7 @@ export default function LedgerGroupCreation() {
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
           box-sizing: border-box;
+          
         }
 
         /* Main dashboard card (glass) */
@@ -431,6 +433,9 @@ export default function LedgerGroupCreation() {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+         
+          
+          
         }
         .dashboard:hover { transform: translateY(-6px); }
 
@@ -555,6 +560,7 @@ export default function LedgerGroupCreation() {
           background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(250,251,255,0.6));
           border: 1px solid rgba(12,18,35,0.04);
           padding:10px;
+          width: 100%;
         }
         .tree-scroll { max-height:260px; overflow:auto; padding-right:6px; }
 
@@ -823,22 +829,21 @@ export default function LedgerGroupCreation() {
       <div className="dashboard" aria-labelledby="ledger-title">
         <div className="top-row">
           <div className="title-block">
-          </div>
-          {/* <div className="title-block">
-            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+             {/*<svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            </svg>}*/}
+
             <div>
               <h2 id="ledger-title">Ledger Group Creation</h2>
               <div className="subtitle muted">Add, edit, or delete ledger groups — organized & fast.</div>
             </div>
-          </div> */}
+          </div> 
 
           <div className="actions" role="toolbar" aria-label="actions">
             <button
               className={`action-pill ${actionType === "Add" ? "primary" : ""}`}
-              onClick={() => { setActionType("Add"); resetForm(true); }}
+              onClick={() => { setActionType("Add"); resetForm(); }}
               disabled={submitting || !formPermissions.add}
               type="button"
               title={!formPermissions.add ? "You don't have permission to add" : "Add new ledger group"}
@@ -848,7 +853,7 @@ export default function LedgerGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "edit" ? "warn" : ""}`}
-              onClick={() => { setActionType("edit"); resetForm(true); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("edit"); resetForm(); setIsDropdownOpen(true); }}
               disabled={submitting || !formPermissions.edit}
               type="button"
               title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing ledger group"}
@@ -858,7 +863,7 @@ export default function LedgerGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "delete" ? "danger" : ""}`}
-              onClick={() => { setActionType("delete"); resetForm(true); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("delete"); resetForm(); setIsDropdownOpen(true); }}
               disabled={submitting || !formPermissions.delete}
               type="button"
               title={!formPermissions.delete ? "You don't have permission to delete" : "Delete ledger group"}
