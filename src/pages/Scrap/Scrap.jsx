@@ -156,9 +156,6 @@ const Scrap = () => {
       backgroundColor: '#f5f5f5',
       minHeight: '100vh',
       padding: '4px',
-      marginLeft: '-130px',
-      marginRight: '-130px',
-      marginTop: '-100px',
     }}>
       <div style={{ 
         backgroundColor: '#ffffff',

@@ -559,16 +559,16 @@ const ItemCreation = ({ onCreated }) => {
         }
 
         /* Page layout */
-        // .lg-root {
-        //   min-height: 100vh;
-        //   display: flex;
-        //   align-items: center;
-        //   justify-content: center;
-        //   padding: 20px 16px;
-        //   background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
-        //   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-        //   box-sizing: border-box;
-        // }
+        .lg-root {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px 16px;
+          background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+          font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+          box-sizing: border-box;
+        }
 
         /* Main dashboard card (glass) */
         .dashboard {
@@ -582,7 +582,7 @@ const ItemCreation = ({ onCreated }) => {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
-          margin-top: -80px;
+          
         }
         .dashboard:hover { transform: translateY(-6px); }
 
@@ -606,7 +606,6 @@ const ItemCreation = ({ onCreated }) => {
           font-size: 20px;
           color: #0f172a;
           letter-spacing: -0.2px;
-          margin-left: -155px;
         }
         .subtitle {
           color: var(--muted);
