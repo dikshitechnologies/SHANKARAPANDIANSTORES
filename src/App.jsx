@@ -9,6 +9,7 @@ import ItemGroupCreation from './pages/ItemGroupCreation/ItemGroupCreation'
 import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
 import UnitCreation from './pages/UnitCreation/UnitCreation'
+import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/masters/item-group-creation" element={<ItemGroupCreation />} />
           <Route path="/popup-list-selector-example" element={<ExampleUsage />} />
           <Route path="/masters/unit-creation" element={<UnitCreation />} />
+          <Route path="/transactions/purchase-invoice" element={<PurchaseInvoice />} />
         </Routes>
       </main>
     </div>
