@@ -547,7 +547,8 @@ const Scrap = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
-                fontSize: '14px'
+                fontSize: '14px',
+                marginLeft:'-87%'
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
