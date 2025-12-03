@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://dikshi.ddns.net/jewellbisreact/api';
+const API_BASE_URL = 'http://dikshiserver/spstores/api';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
