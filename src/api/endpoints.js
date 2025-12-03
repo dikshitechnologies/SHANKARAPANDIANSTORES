@@ -36,5 +36,12 @@ ITEM_GROUP: {
     putEdit: "ItemGroupCreation/ItemGroupCreationPut",
     delete: (fCode) => `ItemGroupCreation/ItemGroupCreationDelete/${fCode}`,
   },
+user_creation: {
+    getuserdetails: "UserCreation/getUserItem",
+    getDropdown: "ItemGroupCreation/ItemgroupCreationDropdownlist",
+    postCreate: "UserCreation/CreateUser",
+    putEdit: "UserCreation/UpdateUser",
+    delete: (fCode) => `UserCreation/deleteUser/${fCode}`,
+  },
 
 }
