@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ActionButtons, AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
+import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('');
+  const [activeTopAction, setActiveTopAction] = useState('all');
   
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -71,6 +71,9 @@ const PurchaseInvoice = () => {
 
   // Purchase details modal state
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+
+  // Footer action active state
+  const [activeFooterAction, setActiveFooterAction] = useState('all');
 
   const openPurchaseModal = (e) => {
     if (e) e.stopPropagation();
@@ -234,6 +237,14 @@ const PurchaseInvoice = () => {
     setBillDetails({ ...billDetails, barcodeInput: '' });
   };
 
+  const handleSave = () => {
+   
+  };
+
+  const handlePrint = () => {
+   
+  };
+
   // helper to compute input style for top-section fields
   const topInputStyle = (name, override = {}) => ({
     ...styles.input,
@@ -318,7 +329,7 @@ const PurchaseInvoice = () => {
       top: -6,
       left: 10,
       backgroundColor: 'white',
-      color: '#666',
+      color: 'black',
       padding: '0 8px',
       fontSize: '13px',
       fontWeight: 700,
@@ -558,16 +569,17 @@ const PurchaseInvoice = () => {
       alignItems: 'center',
       gap: 8,
       padding: '6px 10px',
-      width: 150,
+      width: 160,
       background: '#1B91DA',
       color: 'white',
       border: 'none',
       borderRadius: 20,
       cursor: 'pointer',
       fontWeight: 700,
-      fontSize: '13px',
+      fontSize: '14px',
       fontFamily: 'Inter, Arial, sans-serif',
-      boxShadow: '0 6px 18px rgba(25,105,46,0.18)'
+      boxShadow: '0 6px 18px rgba(25,105,46,0.18)',
+      height: 38,
     },
     purchaseModalOverlay: {
       position: 'fixed',
@@ -1045,15 +1057,13 @@ const PurchaseInvoice = () => {
         </div>
 
         <div style={styles.footerButtons}>
-          <button style={{...styles.btnClear}} onClick={handleClear}>
-             <span>✕</span> Clear
-          </button>
-          <button style={{...styles.btnSave}} onClick={() => alert('Saved Successfully!')}>
-             <span>💾</span> Save
-          </button>
-          <button style={{...styles.btnSave}} onClick={() => window.print()}>
-             <span>🖨</span> Print
-          </button>
+          <ActionButtons1
+            onClear={handleClear}
+            onSave={handleSave}
+            onPrint={handlePrint}
+            activeButton={activeFooterAction}
+            onButtonClick={(type) => setActiveFooterAction(type)}
+          />
         </div>
       </div>
 

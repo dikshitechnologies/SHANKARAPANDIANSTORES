@@ -48,7 +48,7 @@ export const ActionButtons = ({ children, activeButton, onButtonClick }) => {
     if (React.isValidElement(child)) {
       const originalOnClick = child.props.onClick;
       return React.cloneElement(child, {
-        isActive: child.props.buttonType === activeButton,
+        isActive: activeButton === 'all' || child.props.buttonType === activeButton,
         onClick: (e) => {
           if (typeof originalOnClick === 'function') originalOnClick(e);
           if (typeof onButtonClick === 'function') onButtonClick(child.props.buttonType);
@@ -73,9 +73,9 @@ export const ActionButtons1 = ({ onClear, onSave, onPrint, activeButton, onButto
 
   return (
     <div style={styles.buttonContainer}>
-      <ClearButton onClick={handleClick('clear', onClear)} disabled={disabledClear} isActive={activeButton === 'clear'} />
-      <SaveButton onClick={handleClick('save', onSave)} disabled={disabledSave} isActive={activeButton === 'save'} />
-      <PrintButton onClick={handleClick('print', onPrint)} disabled={disabledPrint} isActive={activeButton === 'print'} />
+      <ClearButton onClick={handleClick('clear', onClear)} disabled={disabledClear} isActive={activeButton === 'all' || activeButton === 'clear'} />
+      <SaveButton onClick={handleClick('save', onSave)} disabled={disabledSave} isActive={activeButton === 'all' || activeButton === 'save'} />
+      <PrintButton onClick={handleClick('print', onPrint)} disabled={disabledPrint} isActive={activeButton === 'all' || activeButton === 'print'} />
     </div>
   );
 };
