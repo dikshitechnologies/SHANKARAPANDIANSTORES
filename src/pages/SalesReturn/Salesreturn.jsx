@@ -8,89 +8,114 @@ import {
 } from "react-icons/fa";
 
 /**
- * SalesReturn component matching the image design
+ * SalesReturn component matching the scrap sales image design
  */
 export default function SalesReturn() {
   // ---------- Mock product database ----------
   const productDB = {
-    "123456": {
-      itemName: "Fauget Cafe Coffee Shop",
-      stock: 500,
-      mrp: 500,
-      uom: "pcs",
-      hsn: "ASW090",
-      tax: 21,
-      srate: 2000000,
-    },
-    "111222": {
-      itemName: "Coffee Beans 1kg",
-      stock: 120,
-      mrp: 1200,
-      uom: "kg",
-      hsn: "CB1001",
-      tax: 12,
-      srate: 1100,
-    },
-    "999888": {
-      itemName: "Chocolate Bar",
-      stock: 1000,
-      mrp: 50,
-      uom: "pcs",
-      hsn: "CHOC01",
+    "BAR001": {
+      itemName: "Scrap Item 1",
+      stock: 100,
+      mrp: 120,
+      uom: "KG",
+      hsn: "72044900",
       tax: 18,
-      srate: 45,
+      srate: 100,
+      wrate: 90,
     },
-    "AADDFF": {
-      itemName: "Fauget Cafe Coffee Shop",
-      stock: 500,
-      mrp: 500,
-      uom: "pcs",
-      hsn: "ASW090",
-      tax: 21,
-      srate: 2000000,
+    "BAR002": {
+      itemName: "Scrap Item 2",
+      stock: 80,
+      mrp: 180,
+      uom: "KG",
+      hsn: "72044900",
+      tax: 18,
+      srate: 150,
+      wrate: 135,
+    },
+    "BAR301": {
+      itemName: "Scrap Item 1",
+      stock: 100,
+      mrp: 120,
+      uom: "KG",
+      hsn: "72044900",
+      tax: 18,
+      srate: 100,
+      wrate: 90,
+    },
+    "BAR302": {
+      itemName: "Scrap Item 2",
+      stock: 80,
+      mrp: 180,
+      uom: "KG",
+      hsn: "72044900",
+      tax: 18,
+      srate: 150,
+      wrate: 135,
     },
   };
 
   // ---------- State ----------
   const [form, setForm] = useState({
-    billNo: "",
-    mobile: "",
-    mode: "Retail",
-    barcode: "",
-    billDate: "",
-    customer: "",
     salesman: "",
+    billNo: "C400001AA",
+    mobile: "8754603732",
+    scrapProductName: "Scrap Product Name",
+    empName: "EMP Name",
+    billDate: "",
+    customer: "Priyanka",
+    qty: "0",
+    items: "Items",
+    barcode: "",
   });
 
   const [rows, setRows] = useState([
     {
       id: 1,
-      barcode: "",
-      itemName: "",
-      stock: 0,
-      mrp: 0,
-      uom: "",
-      hsn: "",
-      tax: 0,
-      srate: 0,
-      qty: 0,
-      amount: 0,
+      barcode: "BAR301",
+      itemName: "Scrap Item 1",
+      stock: 100,
+      mrp: 120,
+      uom: "KG",
+      hsn: "72044900",
+      tax: 18,
+      srate: 100,
+      wrate: 90,
+      qty: 10,
+      amount: 1000,
+    },
+    {
+      id: 2,
+      barcode: "BAR302",
+      itemName: "Scrap Item 2",
+      stock: 80,
+      mrp: 180,
+      uom: "KG",
+      hsn: "72044900",
+      tax: 18,
+      srate: 150,
+      wrate: 135,
+      qty: 5,
+      amount: 750,
     }
   ]);
-  const [nextId, setNextId] = useState(2);
+  const [nextId, setNextId] = useState(3);
   const [selectedRowId, setSelectedRowId] = useState(1);
   const [toast, setToast] = useState(null);
   const [editingCell, setEditingCell] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [focusedInput, setFocusedInput] = useState("billNo");
-  const [currentField, setCurrentField] = useState("billNo");
+  const [focusedInput, setFocusedInput] = useState("salesman");
+  const [currentField, setCurrentField] = useState("salesman");
   
-  const billNoRef = useRef(null);
-  const billDateRef = useRef(null);
-  const mobileRef = useRef(null);
-  const customerRef = useRef(null);
-  const modeRef = useRef(null);
   const salesmanRef = useRef(null);
+  const billNoRef = useRef(null);
+  const mobileRef = useRef(null);
+  const scrapProductRef = useRef(null);
+  const empNameRef = useRef(null);
+  const billDateRef = useRef(null);
+  const customerRef = useRef(null);
+  const qtyRef = useRef(null);
+  const itemsRef = useRef(null);
   const barcodeRef = useRef(null);
 
   // ---------- Helpers ----------
@@ -130,11 +155,15 @@ export default function SalesReturn() {
     return s * q;
   };
 
+  // Calculate totals
+  const totalQty = rows.reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
+  const totalAmount = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
+
   // ---------- Navigation between fields ----------
   const navigateToNextField = () => {
     const fieldsOrder = [
-      "billNo", "billDate", "mobile", "customer", 
-      "mode", "salesman", "barcode"
+      "salesman", "billNo", "mobile", "scrapProductName", 
+      "empName", "billDate", "customer", "qty", "items", "barcode"
     ];
     const currentIndex = fieldsOrder.indexOf(currentField);
     
@@ -144,34 +173,45 @@ export default function SalesReturn() {
       focusOnField(nextField);
     } else {
       // Move to table row barcode field
-      setCurrentField("rowBarcode");
-      setEditingCell({ rowId: 1, field: "barcode" });
-      setTimeout(() => {
-        const barcodeInput = document.querySelector(`input[data-row="1"][data-field="barcode"]`);
-        if (barcodeInput) barcodeInput.focus();
-      }, 10);
+      if (rows.length > 0) {
+        setCurrentField("rowBarcode");
+        setEditingCell({ rowId: rows[0].id, field: "barcode" });
+        setTimeout(() => {
+          const barcodeInput = document.querySelector(`input[data-row="${rows[0].id}"][data-field="barcode"]`);
+          if (barcodeInput) barcodeInput.focus();
+        }, 10);
+      }
     }
   };
 
   const focusOnField = (field) => {
     switch(field) {
+      case "salesman":
+        salesmanRef.current?.focus();
+        break;
       case "billNo":
         billNoRef.current?.focus();
-        break;
-      case "billDate":
-        billDateRef.current?.focus();
         break;
       case "mobile":
         mobileRef.current?.focus();
         break;
+      case "scrapProductName":
+        scrapProductRef.current?.focus();
+        break;
+      case "empName":
+        empNameRef.current?.focus();
+        break;
+      case "billDate":
+        billDateRef.current?.focus();
+        break;
       case "customer":
         customerRef.current?.focus();
         break;
-      case "mode":
-        modeRef.current?.focus();
+      case "qty":
+        qtyRef.current?.focus();
         break;
-      case "salesman":
-        salesmanRef.current?.focus();
+      case "items":
+        itemsRef.current?.focus();
         break;
       case "barcode":
         barcodeRef.current?.focus();
@@ -194,12 +234,13 @@ export default function SalesReturn() {
       itemName: product ? product.itemName : "Unknown Item",
       stock: product ? product.stock : 0,
       mrp: product ? product.mrp : 0,
-      uom: product ? product.uom : "",
+      uom: product ? product.uom : "KG",
       hsn: product ? product.hsn : "",
-      tax: product ? product.tax : 0,
+      tax: product ? product.tax : 18,
       srate: product ? product.srate : 0,
-      qty: product ? 100 : 1,
-      amount: product ? product.srate * 100 : 0,
+      wrate: product ? product.wrate : 0,
+      qty: 1,
+      amount: product ? product.srate : 0,
     };
 
     setRows((r) => [...r, newRow]);
@@ -219,12 +260,17 @@ export default function SalesReturn() {
   };
 
   const editCell = (id, field, rawValue) => {
-    const value =
-      field === "qty" || field === "srate" ? Number(rawValue) || 0 : rawValue;
+    const value = 
+      field === "qty" || field === "srate" || field === "tax" || 
+      field === "stock" || field === "mrp" || field === "wrate" 
+        ? Number(rawValue) || 0 
+        : rawValue;
+    
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
         const updated = { ...r, [field]: value };
+        
         // If barcode is entered, look up product details
         if (field === "barcode" && value.trim() !== "") {
           const product = productDB[value.trim()];
@@ -236,9 +282,11 @@ export default function SalesReturn() {
             updated.hsn = product.hsn;
             updated.tax = product.tax;
             updated.srate = product.srate;
-            updated.qty = 100;
+            updated.wrate = product.wrate;
+            updated.qty = 1;
           }
         }
+        
         updated.amount = calcAmount(updated);
         return updated;
       })
@@ -249,7 +297,7 @@ export default function SalesReturn() {
     if (e.key === "Enter") {
       e.preventDefault();
       
-      const fieldsOrder = ["barcode", "itemName", "stock", "mrp", "uom", "hsn", "tax", "srate", "qty"];
+      const fieldsOrder = ["barcode", "itemName", "stock", "mrp", "uom", "hsn", "tax", "srate", "wrate", "qty"];
       const currentIndex = fieldsOrder.indexOf(field);
       
       if (currentIndex < fieldsOrder.length - 1) {
@@ -264,7 +312,7 @@ export default function SalesReturn() {
           if (nextInput) nextInput.focus();
         }, 10);
       } else {
-        // On last field (QTY), create new row if needed
+        // On last field (QTY), create new empty row
         const newRowId = nextId;
         const newRow = {
           id: newRowId,
@@ -272,10 +320,11 @@ export default function SalesReturn() {
           itemName: "",
           stock: 0,
           mrp: 0,
-          uom: "",
+          uom: "KG",
           hsn: "",
-          tax: 0,
+          tax: 18,
           srate: 0,
+          wrate: 0,
           qty: 0,
           amount: 0,
         };
@@ -322,10 +371,11 @@ export default function SalesReturn() {
         itemName: "",
         stock: 0,
         mrp: 0,
-        uom: "",
+        uom: "KG",
         hsn: "",
-        tax: 0,
+        tax: 18,
         srate: 0,
+        wrate: 0,
         qty: 0,
         amount: 0,
       }
@@ -333,22 +383,25 @@ export default function SalesReturn() {
     setNextId(2);
     setSelectedRowId(1);
     setEditingCell({ rowId: 1, field: "barcode" });
-    setCurrentField("billNo");
+    setCurrentField("salesman");
     setForm({
-      billNo: "",
-      mobile: "",
-      mode: "Retail",
-      barcode: "",
-      billDate: "",
-      customer: "",
       salesman: "",
+      billNo: "C400001AA",
+      mobile: "8754603732",
+      scrapProductName: "Scrap Product Name",
+      empName: "EMP Name",
+      billDate: "",
+      customer: "Priyanka",
+      qty: "0",
+      items: "Items",
+      barcode: "",
     });
     showToast("Cleared all items");
-    focusOnField("billNo");
+    focusOnField("salesman");
   };
 
   const saveData = () => {
-    const payload = { form, rows, total: rows.reduce((s, r) => s + r.amount, 0) };
+    const payload = { form, rows, totalQty, totalAmount };
     console.log("Saving payload: ", payload);
     showToast("Sales return saved successfully");
   };
@@ -391,21 +444,19 @@ export default function SalesReturn() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selectedRowId, rows, currentField]);
 
-  const netTotal = rows.reduce((s, r) => s + (r.amount || 0), 0);
-
-  // ---------- EXACT Styles matching the image ----------
+  // ---------- EXACT Styles matching the first image ----------
   const styles = {
     page: {
       width: "100%",
       minHeight: "100vh",
-      background: "#e8f4f8", // Light blue-gray background from image
+      background: "#e8f4f8", // Light blue background from first image
       fontFamily: "'Segoe UI', Arial, sans-serif",
       padding: "20px",
     },
 
     // Header - Store Name
     storeHeader: {
-      background: "linear-gradient(135deg, #1a5276 0%, #2e86c1 100%)", // Dark blue gradient
+      background: "linear-gradient(135deg, #1a5276 0%, #2e86c1 100%)", // Blue gradient from first image
       color: "white",
       padding: "15px 20px",
       borderRadius: "8px 8px 0 0",
@@ -414,7 +465,7 @@ export default function SalesReturn() {
       fontWeight: "bold",
       textAlign: "center",
       letterSpacing: "1px",
-      boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+      boxShadow: "0 2px 5px  #2e86c1",
       borderBottom: "3px solid #154360",
     },
 
@@ -422,36 +473,40 @@ export default function SalesReturn() {
     mainContainer: {
       background: "white",
       borderRadius: "0 0 8px 8px",
-      boxShadow: "0 3px 10px rgba(0,0,0,0.15)",
+      boxShadow: "0 3px 10px  #2e86c1",
       overflow: "hidden",
+      position: "relative",
+      paddingBottom: "60px", // Added padding for sticky footer
     },
 
-    // Billing Section
-    billingSection: {
-      padding: "25px",
-      borderBottom: "2px solid #eaeaea",
-    },
-
-    billingTitle: {
-      fontSize: "18px",
+    // Sales Return Header
+    salesReturnHeader: {
+      background: "linear-gradient(135deg, #2c3e50 0%, #34495e 100%)",
+      color: "white",
+      padding: "15px 25px",
+      fontSize: "20px",
       fontWeight: "bold",
-      color: "#1a5276",
-      marginBottom: "20px",
-      paddingBottom: "10px",
-      borderBottom: "2px solid #1a5276",
       display: "flex",
       alignItems: "center",
       gap: "10px",
+      borderBottom: "3px solid #1a252f",
     },
 
-    billingGrid: {
+    // Form Section
+    formSection: {
+      padding: "25px",
+      borderBottom: "2px solid #eaeaea",
+      background: "white",
+    },
+
+    formGrid: {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
       gap: "20px",
-      marginBottom: "25px",
+      marginBottom: "0",
     },
 
-    // Form Group - Exact from image
+    // Form Group
     formGroup: {
       display: "flex",
       flexDirection: "column",
@@ -466,114 +521,27 @@ export default function SalesReturn() {
       letterSpacing: "0.5px",
     },
 
-    // Input Style - Exact from image
+    // Input Style
     input: {
-      padding: "12px 15px",
-      border: "2px solid #bdc3c7",
-      borderRadius: "6px",
-      fontSize: "14px",
-      color: "#2c3e50",
-      backgroundColor: "#f8f9fa",
+      padding: "4px 6px",
+      border: "1px solid #999",
+      borderRadius: "3px",
+      fontSize: "12px",
+      height: "24px",
+      backgroundColor: "#fff",
       outline: "none",
-      height: "45px",
       boxSizing: "border-box",
-      transition: "all 0.3s",
-      fontFamily: "inherit",
     },
 
     inputFocus: {
-      borderColor: "#3498db",
-      backgroundColor: "white",
-      boxShadow: "0 0 0 3px rgba(52, 152, 219, 0.2)",
-    },
-
-    select: {
-      padding: "12px 15px",
-      border: "2px solid #bdc3c7",
-      borderRadius: "6px",
-      fontSize: "14px",
-      color: "#2c3e50",
-      backgroundColor: "#f8f9fa",
-      cursor: "pointer",
-      appearance: "none",
-      backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%232c3e50' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E\")",
-      backgroundRepeat: "no-repeat",
-      backgroundPosition: "right 15px center",
-      backgroundSize: "12px",
-      paddingRight: "40px",
-      height: "45px",
-      boxSizing: "border-box",
-      fontFamily: "inherit",
-    },
-
-    // Action Buttons Container
-    actionButtons: {
-      display: "flex",
-      gap: "15px",
-      justifyContent: "center",
-      marginTop: "10px",
-    },
-
-    // Button Style - Exact from image
-    button: {
-      padding: "12px 25px",
-      borderRadius: "6px",
-      border: "none",
-      fontSize: "14px",
-      fontWeight: "bold",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-      transition: "all 0.3s",
-      minWidth: "120px",
-      height: "45px",
-      fontFamily: "inherit",
-      letterSpacing: "0.5px",
-      textTransform: "uppercase",
-    },
-
-    // Specific button colors from image
-    addButton: {
-      backgroundColor: "#27ae60", // Green
-      color: "white",
-      border: "2px solid #219653",
-    },
-
-    addButtonHover: {
-      backgroundColor: "#219653",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(39, 174, 96, 0.3)",
-    },
-
-    editButton: {
-      backgroundColor: "#3498db", // Blue
-      color: "white",
-      border: "2px solid #2980b9",
-    },
-
-    editButtonHover: {
-      backgroundColor: "#2980b9",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(52, 152, 219, 0.3)",
-    },
-
-    deleteButton: {
-      backgroundColor: "#e74c3c", // Red
-      color: "white",
-      border: "2px solid #c0392b",
-    },
-
-    deleteButtonHover: {
-      backgroundColor: "#c0392b",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(231, 76, 60, 0.3)",
+      borderColor: "#2e86c1",
+      backgroundColor: "#fff",
     },
 
     // Table Section
     tableSection: {
       padding: "25px",
+      background: "white",
     },
 
     tableHeader: {
@@ -617,29 +585,29 @@ export default function SalesReturn() {
       fontFamily: "inherit",
     },
 
-    // Table Styles - Exact from image
+    // Table Styles
     tableWrapper: {
       overflowX: "auto",
       borderRadius: "8px",
       border: "2px solid #e0e0e0",
-      boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+      boxShadow: " #2e86c1",
     },
 
     table: {
       width: "100%",
       borderCollapse: "collapse",
       fontSize: "13px",
-      minWidth: "1200px",
+      minWidth: "1200px", // Increased for more columns
     },
 
     tableHead: {
-      background: "linear-gradient(135deg, #2c3e50 0%, #34495e 100%)",
+      background: "linear-gradient(135deg,  #2e86c1)",
     },
 
     th: {
-      padding: "14px 10px",
+      padding: "12px 8px", // Reduced padding
       textAlign: "left",
-      fontSize: "12px",
+      fontSize: "11px", // Smaller font for more columns
       fontWeight: "bold",
       color: "white",
       borderRight: "1px solid #3d566e",
@@ -649,11 +617,12 @@ export default function SalesReturn() {
     },
 
     td: {
-      padding: "12px 10px",
+      padding: "8px 6px", // Reduced padding
       borderBottom: "1px solid #e0e0e0",
       borderRight: "1px solid #e0e0e0",
       color: "#2c3e50",
-      fontSize: "13px",
+      fontSize: "12px", // Smaller font
+      verticalAlign: "middle",
     },
 
     // Table row styling
@@ -672,162 +641,72 @@ export default function SalesReturn() {
     // Table Input Style
     tableInput: {
       width: "100%",
-      padding: "8px 10px",
-      border: "1px solid #d5dbdb",
-      borderRadius: "4px",
-      fontSize: "13px",
-      backgroundColor: "white",
-      color: "#2c3e50",
+      padding: "3px 5px",
+      border: "1px solid #ccc",
+      borderRadius: "3px",
+      fontSize: "12px",
+      height: "22px",
+      backgroundColor: "#fff",
       outline: "none",
-      height: "35px",
       boxSizing: "border-box",
-      fontFamily: "inherit",
     },
 
     tableInputFocus: {
-      borderColor: "#3498db",
-      boxShadow: "0 0 0 2px rgba(52, 152, 219, 0.2)",
+      borderColor: "#2e86c1",
+      boxShadow: "0 0 0 1px rgba(46, 134, 193, 0.2)",
     },
 
-    // Table Action Button
-    tableActionButton: {
-      padding: "8px 15px",
-      borderRadius: "4px",
+    // Action Button in Table
+    actionButton: {
+      padding: "6px 10px", // Smaller button
+      borderRadius: "3px",
       border: "none",
-      fontSize: "12px",
+      fontSize: "11px",
       fontWeight: "bold",
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: "6px",
+      gap: "4px",
       transition: "all 0.3s",
-      height: "35px",
-      minWidth: "90px",
+      height: "28px",
+      minWidth: "70px",
       fontFamily: "inherit",
       textTransform: "uppercase",
-    },
-
-    // Footer Section
-    footerSection: {
-      background: "#f8f9fa",
-      padding: "20px 25px",
-      borderTop: "2px solid #e0e0e0",
-    },
-
-    footerContent: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-
-    summarySection: {
-      display: "flex",
-      gap: "40px",
-      alignItems: "center",
-    },
-
-    summaryItem: {
-      display: "flex",
-      flexDirection: "column",
-    },
-
-    summaryLabel: {
-      fontSize: "13px",
-      color: "#7f8c8d",
-      marginBottom: "5px",
-      fontWeight: "600",
-      textTransform: "uppercase",
-    },
-
-    summaryValue: {
-      fontSize: "20px",
-      fontWeight: "bold",
-      color: "#2c3e50",
-    },
-
-    totalBox: {
-      background: "linear-gradient(135deg, #2c3e50 0%, #34495e 100%)",
-      color: "white",
-      padding: "20px 35px",
-      borderRadius: "8px",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-      minWidth: "200px",
-    },
-
-    totalLabel: {
-      fontSize: "12px",
-      marginBottom: "8px",
-      opacity: "0.9",
-      textTransform: "uppercase",
-      letterSpacing: "1px",
-    },
-
-    totalAmount: {
-      fontSize: "24px",
-      fontWeight: "bold",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-    },
-
-    footerButtons: {
-      display: "flex",
-      gap: "15px",
-    },
-
-    // Footer buttons specific styles
-    clearButton: {
       backgroundColor: "#e74c3c",
       color: "white",
-      border: "2px solid #c0392b",
-      padding: "12px 30px",
+    },
+
+    actionButtonHover: {
+      backgroundColor: "#c0392b",
+      transform: "translateY(-1px)",
+    },
+
+    // Add Item Button
+    addItemButton: {
+      padding: "12px 25px",
       borderRadius: "6px",
+      border: "none",
       fontSize: "14px",
       fontWeight: "bold",
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
-      gap: "10px",
-      height: "45px",
-      minWidth: "120px",
       justifyContent: "center",
-      textTransform: "uppercase",
+      gap: "10px",
+      transition: "all 0.3s",
+      minWidth: "150px",
+      height: "45px",
       fontFamily: "inherit",
       letterSpacing: "0.5px",
-    },
-
-    clearButtonHover: {
-      backgroundColor: "#c0392b",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(231, 76, 60, 0.3)",
-    },
-
-    saveButton: {
+      textTransform: "uppercase",
       backgroundColor: "#27ae60",
       color: "white",
+      marginTop: "20px",
       border: "2px solid #219653",
-      padding: "12px 30px",
-      borderRadius: "6px",
-      fontSize: "14px",
-      fontWeight: "bold",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      height: "45px",
-      minWidth: "120px",
-      justifyContent: "center",
-      textTransform: "uppercase",
-      fontFamily: "inherit",
-      letterSpacing: "0.5px",
     },
 
-    saveButtonHover: {
+    addItemButtonHover: {
       backgroundColor: "#219653",
       transform: "translateY(-2px)",
       boxShadow: "0 4px 8px rgba(39, 174, 96, 0.3)",
@@ -878,207 +757,177 @@ export default function SalesReturn() {
     }
   };
 
+  // Add empty row
+  const addEmptyRow = () => {
+    const newRowId = nextId;
+    const newRow = {
+      id: newRowId,
+      barcode: "",
+      itemName: "",
+      stock: 0,
+      mrp: 0,
+      uom: "KG",
+      hsn: "",
+      tax: 18,
+      srate: 0,
+      wrate: 0,
+      qty: 0,
+      amount: 0,
+    };
+    
+    setRows((prev) => [...prev, newRow]);
+    setNextId((n) => n + 1);
+    setSelectedRowId(newRowId);
+    setEditingCell({ rowId: newRowId, field: "barcode" });
+    setCurrentField("rowBarcode");
+    
+    setTimeout(() => {
+      const newBarcodeInput = document.querySelector(`input[data-row="${newRowId}"][data-field="barcode"]`);
+      if (newBarcodeInput) newBarcodeInput.focus();
+    }, 10);
+    
+    showToast("New item row added");
+  };
+
   // ---------- Render ----------
   return (
     <div style={styles.page}>
-      {/* Store Header */}
-      <div style={styles.storeHeader}>
-        Shankarapandian Stores
-      </div>
-
       {/* Main Container */}
       <div style={styles.mainContainer}>
-        {/* Billing Details Section */}
-        <div style={styles.billingSection}>
-          <div style={styles.billingTitle}>
-            <FaFileInvoiceDollar /> Billing Details
-          </div>
-          
-          <div style={styles.billingGrid}>
+        {/* Form Section */}
+        <div style={styles.formSection}>
+          <div 
+            style={{
+              display: "grid",
+              gridTemplateColumns: "150px 1fr 150px 1fr 150px 1fr 150px 1fr",
+              rowGap: "18px",
+              columnGap: "18px",
+              alignItems: "center"
+            }}
+          >
+
+            {/* Salesman */}
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Salesman :</label>
+              <input 
+                ref={salesmanRef}
+                style={getInputStyle('salesman')}
+                value={form.salesman}
+                onChange={(e) => updateField("salesman", e.target.value)}
+                onFocus={() => { setFocusedInput('salesman'); setCurrentField('salesman'); }}
+                onKeyDown={(e) => handleFormFieldKeyDown(e, 'salesman')}
+                placeholder="Enter Salesman"
+              />
+            </div>
+
             {/* Bill No */}
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Bill No</label>
-              <input
+              <label style={styles.formLabel}>Bill No :</label>
+              <input 
                 ref={billNoRef}
                 style={getInputStyle('billNo')}
                 value={form.billNo}
                 onChange={(e) => updateField("billNo", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('billNo');
-                  setCurrentField('billNo');
-                }}
-                onBlur={() => setFocusedInput(null)}
+                onFocus={() => { setFocusedInput('billNo'); setCurrentField('billNo'); }}
                 onKeyDown={(e) => handleFormFieldKeyDown(e, 'billNo')}
+              />
+            </div>
+
+            {/* Mobile */}
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Mobile No :</label>
+              <input 
+                ref={mobileRef}
+                style={getInputStyle('mobile')}
+                value={form.mobile}
+                onChange={(e) => updateField("mobile", e.target.value)}
+                onFocus={() => { setFocusedInput('mobile'); setCurrentField('mobile'); }}
+                onKeyDown={(e) => handleFormFieldKeyDown(e, 'mobile')}
+              />
+            </div>
+
+            {/* Scrap Product Name */}
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Scrap Product Name :</label>
+              <input 
+                ref={scrapProductRef}
+                style={getInputStyle('scrapProductName')}
+                value={form.scrapProductName}
+                onChange={(e) => updateField("scrapProductName", e.target.value)}
+                onFocus={() => { setFocusedInput('scrapProductName'); setCurrentField('scrapProductName'); }}
+                onKeyDown={(e) => handleFormFieldKeyDown(e, 'scrapProductName')}
+              />
+            </div>
+
+            {/* EMP Name */}
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>EMP Name :</label>
+              <input 
+                ref={empNameRef}
+                style={getInputStyle('empName')}
+                value={form.empName}
+                onChange={(e) => updateField("empName", e.target.value)}
+                onFocus={() => { setFocusedInput('empName'); setCurrentField('empName'); }}
+                onKeyDown={(e) => handleFormFieldKeyDown(e, 'empName')}
               />
             </div>
 
             {/* Bill Date */}
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Bill Date</label>
-              <input
+              <label style={styles.formLabel}>Bill Date :</label>
+              <input 
                 ref={billDateRef}
                 style={getInputStyle('billDate')}
                 value={form.billDate}
                 onChange={(e) => updateField("billDate", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('billDate');
-                  setCurrentField('billDate');
-                }}
-                onBlur={() => setFocusedInput(null)}
+                onFocus={() => { setFocusedInput('billDate'); setCurrentField('billDate'); }}
                 onKeyDown={(e) => handleFormFieldKeyDown(e, 'billDate')}
-              />
-            </div>
-
-            {/* Mobile No */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Mobile No</label>
-              <input
-                ref={mobileRef}
-                style={getInputStyle('mobile')}
-                value={form.mobile}
-                onChange={(e) => updateField("mobile", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('mobile');
-                  setCurrentField('mobile');
-                }}
-                onBlur={() => setFocusedInput(null)}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'mobile')}
+                placeholder="dd/mm/yyyy"
               />
             </div>
 
             {/* Customer Name */}
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Customer Name</label>
-              <input
+              <label style={styles.formLabel}>Customer Name :</label>
+              <input 
                 ref={customerRef}
                 style={getInputStyle('customer')}
                 value={form.customer}
                 onChange={(e) => updateField("customer", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('customer');
-                  setCurrentField('customer');
-                }}
-                onBlur={() => setFocusedInput(null)}
+                onFocus={() => { setFocusedInput('customer'); setCurrentField('customer'); }}
                 onKeyDown={(e) => handleFormFieldKeyDown(e, 'customer')}
               />
             </div>
 
-            {/* Mode */}
+            {/* BARCODE (NEW) */}
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Mode</label>
-              <select
-                ref={modeRef}
-                style={styles.select}
-                value={form.mode}
-                onChange={(e) => updateField("mode", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('mode');
-                  setCurrentField('mode');
-                }}
-                onBlur={() => setFocusedInput(null)}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'mode')}
-              >
-                <option value="Retail">Retail</option>
-                <option value="Wholesale">Wholesale</option>
-                <option value="Bulk">Bulk Order</option>
-              </select>
-            </div>
-
-            {/* Salesman */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Salesman</label>
-              <input
-                ref={salesmanRef}
-                style={getInputStyle('salesman')}
-                value={form.salesman}
-                onChange={(e) => updateField("salesman", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('salesman');
-                  setCurrentField('salesman');
-                }}
-                onBlur={() => setFocusedInput(null)}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'salesman')}
+              <label style={styles.formLabel}>Barcode :</label>
+              <input 
+                ref={barcodeRef}
+                style={getInputStyle('barcode')}
+                value={form.barcode}
+                onChange={(e) => updateField("barcode", e.target.value)}
+                onFocus={() => { setFocusedInput('barcode'); setCurrentField('barcode'); }}
+                onKeyDown={(e) => { handleFormFieldKeyDown(e, 'barcode'); handleBarcodeKey(e); }}
+                placeholder="Scan Barcode"
               />
             </div>
 
-            {/* Barcode */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Barcode</label>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <input
-                  ref={barcodeRef}
-                  style={{...getInputStyle('barcode'), flex: 1}}
-                  value={form.barcode}
-                  onChange={(e) => updateField("barcode", e.target.value)}
-                 
-                  onFocus={() => {
-                    setFocusedInput('barcode');
-                    setCurrentField('barcode');
-                  }}
-                  onBlur={() => setFocusedInput(null)}
-                  onKeyDown={(e) => {
-                    handleFormFieldKeyDown(e, 'barcode');
-                    handleBarcodeKey(e);
-                  }}
-                />
-              </div>
-            </div>
           </div>
-
-          <div style={styles.actionButtons}>
-            <button 
-              style={{...styles.button, ...styles.addButton}}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.addButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, {...styles.button, ...styles.addButton})}
-              onClick={() => addRowByBarcode(form.barcode.trim())}
-            >
-              <FaPlus /> ADD
-            </button>
-            
-            <button 
-              style={{...styles.button, ...styles.editButton}}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.editButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, {...styles.button, ...styles.editButton})}
-            >
-              <FaEdit /> EDIT
-            </button>
-            
-            <button 
-              style={{...styles.button, ...styles.deleteButton}}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.deleteButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, {...styles.button, ...styles.deleteButton})}
-              onClick={() => selectedRowId && deleteRow(selectedRowId)}
-            >
-              <FaTrash /> DELETE
-            </button>
-          </div>
+          {/* Close formGrid */}
         </div>
+        {/* Close formSection */}
 
         {/* Table Section */}
         <div style={styles.tableSection}>
           <div style={styles.tableHeader}>
-            <div style={styles.tableTitle}>
-              <FaShoppingBag /> Items List
-            </div>
-            
-            <div style={styles.searchContainer}>
-              <label style={styles.searchLabel}>Search:</label>
-              <input
-                style={styles.searchInput}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Type here to search"
-                onFocus={() => setFocusedInput('search')}
-                onBlur={() => setFocusedInput(null)}
-              />
-            </div>
+            {/* Table header content */}
           </div>
-
+            
           <div style={styles.tableWrapper}>
             <table style={styles.table}>
               <thead style={styles.tableHead}>
                 <tr>
-                  <th style={styles.th}>S.NO</th>
                   <th style={styles.th}>BARCODE</th>
                   <th style={styles.th}>ITEM NAME</th>
                   <th style={styles.th}>STOCK</th>
@@ -1086,7 +935,8 @@ export default function SalesReturn() {
                   <th style={styles.th}>UOM</th>
                   <th style={styles.th}>HSN</th>
                   <th style={styles.th}>TAX</th>
-                  <th style={styles.th}>S RATE</th>
+                  <th style={styles.th}>SRATE</th>
+                  <th style={styles.th}>WRATE</th>
                   <th style={styles.th}>QTY</th>
                   <th style={styles.th}>AMOUNT</th>
                   <th style={styles.th}>ACTION</th>
@@ -1109,8 +959,6 @@ export default function SalesReturn() {
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f5f9ff"}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedRowId === r.id ? "#e8f4fc" : "white"}
                   >
-                    <td style={styles.td}>{r.id}</td>
-                    
                     <td style={styles.td}>
                       <input
                         data-row={r.id}
@@ -1151,7 +999,14 @@ export default function SalesReturn() {
                         data-field="stock"
                         style={getTableInputStyle(r.id, "stock")}
                         value={r.stock}
-                        readOnly
+                        onChange={(e) => editCell(r.id, "stock", e.target.value)}
+                        onFocus={() => {
+                          setEditingCell({ rowId: r.id, field: "stock" });
+                          setSelectedRowId(r.id);
+                          setCurrentField("rowStock");
+                        }}
+                        onBlur={() => {}}
+                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "stock")}
                       />
                     </td>
                     
@@ -1243,6 +1098,23 @@ export default function SalesReturn() {
                     <td style={styles.td}>
                       <input
                         data-row={r.id}
+                        data-field="wrate"
+                        style={getTableInputStyle(r.id, "wrate")}
+                        value={r.wrate}
+                        onChange={(e) => editCell(r.id, "wrate", e.target.value)}
+                        onFocus={() => {
+                          setEditingCell({ rowId: r.id, field: "wrate" });
+                          setSelectedRowId(r.id);
+                          setCurrentField("rowWrate");
+                        }}
+                        onBlur={() => {}}
+                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "wrate")}
+                      />
+                    </td>
+                    
+                    <td style={styles.td}>
+                      <input
+                        data-row={r.id}
                         data-field="qty"
                         style={getTableInputStyle(r.id, "qty")}
                         value={r.qty}
@@ -1257,11 +1129,17 @@ export default function SalesReturn() {
                       />
                     </td>
                     
-                    <td style={styles.td}>₹{r.amount.toLocaleString('en-IN')}</td>
+                    <td style={styles.td}>
+                      <span style={{ fontWeight: "bold", color: "#2c3e50", fontSize: "12px" }}>
+                        ₹{r.amount.toLocaleString('en-IN')}
+                      </span>
+                    </td>
                     
                     <td style={styles.td}>
                       <button
-                        style={{...styles.tableActionButton, ...styles.deleteButton}}
+                        style={styles.actionButton}
+                        onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.actionButtonHover)}
+                        onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.actionButton)}
                         onClick={(ev) => {
                           ev.stopPropagation();
                           deleteRow(r.id);
@@ -1275,47 +1153,133 @@ export default function SalesReturn() {
               </tbody>
             </table>
           </div>
+          {/* Close tableWrapper */}
+
+          {/* Add Item Button */}
+          <button 
+            style={styles.addItemButton}
+            onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.addItemButtonHover)}
+            onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.addItemButton)}
+            onClick={addEmptyRow}
+          >
+            <FaPlus /> Add Item
+          </button>
+        </div>
+        {/* Close tableSection */}
+      </div>
+      {/* Close mainContainer */}
+
+      {/* FINAL FOOTER EXACT LIKE YOUR SCREENSHOT */}
+      <div style={{
+        position: "fixed",
+        bottom: "0",
+        left: "0",
+        right: "0",
+        background: "#fff",
+        padding: "12px 25px",
+        borderTop: "1px solid #ddd",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        zIndex: 999,
+      }}>
+
+        {/* LEFT BUTTON GROUP */}
+        <div style={{ display: "flex", gap: "10px" }}>
+          
+          {/* ADD */}
+          <button style={{
+            background: "#0d6efd",
+            border: "1px solid #0d6efd",
+            padding: "6px 18px",
+            color: "#fff",
+            borderRadius: "4px",
+            fontSize: "14px",
+            fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}>
+            <FaPlus /> Add
+          </button>
+
+          {/* EDIT */}
+          <button style={{
+            background: "#fff",
+            border: "1px solid #0d6efd",
+            padding: "6px 18px",
+            color: "#0d6efd",
+            borderRadius: "4px",
+            fontSize: "14px",
+            fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}>
+            <FaEdit /> Edit
+          </button>
+
+          {/* DELETE */}
+          <button style={{
+            background: "#fff",
+            border: "1px solid #dc3545",
+            padding: "6px 18px",
+            color: "#dc3545",
+            borderRadius: "4px",
+            fontSize: "14px",
+            fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}>
+            <FaTrash /> Delete
+          </button>
+
         </div>
 
-        {/* Footer Section */}
-        <div style={styles.footerSection}>
-          <div style={styles.footerContent}>
-            <div style={styles.summarySection}>
-              <div style={styles.summaryItem}>
-                <div style={styles.summaryLabel}>Net</div>
-                <div style={styles.summaryValue}>₹{netTotal.toLocaleString('en-IN')}</div>
-              </div>
-              
-              <div style={styles.totalBox}>
-                <div style={styles.totalLabel}>Total Amount</div>
-                <div style={styles.totalAmount}>
-                  <FaRupeeSign /> {(netTotal).toLocaleString('en-IN')}
-                </div>
-              </div>
-            </div>
 
-            <div style={styles.footerButtons}>
-              <button 
-                style={styles.clearButton}
-                onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.clearButtonHover)}
-                onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.clearButton)}
-                onClick={clearAll}
-              >
-                <FaTimes /> Clear
-              </button>
-              
-              <button 
-                style={styles.saveButton}
-                onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.saveButtonHover)}
-                onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.saveButton)}
-                onClick={saveData}
-              >
-                <FaSave /> Save
-              </button>
-            </div>
-          </div>
+        {/* RIGHT BUTTON GROUP */}
+        <div style={{ display: "flex", gap: "12px" }}>
+
+          {/* CLEAR */}
+          <button style={{
+            background: "#fff",
+            border: "1px solid #999",
+            padding: "6px 20px",
+            color: "#333",
+            borderRadius: "4px",
+            fontSize: "14px",
+            fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+          onClick={clearAll}
+          >
+            <FaTimes /> Clear
+          </button>
+
+          {/* SAVE BILL */}
+          <button 
+            style={{
+              background: "#0d6efd",
+              border: "1px solid #0d6efd",
+              padding: "6px 20px",
+              color: "#fff",
+              borderRadius: "4px",
+              fontSize: "14px",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+            onClick={saveData}
+          >
+            <FaSave /> Save
+          </button>
         </div>
       </div>
+      {/* Close footer */}
 
       {toast && (
         <div style={styles.toast}>
