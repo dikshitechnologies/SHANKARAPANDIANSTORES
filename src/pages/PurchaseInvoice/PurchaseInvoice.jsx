@@ -559,7 +559,7 @@ const PurchaseInvoice = () => {
       gap: 8,
       padding: '6px 10px',
       width: 150,
-      background: '#19692e',
+      background: '#1B91DA',
       color: 'white',
       border: 'none',
       borderRadius: 20,
@@ -1166,7 +1166,7 @@ const PurchaseInvoice = () => {
 
             <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:12}}>
               <button onClick={closePurchaseModal} style={{padding:'6px 12px', borderRadius:4, border:'1px solid #ccc', background:'white'}}>Cancel</button>
-              <button onClick={closePurchaseModal} style={{padding:'6px 12px', borderRadius:4, border:'none', background:'#19692e', color:'white'}}>Apply</button>
+              <button onClick={closePurchaseModal} style={{padding:'6px 12px', borderRadius:4, border:'none', background:'#1B91DA', color:'white'}}>Apply</button>
             </div>
           </div>
         </div>
