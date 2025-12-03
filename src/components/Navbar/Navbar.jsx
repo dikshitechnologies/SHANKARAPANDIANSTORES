@@ -83,7 +83,7 @@ const Navbar = () => {
     { name: 'Administration', path: '/Administration', icon: <BuildOutlined /> },
     // { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },   
     { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined /> },
-    { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined /> },
+   
      
   ];
 
@@ -161,8 +161,8 @@ const Navbar = () => {
         <div className={styles['nav-container']}>
           {/* Left: Logo */}
           <Link to="/" className={styles['nav-logo']} onClick={closeMobileMenu}>
-            <span className={styles['logo-text']}>Shankarapandian</span>
-            <span className={styles['logo-subtext']}>Stores</span>
+            <span className={styles['logo-text']}>Sankarapandian</span>
+            <span className={styles['logo-subtext']}>Store</span>
           </Link>
 
           {/* Center: Navigation Menu (Desktop) */}

@@ -21,14 +21,38 @@ const DeleteIcon = () => (
   </svg>
 );
 
+const ClearIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+  </svg>
+);
+
+const SaveIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M8 0a2 2 0 0 0-2 2v2H2v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V4L8 0zM7 2a1 1 0 0 1 1-1h4.5L14 4H8V2z"/>
+    <path d="M5 8.5a.5.5 0 0 1 .5-.5H10a.5.5 0 0 1 0 1H5.5a.5.5 0 0 1-.5-.5z"/>
+  </svg>
+);
+
+const PrintIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M2 7a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1v1.5A1.5 1.5 0 0 0 5.5 15H10a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1H2zm11 1v3H3V8h10z"/>
+    <path d="M5 1a1 1 0 0 0-1 1v3h8V2a1 1 0 0 0-1-1H5z"/>
+  </svg>
+);
+
 
 export const ActionButtons = ({ children, activeButton, onButtonClick }) => {
   // Clone and modify children to add active state and click handler
   const modifiedChildren = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
+      const originalOnClick = child.props.onClick;
       return React.cloneElement(child, {
-        isActive: child.props.buttonType === activeButton,
-        onClick: () => onButtonClick(child.props.buttonType)
+        isActive: activeButton === 'all' || child.props.buttonType === activeButton,
+        onClick: (e) => {
+          if (typeof originalOnClick === 'function') originalOnClick(e);
+          if (typeof onButtonClick === 'function') onButtonClick(child.props.buttonType);
+        }
       });
     }
     return child;
@@ -37,6 +61,21 @@ export const ActionButtons = ({ children, activeButton, onButtonClick }) => {
   return (
     <div style={styles.buttonContainer}>
       {modifiedChildren}
+    </div>
+  );
+};
+
+export const ActionButtons1 = ({ onClear, onSave, onPrint, activeButton, onButtonClick, disabledClear, disabledSave, disabledPrint }) => {
+  const handleClick = (type, handler) => () => {
+    if (typeof handler === 'function') handler();
+    if (typeof onButtonClick === 'function') onButtonClick(type);
+  };
+
+  return (
+    <div style={styles.buttonContainer}>
+      <ClearButton onClick={handleClick('clear', onClear)} disabled={disabledClear} isActive={activeButton === 'all' || activeButton === 'clear'} />
+      <SaveButton onClick={handleClick('save', onSave)} disabled={disabledSave} isActive={activeButton === 'all' || activeButton === 'save'} />
+      <PrintButton onClick={handleClick('print', onPrint)} disabled={disabledPrint} isActive={activeButton === 'all' || activeButton === 'print'} />
     </div>
   );
 };
@@ -83,6 +122,48 @@ export const DeleteButton = ({ onClick, disabled, isActive, buttonType = 'delete
   </button>
 );
 
+export const ClearButton = ({ onClick, disabled, isActive, buttonType = 'clear' }) => (
+  <button 
+    style={{ 
+      ...styles.btn, 
+      ...(!isActive ? styles.inactiveBtn : styles.clearBtn),
+      ...(disabled ? styles.disabled : {}) 
+    }} 
+    onClick={onClick}
+    disabled={disabled}
+  >
+    <ClearIcon /> Clear
+  </button>
+);
+
+export const SaveButton = ({ onClick, disabled, isActive, buttonType = 'save' }) => (
+  <button 
+    style={{ 
+      ...styles.btn, 
+      ...(!isActive ? styles.inactiveBtn : styles.saveBtn),
+      ...(disabled ? styles.disabled : {}) 
+    }} 
+    onClick={onClick}
+    disabled={disabled}
+  >
+    <SaveIcon /> Save
+  </button>
+);
+
+export const PrintButton = ({ onClick, disabled, isActive, buttonType = 'print' }) => (
+  <button 
+    style={{ 
+      ...styles.btn, 
+      ...(!isActive ? styles.inactiveBtn : styles.printBtn),
+      ...(disabled ? styles.disabled : {}) 
+    }} 
+    onClick={onClick}
+    disabled={disabled}
+  >
+    <PrintIcon /> Print
+  </button>
+);
+
 const styles = {
   btn: {
     display: 'inline-flex',
@@ -115,6 +196,21 @@ const styles = {
     background: '#e53935',
     color: 'white',
     boxShadow: '0 4px 20px rgba(229, 57, 53, 0.2)'
+  },
+  clearBtn: {
+    background: '#e53935',
+    color: 'white',
+    boxShadow: '0 4px 20px rgba(229, 57, 53, 0.2)'
+  },
+  saveBtn: {
+    background: '#1976d2',
+    color: 'white',
+    boxShadow: '0 4px 20px rgba(25, 118, 210, 0.18)'
+  },
+  printBtn: {
+    background: '#6a1b9a',
+    color: 'white',
+    boxShadow: '0 4px 20px rgba(106, 27, 154, 0.18)'
   },
   disabled: {
     opacity: 0.5,
