@@ -39,7 +39,7 @@ function App() {
           <Route path="/masters/User-creation" element={<UserCreation />} />
           <Route path="/masters/item-group-creation" element={<ItemGroupCreation />} />
           <Route path="/Administration" element={<Administration />} />
-          <Route path="/Salesreturn" element={<SalesReturn />} />
+          <Route path="/transactions/sales-return" element={<SalesReturn />} />
           <Route path="/mastersScrapRateFix" element={<ScrapRateFix />} /> 
           <Route path="/transactions/scrap" element={<Scrap />} />
           <Route path="/popup-list-selector-example" element={<ExampleUsage />} />
