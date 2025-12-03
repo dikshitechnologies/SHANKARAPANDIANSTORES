@@ -1080,27 +1080,69 @@ const ItemCreation = ({ onCreated }) => {
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
             {/* Group Name field */}
-            <div className="field">
-              <label className="field-label">Group Name *</label>
-              <div className="row">
-                <input
-                  className="input"
-                  value={mainGroup}
-                  onChange={(e) => setMainGroup(e.target.value)}
-                  placeholder="Select Group Name"
-                  disabled={isSubmitting}
-                  aria-label="Group Name"
-                />
-                <button
-                  className="btn"
-                  onClick={() => { setIsTreeOpen((v) => !v); setModalVisible(false); }}
-                  type="button"
-                  aria-expanded={isTreeOpen}
-                  aria-controls="group-tree"
-                >
-                  {isTreeOpen ? "Close" : "Open"}
-                </button>
-              </div>
+<div className="field">
+  <label className="field-label">Group Name *</label>
+  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+    <div style={{
+      display: "flex",
+      flex: 1,
+      border: "1px solid rgba(15,23,42,0.06)",
+      borderRadius: "10px",
+      overflow: "hidden",
+      background: "linear-gradient(180deg, #fff, #fbfdff)",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+    }}>
+      <input
+        className="input"
+        value={mainGroup}
+        onChange={(e) => setMainGroup(e.target.value)}
+        placeholder="Select Group Name"
+        disabled={isSubmitting}
+        aria-label="Group Name"
+        style={{
+          flex: 1,
+          border: "none",
+          borderRadius: 0,
+          padding: "10px 12px",
+          minWidth: "120px",
+          fontSize: "14px",
+          outline: "none"
+        }}
+      />
+      <button
+        className="btn"
+        onClick={() => { setIsTreeOpen((v) => !v); setModalVisible(false); }}
+        disabled={isSubmitting}
+        type="button"
+        aria-expanded={isTreeOpen}
+        aria-controls="group-tree"
+        style={{
+          flexShrink: 0,
+          border: "none",
+          borderLeft: "1px solid rgba(15,23,42,0.06)",
+          borderRadius: 0,
+          padding: "8px 12px",
+          minWidth: "70px",
+          fontSize: "12px",
+          fontWeight: "600",
+          background: "linear-gradient(180deg,#fff,#f8fafc)",
+          cursor: isSubmitting ? "not-allowed" : "pointer",
+          color: "#0f172a",
+          transition: "all 0.2s"
+        }}
+        onMouseOver={(e) => {
+          if (!isSubmitting) {
+            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
+          }
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
+        }}
+      >
+        {isTreeOpen ? "Close" : "Open"}
+      </button>
+    </div>
+  </div>
 
               {isTreeOpen && (
                 isMobile ? (

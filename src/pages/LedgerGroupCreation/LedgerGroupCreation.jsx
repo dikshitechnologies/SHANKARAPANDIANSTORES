@@ -713,6 +713,39 @@ export default function LedgerGroupCreation() {
         .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
           .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; text-align: left; }
         .dropdown-item:hover { background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); transform: translateX(6px); }
+        
+        /* Add this to your existing CSS, around the .input styles */
+.input-group {
+  display: flex;
+  flex: 1;
+  border: 1px solid rgba(15,23,42,0.06);
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fff, #fbfdff);
+}
+
+.input-group input {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  min-width: 0;
+}
+
+.input-group button {
+  flex-shrink: 0;
+  border: none;
+  border-left: 1px solid rgba(15,23,42,0.06);
+  border-radius: 0;
+  min-width: 70px;
+  font-size: 13px;
+  margin-left: 10px;
+}
+
+
+
+
+
+
 
         /* Responsive styles */
         /* Large tablets and small laptops */
@@ -875,30 +908,58 @@ export default function LedgerGroupCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Main Group field */}
-            <div className="field">
-              <label className="field-label">Main Group</label>
-              <div className="row">
-                <input
-                  className="input"
-                  value={mainGroup}
-                  onChange={(e) => setMainGroup(e.target.value)}
-                  readOnly={actionType !== "Add"}
-                  placeholder="Select Main Group"
-                  disabled={submitting}
-                  aria-label="Main Group"
-                />
-                <button
-                  className="btn"
-                  onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
-                  disabled={submitting || actionType !== "Add"}
-                  type="button"
-                  aria-expanded={isTreeOpen}
-                  aria-controls="group-tree"
-                >
-                  {isTreeOpen ? "Close" : "Open"}
-                </button>
-              </div>
+      {/* Main Group field */}
+<div className="field">
+  <label className="field-label">Main Group</label>
+  <div className="row" style={{ display: "flex", alignItems: "center" }}>
+    <div style={{ 
+      display: "flex", 
+      flex: 1, 
+      border: "1px solid rgba(15,23,42,0.06)",
+      borderRadius: "10px",
+      overflow: "hidden",
+      backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
+    }}>
+      <input
+        className="input"
+        value={mainGroup}
+        onChange={(e) => setMainGroup(e.target.value)}
+        readOnly={actionType !== "Add"}
+        placeholder="Select Main Group"
+        disabled={submitting}
+        aria-label="Main Group"
+        style={{ 
+          flex: 1,
+          border: "none",
+          borderRadius: "0",
+          padding: "10px 12px",
+          minWidth: "0" // Important for flex shrinking
+        }}
+      />
+      <button
+        className="btn"
+        onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
+        disabled={submitting || actionType !== "Add"}
+        type="button"
+        aria-expanded={isTreeOpen}
+        aria-controls="group-tree"
+        style={{ 
+          flexShrink: 0,
+          padding: "10px 16px",
+          border: "none",
+          borderRadius: "0",
+          borderLeft: "1px solid rgba(15,23,42,0.06)",
+          backgroundColor: "linear-gradient(180deg, #fff, #f8fafc)",
+          minWidth: "70px",
+          fontSize: "13px",
+          fontWeight: "600",
+          cursor: submitting || actionType !== "Add" ? "not-allowed" : "pointer"
+        }}
+      >
+        {isTreeOpen ? "Close" : "Open"}
+      </button>
+    </div>
+  </div>
 
               {isTreeOpen && (
                 isMobile ? (

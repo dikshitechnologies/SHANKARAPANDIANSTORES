@@ -964,6 +964,25 @@ export default function LedgerCreation({ onCreated }) {
           transform: translateX(26px);
         }
 
+        .input-group-combined:focus-within {
+  box-shadow: 0 8px 26px rgba(48,122,200,0.08);
+  border-color: rgba(48,122,200,0.25);
+}
+
+        <div className="input-group-combined" style={{
+  display: "flex",
+  flex: 1,
+  border: "1px solid rgba(15,23,42,0.06)",
+  borderRadius: "10px",
+  overflow: "hidden",
+  background: "linear-gradient(180deg, #fff, #fbfdff)",
+  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+}}>
+
+
+
+
+
         /* Responsive styles */
         /* Large tablets and small laptops */
         @media (max-width: 1024px) {
@@ -1218,25 +1237,71 @@ export default function LedgerCreation({ onCreated }) {
             </div>
 
             <div className="field">
-              <label className="field-label">Group Name *</label>
-              <div className="row">
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Select group"
-                  value={mainGroup}
-                  // Group is selected via tree or modal; keep this readOnly and remove incorrect onChange
-                  readOnly
-                />
-                <button
-                  className="btn"
-                  onClick={() => setIsTreeOpen(!isTreeOpen)}
-                  type="button"
-                >
-                  {isTreeOpen ? 'Hide' : 'Show'} Tree
-                </button>
-              </div>
-            </div>
+  <label className="field-label">Group Name *</label>
+  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+    <div style={{
+      display: "flex",
+      flex: 1,
+      border: "1px solid rgba(15,23,42,0.06)",
+      borderRadius: "10px",
+      overflow: "hidden",
+      background: "linear-gradient(180deg, #fff, #fbfdff)",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+    }}>
+      <input
+        type="text"
+        className="input"
+        placeholder="Select group"
+        value={mainGroup}
+        readOnly
+        disabled={isSubmitting}
+        aria-label="Group Name"
+        style={{
+          flex: 1,
+          border: "none",
+          borderRadius: 0,
+          padding: "10px 12px",
+          minWidth: "120px",
+          fontSize: "14px",
+          outline: "none",
+          background: "transparent"
+        }}
+      />
+      <button
+        className="btn"
+        onClick={() => setIsTreeOpen(!isTreeOpen)}
+        disabled={isSubmitting}
+        type="button"
+        aria-expanded={isTreeOpen}
+        aria-controls="group-tree"
+        style={{
+          flexShrink: 0,
+          border: "none",
+          borderLeft: "1px solid rgba(15,23,42,0.06)",
+          borderRadius: 0,
+          padding: "8px 12px",
+          minWidth: "70px",
+          fontSize: "12px",
+          fontWeight: "600",
+          background: "linear-gradient(180deg,#fff,#f8fafc)",
+          cursor: isSubmitting ? "not-allowed" : "pointer",
+          color: "#0f172a",
+          transition: "all 0.2s"
+        }}
+        onMouseOver={(e) => {
+          if (!isSubmitting) {
+            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
+          }
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
+        }}
+      >
+        {isTreeOpen ? "Close" : "Open"}
+      </button>
+    </div>
+  </div>
+</div>
 
             {isTreeOpen && (
               <div className="panel">
