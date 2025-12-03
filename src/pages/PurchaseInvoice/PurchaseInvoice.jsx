@@ -561,7 +561,7 @@ const PurchaseInvoice = () => {
       padding: '6px 8px',
       borderRadius: 4,
       border: '1px solid #ccc',
-      fontSize: 13
+      fontSize: 13  
     }
     ,
     purchaseButton: {
@@ -582,7 +582,7 @@ const PurchaseInvoice = () => {
       height: 38,
     },
     purchaseModalOverlay: {
-      position: 'fixed',
+      position: 'absolute',
       left: 0,
       top: 0,
       right: 0,
@@ -776,6 +776,7 @@ const PurchaseInvoice = () => {
                 <AddButton />
                 <EditButton />
                 <DeleteButton />
+                
               </ActionButtons>
             </div>
 
