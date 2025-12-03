@@ -1,4 +1,3 @@
-
 export const API_ENDPOINTS = {
 
 LEDGER_CREATION_ENDPOINTS: {
@@ -43,5 +42,27 @@ user_creation: {
     putEdit: "UserCreation/UpdateUser",
     delete: (fCode) => `UserCreation/deleteUser/${fCode}`,
   },
+
+  COMPANY_ENDPOINTS: {
+    NEXT_COMPANY_CODE: "CompanyCreation/NextCompanyCode",
+    CREATE_COMPANY: "CompanyCreation/CreateCompany?selecttype=true",
+    UPDATE_COMPANY: "CompanyCreation/CreateCompany?selecttype=false",
+    GET_COMPANY_LIST: "CompanyCreation/GetCompanyList",
+    GET_COMPANY_DETAILS: (compCode) => `CompanyCreation/GetCompany/${compCode}`,
+    DELETE_COMPANY: (fcompcode) => `CompanyCreation/DeleteCompany/${fcompcode}`,
+  //  /api/CompanyCreation/GetCompany/{compCode}
+    // CompanyCreation/GetCompanyList (compCode) => `CompanyCreation/GetCompany/${compCode}`,
+    
+    
+    
+  },
+UNITCREATION: {
+    NEXT_SIZE_CODE : "UnitCreation/NextBillNo", 
+    GET_SIZE_ITEMS : "UnitCreation/GetUnits",
+    GETUNITCODE : (code) => `UnitCreation/GetUnit/${code}`, 
+    CREATE_SIZE: "UnitCreation/CreationUnit",
+    UPDATE_SIZE: (code) => `UnitCreation/UpdateUnit/${code}`,
+    DELETE_SIZE: (code) => `UnitCreation/DeleteUnit/${code}`,
+  },    
 
 }

@@ -1,0 +1,520 @@
+.container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: white;
+  border-bottom: 1px solid #d9d9d9;
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.invoiceInfo {
+  display: flex;
+  gap: 15px;
+}
+
+.invoiceNo {
+  font-size: 11px;
+  color: #666;
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid #ddd;
+}
+
+.refNo {
+  font-size: 11px;
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.headerRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.company {
+  font-size: 14px;
+  color: #333;
+  font-weight: 600;
+}
+
+.date {
+  font-size: 11px;
+  color: #666;
+}
+
+/* Main Content */
+.mainContent {
+  flex: 1;
+  display: flex;
+  padding: 15px;
+  gap: 20px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Left Section */
+.leftSection {
+  width: 40%;
+  background: white;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Input Rows */
+.inputRow {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 8px;
+}
+
+.inputGroup {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 13px;
+  color: #444;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.inputContainer {
+  position: relative;
+}
+
+.inputField {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1.5px solid #cfcfcf;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  background: white;
+  color: #222;
+}
+
+.inputField:focus {
+  outline: none;
+  border-color: #096dd9;
+  box-shadow: 0 0 0 3px rgba(9,109,217,0.08);
+}
+
+/* Special Fields */
+.readonlyField {
+  background: #fafafa;
+  color: #666;
+  border-color: #d9d9d9;
+  cursor: not-allowed;
+}
+
+.billAmountField {
+  background: #e6f7ff;
+  color: #1890ff;
+  border-color: #91d5ff;
+  font-weight: 600;
+  text-align: right;
+}
+
+.netAmountField {
+  background: #f6ffed;
+  color: #52c41a;
+  border-color: #b7eb8f;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Checkboxes */
+.checkboxRow {
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.checkboxGroup {
+  display: flex;
+  align-items: center;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #333;
+}
+
+.checkbox {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+/* F8 Note */
+.f8Note {
+  margin-top: auto;
+  text-align: right;
+  font-size: 11px;
+  color: #999;
+  font-style: italic;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Right Section */
+.rightSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-width: 0;
+}
+
+/* Table Container */
+.tableContainer {
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Table Rows */
+.tableHeaderRow,
+.tableRow {
+  display: flex;
+  min-height: 36px;
+}
+
+/* Table Header */
+.tableHeaderRow {
+  background: #fafafa;
+  border-bottom: 2px solid #1890ff;
+}
+
+.tableHeaderCell {
+  flex: 1;
+  min-width: 60px;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1890ff;
+  text-align: center;
+  border-right: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.tableHeaderCell:first-child {
+  flex: 0 0 80px;
+  color: #333;
+}
+
+.tableHeaderCell:last-child {
+  border-right: none;
+}
+
+/* Table Cells */
+.tableLabelCell {
+  flex: 0 0 80px;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  background: #fafafa;
+  border-right: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.tableCell {
+  flex: 1;
+  min-width: 60px;
+  padding: 8px 4px;
+  font-size: 11px;
+  color: #333;
+  text-align: center;
+  border-right: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tableCell:last-child {
+  border-right: none;
+}
+
+.tableRow:last-child .tableLabelCell,
+.tableRow:last-child .tableCell {
+  border-bottom: none;
+}
+
+/* Table Inputs */
+.tableInput {
+  width: 90%;
+  height: 30px;
+  border: 1.5px solid #cfcfcf;
+  border-radius: 3px;
+  font-size: 13px;
+  text-align: center;
+  padding: 0 6px;
+  background: white;
+}
+
+.tableInput:focus {
+  outline: none;
+  border-color: #096dd9;
+  box-shadow: 0 0 0 3px rgba(9,109,217,0.06);
+}
+
+/* Payment Section */
+.paymentSection {
+  background: white;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.paymentRow {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.paymentGroup {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.paymentLabel {
+  font-size: 11px;
+  color: #555;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.paymentInputContainer {
+  position: relative;
+}
+
+.paymentInput {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1.5px solid #cfcfcf;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  background: white;
+  color: #222;
+}
+
+.paymentInput:focus {
+  outline: none;
+  border-color: #096dd9;
+  box-shadow: 0 0 0 3px rgba(9,109,217,0.08);
+}
+
+.readonlyPayment {
+  background: #fafafa;
+  color: #666;
+  border-color: #d9d9d9;
+  cursor: not-allowed;
+}
+
+.balanceField {
+  background: #fff7e6;
+  color: #fa8c16;
+  border-color: #ffd591;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Right Checkboxes */
+.rightCheckboxRow {
+  display: flex;
+  gap: 30px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.rightCheckboxGroup {
+  display: flex;
+  align-items: center;
+}
+
+.rightCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #333;
+}
+
+.rightCheckbox {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+.serviceAmountInput {
+  width: 70px;
+  height: 30px;
+  margin-left: 10px;
+  padding: 0 8px;
+  border: 1.5px solid #cfcfcf;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+/* Action Buttons */
+.actionButtons {
+  padding: 10px 20px;
+  background: white;
+  border-top: 1px solid #e8e8e8;
+  flex-shrink: 0;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.deleteButton,
+.saveButton {
+  width: 100px;
+  height: 34px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deleteButton {
+  background: #ff4d4f;
+  color: white;
+}
+
+.deleteButton:hover {
+  background: #ff7875;
+}
+
+.saveButton {
+  background: #1890ff;
+  color: white;
+}
+
+.saveButton:hover {
+  background: #40a9ff;
+}
+
+/* Footer */
+.footer {
+  padding: 8px 20px;
+  background: white;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.paporeText {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+  font-style: italic;
+}
+
+.footerRight {
+  display: flex;
+  gap: 15px;
+}
+
+.billText {
+  font-size: 11px;
+  color: #999;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .mainContent {
+    flex-direction: column;
+  }
+  
+  .leftSection {
+    width: 100%;
+    height: auto;
+  }
+  
+  .rightSection {
+    width: 100%;
+  }
+}
