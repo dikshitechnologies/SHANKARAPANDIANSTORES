@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ActionButtons, AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
+import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('');
+  const [activeTopAction, setActiveTopAction] = useState('all');
   
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -71,6 +71,9 @@ const PurchaseInvoice = () => {
 
   // Purchase details modal state
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+
+  // Footer action active state
+  const [activeFooterAction, setActiveFooterAction] = useState('all');
 
   const openPurchaseModal = (e) => {
     if (e) e.stopPropagation();
@@ -234,6 +237,14 @@ const PurchaseInvoice = () => {
     setBillDetails({ ...billDetails, barcodeInput: '' });
   };
 
+  const handleSave = () => {
+   
+  };
+
+  const handlePrint = () => {
+   
+  };
+
   // helper to compute input style for top-section fields
   const topInputStyle = (name, override = {}) => ({
     ...styles.input,
@@ -258,7 +269,7 @@ const PurchaseInvoice = () => {
   // --- STYLES (Inline CSS) ---
   const styles = {
     container: {
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: 'Inter, Arial, sans-serif',
       backgroundColor: '#f5f7fa',
       minHeight: '100vh',
       display: 'flex',
@@ -274,6 +285,8 @@ const PurchaseInvoice = () => {
       display: 'flex',
       gap: '12px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      flexWrap: 'wrap',
+      alignItems: 'flex-start',
       flexShrink: 0,
       border: 'none',
       borderRadius: '0',
@@ -316,9 +329,9 @@ const PurchaseInvoice = () => {
       top: -6,
       left: 10,
       backgroundColor: 'white',
-      color: '#666',
+      color: 'black',
       padding: '0 8px',
-      fontSize: '14px',
+      fontSize: '13px',
       fontWeight: 700,
       textTransform: 'uppercase',
       borderRadius: 4,
@@ -334,11 +347,11 @@ const PurchaseInvoice = () => {
       opacity: 0.95,
     },
     input: {
-      padding: '13px 10px',
+      padding: '10px 8px',
       borderRadius: '4px',
       border: '1px solid #ccc',
       outline: 'none',
-      fontSize: '15px',
+      fontSize: '14px',
       fontWeight: '500',
       color: '#333',
       backgroundColor: 'white',
@@ -364,7 +377,7 @@ const PurchaseInvoice = () => {
       backgroundColor: 'white',
       border: 'none',
       color: '#1B91DA',
-      padding: '8px 14px',
+      padding: '6px 10px',
       borderRadius: '4px',
       cursor: 'pointer',
       display: 'flex',
@@ -418,12 +431,12 @@ const PurchaseInvoice = () => {
       display: 'block',
       width: '100%',
       height: '100%',
-      minHeight: '40px',
-      padding: '8px 10px',
+      minHeight: '36px',
+      padding: '6px 8px',
       boxSizing: 'border-box',
       border: 'none',
       borderRadius: '4px',
-      fontSize: '14px',
+      fontSize: '13px',
       textAlign: 'center',
       backgroundColor: 'transparent',
       outline: 'none',
@@ -555,14 +568,18 @@ const PurchaseInvoice = () => {
       display: 'inline-flex',
       alignItems: 'center',
       gap: 8,
-      padding: '8px 14px',
-      background: '#19692e',
+      padding: '6px 10px',
+      width: 160,
+      background: '#1B91DA',
       color: 'white',
       border: 'none',
-      borderRadius: 24,
+      borderRadius: 20,
       cursor: 'pointer',
       fontWeight: 700,
-      boxShadow: '0 6px 18px rgba(25,105,46,0.18)'
+      fontSize: '14px',
+      fontFamily: 'Inter, Arial, sans-serif',
+      boxShadow: '0 6px 18px rgba(25,105,46,0.18)',
+      height: 38,
     },
     purchaseModalOverlay: {
       position: 'fixed',
@@ -748,21 +765,8 @@ const PurchaseInvoice = () => {
         </div>
 
         <div style={styles.column}>
-          <div style={styles.row}>
-            <div style={styles.half}>
-              <div style={styles.floatingLabelWrapper}>
-                <button type="button" style={styles.purchaseButton} onClick={openPurchaseModal} aria-haspopup="dialog" aria-expanded={purchaseModalOpen}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:'white'}}>
-                    <rect x="3" y="4" width="18" height="4" rx="1"></rect>
-                    <rect x="3" y="10" width="18" height="4" rx="1"></rect>
-                    <rect x="3" y="16" width="18" height="4" rx="1"></rect>
-                  </svg>
-                  <span>Purchase Details</span>
-                </button>
-              </div>
-            </div>
-
-            <div style={styles.half}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', justifyContent: 'center', height: '100%'}}>
+            <div style={{width: '100%', display: 'flex', justifyContent: 'flex-end'}}>
               <ActionButtons activeButton={activeTopAction} onButtonClick={(type) => {
                 setActiveTopAction(type);
                 if (type === 'add') handleAddRow();
@@ -773,6 +777,19 @@ const PurchaseInvoice = () => {
                 <EditButton />
                 <DeleteButton />
               </ActionButtons>
+            </div>
+
+            <div style={{width: '100%', display: 'flex', justifyContent: 'flex-end'}}>
+              <div style={styles.floatingLabelWrapper}>
+                <button type="button" style={styles.purchaseButton} onClick={openPurchaseModal} aria-haspopup="dialog" aria-expanded={purchaseModalOpen}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:'white'}}>
+                    <rect x="3" y="4" width="18" height="4" rx="1"></rect>
+                    <rect x="3" y="10" width="18" height="4" rx="1"></rect>
+                    <rect x="3" y="16" width="18" height="4" rx="1"></rect>
+                  </svg>
+                  <span>Purchase Details</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1040,15 +1057,13 @@ const PurchaseInvoice = () => {
         </div>
 
         <div style={styles.footerButtons}>
-          <button style={{...styles.btnClear}} onClick={handleClear}>
-             <span>✕</span> Clear
-          </button>
-          <button style={{...styles.btnSave}} onClick={() => alert('Saved Successfully!')}>
-             <span>💾</span> Save
-          </button>
-          <button style={{...styles.btnSave}} onClick={() => window.print()}>
-             <span>🖨</span> Print
-          </button>
+          <ActionButtons1
+            onClear={handleClear}
+            onSave={handleSave}
+            onPrint={handlePrint}
+            activeButton={activeFooterAction}
+            onButtonClick={(type) => setActiveFooterAction(type)}
+          />
         </div>
       </div>
 
@@ -1161,7 +1176,7 @@ const PurchaseInvoice = () => {
 
             <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:12}}>
               <button onClick={closePurchaseModal} style={{padding:'6px 12px', borderRadius:4, border:'1px solid #ccc', background:'white'}}>Cancel</button>
-              <button onClick={closePurchaseModal} style={{padding:'6px 12px', borderRadius:4, border:'none', background:'#19692e', color:'white'}}>Apply</button>
+              <button onClick={closePurchaseModal} style={{padding:'6px 12px', borderRadius:4, border:'none', background:'#1B91DA', color:'white'}}>Apply</button>
             </div>
           </div>
         </div>
