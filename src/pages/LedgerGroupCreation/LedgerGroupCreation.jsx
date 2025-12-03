@@ -1,7 +1,8 @@
 // LedgerGroupCreation.js
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 // import { useFormPermissions } from '../../../hooks/useFormPermissions';
 
 const endpoints = API_ENDPOINTS.LEDGER_GROUP_CREATION_ENDPOINTS || {};
@@ -223,6 +224,37 @@ export default function LedgerGroupCreation() {
     // keep tree open after selecting (more convenient)
     setIsTreeOpen(true);
   };
+
+  // Fetch function used by PopupListSelector (paged + searchable)
+  const fetchDropdownItems = useCallback(async (page = 1, search = '') => {
+    try {
+      const resp = await api.get(endpoints.getDropdown);
+      const items = Array.isArray(resp.data) ? resp.data : [];
+
+      // Basic client-side search (server-side not available for this endpoint)
+      const q = (search || '').trim().toLowerCase();
+      const filtered = q
+        ? items.filter((it) => {
+            const name = (it.fAcname || it.fAcName || '').toString().toLowerCase();
+            const parent = (it.parentName || '').toString().toLowerCase();
+            return name.includes(q) || parent.includes(q);
+          })
+        : items;
+
+      const pageSize = 20;
+      const start = (page - 1) * pageSize;
+      // Ensure we return an array of plain objects with expected fields
+      return filtered.slice(start, start + pageSize).map((it) => ({
+        ...it,
+        // normalize casing for consumers
+        fCode: it.fCode ?? it.fcode,
+        fAcname: it.fAcname ?? it.fAcName,
+      }));
+    } catch (err) {
+      console.error('fetchDropdownItems error', err);
+      return [];
+    }
+  }, []);
 
   const filteredTree = useMemo(() => {
     if (!searchTree) return treeData;
@@ -1193,68 +1225,29 @@ export default function LedgerGroupCreation() {
         </div>
       </div>
 
-      {/* Dropdown modal */}
-      {isDropdownOpen && (
-        <div className="modal-overlay" onClick={() => setIsDropdownOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 18 }}>Select Sub Group</h3>
-              <button
-                onClick={() => setIsDropdownOpen(false)}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-                aria-label="Close"
-              >
-                <Icon.Close />
-              </button>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div className="search-container">
-                <input
-                  className="search-with-clear"
-                  placeholder="Search sub groups..."
-                  value={searchDropdown}
-                  onChange={(e) => setSearchDropdown(e.target.value)}
-                  aria-label="Search sub groups"
-                />
-                {searchDropdown && (
-                  <button
-                    className="clear-search-btn"
-                    onClick={() => setSearchDropdown("")}
-                    type="button"
-                    aria-label="Clear search"
-                  >
-                    <Icon.Close size={16} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div id="subgroup-dropdown" className="dropdown-list" role="listbox" aria-label="Sub group options">
-              {filteredDropdown.length === 0 ? (
-                <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No options found</div>
-              ) : (
-                filteredDropdown.map((option, idx) => (
-                  <div
-                    key={idx}
-                    className="dropdown-item"
-                    onClick={() => handleSelectSub(option)}
-                    role="option"
-                    aria-selected={option.value === subGroup}
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && handleSelectSub(option)}
-                  >
-                    <div style={{ fontWeight: 600, color: "#0f172a" }}>{option.label}</div>
-                    {option.parentName && (
-                      <div style={{ fontSize: 12, color: "var(--muted)" }}>Parent: {option.parentName}</div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dropdown selection replaced by reusable PopupListSelector */}
+      <PopupListSelector
+        open={isDropdownOpen}
+        onClose={() => setIsDropdownOpen(false)}
+        onSelect={(item) => {
+          // map the selected item into the form
+          const name = item.fAcname ?? item.fAcName ?? item.fAcname;
+          const code = item.fCode ?? item.fcode;
+          setSubGroup(name || '');
+          setFCode(code || '');
+          if (item.parentName) setMainGroup(item.parentName);
+          setIsDropdownOpen(false);
+          setIsTreeOpen(true);
+        }}
+        fetchItems={fetchDropdownItems}
+        title="Select Sub Group"
+        displayFieldKeys={[ 'fAcname', 'parentName' ]}
+        searchFields={[ 'fAcname', 'parentName' ]}
+        headerNames={[ 'Name', 'Parent' ]}
+        columnWidths={{ fAcname: '70%', parentName: '30%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
     </div>
   );
 }
