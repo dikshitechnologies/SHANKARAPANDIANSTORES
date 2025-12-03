@@ -29,6 +29,25 @@ const SalesInvoices = () => {
   // 3. Totals State
   const [netTotal, setNetTotal] = useState(0);
 
+  // 4. Sales Details Popup State
+  const [showSalesDetails, setShowSalesDetails] = useState(false);
+  const [salesDetails, setSalesDetails] = useState({
+    items: '',
+    billDiscPct: '',
+    roundOff: '',
+    service: '',
+    scrapAmt: '',
+    upi: '',
+    cash: '',
+    qty: '',
+    billDiscAmt: '',
+    grandTotal: '',
+    delivery: '',
+    salesReturn: '',
+    card: '',
+    balance: ''
+  });
+
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const billNoRef = useRef(null);
   const dateRef = useRef(null);
@@ -51,6 +70,18 @@ const SalesInvoices = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setBillDetails(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSalesDetailsChange = (e) => {
+    const { name, value } = e.target;
+    setSalesDetails(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveSalesDetails = () => {
+    console.log('Sales Details:', salesDetails);
+    // Optionally merge into billDetails or send to API
+    setShowSalesDetails(false);
+    alert('Sales details saved');
   };
 
   // Handle Enter Key Navigation
@@ -150,7 +181,17 @@ const SalesInvoices = () => {
   const totalAmount = items.reduce((sum, item) => sum + (parseFloat(item.rate || 0) * parseFloat(item.qty || 0)), 0);
 
   // --- STYLES (Inline CSS) ---
-  const styles = {};
+  // Shared input style to match bill header inputs
+  const inputStyle = {
+    padding: '8px',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    fontSize: '14px',
+    marginTop: '6px',
+    width: '100%',
+    boxSizing: 'border-box',
+    background: 'white'
+  };
 
   return (
     <div style={{ 
@@ -174,7 +215,7 @@ const SalesInvoices = () => {
         }}>
           {/* Bill No */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '70px' }}>
+            <label style={{ fontWeight: '500', minWidth: '90px' }}>
               Bill No:
             </label>
             <input
@@ -198,7 +239,7 @@ const SalesInvoices = () => {
           
           {/* Bill Date */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '80px' }}>
+            <label style={{ fontWeight: '500', minWidth: '120px' }}>
               Bill Date:
             </label>
             <input
@@ -221,7 +262,7 @@ const SalesInvoices = () => {
           
           {/* Mobile No */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '85px' }}>
+            <label style={{ fontWeight: '500', minWidth: '90px' }}>
               Mobile No:
             </label>
             <input
@@ -245,7 +286,7 @@ const SalesInvoices = () => {
           
           {/* Type */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '60px' }}>
+            <label style={{ fontWeight: '500', minWidth: '90px' }}>
               Type:
             </label>
             <select
@@ -265,6 +306,106 @@ const SalesInvoices = () => {
             </select>
           </div>
         </div>
+        {/* Sales Details Modal */}
+        {showSalesDetails && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999
+            }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowSalesDetails(false); }}
+          >
+            <div style={{ width: 720, maxWidth: '95%', background: '#fff', borderRadius: 8, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <h3 style={{ margin: 0 }}>Sales Details</h3>
+                <button onClick={() => setShowSalesDetails(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>✕</button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Item(s) :
+                  <input name="items" value={salesDetails.items} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Bill Disc (%) :
+                  <input name="billDiscPct" value={salesDetails.billDiscPct} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Round Off :
+                  <input name="roundOff" value={salesDetails.roundOff} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Service :
+                  <input name="service" value={salesDetails.service} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Scrap Amt :
+                  <input name="scrapAmt" value={salesDetails.scrapAmt} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  UPI :
+                  <input name="upi" value={salesDetails.upi} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Cash :
+                  <input name="cash" value={salesDetails.cash} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Qty (s) :
+                  <input name="qty" value={salesDetails.qty} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Bill Disc Amt :
+                  <input name="billDiscAmt" value={salesDetails.billDiscAmt} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Grand Total :
+                  <input name="grandTotal" value={salesDetails.grandTotal} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Delivery :
+                  <input name="delivery" value={salesDetails.delivery} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Sales Return :
+                  <input name="salesReturn" value={salesDetails.salesReturn} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Card :
+                  <input name="card" value={salesDetails.card} onChange={handleSalesDetailsChange} style={inputStyle} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                  Balance :
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                    <input name="balance" value={salesDetails.balance} onChange={handleSalesDetailsChange} style={{ ...inputStyle, flex: 1 }} />
+                    <span>.00</span>
+                  </div>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                <button onClick={() => setShowSalesDetails(false)} style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid #ccc', background: 'transparent' }}>Cancel</button>
+                <button onClick={handleSaveSalesDetails} style={{ padding: '6px 12px', borderRadius: 4, border: 'none', background: '#1976d2', color: '#fff' }}>Save</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Form Section - Bottom Row */}
         <div style={{ 
@@ -276,7 +417,7 @@ const SalesInvoices = () => {
         }}>
           {/* Sale Man */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '85px' }}>
+            <label style={{ fontWeight: '500', minWidth: '90px' }}>
               Sale Man:
             </label>
             <input
@@ -300,7 +441,7 @@ const SalesInvoices = () => {
           
           {/* Customer Name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '115px' }}>
+            <label style={{ fontWeight: '500', minWidth: '90px' }}>
               Customer Name:
             </label>
             <input
@@ -324,7 +465,7 @@ const SalesInvoices = () => {
 
           {/* Barcode/SKU - Spans 2 columns */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', gridColumn: 'span 2' }}>
-            <label style={{ fontWeight: '500', minWidth: '80px' }}>
+            <label style={{ fontWeight: '500', minWidth: '90px' }}>
               Barcode:
             </label>
             <input
@@ -665,6 +806,29 @@ const SalesInvoices = () => {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <DeleteIcon fontSize="small" /> DELETE
+              </button>
+
+              {/* Sales Details popup button (beside Delete) */}
+              <button
+                onClick={() => setShowSalesDetails(true)}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#1976d2',
+                  border: '1px solid #1976d2',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '12px',
+                  minWidth: '110px',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e3f2fd'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                Sales Details
               </button>
             </div>
 
