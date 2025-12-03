@@ -434,6 +434,7 @@ export default function ItemGroupCreation() {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          margin-bottom: 160px;
           
         }
         .dashboard:hover { transform: translateY(-6px); }
