@@ -164,114 +164,124 @@ const Scrap = () => {
         padding: '12px 8px'
       }}>
         {/* Form Section - Top Row */}
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '12px',
-          marginBottom: '16px'
-        }}>
-          {/* Salesman */}
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-              Salesman
-            </label>
-            <input
-              type="text"
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-              value={formData.salesman}
-              onChange={handleFormChange('salesman')}
-              placeholder="Salesman"
-            />
-          </div>
-          
-          {/* Bill No */}
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-              Bill No
-            </label>
-            <input
-              type="text"
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-              value={formData.billNo}
-              onChange={handleFormChange('billNo')}
-              placeholder="Bill No"
-            />
-          </div>
-          
-          {/* Mobile No */}
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-              Mobile No
-            </label>
-            <input
-              type="text"
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-              value={formData.mobileNo}
-              onChange={handleFormChange('mobileNo')}
-              placeholder="Mobile No"
-            />
-          </div>
-          
-          {/* Scrap Product Name */}
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-              Scrap Product Name
-            </label>
-            <input
-              type="text"
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-              value={formData.scrapProductName}
-              onChange={handleFormChange('scrapProductName')}
-              placeholder="Scrap Product Name"
-            />
-          </div>
-        </div>
-
-        {/* Form Section - Bottom Row */}
-{/* Form Section - Bottom Row */}
+       {/* Form Section - Top Row */}
 <div style={{ 
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '12px',
-  marginBottom: '20px'
+  gridTemplateColumns: 'repeat(4, 1fr)',
+  gap: '16px',
+  marginBottom: '16px',
+  overflow: 'hidden'
 }}>
-  {/* EMP Name */}
-  <div>
-    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-      EMP Name
+  {/* Salesman */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <label style={{ fontWeight: '500', minWidth: '100px' }}>
+      Salesman :
     </label>
     <input
       type="text"
       style={{
-        width: '100%',
+        flex: 1,
         padding: '8px',
         border: '1px solid #ddd',
         borderRadius: '4px',
-        fontSize: '14px'
+        fontSize: '14px',
+        minWidth: '0', /* Prevents overflow */
+        marginLeft: '-15px'
+      }}
+      value={formData.salesman}
+      onChange={handleFormChange('salesman')}
+      placeholder="Enter Salesman"
+    />
+  </div>
+  
+  {/* Bill No */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <label style={{ fontWeight: '500', minWidth: '70px' }}>
+      Bill No:
+    </label>
+    <input
+      type="text"
+      style={{
+        flex: 1,
+        padding: '8px',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        fontSize: '14px',
+        minWidth: '0',
+        marginLeft: '10px'
+      }}
+      value={formData.billNo}
+      onChange={handleFormChange('billNo')}
+      placeholder="Bill No"
+    />
+  </div>
+  
+  {/* Mobile No */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <label style={{ fontWeight: '500', minWidth: '85px' }}>
+      Mobile No:
+    </label>
+    <input
+      type="text"
+      style={{
+        flex: 1,
+        padding: '8px',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        fontSize: '14px',
+        minWidth: '0',
+        marginLeft: '34px'
+      }}
+      value={formData.mobileNo}
+      onChange={handleFormChange('mobileNo')}
+      placeholder="Mobile No"
+    />
+  </div>
+  
+  {/* Scrap Product Name */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <label style={{ fontWeight: '500', minWidth: '140px' }}>
+      Scrap Product Name:
+    </label>
+    <input
+      type="text"
+      style={{
+        flex: 1,
+        padding: '8px',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        fontSize: '14px',
+        minWidth: '0'
+      }}
+      value={formData.scrapProductName}
+      onChange={handleFormChange('scrapProductName')}
+      placeholder="Scrap Product Name"
+    />
+  </div>
+</div>
+
+{/* Form Section - Bottom Row */}
+<div style={{ 
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, 1fr)',
+  gap: '16px',
+  marginBottom: '20px',
+  overflow: 'hidden'
+}}>
+  {/* EMP Name */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <label style={{ fontWeight: '500', minWidth: '85px' }}>
+      EMP Name:
+    </label>
+    <input
+      type="text"
+      style={{
+        flex: 1,
+        padding: '8px',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        fontSize: '14px',
+        minWidth: '0'
       }}
       value={formData.empName}
       onChange={handleFormChange('empName')}
@@ -280,18 +290,19 @@ const Scrap = () => {
   </div>
   
   {/* Bill Date */}
-  <div>
-    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-      Bill Date
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <label style={{ fontWeight: '500', minWidth: '80px' }}>
+      Bill Date:
     </label>
     <input
       type="date"
       style={{
-        width: '100%',
+        flex: 1,
         padding: '8px',
         border: '1px solid #ddd',
         borderRadius: '4px',
-        fontSize: '14px'
+        fontSize: '14px',
+        minWidth: '0'
       }}
       value={formData.billDate}
       onChange={handleFormChange('billDate')}
@@ -299,18 +310,19 @@ const Scrap = () => {
   </div>
   
   {/* Customer Name */}
-  <div>
-    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-      Customer Name
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <label style={{ fontWeight: '500', minWidth: '115px' }}>
+      Customer Name:
     </label>
     <input
       type="text"
       style={{
-        width: '100%',
+        flex: 1,
         padding: '8px',
         border: '1px solid #ddd',
         borderRadius: '4px',
-        fontSize: '14px'
+        fontSize: '14px',
+        minWidth: '0'
       }}
       value={formData.custName}
       onChange={handleFormChange('custName')}
@@ -318,61 +330,61 @@ const Scrap = () => {
     />
   </div>
   
-  {/* QTY and Items - Combined in one grid cell */}
-  <div style={{ 
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '12px'
-  }}>
-    {/* QTY - Reduced size to half */}
-    <div>
-      <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-        QTY
-      </label>
-      <input
-        type="number"
-        style={{
-          width: '100%',
-          padding: '8px',
-          border: '1px solid #ddd',
-          borderRadius: '4px',
-          fontSize: '14px'
-        }}
-        value={formData.qty}
-        onChange={handleFormChange('qty')}
-        placeholder="QTY"
-      />
-    </div>
-    
-    {/* Items - New field */}
-    <div>
-      <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-        Items
-      </label>
-      <input
-        type="text"
-        style={{
-          width: '100%',
-          padding: '8px',
-          border: '1px solid #ddd',
-          borderRadius: '4px',
-          fontSize: '14px'
-        }}
-        value={formData.items || ''}
-        onChange={handleFormChange('items')}
-        placeholder="Items"
-      />
-    </div>
+  {/* QTY and Items */}
+<div style={{ 
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  minWidth: '0'
+}}>
+  {/* QTY - Reduced size */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 40%' }}>
+    <label style={{ fontWeight: '500', minWidth: '40px' }}>
+      QTY:
+    </label>
+    <input
+      type="number"
+      style={{
+        flex: 1,
+        padding: '8px',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        fontSize: '14px',
+        minWidth: '0',
+        maxWidth: '120px' /* Reduced width */
+      }}
+      value={formData.qty}
+      onChange={handleFormChange('qty')}
+      placeholder="QTY"
+    />
+  </div>
+  
+  {/* Items - Moved slightly left */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', marginLeft: '5px' }}>
+    <label style={{ fontWeight: '500', minWidth: '50px' }}>
+      Items:
+    </label>
+    <input
+      type="text"
+      style={{
+        flex: 1,
+        padding: '8px',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        fontSize: '14px',
+        minWidth: '0',
+        maxWidth: '130px'
+      }}
+      value={formData.items || ''}
+      onChange={handleFormChange('items')}
+      placeholder="Items"
+    />
   </div>
 </div>
-
+</div>
         <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #ddd' }} />
 
         {/* Items Table */}
-        {/* <h3 style={{ marginBottom: '12px', color: '#1976d2', fontWeight: 'bold', fontSize: '16px' }}>
-          Items List
-        </h3> */}
-        
         <div style={{ 
           backgroundColor: '#fff',
           borderRadius: '4px',
@@ -548,7 +560,7 @@ const Scrap = () => {
                 alignItems: 'center',
                 gap: '4px',
                 fontSize: '14px',
-                marginLeft:'-87%'
+                marginLeft: '-87%'
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
@@ -590,92 +602,20 @@ const Scrap = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ 
-          display: 'flex',
-          gap: '12px',
-          justifyContent: 'flex-end',
-          marginBottom: '20px'
-        }}>
-          <button
-            onClick={handleClear}
-            style={{
-              backgroundColor: 'transparent',
-              color: '#666',
-              border: '1px solid #666',
-              padding: '10px 20px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '14px',
-              minWidth: '120px',
-              justifyContent: 'center'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f5f5f5';
-              e.currentTarget.style.borderColor = '#333';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.borderColor = '#666';
-            }}
-          >
-            <ClearIcon fontSize="small" /> Clear
-          </button>
-          <button
-            onClick={handleSave}
-            style={{
-              backgroundColor: '#1976d2',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '14px',
-              minWidth: '120px',
-              justifyContent: 'center'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
-          >
-            <SaveIcon fontSize="small" /> Save Bill
-          </button>
-        </div>
-
         {/* Barcode Actions Section */}
         <div style={{ 
-          marginTop: '24px', 
+          marginTop: '12%', 
           padding: '12px', 
           border: '1px solid #ddd', 
           borderRadius: '4px' 
         }}>
-          {/* <h3 style={{ marginBottom: '12px', color: '#1976d2', fontSize: '16px', margin: 0 }}>
-            Barcode Actions
-          </h3> */}
           <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: '1fr auto',
-            gap: '12px',
-            alignItems: 'center'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px'
           }}>
-            {/* <div>
-              <input
-                type="text"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-                placeholder="Scan Barcode"
-              />
-            </div> */}
+            {/* Left side: ADD, EDIT, DELETE buttons */}
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
                 style={{
@@ -736,6 +676,58 @@ const Scrap = () => {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <DeleteIcon fontSize="small" /> DELETE
+              </button>
+            </div>
+
+            {/* Right side: Clear and Save Bill buttons */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={handleClear}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#666',
+                  border: '1px solid #666',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '12px',
+                  minWidth: '80px',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f5f5f5';
+                  e.currentTarget.style.borderColor = '#333';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = '#666';
+                }}
+              >
+                <ClearIcon fontSize="small" /> Clear
+              </button>
+              <button
+                onClick={handleSave}
+                style={{
+                  backgroundColor: '#1976d2',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '12px',
+                  minWidth: '80px',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
+              >
+                <SaveIcon fontSize="small" /> Save Bill
               </button>
             </div>
           </div>

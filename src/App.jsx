@@ -2,6 +2,7 @@ import './App.css'
 import { Routes, Route } from 'react-router-dom'
 import Home from './pages/Home/Home'
 import Navbar from './components/Navbar/Navbar'
+import  Company  from './pages/company/Company'
 import LedgerCreation from './pages/Ledgercreation/Ledgercreation'
 import ItemCreation from './pages/ItemCreation/ItemCreation'
 import LedgerGroupCreation from './pages/Ledgergroupcreation/Ledgergroupcreation'
@@ -20,6 +21,11 @@ function App() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
+          {/* <Route path="test" element={<Test />} /> */}
+          <Route path="/masters/company-creation" element={<Company />} />
+          
+          
+
           <Route path="sales-invoice" element={<SalesInvoice />} />
           <Route path="/masters/ledger-creation" element={<LedgerCreation />} />
           <Route path="/masters/item-creation" element={<ItemCreation />} />
