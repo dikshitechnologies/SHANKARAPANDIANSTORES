@@ -14,7 +14,7 @@ import {
   DatabaseOutlined,
   DollarOutlined,
   DownOutlined,
-  UpOutlined
+  UpOutlined,MoneyCollectOutlined,
 } from '@ant-design/icons';
 import { Button, Dropdown, Space, Modal } from 'antd';
 import DropdownMenu from './DropdownMenu';
@@ -87,7 +87,8 @@ const Navbar = () => {
     { name: 'Sales Invoice', path: 'sales-invoice', icon: <FileTextOutlined /> },
     { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
-    { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> }
+    { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> },
+    { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined  /> }
   ];
 
   // Desktop hover handlers
@@ -154,7 +155,7 @@ const Navbar = () => {
         <div className={styles['nav-container']}>
           {/* Left: Logo */}
           <Link to="/" className={styles['nav-logo']} onClick={closeMobileMenu}>
-            <span className={styles['logo-text']}>Shankarapandian</span>
+            <span className={styles['logo-text']}>Sankarapandian</span>
             <span className={styles['logo-subtext']}>Stores</span>
           </Link>
 
@@ -272,7 +273,7 @@ const Navbar = () => {
     >
       <div className={styles['mobile-menu-header']}>
         <Link to="/" onClick={closeMobileMenu} className={styles['nav-logo']}>
-          <span className={styles['logo-text']}>Shankarapandian</span>
+          <span className={styles['logo-text']}>Sankarapandian</span>
           <span className={styles['logo-subtext']}>Stores</span>
         </Link>
         <Button 
