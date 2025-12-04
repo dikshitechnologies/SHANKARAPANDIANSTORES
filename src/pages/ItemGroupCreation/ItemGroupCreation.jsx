@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 // import { useFormPermissions } from '../../../hooks/useFormPermissions';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
 const endpoints = API_ENDPOINTS.ITEM_GROUP || {};
 
@@ -61,7 +62,6 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         className={`tree-row ${isSelected ? "selected" : ""}`}
         onClick={() => onSelect(node)}
         role="button"
-        tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && onSelect(node)}
       >
         {hasChildren ? (
@@ -133,6 +133,7 @@ export default function ItemGroupCreation() {
   const [message, setMessage] = useState(null);
   const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
   const [searchDropdown, setSearchDropdown] = useState("");
   const [expandedKeys, setExpandedKeys] = useState(new Set());
@@ -188,6 +189,33 @@ export default function ItemGroupCreation() {
       setLoading(false);
     }
   };
+
+  // Popup fetcher (paged + searchable) for edit selector. Some backends return the full list, so we page/filter client-side.
+  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
+    try {
+      const resp = await api.get(endpoints.getDropdown);
+      const items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || []);
+
+      const q = (search || '').trim().toLowerCase();
+      const filtered = q
+        ? items.filter(it => (it.fitemname || it.fAcname || '').toLowerCase().includes(q) || (it.parentName || '').toLowerCase().includes(q))
+        : items;
+
+      const pageSize = 20;
+      const start = (page - 1) * pageSize;
+      const pageItems = filtered.slice(start, start + pageSize);
+
+      return pageItems.map(it => ({
+        fName: it.fitemname || it.fAcname || it.fName || '',
+        fParent: it.parentName || it.fParent || '',
+        fCode: it.fitemcode || it.fcode || it.fCode || '',
+        raw: it,
+      }));
+    } catch (err) {
+      console.error('fetchPopupItems error', err);
+      return [];
+    }
+  }, []);
 
   const transformApiData = (apiData) => {
     if (!Array.isArray(apiData)) return [];
@@ -434,6 +462,7 @@ export default function ItemGroupCreation() {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          margin-bottom: 160px;
           
         }
         .dashboard:hover { transform: translateY(-6px); }
@@ -538,6 +567,19 @@ export default function ItemGroupCreation() {
           text-align: left;
         }
         .input:focus, .search:focus { outline:none; box-shadow: 0 8px 26px rgba(48,122,200,0.08); transform: translateY(-1px); border-color: rgba(48,122,200,0.25); }
+        
+        /* For the combined input+button group */
+.input-group-combined:focus-within {
+  box-shadow: 0 8px 26px rgba(48,122,200,0.08);
+  border-color: rgba(48,122,200,0.25);
+}
+
+/* Make sure the button looks disabled when needed */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 
         .btn {
           padding:10px 12px;
@@ -712,6 +754,14 @@ export default function ItemGroupCreation() {
         .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
         .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; text-align: left; }
         .dropdown-item:hover { background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); transform: translateX(6px); }
+        
+
+        
+
+        
+
+
+
 
         /* Responsive styles */
         /* Large tablets and small laptops */
@@ -851,7 +901,7 @@ export default function ItemGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "edit" ? "warn" : ""}`}
-              onClick={() => { setActionType("edit"); resetForm(); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("edit"); resetForm(); setIsPopupOpen(true); }}
               disabled={submitting || !formPermissions.edit}
               type="button"
               title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing item group"}
@@ -861,7 +911,7 @@ export default function ItemGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "delete" ? "danger" : ""}`}
-              onClick={() => { setActionType("delete"); resetForm(); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("delete"); resetForm(); setIsPopupOpen(true); }}
               disabled={submitting || !formPermissions.delete}
               type="button"
               title={!formPermissions.delete ? "You don't have permission to delete" : "Delete item group"}
@@ -873,31 +923,71 @@ export default function ItemGroupCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Main Group field */}
-            <div className="field">
-              <label className="field-label">Main Group</label>
-              <div className="row">
-                <input
-                  className="input"
-                  value={mainGroup}
-                  onChange={(e) => setMainGroup(e.target.value)}
-                  readOnly={actionType !== "Add"}
-                  placeholder="Select Main Group"
-                  disabled={submitting}
-                  aria-label="Main Group"
-                />
-                <button
-                  className="btn"
-                  onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
-                  disabled={submitting || actionType !== "Add"}
-                  type="button"
-                  aria-expanded={isTreeOpen}
-                  aria-controls="group-tree"
-                >
-                  {isTreeOpen ? "Close" : "Open"}
-                </button>
-              </div>
-
+{/* Main Group field */}
+<div className="field">
+  <label className="field-label">Main Group</label>
+  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+    <div style={{
+      display: "flex",
+      flex: 1,
+      border: "1px solid rgba(15,23,42,0.06)",
+      borderRadius: "10px",
+      overflow: "hidden",
+      background: "linear-gradient(180deg, #fff, #fbfdff)",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+    }}>
+      <input
+        className="input"
+        value={mainGroup}
+        onChange={(e) => setMainGroup(e.target.value)}
+        readOnly={actionType !== "Add"}
+        placeholder="Select Main Group"
+        disabled={submitting}
+        aria-label="Main Group"
+        style={{
+          flex: 1,
+          border: "none",
+          borderRadius: 0,
+          padding: "10px 12px",
+          minWidth: "120px",
+          fontSize: "14px",
+          outline: "none"
+        }}
+      />
+      <button
+        className="btn"
+        onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
+        disabled={submitting || actionType !== "Add"}
+        type="button"
+        aria-expanded={isTreeOpen}
+        aria-controls="group-tree"
+        style={{
+          flexShrink: 0,
+          border: "none",
+          borderLeft: "1px solid rgba(15,23,42,0.06)",
+          borderRadius: 0,
+          padding: "8px 12px",
+          minWidth: "70px",
+          fontSize: "12px",
+          fontWeight: "600",
+          background: "linear-gradient(180deg,#fff,#f8fafc)",
+          cursor: submitting || actionType !== "Add" ? "not-allowed" : "pointer",
+          color: "#0f172a",
+          transition: "all 0.2s"
+        }}
+        onMouseOver={(e) => {
+          if (!submitting && actionType === "Add") {
+            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
+          }
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
+        }}
+      >
+        {isTreeOpen ? "Close" : "Open"}
+      </button>
+    </div>
+  </div>
               {isTreeOpen && (
                 isMobile ? (
                   <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
@@ -1193,6 +1283,27 @@ export default function ItemGroupCreation() {
           </div>
         </div>
       )}
+
+      {/* Popup selector (paged + searchable) for Edit action, same style as Ledgercreation */}
+      <PopupListSelector
+        open={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+        onSelect={(item) => {
+          // item fields: fName, fParent, fCode, raw
+          setMainGroup(item.fParent || '');
+          setSubGroup(item.fName || '');
+          setFCode(item.fCode || '');
+          setIsPopupOpen(false);
+        }}
+        fetchItems={fetchPopupItems}
+        title="Select Item Group to Edit"
+        displayFieldKeys={['fName', 'fParent']}
+        searchFields={['fName', 'fParent']}
+        headerNames={['Group Name', 'Parent']}
+        columnWidths={{ fName: '70%', fParent: '30%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
     </div>
   );
 }

@@ -5,6 +5,9 @@ import Select from "react-select";
 import { axiosInstance } from '../../api/apiService';
 import { ADMINISTRATION } from '../../api/endpoints';
 
+// Import PopupListSelector
+import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+
 // Get endpoints from your configuration
 const USERS_URL = ADMINISTRATION.USER_LIST;
 const GET_PERMS_URL = ADMINISTRATION.GET_PERMISSIONS_BY_USER;
@@ -417,6 +420,34 @@ const Administration = () => {
     setSearchQuery("");
   };
 
+  // Function to fetch users for PopupListSelector
+  const fetchUsersForPopup = async (pageNum, search) => {
+    try {
+      const response = await axiosInstance.get(USERS_URL);
+      const data = response.data;
+      
+      let userList = Array.isArray(data) ? data.map((u, i) => ({
+        id: String(u.id || i + 1),
+        code: u.userCode || u.code || String(u.id || i + 1),
+        name: u.userName || u.name || u.fullName || `User ${i + 1}`
+      })) : [];
+      
+      // Filter by search term if provided
+      if (search && search.trim()) {
+        const searchTerm = search.toLowerCase();
+        userList = userList.filter(user => 
+          user.name.toLowerCase().includes(searchTerm) ||
+          user.code.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      return userList;
+    } catch (error) {
+      console.error("Error fetching users for popup:", error);
+      return [];
+    }
+  };
+
   const itemsForRender = useMemo(() => {
     let list = MASTER_ITEMS;
     if (activeTab === "transaction") list = TRANSACTION_ITEMS;
@@ -459,16 +490,6 @@ const Administration = () => {
     });
     return s;
   }, [perms, selectedUserId]);
-
-  const filteredUsers = useMemo(() => {
-    if (!userSearchTerm.trim()) {
-      return users.filter(u => u.id !== "0");
-    }
-    const term = userSearchTerm.toLowerCase();
-    return users.filter(u => 
-      u.id !== "0" && u.name.toLowerCase().includes(term)
-    );
-  }, [users, userSearchTerm]);
 
   const selectedUserName = users.find(u => u.id === selectedUserId)?.name || "Select User";
 
@@ -666,81 +687,6 @@ const Administration = () => {
           <div style={styles.loadingSpinner}>
             <i className="bi bi-arrow-clockwise" style={{ fontSize: '32px', color: '#307AC8' }}></i>
             <p style={{ marginTop: '16px', color: '#307AC8', fontWeight: '600' }}>Loading...</p>
-          </div>
-        </div>
-      )}
-
-      {/* User Selection Popup Modal */}
-      {showUserPopup && (
-        <div style={styles.popupOverlay}>
-          <div style={styles.popupContainer}>
-            <div style={styles.popupHeader}>
-              <h3 style={styles.popupTitle}>Select User</h3>
-              <button 
-                onClick={() => setShowUserPopup(false)}
-                style={styles.popupCloseButton}
-              >
-                <i className="bi bi-x"></i>
-              </button>
-            </div>
-            
-            <div style={styles.popupSearchContainer}>
-              <div style={styles.popupSearchInputWrapper}>
-                <i className="bi bi-search" style={styles.popupSearchIcon}></i>
-                <input
-                  type="text"
-                  placeholder="Search user..."
-                  value={userSearchTerm}
-                  onChange={(e) => setUserSearchTerm(e.target.value)}
-                  style={styles.popupSearchInput}
-                  autoFocus
-                />
-                {userSearchTerm && (
-                  <button 
-                    onClick={() => setUserSearchTerm("")}
-                    style={styles.popupClearSearchButton}
-                  >
-                    <i className="bi bi-x"></i>
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            <div style={styles.popupUserList}>
-                {filteredUsers.length > 0 ? (
-                filteredUsers.map((user, idx) => {
-                  const isLast = idx === filteredUsers.length - 1;
-                  return (
-                  <div
-                    key={user.id}
-                    style={{
-                      ...styles.popupUserItem,
-                      ...(selectedUserId === user.id ? styles.selectedUserItem : {}),
-                      ...(isLast ? { borderBottom: 'none' } : {})
-                    }}
-                    onClick={() => handleUserSelect(user)}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = selectedUserId === user.id ? '#307AC8' : '#f3f4f6'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedUserId === user.id ? '#307AC8' : 'white'}
-                  >
-                    <i className="bi bi-person-circle" style={styles.popupUserIcon}></i>
-                    <div style={styles.popupUserInfo}>
-                      <div style={styles.popupUserName}>{user.name}</div>
-                      <div style={styles.popupUserCode}>Code: {user.code}</div>
-                    </div>
-                    {selectedUserId === user.id && (
-                      <i className="bi bi-check-circle-fill" style={styles.selectedIcon}></i>
-                    )}
-                  </div>
-                  );
-                })
-              ) : (
-                <div style={styles.popupNoResults}>
-                  <i className="bi bi-person-x" style={{fontSize: '48px', color: '#d1d5db', marginBottom: '16px'}}></i>
-                  <p style={{color: '#6b7280', marginBottom: '8px'}}>No users found</p>
-                  <p style={{color: '#9ca3af', fontSize: '14px'}}>Try different search terms</p>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}
@@ -1056,16 +1002,37 @@ const Administration = () => {
           </div>
         </div>
       </div>
+
+      {/* PopupListSelector for User Selection */}
+      <PopupListSelector
+        open={showUserPopup}
+        onClose={() => setShowUserPopup(false)}
+        onSelect={handleUserSelect}
+        fetchItems={fetchUsersForPopup}
+        title="Select User"
+        displayFieldKeys={['name', 'code']}
+        searchFields={['name', 'code']}
+        headerNames={['Name', 'Code']}
+        columnWidths={{
+          name: '70%',
+          code: '30%'
+        }}
+        maxHeight="70vh"
+        searchPlaceholder="Search user by name or code..."
+        onCustomClose={() => setUserSearchTerm("")}
+        clearSearch={() => setUserSearchTerm("")}
+      />
     </div>
   );
 };
 
-// Inline CSS Styles
+// Inline CSS Styles (Keep all existing styles exactly the same)
 const styles = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f5f7fa',
-    padding: '0',
+    padding: '20',
+     paddingTop: '90px',
     margin: '0',
     position: 'relative',
   },
@@ -1236,154 +1203,6 @@ const styles = {
     color: '#6b7280',
     fontSize: '14px',
     marginLeft: '8px',
-  },
-  // Popup Modal Styles
-  popupOverlay: {
-    position: 'fixed',
-    top: '0',
-    left: '0',
-    right: '0',
-    bottom: '0',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    padding: '20px',
-  },
-  popupContainer: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    width: '100%',
-    maxWidth: '500px',
-    maxHeight: '80vh',
-    display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-    overflow: 'hidden',
-  },
-  popupHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '20px',
-    borderBottom: '1px solid #e5e7eb',
-    backgroundColor: '#f8fafc',
-  },
-  popupTitle: {
-    margin: '0',
-    fontSize: '18px',
-    fontWeight: '700',
-    color: '#1f2937',
-  },
-  popupCloseButton: {
-    background: 'none',
-    border: 'none',
-    color: '#6b7280',
-    cursor: 'pointer',
-    fontSize: '20px',
-    padding: '0',
-    width: '32px',
-    height: '32px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '6px',
-    '&:hover': {
-      backgroundColor: '#f3f4f6',
-    }
-  },
-  popupSearchContainer: {
-    padding: '16px 20px',
-    borderBottom: '1px solid #e5e7eb',
-  },
-  popupSearchInputWrapper: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  popupSearchIcon: {
-    position: 'absolute',
-    left: '12px',
-    color: '#6b7280',
-    fontSize: '16px',
-  },
-  popupSearchInput: {
-    width: '100%',
-    padding: '10px 12px 10px 40px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'all 0.2s',
-    backgroundColor: '#f8fafc',
-    '&:focus': {
-      borderColor: '#307AC8',
-      backgroundColor: 'white',
-      boxShadow: '0 0 0 2px rgba(48, 122, 200, 0.1)',
-    }
-  },
-  popupClearSearchButton: {
-    position: 'absolute',
-    right: '10px',
-    background: 'none',
-    border: 'none',
-    color: '#6b7280',
-    cursor: 'pointer',
-    fontSize: '16px',
-    padding: '0',
-    width: '20px',
-    height: '20px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  popupUserList: {
-    flex: '1',
-    overflowY: 'auto',
-    maxHeight: '400px',
-  },
-  popupUserItem: {
-    padding: '14px 20px',
-    cursor: 'pointer',
-    borderBottom: '1px solid #f3f4f6',
-    display: 'flex',
-    alignItems: 'center',
-    transition: 'background-color 0.2s',
-  },
-  selectedUserItem: {
-    backgroundColor: '#307AC8',
-  },
-  popupUserIcon: {
-    color: '#307AC8',
-    fontSize: '24px',
-    marginRight: '12px',
-    flexShrink: 0,
-  },
-  popupUserInfo: {
-    flex: '1',
-  },
-  popupUserName: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: '2px',
-  },
-  popupUserCode: {
-    fontSize: '12px',
-    color: '#6b7280',
-  },
-  selectedIcon: {
-    color: 'white',
-    fontSize: '16px',
-    marginLeft: '8px',
-  },
-  popupNoResults: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px 20px',
   },
   // MASTER Header with Title, Search, and Buttons
   masterHeader: {

@@ -1,20 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-
-/**
- * UserCreation.jsx
- * - Connected to backend API with direct URLs
- * - Single-file Vite + React component (inline CSS)
- * - Flow 1: Enter navigation (Company -> Username -> Password -> Prefix -> Primary action)
- * - BOX style inputs (updated from underline style) - DECREASED SIZE
- * - Blue color scheme: #06A7EA, #1B91DA, #307AC8
- * - Add/Edit/Delete modals (Option B: Delete loads record into main form)
- * - Company modal shows Code + Company Name (click to select)
- * - Edit/Delete modals show #, Company, Username, Password, Prefix (click to load)
- * - Left column: existing users (read-only) - responsive width
- * - Right column: user creation form - responsive width (increased size)
- * - Fully responsive on all screen sizes
- * - FIXED: Delete error handling with detailed user feedback
- */
+import PopupListSelector from "../../components/Listpopup/PopupListSelector"; // corrected path to component
 
 export default function UserCreation() {
   // ---------- state ----------
@@ -29,7 +14,7 @@ export default function UserCreation() {
     username: "", 
     password: "", 
     prefix: "",
-    userId: null ,
+    userId: null,
     code: "" 
   });
   
@@ -63,6 +48,13 @@ export default function UserCreation() {
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+
+  // State for PopupListSelector
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [popupType, setPopupType] = useState(""); // 'company', 'edit', 'delete'
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupData, setPopupData] = useState([]);
+  const [popupSearchText, setPopupSearchText] = useState("");
 
   useEffect(() => {
     const handleResize = () => {
@@ -383,10 +375,21 @@ export default function UserCreation() {
   }, [existingQuery, users]);
 
   // ---------- handlers ----------
-  // Company modal
+  // Company modal - Updated to use PopupListSelector
   function openCompanyModal() {
     setCompanyQuery("");
-    setCompanyModalOpen(true);
+    // Prepare data for popup
+    const companyData = companies.map(c => ({
+      id: c.code,
+      code: c.code,
+      companyName: c.compaytName,
+      displayName: `${c.code} - ${c.compaytName}`
+    }));
+    
+    setPopupData(companyData);
+    setPopupTitle("Select Company");
+    setPopupType("company");
+    setPopupOpen(true);
   }
 
   function selectCompany(c) {
@@ -399,10 +402,24 @@ export default function UserCreation() {
     setTimeout(() => usernameRef.current && usernameRef.current.focus(), 60);
   }
 
-  // Edit modal: click row to load in form and set Edit mode
+  // Edit modal: click row to load in form and set Edit mode - Updated to use PopupListSelector
   function openEditModal() {
     setEditQuery("");
-    setEditModalOpen(true);
+    // Prepare data for popup
+    const editUserData = users.map(u => ({
+      id: u.code,
+      code: u.code,
+      companyName: u.compaytName,
+      userName: u.userName,
+      password: u.password ? "••••••" : "-",
+      prefix: u.fPrefix || "-",
+      displayName: `${u.code} - ${u.userName}`
+    }));
+    
+    setPopupData(editUserData);
+    setPopupTitle("Select User to Edit");
+    setPopupType("edit");
+    setPopupOpen(true);
   }
 
   function handleEditRowClick(u) {
@@ -420,10 +437,24 @@ export default function UserCreation() {
     setTimeout(() => usernameRef.current && usernameRef.current.focus(), 60);
   }
 
-  // Delete modal: click row to load in form and set Delete mode (Option B)
+  // Delete modal: click row to load in form and set Delete mode - Updated to use PopupListSelector
   function openDeleteModal() {
     setDeleteQuery("");
-    setDeleteModalOpen(true);
+    // Prepare data for popup
+    const deleteUserData = users.map(u => ({
+      id: u.code,
+      code: u.code,
+      companyName: u.compaytName,
+      userName: u.userName,
+      password: u.password ? "••••••" : "-",
+      prefix: u.fPrefix || "-",
+      displayName: `${u.code} - ${u.userName}`
+    }));
+    
+    setPopupData(deleteUserData);
+    setPopupTitle("Select User to Delete");
+    setPopupType("delete");
+    setPopupOpen(true);
   }
 
   function handleDeleteRowClick(u) {
@@ -440,6 +471,32 @@ export default function UserCreation() {
     setDeleteModalOpen(false);
     setTimeout(() => prefixRef.current && prefixRef.current.focus(), 60);
   }
+
+  // Handle popup selection
+  const handlePopupSelect = (selectedItem) => {
+    if (popupType === "company") {
+      // Find the original company object
+      const originalCompany = companies.find(c => c.code === selectedItem.id);
+      if (originalCompany) {
+        selectCompany(originalCompany);
+      }
+    } else if (popupType === "edit") {
+      // Find the original user object
+      const originalUser = users.find(u => u.code === selectedItem.id);
+      if (originalUser) {
+        handleEditRowClick(originalUser);
+      }
+    } else if (popupType === "delete") {
+      // Find the original user object
+      const originalUser = users.find(u => u.code === selectedItem.id);
+      if (originalUser) {
+        handleDeleteRowClick(originalUser);
+      }
+    }
+    setPopupOpen(false);
+    setPopupType("");
+    setPopupData([]);
+  };
 
   // Create
   async function handleCreate() {
@@ -554,15 +611,64 @@ export default function UserCreation() {
     setDeleteWarningMessage("");
   }
 
-  // ---------- inline styles (BOX style theme with DECREASED SIZE) ----------
-  const PRIMARY_BLUE = "#06A7EA";
-  const SECONDARY_BLUE = "#1B91DA";
-  const DARK_BLUE = "#307AC8";
-  const LIGHT_BLUE = "#E6F4FF";
+  // Function to fetch items for PopupListSelector
+  const fetchItemsForPopup = async (pageNum, search) => {
+    // Filter data based on search
+    const filtered = popupData.filter(item => {
+      if (!search) return true;
+      const searchLower = search.toLowerCase();
+      return (
+        (item.code && item.code.toString().toLowerCase().includes(searchLower)) ||
+        (item.companyName && item.companyName.toLowerCase().includes(searchLower)) ||
+        (item.userName && item.userName.toLowerCase().includes(searchLower)) ||
+        (item.displayName && item.displayName.toLowerCase().includes(searchLower))
+      );
+    });
+    
+    // Simulate pagination
+    const startIndex = (pageNum - 1) * 20;
+    const endIndex = startIndex + 20;
+    return filtered.slice(startIndex, endIndex);
+  };
+
+  // Get configuration for PopupListSelector based on type
+  const getPopupConfig = () => {
+    const configs = {
+      company: {
+        displayFieldKeys: ['code', 'companyName'],
+        searchFields: ['code', 'companyName'],
+        headerNames: ['Code', 'Company Name'],
+        columnWidths: { code: '30%', companyName: '70%' },
+        searchPlaceholder: 'Search companies...'
+      },
+      edit: {
+        displayFieldKeys: ['code', 'companyName', 'userName', 'password', 'prefix'],
+        searchFields: ['code', 'companyName', 'userName'],
+        headerNames: ['Code', 'Company', 'Username', 'Password', 'Prefix'],
+        columnWidths: { code: '15%', companyName: '30%', userName: '25%', password: '15%', prefix: '15%' },
+        searchPlaceholder: 'Search users...'
+      },
+      delete: {
+        displayFieldKeys: ['code', 'companyName', 'userName', 'password', 'prefix'],
+        searchFields: ['code', 'companyName', 'userName'],
+        headerNames: ['Code', 'Company', 'Username', 'Password', 'Prefix'],
+        columnWidths: { code: '15%', companyName: '30%', userName: '25%', password: '15%', prefix: '15%' },
+        searchPlaceholder: 'Search users...'
+      }
+    };
+    
+    return configs[popupType] || configs.company;
+  };
+
+  // ---------- inline styles (using YOUR exact colors) ----------
+  const DARK_BLUE = "#307AC8";      // Darkest blue
+  const MEDIUM_BLUE = "#1B91DA";    // Medium blue  
+  const LIGHT_BLUE = "#06A7EA";     // Lightest blue
   const BG = "#ffffff";
   const BORDER_SOFT = "rgba(6, 167, 234, 0.2)";
   const BORDER_MEDIUM = "rgba(6, 167, 234, 0.35)";
   const INPUT_BG = "#F8FBFF";
+  const LIGHT_BLUE_BG = "#E6F4FF";
   const FONT = "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial";
 
   const styles = {
@@ -571,152 +677,143 @@ export default function UserCreation() {
       background: "#f4f9ff", 
       fontFamily: FONT, 
       display: "flex", 
-      justifyContent: "left", 
+      justifyContent: "center",
       alignItems: "flex-start",
+      padding: isMobile ? "15px" : "25px",
+      boxSizing: "border-box"
+    },
+    
+    // Main container that centers everything - SMALL SPACE BETWEEN FORMS
+    mainContainer: {
       width: "100%",
-      boxSizing: "border-box"
-    },
-    layout: { 
-      width: "100%", 
-      maxWidth: "1400px", 
-      display: "flex", 
-      gap: isMobile ? "16px" : isTablet ? "20px" : "30px", 
-      alignItems: "flex-start",
-      boxSizing: "border-box",
-      flexDirection: isMobile ? "column-reverse" : "row"
-    },
-
-    // left panel - responsive width (slightly decreased to make room for larger form)
-    side: { 
-      flex: isMobile ? "0 0 100%" : isTablet ? "0 0 53%" : "0 0 48%", // Decreased from 55%/50%
-      width: isMobile ? "100%" : isTablet ? "53%" : "48%",
-      background: BG, 
-      borderRadius: "10px", 
-      padding: isMobile ? "16px" : "20px", 
-      border: `1px solid ${BORDER_SOFT}`, 
-      boxShadow: "0 6px 20px rgba(6, 167, 234, 0.05)",
-      boxSizing: "border-box"
-    },
-    sideTitle: { 
-      margin: 0, 
-      color: DARK_BLUE, 
-      fontWeight: 700, 
-      marginBottom: "15px", 
-      fontSize: isMobile ? "16px" : "18px", 
-      borderBottom: `2px solid ${PRIMARY_BLUE}`, 
-      paddingBottom: "8px" 
-    },
-    sideSearch: {
-      width: "100%",
-      padding: isMobile ? "8px 10px" : "10px 12px",
-      borderRadius: "6px",
-      border: `1px solid ${BORDER_SOFT}`,
-      marginBottom: "15px",
-      fontSize: isMobile ? "13px" : "14px",
-      outline: "none",
-      background: INPUT_BG,
-      transition: "all 0.2s",
-      boxSizing: "border-box"
-    },
-    sideSearchFocus: { borderColor: SECONDARY_BLUE, boxShadow: "0 0 0 2px rgba(6, 167, 234, 0.1)" },
-
-    table: { width: "100%", borderCollapse: "collapse", fontSize: isMobile ? "13px" : "14px" },
-    th: { 
-      textAlign: "left", 
-      padding: isMobile ? "10px 8px" : "12px 10px", 
-      color: DARK_BLUE, 
-      fontWeight: 700, 
-      fontSize: isMobile ? "13px" : "14px", 
-      borderBottom: `2px solid ${PRIMARY_BLUE}` 
-    },
-    td: { 
-      padding: isMobile ? "10px 8px" : "12px 10px", 
-      borderBottom: "1px solid rgba(230, 244, 255, 0.85)", 
-      color: "#3a4a5d",
-      fontSize: isMobile ? "13px" : "14px",
-      textAlign: "left"
-    },
-    trHover: { backgroundColor: LIGHT_BLUE, cursor: "pointer" },
-
-    // form - responsive width (INCREASED SIZE)
-    formCard: { 
-      flex: isMobile ? "0 0 100%" : isTablet ? "0 0 45%" : "0 0 35%",
-      width: isMobile ? "100%" : isTablet ? "45%" : "35%",
-      minWidth: isMobile ? "280px" : "340px",
-      background: BG, 
-      borderRadius: "10px", 
-      padding: isMobile ? "20px" : "28px",
-      border: `1px solid ${BORDER_SOFT}`, 
-      boxShadow: "0 10px 30px rgba(6, 167, 234, 0.08)",
-      boxSizing: "border-box",
-      position: "relative"
-    },
-    headerRow: { 
-      display: "flex", 
-      justifyContent: "space-between", 
-      alignItems: "flex-start",
-      marginBottom: isMobile ? "18px" : "22px",
-      flexWrap: "wrap",
-      gap: "15px"
-    },
-    titleContainer: {
-      flex: 1,
-      minWidth: "200px"
-    },
-    title: { 
-      margin: 0, 
-      color: DARK_BLUE, 
-      fontSize: isMobile ? "20px" : "22px",
-      fontWeight: 700, 
-      borderBottom: `3px solid ${PRIMARY_BLUE}`, 
-      paddingBottom: "10px",
-      display: "inline-block"
-    },
-    topBtnsContainer: {
+      maxWidth: "1250px",
       display: "flex",
-      gap: isMobile ? "6px" : "8px",
-      alignItems: "center",
-      marginTop: isMobile ? "0" : "4px"
+      flexDirection: isMobile ? "column" : "row",
+      gap: isMobile ? "20px" : "15px", // SMALL GAP (15px on desktop, 20px on mobile)
+      alignItems: "stretch",
     },
-    iconBtn: {
+    
+    // Form Row: Both forms side by side in center
+    // LEFT: Existing Users - WITH SHADOW AND BORDER
+    leftFormCard: {
+      flex: isMobile ? "1 1 100%" : "1 1 55%",
+      background: BG,
+      borderRadius: "12px", // FULLY ROUNDED
+      padding: isMobile ? "18px" : "26px",
+      border: `1px solid ${BORDER_SOFT}`,
+      boxShadow: "0 8px 25px rgba(6, 167, 234, 0.12)", // CARD SHADOW
+      boxSizing: "border-box",
+      minWidth: isMobile ? "280px" : "340px",
+    },
+    
+    // RIGHT: User Creation Form - WITH SHADOW AND BORDER
+    rightFormCard: {
+      flex: isMobile ? "1 1 100%" : "1 1 45%",
+      background: BG,
+      borderRadius: "12px", // FULLY ROUNDED
+      padding: isMobile ? "18px" : "26px",
+      border: `1px solid ${BORDER_SOFT}`,
+      boxShadow: "0 8px 25px rgba(6, 167, 234, 0.12)", // CARD SHADOW
+      boxSizing: "border-box",
+      minWidth: isMobile ? "280px" : "340px",
+    },
+
+    // User Creation Form Header - FIXED TO PREVENT WRAPPING
+    formHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: isMobile ? "20px" : "24px",
+      flexWrap: "nowrap", // PREVENT WRAPPING
+      gap: "15px",
+      minWidth: 0, // Allow shrinking
+    },
+    
+    formTitle: {
+      margin: 0,
+      color: DARK_BLUE,           // #307AC8
+      fontSize: isMobile ? "18px" : "20px",
+      fontWeight: 700,
+      borderBottom: `2px solid ${LIGHT_BLUE}`,  // #06A7EA
+      paddingBottom: "8px",
+      whiteSpace: "nowrap",
+      flexShrink: 0,
+    },
+    
+    // Action buttons in form header (Add, Edit, Delete) - NO WRAPPING
+    formActionButtons: {
+      display: "flex",
+      gap: isMobile ? "8px" : "10px",
+      alignItems: "center",
+      flexShrink: 0,
+      flexWrap: "nowrap",
+    },
+    
+    iconButton: {
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: isMobile ? "4px" : "6px",
-      padding: isMobile ? "8px 12px" : "10px 16px",
+      gap: "5px",
+      padding: isMobile ? "8px 12px" : "10px 15px",
       borderRadius: "8px",
       border: `1px solid ${BORDER_MEDIUM}`,
       background: "transparent",
-      color: DARK_BLUE,
+      color: DARK_BLUE,           // #307AC8
       cursor: "pointer",
       fontWeight: 600,
       fontSize: isMobile ? "13px" : "14px",
       transition: "all 0.2s",
       whiteSpace: "nowrap",
-      minWidth: isMobile ? "50px" : "70px"
+      flexShrink: 0,
+      minWidth: isMobile ? "auto" : "75px",
     },
-    iconBtnHover: { 
-      background: LIGHT_BLUE, 
-      borderColor: SECONDARY_BLUE, 
-      color: DARK_BLUE,
+    
+    iconButtonHover: {
+      background: LIGHT_BLUE_BG,
+      borderColor: MEDIUM_BLUE,   // #1B91DA
+      color: DARK_BLUE,           // #307AC8
       transform: "translateY(-1px)",
       boxShadow: "0 4px 12px rgba(6, 167, 234, 0.15)"
     },
 
-    formGroup: { marginBottom: isMobile ? "16px" : "20px" },
-    label: { 
-      display: "block", 
-      marginBottom: "6px",
-      fontWeight: 600, 
-      color: DARK_BLUE, 
-      fontSize: isMobile ? "14px" : "15px",
-      textAlign: "left"
+    // Form fields
+    formGroup: {
+      marginBottom: isMobile ? "16px" : "20px",
+      textAlign: "left",
     },
-    // COMPANY INPUT FIELD WITH BUILT-IN SEARCH ICON
+    
+    label: {
+      display: "block",
+      marginBottom: "6px",
+      fontWeight: 600,
+      color: DARK_BLUE,           // #307AC8
+      fontSize: isMobile ? "14px" : "15px",
+    },
+    
+    inputBox: {
+      width: "100%",
+      padding: isMobile ? "10px 12px" : "12px 14px",
+      borderRadius: "8px",
+      border: `1px solid ${BORDER_SOFT}`,
+      background: INPUT_BG,
+      fontSize: isMobile ? "14px" : "15px",
+      outline: "none",
+      color: "#222",
+      transition: "all 0.2s",
+      boxSizing: "border-box",
+    },
+    
+    inputBoxFocus: {
+      borderColor: MEDIUM_BLUE,   // #1B91DA
+      boxShadow: "0 0 0 3px rgba(6, 167, 234, 0.1)",
+      background: "#fff"
+    },
+    
+    // Company input with search icon
     companyInputBox: {
       width: "100%",
-      padding: isMobile ? "10px 12px 10px 36px" : "12px 14px 12px 40px", // LEFT PADDING FOR SEARCH ICON
-      borderRadius: "6px",
+      padding: isMobile ? "10px 12px 10px 38px" : "12px 14px 12px 42px",
+      borderRadius: "8px",
       border: `1px solid ${BORDER_SOFT}`,
       background: INPUT_BG,
       fontSize: isMobile ? "14px" : "15px",
@@ -726,216 +823,255 @@ export default function UserCreation() {
       boxSizing: "border-box",
       cursor: "pointer"
     },
-    // REGULAR INPUT (for other fields)
-    inputBox: {
+
+    // Form action buttons at bottom
+    formActions: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: isMobile ? "12px" : "18px",
+      marginTop: isMobile ? "24px" : "32px",
+      paddingTop: isMobile ? "18px" : "24px",
+      borderTop: `1px solid ${BORDER_SOFT}`,
+      flexWrap: "wrap"
+    },
+    
+    primaryButton: {
+      background: `linear-gradient(135deg, ${LIGHT_BLUE}, ${MEDIUM_BLUE})`,  // #06A7EA to #1B91DA
+      color: "#fff",
+      border: "none",
+      padding: isMobile ? "12px 24px" : "14px 32px",
+      borderRadius: "8px",
+      fontWeight: 700,
+      cursor: "pointer",
+      fontSize: isMobile ? "15px" : "16px",
+      boxShadow: "0 8px 20px rgba(6, 167, 234, 0.25)",
+      transition: "all 0.2s",
+      whiteSpace: "nowrap"
+    },
+    
+    primaryButtonHover: {
+      transform: "translateY(-2px)",
+      boxShadow: "0 12px 24px rgba(6, 167, 234, 0.35)"
+    },
+    
+    secondaryButton: {
+      background: "transparent",
+      color: DARK_BLUE,           // #307AC8
+      border: `2px solid ${BORDER_MEDIUM}`,
+      padding: isMobile ? "10px 20px" : "12px 28px",
+      borderRadius: "8px",
+      cursor: "pointer",
+      fontWeight: 700,
+      fontSize: isMobile ? "15px" : "16px",
+      transition: "all 0.2s",
+      whiteSpace: "nowrap"
+    },
+    
+    secondaryButtonHover: {
+      background: LIGHT_BLUE_BG,
+      borderColor: MEDIUM_BLUE    // #1B91DA
+    },
+    
+    // Existing Users section
+    existingUsersHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "20px",
+      flexWrap: "wrap",
+      gap: "15px"
+    },
+    
+    existingUsersTitle: {
+      margin: 0,
+      color: DARK_BLUE,           // #307AC8
+      fontSize: isMobile ? "18px" : "20px",
+      fontWeight: 700,
+      borderBottom: `2px solid ${LIGHT_BLUE}`,  // #06A7EA
+      paddingBottom: "8px",
+    },
+    
+    searchInput: {
       width: "100%",
       padding: isMobile ? "10px 12px" : "12px 14px",
-      borderRadius: "6px",
+      borderRadius: "8px",
       border: `1px solid ${BORDER_SOFT}`,
       background: INPUT_BG,
       fontSize: isMobile ? "14px" : "15px",
       outline: "none",
       color: "#222",
       transition: "all 0.2s",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      marginBottom: "20px",
     },
-    inputBoxFocus: { 
-      borderColor: SECONDARY_BLUE, 
-      boxShadow: "0 0 0 3px rgba(6, 167, 234, 0.1)",
-      background: "#fff"
+    
+    // Table styles
+    tableContainer: {
+      maxHeight: isMobile ? "300px" : "380px",
+      overflowY: "auto",
+      overflowX: "auto",
+      WebkitOverflowScrolling: "touch",
+      border: `1px solid ${BORDER_SOFT}`,
+      borderRadius: "8px",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
     },
-
-    smallIconBtn: { 
-      padding: isMobile ? "8px 10px" : "10px 12px",
-      borderRadius: "6px",
-      border: `1px solid ${BORDER_MEDIUM}`, 
-      background: "transparent", 
-      cursor: "pointer", 
-      color: DARK_BLUE,
-      transition: "all 0.2s",
-      flexShrink: 0,
-      fontSize: isMobile ? "13px" : "14px"
+    
+    table: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: isMobile ? "13px" : "14px",
     },
-    smallIconBtnHover: { 
-      background: LIGHT_BLUE, 
-      borderColor: SECONDARY_BLUE,
-      transform: "translateY(-1px)",
-      boxShadow: "0 2px 8px rgba(6, 167, 234, 0.1)"
+    
+    tableHeader: {
+      position: "sticky",
+      top: 0,
+      background: LIGHT_BLUE_BG,
+      zIndex: 10,
     },
-
-    inputGroup: {
-      display: "flex",
-      gap: isMobile ? "8px" : "10px",
-      alignItems: "center"
-    },
-
-    bottomRight: { 
-      display: "flex", 
-      justifyContent: isMobile ? "center" : "flex-end", 
-      gap: isMobile ? "12px" : "18px",
-      marginTop: isMobile ? "25px" : "35px",
-      paddingTop: isMobile ? "18px" : "24px",
-      borderTop: `1px solid ${BORDER_SOFT}`,
-      flexWrap: "wrap"
-    },
-    createBtn: { 
-      background: `linear-gradient(135deg, ${PRIMARY_BLUE}, ${SECONDARY_BLUE})`, 
-      color: "#fff", 
-      border: "none", 
-      padding: isMobile ? "12px 24px" : "15px 35px",
-      borderRadius: "8px", 
-      fontWeight: 700, 
-      cursor: "pointer", 
-      fontSize: isMobile ? "15px" : "17px",
-      boxShadow: "0 8px 20px rgba(6, 167, 234, 0.25)",
-      transition: "all 0.2s",
-      whiteSpace: "nowrap"
-    },
-    createBtnHover: { transform: "translateY(-2px)", boxShadow: "0 12px 24px rgba(6, 167, 234, 0.35)" },
-    updateBtn: { 
-      background: `linear-gradient(135deg, ${SECONDARY_BLUE}, ${DARK_BLUE})`, 
-      color: "#fff", 
-      border: "none", 
-      padding: isMobile ? "12px 24px" : "15px 35px",
-      borderRadius: "8px", 
-      fontWeight: 700, 
-      cursor: "pointer",
-      fontSize: isMobile ? "15px" : "17px",
-      boxShadow: "0 8px 20px rgba(6, 167, 234, 0.25)",
-      transition: "all 0.2s",
-      whiteSpace: "nowrap"
-    },
-    updateBtnHover: { transform: "translateY(-2px)", boxShadow: "0 12px 24px rgba(6, 167, 234, 0.35)" },
-    deleteBtn: { 
-      background: `linear-gradient(135deg, #d9534f, #c9302c)`, 
-      color: "#fff", 
-      border: "none", 
-      padding: isMobile ? "12px 24px" : "15px 35px",
-      borderRadius: "8px", 
-      fontWeight: 700, 
-      cursor: "pointer",
-      fontSize: isMobile ? "15px" : "17px",
-      boxShadow: "0 8px 20px rgba(217, 83, 79, 0.25)",
-      transition: "all 0.2s",
-      whiteSpace: "nowrap"
-    },
-    deleteBtnHover: { transform: "translateY(-2px)", boxShadow: "0 12px 24px rgba(217, 83, 79, 0.35)" },
-    clearBtn: { 
-      background: "transparent", 
-      color: DARK_BLUE, 
-      border: `2px solid ${BORDER_MEDIUM}`, 
-      padding: isMobile ? "10px 20px" : "13px 28px",
-      borderRadius: "8px", 
-      cursor: "pointer", 
+    
+    tableHeaderCell: {
+      textAlign: "left",
+      padding: isMobile ? "12px 10px" : "14px 12px",
+      color: DARK_BLUE,           // #307AC8
       fontWeight: 700,
-      fontSize: isMobile ? "15px" : "17px",
-      transition: "all 0.2s",
-      whiteSpace: "nowrap"
+      fontSize: isMobile ? "13px" : "14px",
+      borderBottom: `2px solid ${LIGHT_BLUE}`,  // #06A7EA
     },
-    clearBtnHover: { background: LIGHT_BLUE, borderColor: SECONDARY_BLUE },
+    
+    tableCell: {
+      padding: isMobile ? "12px 10px" : "14px 12px",
+      borderBottom: "1px solid rgba(230, 244, 255, 0.85)",
+      color: "#3a4a5d",
+      fontSize: isMobile ? "13px" : "14px",
+      textAlign: "left",
+    },
+    
+    tableRowHover: {
+      backgroundColor: LIGHT_BLUE_BG,
+      cursor: "pointer",
+    },
 
-    // modal
-    modalOverlay: { 
-      position: "fixed", 
-      inset: 0, 
-      background: "rgba(0,0,0,0.28)", 
-      display: "flex", 
-      justifyContent: "center", 
-      alignItems: "center", 
-      zIndex: 9999, 
+    // Modal styles (kept for compatibility, but we'll use PopupListSelector)
+    modalOverlay: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.28)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 9999,
       padding: isMobile ? "10px" : "20px",
       boxSizing: "border-box"
     },
-    modalBox: { 
-      width: "96%", 
-      maxWidth: "900px", 
-      background: BG, 
-      borderRadius: "8px", 
-      padding: isMobile ? "16px" : "25px", 
-      border: `1px solid ${BORDER_SOFT}`, 
-      boxShadow: "0 14px 46px rgba(6, 167, 234, 0.12)", 
-      maxHeight: isMobile ? "90vh" : "82vh", 
+    
+    modalBox: {
+      width: "96%",
+      maxWidth: "900px",
+      background: BG,
+      borderRadius: "12px",
+      padding: isMobile ? "18px" : "28px",
+      border: `1px solid ${BORDER_SOFT}`,
+      boxShadow: "0 15px 50px rgba(6, 167, 234, 0.15)", // STRONGER SHADOW FOR MODAL
+      maxHeight: isMobile ? "90vh" : "82vh",
       overflowY: "auto",
       boxSizing: "border-box"
     },
-    modalHeader: { 
-      display: "flex", 
-      justifyContent: "space-between", 
-      alignItems: "center", 
-      marginBottom: isMobile ? "16px" : "20px", 
-      borderBottom: `2px solid ${PRIMARY_BLUE}`, 
-      paddingBottom: isMobile ? "12px" : "15px",
+    
+    modalHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: isMobile ? "18px" : "22px",
+      borderBottom: `2px solid ${LIGHT_BLUE}`,  // #06A7EA
+      paddingBottom: isMobile ? "12px" : "16px",
       flexWrap: "wrap"
-      
     },
-    closeX: { 
-      fontSize: isMobile ? "20px" : "22px", 
-      color: DARK_BLUE, 
-      cursor: "pointer", 
-      padding: isMobile ? "4px" : "6px", 
-      borderRadius: "6px", 
-      fontWeight: 700, 
-      transition: "all 0.2s" 
-    },
-    closeXHover: { background: LIGHT_BLUE, color: PRIMARY_BLUE },
-    modalSearch: { 
-      width: "100%", 
-      padding: isMobile ? "10px 12px" : "12px 14px", // NO left padding for search icon
+    
+    closeButton: {
+      fontSize: isMobile ? "20px" : "22px",
+      color: DARK_BLUE,           // #307AC8
+      cursor: "pointer",
+      padding: isMobile ? "4px" : "6px",
       borderRadius: "6px",
-      marginBottom: isMobile ? "16px" : "20px", 
-      border: `1px solid ${BORDER_SOFT}`, 
+      fontWeight: 700,
+      transition: "all 0.2s"
+    },
+    
+    closeButtonHover: {
+      background: LIGHT_BLUE_BG,
+      color: LIGHT_BLUE           // #06A7EA
+    },
+    
+    modalSearch: {
+      width: "100%",
+      padding: isMobile ? "10px 12px" : "12px 14px",
+      borderRadius: "8px",
+      marginBottom: isMobile ? "18px" : "22px",
+      border: `1px solid ${BORDER_SOFT}`,
       fontSize: isMobile ? "13px" : "14px",
       outline: "none",
       background: INPUT_BG,
       transition: "all 0.2s",
       boxSizing: "border-box"
     },
-    modalSearchFocus: { borderColor: SECONDARY_BLUE, boxShadow: "0 0 0 2px rgba(6, 167, 234, 0.1)" },
-    modalTable: { width: "100%", borderCollapse: "collapse" },
-    modalTh: { 
-      padding: isMobile ? "10px 8px" : "14px 12px", 
-      background: "transparent", 
-      color: DARK_BLUE, 
-      fontWeight: 700, 
-      textAlign: "left", 
-      fontSize: isMobile ? "13px" : "15px", 
-      borderBottom: `2px solid ${PRIMARY_BLUE}` 
+    
+    modalSearchFocus: {
+      borderColor: MEDIUM_BLUE,   // #1B91DA
+      boxShadow: "0 0 0 2px rgba(6, 167, 234, 0.1)"
     },
-    modalTd: { 
-      padding: isMobile ? "10px 8px" : "14px 12px", 
-      borderBottom: "1px solid rgba(230, 244, 255, 0.9)", 
-      fontSize: isMobile ? "13px" : "15px", 
+    
+    modalTable: {
+      width: "100%",
+      borderCollapse: "collapse"
+    },
+    
+    modalHeaderCell: {
+      padding: isMobile ? "12px 10px" : "14px 12px",
+      background: "transparent",
+      color: DARK_BLUE,           // #307AC8
+      fontWeight: 700,
+      textAlign: "left",
+      fontSize: isMobile ? "13px" : "15px",
+      borderBottom: `2px solid ${LIGHT_BLUE}`  // #06A7EA
+    },
+    
+    modalTableCell: {
+      padding: isMobile ? "12px 10px" : "14px 12px",
+      borderBottom: "1px solid rgba(230, 244, 255, 0.9)",
+      fontSize: isMobile ? "13px" : "15px",
       color: "#3a4a5d",
       textAlign: "left"
     },
-    modalTrHover: { background: LIGHT_BLUE, cursor: "pointer" },
-
-    loading: { 
-      textAlign: "center", 
-      padding: isMobile ? "30px" : "40px", 
-      color: PRIMARY_BLUE, 
-      fontSize: isMobile ? "14px" : "16px" 
+    
+    modalRowHover: {
+      background: LIGHT_BLUE_BG,
+      cursor: "pointer"
     },
-    error: { 
-      background: "#ffe6e6", 
-      color: "#d9534f", 
-      padding: isMobile ? "12px" : "15px", 
-      borderRadius: "6px", 
-      marginBottom: isMobile ? "16px" : "20px", 
-      textAlign: "center", 
+
+    // Error and loading
+    errorMessage: {
+      background: "#ffe6e6",
+      color: "#d9534f",
+      padding: isMobile ? "12px" : "15px",
+      borderRadius: "8px",
+      marginBottom: isMobile ? "16px" : "20px",
+      textAlign: "center",
       borderLeft: `4px solid #d9534f`,
       fontSize: isMobile ? "13px" : "15px"
     },
-    asterisk: { color: "#d9534f", fontWeight: 700 },
     
-    // Responsive container
-    tableContainer: {
-      maxHeight: isMobile ? "calc(80vh - 150px)" : "calc(100vh - 200px)",
-      overflowY: "auto",
-      overflowX: "auto",
-      WebkitOverflowScrolling: "touch"
+    loadingMessage: {
+      textAlign: "center",
+      padding: isMobile ? "30px" : "40px",
+      color: LIGHT_BLUE,          // #06A7EA
+      fontSize: isMobile ? "14px" : "16px"
     },
-
+    
+    asterisk: {
+      color: "#d9534f",
+      fontWeight: 700
+    },
+    
     // Delete warning modal
     warningModal: {
       position: "fixed",
@@ -948,18 +1084,20 @@ export default function UserCreation() {
       padding: isMobile ? "10px" : "20px",
       boxSizing: "border-box"
     },
+    
     warningBox: {
       width: "96%",
       maxWidth: "600px",
       background: "#fff8e1",
-      borderRadius: "10px",
+      borderRadius: "12px",
       padding: isMobile ? "20px" : "30px",
       border: `2px solid #ff9800`,
-      boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+      boxShadow: "0 15px 50px rgba(0,0,0,0.2)",
       maxHeight: "80vh",
       overflowY: "auto",
       boxSizing: "border-box"
     },
+    
     warningHeader: {
       display: "flex",
       justifyContent: "space-between",
@@ -968,12 +1106,14 @@ export default function UserCreation() {
       borderBottom: `2px solid #ff9800`,
       paddingBottom: "15px"
     },
+    
     warningTitle: {
       color: "#d9534f",
       fontSize: isMobile ? "18px" : "20px",
       fontWeight: 700,
       margin: 0
     },
+    
     warningContent: {
       color: "#333",
       fontSize: isMobile ? "14px" : "15px",
@@ -985,76 +1125,109 @@ export default function UserCreation() {
       borderRadius: "8px",
       border: "1px solid #ffe082"
     },
+    
     warningActions: {
       display: "flex",
       justifyContent: "flex-end",
       gap: "15px"
     },
-    warningBtn: {
+    
+    warningButton: {
       padding: isMobile ? "10px 20px" : "12px 25px",
-      borderRadius: "6px",
+      borderRadius: "8px",
       border: "none",
       cursor: "pointer",
       fontWeight: 600,
       fontSize: isMobile ? "14px" : "15px",
       transition: "all 0.2s"
     },
-    warningCloseBtn: {
-      background: "#06A7EA",
+    
+    warningCloseButton: {
+      background: LIGHT_BLUE,     // #06A7EA
       color: "#fff"
     },
-    warningCloseBtnHover: {
-      background: "#1B91DA",
+    
+    warningCloseButtonHover: {
+      background: MEDIUM_BLUE,    // #1B91DA
       transform: "translateY(-2px)",
       boxShadow: "0 4px 8px rgba(6, 167, 234, 0.3)"
     }
   };
 
+  // Helper function to get the correct button style based on mode
+  const getPrimaryButtonStyle = () => {
+    if (mode === "create") return styles.primaryButton;
+    if (mode === "edit") return {
+      ...styles.primaryButton,
+      background: `linear-gradient(135deg, ${MEDIUM_BLUE}, ${DARK_BLUE})`  // #1B91DA to #307AC8
+    };
+    if (mode === "delete") return {
+      ...styles.primaryButton,
+      background: `linear-gradient(135deg, #d9534f, #c9302c)`,
+      boxShadow: "0 8px 20px rgba(217, 83, 79, 0.25)"
+    };
+    return styles.primaryButton;
+  };
+
+  const getPrimaryButtonText = () => {
+    if (loading) {
+      if (mode === "create") return "Creating...";
+      if (mode === "edit") return "Updating...";
+      if (mode === "delete") return "Deleting...";
+      return "Processing...";
+    }
+    if (mode === "create") return "Create";
+    if (mode === "edit") return "Update";
+    if (mode === "delete") return "Delete";
+    return "Submit";
+  };
+
   // ---------- render ----------
   return (
     <div style={styles.page}>
-      <div style={styles.layout}>
-        {/* LEFT: Existing Users - responsive width */}
-        <aside style={styles.side}>
-          <h4 style={styles.sideTitle}>Existing Users</h4>
+      <div style={styles.mainContainer}>
+        {/* LEFT: Existing Users */}
+        <div style={styles.leftFormCard}>
+          <div style={styles.existingUsersHeader}>
+            <h3 style={styles.existingUsersTitle}>Existing Users</h3>
+          </div>
 
           <input
-            style={styles.sideSearch}
+            style={styles.searchInput}
             placeholder="Search (code, username, company)..."
             value={existingQuery}
             onChange={(e) => setExistingQuery(e.target.value)}
-            onFocus={(e) => Object.assign(e.target.style, styles.sideSearchFocus)}
-            onBlur={(e) => Object.assign(e.target.style, { ...styles.sideSearch, borderColor: BORDER_SOFT, boxShadow: "none" })}
+            onFocus={(e) => Object.assign(e.target.style, { ...styles.searchInput, borderColor: MEDIUM_BLUE, boxShadow: "0 0 0 2px rgba(6, 167, 234, 0.1)" })}
+            onBlur={(e) => Object.assign(e.target.style, { ...styles.searchInput, borderColor: BORDER_SOFT, boxShadow: "none" })}
           />
 
           <div style={styles.tableContainer}>
             {loading ? (
-              <div style={styles.loading}>Loading users...</div>
+              <div style={styles.loadingMessage}>Loading users...</div>
             ) : (
               <table style={styles.table}>
-                <thead>
+                <thead style={styles.tableHeader}>
                   <tr>
-                    <th style={styles.th}>Code</th>
-                    <th style={styles.th}>Username</th>
-                    <th style={styles.th}>Company</th>
+                    <th style={styles.tableHeaderCell}>Code</th>
+                    <th style={styles.tableHeaderCell}>Username</th>
+                    <th style={styles.tableHeaderCell}>Company</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredExisting.map((u) => (
                     <tr 
                       key={u.code} 
-                      style={{ ':hover': styles.trHover }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = LIGHT_BLUE}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = LIGHT_BLUE_BG}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ""}
                     >
-                      <td style={styles.td}>{u.code}</td>
-                      <td style={styles.td}>{u.userName}</td>
-                      <td style={styles.td}>{u.compaytName}</td>
+                      <td style={styles.tableCell}>{u.code}</td>
+                      <td style={styles.tableCell}>{u.userName}</td>
+                      <td style={styles.tableCell}>{u.compaytName}</td>
                     </tr>
                   ))}
                   {filteredExisting.length === 0 && (
                     <tr>
-                      <td style={styles.td} colSpan={3}>
+                      <td style={styles.tableCell} colSpan={3}>
                         {users.length === 0 ? "No users found" : "No matching users"}
                       </td>
                     </tr>
@@ -1063,51 +1236,45 @@ export default function UserCreation() {
               </table>
             )}
           </div>
-        </aside>
+        </div>
 
-        {/* RIGHT: User Creation Form - responsive width (INCREASED SIZE) */}
-        <section style={styles.formCard}>
-          {error && <div style={styles.error}>Error: {error}</div>}
+        {/* RIGHT: User Creation Form */}
+        <div style={styles.rightFormCard}>
+          {error && <div style={styles.errorMessage}>Error: {error}</div>}
           
-          <div style={styles.headerRow}>
-            <div style={styles.titleContainer}>
-              <h3 style={styles.title}>User Creation</h3>
-            </div>
-            
-            {/* Add/Edit/Delete buttons positioned to the right of the title */}
-            <div style={styles.topBtnsContainer}>
+          <div style={styles.formHeader}>
+            <h3 style={styles.formTitle}>User Creation</h3>
+            <div style={styles.formActionButtons}>
               <button
-                style={styles.iconBtn}
+                style={styles.iconButton}
                 title="Add User"
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.iconBtnHover)}
-                onMouseLeave={(e) => Object.assign(e.target.style, styles.iconBtn)}
-                onClick={() => {
-                  alert("Add clicked (no action).");
-                }}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.iconButtonHover)}
+                onMouseLeave={(e) => Object.assign(e.target.style, styles.iconButton)}
+                onClick={openEditModal}  // Opens edit modal for selection
               >
-                <i className="bi bi-person-plus" style={{ fontSize: isMobile ? "14px" : "16px" }}></i>
+                <i className="bi bi-person-plus" style={{ fontSize: isMobile ? "14px" : "15px" }}></i>
                 {!isMobile && "Add"}
               </button>
 
               <button 
-                style={styles.iconBtn} 
+                style={styles.iconButton} 
                 title="Edit User" 
                 onClick={openEditModal}
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.iconBtnHover)}
-                onMouseLeave={(e) => Object.assign(e.target.style, styles.iconBtn)}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.iconButtonHover)}
+                onMouseLeave={(e) => Object.assign(e.target.style, styles.iconButton)}
               >
-                <i className="bi bi-pencil-square" style={{ fontSize: isMobile ? "14px" : "16px" }}></i>
+                <i className="bi bi-pencil-square" style={{ fontSize: isMobile ? "14px" : "15px" }}></i>
                 {!isMobile && "Edit"}
               </button>
 
               <button 
-                style={styles.iconBtn} 
+                style={styles.iconButton} 
                 title="Delete User" 
                 onClick={openDeleteModal}
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.iconBtnHover)}
-                onMouseLeave={(e) => Object.assign(e.target.style, styles.iconBtn)}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.iconButtonHover)}
+                onMouseLeave={(e) => Object.assign(e.target.style, styles.iconButton)}
               >
-                <i className="bi bi-trash" style={{ fontSize: isMobile ? "14px" : "16px" }}></i>
+                <i className="bi bi-trash" style={{ fontSize: isMobile ? "14px" : "15px" }}></i>
                 {!isMobile && "Delete"}
               </button>
             </div>
@@ -1118,16 +1285,15 @@ export default function UserCreation() {
               <label style={styles.label}>
                 Company <span style={styles.asterisk}>*</span>
               </label>
-              {/* COMPANY INPUT FIELD WITH BUILT-IN SEARCH ICON - CLICK OPENS MODAL */}
               <div style={{ position: "relative", width: "100%" }}>
                 <i className="bi bi-search" style={{ 
                   position: "absolute", 
-                  left: isMobile ? "10px" : "12px", 
+                  left: isMobile ? "12px" : "14px", 
                   top: "50%", 
                   transform: "translateY(-50%)", 
                   color: DARK_BLUE, 
                   opacity: 0.6, 
-                  fontSize: isMobile ? "14px" : "16px", 
+                  fontSize: isMobile ? "14px" : "15px", 
                   zIndex: 1,
                   pointerEvents: "none"
                 }}></i>
@@ -1138,15 +1304,10 @@ export default function UserCreation() {
                   onChange={(e) => setForm((s) => ({ ...s, company: e.target.value }))}
                   placeholder="Click to search company"
                   onKeyDown={onCompanyKeyDown}
-                  onClick={() => {
-                    // When user clicks the input, open the company modal
-                    openCompanyModal();
-                  }}
-                  onFocus={(e) => {
-                    Object.assign(e.target.style, styles.inputBoxFocus);
-                  }}
+                  onClick={openCompanyModal}
+                  onFocus={(e) => Object.assign(e.target.style, styles.inputBoxFocus)}
                   onBlur={(e) => Object.assign(e.target.style, { ...styles.companyInputBox, borderColor: BORDER_SOFT, boxShadow: "none" })}
-                  readOnly // Makes it read-only so user must use search
+                  readOnly
                 />
               </div>
             </div>
@@ -1198,294 +1359,62 @@ export default function UserCreation() {
               />
             </div>
 
-            <div style={styles.bottomRight}>
+            <div style={styles.formActions}>
               <button 
                 type="button" 
-                style={styles.clearBtn} 
+                style={styles.secondaryButton} 
                 onClick={handleClear}
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.clearBtnHover)}
-                onMouseLeave={(e) => Object.assign(e.target.style, styles.clearBtn)}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.secondaryButtonHover)}
+                onMouseLeave={(e) => Object.assign(e.target.style, styles.secondaryButton)}
               >
                 Clear
               </button>
 
-              {mode === "create" && (
-                <button 
-                  type="button" 
-                  style={styles.createBtn} 
-                  onClick={handlePrimaryAction} 
-                  disabled={loading}
-                  onMouseEnter={(e) => !loading && Object.assign(e.target.style, styles.createBtnHover)}
-                  onMouseLeave={(e) => !loading && Object.assign(e.target.style, styles.createBtn)}
-                >
-                  {loading ? "Creating..." : "Create"}
-                </button>
-              )}
-              {mode === "edit" && (
-                <button 
-                  type="button" 
-                  style={styles.updateBtn} 
-                  onClick={handlePrimaryAction} 
-                  disabled={loading}
-                  onMouseEnter={(e) => !loading && Object.assign(e.target.style, styles.updateBtnHover)}
-                  onMouseLeave={(e) => !loading && Object.assign(e.target.style, styles.updateBtn)}
-                >
-                  {loading ? "Updating..." : "Update"}
-                </button>
-              )}
-              {mode === "delete" && (
-                <button 
-                  type="button" 
-                  style={styles.deleteBtn} 
-                  onClick={handlePrimaryAction} 
-                  disabled={loading}
-                  onMouseEnter={(e) => !loading && Object.assign(e.target.style, styles.deleteBtnHover)}
-                  onMouseLeave={(e) => !loading && Object.assign(e.target.style, styles.deleteBtn)}
-                >
-                  {loading ? "Deleting..." : "Delete"}
-                </button>
-              )}
+              <button 
+                type="button" 
+                style={getPrimaryButtonStyle()} 
+                onClick={handlePrimaryAction} 
+                disabled={loading}
+                onMouseEnter={(e) => !loading && Object.assign(e.target.style, styles.primaryButtonHover)}
+                onMouseLeave={(e) => !loading && Object.assign(e.target.style, getPrimaryButtonStyle())}
+              >
+                {getPrimaryButtonText()}
+              </button>
             </div>
           </form>
-        </section>
+        </div>
       </div>
 
-      {/* COMPANY MODAL - OPENS WHEN COMPANY INPUT IS CLICKED */}
-      {companyModalOpen && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalBox}>
-            <div style={styles.modalHeader}>
-              <strong style={{ color: DARK_BLUE, fontSize: isMobile ? "16px" : "18px" }}>Select Company</strong>
-              <span 
-                style={styles.closeX} 
-                onClick={() => setCompanyModalOpen(false)}
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.closeXHover)}
-                onMouseLeave={(e) => Object.assign(e.target.style, styles.closeX)}
-              >
-                ✖
-              </span>
-            </div>
+      {/* PopupListSelector for all modal needs */}
+      <PopupListSelector
+        open={popupOpen}
+        onClose={() => {
+          setPopupOpen(false);
+          setPopupType("");
+          setPopupData([]);
+        }}
+        onSelect={handlePopupSelect}
+        fetchItems={fetchItemsForPopup}
+        title={popupTitle}
+        displayFieldKeys={getPopupConfig().displayFieldKeys}
+        searchFields={getPopupConfig().searchFields}
+        headerNames={getPopupConfig().headerNames}
+        columnWidths={getPopupConfig().columnWidths}
+        searchPlaceholder={getPopupConfig().searchPlaceholder}
+        maxHeight="70vh"
+      />
 
-            {/* SEARCH INPUT WITHOUT ICON IN COMPANY MODAL */}
-            <input 
-              style={styles.modalSearch} 
-              placeholder="Search companies..." 
-              value={companyQuery} 
-              onChange={(e) => setCompanyQuery(e.target.value)} 
-              onKeyDown={stopEnterPropagation}
-              onFocus={(e) => Object.assign(e.target.style, styles.modalSearchFocus)}
-              onBlur={(e) => Object.assign(e.target.style, { ...styles.modalSearch, borderColor: BORDER_SOFT, boxShadow: "none" })}
-            />
-
-            {loading ? (
-              <div style={styles.loading}>Loading companies...</div>
-            ) : (
-              <div style={styles.tableContainer}>
-                <table style={styles.modalTable}>
-                  <thead>
-                    <tr>
-                      <th style={styles.modalTh}>Code</th>
-                      <th style={styles.modalTh}>Company Name</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCompanies.map((c) => (
-                      <tr 
-                        key={c.code} 
-                        style={{ cursor: "pointer" }} 
-                        onClick={() => selectCompany(c)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = LIGHT_BLUE}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ""}
-                      >
-                        <td style={styles.modalTd}>{c.code}</td>
-                        <td style={styles.modalTd}>{c.compaytName}</td>
-                      </tr>
-                    ))}
-                    {filteredCompanies.length === 0 && (
-                      <tr>
-                        <td style={styles.modalTd} colSpan={2}>
-                          {companies.length === 0 ? "No companies found" : "No matching companies"}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* EDIT MODAL - OPENS WHEN EDIT BUTTON IS CLICKED */}
-      {editModalOpen && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalBox}>
-            <div style={styles.modalHeader}>
-              <strong style={{ color: DARK_BLUE, fontSize: isMobile ? "16px" : "18px" }}>Users (click to edit)</strong>
-              <span 
-                style={styles.closeX} 
-                onClick={() => setEditModalOpen(false)}
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.closeXHover)}
-                onMouseLeave={(e) => Object.assign(e.target.style, styles.closeX)}
-              >
-                ✖
-              </span>
-            </div>
-
-            {/* NO SEARCH ICON IN EDIT MODAL */}
-            <input 
-              style={styles.modalSearch} 
-              placeholder="Search users..." 
-              value={editQuery} 
-              onChange={(e) => setEditQuery(e.target.value)} 
-              onKeyDown={stopEnterPropagation}
-              onFocus={(e) => Object.assign(e.target.style, styles.modalSearchFocus)}
-              onBlur={(e) => Object.assign(e.target.style, { ...styles.modalSearch, borderColor: BORDER_SOFT, boxShadow: "none" })}
-            />
-
-            {loading ? (
-              <div style={styles.loading}>Loading users...</div>
-            ) : (
-              <div style={styles.tableContainer}>
-                <table style={styles.modalTable}>
-                  <thead>
-                    <tr>
-                      <th style={styles.modalTh}>#</th>
-                      <th style={styles.modalTh}>User Code</th>
-                      <th style={styles.modalTh}>Company</th>
-                      <th style={styles.modalTh}>Username</th>
-                      <th style={styles.modalTh}>Password</th>
-                      <th style={styles.modalTh}>Prefix</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredEditUsers.map((u, idx) => (
-                      <tr 
-                        key={u.code} 
-                        style={{ cursor: "pointer" }} 
-                        onClick={() => handleEditRowClick(u)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = LIGHT_BLUE}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ""}
-                      >
-                        <td style={styles.modalTd}>{idx + 1}</td>
-                        <td style={styles.modalTd}>{u.code}</td>
-                        <td style={styles.modalTd}>{u.compaytName}</td>
-                        <td style={styles.modalTd}>{u.userName}</td>
-                        <td style={styles.modalTd}>{u.password ? "••••••" : "-"}</td>
-                        <td style={styles.modalTd}>{u.fPrefix || "-"}</td>
-                      </tr>   
-                    ))}
-                    {filteredEditUsers.length === 0 && (
-                      <tr>
-                        <td style={styles.modalTd} colSpan={6}>
-                          {users.length === 0 ? "No users found" : "No matching users"}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* DELETE MODAL - OPENS WHEN DELETE BUTTON IS CLICKED */}
-      {deleteModalOpen && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalBox}>
-            <div style={{ 
-              display: "flex", 
-              justifyContent: "flex-start", 
-              alignItems: "center", 
-              marginBottom: isMobile ? "16px" : "20px", 
-              borderBottom: `2px solid ${PRIMARY_BLUE}`, 
-              paddingBottom: isMobile ? "12px" : "15px",
-              flexWrap: "wrap"
-            }}>
-              <strong style={{ color: DARK_BLUE, fontSize: isMobile ? "16px" : "18px" }}>Delete Users (click a row to load into form)</strong>
-              <span 
-                style={{ 
-                  ...styles.closeX, 
-                  marginLeft: 'auto'
-                }} 
-                onClick={() => setDeleteModalOpen(false)}
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.closeXHover)}
-                onMouseLeave={(e) => Object.assign(e.target.style, styles.closeX)}
-              >
-                ✖
-              </span>
-            </div>
-
-            {/* NO SEARCH ICON IN DELETE MODAL */}
-            <input 
-              style={styles.modalSearch} 
-              placeholder="Search users..." 
-              value={deleteQuery} 
-              onChange={(e) => setDeleteQuery(e.target.value)} 
-              onKeyDown={stopEnterPropagation}
-              onFocus={(e) => Object.assign(e.target.style, styles.modalSearchFocus)}
-              onBlur={(e) => Object.assign(e.target.style, { ...styles.modalSearch, borderColor: BORDER_SOFT, boxShadow: "none" })}
-            />
-
-            {loading ? (
-              <div style={styles.loading}>Loading users...</div>
-            ) : (
-              <div style={styles.tableContainer}>
-                <table style={styles.modalTable}>
-                  <thead>
-                    <tr>
-                      <th style={styles.modalTh}>#</th>
-                      <th style={styles.modalTh}>User Code</th>
-                      <th style={styles.modalTh}>Company</th>
-                      <th style={styles.modalTh}>Username</th>
-                      <th style={styles.modalTh}>Password</th>
-                      <th style={styles.modalTh}>Prefix</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredDeleteUsers.map((u, idx) => (
-                      <tr 
-                        key={u.code} 
-                        style={{ cursor: "pointer" }} 
-                        onClick={() => handleDeleteRowClick(u)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = LIGHT_BLUE}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ""}
-                      >
-                        <td style={styles.modalTd}>{idx + 1}</td>
-                        <td style={styles.modalTd}>{u.code}</td>
-                        <td style={styles.modalTd}>{u.compaytName}</td>
-                        <td style={styles.modalTd}>{u.userName}</td>
-                        <td style={styles.modalTd}>{u.password ? "••••••" : "-"}</td>
-                        <td style={styles.modalTd}>{u.fPrefix || "-"}</td>
-                      </tr>
-                    ))}
-                    {filteredDeleteUsers.length === 0 && (
-                      <tr>
-                        <td style={styles.modalTd} colSpan={6}>
-                          {users.length === 0 ? "No users found" : "No matching users"}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* DELETE WARNING MODAL - SHOWS WHEN USER CANNOT BE DELETED */}
+      {/* DELETE WARNING MODAL */}
       {showDeleteWarning && (
         <div style={styles.warningModal}>
           <div style={styles.warningBox}>
             <div style={styles.warningHeader}>
               <h3 style={styles.warningTitle}>⚠️ Delete Operation Failed</h3>
               <span 
-                style={styles.closeX} 
+                style={styles.closeButton} 
                 onClick={closeDeleteWarning}
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.closeXHover)}
-                onMouseLeave={(e) => Object.assign(e.target.style, styles.closeX)}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.closeButtonHover)}
+                onMouseLeave={(e) => Object.assign(e.target.style, styles.closeButton)}
               >
                 ✖
               </span>
@@ -1495,10 +1424,10 @@ export default function UserCreation() {
             </div>
             <div style={styles.warningActions}>
               <button 
-                style={{ ...styles.warningBtn, ...styles.warningCloseBtn }}
+                style={{ ...styles.warningButton, ...styles.warningCloseButton }}
                 onClick={closeDeleteWarning}
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.warningCloseBtnHover)}
-                onMouseLeave={(e) => Object.assign(e.target.style, styles.warningCloseBtn)}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.warningCloseButtonHover)}
+                onMouseLeave={(e) => Object.assign(e.target.style, styles.warningCloseButton)}
               >
                 OK, I Understand
               </button>

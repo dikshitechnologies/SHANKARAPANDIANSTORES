@@ -1,1327 +1,865 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from 'react';
 import { 
-  FaPlus, FaEdit, FaTrash, FaPrint, FaBarcode, 
-  FaSave, FaTimes, FaShoppingCart, FaBoxOpen, 
-  FaSearch, FaFileInvoiceDollar, FaUser, 
-  FaCalendarAlt, FaMobileAlt, FaStore, FaRupeeSign,
-  FaShoppingBag
-} from "react-icons/fa";
+  Add as AddIcon, 
+  Edit as EditIcon, 
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Clear as ClearIcon,
+  Search as SearchIcon 
+} from '@mui/icons-material';
 
 /**
- * SalesReturn component matching the image design
+ * Sales Return Form Component
  */
-export default function SalesReturn() {
-  // ---------- Mock product database ----------
-  const productDB = {
-    "123456": {
-      itemName: "Fauget Cafe Coffee Shop",
-      stock: 500,
-      mrp: 500,
-      uom: "pcs",
-      hsn: "ASW090",
-      tax: 21,
-      srate: 2000000,
-    },
-    "111222": {
-      itemName: "Coffee Beans 1kg",
-      stock: 120,
-      mrp: 1200,
-      uom: "kg",
-      hsn: "CB1001",
-      tax: 12,
-      srate: 1100,
-    },
-    "999888": {
-      itemName: "Chocolate Bar",
-      stock: 1000,
-      mrp: 50,
-      uom: "pcs",
-      hsn: "CHOC01",
-      tax: 18,
-      srate: 45,
-    },
-    "AADDFF": {
-      itemName: "Fauget Cafe Coffee Shop",
-      stock: 500,
-      mrp: 500,
-      uom: "pcs",
-      hsn: "ASW090",
-      tax: 21,
-      srate: 2000000,
-    },
-  };
-
-  // ---------- State ----------
-  const [form, setForm] = useState({
-    billNo: "",
-    mobile: "",
-    mode: "Retail",
-    barcode: "",
-    billDate: "",
-    customer: "",
-    salesman: "",
+const Salesreturn = () => {
+  // Initial state for form fields - UPDATED: All fields blank except billNo and billDate
+  const [formData, setFormData] = useState({
+    salesman: '',
+    empName: '',
+    billNo: 'SE00001AA',
+    billDate: new Date().toISOString().substring(0, 10),
+    mobileNo: '',
+    custName: '',
+    returnReason: '',
+    barcodeInput: '', 
+    qty: '', // Changed from '0' to empty
+    items: ''
   });
 
-  const [rows, setRows] = useState([
+  // State for items table - UPDATED: Remove default values
+  const [items, setItems] = useState([
     {
       id: 1,
-      barcode: "",
-      itemName: "",
-      stock: 0,
-      mrp: 0,
-      uom: "",
-      hsn: "",
-      tax: 0,
-      srate: 0,
-      qty: 0,
-      amount: 0,
+      sNo: 1,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      qty: '',
+      amount: ''
+    },
+    {
+      id: 2,
+      sNo: 2,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      qty: '',
+      amount: ''
     }
   ]);
-  const [nextId, setNextId] = useState(2);
-  const [selectedRowId, setSelectedRowId] = useState(1);
-  const [toast, setToast] = useState(null);
-  const [editingCell, setEditingCell] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [focusedInput, setFocusedInput] = useState("billNo");
-  const [currentField, setCurrentField] = useState("billNo");
-  
-  const billNoRef = useRef(null);
-  const billDateRef = useRef(null);
-  const mobileRef = useRef(null);
-  const customerRef = useRef(null);
-  const modeRef = useRef(null);
-  const salesmanRef = useRef(null);
-  const barcodeRef = useRef(null);
 
-  // ---------- Helpers ----------
-  const showToast = (msg, ms = 1600) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), ms);
+  // Calculate totals
+  const totalQty = items.reduce((sum, item) => sum + parseFloat(item.qty || 0), 0);
+  const totalAmount = items.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+  // Handle form field changes
+  const handleFormChange = (field) => (event) => {
+    setFormData({
+      ...formData,
+      [field]: event.target.value
+    });
   };
 
-  const beep = (freq = 800, duration = 120) => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "sine";
-      o.frequency.value = freq;
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      g.gain.setValueAtTime(0.0001, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
-      setTimeout(() => {
-        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.01);
-        o.stop(ctx.currentTime + 0.02);
-        try {
-          ctx.close();
-        } catch {}
-      }, duration);
-    } catch {}
-  };
-
-  const updateField = (field, value) =>
-    setForm((s) => ({ ...s, [field]: value }));
-
-  const calcAmount = (row) => {
-    const s = Number(row.srate) || 0;
-    const q = Number(row.qty) || 0;
-    return s * q;
-  };
-
-  // ---------- Navigation between fields ----------
-  const navigateToNextField = () => {
-    const fieldsOrder = [
-      "billNo", "billDate", "mobile", "customer", 
-      "mode", "salesman", "barcode"
-    ];
-    const currentIndex = fieldsOrder.indexOf(currentField);
-    
-    if (currentIndex < fieldsOrder.length - 1) {
-      const nextField = fieldsOrder[currentIndex + 1];
-      setCurrentField(nextField);
-      focusOnField(nextField);
-    } else {
-      // Move to table row barcode field
-      setCurrentField("rowBarcode");
-      setEditingCell({ rowId: 1, field: "barcode" });
-      setTimeout(() => {
-        const barcodeInput = document.querySelector(`input[data-row="1"][data-field="barcode"]`);
-        if (barcodeInput) barcodeInput.focus();
-      }, 10);
-    }
-  };
-
-  const focusOnField = (field) => {
-    switch(field) {
-      case "billNo":
-        billNoRef.current?.focus();
-        break;
-      case "billDate":
-        billDateRef.current?.focus();
-        break;
-      case "mobile":
-        mobileRef.current?.focus();
-        break;
-      case "customer":
-        customerRef.current?.focus();
-        break;
-      case "mode":
-        modeRef.current?.focus();
-        break;
-      case "salesman":
-        salesmanRef.current?.focus();
-        break;
-      case "barcode":
-        barcodeRef.current?.focus();
-        break;
-    }
-    setFocusedInput(field);
-  };
-
-  // ---------- Row operations ----------
-  const addRowByBarcode = (barcode) => {
-    if (!barcode || barcode.trim() === "") {
-      showToast("Empty barcode");
-      return;
-    }
-
-    const product = productDB[barcode];
-    const newRow = {
-      id: nextId,
-      barcode,
-      itemName: product ? product.itemName : "Unknown Item",
-      stock: product ? product.stock : 0,
-      mrp: product ? product.mrp : 0,
-      uom: product ? product.uom : "",
-      hsn: product ? product.hsn : "",
-      tax: product ? product.tax : 0,
-      srate: product ? product.srate : 0,
-      qty: product ? 100 : 1,
-      amount: product ? product.srate * 100 : 0,
-    };
-
-    setRows((r) => [...r, newRow]);
-    setNextId((n) => n + 1);
-    setSelectedRowId(newRow.id);
-    setEditingCell({ rowId: newRow.id, field: "barcode" });
-    setCurrentField("rowBarcode");
-    showToast("Item added");
-    beep();
-  };
-
-  const handleBarcodeKey = (e) => {
-    if (e.key === "Enter") {
-      addRowByBarcode(form.barcode.trim());
-      updateField("barcode", "");
-    }
-  };
-
-  const editCell = (id, field, rawValue) => {
-    const value =
-      field === "qty" || field === "srate" ? Number(rawValue) || 0 : rawValue;
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        const updated = { ...r, [field]: value };
-        // If barcode is entered, look up product details
-        if (field === "barcode" && value.trim() !== "") {
-          const product = productDB[value.trim()];
-          if (product) {
-            updated.itemName = product.itemName;
-            updated.stock = product.stock;
-            updated.mrp = product.mrp;
-            updated.uom = product.uom;
-            updated.hsn = product.hsn;
-            updated.tax = product.tax;
-            updated.srate = product.srate;
-            updated.qty = 100;
-          }
+  // Handle item field changes
+  const handleItemChange = (id, field) => (event) => {
+    const updatedItems = items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: event.target.value };
+        
+        // Recalculate amount if qty or sRate changes
+        if (field === 'qty' || field === 'sRate') {
+          const qty = parseFloat(updatedItem.qty || 0);
+          const sRate = parseFloat(updatedItem.sRate || 0);
+          updatedItem.amount = (qty * sRate).toFixed(2).toString(); // Format to 2 decimal places
         }
-        updated.amount = calcAmount(updated);
-        return updated;
-      })
-    );
-  };
-
-  const handleCellKeyDown = (e, rowId, field) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      
-      const fieldsOrder = ["barcode", "itemName", "stock", "mrp", "uom", "hsn", "tax", "srate", "qty"];
-      const currentIndex = fieldsOrder.indexOf(field);
-      
-      if (currentIndex < fieldsOrder.length - 1) {
-        // Move to next field in same row
-        const nextField = fieldsOrder[currentIndex + 1];
-        setEditingCell({ rowId, field: nextField });
-        setCurrentField("row" + nextField.charAt(0).toUpperCase() + nextField.slice(1));
         
-        // Focus on the next field
-        setTimeout(() => {
-          const nextInput = document.querySelector(`input[data-row="${rowId}"][data-field="${nextField}"]`);
-          if (nextInput) nextInput.focus();
-        }, 10);
-      } else {
-        // On last field (QTY), create new row if needed
-        const newRowId = nextId;
-        const newRow = {
-          id: newRowId,
-          barcode: "",
-          itemName: "",
-          stock: 0,
-          mrp: 0,
-          uom: "",
-          hsn: "",
-          tax: 0,
-          srate: 0,
-          qty: 0,
-          amount: 0,
-        };
-        
-        setRows((prev) => [...prev, newRow]);
-        setNextId((n) => n + 1);
-        setSelectedRowId(newRowId);
-        setEditingCell({ rowId: newRowId, field: "barcode" });
-        setCurrentField("rowBarcode");
-        
-        // Focus on new row's barcode field
-        setTimeout(() => {
-          const newBarcodeInput = document.querySelector(`input[data-row="${newRowId}"][data-field="barcode"]`);
-          if (newBarcodeInput) newBarcodeInput.focus();
-        }, 10);
-        
-        showToast("New row added");
+        return updatedItem;
       }
-    } else if (e.key === "Escape") {
-      setEditingCell(null);
-      setCurrentField(null);
-    }
+      return item;
+    });
+    setItems(updatedItems);
   };
 
-  const deleteRow = (id) => {
-    if (rows.length === 1) {
-      showToast("Cannot delete the only row");
-      return;
-    }
+  // Add new item row
+  const addItemRow = () => {
+    const newId = items.length > 0 ? Math.max(...items.map(item => item.id)) + 1 : 1;
+    const newSNo = items.length + 1;
     
-    setRows((prev) => prev.filter((r) => r.id !== id));
-    if (selectedRowId === id) {
-      const remainingRows = rows.filter(r => r.id !== id);
-      setSelectedRowId(remainingRows[0]?.id || null);
-    }
-    showToast("Item deleted");
-  };
-
-  const clearAll = () => {
-    setRows([
+    setItems([
+      ...items,
       {
-        id: 1,
-        barcode: "",
-        itemName: "",
-        stock: 0,
-        mrp: 0,
-        uom: "",
-        hsn: "",
-        tax: 0,
-        srate: 0,
-        qty: 0,
-        amount: 0,
+        id: newId,
+        sNo: newSNo,
+        barcode: '',
+        itemName: '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        sRate: '',
+        rate: '',
+        qty: '',
+        amount: ''
       }
     ]);
-    setNextId(2);
-    setSelectedRowId(1);
-    setEditingCell({ rowId: 1, field: "barcode" });
-    setCurrentField("billNo");
-    setForm({
-      billNo: "",
-      mobile: "",
-      mode: "Retail",
-      barcode: "",
-      billDate: "",
-      customer: "",
-      salesman: "",
+  };
+
+  // Delete item row
+  const deleteItemRow = (id) => {
+    const filteredItems = items.filter(item => item.id !== id);
+    // Update serial numbers
+    const updatedItems = filteredItems.map((item, index) => ({
+      ...item,
+      sNo: index + 1
+    }));
+    setItems(updatedItems);
+  };
+
+  // Handle Save action
+  const handleSave = () => {
+    console.log('Form Data:', formData);
+    console.log('Items:', items);
+    alert('Sales Return data saved successfully!');
+  };
+
+  // Handle Clear action
+  const handleClear = () => {
+    setFormData({
+      salesman: '',
+      empName: '',
+      billNo: 'SE00001AA',
+      billDate: new Date().toISOString().substring(0, 10),
+      mobileNo: '',
+      custName: '',
+      returnReason: '',
+      barcodeInput: '',
+      qty: '',
+      items: ''
     });
-    showToast("Cleared all items");
-    focusOnField("billNo");
+    
+    setItems([]); // Clear all items
+    
+    alert('Form cleared!');
   };
 
-  const saveData = () => {
-    const payload = { form, rows, total: rows.reduce((s, r) => s + r.amount, 0) };
-    console.log("Saving payload: ", payload);
-    showToast("Sales return saved successfully");
+  // Base style object for cleaner code in the action buttons
+  const baseButtonStyle = {
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '14px',
+    justifyContent: 'center',
+    whiteSpace: 'nowrap',
+    transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
   };
 
-  // ---------- Keyboard shortcuts ----------
-  useEffect(() => {
-    const onKey = (ev) => {
-      // F2 moves focus to next field
-      if (ev.key === "F2") {
-        ev.preventDefault();
-        navigateToNextField();
-        showToast(`Focus: ${currentField}`);
-      }
+  /**
+   * Helper component for uniform input fields with left-aligned labels (for the header)
+   * The 'grid' container will handle the straight arrangement.
+   */
+  const FormInput = ({ label, field, type = "text", placeholder = "", minWidth = '120px', value, onChange, readOnly = false, isSelect = false, options = [] }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: minWidth, flex: '1 1 auto' }}>
+      <label style={{ fontWeight: '500', fontSize: '14px', textAlign: 'left', color: '#333' }}>
+        {label}
+      </label>
+      {isSelect ? (
+        <select
+          style={{
+            padding: '8px',
+            border: 'none', // UPDATED: Removed border
+            borderRadius: '4px',
+            fontSize: '14px',
+            backgroundColor: readOnly ? '#f0f0f0' : 'white',
+            outline: 'none' // Remove outline on focus
+          }}
+          value={value}
+          onChange={onChange(field)}
+          readOnly={readOnly}
+          disabled={readOnly}
+        >
+          {options.map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={type}
+          style={{
+            padding: '8px',
+            border: 'none', // UPDATED: Removed border
+            borderRadius: '4px',
+            fontSize: '14px',
+            backgroundColor: readOnly ? '#f0f0f0' : 'white',
+            outline: 'none' // Remove outline on focus
+          }}
+          value={value}
+          onChange={onChange(field)}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      )}
+    </div>
+  );
 
-      if (ev.key === "F3") {
-        ev.preventDefault();
-        if (selectedRowId != null) {
-          deleteRow(selectedRowId);
-          showToast("Deleted row " + selectedRowId);
-        }
-      }
-
-      if (ev.key === "F4") {
-        ev.preventDefault();
-        saveData();
-      }
-
-      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "s") {
-        ev.preventDefault();
-        saveData();
-      }
-
-      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "p") {
-        ev.preventDefault();
-        window.print();
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selectedRowId, rows, currentField]);
-
-  const netTotal = rows.reduce((s, r) => s + (r.amount || 0), 0);
-
-  // ---------- EXACT Styles matching the image ----------
-  const styles = {
-    page: {
-      width: "100%",
-      minHeight: "100vh",
-      background: "#e8f4f8", // Light blue-gray background from image
-      fontFamily: "'Segoe UI', Arial, sans-serif",
-      padding: "20px",
-    },
-
-    // Header - Store Name
-    storeHeader: {
-      background: "linear-gradient(135deg, #1a5276 0%, #2e86c1 100%)", // Dark blue gradient
-      color: "white",
-      padding: "15px 20px",
-      borderRadius: "8px 8px 0 0",
-      marginBottom: "0",
-      fontSize: "22px",
-      fontWeight: "bold",
-      textAlign: "center",
-      letterSpacing: "1px",
-      boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-      borderBottom: "3px solid #154360",
-    },
-
-    // Main Container
-    mainContainer: {
-      background: "white",
-      borderRadius: "0 0 8px 8px",
-      boxShadow: "0 3px 10px rgba(0,0,0,0.15)",
-      overflow: "hidden",
-    },
-
-    // Billing Section
-    billingSection: {
-      padding: "25px",
-      borderBottom: "2px solid #eaeaea",
-    },
-
-    billingTitle: {
-      fontSize: "18px",
-      fontWeight: "bold",
-      color: "#1a5276",
-      marginBottom: "20px",
-      paddingBottom: "10px",
-      borderBottom: "2px solid #1a5276",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-    },
-
-    billingGrid: {
-      display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
-      gap: "20px",
-      marginBottom: "25px",
-    },
-
-    // Form Group - Exact from image
-    formGroup: {
-      display: "flex",
-      flexDirection: "column",
-    },
-
-    formLabel: {
-      fontSize: "13px",
-      fontWeight: "600",
-      color: "#2c3e50",
-      marginBottom: "8px",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
-    },
-
-    // Input Style - Exact from image
-    input: {
-      padding: "12px 15px",
-      border: "2px solid #bdc3c7",
-      borderRadius: "6px",
-      fontSize: "14px",
-      color: "#2c3e50",
-      backgroundColor: "#f8f9fa",
-      outline: "none",
-      height: "45px",
-      boxSizing: "border-box",
-      transition: "all 0.3s",
-      fontFamily: "inherit",
-    },
-
-    inputFocus: {
-      borderColor: "#3498db",
-      backgroundColor: "white",
-      boxShadow: "0 0 0 3px rgba(52, 152, 219, 0.2)",
-    },
-
-    select: {
-      padding: "12px 15px",
-      border: "2px solid #bdc3c7",
-      borderRadius: "6px",
-      fontSize: "14px",
-      color: "#2c3e50",
-      backgroundColor: "#f8f9fa",
-      cursor: "pointer",
-      appearance: "none",
-      backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%232c3e50' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E\")",
-      backgroundRepeat: "no-repeat",
-      backgroundPosition: "right 15px center",
-      backgroundSize: "12px",
-      paddingRight: "40px",
-      height: "45px",
-      boxSizing: "border-box",
-      fontFamily: "inherit",
-    },
-
-    // Action Buttons Container
-    actionButtons: {
-      display: "flex",
-      gap: "15px",
-      justifyContent: "center",
-      marginTop: "10px",
-    },
-
-    // Button Style - Exact from image
-    button: {
-      padding: "12px 25px",
-      borderRadius: "6px",
-      border: "none",
-      fontSize: "14px",
-      fontWeight: "bold",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-      transition: "all 0.3s",
-      minWidth: "120px",
-      height: "45px",
-      fontFamily: "inherit",
-      letterSpacing: "0.5px",
-      textTransform: "uppercase",
-    },
-
-    // Specific button colors from image
-    addButton: {
-      backgroundColor: "#27ae60", // Green
-      color: "white",
-      border: "2px solid #219653",
-    },
-
-    addButtonHover: {
-      backgroundColor: "#219653",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(39, 174, 96, 0.3)",
-    },
-
-    editButton: {
-      backgroundColor: "#3498db", // Blue
-      color: "white",
-      border: "2px solid #2980b9",
-    },
-
-    editButtonHover: {
-      backgroundColor: "#2980b9",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(52, 152, 219, 0.3)",
-    },
-
-    deleteButton: {
-      backgroundColor: "#e74c3c", // Red
-      color: "white",
-      border: "2px solid #c0392b",
-    },
-
-    deleteButtonHover: {
-      backgroundColor: "#c0392b",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(231, 76, 60, 0.3)",
-    },
-
-    // Table Section
-    tableSection: {
-      padding: "25px",
-    },
-
-    tableHeader: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "20px",
-    },
-
-    tableTitle: {
-      fontSize: "18px",
-      fontWeight: "bold",
-      color: "#1a5276",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-    },
-
-    searchContainer: {
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-    },
-
-    searchLabel: {
-      fontSize: "14px",
-      fontWeight: "600",
-      color: "#2c3e50",
-    },
-
-    searchInput: {
-      padding: "10px 15px",
-      border: "2px solid #bdc3c7",
-      borderRadius: "6px",
-      fontSize: "14px",
-      width: "250px",
-      outline: "none",
-      height: "40px",
-      boxSizing: "border-box",
-      backgroundColor: "#f8f9fa",
-      fontFamily: "inherit",
-    },
-
-    // Table Styles - Exact from image
-    tableWrapper: {
-      overflowX: "auto",
-      borderRadius: "8px",
-      border: "2px solid #e0e0e0",
-      boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-    },
-
-    table: {
-      width: "100%",
-      borderCollapse: "collapse",
-      fontSize: "13px",
-      minWidth: "1200px",
-    },
-
-    tableHead: {
-      background: "linear-gradient(135deg, #2c3e50 0%, #34495e 100%)",
-    },
-
-    th: {
-      padding: "14px 10px",
-      textAlign: "left",
-      fontSize: "12px",
-      fontWeight: "bold",
-      color: "white",
-      borderRight: "1px solid #3d566e",
-      whiteSpace: "nowrap",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
-    },
-
-    td: {
-      padding: "12px 10px",
-      borderBottom: "1px solid #e0e0e0",
-      borderRight: "1px solid #e0e0e0",
-      color: "#2c3e50",
-      fontSize: "13px",
-    },
-
-    // Table row styling
-    tr: {
-      transition: "background-color 0.2s",
-    },
-
-    trHover: {
-      backgroundColor: "#f5f9ff",
-    },
-
-    trSelected: {
-      backgroundColor: "#e8f4fc",
-    },
-
-    // Table Input Style
-    tableInput: {
-      width: "100%",
-      padding: "8px 10px",
-      border: "1px solid #d5dbdb",
-      borderRadius: "4px",
-      fontSize: "13px",
-      backgroundColor: "white",
-      color: "#2c3e50",
-      outline: "none",
-      height: "35px",
-      boxSizing: "border-box",
-      fontFamily: "inherit",
-    },
-
-    tableInputFocus: {
-      borderColor: "#3498db",
-      boxShadow: "0 0 0 2px rgba(52, 152, 219, 0.2)",
-    },
-
-    // Table Action Button
-    tableActionButton: {
-      padding: "8px 15px",
-      borderRadius: "4px",
-      border: "none",
-      fontSize: "12px",
-      fontWeight: "bold",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "6px",
-      transition: "all 0.3s",
-      height: "35px",
-      minWidth: "90px",
-      fontFamily: "inherit",
-      textTransform: "uppercase",
-    },
-
-    // Footer Section
-    footerSection: {
-      background: "#f8f9fa",
-      padding: "20px 25px",
-      borderTop: "2px solid #e0e0e0",
-    },
-
-    footerContent: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-
-    summarySection: {
-      display: "flex",
-      gap: "40px",
-      alignItems: "center",
-    },
-
-    summaryItem: {
-      display: "flex",
-      flexDirection: "column",
-    },
-
-    summaryLabel: {
-      fontSize: "13px",
-      color: "#7f8c8d",
-      marginBottom: "5px",
-      fontWeight: "600",
-      textTransform: "uppercase",
-    },
-
-    summaryValue: {
-      fontSize: "20px",
-      fontWeight: "bold",
-      color: "#2c3e50",
-    },
-
-    totalBox: {
-      background: "linear-gradient(135deg, #2c3e50 0%, #34495e 100%)",
-      color: "white",
-      padding: "20px 35px",
-      borderRadius: "8px",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-      minWidth: "200px",
-    },
-
-    totalLabel: {
-      fontSize: "12px",
-      marginBottom: "8px",
-      opacity: "0.9",
-      textTransform: "uppercase",
-      letterSpacing: "1px",
-    },
-
-    totalAmount: {
-      fontSize: "24px",
-      fontWeight: "bold",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-    },
-
-    footerButtons: {
-      display: "flex",
-      gap: "15px",
-    },
-
-    // Footer buttons specific styles
-    clearButton: {
-      backgroundColor: "#e74c3c",
-      color: "white",
-      border: "2px solid #c0392b",
-      padding: "12px 30px",
-      borderRadius: "6px",
-      fontSize: "14px",
-      fontWeight: "bold",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      height: "45px",
-      minWidth: "120px",
-      justifyContent: "center",
-      textTransform: "uppercase",
-      fontFamily: "inherit",
-      letterSpacing: "0.5px",
-    },
-
-    clearButtonHover: {
-      backgroundColor: "#c0392b",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(231, 76, 60, 0.3)",
-    },
-
-    saveButton: {
-      backgroundColor: "#27ae60",
-      color: "white",
-      border: "2px solid #219653",
-      padding: "12px 30px",
-      borderRadius: "6px",
-      fontSize: "14px",
-      fontWeight: "bold",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      height: "45px",
-      minWidth: "120px",
-      justifyContent: "center",
-      textTransform: "uppercase",
-      fontFamily: "inherit",
-      letterSpacing: "0.5px",
-    },
-
-    saveButtonHover: {
-      backgroundColor: "#219653",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(39, 174, 96, 0.3)",
-    },
-
-    // Toast Notification
-    toast: {
-      position: "fixed",
-      bottom: "25px",
-      right: "25px",
-      background: "linear-gradient(135deg, #2c3e50 0%, #34495e 100%)",
-      color: "white",
-      padding: "15px 25px",
-      borderRadius: "8px",
-      boxShadow: "0 6px 15px rgba(0,0,0,0.2)",
-      display: "flex",
-      alignItems: "center",
-      gap: "12px",
-      minWidth: "280px",
-      zIndex: 1000,
-      animation: "slideIn 0.3s ease",
-      borderLeft: "4px solid #3498db",
-    },
+  // Common style for input fields within the table for brevity - UPDATED: Removed border
+  const tableInputStyle = {
+    width: '100%', 
+    padding: '4px', 
+    border: 'none', // UPDATED: Removed border
+    fontSize: '14px', 
+    background: 'transparent',
+    textAlign: 'center',
+    outline: 'none' // Remove outline on focus
   };
 
-  // Helper function to get input style based on focus state
-  const getInputStyle = (field) => {
-    const baseStyle = styles.input;
-    if (focusedInput === field) {
-      return { ...baseStyle, ...styles.inputFocus };
-    }
-    return baseStyle;
-  };
-
-  const getTableInputStyle = (rowId, field) => {
-    const baseStyle = styles.tableInput;
-    if (editingCell?.rowId === rowId && editingCell?.field === field) {
-      return { ...baseStyle, ...styles.tableInputFocus };
-    }
-    return baseStyle;
-  };
-
-  // Handle Enter key in form fields
-  const handleFormFieldKeyDown = (e, field) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      navigateToNextField();
-    }
-  };
-
-  // ---------- Render ----------
   return (
-    <div style={styles.page}>
-      {/* Store Header */}
-      <div style={styles.storeHeader}>
-        Shankarapandian Stores
-      </div>
-
-      {/* Main Container */}
-      <div style={styles.mainContainer}>
-        {/* Billing Details Section */}
-        <div style={styles.billingSection}>
-          <div style={styles.billingTitle}>
-            <FaFileInvoiceDollar /> Billing Details
-          </div>
+    <div style={{ 
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh',
+      padding: '4px',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{ 
+        backgroundColor: '#ffffff',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        padding: '12px 8px',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {/* Main Content - Scrollable */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
           
-          <div style={styles.billingGrid}>
-            {/* Bill No */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Bill No</label>
+          <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #ddd' }} />
+
+          {/* Form Section - UPDATED: Borderless input fields */}
+          <div style={{ 
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '16px 24px',
+            marginBottom: '16px',
+            padding: '8px'
+          }}>
+            
+            {/* Row 1 */}
+            {/* Salesman: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Salesman:</span>
               <input
-                ref={billNoRef}
-                style={getInputStyle('billNo')}
-                value={form.billNo}
-                onChange={(e) => updateField("billNo", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('billNo');
-                  setCurrentField('billNo');
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  minWidth: '120px',
+                  outline: 'none' // Remove outline on focus
                 }}
-                onBlur={() => setFocusedInput(null)}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'billNo')}
+                value={formData.salesman}
+                onChange={handleFormChange('salesman')}
+                placeholder="Enter Salesman"
               />
             </div>
 
-            {/* Bill Date */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Bill Date</label>
+            {/* IINo: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '150px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>BIINo:</span>
               <input
-                ref={billDateRef}
-                style={getInputStyle('billDate')}
-                value={form.billDate}
-                onChange={(e) => updateField("billDate", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('billDate');
-                  setCurrentField('billDate');
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  backgroundColor: '#f0f0f0',
+                  outline: 'none' // Remove outline on focus
                 }}
-                onBlur={() => setFocusedInput(null)}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'billDate')}
+                value={formData.billNo}
+                readOnly
               />
             </div>
 
-            {/* Mobile No */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Mobile No</label>
+            {/* Mobile No: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Mobile No:</span>
               <input
-                ref={mobileRef}
-                style={getInputStyle('mobile')}
-                value={form.mobile}
-                onChange={(e) => updateField("mobile", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('mobile');
-                  setCurrentField('mobile');
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  outline: 'none' // Remove outline on focus
                 }}
-                onBlur={() => setFocusedInput(null)}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'mobile')}
+                value={formData.mobileNo}
+                onChange={handleFormChange('mobileNo')}
+                placeholder="Mobile No"
               />
             </div>
 
-            {/* Customer Name */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Customer Name</label>
+            {/* Row 2 */}
+            {/* EMP Name: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>EMP Name:</span>
               <input
-                ref={customerRef}
-                style={getInputStyle('customer')}
-                value={form.customer}
-                onChange={(e) => updateField("customer", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('customer');
-                  setCurrentField('customer');
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  outline: 'none' // Remove outline on focus
                 }}
-                onBlur={() => setFocusedInput(null)}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'customer')}
+                value={formData.empName}
+                onChange={handleFormChange('empName')}
+                placeholder="EMP Name"
               />
             </div>
 
-            {/* Mode */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Mode</label>
-              <select
-                ref={modeRef}
-                style={styles.select}
-                value={form.mode}
-                onChange={(e) => updateField("mode", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('mode');
-                  setCurrentField('mode');
-                }}
-                onBlur={() => setFocusedInput(null)}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'mode')}
-              >
-                <option value="Retail">Retail</option>
-                <option value="Wholesale">Wholesale</option>
-                <option value="Bulk">Bulk Order</option>
-              </select>
-            </div>
-
-            {/* Salesman */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Salesman</label>
+            {/* Bill Date: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Bill Date:</span>
               <input
-                ref={salesmanRef}
-                style={getInputStyle('salesman')}
-                value={form.salesman}
-                onChange={(e) => updateField("salesman", e.target.value)}
-                onFocus={() => {
-                  setFocusedInput('salesman');
-                  setCurrentField('salesman');
+                type="date"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  outline: 'none' // Remove outline on focus
                 }}
-                onBlur={() => setFocusedInput(null)}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'salesman')}
+                value={formData.billDate}
+                onChange={handleFormChange('billDate')}
               />
             </div>
 
-            {/* Barcode */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Barcode</label>
-              <div style={{ display: "flex", gap: "10px" }}>
+            {/* Customer Name: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Customer Name:</span>
+              <input
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  outline: 'none' // Remove outline on focus
+                }}
+                value={formData.custName}
+                onChange={handleFormChange('custName')}
+                placeholder="Customer Name"
+              />
+            </div>
+
+            {/* BARCODE INPUT: Input Box - UPDATED: Borderless and removed space */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '280px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap', minWidth: '100px' }}>BARCODE:</span>
+              <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                 <input
-                  ref={barcodeRef}
-                  style={{...getInputStyle('barcode'), flex: 1}}
-                  value={form.barcode}
-                  onChange={(e) => updateField("barcode", e.target.value)}
-                 
-                  onFocus={() => {
-                    setFocusedInput('barcode');
-                    setCurrentField('barcode');
+                  type="text"
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    border: "1px solid #e0e0e0", // UPDATED: Removed border
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    minWidth: '0',
+                    outline: 'none' // Remove outline on focus
                   }}
-                  onBlur={() => setFocusedInput(null)}
-                  onKeyDown={(e) => {
-                    handleFormFieldKeyDown(e, 'barcode');
-                    handleBarcodeKey(e);
-                  }}
+                  value={formData.barcodeInput}
+                  onChange={handleFormChange('barcodeInput')}
+                  placeholder="Scan or Enter Barcode"
                 />
               </div>
             </div>
           </div>
 
-          <div style={styles.actionButtons}>
-            <button 
-              style={{...styles.button, ...styles.addButton}}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.addButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, {...styles.button, ...styles.addButton})}
-              onClick={() => addRowByBarcode(form.barcode.trim())}
-            >
-              <FaPlus /> ADD
-            </button>
-            
-            <button 
-              style={{...styles.button, ...styles.editButton}}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.editButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, {...styles.button, ...styles.editButton})}
-            >
-              <FaEdit /> EDIT
-            </button>
-            
-            <button 
-              style={{...styles.button, ...styles.deleteButton}}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.deleteButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, {...styles.button, ...styles.deleteButton})}
-              onClick={() => selectedRowId && deleteRow(selectedRowId)}
-            >
-              <FaTrash /> DELETE
-            </button>
-          </div>
-        </div>
+          <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #ddd' }} />
 
-        {/* Table Section */}
-        <div style={styles.tableSection}>
-          <div style={styles.tableHeader}>
-            <div style={styles.tableTitle}>
-              <FaShoppingBag /> Items List
+          {/* Items Table - UPDATED WITH BORDERLESS INPUTS */}
+          <div style={{ 
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            marginBottom: '16px',
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            {/* Top Scrollbar Container */}
+            <div style={{ 
+              position: 'sticky',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 20,
+              backgroundColor: '#f5f5f5',
+              borderBottom: '1px solid #ddd',
+              height: '10px'
+            }}>
+              <div style={{ 
+                overflowX: 'auto',
+                height: '100%',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}>
+                <div style={{ 
+                  width: '1200px',
+                  height: '100%'
+                }}></div>
+              </div>
             </div>
-            
-            <div style={styles.searchContainer}>
-              <label style={styles.searchLabel}>Search:</label>
-              <input
-                style={styles.searchInput}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Type here to search"
-                onFocus={() => setFocusedInput('search')}
-                onBlur={() => setFocusedInput(null)}
-              />
-            </div>
-          </div>
 
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead style={styles.tableHead}>
-                <tr>
-                  <th style={styles.th}>S.NO</th>
-                  <th style={styles.th}>BARCODE</th>
-                  <th style={styles.th}>ITEM NAME</th>
-                  <th style={styles.th}>STOCK</th>
-                  <th style={styles.th}>MRP</th>
-                  <th style={styles.th}>UOM</th>
-                  <th style={styles.th}>HSN</th>
-                  <th style={styles.th}>TAX</th>
-                  <th style={styles.th}>S RATE</th>
-                  <th style={styles.th}>QTY</th>
-                  <th style={styles.th}>AMOUNT</th>
-                  <th style={styles.th}>ACTION</th>
-                </tr>
-              </thead>
+            {/* Main Table Container */}
+            <div style={{ 
+              overflowX: 'auto',
+              maxHeight: '400px', // Fixed height for vertical scrolling
+              position: 'relative'
+            }}>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse', 
+                fontSize: '14px', 
+                minWidth: '1200px'
+              }}>
+                <thead style={{
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 10,
+                  backgroundColor: '#1976d2'
+                }}>
+                  <tr style={{ backgroundColor: '#1976d2' }}>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '50px' }}>SNo</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '140px' }}>Barcode</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '200px' }}>Item Name</th>
+                    
+                    {/* *** Column Order Matching Image Starts Here *** */}
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>Stock</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>MRP</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>UOM</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>HSN</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>TAX</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>SRATE</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>RATE</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>QTY</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'right', whiteSpace: 'nowrap', width: '100px' }}>AMOUNT</th>
+                    {/* *** Column Order Matching Image Ends Here *** */}
 
-              <tbody>
-                {rows.map((r) => (
-                  <tr 
-                    key={r.id}
-                    onClick={() => {
-                      setSelectedRowId(r.id);
-                      setCurrentField("rowBarcode");
-                      setEditingCell({ rowId: r.id, field: "barcode" });
-                    }}
-                    style={{
-                      ...styles.tr,
-                      ...(selectedRowId === r.id ? styles.trSelected : {}),
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f5f9ff"}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedRowId === r.id ? "#e8f4fc" : "white"}
-                  >
-                    <td style={styles.td}>{r.id}</td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="barcode"
-                        style={getTableInputStyle(r.id, "barcode")}
-                        value={r.barcode}
-                        onChange={(e) => editCell(r.id, "barcode", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "barcode" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowBarcode");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "barcode")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="itemName"
-                        style={getTableInputStyle(r.id, "itemName")}
-                        value={r.itemName}
-                        onChange={(e) => editCell(r.id, "itemName", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "itemName" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowItemName");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "itemName")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="stock"
-                        style={getTableInputStyle(r.id, "stock")}
-                        value={r.stock}
-                        readOnly
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="mrp"
-                        style={getTableInputStyle(r.id, "mrp")}
-                        value={r.mrp}
-                        onChange={(e) => editCell(r.id, "mrp", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "mrp" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowMrp");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "mrp")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="uom"
-                        style={getTableInputStyle(r.id, "uom")}
-                        value={r.uom}
-                        onChange={(e) => editCell(r.id, "uom", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "uom" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowUom");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "uom")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="hsn"
-                        style={getTableInputStyle(r.id, "hsn")}
-                        value={r.hsn}
-                        onChange={(e) => editCell(r.id, "hsn", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "hsn" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowHsn");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "hsn")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="tax"
-                        style={getTableInputStyle(r.id, "tax")}
-                        value={r.tax}
-                        onChange={(e) => editCell(r.id, "tax", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "tax" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowTax");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "tax")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="srate"
-                        style={getTableInputStyle(r.id, "srate")}
-                        value={r.srate}
-                        onChange={(e) => editCell(r.id, "srate", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "srate" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowSrate");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "srate")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="qty"
-                        style={getTableInputStyle(r.id, "qty")}
-                        value={r.qty}
-                        onChange={(e) => editCell(r.id, "qty", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "qty" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowQty");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "qty")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>₹{r.amount.toLocaleString('en-IN')}</td>
-                    
-                    <td style={styles.td}>
-                      <button
-                        style={{...styles.tableActionButton, ...styles.deleteButton}}
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          deleteRow(r.id);
-                        }}
-                      >
-                        <FaTimes /> Delete
-                      </button>
-                    </td>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>ACTION</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+                      {/* SNo */}
+                      <td style={{ padding: '8px', whiteSpace: 'nowrap', textAlign: 'center' }}>{item.sNo}</td>
+                      
+                      {/* Barcode - UPDATED: Borderless */}
+                      <td style={{ padding: '12px 8px' }}>
+                        <input
+                          type="text"
+                          style={{ 
+                            ...tableInputStyle, 
+                            fontWeight: '500', 
+                            textAlign: 'left',
+                            padding: '8px 4px',
+                            width: 'calc(100% - 8px)'
+                          }}
+                          value={item.barcode}
+                          onChange={handleItemChange(item.id, 'barcode')}
+                          placeholder="Barcode"
+                        />
+                      </td>
+                      
+                      {/* Item Name - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={{ ...tableInputStyle, textAlign: 'left' }}
+                          value={item.itemName}
+                          onChange={handleItemChange(item.id, 'itemName')}
+                          placeholder="Item Name"
+                        />
+                      </td>
+                      
+                      {/* Stock - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.stock || ''}
+                          onChange={handleItemChange(item.id, 'stock')}
+                          placeholder="Stock"
+                        />
+                      </td>
+                      
+                      {/* MRP - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.mrp || ''}
+                          onChange={handleItemChange(item.id, 'mrp')}
+                          placeholder="MRP"
+                        />
+                      </td>
+                      
+                      {/* UOM - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.uom}
+                          onChange={handleItemChange(item.id, 'uom')}
+                          placeholder="UOM"
+                        />
+                      </td>
+                      
+                      {/* HSN - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.hsn || ''}
+                          onChange={handleItemChange(item.id, 'hsn')}
+                          placeholder="HSN"
+                        />
+                      </td>
+                      
+                      {/* TAX - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="number"
+                          style={tableInputStyle}
+                          value={item.tax}
+                          onChange={handleItemChange(item.id, 'tax')}
+                          placeholder="Tax"
+                        />
+                      </td>
+                      
+                      {/* SRATE - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="number"
+                          style={tableInputStyle}
+                          value={item.sRate}
+                          onChange={handleItemChange(item.id, 'sRate')}
+                          placeholder="S Rate"
+                        />
+                      </td>
+                      
+                      {/* RATE - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.rate || ''}
+                          onChange={handleItemChange(item.id, 'rate')}
+                          placeholder="Rate"
+                        />
+                      </td>
+                      
+                      {/* QTY - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="number"
+                          style={{ ...tableInputStyle, fontWeight: 'bold' }}
+                          value={item.qty}
+                          onChange={handleItemChange(item.id, 'qty')}
+                          placeholder="Qty"
+                        />
+                      </td>
+                      
+                      {/* AMOUNT - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={{ ...tableInputStyle, textAlign: 'right', fontWeight: 'bold', color: '#1565c0' }}
+                          value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                          placeholder="Amount"
+                          readOnly
+                        />
+                      </td>
+                      
+                      {/* ACTION */}
+                      <td style={{ padding: '8px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <button
+                          onClick={() => deleteItemRow(item.id)}
+                          style={{ background: 'none', border: 'none', color: '#d32f2f', cursor: 'pointer', padding: '4px' }}
+                          onMouseEnter={(e) => e.currentTarget.style.color = '#b71c1c'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = '#d32f2f'}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Bottom Scrollbar Container */}
+            <div style={{ 
+              position: 'sticky',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 20,
+              backgroundColor: '#f5f5f5',
+              borderTop: '1px solid #ddd',
+              height: '10px'
+            }}>
+              <div style={{ 
+                overflowX: 'auto',
+                height: '100%',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}>
+                <div style={{ 
+                  width: '1200px',
+                  height: '100%'
+                }}></div>
+              </div>
+            </div>
+            
+            {/* Add Item Button (outside table structure) */}
+            <div style={{ padding: '12px', textAlign: 'left' }}>
+              <button
+                onClick={addItemRow}
+                style={{ 
+                  backgroundColor: '#1976d2',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '14px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
+              >
+                <AddIcon fontSize="small" /> Add Item
+              </button>
+            </div>
+          </div>
+
+          {/* Totals Section (Aligned Right) */}
+          <div style={{ 
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '12px',
+            marginBottom: '16px',
+            flexWrap: 'wrap',
+            paddingRight: '8px'
+          }}>
+            <div style={{ 
+              padding: '12px 16px', 
+              backgroundColor: '#e3f2fd', 
+              borderRadius: '4px',
+              minWidth: '200px',
+              textAlign: 'right'
+            }}>
+              <h3 style={{ fontWeight: 'bold', fontSize: '16px', margin: 0, color: '#1976d2' }}>
+                Total Qty: <span style={{ color: '#0d47a1' }}>{totalQty}</span>
+              </h3>
+            </div>
+            <div style={{ 
+              padding: '12px 16px', 
+              backgroundColor: '#e3f2fd', 
+              borderRadius: '4px',
+              minWidth: '200px',
+              textAlign: 'right'
+            }}>
+              <h3 style={{ fontWeight: 'bold', fontSize: '16px', margin: 0, color: '#1976d2' }}>
+                Total Amount: ₹<span style={{ color: '#0d47a1' }}>
+                  {totalAmount.toLocaleString('en-IN', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}
+                </span>
+              </h3>
+            </div>
           </div>
         </div>
 
-        {/* Footer Section */}
-        <div style={styles.footerSection}>
-          <div style={styles.footerContent}>
-            <div style={styles.summarySection}>
-              <div style={styles.summaryItem}>
-                <div style={styles.summaryLabel}>Net</div>
-                <div style={styles.summaryValue}>₹{netTotal.toLocaleString('en-IN')}</div>
-              </div>
-              
-              <div style={styles.totalBox}>
-                <div style={styles.totalLabel}>Total Amount</div>
-                <div style={styles.totalAmount}>
-                  <FaRupeeSign /> {(netTotal).toLocaleString('en-IN')}
-                </div>
-              </div>
+        {/* Fixed Action Bar at bottom */}
+        <div style={{ 
+          position: 'sticky',
+          bottom: '0',
+          left: '0',
+          right: '0',
+          backgroundColor: 'white',
+          padding: '12px',
+          borderTop: '1px solid #ddd',
+          borderRadius: '0 0 8px 8px',
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+          zIndex: 100,
+          marginTop: 'auto'
+        }}>
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap'
+          }}>
+            {/* Left side: ADD, EDIT, DELETE buttons - Kept for general Item management */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button 
+                onClick={addItemRow} // Map ADD button to addItemRow
+                style={{ ...baseButtonStyle, backgroundColor: '#1976d2', color: 'white', minWidth: '90px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
+              >
+                <AddIcon fontSize="small" /> ADD
+              </button>
+              <button 
+                // Placeholder for EDIT functionality
+                style={{ ...baseButtonStyle, backgroundColor: 'transparent', color: '#1976d2', border: '1px solid #1976d2', minWidth: '90px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e3f2fd'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <EditIcon fontSize="small" /> EDIT
+              </button>
+              <button 
+                // Placeholder for DELETE functionality (item-level delete is in the table)
+                style={{ ...baseButtonStyle, backgroundColor: 'transparent', color: '#d32f2f', border: '1px solid #d32f2f', minWidth: '90px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ffebee'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <DeleteIcon fontSize="small" /> DELETE
+              </button>
             </div>
 
-            <div style={styles.footerButtons}>
-              <button 
-                style={styles.clearButton}
-                onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.clearButtonHover)}
-                onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.clearButton)}
-                onClick={clearAll}
+            {/* Right side: Clear and Save Bill buttons */}
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleClear}
+                style={{ ...baseButtonStyle, backgroundColor: 'transparent', color: '#666', border: '1px solid #666', minWidth: '100px' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f5f5f5'; e.currentTarget.style.borderColor = '#333'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = '#666'; }}
               >
-                <FaTimes /> Clear
+                <ClearIcon fontSize="small" /> Clear
               </button>
-              
-              <button 
-                style={styles.saveButton}
-                onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.saveButtonHover)}
-                onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.saveButton)}
-                onClick={saveData}
+              <button
+                onClick={handleSave}
+                style={{ ...baseButtonStyle, backgroundColor: '#4caf50', color: 'white', minWidth: '120px' }} 
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#388e3c'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4caf50'}
               >
-                <FaSave /> Save
+                <SaveIcon fontSize="small" /> Save Return
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {toast && (
-        <div style={styles.toast}>
-          <FaShoppingCart /> {toast}
-        </div>
-      )}
+      {/* Global CSS for smooth scrollbars */}
+      <style jsx="true">{`
+        /* Smooth scrollbar styling for the entire application */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #c1c1c1 #f5f5f5;
+        }
+        
+        /* For Webkit browsers (Chrome, Safari, Edge) */
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: #f5f5f5;
+          border-radius: 4px;
+          margin: 2px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 4px;
+          transition: background 0.3s ease;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
+        }
+        
+        /* For Firefox */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #c1c1c1 #f5f5f5;
+        }
+        
+        /* Table specific scrollbar styling */
+        .table-container::-webkit-scrollbar {
+          height: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+          background: #f5f5f5;
+          border-radius: 4px;
+          margin: 2px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 4px;
+          transition: background 0.3s ease;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
+        }
+        
+        /* Hide scrollbar for top and bottom containers */
+        .scroll-container-hidden::-webkit-scrollbar {
+          display: none;
+        }
+        
+        .scroll-container-hidden {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        /* Smooth scrolling for the entire page */
+        html {
+          scroll-behavior: smooth;
+        }
+      `}</style>
     </div>
   );
-}
+};
+
+
+export default Salesreturn;

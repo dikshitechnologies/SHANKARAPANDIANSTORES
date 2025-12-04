@@ -14,7 +14,7 @@ import {
   DatabaseOutlined,
   DollarOutlined,
   DownOutlined,
-  UpOutlined
+  UpOutlined,MoneyCollectOutlined,
 } from '@ant-design/icons';
 import { Button, Dropdown, Space, Modal } from 'antd';
 import DropdownMenu from './DropdownMenu';
@@ -92,6 +92,7 @@ const Navbar = () => {
     { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
     { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> },
+    { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined  /> },
      { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined /> },
     { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
     {name: 'Scrap Procurement', path: '/transactions/scrap', icon: <BuildOutlined /> }
@@ -279,7 +280,7 @@ const Navbar = () => {
     >
       <div className={styles['mobile-menu-header']}>
         <Link to="/" onClick={closeMobileMenu} className={styles['nav-logo']}>
-          <span className={styles['logo-text']}>Shankarapandian</span>
+          <span className={styles['logo-text']}>Sankarapandian</span>
           <span className={styles['logo-subtext']}>Stores</span>
         </Link>
         <Button 
