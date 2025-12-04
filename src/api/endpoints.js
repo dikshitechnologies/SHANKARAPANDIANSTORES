@@ -48,9 +48,7 @@ user_creation: {
     GET_COMPANY_LIST: "CompanyCreation/GetCompanyList",
     GET_COMPANY_DETAILS: (compCode) => `CompanyCreation/GetCompany/${compCode}`,
     DELETE_COMPANY: (fcompcode) => `CompanyCreation/DeleteCompany/${fcompcode}`,
-  //  /api/CompanyCreation/GetCompany/{compCode}
-    // CompanyCreation/GetCompanyList (compCode) => `CompanyCreation/GetCompany/${compCode}`,
-    
+  
     
     
   },
