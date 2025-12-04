@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 // import { useFormPermissions } from '../../../hooks/useFormPermissions';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
 const endpoints = API_ENDPOINTS.ITEM_GROUP || {};
 
@@ -61,7 +62,6 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         className={`tree-row ${isSelected ? "selected" : ""}`}
         onClick={() => onSelect(node)}
         role="button"
-        tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && onSelect(node)}
       >
         {hasChildren ? (
@@ -133,6 +133,7 @@ export default function ItemGroupCreation() {
   const [message, setMessage] = useState(null);
   const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
   const [searchDropdown, setSearchDropdown] = useState("");
   const [expandedKeys, setExpandedKeys] = useState(new Set());
@@ -188,6 +189,33 @@ export default function ItemGroupCreation() {
       setLoading(false);
     }
   };
+
+  // Popup fetcher (paged + searchable) for edit selector. Some backends return the full list, so we page/filter client-side.
+  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
+    try {
+      const resp = await api.get(endpoints.getDropdown);
+      const items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || []);
+
+      const q = (search || '').trim().toLowerCase();
+      const filtered = q
+        ? items.filter(it => (it.fitemname || it.fAcname || '').toLowerCase().includes(q) || (it.parentName || '').toLowerCase().includes(q))
+        : items;
+
+      const pageSize = 20;
+      const start = (page - 1) * pageSize;
+      const pageItems = filtered.slice(start, start + pageSize);
+
+      return pageItems.map(it => ({
+        fName: it.fitemname || it.fAcname || it.fName || '',
+        fParent: it.parentName || it.fParent || '',
+        fCode: it.fitemcode || it.fcode || it.fCode || '',
+        raw: it,
+      }));
+    } catch (err) {
+      console.error('fetchPopupItems error', err);
+      return [];
+    }
+  }, []);
 
   const transformApiData = (apiData) => {
     if (!Array.isArray(apiData)) return [];
@@ -873,7 +901,7 @@ export default function ItemGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "edit" ? "warn" : ""}`}
-              onClick={() => { setActionType("edit"); resetForm(); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("edit"); resetForm(); setIsPopupOpen(true); }}
               disabled={submitting || !formPermissions.edit}
               type="button"
               title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing item group"}
@@ -883,7 +911,7 @@ export default function ItemGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "delete" ? "danger" : ""}`}
-              onClick={() => { setActionType("delete"); resetForm(); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("delete"); resetForm(); setIsPopupOpen(true); }}
               disabled={submitting || !formPermissions.delete}
               type="button"
               title={!formPermissions.delete ? "You don't have permission to delete" : "Delete item group"}
@@ -1255,6 +1283,27 @@ export default function ItemGroupCreation() {
           </div>
         </div>
       )}
+
+      {/* Popup selector (paged + searchable) for Edit action, same style as Ledgercreation */}
+      <PopupListSelector
+        open={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+        onSelect={(item) => {
+          // item fields: fName, fParent, fCode, raw
+          setMainGroup(item.fParent || '');
+          setSubGroup(item.fName || '');
+          setFCode(item.fCode || '');
+          setIsPopupOpen(false);
+        }}
+        fetchItems={fetchPopupItems}
+        title="Select Item Group to Edit"
+        displayFieldKeys={['fName', 'fParent']}
+        searchFields={['fName', 'fParent']}
+        headerNames={['Group Name', 'Parent']}
+        columnWidths={{ fName: '70%', fParent: '30%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
     </div>
   );
 }
