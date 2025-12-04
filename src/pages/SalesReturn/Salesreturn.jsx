@@ -1,1291 +1,865 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from 'react';
 import { 
-  FaPlus, FaEdit, FaTrash, FaPrint, FaBarcode, 
-  FaSave, FaTimes, FaShoppingCart, FaBoxOpen, 
-  FaSearch, FaFileInvoiceDollar, FaUser, 
-  FaCalendarAlt, FaMobileAlt, FaStore, FaRupeeSign,
-  FaShoppingBag
-} from "react-icons/fa";
+  Add as AddIcon, 
+  Edit as EditIcon, 
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Clear as ClearIcon,
+  Search as SearchIcon 
+} from '@mui/icons-material';
 
 /**
- * SalesReturn component matching the scrap sales image design
+ * Sales Return Form Component
  */
-export default function SalesReturn() {
-  // ---------- Mock product database ----------
-  const productDB = {
-    "BAR001": {
-      itemName: "Scrap Item 1",
-      stock: 100,
-      mrp: 120,
-      uom: "KG",
-      hsn: "72044900",
-      tax: 18,
-      srate: 100,
-      wrate: 90,
-    },
-    "BAR002": {
-      itemName: "Scrap Item 2",
-      stock: 80,
-      mrp: 180,
-      uom: "KG",
-      hsn: "72044900",
-      tax: 18,
-      srate: 150,
-      wrate: 135,
-    },
-    "BAR301": {
-      itemName: "Scrap Item 1",
-      stock: 100,
-      mrp: 120,
-      uom: "KG",
-      hsn: "72044900",
-      tax: 18,
-      srate: 100,
-      wrate: 90,
-    },
-    "BAR302": {
-      itemName: "Scrap Item 2",
-      stock: 80,
-      mrp: 180,
-      uom: "KG",
-      hsn: "72044900",
-      tax: 18,
-      srate: 150,
-      wrate: 135,
-    },
-  };
-
-  // ---------- State ----------
-  const [form, setForm] = useState({
-    salesman: "",
-    billNo: "C400001AA",
-    mobile: "8754603732",
-    scrapProductName: "Scrap Product Name",
-    empName: "EMP Name",
-    billDate: "",
-    customer: "Priyanka",
-    qty: "0",
-    items: "Items",
-    barcode: "",
+const Salesreturn = () => {
+  // Initial state for form fields - UPDATED: All fields blank except billNo and billDate
+  const [formData, setFormData] = useState({
+    salesman: '',
+    empName: '',
+    billNo: 'SE00001AA',
+    billDate: new Date().toISOString().substring(0, 10),
+    mobileNo: '',
+    custName: '',
+    returnReason: '',
+    barcodeInput: '', 
+    qty: '', // Changed from '0' to empty
+    items: ''
   });
 
-  const [rows, setRows] = useState([
+  // State for items table - UPDATED: Remove default values
+  const [items, setItems] = useState([
     {
       id: 1,
-      barcode: "BAR301",
-      itemName: "Scrap Item 1",
-      stock: 100,
-      mrp: 120,
-      uom: "KG",
-      hsn: "72044900",
-      tax: 18,
-      srate: 100,
-      wrate: 90,
-      qty: 10,
-      amount: 1000,
+      sNo: 1,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      qty: '',
+      amount: ''
     },
     {
       id: 2,
-      barcode: "BAR302",
-      itemName: "Scrap Item 2",
-      stock: 80,
-      mrp: 180,
-      uom: "KG",
-      hsn: "72044900",
-      tax: 18,
-      srate: 150,
-      wrate: 135,
-      qty: 5,
-      amount: 750,
+      sNo: 2,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      qty: '',
+      amount: ''
     }
   ]);
-  const [nextId, setNextId] = useState(3);
-  const [selectedRowId, setSelectedRowId] = useState(1);
-  const [toast, setToast] = useState(null);
-  const [editingCell, setEditingCell] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [focusedInput, setFocusedInput] = useState("salesman");
-  const [currentField, setCurrentField] = useState("salesman");
-  
-  const salesmanRef = useRef(null);
-  const billNoRef = useRef(null);
-  const mobileRef = useRef(null);
-  const scrapProductRef = useRef(null);
-  const empNameRef = useRef(null);
-  const billDateRef = useRef(null);
-  const customerRef = useRef(null);
-  const qtyRef = useRef(null);
-  const itemsRef = useRef(null);
-  const barcodeRef = useRef(null);
-
-  // ---------- Helpers ----------
-  const showToast = (msg, ms = 1600) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), ms);
-  };
-
-  const beep = (freq = 800, duration = 120) => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "sine";
-      o.frequency.value = freq;
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      g.gain.setValueAtTime(0.0001, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
-      setTimeout(() => {
-        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.01);
-        o.stop(ctx.currentTime + 0.02);
-        try {
-          ctx.close();
-        } catch {}
-      }, duration);
-    } catch {}
-  };
-
-  const updateField = (field, value) =>
-    setForm((s) => ({ ...s, [field]: value }));
-
-  const calcAmount = (row) => {
-    const s = Number(row.srate) || 0;
-    const q = Number(row.qty) || 0;
-    return s * q;
-  };
 
   // Calculate totals
-  const totalQty = rows.reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
-  const totalAmount = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
+  const totalQty = items.reduce((sum, item) => sum + parseFloat(item.qty || 0), 0);
+  const totalAmount = items.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
-  // ---------- Navigation between fields ----------
-  const navigateToNextField = () => {
-    const fieldsOrder = [
-      "salesman", "billNo", "mobile", "scrapProductName", 
-      "empName", "billDate", "customer", "qty", "items", "barcode"
-    ];
-    const currentIndex = fieldsOrder.indexOf(currentField);
-    
-    if (currentIndex < fieldsOrder.length - 1) {
-      const nextField = fieldsOrder[currentIndex + 1];
-      setCurrentField(nextField);
-      focusOnField(nextField);
-    } else {
-      // Move to table row barcode field
-      if (rows.length > 0) {
-        setCurrentField("rowBarcode");
-        setEditingCell({ rowId: rows[0].id, field: "barcode" });
-        setTimeout(() => {
-          const barcodeInput = document.querySelector(`input[data-row="${rows[0].id}"][data-field="barcode"]`);
-          if (barcodeInput) barcodeInput.focus();
-        }, 10);
-      }
-    }
+  // Handle form field changes
+  const handleFormChange = (field) => (event) => {
+    setFormData({
+      ...formData,
+      [field]: event.target.value
+    });
   };
 
-  const focusOnField = (field) => {
-    switch(field) {
-      case "salesman":
-        salesmanRef.current?.focus();
-        break;
-      case "billNo":
-        billNoRef.current?.focus();
-        break;
-      case "mobile":
-        mobileRef.current?.focus();
-        break;
-      case "scrapProductName":
-        scrapProductRef.current?.focus();
-        break;
-      case "empName":
-        empNameRef.current?.focus();
-        break;
-      case "billDate":
-        billDateRef.current?.focus();
-        break;
-      case "customer":
-        customerRef.current?.focus();
-        break;
-      case "qty":
-        qtyRef.current?.focus();
-        break;
-      case "items":
-        itemsRef.current?.focus();
-        break;
-      case "barcode":
-        barcodeRef.current?.focus();
-        break;
-    }
-    setFocusedInput(field);
-  };
-
-  // ---------- Row operations ----------
-  const addRowByBarcode = (barcode) => {
-    if (!barcode || barcode.trim() === "") {
-      showToast("Empty barcode");
-      return;
-    }
-
-    const product = productDB[barcode];
-    const newRow = {
-      id: nextId,
-      barcode,
-      itemName: product ? product.itemName : "Unknown Item",
-      stock: product ? product.stock : 0,
-      mrp: product ? product.mrp : 0,
-      uom: product ? product.uom : "KG",
-      hsn: product ? product.hsn : "",
-      tax: product ? product.tax : 18,
-      srate: product ? product.srate : 0,
-      wrate: product ? product.wrate : 0,
-      qty: 1,
-      amount: product ? product.srate : 0,
-    };
-
-    setRows((r) => [...r, newRow]);
-    setNextId((n) => n + 1);
-    setSelectedRowId(newRow.id);
-    setEditingCell({ rowId: newRow.id, field: "barcode" });
-    setCurrentField("rowBarcode");
-    showToast("Item added");
-    beep();
-  };
-
-  const handleBarcodeKey = (e) => {
-    if (e.key === "Enter") {
-      addRowByBarcode(form.barcode.trim());
-      updateField("barcode", "");
-    }
-  };
-
-  const editCell = (id, field, rawValue) => {
-    const value = 
-      field === "qty" || field === "srate" || field === "tax" || 
-      field === "stock" || field === "mrp" || field === "wrate" 
-        ? Number(rawValue) || 0 
-        : rawValue;
-    
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        const updated = { ...r, [field]: value };
+  // Handle item field changes
+  const handleItemChange = (id, field) => (event) => {
+    const updatedItems = items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: event.target.value };
         
-        // If barcode is entered, look up product details
-        if (field === "barcode" && value.trim() !== "") {
-          const product = productDB[value.trim()];
-          if (product) {
-            updated.itemName = product.itemName;
-            updated.stock = product.stock;
-            updated.mrp = product.mrp;
-            updated.uom = product.uom;
-            updated.hsn = product.hsn;
-            updated.tax = product.tax;
-            updated.srate = product.srate;
-            updated.wrate = product.wrate;
-            updated.qty = 1;
-          }
+        // Recalculate amount if qty or sRate changes
+        if (field === 'qty' || field === 'sRate') {
+          const qty = parseFloat(updatedItem.qty || 0);
+          const sRate = parseFloat(updatedItem.sRate || 0);
+          updatedItem.amount = (qty * sRate).toFixed(2).toString(); // Format to 2 decimal places
         }
         
-        updated.amount = calcAmount(updated);
-        return updated;
-      })
-    );
-  };
-
-  const handleCellKeyDown = (e, rowId, field) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      
-      const fieldsOrder = ["barcode", "itemName", "stock", "mrp", "uom", "hsn", "tax", "srate", "wrate", "qty"];
-      const currentIndex = fieldsOrder.indexOf(field);
-      
-      if (currentIndex < fieldsOrder.length - 1) {
-        // Move to next field in same row
-        const nextField = fieldsOrder[currentIndex + 1];
-        setEditingCell({ rowId, field: nextField });
-        setCurrentField("row" + nextField.charAt(0).toUpperCase() + nextField.slice(1));
-        
-        // Focus on the next field
-        setTimeout(() => {
-          const nextInput = document.querySelector(`input[data-row="${rowId}"][data-field="${nextField}"]`);
-          if (nextInput) nextInput.focus();
-        }, 10);
-      } else {
-        // On last field (QTY), create new empty row
-        const newRowId = nextId;
-        const newRow = {
-          id: newRowId,
-          barcode: "",
-          itemName: "",
-          stock: 0,
-          mrp: 0,
-          uom: "KG",
-          hsn: "",
-          tax: 18,
-          srate: 0,
-          wrate: 0,
-          qty: 0,
-          amount: 0,
-        };
-        
-        setRows((prev) => [...prev, newRow]);
-        setNextId((n) => n + 1);
-        setSelectedRowId(newRowId);
-        setEditingCell({ rowId: newRowId, field: "barcode" });
-        setCurrentField("rowBarcode");
-        
-        // Focus on new row's barcode field
-        setTimeout(() => {
-          const newBarcodeInput = document.querySelector(`input[data-row="${newRowId}"][data-field="barcode"]`);
-          if (newBarcodeInput) newBarcodeInput.focus();
-        }, 10);
-        
-        showToast("New row added");
+        return updatedItem;
       }
-    } else if (e.key === "Escape") {
-      setEditingCell(null);
-      setCurrentField(null);
-    }
+      return item;
+    });
+    setItems(updatedItems);
   };
 
-  const deleteRow = (id) => {
-    if (rows.length === 1) {
-      showToast("Cannot delete the only row");
-      return;
-    }
+  // Add new item row
+  const addItemRow = () => {
+    const newId = items.length > 0 ? Math.max(...items.map(item => item.id)) + 1 : 1;
+    const newSNo = items.length + 1;
     
-    setRows((prev) => prev.filter((r) => r.id !== id));
-    if (selectedRowId === id) {
-      const remainingRows = rows.filter(r => r.id !== id);
-      setSelectedRowId(remainingRows[0]?.id || null);
-    }
-    showToast("Item deleted");
-  };
-
-  const clearAll = () => {
-    setRows([
+    setItems([
+      ...items,
       {
-        id: 1,
-        barcode: "",
-        itemName: "",
-        stock: 0,
-        mrp: 0,
-        uom: "KG",
-        hsn: "",
-        tax: 18,
-        srate: 0,
-        wrate: 0,
-        qty: 0,
-        amount: 0,
+        id: newId,
+        sNo: newSNo,
+        barcode: '',
+        itemName: '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        sRate: '',
+        rate: '',
+        qty: '',
+        amount: ''
       }
     ]);
-    setNextId(2);
-    setSelectedRowId(1);
-    setEditingCell({ rowId: 1, field: "barcode" });
-    setCurrentField("salesman");
-    setForm({
-      salesman: "",
-      billNo: "C400001AA",
-      mobile: "8754603732",
-      scrapProductName: "Scrap Product Name",
-      empName: "EMP Name",
-      billDate: "",
-      customer: "Priyanka",
-      qty: "0",
-      items: "Items",
-      barcode: "",
+  };
+
+  // Delete item row
+  const deleteItemRow = (id) => {
+    const filteredItems = items.filter(item => item.id !== id);
+    // Update serial numbers
+    const updatedItems = filteredItems.map((item, index) => ({
+      ...item,
+      sNo: index + 1
+    }));
+    setItems(updatedItems);
+  };
+
+  // Handle Save action
+  const handleSave = () => {
+    console.log('Form Data:', formData);
+    console.log('Items:', items);
+    alert('Sales Return data saved successfully!');
+  };
+
+  // Handle Clear action
+  const handleClear = () => {
+    setFormData({
+      salesman: '',
+      empName: '',
+      billNo: 'SE00001AA',
+      billDate: new Date().toISOString().substring(0, 10),
+      mobileNo: '',
+      custName: '',
+      returnReason: '',
+      barcodeInput: '',
+      qty: '',
+      items: ''
     });
-    showToast("Cleared all items");
-    focusOnField("salesman");
-  };
-
-  const saveData = () => {
-    const payload = { form, rows, totalQty, totalAmount };
-    console.log("Saving payload: ", payload);
-    showToast("Sales return saved successfully");
-  };
-
-  // ---------- Keyboard shortcuts ----------
-  useEffect(() => {
-    const onKey = (ev) => {
-      // F2 moves focus to next field
-      if (ev.key === "F2") {
-        ev.preventDefault();
-        navigateToNextField();
-        showToast(`Focus: ${currentField}`);
-      }
-
-      if (ev.key === "F3") {
-        ev.preventDefault();
-        if (selectedRowId != null) {
-          deleteRow(selectedRowId);
-          showToast("Deleted row " + selectedRowId);
-        }
-      }
-
-      if (ev.key === "F4") {
-        ev.preventDefault();
-        saveData();
-      }
-
-      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "s") {
-        ev.preventDefault();
-        saveData();
-      }
-
-      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "p") {
-        ev.preventDefault();
-        window.print();
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selectedRowId, rows, currentField]);
-
-  // ---------- EXACT Styles matching the first image ----------
-  const styles = {
-    page: {
-      width: "100%",
-      minHeight: "100vh",
-      background: "#e8f4f8", // Light blue background from first image
-      fontFamily: "'Segoe UI', Arial, sans-serif",
-      padding: "20px",
-    },
-
-    // Header - Store Name
-    storeHeader: {
-      background: "linear-gradient(135deg, #1a5276 0%, #2e86c1 100%)", // Blue gradient from first image
-      color: "white",
-      padding: "15px 20px",
-      borderRadius: "8px 8px 0 0",
-      marginBottom: "0",
-      fontSize: "22px",
-      fontWeight: "bold",
-      textAlign: "center",
-      letterSpacing: "1px",
-      boxShadow: "0 2px 5px  #2e86c1",
-      borderBottom: "3px solid #154360",
-    },
-
-    // Main Container
-    mainContainer: {
-      background: "white",
-      borderRadius: "0 0 8px 8px",
-      boxShadow: "0 3px 10px  #2e86c1",
-      overflow: "hidden",
-      position: "relative",
-      paddingBottom: "60px", // Added padding for sticky footer
-    },
-
-    // Sales Return Header
-    salesReturnHeader: {
-      background: "linear-gradient(135deg, #2c3e50 0%, #34495e 100%)",
-      color: "white",
-      padding: "15px 25px",
-      fontSize: "20px",
-      fontWeight: "bold",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      borderBottom: "3px solid #1a252f",
-    },
-
-    // Form Section
-    formSection: {
-      padding: "25px",
-      borderBottom: "2px solid #eaeaea",
-      background: "white",
-    },
-
-    formGrid: {
-      display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
-      gap: "20px",
-      marginBottom: "0",
-    },
-
-    // Form Group
-    formGroup: {
-      display: "flex",
-      flexDirection: "column",
-    },
-
-    formLabel: {
-      fontSize: "13px",
-      fontWeight: "600",
-      color: "#2c3e50",
-      marginBottom: "8px",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
-    },
-
-    // Input Style
-    input: {
-      padding: "4px 6px",
-      border: "1px solid #999",
-      borderRadius: "3px",
-      fontSize: "12px",
-      height: "24px",
-      backgroundColor: "#fff",
-      outline: "none",
-      boxSizing: "border-box",
-    },
-
-    inputFocus: {
-      borderColor: "#2e86c1",
-      backgroundColor: "#fff",
-    },
-
-    // Table Section
-    tableSection: {
-      padding: "25px",
-      background: "white",
-    },
-
-    tableHeader: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "20px",
-    },
-
-    tableTitle: {
-      fontSize: "18px",
-      fontWeight: "bold",
-      color: "#1a5276",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-    },
-
-    searchContainer: {
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-    },
-
-    searchLabel: {
-      fontSize: "14px",
-      fontWeight: "600",
-      color: "#2c3e50",
-    },
-
-    searchInput: {
-      padding: "10px 15px",
-      border: "2px solid #bdc3c7",
-      borderRadius: "6px",
-      fontSize: "14px",
-      width: "250px",
-      outline: "none",
-      height: "40px",
-      boxSizing: "border-box",
-      backgroundColor: "#f8f9fa",
-      fontFamily: "inherit",
-    },
-
-    // Table Styles
-    tableWrapper: {
-      overflowX: "auto",
-      borderRadius: "8px",
-      border: "2px solid #e0e0e0",
-      boxShadow: " #2e86c1",
-    },
-
-    table: {
-      width: "100%",
-      borderCollapse: "collapse",
-      fontSize: "13px",
-      minWidth: "1200px", // Increased for more columns
-    },
-
-    tableHead: {
-      background: "linear-gradient(135deg,  #2e86c1)",
-    },
-
-    th: {
-      padding: "12px 8px", // Reduced padding
-      textAlign: "left",
-      fontSize: "11px", // Smaller font for more columns
-      fontWeight: "bold",
-      color: "white",
-      borderRight: "1px solid #3d566e",
-      whiteSpace: "nowrap",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
-    },
-
-    td: {
-      padding: "8px 6px", // Reduced padding
-      borderBottom: "1px solid #e0e0e0",
-      borderRight: "1px solid #e0e0e0",
-      color: "#2c3e50",
-      fontSize: "12px", // Smaller font
-      verticalAlign: "middle",
-    },
-
-    // Table row styling
-    tr: {
-      transition: "background-color 0.2s",
-    },
-
-    trHover: {
-      backgroundColor: "#f5f9ff",
-    },
-
-    trSelected: {
-      backgroundColor: "#e8f4fc",
-    },
-
-    // Table Input Style
-    tableInput: {
-      width: "100%",
-      padding: "3px 5px",
-      border: "1px solid #ccc",
-      borderRadius: "3px",
-      fontSize: "12px",
-      height: "22px",
-      backgroundColor: "#fff",
-      outline: "none",
-      boxSizing: "border-box",
-    },
-
-    tableInputFocus: {
-      borderColor: "#2e86c1",
-      boxShadow: "0 0 0 1px rgba(46, 134, 193, 0.2)",
-    },
-
-    // Action Button in Table
-    actionButton: {
-      padding: "6px 10px", // Smaller button
-      borderRadius: "3px",
-      border: "none",
-      fontSize: "11px",
-      fontWeight: "bold",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "4px",
-      transition: "all 0.3s",
-      height: "28px",
-      minWidth: "70px",
-      fontFamily: "inherit",
-      textTransform: "uppercase",
-      backgroundColor: "#e74c3c",
-      color: "white",
-    },
-
-    actionButtonHover: {
-      backgroundColor: "#c0392b",
-      transform: "translateY(-1px)",
-    },
-
-    // Add Item Button
-    addItemButton: {
-      padding: "12px 25px",
-      borderRadius: "6px",
-      border: "none",
-      fontSize: "14px",
-      fontWeight: "bold",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-      transition: "all 0.3s",
-      minWidth: "150px",
-      height: "45px",
-      fontFamily: "inherit",
-      letterSpacing: "0.5px",
-      textTransform: "uppercase",
-      backgroundColor: "#27ae60",
-      color: "white",
-      marginTop: "20px",
-      border: "2px solid #219653",
-    },
-
-    addItemButtonHover: {
-      backgroundColor: "#219653",
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 8px rgba(39, 174, 96, 0.3)",
-    },
-
-    // Toast Notification
-    toast: {
-      position: "fixed",
-      bottom: "25px",
-      right: "25px",
-      background: "linear-gradient(135deg, #2c3e50 0%, #34495e 100%)",
-      color: "white",
-      padding: "15px 25px",
-      borderRadius: "8px",
-      boxShadow: "0 6px 15px rgba(0,0,0,0.2)",
-      display: "flex",
-      alignItems: "center",
-      gap: "12px",
-      minWidth: "280px",
-      zIndex: 1000,
-      animation: "slideIn 0.3s ease",
-      borderLeft: "4px solid #3498db",
-    },
-  };
-
-  // Helper function to get input style based on focus state
-  const getInputStyle = (field) => {
-    const baseStyle = styles.input;
-    if (focusedInput === field) {
-      return { ...baseStyle, ...styles.inputFocus };
-    }
-    return baseStyle;
-  };
-
-  const getTableInputStyle = (rowId, field) => {
-    const baseStyle = styles.tableInput;
-    if (editingCell?.rowId === rowId && editingCell?.field === field) {
-      return { ...baseStyle, ...styles.tableInputFocus };
-    }
-    return baseStyle;
-  };
-
-  // Handle Enter key in form fields
-  const handleFormFieldKeyDown = (e, field) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      navigateToNextField();
-    }
-  };
-
-  // Add empty row
-  const addEmptyRow = () => {
-    const newRowId = nextId;
-    const newRow = {
-      id: newRowId,
-      barcode: "",
-      itemName: "",
-      stock: 0,
-      mrp: 0,
-      uom: "KG",
-      hsn: "",
-      tax: 18,
-      srate: 0,
-      wrate: 0,
-      qty: 0,
-      amount: 0,
-    };
     
-    setRows((prev) => [...prev, newRow]);
-    setNextId((n) => n + 1);
-    setSelectedRowId(newRowId);
-    setEditingCell({ rowId: newRowId, field: "barcode" });
-    setCurrentField("rowBarcode");
+    setItems([]); // Clear all items
     
-    setTimeout(() => {
-      const newBarcodeInput = document.querySelector(`input[data-row="${newRowId}"][data-field="barcode"]`);
-      if (newBarcodeInput) newBarcodeInput.focus();
-    }, 10);
-    
-    showToast("New item row added");
+    alert('Form cleared!');
   };
 
-  // ---------- Render ----------
+  // Base style object for cleaner code in the action buttons
+  const baseButtonStyle = {
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '14px',
+    justifyContent: 'center',
+    whiteSpace: 'nowrap',
+    transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
+  };
+
+  /**
+   * Helper component for uniform input fields with left-aligned labels (for the header)
+   * The 'grid' container will handle the straight arrangement.
+   */
+  const FormInput = ({ label, field, type = "text", placeholder = "", minWidth = '120px', value, onChange, readOnly = false, isSelect = false, options = [] }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: minWidth, flex: '1 1 auto' }}>
+      <label style={{ fontWeight: '500', fontSize: '14px', textAlign: 'left', color: '#333' }}>
+        {label}
+      </label>
+      {isSelect ? (
+        <select
+          style={{
+            padding: '8px',
+            border: 'none', // UPDATED: Removed border
+            borderRadius: '4px',
+            fontSize: '14px',
+            backgroundColor: readOnly ? '#f0f0f0' : 'white',
+            outline: 'none' // Remove outline on focus
+          }}
+          value={value}
+          onChange={onChange(field)}
+          readOnly={readOnly}
+          disabled={readOnly}
+        >
+          {options.map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={type}
+          style={{
+            padding: '8px',
+            border: 'none', // UPDATED: Removed border
+            borderRadius: '4px',
+            fontSize: '14px',
+            backgroundColor: readOnly ? '#f0f0f0' : 'white',
+            outline: 'none' // Remove outline on focus
+          }}
+          value={value}
+          onChange={onChange(field)}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      )}
+    </div>
+  );
+
+  // Common style for input fields within the table for brevity - UPDATED: Removed border
+  const tableInputStyle = {
+    width: '100%', 
+    padding: '4px', 
+    border: 'none', // UPDATED: Removed border
+    fontSize: '14px', 
+    background: 'transparent',
+    textAlign: 'center',
+    outline: 'none' // Remove outline on focus
+  };
+
   return (
-    <div style={styles.page}>
-      {/* Main Container */}
-      <div style={styles.mainContainer}>
-        {/* Form Section */}
-        <div style={styles.formSection}>
-          <div 
-            style={{
-              display: "grid",
-              gridTemplateColumns: "150px 1fr 150px 1fr 150px 1fr 150px 1fr",
-              rowGap: "18px",
-              columnGap: "18px",
-              alignItems: "center"
-            }}
-          >
+    <div style={{ 
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh',
+      padding: '4px',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{ 
+        backgroundColor: '#ffffff',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        padding: '12px 8px',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {/* Main Content - Scrollable */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
+          
+          <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #ddd' }} />
 
-            {/* Salesman */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Salesman :</label>
-              <input 
-                ref={salesmanRef}
-                style={getInputStyle('salesman')}
-                value={form.salesman}
-                onChange={(e) => updateField("salesman", e.target.value)}
-                onFocus={() => { setFocusedInput('salesman'); setCurrentField('salesman'); }}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'salesman')}
+          {/* Form Section - UPDATED: Borderless input fields */}
+          <div style={{ 
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '16px 24px',
+            marginBottom: '16px',
+            padding: '8px'
+          }}>
+            
+            {/* Row 1 */}
+            {/* Salesman: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Salesman:</span>
+              <input
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  minWidth: '120px',
+                  outline: 'none' // Remove outline on focus
+                }}
+                value={formData.salesman}
+                onChange={handleFormChange('salesman')}
                 placeholder="Enter Salesman"
               />
             </div>
 
-            {/* Bill No */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Bill No :</label>
-              <input 
-                ref={billNoRef}
-                style={getInputStyle('billNo')}
-                value={form.billNo}
-                onChange={(e) => updateField("billNo", e.target.value)}
-                onFocus={() => { setFocusedInput('billNo'); setCurrentField('billNo'); }}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'billNo')}
+            {/* IINo: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '150px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>BIINo:</span>
+              <input
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  backgroundColor: '#f0f0f0',
+                  outline: 'none' // Remove outline on focus
+                }}
+                value={formData.billNo}
+                readOnly
               />
             </div>
 
-            {/* Mobile */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Mobile No :</label>
-              <input 
-                ref={mobileRef}
-                style={getInputStyle('mobile')}
-                value={form.mobile}
-                onChange={(e) => updateField("mobile", e.target.value)}
-                onFocus={() => { setFocusedInput('mobile'); setCurrentField('mobile'); }}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'mobile')}
+            {/* Mobile No: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Mobile No:</span>
+              <input
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  outline: 'none' // Remove outline on focus
+                }}
+                value={formData.mobileNo}
+                onChange={handleFormChange('mobileNo')}
+                placeholder="Mobile No"
               />
             </div>
 
-            {/* Scrap Product Name */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Scrap Product Name :</label>
-              <input 
-                ref={scrapProductRef}
-                style={getInputStyle('scrapProductName')}
-                value={form.scrapProductName}
-                onChange={(e) => updateField("scrapProductName", e.target.value)}
-                onFocus={() => { setFocusedInput('scrapProductName'); setCurrentField('scrapProductName'); }}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'scrapProductName')}
+            {/* Row 2 */}
+            {/* EMP Name: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>EMP Name:</span>
+              <input
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  outline: 'none' // Remove outline on focus
+                }}
+                value={formData.empName}
+                onChange={handleFormChange('empName')}
+                placeholder="EMP Name"
               />
             </div>
 
-            {/* EMP Name */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>EMP Name :</label>
-              <input 
-                ref={empNameRef}
-                style={getInputStyle('empName')}
-                value={form.empName}
-                onChange={(e) => updateField("empName", e.target.value)}
-                onFocus={() => { setFocusedInput('empName'); setCurrentField('empName'); }}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'empName')}
+            {/* Bill Date: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Bill Date:</span>
+              <input
+                type="date"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  outline: 'none' // Remove outline on focus
+                }}
+                value={formData.billDate}
+                onChange={handleFormChange('billDate')}
               />
             </div>
 
-            {/* Bill Date */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Bill Date :</label>
-              <input 
-                ref={billDateRef}
-                style={getInputStyle('billDate')}
-                value={form.billDate}
-                onChange={(e) => updateField("billDate", e.target.value)}
-                onFocus={() => { setFocusedInput('billDate'); setCurrentField('billDate'); }}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'billDate')}
-                placeholder="dd/mm/yyyy"
+            {/* Customer Name: Input Box - UPDATED: Borderless */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Customer Name:</span>
+              <input
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  outline: 'none' // Remove outline on focus
+                }}
+                value={formData.custName}
+                onChange={handleFormChange('custName')}
+                placeholder="Customer Name"
               />
             </div>
 
-            {/* Customer Name */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Customer Name :</label>
-              <input 
-                ref={customerRef}
-                style={getInputStyle('customer')}
-                value={form.customer}
-                onChange={(e) => updateField("customer", e.target.value)}
-                onFocus={() => { setFocusedInput('customer'); setCurrentField('customer'); }}
-                onKeyDown={(e) => handleFormFieldKeyDown(e, 'customer')}
-              />
+            {/* BARCODE INPUT: Input Box - UPDATED: Borderless and removed space */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '280px' }}>
+              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap', minWidth: '100px' }}>BARCODE:</span>
+              <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                <input
+                  type="text"
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    border: "1px solid #e0e0e0", // UPDATED: Removed border
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    minWidth: '0',
+                    outline: 'none' // Remove outline on focus
+                  }}
+                  value={formData.barcodeInput}
+                  onChange={handleFormChange('barcodeInput')}
+                  placeholder="Scan or Enter Barcode"
+                />
+              </div>
             </div>
-
-            {/* BARCODE (NEW) */}
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Barcode :</label>
-              <input 
-                ref={barcodeRef}
-                style={getInputStyle('barcode')}
-                value={form.barcode}
-                onChange={(e) => updateField("barcode", e.target.value)}
-                onFocus={() => { setFocusedInput('barcode'); setCurrentField('barcode'); }}
-                onKeyDown={(e) => { handleFormFieldKeyDown(e, 'barcode'); handleBarcodeKey(e); }}
-                placeholder="Scan Barcode"
-              />
-            </div>
-
           </div>
-          {/* Close formGrid */}
-        </div>
-        {/* Close formSection */}
 
-        {/* Table Section */}
-        <div style={styles.tableSection}>
-          <div style={styles.tableHeader}>
-            {/* Table header content */}
-          </div>
-            
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead style={styles.tableHead}>
-                <tr>
-                  <th style={styles.th}>BARCODE</th>
-                  <th style={styles.th}>ITEM NAME</th>
-                  <th style={styles.th}>STOCK</th>
-                  <th style={styles.th}>MRP</th>
-                  <th style={styles.th}>UOM</th>
-                  <th style={styles.th}>HSN</th>
-                  <th style={styles.th}>TAX</th>
-                  <th style={styles.th}>SRATE</th>
-                  <th style={styles.th}>WRATE</th>
-                  <th style={styles.th}>QTY</th>
-                  <th style={styles.th}>AMOUNT</th>
-                  <th style={styles.th}>ACTION</th>
-                </tr>
-              </thead>
+          <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #ddd' }} />
 
-              <tbody>
-                {rows.map((r) => (
-                  <tr 
-                    key={r.id}
-                    onClick={() => {
-                      setSelectedRowId(r.id);
-                      setCurrentField("rowBarcode");
-                      setEditingCell({ rowId: r.id, field: "barcode" });
-                    }}
-                    style={{
-                      ...styles.tr,
-                      ...(selectedRowId === r.id ? styles.trSelected : {}),
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f5f9ff"}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedRowId === r.id ? "#e8f4fc" : "white"}
-                  >
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="barcode"
-                        style={getTableInputStyle(r.id, "barcode")}
-                        value={r.barcode}
-                        onChange={(e) => editCell(r.id, "barcode", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "barcode" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowBarcode");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "barcode")}
-                      />
-                    </td>
+          {/* Items Table - UPDATED WITH BORDERLESS INPUTS */}
+          <div style={{ 
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            marginBottom: '16px',
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            {/* Top Scrollbar Container */}
+            <div style={{ 
+              position: 'sticky',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 20,
+              backgroundColor: '#f5f5f5',
+              borderBottom: '1px solid #ddd',
+              height: '10px'
+            }}>
+              <div style={{ 
+                overflowX: 'auto',
+                height: '100%',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}>
+                <div style={{ 
+                  width: '1200px',
+                  height: '100%'
+                }}></div>
+              </div>
+            </div>
+
+            {/* Main Table Container */}
+            <div style={{ 
+              overflowX: 'auto',
+              maxHeight: '400px', // Fixed height for vertical scrolling
+              position: 'relative'
+            }}>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse', 
+                fontSize: '14px', 
+                minWidth: '1200px'
+              }}>
+                <thead style={{
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 10,
+                  backgroundColor: '#1976d2'
+                }}>
+                  <tr style={{ backgroundColor: '#1976d2' }}>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '50px' }}>SNo</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '140px' }}>Barcode</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '200px' }}>Item Name</th>
                     
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="itemName"
-                        style={getTableInputStyle(r.id, "itemName")}
-                        value={r.itemName}
-                        onChange={(e) => editCell(r.id, "itemName", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "itemName" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowItemName");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "itemName")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="stock"
-                        style={getTableInputStyle(r.id, "stock")}
-                        value={r.stock}
-                        onChange={(e) => editCell(r.id, "stock", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "stock" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowStock");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "stock")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="mrp"
-                        style={getTableInputStyle(r.id, "mrp")}
-                        value={r.mrp}
-                        onChange={(e) => editCell(r.id, "mrp", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "mrp" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowMrp");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "mrp")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="uom"
-                        style={getTableInputStyle(r.id, "uom")}
-                        value={r.uom}
-                        onChange={(e) => editCell(r.id, "uom", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "uom" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowUom");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "uom")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="hsn"
-                        style={getTableInputStyle(r.id, "hsn")}
-                        value={r.hsn}
-                        onChange={(e) => editCell(r.id, "hsn", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "hsn" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowHsn");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "hsn")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="tax"
-                        style={getTableInputStyle(r.id, "tax")}
-                        value={r.tax}
-                        onChange={(e) => editCell(r.id, "tax", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "tax" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowTax");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "tax")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="srate"
-                        style={getTableInputStyle(r.id, "srate")}
-                        value={r.srate}
-                        onChange={(e) => editCell(r.id, "srate", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "srate" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowSrate");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "srate")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="wrate"
-                        style={getTableInputStyle(r.id, "wrate")}
-                        value={r.wrate}
-                        onChange={(e) => editCell(r.id, "wrate", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "wrate" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowWrate");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "wrate")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <input
-                        data-row={r.id}
-                        data-field="qty"
-                        style={getTableInputStyle(r.id, "qty")}
-                        value={r.qty}
-                        onChange={(e) => editCell(r.id, "qty", e.target.value)}
-                        onFocus={() => {
-                          setEditingCell({ rowId: r.id, field: "qty" });
-                          setSelectedRowId(r.id);
-                          setCurrentField("rowQty");
-                        }}
-                        onBlur={() => {}}
-                        onKeyDown={(e) => handleCellKeyDown(e, r.id, "qty")}
-                      />
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <span style={{ fontWeight: "bold", color: "#2c3e50", fontSize: "12px" }}>
-                        ₹{r.amount.toLocaleString('en-IN')}
-                      </span>
-                    </td>
-                    
-                    <td style={styles.td}>
-                      <button
-                        style={styles.actionButton}
-                        onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.actionButtonHover)}
-                        onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.actionButton)}
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          deleteRow(r.id);
-                        }}
-                      >
-                        <FaTimes /> Delete
-                      </button>
-                    </td>
+                    {/* *** Column Order Matching Image Starts Here *** */}
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>Stock</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>MRP</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>UOM</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>HSN</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>TAX</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>SRATE</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>RATE</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>QTY</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'right', whiteSpace: 'nowrap', width: '100px' }}>AMOUNT</th>
+                    {/* *** Column Order Matching Image Ends Here *** */}
+
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>ACTION</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+                      {/* SNo */}
+                      <td style={{ padding: '8px', whiteSpace: 'nowrap', textAlign: 'center' }}>{item.sNo}</td>
+                      
+                      {/* Barcode - UPDATED: Borderless */}
+                      <td style={{ padding: '12px 8px' }}>
+                        <input
+                          type="text"
+                          style={{ 
+                            ...tableInputStyle, 
+                            fontWeight: '500', 
+                            textAlign: 'left',
+                            padding: '8px 4px',
+                            width: 'calc(100% - 8px)'
+                          }}
+                          value={item.barcode}
+                          onChange={handleItemChange(item.id, 'barcode')}
+                          placeholder="Barcode"
+                        />
+                      </td>
+                      
+                      {/* Item Name - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={{ ...tableInputStyle, textAlign: 'left' }}
+                          value={item.itemName}
+                          onChange={handleItemChange(item.id, 'itemName')}
+                          placeholder="Item Name"
+                        />
+                      </td>
+                      
+                      {/* Stock - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.stock || ''}
+                          onChange={handleItemChange(item.id, 'stock')}
+                          placeholder="Stock"
+                        />
+                      </td>
+                      
+                      {/* MRP - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.mrp || ''}
+                          onChange={handleItemChange(item.id, 'mrp')}
+                          placeholder="MRP"
+                        />
+                      </td>
+                      
+                      {/* UOM - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.uom}
+                          onChange={handleItemChange(item.id, 'uom')}
+                          placeholder="UOM"
+                        />
+                      </td>
+                      
+                      {/* HSN - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.hsn || ''}
+                          onChange={handleItemChange(item.id, 'hsn')}
+                          placeholder="HSN"
+                        />
+                      </td>
+                      
+                      {/* TAX - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="number"
+                          style={tableInputStyle}
+                          value={item.tax}
+                          onChange={handleItemChange(item.id, 'tax')}
+                          placeholder="Tax"
+                        />
+                      </td>
+                      
+                      {/* SRATE - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="number"
+                          style={tableInputStyle}
+                          value={item.sRate}
+                          onChange={handleItemChange(item.id, 'sRate')}
+                          placeholder="S Rate"
+                        />
+                      </td>
+                      
+                      {/* RATE - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={tableInputStyle}
+                          value={item.rate || ''}
+                          onChange={handleItemChange(item.id, 'rate')}
+                          placeholder="Rate"
+                        />
+                      </td>
+                      
+                      {/* QTY - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="number"
+                          style={{ ...tableInputStyle, fontWeight: 'bold' }}
+                          value={item.qty}
+                          onChange={handleItemChange(item.id, 'qty')}
+                          placeholder="Qty"
+                        />
+                      </td>
+                      
+                      {/* AMOUNT - UPDATED: Borderless */}
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          style={{ ...tableInputStyle, textAlign: 'right', fontWeight: 'bold', color: '#1565c0' }}
+                          value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                          placeholder="Amount"
+                          readOnly
+                        />
+                      </td>
+                      
+                      {/* ACTION */}
+                      <td style={{ padding: '8px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <button
+                          onClick={() => deleteItemRow(item.id)}
+                          style={{ background: 'none', border: 'none', color: '#d32f2f', cursor: 'pointer', padding: '4px' }}
+                          onMouseEnter={(e) => e.currentTarget.style.color = '#b71c1c'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = '#d32f2f'}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Bottom Scrollbar Container */}
+            <div style={{ 
+              position: 'sticky',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 20,
+              backgroundColor: '#f5f5f5',
+              borderTop: '1px solid #ddd',
+              height: '10px'
+            }}>
+              <div style={{ 
+                overflowX: 'auto',
+                height: '100%',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}>
+                <div style={{ 
+                  width: '1200px',
+                  height: '100%'
+                }}></div>
+              </div>
+            </div>
+            
+            {/* Add Item Button (outside table structure) */}
+            <div style={{ padding: '12px', textAlign: 'left' }}>
+              <button
+                onClick={addItemRow}
+                style={{ 
+                  backgroundColor: '#1976d2',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '14px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
+              >
+                <AddIcon fontSize="small" /> Add Item
+              </button>
+            </div>
           </div>
-          {/* Close tableWrapper */}
 
-          {/* Add Item Button */}
-          <button 
-            style={styles.addItemButton}
-            onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.addItemButtonHover)}
-            onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.addItemButton)}
-            onClick={addEmptyRow}
-          >
-            <FaPlus /> Add Item
-          </button>
-        </div>
-        {/* Close tableSection */}
-      </div>
-      {/* Close mainContainer */}
-
-      {/* FINAL FOOTER EXACT LIKE YOUR SCREENSHOT */}
-      <div style={{
-        position: "fixed",
-        bottom: "0",
-        left: "0",
-        right: "0",
-        background: "#fff",
-        padding: "12px 25px",
-        borderTop: "1px solid #ddd",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        zIndex: 999,
-      }}>
-
-        {/* LEFT BUTTON GROUP */}
-        <div style={{ display: "flex", gap: "10px" }}>
-          
-          {/* ADD */}
-          <button style={{
-            background: "#0d6efd",
-            border: "1px solid #0d6efd",
-            padding: "6px 18px",
-            color: "#fff",
-            borderRadius: "4px",
-            fontSize: "14px",
-            fontWeight: "600",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
+          {/* Totals Section (Aligned Right) */}
+          <div style={{ 
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '12px',
+            marginBottom: '16px',
+            flexWrap: 'wrap',
+            paddingRight: '8px'
           }}>
-            <FaPlus /> Add
-          </button>
-
-          {/* EDIT */}
-          <button style={{
-            background: "#fff",
-            border: "1px solid #0d6efd",
-            padding: "6px 18px",
-            color: "#0d6efd",
-            borderRadius: "4px",
-            fontSize: "14px",
-            fontWeight: "600",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}>
-            <FaEdit /> Edit
-          </button>
-
-          {/* DELETE */}
-          <button style={{
-            background: "#fff",
-            border: "1px solid #dc3545",
-            padding: "6px 18px",
-            color: "#dc3545",
-            borderRadius: "4px",
-            fontSize: "14px",
-            fontWeight: "600",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}>
-            <FaTrash /> Delete
-          </button>
-
+            <div style={{ 
+              padding: '12px 16px', 
+              backgroundColor: '#e3f2fd', 
+              borderRadius: '4px',
+              minWidth: '200px',
+              textAlign: 'right'
+            }}>
+              <h3 style={{ fontWeight: 'bold', fontSize: '16px', margin: 0, color: '#1976d2' }}>
+                Total Qty: <span style={{ color: '#0d47a1' }}>{totalQty}</span>
+              </h3>
+            </div>
+            <div style={{ 
+              padding: '12px 16px', 
+              backgroundColor: '#e3f2fd', 
+              borderRadius: '4px',
+              minWidth: '200px',
+              textAlign: 'right'
+            }}>
+              <h3 style={{ fontWeight: 'bold', fontSize: '16px', margin: 0, color: '#1976d2' }}>
+                Total Amount: ₹<span style={{ color: '#0d47a1' }}>
+                  {totalAmount.toLocaleString('en-IN', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}
+                </span>
+              </h3>
+            </div>
+          </div>
         </div>
 
+        {/* Fixed Action Bar at bottom */}
+        <div style={{ 
+          position: 'sticky',
+          bottom: '0',
+          left: '0',
+          right: '0',
+          backgroundColor: 'white',
+          padding: '12px',
+          borderTop: '1px solid #ddd',
+          borderRadius: '0 0 8px 8px',
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+          zIndex: 100,
+          marginTop: 'auto'
+        }}>
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap'
+          }}>
+            {/* Left side: ADD, EDIT, DELETE buttons - Kept for general Item management */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button 
+                onClick={addItemRow} // Map ADD button to addItemRow
+                style={{ ...baseButtonStyle, backgroundColor: '#1976d2', color: 'white', minWidth: '90px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
+              >
+                <AddIcon fontSize="small" /> ADD
+              </button>
+              <button 
+                // Placeholder for EDIT functionality
+                style={{ ...baseButtonStyle, backgroundColor: 'transparent', color: '#1976d2', border: '1px solid #1976d2', minWidth: '90px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e3f2fd'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <EditIcon fontSize="small" /> EDIT
+              </button>
+              <button 
+                // Placeholder for DELETE functionality (item-level delete is in the table)
+                style={{ ...baseButtonStyle, backgroundColor: 'transparent', color: '#d32f2f', border: '1px solid #d32f2f', minWidth: '90px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ffebee'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <DeleteIcon fontSize="small" /> DELETE
+              </button>
+            </div>
 
-        {/* RIGHT BUTTON GROUP */}
-        <div style={{ display: "flex", gap: "12px" }}>
-
-          {/* CLEAR */}
-          <button style={{
-            background: "#fff",
-            border: "1px solid #999",
-            padding: "6px 20px",
-            color: "#333",
-            borderRadius: "4px",
-            fontSize: "14px",
-            fontWeight: "600",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-          onClick={clearAll}
-          >
-            <FaTimes /> Clear
-          </button>
-
-          {/* SAVE BILL */}
-          <button 
-            style={{
-              background: "#0d6efd",
-              border: "1px solid #0d6efd",
-              padding: "6px 20px",
-              color: "#fff",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: "600",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-            onClick={saveData}
-          >
-            <FaSave /> Save
-          </button>
+            {/* Right side: Clear and Save Bill buttons */}
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleClear}
+                style={{ ...baseButtonStyle, backgroundColor: 'transparent', color: '#666', border: '1px solid #666', minWidth: '100px' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f5f5f5'; e.currentTarget.style.borderColor = '#333'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = '#666'; }}
+              >
+                <ClearIcon fontSize="small" /> Clear
+              </button>
+              <button
+                onClick={handleSave}
+                style={{ ...baseButtonStyle, backgroundColor: '#4caf50', color: 'white', minWidth: '120px' }} 
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#388e3c'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4caf50'}
+              >
+                <SaveIcon fontSize="small" /> Save Return
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-      {/* Close footer */}
 
-      {toast && (
-        <div style={styles.toast}>
-          <FaShoppingCart /> {toast}
-        </div>
-      )}
+      {/* Global CSS for smooth scrollbars */}
+      <style jsx="true">{`
+        /* Smooth scrollbar styling for the entire application */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #c1c1c1 #f5f5f5;
+        }
+        
+        /* For Webkit browsers (Chrome, Safari, Edge) */
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: #f5f5f5;
+          border-radius: 4px;
+          margin: 2px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 4px;
+          transition: background 0.3s ease;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
+        }
+        
+        /* For Firefox */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #c1c1c1 #f5f5f5;
+        }
+        
+        /* Table specific scrollbar styling */
+        .table-container::-webkit-scrollbar {
+          height: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+          background: #f5f5f5;
+          border-radius: 4px;
+          margin: 2px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 4px;
+          transition: background 0.3s ease;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
+        }
+        
+        /* Hide scrollbar for top and bottom containers */
+        .scroll-container-hidden::-webkit-scrollbar {
+          display: none;
+        }
+        
+        .scroll-container-hidden {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        /* Smooth scrolling for the entire page */
+        html {
+          scroll-behavior: smooth;
+        }
+      `}</style>
     </div>
   );
-}
+};
+
+
+export default Salesreturn;
