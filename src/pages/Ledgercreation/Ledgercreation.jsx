@@ -283,7 +283,8 @@ export default function LedgerCreation({ onCreated }) {
   const handleSelectNode = (node) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
-    setIsTreeOpen(true);
+    setIsTreeOpen(false);
+    setTimeout(() => partyNameRef.current?.focus(), 100);
   };
 
   const handleChange = (name, value) => {

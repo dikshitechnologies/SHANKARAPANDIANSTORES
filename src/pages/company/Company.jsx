@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import image from '../../assets/dikshi.png';
 import './Company.css';
 import apiService from "../../api/apiService";
 import { API_ENDPOINTS } from '../../api/endpoints';
@@ -239,8 +238,7 @@ const Company = () => {
       // Format data for the popup
       const formatted = res.map((item) => ({
         code: item.fcompcode || '',
-        name: item.fcompname || '',
-      
+        name: item.fcompname || ''
       }));
       
       // Filter by search text if provided
@@ -404,20 +402,21 @@ const Company = () => {
       template: "",
       noofprint: "",
       message: "",
-      jewellerysales: "N",
+      jewellerysales: "",
       senderid: "",
-      lessqty: "N",
+      lessqty: "",
       qtyformat: "",
-      barcode: "N",
-      balinsales: "N",
+      barcode: "",
+      balinsales: "",
       calculation: "",
-      showstock: "N",
-      cpinsales: "N",
+      showstock: "",
+      cpinsales: "",
       backuppath: "",
       cpcode: "",
       backupdbi: "",
       desc1: "",
-      narrationToggle: "N"
+      narrationToggle: "N",
+      senderID: ""
     });
     setCompanyColor("#ff0000");
     setAddressColor("#00ff00");
@@ -1159,7 +1158,7 @@ const Company = () => {
           {/* Right Column - Table */}
           <div className="right-column">
             <div className="card table-card">
-              <h3 style={{ color: "#06A7EA", marginBottom: "10px" }}>
+              <h3 style={{ color: "#06A7EA", marginBottom: "10px", textAlign: "center" }}>
                 Company List
               </h3>
               <p
@@ -1168,6 +1167,7 @@ const Company = () => {
                   color: "#666",
                   marginBottom: "15px",
                   flexShrink: 0,
+                  textAlign: "center"
                 }}
               >
                 💡 Click a row to load company details for editing.
