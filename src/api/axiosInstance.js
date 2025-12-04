@@ -15,7 +15,7 @@ export default axiosInstance;
 
 
 export const api = axios.create({
-  baseURL: "http://dikshiserver/jewellbisreact/api/",
+  baseURL: "http://dikshiserver/spstores/api/",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

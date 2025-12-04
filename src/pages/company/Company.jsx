@@ -3,6 +3,7 @@ import image from '../../assets/dikshi.png';
 import './Company.css';
 import apiService from "../../api/apiService";
 import { API_ENDPOINTS } from '../../api/endpoints';
+import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 
 
 // --- SVG Icons ---
@@ -56,93 +57,6 @@ const SearchIcon = () => (
   </svg>
 );
 
-// Popup Component for Edit/Delete Selection
-const CompanySelectionPopup = ({ 
-  isOpen, 
-  onClose, 
-  companies, 
-  onSelect, 
-  title
-}) => {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredCompanies = companies.filter(
-    (item) =>
-      item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  if (!isOpen) return null;
-
-  
-
-  return (
-    <div className="popup-overlay">
-      <div className="popup-content">
-        <div className="popup-header">
-          <h3>{title}</h3>
-          <button className="close-btn" onClick={onClose}>
-            ×
-          </button>
-        </div>
-        
-        <div className="popup-body">
-          <div className="search-bar">
-            <span className="search-icon">
-              <SearchIcon />
-            </span>
-            <input
-              type="text"
-              placeholder="Search by code or name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="popup-table-container">
-            <table className="popup-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "30%" }}>Code</th>
-                  <th style={{ width: "70%" }}>Company Name</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCompanies.length ? (
-                  filteredCompanies.map((item) => (
-                    <tr
-                      key={item.code}
-                      onClick={() => {
-                        onSelect(item);
-                        onClose();
-                      }}
-                      className="popup-row"
-                    >
-                      <td>{item.code}</td>
-                      <td>{item.name}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="2"
-                      style={{ textAlign: "center", color: "#888", padding: "2rem" }}
-                    >
-                      No companies found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-  
-
-
 // Mock permissions hook (replace with your actual implementation)
 const useFormPermissions = (formType) => {
   return {
@@ -151,8 +65,6 @@ const useFormPermissions = (formType) => {
     canDelete: true
   };
 };
-
-
 
 const Company = () => {
   const [selectedAction, setSelectedAction] = useState("create");
@@ -217,9 +129,11 @@ const Company = () => {
   const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupTitle, setPopupTitle] = useState("");
+  const [popupMode, setPopupMode] = useState(""); // 'edit' or 'delete'
   
   // Form permissions hook
   const { canCreate, canEdit, canDelete } = useFormPermissions("COMPANY");
+  
   // Refs for keyboard navigation
   const companyNameRef = useRef(null);
   const gstinRef = useRef(null);
@@ -300,7 +214,7 @@ const Company = () => {
     }
   };
 
-  // ✅ Fetch company list
+  // ✅ Fetch company list for the popup
   const fetchCompanyList = async () => {
     try {
       const res = await apiService.get(API_ENDPOINTS.COMPANY_ENDPOINTS.GET_COMPANY_LIST);
@@ -315,6 +229,34 @@ const Company = () => {
     }
   };
 
+  // Function to fetch data for the popup (compatible with PopupListSelector)
+  const fetchCompaniesForPopup = async (pageNum, searchText) => {
+    try {
+      // For simplicity, we'll fetch all and filter locally
+      // In a real app, you might want to implement pagination on the backend
+      const res = await apiService.get(API_ENDPOINTS.COMPANY_ENDPOINTS.GET_COMPANY_LIST);
+      
+      // Format data for the popup
+      const formatted = res.map((item) => ({
+        code: item.fcompcode || '',
+        name: item.fcompname || '',
+      
+      }));
+      
+      // Filter by search text if provided
+      if (searchText) {
+        return formatted.filter(item =>
+          item.code.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.name.toLowerCase().includes(searchText.toLowerCase()) 
+        );
+      }
+      
+      return formatted.slice((pageNum - 1) * 20, pageNum * 20);
+    } catch (err) {
+      console.error("Error fetching companies for popup:", err);
+      return [];
+    }
+  };
 
   // ✅ Fetch company details
   const fetchCompanyDetails = async (compCode) => {
@@ -489,8 +431,13 @@ const Company = () => {
     }, 100);
   };
 
+  // Handle table row click
+  const handleTableRowClick = (item) => {
+    fetchCompanyDetails(item.code);
+    setSelectedAction("edit");
+  };
+
   // Handle Enter key press to move to next field
-  // Fix: Use onKeyDown instead of onKeyPress
   const handleKeyDown = (e, currentIndex) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -523,21 +470,26 @@ const Company = () => {
     
     if (action === "edit" || action === "delete") {
       setPopupTitle(action === "edit" ? "Select Company to Edit" : "Select Company to Delete");
+      setPopupMode(action);
       setShowPopup(true);
     } else if (action === "create") {
       clearForm();
       fetchNextCode();
     }
   };
+  
   // Handle selection from popup
   const handlePopupSelect = (item) => {
     console.log("Selected company from popup:", item);
+    // The item from popup should have the 'code' field
     fetchCompanyDetails(item.code);
+    setShowPopup(false);
   };
 
-  // Handle row click from table
-  const handleTableRowClick = (item) => {
-    fetchCompanyDetails(item.code);
+  // Handle popup close
+  const handlePopupClose = () => {
+    setShowPopup(false);
+    // Reset popup mode if needed
   };
 
   // Validate form
@@ -851,12 +803,12 @@ const Company = () => {
                 {renderInput('fcompcode', 'Code', 'text', false, companyNameRef, -1)}
                 {renderInput('fcompname', 'Company Name', 'text', true, companyNameRef, 0, 'Enter Company Name')}
                 {renderInput('tngst', 'GSTIN', 'text', false, gstinRef, 1, 'Enter GSTIN')}
-                {renderInput('phone1', 'Phone 1', 'text', false, phone1Ref, 2, 'Enter Phone1')}
+                {renderInput('phone1', 'Phone 1', 'text', false, phone1Ref, 2, 'Enter Phone1',15)}
                 {renderInput('state', 'State', 'text', false, stateRef, 3, 'Enter State')}
-                {renderInput('phone2', 'Phone 2', 'text', false, phone2Ref, 4, 'Enter Phone2')}
+                {renderInput('phone2', 'Phone 2', 'text', false, phone2Ref, 4, 'Enter Phone2',15)}
                 {renderInput('statecode', 'State Code', 'text', false, statecodeRef, 5, 'Enter State Code')}
-                {renderInput('phone3', 'Phone 3', 'text', false, phone3Ref, 6, 'Enter Phone3')}
-                {renderInput('phone4', 'Phone 4', 'text', false, phone4Ref, 7, 'Enter Phone4')}
+                {renderInput('phone3', 'Phone 3', 'text', false, phone3Ref, 6, 'Enter Phone3',15)}
+                {renderInput('phone4', 'Phone 4', 'text', false, phone4Ref, 7, 'Enter Phone4',15)}
                 {renderInput('fcompadd1', 'Shop No', 'text', false, shopNoRef, 8, 'Enter Shop No')}
                 {renderInput('fcompadd2', 'Address', 'text', false, addressRef, 9, 'Enter Address')}
                 {renderInput('fcompadd3', 'Address1', 'text', false, address1Ref, 10, 'Enter Address1')}
@@ -992,7 +944,7 @@ const Company = () => {
                   />
                 </div>
                 {renderInput('template', 'Template', 'text', false, templateRef, 35, 'Enter Template')}
-                {renderInput('noofprint', 'No Of Print', 'number', false, numberOfPrintRef, 36, 'Enter No Of Print')}
+                {renderInput('noofprint', 'No Of Print', "text", false, numberOfPrintRef, 36, 'Enter No Of Print')}
                 {renderInput('message', 'Message', 'text', false, messageRef, 37, 'Enter Message')}
                 <div className="input-group">
                   <label>Jewellery Sales</label>
@@ -1202,9 +1154,6 @@ const Company = () => {
               </div>
             </div>
 
-            <div className="image-container">
-              <img src={image} alt="Company" className="company-image" />
-            </div>
           </div>
           
           {/* Right Column - Table */}
@@ -1282,13 +1231,18 @@ const Company = () => {
         </div>
       </div>
 
-      {/* Company Selection Popup */}
-      <CompanySelectionPopup
-        isOpen={showPopup}
-        onClose={() => setShowPopup(false)}
-        companies={tableData}
+      {/* Company Selection Popup using external component */}
+      <PopupListSelector
+        open={showPopup}
+        onClose={handlePopupClose}
         onSelect={handlePopupSelect}
+        fetchItems={fetchCompaniesForPopup}
         title={popupTitle}
+        displayFieldKeys={['code', 'name']}
+        searchFields={['code', 'name']}
+        headerNames={['Code', 'Company Name']}
+        columnWidths={{ code: '20%', name: '80%' }}
+        searchPlaceholder="Search by code or name..."
       />
     </>
   );

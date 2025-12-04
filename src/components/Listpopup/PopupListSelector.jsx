@@ -269,7 +269,7 @@ const PopupListSelector = ({
       onCancel={handleClose}
       footer={null}
       width="auto"
-      style={{ maxWidth: '800px', top: '50%', transform: 'translateY(-50%)' }}
+      style={{ maxWidth: '800px', top: '20%' }}
       closeIcon={null}
     >
       <div className={styles.container} style={{ maxHeight }}>

@@ -1,7 +1,8 @@
 // LedgerGroupCreation.js
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 // import { useFormPermissions } from '../../../hooks/useFormPermissions';
 
 const endpoints = API_ENDPOINTS.LEDGER_GROUP_CREATION_ENDPOINTS || {};
@@ -223,6 +224,37 @@ export default function LedgerGroupCreation() {
     // keep tree open after selecting (more convenient)
     setIsTreeOpen(true);
   };
+
+  // Fetch function used by PopupListSelector (paged + searchable)
+  const fetchDropdownItems = useCallback(async (page = 1, search = '') => {
+    try {
+      const resp = await api.get(endpoints.getDropdown);
+      const items = Array.isArray(resp.data) ? resp.data : [];
+
+      // Basic client-side search (server-side not available for this endpoint)
+      const q = (search || '').trim().toLowerCase();
+      const filtered = q
+        ? items.filter((it) => {
+            const name = (it.fAcname || it.fAcName || '').toString().toLowerCase();
+            const parent = (it.parentName || '').toString().toLowerCase();
+            return name.includes(q) || parent.includes(q);
+          })
+        : items;
+
+      const pageSize = 20;
+      const start = (page - 1) * pageSize;
+      // Ensure we return an array of plain objects with expected fields
+      return filtered.slice(start, start + pageSize).map((it) => ({
+        ...it,
+        // normalize casing for consumers
+        fCode: it.fCode ?? it.fcode,
+        fAcname: it.fAcname ?? it.fAcName,
+      }));
+    } catch (err) {
+      console.error('fetchDropdownItems error', err);
+      return [];
+    }
+  }, []);
 
   const filteredTree = useMemo(() => {
     if (!searchTree) return treeData;
@@ -713,6 +745,39 @@ export default function LedgerGroupCreation() {
         .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
           .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; text-align: left; }
         .dropdown-item:hover { background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); transform: translateX(6px); }
+        
+        /* Add this to your existing CSS, around the .input styles */
+.input-group {
+  display: flex;
+  flex: 1;
+  border: 1px solid rgba(15,23,42,0.06);
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fff, #fbfdff);
+}
+
+.input-group input {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  min-width: 0;
+}
+
+.input-group button {
+  flex-shrink: 0;
+  border: none;
+  border-left: 1px solid rgba(15,23,42,0.06);
+  border-radius: 0;
+  min-width: 70px;
+  font-size: 13px;
+  margin-left: 10px;
+}
+
+
+
+
+
+
 
         /* Responsive styles */
         /* Large tablets and small laptops */
@@ -875,30 +940,58 @@ export default function LedgerGroupCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Main Group field */}
-            <div className="field">
-              <label className="field-label">Main Group</label>
-              <div className="row">
-                <input
-                  className="input"
-                  value={mainGroup}
-                  onChange={(e) => setMainGroup(e.target.value)}
-                  readOnly={actionType !== "Add"}
-                  placeholder="Select Main Group"
-                  disabled={submitting}
-                  aria-label="Main Group"
-                />
-                <button
-                  className="btn"
-                  onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
-                  disabled={submitting || actionType !== "Add"}
-                  type="button"
-                  aria-expanded={isTreeOpen}
-                  aria-controls="group-tree"
-                >
-                  {isTreeOpen ? "Close" : "Open"}
-                </button>
-              </div>
+      {/* Main Group field */}
+<div className="field">
+  <label className="field-label">Main Group</label>
+  <div className="row" style={{ display: "flex", alignItems: "center" }}>
+    <div style={{ 
+      display: "flex", 
+      flex: 1, 
+      border: "1px solid rgba(15,23,42,0.06)",
+      borderRadius: "10px",
+      overflow: "hidden",
+      backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
+    }}>
+      <input
+        className="input"
+        value={mainGroup}
+        onChange={(e) => setMainGroup(e.target.value)}
+        readOnly={actionType !== "Add"}
+        placeholder="Select Main Group"
+        disabled={submitting}
+        aria-label="Main Group"
+        style={{ 
+          flex: 1,
+          border: "none",
+          borderRadius: "0",
+          padding: "10px 12px",
+          minWidth: "0" // Important for flex shrinking
+        }}
+      />
+      <button
+        className="btn"
+        onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
+        disabled={submitting || actionType !== "Add"}
+        type="button"
+        aria-expanded={isTreeOpen}
+        aria-controls="group-tree"
+        style={{ 
+          flexShrink: 0,
+          padding: "10px 16px",
+          border: "none",
+          borderRadius: "0",
+          borderLeft: "1px solid rgba(15,23,42,0.06)",
+          backgroundColor: "linear-gradient(180deg, #fff, #f8fafc)",
+          minWidth: "70px",
+          fontSize: "13px",
+          fontWeight: "600",
+          cursor: submitting || actionType !== "Add" ? "not-allowed" : "pointer"
+        }}
+      >
+        {isTreeOpen ? "Close" : "Open"}
+      </button>
+    </div>
+  </div>
 
               {isTreeOpen && (
                 isMobile ? (
@@ -1132,68 +1225,29 @@ export default function LedgerGroupCreation() {
         </div>
       </div>
 
-      {/* Dropdown modal */}
-      {isDropdownOpen && (
-        <div className="modal-overlay" onClick={() => setIsDropdownOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 18 }}>Select Sub Group</h3>
-              <button
-                onClick={() => setIsDropdownOpen(false)}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-                aria-label="Close"
-              >
-                <Icon.Close />
-              </button>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div className="search-container">
-                <input
-                  className="search-with-clear"
-                  placeholder="Search sub groups..."
-                  value={searchDropdown}
-                  onChange={(e) => setSearchDropdown(e.target.value)}
-                  aria-label="Search sub groups"
-                />
-                {searchDropdown && (
-                  <button
-                    className="clear-search-btn"
-                    onClick={() => setSearchDropdown("")}
-                    type="button"
-                    aria-label="Clear search"
-                  >
-                    <Icon.Close size={16} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div id="subgroup-dropdown" className="dropdown-list" role="listbox" aria-label="Sub group options">
-              {filteredDropdown.length === 0 ? (
-                <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No options found</div>
-              ) : (
-                filteredDropdown.map((option, idx) => (
-                  <div
-                    key={idx}
-                    className="dropdown-item"
-                    onClick={() => handleSelectSub(option)}
-                    role="option"
-                    aria-selected={option.value === subGroup}
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && handleSelectSub(option)}
-                  >
-                    <div style={{ fontWeight: 600, color: "#0f172a" }}>{option.label}</div>
-                    {option.parentName && (
-                      <div style={{ fontSize: 12, color: "var(--muted)" }}>Parent: {option.parentName}</div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dropdown selection replaced by reusable PopupListSelector */}
+      <PopupListSelector
+        open={isDropdownOpen}
+        onClose={() => setIsDropdownOpen(false)}
+        onSelect={(item) => {
+          // map the selected item into the form
+          const name = item.fAcname ?? item.fAcName ?? item.fAcname;
+          const code = item.fCode ?? item.fcode;
+          setSubGroup(name || '');
+          setFCode(code || '');
+          if (item.parentName) setMainGroup(item.parentName);
+          setIsDropdownOpen(false);
+          setIsTreeOpen(true);
+        }}
+        fetchItems={fetchDropdownItems}
+        title="Select Sub Group"
+        displayFieldKeys={[ 'fAcname', 'parentName' ]}
+        searchFields={[ 'fAcname', 'parentName' ]}
+        headerNames={[ 'Name', 'Parent' ]}
+        columnWidths={{ fAcname: '70%', parentName: '30%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
     </div>
   );
 }
