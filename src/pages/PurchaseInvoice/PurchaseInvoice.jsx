@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
@@ -71,6 +72,15 @@ const PurchaseInvoice = () => {
 
   // Purchase details modal state
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+
+  // Responsive helper to switch layout for small viewports
+  const [isMobileView, setIsMobileView] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+  useEffect(() => {
+    const handleResize = () => setIsMobileView(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('all');
@@ -268,15 +278,13 @@ const PurchaseInvoice = () => {
 
   // --- STYLES (Inline CSS) ---
   const styles = {
-    container: {
-      fontFamily: 'Inter, Arial, sans-serif',
+    container: {   
       backgroundColor: '#f5f7fa',
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
       margin: 0,
-      padding: 0,
-      overflow: 'hidden'
+      padding: 0
     },
     topSection: {
       backgroundColor: 'white',
@@ -306,8 +314,9 @@ const PurchaseInvoice = () => {
       flexWrap: 'wrap'
     },
     half: {
-      flex: 1,
-      minWidth: '140px'
+      flex: '1 1 160px',
+      minWidth: '120px',
+      boxSizing: 'border-box'
     },
     third: {
       flex: 1,
@@ -322,7 +331,8 @@ const PurchaseInvoice = () => {
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
-      gap: '6px'
+      gap: '6px',
+      width: '100%'
     },
     floatingLabel: {
       position: 'absolute',
@@ -348,6 +358,7 @@ const PurchaseInvoice = () => {
     },
     input: {
       padding: '10px 8px',
+      width: '100%',
       borderRadius: '4px',
       border: '1px solid #ccc',
       outline: 'none',
@@ -605,7 +616,8 @@ const PurchaseInvoice = () => {
   };
 
   return (
-    <div style={styles.container}>
+  // compute responsive container/table styles so header/footer stay fixed on desktop
+  <div className="container-fluid p-0" style={{...styles.container, height: isMobileView ? 'auto' : '100vh'}}>
       
       {/* --- TOP INPUT SECTION --- */}
       <div style={styles.topSection}>
@@ -684,22 +696,6 @@ const PurchaseInvoice = () => {
           <div style={styles.row}>
             <div style={styles.half}>
               <div style={styles.floatingLabelWrapper}>
-                <span style={styles.floatingLabel}>Party Code</span>
-                <input
-                  style={topInputStyle('partyCode')}
-                  value={billDetails.partyCode}
-                  name="partyCode"
-                  onChange={handleInputChange}
-                  ref={customerRef}
-                  onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-                  onFocus={() => setFocusedField('partyCode')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-            </div>
-
-            <div style={styles.half}>
-              <div style={styles.floatingLabelWrapper}>
                 <span style={styles.floatingLabel}>Customer Name</span>
                 <input
                   style={topInputStyle('customerName')}
@@ -713,7 +709,7 @@ const PurchaseInvoice = () => {
                 />
               </div>
             </div>
-         
+
             <div style={styles.half}>
               <div style={styles.floatingLabelWrapper}>
                 <span style={styles.floatingLabel}>City</span>
@@ -729,9 +725,11 @@ const PurchaseInvoice = () => {
                 />
               </div>
             </div>
+          </div>
 
-            <div style={{...styles.half, display: 'flex', gap: 8}}>
-              <div style={{...styles.floatingLabelWrapper, flex: 1}}>
+          <div style={styles.row}>
+            <div style={styles.half}>
+              <div style={styles.floatingLabelWrapper}>
                 <span style={styles.floatingLabel}>Mobile No</span>
                 <input
                   style={topInputStyle('mobileNo')}
@@ -744,8 +742,10 @@ const PurchaseInvoice = () => {
                   onBlur={() => setFocusedField('')}
                 />
               </div>
+            </div>
 
-              <div style={{...styles.floatingLabelWrapper, flex: 1}}>
+            <div style={styles.half}>
+              <div style={styles.floatingLabelWrapper}>
                 <span style={styles.floatingLabel}>GST No</span>
                 <input
                   style={topInputStyle('gstno')}
@@ -760,12 +760,10 @@ const PurchaseInvoice = () => {
               </div>
             </div>
           </div>
-
-          
         </div>
 
         <div style={styles.column}>
-          <div style={{display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', justifyContent: 'center', height: '100%'}}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 8, alignItems: isMobileView ? 'center' : 'flex-end', justifyContent: 'center', height: '100%'}}>
             <div style={{width: '100%', display: 'flex', justifyContent: 'flex-end'}}>
               <ActionButtons activeButton={activeTopAction} onButtonClick={(type) => {
                 setActiveTopAction(type);
@@ -780,8 +778,8 @@ const PurchaseInvoice = () => {
               </ActionButtons>
             </div>
 
-            <div style={{width: '100%', display: 'flex', justifyContent: 'flex-end'}}>
-              <div style={styles.floatingLabelWrapper}>
+            <div style={{ display: 'flex', justifyContent: isMobileView ? 'center' : 'flex-end'}}>
+              <div style={{...styles.floatingLabelWrapper, display: 'flex',justifyContent: 'flex-end'}}>
                 <button type="button" style={styles.purchaseButton} onClick={openPurchaseModal} aria-haspopup="dialog" aria-expanded={purchaseModalOpen}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:'white'}}>
                     <rect x="3" y="4" width="18" height="4" rx="1"></rect>
@@ -798,7 +796,7 @@ const PurchaseInvoice = () => {
       </div>
 
       {/* --- TABLE SECTION --- */}
-      <div style={styles.tableContainer}>
+      <div style={{...styles.tableContainer, flex: '1 1 auto', maxHeight: isMobileView ? styles.tableContainer.maxHeight : 'unset'}}>
         <table style={styles.table}>
           <thead>
             <tr>
