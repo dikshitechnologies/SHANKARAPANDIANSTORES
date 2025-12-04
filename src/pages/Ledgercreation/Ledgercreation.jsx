@@ -1221,8 +1221,13 @@ export default function LedgerCreation({ onCreated }) {
             </div>
             <div
               className={`action-pill ${actionType === 'delete' ? 'danger' : ''} ${!formPermissions.delete ? 'disabled' : ''}`}
-              onClick={() => formPermissions.delete && changeActionType('delete')}
-              onKeyDown={(e) => e.key === 'Enter' && formPermissions.delete && changeActionType('delete')}
+              onClick={() => {
+                if (formPermissions.delete) {
+                  changeActionType('delete');
+                  setIsPopupOpen(true);
+                }
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && formPermissions.delete && (changeActionType('delete'), setIsPopupOpen(true))}
               role="button"
               tabIndex={formPermissions.delete ? 0 : -1}
               title={!formPermissions.delete ? "You don't have permission to delete" : "Delete ledger"}
