@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import { API_ENDPOINTS } from "../../api/endpoints";
+import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 // import { useFormPermissions } from '../../../hooks/useFormPermissions';
 
 const FCompCode = "001";
@@ -132,6 +133,7 @@ export default function LedgerCreation({ onCreated }) {
   const [message, setMessage] = useState(null);
   const [lastNetworkError, setLastNetworkError] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -504,6 +506,28 @@ export default function LedgerCreation({ onCreated }) {
     }
   };
 
+  // Fetch function used by PopupListSelector (paged + searchable)
+  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
+    try {
+      const resp = await axiosInstance.get(
+        API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.getDropdownPaged(page, 20, search)
+      );
+      const items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || []);
+
+      // Ensure we return an array of plain objects with expected fields
+      return items.map((it) => ({
+        ...it,
+        // normalize casing for consumers
+        fCode: it.fCode ?? it.fcode,
+        fAcname: it.fAcname ?? it.fAcName,
+        fParent: it.fParent ?? it.parentName ?? '',
+      }));
+    } catch (err) {
+      console.error('fetchPopupItems error', err);
+      return [];
+    }
+  }, []);
+
   const resetForm = (keepAction = false) => {
     setMainGroup('');
     setSelectedNode(null);
@@ -869,14 +893,7 @@ export default function LedgerCreation({ onCreated }) {
 
         /* dropdown modal (glass) */
         .modal-overlay {
-          position:fixed; 
-          inset:0; 
-          display:flex; 
-          align-items:center; 
-          justify-content:center; 
-          background: rgba(2,6,23,0.46); 
-          z-index:1200; 
-          padding:20px;
+          
         }
         .modal {
           width:100%; 
@@ -1166,7 +1183,7 @@ export default function LedgerCreation({ onCreated }) {
         }
       `}</style>
 
-      <div className="dashboard">
+      <div className="dashboard" style={isPopupOpen ? { filter: 'blur(4px)', pointerEvents: 'none', opacity: 0.5 } : {}}>
         <div className="top-row">
           <div className="title-block">
             <h2 id="ledger-title">Ledger Creation</h2>
@@ -1187,8 +1204,13 @@ export default function LedgerCreation({ onCreated }) {
             </div>
             <div
               className={`action-pill ${actionType === 'edit' ? 'warn' : ''} ${!formPermissions.edit ? 'disabled' : ''}`}
-              onClick={() => formPermissions.edit && changeActionType('edit')}
-              onKeyDown={(e) => e.key === 'Enter' && formPermissions.edit && changeActionType('edit')}
+              onClick={() => {
+                if (formPermissions.edit) {
+                  changeActionType('edit');
+                  setIsPopupOpen(true);
+                }
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && formPermissions.edit && (changeActionType('edit'), setIsPopupOpen(true))}
               role="button"
               tabIndex={formPermissions.edit ? 0 : -1}
               title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing ledger"}
@@ -1629,6 +1651,63 @@ export default function LedgerCreation({ onCreated }) {
           </div>
         </div>
       )}
+
+      {/* Modal overlay backdrop */}
+      {isPopupOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            zIndex: 999,
+          }}
+          onClick={() => setIsPopupOpen(false)}
+        />
+      )}
+
+      {/* Popup selector for editing ledgers */}
+      <PopupListSelector
+        open={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+        onSelect={(item) => {
+          // map the selected item into the form
+          const name = item.fAcname ?? item.fAcName ?? item.fAcname;
+          const code = item.fCode ?? item.fcode;
+          const groupValue = item.fParent ?? item.parentName ?? '';
+          
+          setFormData(prev => ({
+            ...prev,
+            partyName: name || '',
+            fCode: code || '',
+            dueDay: item.fDueDays || item.fDueDay || '',
+            dueDate: item.fDueDt || item.fDueDate || '',
+            fStreet: item.fStreet || '',
+            hallmark: item.fTngst || '',
+            area: item.fArea || '',
+            gstin: item.fCstno || item.fGst || '',
+            city: item.fCity || '',
+            pincode: item.fPincode || '',
+            phone: item.fPhone || '',
+            email: item.fMail || item.fEmail || '',
+            Hide: item.fshow || '1',
+            shortName: item.fFax || item.fShort || '',
+          }));
+          setMainGroup(groupValue);
+          setIsActive(item.fshow !== '0');
+          setIsPopupOpen(false);
+        }}
+        fetchItems={fetchPopupItems}
+        title="Select Ledger to Edit"
+        displayFieldKeys={['fAcname', 'fParent']}
+        searchFields={['fAcname', 'fParent']}
+        headerNames={['Ledger Name', 'Group']}
+        columnWidths={{ fAcname: '70%', fParent: '30%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
     </div>
   );
 }
