@@ -250,18 +250,17 @@ export default function ItemGroupCreation() {
     );
   }, [subGroupOptions, searchDropdown]);
 
-  const resetForm = (keepAction = false) => {
-    setMainGroup("");
-    setSubGroup("");
-    setFCode("");
-    setSelectedNode(null);
-    setMessage(null);
-    setSearchDropdown("");
-    setSearchTree("");
-    setIsDropdownOpen(false);
-    setIsTreeOpen(true);
-    if (!keepAction) setActionType("Add");
-  };
+  const resetForm = () => {
+  setMainGroup("");
+  setSubGroup("");
+  setFCode("");
+  setSelectedNode(null);
+  setMessage(null);
+  setSearchDropdown("");
+  setSearchTree("");
+  setIsDropdownOpen(false);
+  setIsTreeOpen(true);
+};
 
   const validateForSubmit = () => {
     if (!mainGroup?.trim()) {
@@ -281,99 +280,100 @@ export default function ItemGroupCreation() {
 
   // Add / Edit / Delete handlers
   const handleAdd = async () => {
-    // Check permission before allowing action
-    if (!formPermissions.add) {
-      setMessage({ type: "error", text: "You don't have permission to add item groups." });
-      return;
+  // Check permission before allowing action
+  if (!formPermissions.add) {
+    setMessage({ type: "error", text: "You don't have permission to add item groups." });
+    return;
+  }
+  if (!validateForSubmit()) return;
+  if (!window.confirm("Do you want to save?")) return;
+  setSubmitting(true);
+  setMessage(null);
+  try {
+    const payload = {
+      fitemcode: "",
+      subGroup: subGroup.trim(),
+      mainGroup: mainGroup.trim(),
+      fitemlevel: "",
+    };
+    const resp = await api.post(endpoints.postCreate, payload);
+    if (resp.status === 200 || resp.status === 201) {
+      setMessage({ type: "success", text: "Saved successfully." });
+      resetForm(); // <--- Remove keepAction parameter
+      await loadInitial();
+    } else {
+      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
     }
-    if (!validateForSubmit()) return;
-    if (!window.confirm("Do you want to save?")) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const payload = {
-        fitemcode: "",
-        subGroup: subGroup.trim(),
-        mainGroup: mainGroup.trim(),
-        fitemlevel: "",
-      };
-      const resp = await api.post(endpoints.postCreate, payload);
-      if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Saved successfully." });
-        resetForm(true);
-        await loadInitial();
-      } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
-      }
-    } catch (err) {
-      console.error("Add error:", err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Save failed" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch (err) {
+    console.error("Add error:", err);
+    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Save failed" });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
-  const handleEdit = async () => {
-    // Check permission before allowing action
-    if (!formPermissions.edit) {
-      setMessage({ type: "error", text: "You don't have permission to edit item groups." });
-      return;
+ const handleEdit = async () => {
+  // Check permission before allowing action
+  if (!formPermissions.edit) {
+    setMessage({ type: "error", text: "You don't have permission to edit item groups." });
+    return;
+  }
+  if (!validateForSubmit()) return;
+  if (!window.confirm("Do you want to modify?")) return;
+  setSubmitting(true);
+  setMessage(null);
+  try {
+    const payload = {
+      fitemcode: fCode,
+      subGroup: subGroup.trim(),
+      mainGroup: mainGroup.trim(),
+      fitemlevel: "",
+    };
+    const resp = await api.put(endpoints.putEdit, payload);
+    if (resp.status === 200 || resp.status === 201) {
+      setMessage({ type: "success", text: "Updated successfully." });
+      setActionType("Add"); // <--- ADD THIS LINE HERE
+      resetForm(); // <--- Remove keepAction parameter
+      await loadInitial();
+    } else {
+      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
     }
-    if (!validateForSubmit()) return;
-    if (!window.confirm("Do you want to modify?")) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const payload = {
-        fitemcode: fCode,
-        subGroup: subGroup.trim(),
-        mainGroup: mainGroup.trim(),
-        fitemlevel: "",
-      };
-      const resp = await api.put(endpoints.putEdit, payload);
-      if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Updated successfully." });
-        resetForm(true);
-        await loadInitial();
-      } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
-      }
-    } catch (err) {
-      console.error("Edit error:", err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch (err) {
+    console.error("Edit error:", err);
+    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleDelete = async () => {
-    // Check permission before allowing action
-    if (!formPermissions.delete) {
-      setMessage({ type: "error", text: "You don't have permission to delete item groups." });
-      return;
+  // Check permission before allowing action
+  if (!formPermissions.delete) {
+    setMessage({ type: "error", text: "You don't have permission to delete item groups." });
+    return;
+  }
+  if (!validateForSubmit()) return;
+  if (!window.confirm("Do you want to delete?")) return;
+  setSubmitting(true);
+  setMessage(null);
+  try {
+    const deleteEndpoint = typeof endpoints.delete === 'function' ? endpoints.delete(fCode) : endpoints.delete;
+    const resp = await api.delete(deleteEndpoint);
+    if (resp.status === 200 || resp.status === 201) {
+      setMessage({ type: "success", text: "Deleted successfully." });
+      setActionType("Add"); // <--- ADD THIS LINE HERE
+      resetForm(); // <--- Remove keepAction parameter
+      await loadInitial();
+    } else {
+      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
     }
-    if (!validateForSubmit()) return;
-    if (!window.confirm("Do you want to delete?")) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      const deleteEndpoint = typeof endpoints.delete === 'function' ? endpoints.delete(fCode) : endpoints.delete;
-      const resp = await api.delete(deleteEndpoint);
-      if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Deleted successfully." });
-        resetForm(true);
-        await loadInitial();
-      } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
-      }
-    } catch (err) {
-      console.error("Delete error:", err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+  } catch (err) {
+    console.error("Delete error:", err);
+    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
+  } finally {
+    setSubmitting(false);
+  }
+};
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
     else if (actionType === "edit") await handleEdit();
@@ -434,6 +434,8 @@ export default function ItemGroupCreation() {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          margin-bottom: 160px;
+          
         }
         .dashboard:hover { transform: translateY(-6px); }
 
@@ -537,6 +539,19 @@ export default function ItemGroupCreation() {
           text-align: left;
         }
         .input:focus, .search:focus { outline:none; box-shadow: 0 8px 26px rgba(48,122,200,0.08); transform: translateY(-1px); border-color: rgba(48,122,200,0.25); }
+        
+        /* For the combined input+button group */
+.input-group-combined:focus-within {
+  box-shadow: 0 8px 26px rgba(48,122,200,0.08);
+  border-color: rgba(48,122,200,0.25);
+}
+
+/* Make sure the button looks disabled when needed */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 
         .btn {
           padding:10px 12px;
@@ -711,6 +726,14 @@ export default function ItemGroupCreation() {
         .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
         .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; text-align: left; }
         .dropdown-item:hover { background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); transform: translateX(6px); }
+        
+
+        
+
+        
+
+
+
 
         /* Responsive styles */
         /* Large tablets and small laptops */
@@ -827,10 +850,10 @@ export default function ItemGroupCreation() {
       <div className="dashboard" aria-labelledby="item-group-title">
         <div className="top-row">
           <div className="title-block">
-            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+            {/* <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            </svg> */}
             <div>
               <h2 id="item-group-title">Item Group Creation</h2>
               <div className="subtitle muted">Add, edit, or delete item groups — organized & fast.</div>
@@ -840,7 +863,7 @@ export default function ItemGroupCreation() {
           <div className="actions" role="toolbar" aria-label="actions">
             <button
               className={`action-pill ${actionType === "Add" ? "primary" : ""}`}
-              onClick={() => { setActionType("Add"); resetForm(true); }}
+              onClick={() => { setActionType("Add"); resetForm(); }}
               disabled={submitting || !formPermissions.add}
               type="button"
               title={!formPermissions.add ? "You don't have permission to add" : "Add new item group"}
@@ -850,7 +873,7 @@ export default function ItemGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "edit" ? "warn" : ""}`}
-              onClick={() => { setActionType("edit"); resetForm(true); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("edit"); resetForm(); setIsDropdownOpen(true); }}
               disabled={submitting || !formPermissions.edit}
               type="button"
               title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing item group"}
@@ -860,7 +883,7 @@ export default function ItemGroupCreation() {
 
             <button
               className={`action-pill ${actionType === "delete" ? "danger" : ""}`}
-              onClick={() => { setActionType("delete"); resetForm(true); setIsDropdownOpen(true); }}
+              onClick={() => { setActionType("delete"); resetForm(); setIsDropdownOpen(true); }}
               disabled={submitting || !formPermissions.delete}
               type="button"
               title={!formPermissions.delete ? "You don't have permission to delete" : "Delete item group"}
@@ -872,31 +895,71 @@ export default function ItemGroupCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Main Group field */}
-            <div className="field">
-              <label className="field-label">Main Group</label>
-              <div className="row">
-                <input
-                  className="input"
-                  value={mainGroup}
-                  onChange={(e) => setMainGroup(e.target.value)}
-                  readOnly={actionType !== "Add"}
-                  placeholder="Select Main Group"
-                  disabled={submitting}
-                  aria-label="Main Group"
-                />
-                <button
-                  className="btn"
-                  onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
-                  disabled={submitting || actionType !== "Add"}
-                  type="button"
-                  aria-expanded={isTreeOpen}
-                  aria-controls="group-tree"
-                >
-                  {isTreeOpen ? "Close" : "Open"}
-                </button>
-              </div>
-
+{/* Main Group field */}
+<div className="field">
+  <label className="field-label">Main Group</label>
+  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+    <div style={{
+      display: "flex",
+      flex: 1,
+      border: "1px solid rgba(15,23,42,0.06)",
+      borderRadius: "10px",
+      overflow: "hidden",
+      background: "linear-gradient(180deg, #fff, #fbfdff)",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+    }}>
+      <input
+        className="input"
+        value={mainGroup}
+        onChange={(e) => setMainGroup(e.target.value)}
+        readOnly={actionType !== "Add"}
+        placeholder="Select Main Group"
+        disabled={submitting}
+        aria-label="Main Group"
+        style={{
+          flex: 1,
+          border: "none",
+          borderRadius: 0,
+          padding: "10px 12px",
+          minWidth: "120px",
+          fontSize: "14px",
+          outline: "none"
+        }}
+      />
+      <button
+        className="btn"
+        onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
+        disabled={submitting || actionType !== "Add"}
+        type="button"
+        aria-expanded={isTreeOpen}
+        aria-controls="group-tree"
+        style={{
+          flexShrink: 0,
+          border: "none",
+          borderLeft: "1px solid rgba(15,23,42,0.06)",
+          borderRadius: 0,
+          padding: "8px 12px",
+          minWidth: "70px",
+          fontSize: "12px",
+          fontWeight: "600",
+          background: "linear-gradient(180deg,#fff,#f8fafc)",
+          cursor: submitting || actionType !== "Add" ? "not-allowed" : "pointer",
+          color: "#0f172a",
+          transition: "all 0.2s"
+        }}
+        onMouseOver={(e) => {
+          if (!submitting && actionType === "Add") {
+            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
+          }
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
+        }}
+      >
+        {isTreeOpen ? "Close" : "Open"}
+      </button>
+    </div>
+  </div>
               {isTreeOpen && (
                 isMobile ? (
                   <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
@@ -1195,3 +1258,4 @@ export default function ItemGroupCreation() {
     </div>
   );
 }
+

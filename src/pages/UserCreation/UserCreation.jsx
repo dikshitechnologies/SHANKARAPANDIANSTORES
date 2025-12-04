@@ -13,6 +13,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
  * - Left column: existing users (read-only) - responsive width
  * - Right column: user creation form - responsive width (increased size)
  * - Fully responsive on all screen sizes
+ * - FIXED: Delete error handling with detailed user feedback
  */
 
 export default function UserCreation() {
@@ -28,7 +29,8 @@ export default function UserCreation() {
     username: "", 
     password: "", 
     prefix: "",
-    userId: null 
+    userId: null ,
+    code: "" 
   });
   
   const [mode, setMode] = useState("create"); // 'create' | 'edit' | 'delete'
@@ -46,6 +48,10 @@ export default function UserCreation() {
   const [deleteQuery, setDeleteQuery] = useState("");
 
   const [existingQuery, setExistingQuery] = useState("");
+
+  // For showing delete warnings
+  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
+  const [deleteWarningMessage, setDeleteWarningMessage] = useState("");
 
   // refs for step-by-step Enter navigation
   const companyRef = useRef(null);
@@ -171,8 +177,10 @@ export default function UserCreation() {
     }
   };
 
-  // Delete user - FIXED: Using DELETE method instead of GET
+  // Delete user - FIXED: Enhanced error handling
   const deleteUser = async (userId) => {
+    console.log("Deleting user with ID:", userId);
+    return;
     try {
       setLoading(true);
       setError("");
@@ -180,39 +188,45 @@ export default function UserCreation() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({
+          code: userId
+        })
       });
+
+      // Read response body once
+      const responseText = await response.text();
 
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
         
-        // Try to get detailed error message from response body
-        try {
-          const errorText = await response.text();
-          if (errorText) {
+        // Try to parse error message from response body
+        if (responseText) {
+          try {
             // Try to parse as JSON first
-            try {
-              const errorData = JSON.parse(errorText);
-              errorMessage = errorData.message || errorData.Message || errorText;
-            } catch {
-              // If not JSON, use the text directly
-              errorMessage = errorText;
-            }
-          } else {
-            errorMessage = response.statusText || errorMessage;
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorData.Message || errorData.error || responseText;
+          } catch {
+            // If not JSON, use the text directly
+            errorMessage = responseText;
           }
-        } catch (e) {
-          console.warn("Could not read error response:", e);
+        } else {
           errorMessage = response.statusText || errorMessage;
         }
         
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      return data;
+      // Success case: try to parse response body as JSON, fallback to success object
+      if (responseText) {
+        try {
+          return JSON.parse(responseText);
+        } catch {
+          return { success: true };
+        }
+      }
+      return { success: true };
     } catch (err) {
-      setError(err.message || "Failed to delete user");
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -220,11 +234,15 @@ export default function UserCreation() {
     }
   };
 
-  // Update the handleDelete function with specific error handling
+  // FIXED: Enhanced handleDelete function with better error handling
   async function handleDelete() {
-    if (!deleteTargetId) return alert("No user selected to delete.");
+    if (!deleteTargetId) {
+      alert("No user selected to delete.");
+      return;
+    }
     
-    const confirmDelete = confirm(`Are you sure you want to delete user "${form.username}"? This action cannot be undone.`);
+    // First confirmation
+    const confirmDelete = window.confirm(`Are you sure you want to delete user "${form.username}" (Code: ${deleteTargetId})?\n\nThis action cannot be undone.`);
     if (!confirmDelete) return;
 
     try {
@@ -234,14 +252,50 @@ export default function UserCreation() {
       setDeleteTargetId(null);
       setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
       setMode("create");
-      alert("User deleted successfully.");
+      
+      // Success message
+      alert(`✅ User "${form.username}" has been deleted successfully.`);
       setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
     } catch (err) {
       // Handle the specific error message from server
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        alert(`❌ Cannot Delete User\n\nUser "${form.username}" cannot be deleted because:\n\n• This user is referenced in other system tables\n• There are existing records linked to this user\n• The user may have active transactions or assignments\n\n💡 Solution: Please contact your system administrator to remove this user's references from related tables first.`);
+      const errorMsg = err.message || "";
+      
+      if (errorMsg.includes("used in related tables") || 
+          errorMsg.includes("409") || 
+          errorMsg.includes("Conflict") ||
+          errorMsg.includes("User Name is used") ||
+          errorMsg.includes("foreign key") ||
+          errorMsg.includes("reference")) {
+        
+        // Set detailed warning message
+        setDeleteWarningMessage(`
+          🚫 Cannot Delete User: "${form.username}" (Code: ${deleteTargetId})
+          
+          Reason: This user is referenced in other system tables.
+          
+          Possible Solutions:
+          1. Check if this user has:
+             • Active transactions
+             • Assigned roles/permissions
+             • Created records in other modules
+             • Pending tasks or workflows
+          
+          2. Contact your system administrator to:
+             • Remove references from related tables first
+             • Check database constraints
+             • Use cascade delete if appropriate
+          
+          3. Alternative actions:
+             • Deactivate the user instead of deleting
+             • Archive user data
+             • Update user status to "Inactive"
+          
+          Note: For immediate assistance, please contact the database administrator.
+        `);
+        
+        setShowDeleteWarning(true);
       } else {
-        alert(`Failed to delete user: ${err.message}`);
+        alert(`Failed to delete user: ${errorMsg}`);
       }
     }
   }
@@ -408,7 +462,7 @@ export default function UserCreation() {
       
       setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
       setMode("create");
-      alert("User created successfully.");
+      alert("✅ User created successfully.");
       setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
     } catch (err) {
       alert(`Failed to create user: ${err.message}`);
@@ -435,7 +489,7 @@ export default function UserCreation() {
       setEditingId(null);
       setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
       setMode("create");
-      alert("User updated successfully.");
+      alert("✅ User updated successfully.");
       setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
     } catch (err) {
       alert(`Failed to update user: ${err.message}`);
@@ -494,6 +548,12 @@ export default function UserCreation() {
     }
   }
 
+  // Close delete warning
+  function closeDeleteWarning() {
+    setShowDeleteWarning(false);
+    setDeleteWarningMessage("");
+  }
+
   // ---------- inline styles (BOX style theme with DECREASED SIZE) ----------
   const PRIMARY_BLUE = "#06A7EA";
   const SECONDARY_BLUE = "#1B91DA";
@@ -509,7 +569,7 @@ export default function UserCreation() {
     page: { 
       minHeight: "100vh", 
       background: "#f4f9ff", 
-       fontFamily: FONT, 
+      fontFamily: FONT, 
       display: "flex", 
       justifyContent: "left", 
       alignItems: "flex-start",
@@ -548,11 +608,11 @@ export default function UserCreation() {
     },
     sideSearch: {
       width: "100%",
-      padding: isMobile ? "8px 10px" : "10px 12px", // DECREASED: was 10px 12px / 12px 15px
-      borderRadius: "6px", // DECREASED: was 8px
+      padding: isMobile ? "8px 10px" : "10px 12px",
+      borderRadius: "6px",
       border: `1px solid ${BORDER_SOFT}`,
       marginBottom: "15px",
-      fontSize: isMobile ? "13px" : "14px", // DECREASED: was 14px / 15px
+      fontSize: isMobile ? "13px" : "14px",
       outline: "none",
       background: INPUT_BG,
       transition: "all 0.2s",
@@ -574,18 +634,18 @@ export default function UserCreation() {
       borderBottom: "1px solid rgba(230, 244, 255, 0.85)", 
       color: "#3a4a5d",
       fontSize: isMobile ? "13px" : "14px",
-      textAlign: "left" // ADDED: Align table body items to left
+      textAlign: "left"
     },
     trHover: { backgroundColor: LIGHT_BLUE, cursor: "pointer" },
 
     // form - responsive width (INCREASED SIZE)
     formCard: { 
-      flex: isMobile ? "0 0 100%" : isTablet ? "0 0 45%" : "0 0 35%", // Increased from 42%/30%
+      flex: isMobile ? "0 0 100%" : isTablet ? "0 0 45%" : "0 0 35%",
       width: isMobile ? "100%" : isTablet ? "45%" : "35%",
-      minWidth: isMobile ? "280px" : "340px", // Increased min width
+      minWidth: isMobile ? "280px" : "340px",
       background: BG, 
       borderRadius: "10px", 
-      padding: isMobile ? "20px" : "28px", // Increased padding
+      padding: isMobile ? "20px" : "28px",
       border: `1px solid ${BORDER_SOFT}`, 
       boxShadow: "0 10px 30px rgba(6, 167, 234, 0.08)",
       boxSizing: "border-box",
@@ -594,8 +654,8 @@ export default function UserCreation() {
     headerRow: { 
       display: "flex", 
       justifyContent: "space-between", 
-      alignItems: "flex-start", // Changed from center to flex-start for better alignment
-      marginBottom: isMobile ? "18px" : "22px", // DECREASED: was 20px / 25px
+      alignItems: "flex-start",
+      marginBottom: isMobile ? "18px" : "22px",
       flexWrap: "wrap",
       gap: "15px"
     },
@@ -606,13 +666,12 @@ export default function UserCreation() {
     title: { 
       margin: 0, 
       color: DARK_BLUE, 
-      fontSize: isMobile ? "20px" : "22px", // Increased font size
+      fontSize: isMobile ? "20px" : "22px",
       fontWeight: 700, 
       borderBottom: `3px solid ${PRIMARY_BLUE}`, 
       paddingBottom: "10px",
       display: "inline-block"
     },
-    // Top buttons container - positioned to the right of the title
     topBtnsContainer: {
       display: "flex",
       gap: isMobile ? "6px" : "8px",
@@ -624,17 +683,17 @@ export default function UserCreation() {
       alignItems: "center",
       justifyContent: "center",
       gap: isMobile ? "4px" : "6px",
-      padding: isMobile ? "8px 12px" : "10px 16px", // Increased padding
+      padding: isMobile ? "8px 12px" : "10px 16px",
       borderRadius: "8px",
       border: `1px solid ${BORDER_MEDIUM}`,
       background: "transparent",
       color: DARK_BLUE,
       cursor: "pointer",
       fontWeight: 600,
-      fontSize: isMobile ? "13px" : "14px", // Increased font size
+      fontSize: isMobile ? "13px" : "14px",
       transition: "all 0.2s",
       whiteSpace: "nowrap",
-      minWidth: isMobile ? "50px" : "70px" // Increased min width
+      minWidth: isMobile ? "50px" : "70px"
     },
     iconBtnHover: { 
       background: LIGHT_BLUE, 
@@ -644,23 +703,37 @@ export default function UserCreation() {
       boxShadow: "0 4px 12px rgba(6, 167, 234, 0.15)"
     },
 
-    formGroup: { marginBottom: isMobile ? "16px" : "20px" }, // DECREASED: was 18px / 22px
+    formGroup: { marginBottom: isMobile ? "16px" : "20px" },
     label: { 
       display: "block", 
-      marginBottom: "6px", // DECREASED: was 8px
+      marginBottom: "6px",
       fontWeight: 600, 
       color: DARK_BLUE, 
-      fontSize: isMobile ? "14px" : "15px" ,// DECREASED: was 15px / 16px;
+      fontSize: isMobile ? "14px" : "15px",
       textAlign: "left"
     },
-    // BOX input style (changed from underline) - DECREASED SIZE
-    inputBox: {
+    // COMPANY INPUT FIELD WITH BUILT-IN SEARCH ICON
+    companyInputBox: {
       width: "100%",
-      padding: isMobile ? "10px 12px" : "12px 14px", // DECREASED: was 12px 14px / 14px 16px
-      borderRadius: "6px", // DECREASED: was 8px
+      padding: isMobile ? "10px 12px 10px 36px" : "12px 14px 12px 40px", // LEFT PADDING FOR SEARCH ICON
+      borderRadius: "6px",
       border: `1px solid ${BORDER_SOFT}`,
       background: INPUT_BG,
-      fontSize: isMobile ? "14px" : "15px", // DECREASED: was 16px / 17px
+      fontSize: isMobile ? "14px" : "15px",
+      outline: "none",
+      color: "#222",
+      transition: "all 0.2s",
+      boxSizing: "border-box",
+      cursor: "pointer"
+    },
+    // REGULAR INPUT (for other fields)
+    inputBox: {
+      width: "100%",
+      padding: isMobile ? "10px 12px" : "12px 14px",
+      borderRadius: "6px",
+      border: `1px solid ${BORDER_SOFT}`,
+      background: INPUT_BG,
+      fontSize: isMobile ? "14px" : "15px",
       outline: "none",
       color: "#222",
       transition: "all 0.2s",
@@ -673,15 +746,15 @@ export default function UserCreation() {
     },
 
     smallIconBtn: { 
-      padding: isMobile ? "8px 10px" : "10px 12px", // DECREASED: was 10px 12px / 12px 14px
-      borderRadius: "6px", // DECREASED: was 8px
+      padding: isMobile ? "8px 10px" : "10px 12px",
+      borderRadius: "6px",
       border: `1px solid ${BORDER_MEDIUM}`, 
       background: "transparent", 
       cursor: "pointer", 
       color: DARK_BLUE,
       transition: "all 0.2s",
       flexShrink: 0,
-      fontSize: isMobile ? "13px" : "14px" // DECREASED: was 14px / 16px
+      fontSize: isMobile ? "13px" : "14px"
     },
     smallIconBtnHover: { 
       background: LIGHT_BLUE, 
@@ -692,16 +765,16 @@ export default function UserCreation() {
 
     inputGroup: {
       display: "flex",
-      gap: isMobile ? "8px" : "10px", // DECREASED: was 10px / 12px
+      gap: isMobile ? "8px" : "10px",
       alignItems: "center"
     },
 
     bottomRight: { 
       display: "flex", 
       justifyContent: isMobile ? "center" : "flex-end", 
-      gap: isMobile ? "12px" : "18px", // Increased gap
-      marginTop: isMobile ? "25px" : "35px", // Increased margin
-      paddingTop: isMobile ? "18px" : "24px", // Increased padding
+      gap: isMobile ? "12px" : "18px",
+      marginTop: isMobile ? "25px" : "35px",
+      paddingTop: isMobile ? "18px" : "24px",
       borderTop: `1px solid ${BORDER_SOFT}`,
       flexWrap: "wrap"
     },
@@ -709,11 +782,11 @@ export default function UserCreation() {
       background: `linear-gradient(135deg, ${PRIMARY_BLUE}, ${SECONDARY_BLUE})`, 
       color: "#fff", 
       border: "none", 
-      padding: isMobile ? "12px 24px" : "15px 35px", // Increased padding
+      padding: isMobile ? "12px 24px" : "15px 35px",
       borderRadius: "8px", 
       fontWeight: 700, 
       cursor: "pointer", 
-      fontSize: isMobile ? "15px" : "17px", // Increased font size
+      fontSize: isMobile ? "15px" : "17px",
       boxShadow: "0 8px 20px rgba(6, 167, 234, 0.25)",
       transition: "all 0.2s",
       whiteSpace: "nowrap"
@@ -723,11 +796,11 @@ export default function UserCreation() {
       background: `linear-gradient(135deg, ${SECONDARY_BLUE}, ${DARK_BLUE})`, 
       color: "#fff", 
       border: "none", 
-      padding: isMobile ? "12px 24px" : "15px 35px", // Increased padding
+      padding: isMobile ? "12px 24px" : "15px 35px",
       borderRadius: "8px", 
       fontWeight: 700, 
       cursor: "pointer",
-      fontSize: isMobile ? "15px" : "17px", // Increased font size
+      fontSize: isMobile ? "15px" : "17px",
       boxShadow: "0 8px 20px rgba(6, 167, 234, 0.25)",
       transition: "all 0.2s",
       whiteSpace: "nowrap"
@@ -737,11 +810,11 @@ export default function UserCreation() {
       background: `linear-gradient(135deg, #d9534f, #c9302c)`, 
       color: "#fff", 
       border: "none", 
-      padding: isMobile ? "12px 24px" : "15px 35px", // Increased padding
+      padding: isMobile ? "12px 24px" : "15px 35px",
       borderRadius: "8px", 
       fontWeight: 700, 
       cursor: "pointer",
-      fontSize: isMobile ? "15px" : "17px", // Increased font size
+      fontSize: isMobile ? "15px" : "17px",
       boxShadow: "0 8px 20px rgba(217, 83, 79, 0.25)",
       transition: "all 0.2s",
       whiteSpace: "nowrap"
@@ -751,11 +824,11 @@ export default function UserCreation() {
       background: "transparent", 
       color: DARK_BLUE, 
       border: `2px solid ${BORDER_MEDIUM}`, 
-      padding: isMobile ? "10px 20px" : "13px 28px", // Increased padding
+      padding: isMobile ? "10px 20px" : "13px 28px",
       borderRadius: "8px", 
       cursor: "pointer", 
       fontWeight: 700,
-      fontSize: isMobile ? "15px" : "17px", // Increased font size
+      fontSize: isMobile ? "15px" : "17px",
       transition: "all 0.2s",
       whiteSpace: "nowrap"
     },
@@ -807,11 +880,11 @@ export default function UserCreation() {
     closeXHover: { background: LIGHT_BLUE, color: PRIMARY_BLUE },
     modalSearch: { 
       width: "100%", 
-      padding: isMobile ? "10px 12px" : "12px 14px", // DECREASED: was 12px 14px / 14px 16px
-      borderRadius: "6px", // DECREASED: was 8px
+      padding: isMobile ? "10px 12px" : "12px 14px", // NO left padding for search icon
+      borderRadius: "6px",
       marginBottom: isMobile ? "16px" : "20px", 
       border: `1px solid ${BORDER_SOFT}`, 
-      fontSize: isMobile ? "13px" : "14px", // DECREASED: was 14px / 16px
+      fontSize: isMobile ? "13px" : "14px",
       outline: "none",
       background: INPUT_BG,
       transition: "all 0.2s",
@@ -833,7 +906,7 @@ export default function UserCreation() {
       borderBottom: "1px solid rgba(230, 244, 255, 0.9)", 
       fontSize: isMobile ? "13px" : "15px", 
       color: "#3a4a5d",
-      textAlign: "left" // ADDED: Align modal table body items to left
+      textAlign: "left"
     },
     modalTrHover: { background: LIGHT_BLUE, cursor: "pointer" },
 
@@ -861,6 +934,79 @@ export default function UserCreation() {
       overflowY: "auto",
       overflowX: "auto",
       WebkitOverflowScrolling: "touch"
+    },
+
+    // Delete warning modal
+    warningModal: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 10000,
+      padding: isMobile ? "10px" : "20px",
+      boxSizing: "border-box"
+    },
+    warningBox: {
+      width: "96%",
+      maxWidth: "600px",
+      background: "#fff8e1",
+      borderRadius: "10px",
+      padding: isMobile ? "20px" : "30px",
+      border: `2px solid #ff9800`,
+      boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+      maxHeight: "80vh",
+      overflowY: "auto",
+      boxSizing: "border-box"
+    },
+    warningHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "20px",
+      borderBottom: `2px solid #ff9800`,
+      paddingBottom: "15px"
+    },
+    warningTitle: {
+      color: "#d9534f",
+      fontSize: isMobile ? "18px" : "20px",
+      fontWeight: 700,
+      margin: 0
+    },
+    warningContent: {
+      color: "#333",
+      fontSize: isMobile ? "14px" : "15px",
+      lineHeight: "1.6",
+      whiteSpace: "pre-line",
+      marginBottom: "25px",
+      backgroundColor: "#fffef7",
+      padding: "20px",
+      borderRadius: "8px",
+      border: "1px solid #ffe082"
+    },
+    warningActions: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: "15px"
+    },
+    warningBtn: {
+      padding: isMobile ? "10px 20px" : "12px 25px",
+      borderRadius: "6px",
+      border: "none",
+      cursor: "pointer",
+      fontWeight: 600,
+      fontSize: isMobile ? "14px" : "15px",
+      transition: "all 0.2s"
+    },
+    warningCloseBtn: {
+      background: "#06A7EA",
+      color: "#fff"
+    },
+    warningCloseBtnHover: {
+      background: "#1B91DA",
+      transform: "translateY(-2px)",
+      boxShadow: "0 4px 8px rgba(6, 167, 234, 0.3)"
     }
   };
 
@@ -972,27 +1118,36 @@ export default function UserCreation() {
               <label style={styles.label}>
                 Company <span style={styles.asterisk}>*</span>
               </label>
-              <div style={styles.inputGroup}>
+              {/* COMPANY INPUT FIELD WITH BUILT-IN SEARCH ICON - CLICK OPENS MODAL */}
+              <div style={{ position: "relative", width: "100%" }}>
+                <i className="bi bi-search" style={{ 
+                  position: "absolute", 
+                  left: isMobile ? "10px" : "12px", 
+                  top: "50%", 
+                  transform: "translateY(-50%)", 
+                  color: DARK_BLUE, 
+                  opacity: 0.6, 
+                  fontSize: isMobile ? "14px" : "16px", 
+                  zIndex: 1,
+                  pointerEvents: "none"
+                }}></i>
                 <input
                   ref={companyRef}
-                  style={styles.inputBox}
+                  style={styles.companyInputBox}
                   value={form.company}
                   onChange={(e) => setForm((s) => ({ ...s, company: e.target.value }))}
-                  placeholder="Type company (or open search)"
+                  placeholder="Click to search company"
                   onKeyDown={onCompanyKeyDown}
-                  onFocus={(e) => Object.assign(e.target.style, styles.inputBoxFocus)}
-                  onBlur={(e) => Object.assign(e.target.style, { ...styles.inputBox, borderColor: BORDER_SOFT, boxShadow: "none" })}
+                  onClick={() => {
+                    // When user clicks the input, open the company modal
+                    openCompanyModal();
+                  }}
+                  onFocus={(e) => {
+                    Object.assign(e.target.style, styles.inputBoxFocus);
+                  }}
+                  onBlur={(e) => Object.assign(e.target.style, { ...styles.companyInputBox, borderColor: BORDER_SOFT, boxShadow: "none" })}
+                  readOnly // Makes it read-only so user must use search
                 />
-                <button
-                  type="button"
-                  onClick={openCompanyModal}
-                  style={styles.smallIconBtn}
-                  title="Search company"
-                  onMouseEnter={(e) => Object.assign(e.target.style, styles.smallIconBtnHover)}
-                  onMouseLeave={(e) => Object.assign(e.target.style, styles.smallIconBtn)}
-                >
-                  <i className="bi bi-search" />
-                </button>
               </div>
             </div>
 
@@ -1095,7 +1250,7 @@ export default function UserCreation() {
         </section>
       </div>
 
-      {/* COMPANY MODAL */}
+      {/* COMPANY MODAL - OPENS WHEN COMPANY INPUT IS CLICKED */}
       {companyModalOpen && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalBox}>
@@ -1111,6 +1266,7 @@ export default function UserCreation() {
               </span>
             </div>
 
+            {/* SEARCH INPUT WITHOUT ICON IN COMPANY MODAL */}
             <input 
               style={styles.modalSearch} 
               placeholder="Search companies..." 
@@ -1160,7 +1316,7 @@ export default function UserCreation() {
         </div>
       )}
 
-      {/* EDIT MODAL */}
+      {/* EDIT MODAL - OPENS WHEN EDIT BUTTON IS CLICKED */}
       {editModalOpen && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalBox}>
@@ -1176,6 +1332,7 @@ export default function UserCreation() {
               </span>
             </div>
 
+            {/* NO SEARCH ICON IN EDIT MODAL */}
             <input 
               style={styles.modalSearch} 
               placeholder="Search users..." 
@@ -1194,6 +1351,7 @@ export default function UserCreation() {
                   <thead>
                     <tr>
                       <th style={styles.modalTh}>#</th>
+                      <th style={styles.modalTh}>User Code</th>
                       <th style={styles.modalTh}>Company</th>
                       <th style={styles.modalTh}>Username</th>
                       <th style={styles.modalTh}>Password</th>
@@ -1210,15 +1368,16 @@ export default function UserCreation() {
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ""}
                       >
                         <td style={styles.modalTd}>{idx + 1}</td>
+                        <td style={styles.modalTd}>{u.code}</td>
                         <td style={styles.modalTd}>{u.compaytName}</td>
                         <td style={styles.modalTd}>{u.userName}</td>
                         <td style={styles.modalTd}>{u.password ? "••••••" : "-"}</td>
                         <td style={styles.modalTd}>{u.fPrefix || "-"}</td>
-                      </tr>
+                      </tr>   
                     ))}
                     {filteredEditUsers.length === 0 && (
                       <tr>
-                        <td style={styles.modalTd} colSpan={5}>
+                        <td style={styles.modalTd} colSpan={6}>
                           {users.length === 0 ? "No users found" : "No matching users"}
                         </td>
                       </tr>
@@ -1231,7 +1390,7 @@ export default function UserCreation() {
         </div>
       )}
 
-      {/* DELETE MODAL */}
+      {/* DELETE MODAL - OPENS WHEN DELETE BUTTON IS CLICKED */}
       {deleteModalOpen && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalBox}>
@@ -1258,6 +1417,7 @@ export default function UserCreation() {
               </span>
             </div>
 
+            {/* NO SEARCH ICON IN DELETE MODAL */}
             <input 
               style={styles.modalSearch} 
               placeholder="Search users..." 
@@ -1276,6 +1436,7 @@ export default function UserCreation() {
                   <thead>
                     <tr>
                       <th style={styles.modalTh}>#</th>
+                      <th style={styles.modalTh}>User Code</th>
                       <th style={styles.modalTh}>Company</th>
                       <th style={styles.modalTh}>Username</th>
                       <th style={styles.modalTh}>Password</th>
@@ -1292,6 +1453,7 @@ export default function UserCreation() {
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ""}
                       >
                         <td style={styles.modalTd}>{idx + 1}</td>
+                        <td style={styles.modalTd}>{u.code}</td>
                         <td style={styles.modalTd}>{u.compaytName}</td>
                         <td style={styles.modalTd}>{u.userName}</td>
                         <td style={styles.modalTd}>{u.password ? "••••••" : "-"}</td>
@@ -1300,7 +1462,7 @@ export default function UserCreation() {
                     ))}
                     {filteredDeleteUsers.length === 0 && (
                       <tr>
-                        <td style={styles.modalTd} colSpan={5}>
+                        <td style={styles.modalTd} colSpan={6}>
                           {users.length === 0 ? "No users found" : "No matching users"}
                         </td>
                       </tr>
@@ -1309,6 +1471,38 @@ export default function UserCreation() {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* DELETE WARNING MODAL - SHOWS WHEN USER CANNOT BE DELETED */}
+      {showDeleteWarning && (
+        <div style={styles.warningModal}>
+          <div style={styles.warningBox}>
+            <div style={styles.warningHeader}>
+              <h3 style={styles.warningTitle}>⚠️ Delete Operation Failed</h3>
+              <span 
+                style={styles.closeX} 
+                onClick={closeDeleteWarning}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.closeXHover)}
+                onMouseLeave={(e) => Object.assign(e.target.style, styles.closeX)}
+              >
+                ✖
+              </span>
+            </div>
+            <div style={styles.warningContent}>
+              {deleteWarningMessage}
+            </div>
+            <div style={styles.warningActions}>
+              <button 
+                style={{ ...styles.warningBtn, ...styles.warningCloseBtn }}
+                onClick={closeDeleteWarning}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.warningCloseBtnHover)}
+                onMouseLeave={(e) => Object.assign(e.target.style, styles.warningCloseBtn)}
+              >
+                OK, I Understand
+              </button>
+            </div>
           </div>
         </div>
       )}

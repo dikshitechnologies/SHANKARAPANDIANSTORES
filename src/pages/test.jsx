@@ -5,7 +5,8 @@ import {
   ActionButtons, 
   AddButton, 
   EditButton, 
-  DeleteButton 
+  DeleteButton,
+  ActionButtons1
 } from '../components/Buttons/ActionButtons.jsx';
 
 const ExampleUsage = () => {
@@ -54,9 +55,22 @@ const [activeButton, setActiveButton] = useState("add");
     console.log('Selected:', item);
   };
 
+  const handleClear = () => {
+    setSelectedItem(null);
+    console.log('Cleared selection');
+  };
+
+  const handleSave = () => {
+  
+  };
+
+  const handlePrint = () => {
+   
+  };
+
   return (
     <div>
-        <div style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 'bold',width:'17%' }}>
+        <div style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 'bold',width:'300px' }}>
     <ActionButtons 
       activeButton={activeButton}
   onButtonClick={(type) => setActiveButton(type)}
@@ -83,6 +97,16 @@ const [activeButton, setActiveButton] = useState("add");
       >
         Open Item Selector
       </button>
+      
+      <div style={{ marginTop: '12px', marginBottom: '20px', width: '300px' }}>
+        <ActionButtons1
+          onClear={handleClear}
+          onSave={handleSave}
+          onPrint={handlePrint}
+          activeButton={activeButton}
+          onButtonClick={(type) => setActiveButton(type)}
+        />
+      </div>
       
       {selectedItem && (
         <div style={{ 
