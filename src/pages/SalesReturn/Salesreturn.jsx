@@ -1,18 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Add as AddIcon, 
   Edit as EditIcon, 
   Delete as DeleteIcon,
   Save as SaveIcon,
-  Clear as ClearIcon,
-  Search as SearchIcon 
+  Clear as ClearIcon
 } from '@mui/icons-material';
 
 /**
- * Sales Return Form Component
+ * Sales Return Form Component with Responsive Table
  */
 const Salesreturn = () => {
-  // Initial state for form fields - UPDATED: All fields blank except billNo and billDate
+  // Initial state for form fields
   const [formData, setFormData] = useState({
     salesman: '',
     empName: '',
@@ -22,47 +21,85 @@ const Salesreturn = () => {
     custName: '',
     returnReason: '',
     barcodeInput: '', 
-    qty: '', // Changed from '0' to empty
+    qty: '',
     items: ''
   });
 
-  // State for items table - UPDATED: Remove default values
-  const [items, setItems] = useState([
-    {
-      id: 1,
-      sNo: 1,
-      barcode: '',
-      itemName: '',
-      stock: '',
-      mrp: '',
-      uom: '',
-      hsn: '',
-      tax: '',
-      sRate: '',
-      rate: '',
-      qty: '',
-      amount: ''
-    },
-    {
-      id: 2,
-      sNo: 2,
-      barcode: '',
-      itemName: '',
-      stock: '',
-      mrp: '',
-      uom: '',
-      hsn: '',
-      tax: '',
-      sRate: '',
-      rate: '',
-      qty: '',
-      amount: ''
-    }
-  ]);
+  // State for items table - Start with 1 empty row
+  const [items, setItems] = useState([{
+    id: 1,
+    sNo: 1,
+    barcode: '',
+    itemName: '',
+    stock: '',
+    mrp: '',
+    uom: '',
+    hsn: '',
+    tax: '',
+    sRate: '',
+    rate: '',
+    qty: '',
+    amount: '0.00'
+  }]);
+
+  // State for visible rows
+  const [visibleRows, setVisibleRows] = useState(6);
+
+  // Refs for input fields and table container
+  const inputRefs = useRef({});
+  const tableContainerRef = useRef(null);
+
+  // Calculate amount
+  const calculateAmount = (qty, sRate) => {
+    const qtyNum = parseFloat(qty || 0);
+    const sRateNum = parseFloat(sRate || 0);
+    return (qtyNum * sRateNum).toFixed(2);
+  };
 
   // Calculate totals
   const totalQty = items.reduce((sum, item) => sum + parseFloat(item.qty || 0), 0);
   const totalAmount = items.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+  // Calculate visible rows based on window height
+  const calculateVisibleRows = () => {
+    const windowWidth = window.innerWidth;
+    
+    // Based on window dimensions, set different visible rows
+    if (windowWidth >= 1920) {
+      setVisibleRows(13);
+    } else if (windowWidth >= 1600) {
+      setVisibleRows(11);
+    } else if (windowWidth >= 1366) {
+      setVisibleRows(9);
+    } else if (windowWidth >= 1024) {
+      setVisibleRows(7);
+    } else if (windowWidth >= 768) {
+      setVisibleRows(6);
+    } else if (windowWidth >= 480) {
+      setVisibleRows(4);
+    } else {
+      setVisibleRows(3);
+    }
+  };
+
+  // Handle window resize
+  useEffect(() => {
+    calculateVisibleRows();
+    
+    const handleResize = () => {
+      calculateVisibleRows();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Focus on first barcode input on initial load
+  useEffect(() => {
+    if (inputRefs.current['barcode-1']) {
+      setTimeout(() => inputRefs.current['barcode-1'].focus(), 100);
+    }
+  }, []);
 
   // Handle form field changes
   const handleFormChange = (field) => (event) => {
@@ -74,15 +111,19 @@ const Salesreturn = () => {
 
   // Handle item field changes
   const handleItemChange = (id, field) => (event) => {
+    const value = event.target.value;
     const updatedItems = items.map(item => {
       if (item.id === id) {
-        const updatedItem = { ...item, [field]: event.target.value };
+        const updatedItem = { ...item, [field]: value };
         
-        // Recalculate amount if qty or sRate changes
-        if (field === 'qty' || field === 'sRate') {
-          const qty = parseFloat(updatedItem.qty || 0);
-          const sRate = parseFloat(updatedItem.sRate || 0);
-          updatedItem.amount = (qty * sRate).toFixed(2).toString(); // Format to 2 decimal places
+        if (field === 'qty' || field === 'sRate' || field === 'rate') {
+          const qty = field === 'qty' ? value : updatedItem.qty;
+          const rate = field === 'rate' ? value : (field === 'sRate' ? value : updatedItem.sRate);
+          updatedItem.amount = calculateAmount(qty, rate);
+          
+          if (field === 'rate') {
+            updatedItem.sRate = value;
+          }
         }
         
         return updatedItem;
@@ -92,16 +133,44 @@ const Salesreturn = () => {
     setItems(updatedItems);
   };
 
-  // Add new item row
+  // Add new empty item row
   const addItemRow = () => {
     const newId = items.length > 0 ? Math.max(...items.map(item => item.id)) + 1 : 1;
     const newSNo = items.length + 1;
     
-    setItems([
-      ...items,
-      {
-        id: newId,
-        sNo: newSNo,
+    const newItem = {
+      id: newId,
+      sNo: newSNo,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      qty: '',
+      amount: '0.00'
+    };
+    
+    setItems([...items, newItem]);
+    
+    // Focus on the new row's barcode input
+    setTimeout(() => {
+      if (inputRefs.current[`barcode-${newId}`]) {
+        inputRefs.current[`barcode-${newId}`].focus();
+      }
+    }, 50);
+  };
+
+  // Delete item row
+  const deleteItemRow = (id) => {
+    if (items.length <= 1) {
+      // Don't delete the last row, just clear it
+      const clearedItem = {
+        id: 1,
+        sNo: 1,
         barcode: '',
         itemName: '',
         stock: '',
@@ -112,27 +181,28 @@ const Salesreturn = () => {
         sRate: '',
         rate: '',
         qty: '',
-        amount: ''
-      }
-    ]);
-  };
-
-  // Delete item row
-  const deleteItemRow = (id) => {
-    const filteredItems = items.filter(item => item.id !== id);
-    // Update serial numbers
-    const updatedItems = filteredItems.map((item, index) => ({
-      ...item,
-      sNo: index + 1
-    }));
-    setItems(updatedItems);
+        amount: '0.00'
+      };
+      setItems([clearedItem]);
+      
+      setTimeout(() => {
+        if (inputRefs.current['barcode-1']) {
+          inputRefs.current['barcode-1'].focus();
+        }
+      }, 50);
+    } else {
+      const filteredItems = items.filter(item => item.id !== id);
+      const updatedItems = filteredItems.map((item, index) => ({
+        ...item,
+        sNo: index + 1
+      }));
+      setItems(updatedItems);
+    }
   };
 
   // Handle Save action
   const handleSave = () => {
-    console.log('Form Data:', formData);
-    console.log('Items:', items);
-    alert('Sales Return data saved successfully!');
+    alert(`Sales Return data saved successfully!\n\nTotal Quantity: ${totalQty}\nTotal Amount: ₹${totalAmount.toFixed(2)}`);
   };
 
   // Handle Clear action
@@ -150,12 +220,64 @@ const Salesreturn = () => {
       items: ''
     });
     
-    setItems([]); // Clear all items
+    // Reset to 1 empty row
+    const clearedItem = {
+      id: 1,
+      sNo: 1,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      qty: '',
+      amount: '0.00'
+    };
     
-    alert('Form cleared!');
+    setItems([clearedItem]);
+    
+    setTimeout(() => {
+      if (inputRefs.current['barcode-1']) {
+        inputRefs.current['barcode-1'].focus();
+      }
+    }, 100);
   };
 
-  // Base style object for cleaner code in the action buttons
+  // Handle Enter key navigation
+  const handleKeyDown = (id, field, event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      
+      const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'];
+      const currentIndex = fields.indexOf(field);
+      
+      if (currentIndex < fields.length - 1) {
+        const nextField = fields[currentIndex + 1];
+        const nextRef = inputRefs.current[`${nextField}-${id}`];
+        if (nextRef) {
+          nextRef.focus();
+          nextRef.select();
+        }
+      } else {
+        const currentRowIndex = items.findIndex(item => item.id === id);
+        if (currentRowIndex < items.length - 1) {
+          const nextRowId = items[currentRowIndex + 1].id;
+          const nextRef = inputRefs.current[`barcode-${nextRowId}`];
+          if (nextRef) {
+            nextRef.focus();
+            nextRef.select();
+          }
+        } else {
+          addItemRow();
+        }
+      }
+    }
+  };
+
+  // Style objects
   const baseButtonStyle = {
     border: 'none',
     padding: '8px 16px',
@@ -167,151 +289,172 @@ const Salesreturn = () => {
     fontSize: '14px',
     justifyContent: 'center',
     whiteSpace: 'nowrap',
-    transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
+    transition: 'all 0.3s ease'
   };
 
-  /**
-   * Helper component for uniform input fields with left-aligned labels (for the header)
-   * The 'grid' container will handle the straight arrangement.
-   */
-  const FormInput = ({ label, field, type = "text", placeholder = "", minWidth = '120px', value, onChange, readOnly = false, isSelect = false, options = [] }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: minWidth, flex: '1 1 auto' }}>
-      <label style={{ fontWeight: '500', fontSize: '14px', textAlign: 'left', color: '#333' }}>
-        {label}
-      </label>
-      {isSelect ? (
-        <select
-          style={{
-            padding: '8px',
-            border: 'none', // UPDATED: Removed border
-            borderRadius: '4px',
-            fontSize: '14px',
-            backgroundColor: readOnly ? '#f0f0f0' : 'white',
-            outline: 'none' // Remove outline on focus
-          }}
-          value={value}
-          onChange={onChange(field)}
-          readOnly={readOnly}
-          disabled={readOnly}
-        >
-          {options.map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
-      ) : (
-        <input
-          type={type}
-          style={{
-            padding: '8px',
-            border: 'none', // UPDATED: Removed border
-            borderRadius: '4px',
-            fontSize: '14px',
-            backgroundColor: readOnly ? '#f0f0f0' : 'white',
-            outline: 'none' // Remove outline on focus
-          }}
-          value={value}
-          onChange={onChange(field)}
-          placeholder={placeholder}
-          readOnly={readOnly}
-        />
-      )}
-    </div>
-  );
-
-  // Common style for input fields within the table for brevity - UPDATED: Removed border
   const tableInputStyle = {
     width: '100%', 
-    padding: '4px', 
-    border: 'none', // UPDATED: Removed border
+    padding: '8px 4px', 
+    border: 'none',
     fontSize: '14px', 
     background: 'transparent',
     textAlign: 'center',
-    outline: 'none' // Remove outline on focus
+    outline: 'none'
+  };
+
+  const brightTotalStyle = {
+    fontWeight: 'bold',
+    fontSize: '22px',
+    textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+    letterSpacing: '0.5px'
+  };
+
+  // Styles for responsive design
+  const styles = {
+    container: {
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh',
+      padding: '0',
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    mainContent: {
+      marginTop: '60px',
+      display: 'flex',
+      flexDirection: 'column',
+      flex: 1
+    },
+    formHeader: {
+      position: 'fixed',
+      top: '0',
+      left: 0,
+      right: 0,
+      backgroundColor: 'white',
+      zIndex: 900,
+      boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+      padding: '15px 25px',
+      borderBottom: '3px solid #ddd',
+    },
+    formGrid: {
+      display: 'grid',
+      marginTop: '70px',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: '20px 35px',
+      '@media (max-width: 1200px)': {
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '8px 12px'
+      },
+      '@media (max-width: 992px)': {
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '8px'
+      },
+      '@media (max-width: 768px)': {
+        gridTemplateColumns: '1fr',
+        gap: '6px'
+      }
+    },
+    tableWrapper: {
+      backgroundColor: '#ffffff',
+      position: 'fixed',
+      top: '110px',
+      left: 0,
+      right: 0,
+      bottom: '70px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      margin: '10px',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    tableContainer: {
+      flex: 1,
+      marginTop: '70px',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    tableHeader: {
+      position: 'sticky',
+      zIndex: 30,
+      backgroundColor: '#1976d2'
+    },
+    tableBody: {
+      flex: 1,
+      overflowY: 'auto',
+      overflowX: 'auto'
+    },
+    actionBar: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: 'white',
+      padding: '12px 20px',
+      borderTop: '2px solid #dee2e6',
+      boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+      zIndex: 1000,
+      height: '70px'
+    }
   };
 
   return (
-    <div style={{ 
-      backgroundColor: '#f5f5f5',
-      minHeight: '100vh',
-      padding: '4px',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <div style={{ 
-        backgroundColor: '#ffffff',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        padding: '12px 8px',
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        {/* Main Content - Scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }}>
-          
-          <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #ddd' }} />
-
-          {/* Form Section - UPDATED: Borderless input fields */}
-          <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '16px 24px',
-            marginBottom: '16px',
-            padding: '8px'
-          }}>
-            
-            {/* Row 1 */}
-            {/* Salesman: Input Box - UPDATED: Borderless */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px' }}>
-              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Salesman:</span>
+    <div style={styles.container}>
+      {/* Main Content Area */}
+      <div style={styles.mainContent}>
+        {/* Fixed Form Header */}
+        <div style={styles.formHeader}>
+          <div style={styles.formGrid}>
+            {/* Bill No Field */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '55px', color: '#333' }}>Bill No:</span>
               <input
                 type="text"
                 style={{
                   flex: 1,
-                  padding: '8px',
-                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  padding: '7px 10px',
+                  border: "1px solid #ddd",
                   borderRadius: '4px',
-                  fontSize: '14px',
-                  minWidth: '120px',
-                  outline: 'none' // Remove outline on focus
-                }}
-                value={formData.salesman}
-                onChange={handleFormChange('salesman')}
-                placeholder="Enter Salesman"
-              />
-            </div>
-
-            {/* IINo: Input Box - UPDATED: Borderless */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '150px' }}>
-              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>BIINo:</span>
-              <input
-                type="text"
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  border: "1px solid #e0e0e0", // UPDATED: Removed border
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  backgroundColor: '#f0f0f0',
-                  outline: 'none' // Remove outline on focus
+                  fontSize: '13px',
+                  backgroundColor: '#f8f9fa',
+                  outline: 'none',
+                  color: '#666'
                 }}
                 value={formData.billNo}
                 readOnly
               />
             </div>
 
-            {/* Mobile No: Input Box - UPDATED: Borderless */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
-              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Mobile No:</span>
+            {/* Bill Date Field */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '65px', color: '#333' }}>Bill Date:</span>
+              <input
+                type="date"
+                style={{
+                  flex: 1,
+                  padding: '7px 10px',
+                  border: "1px solid #ddd",
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
+                value={formData.billDate}
+                onChange={handleFormChange('billDate')}
+              />
+            </div>
+
+            {/* Mobile No Field */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '75px', color: '#333' }}>Mobile No:</span>
               <input
                 type="text"
                 style={{
                   flex: 1,
-                  padding: '8px',
-                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  padding: '7px 10px',
+                  border: "1px solid #ddd",
                   borderRadius: '4px',
-                  fontSize: '14px',
-                  outline: 'none' // Remove outline on focus
+                  fontSize: '13px',
+                  outline: 'none'
                 }}
                 value={formData.mobileNo}
                 onChange={handleFormChange('mobileNo')}
@@ -319,19 +462,18 @@ const Salesreturn = () => {
               />
             </div>
 
-            {/* Row 2 */}
-            {/* EMP Name: Input Box - UPDATED: Borderless */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px' }}>
-              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>EMP Name:</span>
+            {/* EMP Name Field */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '75px', color: '#333' }}>EMP Name:</span>
               <input
                 type="text"
                 style={{
                   flex: 1,
-                  padding: '8px',
-                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  padding: '7px 10px',
+                  border: "1px solid #ddd",
                   borderRadius: '4px',
-                  fontSize: '14px',
-                  outline: 'none' // Remove outline on focus
+                  fontSize: '13px',
+                  outline: 'none'
                 }}
                 value={formData.empName}
                 onChange={handleFormChange('empName')}
@@ -339,36 +481,37 @@ const Salesreturn = () => {
               />
             </div>
 
-            {/* Bill Date: Input Box - UPDATED: Borderless */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
-              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Bill Date:</span>
-              <input
-                type="date"
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  border: "1px solid #e0e0e0", // UPDATED: Removed border
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  outline: 'none' // Remove outline on focus
-                }}
-                value={formData.billDate}
-                onChange={handleFormChange('billDate')}
-              />
-            </div>
-
-            {/* Customer Name: Input Box - UPDATED: Borderless */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
-              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap' }}>Customer Name:</span>
+            {/* Salesman Field */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '75px', color: '#333' }}>Salesman:</span>
               <input
                 type="text"
                 style={{
                   flex: 1,
-                  padding: '8px',
-                  border: "1px solid #e0e0e0", // UPDATED: Removed border
+                  padding: '7px 10px',
+                  border: "1px solid #ddd",
                   borderRadius: '4px',
-                  fontSize: '14px',
-                  outline: 'none' // Remove outline on focus
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
+                value={formData.salesman}
+                onChange={handleFormChange('salesman')}
+                placeholder="Salesman"
+              />
+            </div>
+
+            {/* Customer Name Field */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '100px', color: '#333' }}>Customer Name:</span>
+              <input
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '7px 10px',
+                  border: "1px solid #ddd",
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  outline: 'none'
                 }}
                 value={formData.custName}
                 onChange={handleFormChange('custName')}
@@ -376,240 +519,212 @@ const Salesreturn = () => {
               />
             </div>
 
-            {/* BARCODE INPUT: Input Box - UPDATED: Borderless and removed space */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '280px' }}>
-              <span style={{ fontWeight: '500', fontSize: '14px', whiteSpace: 'nowrap', minWidth: '100px' }}>BARCODE:</span>
-              <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                <input
-                  type="text"
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    border: "1px solid #e0e0e0", // UPDATED: Removed border
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    minWidth: '0',
-                    outline: 'none' // Remove outline on focus
-                  }}
-                  value={formData.barcodeInput}
-                  onChange={handleFormChange('barcodeInput')}
-                  placeholder="Scan or Enter Barcode"
-                />
-              </div>
+            {/* Barcode Field */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', gridColumn: 'span 2' }}>
+              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '65px', color: '#333' }}>Barcode:</span>
+              <input
+                type="text"
+                style={{
+                  flex: 1,
+                  padding: '7px 10px',
+                  border: "1px solid #ddd",
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
+                value={formData.barcodeInput}
+                onChange={handleFormChange('barcodeInput')}
+                placeholder="Enter Barcode"
+              />
             </div>
           </div>
+        </div>
 
-          <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #ddd' }} />
-
-          {/* Items Table - UPDATED WITH BORDERLESS INPUTS */}
-          <div style={{ 
-            backgroundColor: '#fff',
-            borderRadius: '8px',
-            border: '1px solid #ddd',
-            marginBottom: '16px',
-            overflow: 'hidden',
-            position: 'relative'
-          }}>
-            {/* Top Scrollbar Container */}
-            <div style={{ 
-              position: 'sticky',
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 20,
-              backgroundColor: '#f5f5f5',
-              borderBottom: '1px solid #ddd',
-              height: '10px'
-            }}>
-              <div style={{ 
-                overflowX: 'auto',
-                height: '100%',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none'
-              }}>
-                <div style={{ 
-                  width: '1200px',
-                  height: '100%'
-                }}></div>
-              </div>
-            </div>
-
-            {/* Main Table Container */}
-            <div style={{ 
-              overflowX: 'auto',
-              maxHeight: '400px', // Fixed height for vertical scrolling
-              position: 'relative'
-            }}>
-              <table style={{ 
-                width: '100%', 
-                borderCollapse: 'collapse', 
-                fontSize: '14px', 
-                minWidth: '1200px'
-              }}>
-                <thead style={{
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 10,
-                  backgroundColor: '#1976d2'
-                }}>
-                  <tr style={{ backgroundColor: '#1976d2' }}>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '50px' }}>SNo</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '140px' }}>Barcode</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '200px' }}>Item Name</th>
-                    
-                    {/* *** Column Order Matching Image Starts Here *** */}
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>Stock</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>MRP</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>UOM</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>HSN</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>TAX</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>SRATE</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>RATE</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>QTY</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'right', whiteSpace: 'nowrap', width: '100px' }}>AMOUNT</th>
-                    {/* *** Column Order Matching Image Ends Here *** */}
-
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>ACTION</th>
+        {/* Table Area */}
+        <div ref={tableContainerRef} style={styles.tableWrapper}>
+          <div style={styles.tableContainer}>
+            {/* Table Header */}
+            <div style={styles.tableHeader}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', tableLayout: 'fixed' }}>
+                <thead>
+                  <tr>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '50px' }}>SNo</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '140px' }}>Barcode</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '200px' }}>Item Name</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>Stock</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>MRP</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>UOM</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>HSN</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>TAX</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>SRATE</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>RATE</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>QTY</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'right', whiteSpace: 'nowrap', width: '100px' }}>AMOUNT</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>ACTION</th>
                   </tr>
                 </thead>
+              </table>
+            </div>
+            
+            {/* Table Body - Responsive height */}
+            <div style={{ ...styles.tableBody, height: `${visibleRows * 50}px` }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', tableLayout: 'fixed' }}>
                 <tbody>
                   {items.map((item) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+                    <tr key={item.id} style={{ backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff', borderBottom: '1px solid #eee' }}>
                       {/* SNo */}
-                      <td style={{ padding: '8px', whiteSpace: 'nowrap', textAlign: 'center' }}>{item.sNo}</td>
+                      <td style={{ padding: '12px 8px', whiteSpace: 'nowrap', textAlign: 'center', width: '50px' }}>{item.sNo}</td>
                       
-                      {/* Barcode - UPDATED: Borderless */}
-                      <td style={{ padding: '12px 8px' }}>
+                      {/* Barcode */}
+                      <td style={{ padding: '12px 8px', width: '140px' }}>
                         <input
+                          ref={el => inputRefs.current[`barcode-${item.id}`] = el}
                           type="text"
-                          style={{ 
-                            ...tableInputStyle, 
-                            fontWeight: '500', 
-                            textAlign: 'left',
-                            padding: '8px 4px',
-                            width: 'calc(100% - 8px)'
-                          }}
+                          style={{ ...tableInputStyle, fontWeight: '500', textAlign: 'left' }}
                           value={item.barcode}
                           onChange={handleItemChange(item.id, 'barcode')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'barcode', e)}
                           placeholder="Barcode"
                         />
                       </td>
                       
-                      {/* Item Name - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* Item Name */}
+                      <td style={{ padding: '12px 8px', width: '200px' }}>
                         <input
+                          ref={el => inputRefs.current[`itemName-${item.id}`] = el}
                           type="text"
                           style={{ ...tableInputStyle, textAlign: 'left' }}
                           value={item.itemName}
                           onChange={handleItemChange(item.id, 'itemName')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'itemName', e)}
                           placeholder="Item Name"
                         />
                       </td>
                       
-                      {/* Stock - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* Stock */}
+                      <td style={{ padding: '12px 8px', width: '80px' }}>
                         <input
+                          ref={el => inputRefs.current[`stock-${item.id}`] = el}
                           type="text"
                           style={tableInputStyle}
                           value={item.stock || ''}
                           onChange={handleItemChange(item.id, 'stock')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'stock', e)}
                           placeholder="Stock"
                         />
                       </td>
                       
-                      {/* MRP - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* MRP */}
+                      <td style={{ padding: '12px 8px', width: '80px' }}>
                         <input
+                          ref={el => inputRefs.current[`mrp-${item.id}`] = el}
                           type="text"
                           style={tableInputStyle}
                           value={item.mrp || ''}
                           onChange={handleItemChange(item.id, 'mrp')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'mrp', e)}
                           placeholder="MRP"
                         />
                       </td>
                       
-                      {/* UOM - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* UOM */}
+                      <td style={{ padding: '12px 8px', width: '60px' }}>
                         <input
+                          ref={el => inputRefs.current[`uom-${item.id}`] = el}
                           type="text"
                           style={tableInputStyle}
                           value={item.uom}
                           onChange={handleItemChange(item.id, 'uom')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'uom', e)}
                           placeholder="UOM"
                         />
                       </td>
                       
-                      {/* HSN - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* HSN */}
+                      <td style={{ padding: '12px 8px', width: '80px' }}>
                         <input
+                          ref={el => inputRefs.current[`hsn-${item.id}`] = el}
                           type="text"
                           style={tableInputStyle}
                           value={item.hsn || ''}
                           onChange={handleItemChange(item.id, 'hsn')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'hsn', e)}
                           placeholder="HSN"
                         />
                       </td>
                       
-                      {/* TAX - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* TAX */}
+                      <td style={{ padding: '12px 8px', width: '60px' }}>
                         <input
+                          ref={el => inputRefs.current[`tax-${item.id}`] = el}
                           type="number"
                           style={tableInputStyle}
                           value={item.tax}
                           onChange={handleItemChange(item.id, 'tax')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'tax', e)}
                           placeholder="Tax"
+                          step="0.01"
                         />
                       </td>
                       
-                      {/* SRATE - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* SRATE */}
+                      <td style={{ padding: '12px 8px', width: '80px' }}>
                         <input
+                          ref={el => inputRefs.current[`sRate-${item.id}`] = el}
                           type="number"
                           style={tableInputStyle}
                           value={item.sRate}
                           onChange={handleItemChange(item.id, 'sRate')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'sRate', e)}
                           placeholder="S Rate"
+                          step="0.01"
                         />
                       </td>
                       
-                      {/* RATE - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* RATE */}
+                      <td style={{ padding: '12px 8px', width: '80px' }}>
                         <input
-                          type="text"
+                          ref={el => inputRefs.current[`rate-${item.id}`] = el}
+                          type="number"
                           style={tableInputStyle}
                           value={item.rate || ''}
                           onChange={handleItemChange(item.id, 'rate')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'rate', e)}
                           placeholder="Rate"
+                          step="0.01"
                         />
                       </td>
                       
-                      {/* QTY - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* QTY */}
+                      <td style={{ padding: '12px 8px', width: '60px' }}>
                         <input
+                          ref={el => inputRefs.current[`qty-${item.id}`] = el}
                           type="number"
                           style={{ ...tableInputStyle, fontWeight: 'bold' }}
                           value={item.qty}
                           onChange={handleItemChange(item.id, 'qty')}
+                          onKeyDown={(e) => handleKeyDown(item.id, 'qty', e)}
                           placeholder="Qty"
+                          step="0.01"
                         />
                       </td>
                       
-                      {/* AMOUNT - UPDATED: Borderless */}
-                      <td style={{ padding: '8px' }}>
+                      {/* AMOUNT */}
+                      <td style={{ padding: '12px 8px', width: '100px' }}>
                         <input
                           type="text"
-                          style={{ ...tableInputStyle, textAlign: 'right', fontWeight: 'bold', color: '#1565c0' }}
+                          style={{ ...tableInputStyle, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff' }}
                           value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              })}
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}
                           placeholder="Amount"
                           readOnly
                         />
                       </td>
                       
                       {/* ACTION */}
-                      <td style={{ padding: '8px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 8px', textAlign: 'center', width: '60px' }}>
                         <button
                           onClick={() => deleteItemRow(item.id)}
                           style={{ background: 'none', border: 'none', color: '#d32f2f', cursor: 'pointer', padding: '4px' }}
@@ -624,45 +739,21 @@ const Salesreturn = () => {
                 </tbody>
               </table>
             </div>
-
-            {/* Bottom Scrollbar Container */}
-            <div style={{ 
-              position: 'sticky',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              zIndex: 20,
-              backgroundColor: '#f5f5f5',
-              borderTop: '1px solid #ddd',
-              height: '10px'
-            }}>
-              <div style={{ 
-                overflowX: 'auto',
-                height: '100%',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none'
-              }}>
-                <div style={{ 
-                  width: '1200px',
-                  height: '100%'
-                }}></div>
-              </div>
-            </div>
             
-            {/* Add Item Button (outside table structure) */}
-            <div style={{ padding: '12px', textAlign: 'left' }}>
+            {/* Add Item Button */}
+            <div style={{ padding: '15px', textAlign: 'left', borderTop: '1px solid #eee' }}>
               <button
                 onClick={addItemRow}
                 style={{ 
                   backgroundColor: '#1976d2',
                   color: 'white',
                   border: 'none',
-                  padding: '8px 16px',
+                  padding: '10px 20px',
                   borderRadius: '4px',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
+                  gap: '8px',
                   fontSize: '14px'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
@@ -672,194 +763,57 @@ const Salesreturn = () => {
               </button>
             </div>
           </div>
-
-          {/* Totals Section (Aligned Right) */}
-          <div style={{ 
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '12px',
-            marginBottom: '16px',
-            flexWrap: 'wrap',
-            paddingRight: '8px'
-          }}>
-            <div style={{ 
-              padding: '12px 16px', 
-              backgroundColor: '#e3f2fd', 
-              borderRadius: '4px',
-              minWidth: '200px',
-              textAlign: 'right'
-            }}>
-              <h3 style={{ fontWeight: 'bold', fontSize: '16px', margin: 0, color: '#1976d2' }}>
-                Total Qty: <span style={{ color: '#0d47a1' }}>{totalQty}</span>
-              </h3>
-            </div>
-            <div style={{ 
-              padding: '12px 16px', 
-              backgroundColor: '#e3f2fd', 
-              borderRadius: '4px',
-              minWidth: '200px',
-              textAlign: 'right'
-            }}>
-              <h3 style={{ fontWeight: 'bold', fontSize: '16px', margin: 0, color: '#1976d2' }}>
-                Total Amount: ₹<span style={{ color: '#0d47a1' }}>
-                  {totalAmount.toLocaleString('en-IN', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })}
-                </span>
-              </h3>
-            </div>
-          </div>
         </div>
 
-        {/* Fixed Action Bar at bottom */}
-        <div style={{ 
-          position: 'sticky',
-          bottom: '0',
-          left: '0',
-          right: '0',
-          backgroundColor: 'white',
-          padding: '12px',
-          borderTop: '1px solid #ddd',
-          borderRadius: '0 0 8px 8px',
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
-          zIndex: 100,
-          marginTop: 'auto'
-        }}>
-          <div style={{ 
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '12px',
-            flexWrap: 'wrap'
-          }}>
-            {/* Left side: ADD, EDIT, DELETE buttons - Kept for general Item management */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Fixed Action Bar at Bottom */}
+        <div style={styles.actionBar}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%' }}>
+            {/* Left side buttons */}
+            <div style={{ display: 'flex', gap: '10px' }}>
               <button 
-                onClick={addItemRow} // Map ADD button to addItemRow
-                style={{ ...baseButtonStyle, backgroundColor: '#1976d2', color: 'white', minWidth: '90px' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
+                onClick={addItemRow}
+                style={{ ...baseButtonStyle, backgroundColor: '#1976d2', color: 'white', minWidth: '100px' }}
               >
                 <AddIcon fontSize="small" /> ADD
               </button>
-              <button 
-                // Placeholder for EDIT functionality
-                style={{ ...baseButtonStyle, backgroundColor: 'transparent', color: '#1976d2', border: '1px solid #1976d2', minWidth: '90px' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e3f2fd'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
+              <button style={{ ...baseButtonStyle, backgroundColor: 'white', color: '#1976d2', border: '1px solid #1976d2', minWidth: '100px' }}>
                 <EditIcon fontSize="small" /> EDIT
               </button>
-              <button 
-                // Placeholder for DELETE functionality (item-level delete is in the table)
-                style={{ ...baseButtonStyle, backgroundColor: 'transparent', color: '#d32f2f', border: '1px solid #d32f2f', minWidth: '90px' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ffebee'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
+              <button style={{ ...baseButtonStyle, backgroundColor: 'white', color: '#d32f2f', border: '1px solid #d32f2f', minWidth: '100px' }}>
                 <DeleteIcon fontSize="small" /> DELETE
               </button>
             </div>
 
-            {/* Right side: Clear and Save Bill buttons */}
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <button
-                onClick={handleClear}
-                style={{ ...baseButtonStyle, backgroundColor: 'transparent', color: '#666', border: '1px solid #666', minWidth: '100px' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f5f5f5'; e.currentTarget.style.borderColor = '#333'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = '#666'; }}
-              >
-                <ClearIcon fontSize="small" /> Clear
+            {/* Center - Totals */}
+            <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 20px', backgroundColor: '#f0f7ff', borderRadius: '6px' }}>
+                <div style={{ fontSize: '12px', color: '#1976d2', marginBottom: '2px', fontWeight: '600' }}>Total Quantity</div>
+                <div style={{ ...brightTotalStyle, color: '#1976d2' }}>{totalQty.toFixed(2)}</div>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 20px', backgroundColor: '#f0fff4', borderRadius: '6px' }}>
+                <div style={{ fontSize: '12px', color: '#28a745', marginBottom: '2px', fontWeight: '600' }}>Total Amount</div>
+                <div style={{ ...brightTotalStyle, color: '#28a745' }}>
+                  ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+
+            {/* Right side buttons */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={handleClear} style={{ ...baseButtonStyle, backgroundColor: '#f8f9fa', color: '#6c757d', border: '1px solid #6c757d', minWidth: '100px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', marginRight: '5px', fontSize: '18px', fontWeight: 'bold' }}>×</span>
+                Clear
               </button>
-              <button
-                onClick={handleSave}
-                style={{ ...baseButtonStyle, backgroundColor: '#4caf50', color: 'white', minWidth: '120px' }} 
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#388e3c'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4caf50'}
-              >
-                <SaveIcon fontSize="small" /> Save Return
+              <button onClick={handleSave} style={{ ...baseButtonStyle, backgroundColor: '#28a745', color: 'white', minWidth: '120px', fontWeight: 'bold' }}>
+                <SaveIcon fontSize="small" /> Save
               </button>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Global CSS for smooth scrollbars */}
-      <style jsx="true">{`
-        /* Smooth scrollbar styling for the entire application */
-        * {
-          scrollbar-width: thin;
-          scrollbar-color: #c1c1c1 #f5f5f5;
-        }
-        
-        /* For Webkit browsers (Chrome, Safari, Edge) */
-        ::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-          background: #f5f5f5;
-          border-radius: 4px;
-          margin: 2px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-          background: #c1c1c1;
-          border-radius: 4px;
-          transition: background 0.3s ease;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-          background: #a8a8a8;
-        }
-        
-        /* For Firefox */
-        * {
-          scrollbar-width: thin;
-          scrollbar-color: #c1c1c1 #f5f5f5;
-        }
-        
-        /* Table specific scrollbar styling */
-        .table-container::-webkit-scrollbar {
-          height: 8px;
-        }
-        
-        .table-container::-webkit-scrollbar-track {
-          background: #f5f5f5;
-          border-radius: 4px;
-          margin: 2px;
-        }
-        
-        .table-container::-webkit-scrollbar-thumb {
-          background: #c1c1c1;
-          border-radius: 4px;
-          transition: background 0.3s ease;
-        }
-        
-        .table-container::-webkit-scrollbar-thumb:hover {
-          background: #a8a8a8;
-        }
-        
-        /* Hide scrollbar for top and bottom containers */
-        .scroll-container-hidden::-webkit-scrollbar {
-          display: none;
-        }
-        
-        .scroll-container-hidden {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        
-        /* Smooth scrolling for the entire page */
-        html {
-          scroll-behavior: smooth;
-        }
-      `}</style>
     </div>
   );
 };
-
 
 export default Salesreturn;
