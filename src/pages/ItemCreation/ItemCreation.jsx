@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 // import { useFormPermissions } from '../../../hooks/useFormPermissions';
 
 const FCompCode = "001";
@@ -125,6 +126,7 @@ const ItemCreation = ({ onCreated }) => {
   const [actionType, setActionType] = useState('create');
   const [searchTree, setSearchTree] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [modalVisible, setModalVisible] = useState(false);
   const [dataList, setDataList] = useState([]);
@@ -459,6 +461,26 @@ const ItemCreation = ({ onCreated }) => {
       setLoading(false);
     }
   };
+
+  // Fetch function used by PopupListSelector for Edit/Delete
+  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
+    try {
+      const url = `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?searchText=${encodeURIComponent(search)}`;
+      const resp = await axiosInstance.get(url);
+      let items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || resp.data?.result || []);
+
+      return items.map((it) => ({
+        ...it,
+        // normalized fields for consumers
+        fItemName: it.fItemName ?? it.fitemName ?? it.fItemname ?? it.fItem ?? '',
+        fItemcode: it.fItemcode ?? it.fitemCode ?? it.fitemcode ?? it.fCode ?? '',
+        fParent: it.fParent ?? it.groupName ?? it.fParentName ?? ''
+      }));
+    } catch (err) {
+      console.error('fetchPopupItems error', err);
+      return [];
+    }
+  }, []);
 
   const fetchCounterList = async () => {
     try {
@@ -1057,7 +1079,7 @@ const ItemCreation = ({ onCreated }) => {
 
             <button
               className={`action-pill ${actionType === 'edit' ? 'warn' : ''}`}
-              onClick={() => changeActionType('edit')}
+              onClick={() => { changeActionType('edit'); setIsPopupOpen(true); }}
               disabled={isSubmitting || !formPermissions.edit}
               type="button"
               title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing item"}
@@ -1067,7 +1089,7 @@ const ItemCreation = ({ onCreated }) => {
 
             <button
               className={`action-pill ${actionType === 'delete' ? 'danger' : ''}`}
-              onClick={() => changeActionType('delete')}
+              onClick={() => { changeActionType('delete'); setIsPopupOpen(true); }}
               disabled={isSubmitting || !formPermissions.delete}
               type="button"
               title={!formPermissions.delete ? "You don't have permission to delete" : "Delete item"}
@@ -1659,6 +1681,41 @@ const ItemCreation = ({ onCreated }) => {
           </div>
         </div>
       )}
+
+      {/* PopupListSelector for Edit/Delete actions */}
+      <PopupListSelector
+        open={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+        onSelect={(item) => {
+          const groupValue = item.fParent || item.groupName || '';
+          setFormData({
+            fitemCode: item.fItemcode || item.fItemCode || item.fCode || '',
+            itemName: item.fItemName || item.fItemname || item.fItem || '',
+            groupName: groupValue,
+            shortName: item.fShort || item.fshort || '',
+            counter: item.fCounter || item.fcounter || '',
+            hsnCode: item.fhsn || item.fHsn || '',
+            gstin: item.ftax || item.fTax || '',
+            prefix: item.fPrefix || item.fprefix || '',
+            pieceRate: item.pieceRate === 'Y' ? 'Y' : 'N',
+            gst: item.gstcheckbox === 'Y' ? 'Y' : 'N',
+            manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N'
+          });
+          setGstChecked(item.gstcheckbox === 'Y');
+          setManualPrefixChecked(item.manualprefix === 'Y');
+          setPieceRateChecked(item.pieceRate === 'Y');
+          setMainGroup(groupValue);
+          setIsPopupOpen(false);
+        }}
+        fetchItems={fetchPopupItems}
+        title={`Select Item to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
+        displayFieldKeys={['fItemName', 'fParent']}
+        searchFields={['fItemName', 'fParent']}
+        headerNames={['Item Name', 'Group']}
+        columnWidths={{ fItemName: '70%', fParent: '30%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
     </div>
   );
 };
