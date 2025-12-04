@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import { API_ENDPOINTS } from "../../api/endpoints";
+import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 // import { useFormPermissions } from '../../../hooks/useFormPermissions';
 
 const FCompCode = "001";
@@ -132,6 +133,7 @@ export default function LedgerCreation({ onCreated }) {
   const [message, setMessage] = useState(null);
   const [lastNetworkError, setLastNetworkError] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -504,6 +506,28 @@ export default function LedgerCreation({ onCreated }) {
     }
   };
 
+  // Fetch function used by PopupListSelector (paged + searchable)
+  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
+    try {
+      const resp = await axiosInstance.get(
+        API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.getDropdownPaged(page, 20, search)
+      );
+      const items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || []);
+
+      // Ensure we return an array of plain objects with expected fields
+      return items.map((it) => ({
+        ...it,
+        // normalize casing for consumers
+        fCode: it.fCode ?? it.fcode,
+        fAcname: it.fAcname ?? it.fAcName,
+        fParent: it.fParent ?? it.parentName ?? '',
+      }));
+    } catch (err) {
+      console.error('fetchPopupItems error', err);
+      return [];
+    }
+  }, []);
+
   const resetForm = (keepAction = false) => {
     setMainGroup('');
     setSelectedNode(null);
@@ -869,14 +893,7 @@ export default function LedgerCreation({ onCreated }) {
 
         /* dropdown modal (glass) */
         .modal-overlay {
-          position:fixed; 
-          inset:0; 
-          display:flex; 
-          align-items:center; 
-          justify-content:center; 
-          background: rgba(2,6,23,0.46); 
-          z-index:1200; 
-          padding:20px;
+          
         }
         .modal {
           width:100%; 
@@ -963,6 +980,25 @@ export default function LedgerCreation({ onCreated }) {
         input:checked + .slider:before {
           transform: translateX(26px);
         }
+
+        .input-group-combined:focus-within {
+  box-shadow: 0 8px 26px rgba(48,122,200,0.08);
+  border-color: rgba(48,122,200,0.25);
+}
+
+        <div className="input-group-combined" style={{
+  display: "flex",
+  flex: 1,
+  border: "1px solid rgba(15,23,42,0.06)",
+  borderRadius: "10px",
+  overflow: "hidden",
+  background: "linear-gradient(180deg, #fff, #fbfdff)",
+  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+}}>
+
+
+
+
 
         /* Responsive styles */
         /* Large tablets and small laptops */
@@ -1147,7 +1183,7 @@ export default function LedgerCreation({ onCreated }) {
         }
       `}</style>
 
-      <div className="dashboard">
+      <div className="dashboard" style={isPopupOpen ? { filter: 'blur(4px)', pointerEvents: 'none', opacity: 0.5 } : {}}>
         <div className="top-row">
           <div className="title-block">
             <h2 id="ledger-title">Ledger Creation</h2>
@@ -1168,8 +1204,13 @@ export default function LedgerCreation({ onCreated }) {
             </div>
             <div
               className={`action-pill ${actionType === 'edit' ? 'warn' : ''} ${!formPermissions.edit ? 'disabled' : ''}`}
-              onClick={() => formPermissions.edit && changeActionType('edit')}
-              onKeyDown={(e) => e.key === 'Enter' && formPermissions.edit && changeActionType('edit')}
+              onClick={() => {
+                if (formPermissions.edit) {
+                  changeActionType('edit');
+                  setIsPopupOpen(true);
+                }
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && formPermissions.edit && (changeActionType('edit'), setIsPopupOpen(true))}
               role="button"
               tabIndex={formPermissions.edit ? 0 : -1}
               title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing ledger"}
@@ -1218,25 +1259,71 @@ export default function LedgerCreation({ onCreated }) {
             </div>
 
             <div className="field">
-              <label className="field-label">Group Name *</label>
-              <div className="row">
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Select group"
-                  value={mainGroup}
-                  // Group is selected via tree or modal; keep this readOnly and remove incorrect onChange
-                  readOnly
-                />
-                <button
-                  className="btn"
-                  onClick={() => setIsTreeOpen(!isTreeOpen)}
-                  type="button"
-                >
-                  {isTreeOpen ? 'Hide' : 'Show'} Tree
-                </button>
-              </div>
-            </div>
+  <label className="field-label">Group Name *</label>
+  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+    <div style={{
+      display: "flex",
+      flex: 1,
+      border: "1px solid rgba(15,23,42,0.06)",
+      borderRadius: "10px",
+      overflow: "hidden",
+      background: "linear-gradient(180deg, #fff, #fbfdff)",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+    }}>
+      <input
+        type="text"
+        className="input"
+        placeholder="Select group"
+        value={mainGroup}
+        readOnly
+        disabled={isSubmitting}
+        aria-label="Group Name"
+        style={{
+          flex: 1,
+          border: "none",
+          borderRadius: 0,
+          padding: "10px 12px",
+          minWidth: "120px",
+          fontSize: "14px",
+          outline: "none",
+          background: "transparent"
+        }}
+      />
+      <button
+        className="btn"
+        onClick={() => setIsTreeOpen(!isTreeOpen)}
+        disabled={isSubmitting}
+        type="button"
+        aria-expanded={isTreeOpen}
+        aria-controls="group-tree"
+        style={{
+          flexShrink: 0,
+          border: "none",
+          borderLeft: "1px solid rgba(15,23,42,0.06)",
+          borderRadius: 0,
+          padding: "8px 12px",
+          minWidth: "70px",
+          fontSize: "12px",
+          fontWeight: "600",
+          background: "linear-gradient(180deg,#fff,#f8fafc)",
+          cursor: isSubmitting ? "not-allowed" : "pointer",
+          color: "#0f172a",
+          transition: "all 0.2s"
+        }}
+        onMouseOver={(e) => {
+          if (!isSubmitting) {
+            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
+          }
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
+        }}
+      >
+        {isTreeOpen ? "Close" : "Open"}
+      </button>
+    </div>
+  </div>
+</div>
 
             {isTreeOpen && (
               <div className="panel">
@@ -1564,6 +1651,63 @@ export default function LedgerCreation({ onCreated }) {
           </div>
         </div>
       )}
+
+      {/* Modal overlay backdrop */}
+      {isPopupOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            zIndex: 999,
+          }}
+          onClick={() => setIsPopupOpen(false)}
+        />
+      )}
+
+      {/* Popup selector for editing ledgers */}
+      <PopupListSelector
+        open={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+        onSelect={(item) => {
+          // map the selected item into the form
+          const name = item.fAcname ?? item.fAcName ?? item.fAcname;
+          const code = item.fCode ?? item.fcode;
+          const groupValue = item.fParent ?? item.parentName ?? '';
+          
+          setFormData(prev => ({
+            ...prev,
+            partyName: name || '',
+            fCode: code || '',
+            dueDay: item.fDueDays || item.fDueDay || '',
+            dueDate: item.fDueDt || item.fDueDate || '',
+            fStreet: item.fStreet || '',
+            hallmark: item.fTngst || '',
+            area: item.fArea || '',
+            gstin: item.fCstno || item.fGst || '',
+            city: item.fCity || '',
+            pincode: item.fPincode || '',
+            phone: item.fPhone || '',
+            email: item.fMail || item.fEmail || '',
+            Hide: item.fshow || '1',
+            shortName: item.fFax || item.fShort || '',
+          }));
+          setMainGroup(groupValue);
+          setIsActive(item.fshow !== '0');
+          setIsPopupOpen(false);
+        }}
+        fetchItems={fetchPopupItems}
+        title="Select Ledger to Edit"
+        displayFieldKeys={['fAcname', 'fParent']}
+        searchFields={['fAcname', 'fParent']}
+        headerNames={['Ledger Name', 'Group']}
+        columnWidths={{ fAcname: '70%', fParent: '30%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
     </div>
   );
 }

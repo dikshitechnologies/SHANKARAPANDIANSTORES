@@ -193,12 +193,12 @@
 
 /* F8 Note */
 .f8Note {
-  margin-top: auto;
+ 
   text-align: right;
   font-size: 11px;
   color: #999;
   font-style: italic;
-  padding-top: 10px;
+  
   border-top: 1px solid #f0f0f0;
 }
 
@@ -218,7 +218,7 @@
   border: 1px solid #e8e8e8;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  flex: 1;
+ 
   min-height: 0;
   display: flex;
   flex-direction: column;
