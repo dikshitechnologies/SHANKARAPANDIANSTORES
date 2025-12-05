@@ -6,6 +6,7 @@ import {
   Save as SaveIcon,
   Clear as ClearIcon
 } from '@mui/icons-material';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector'; // Import your popup component
 
 /**
  * Sales Return Form Component with Responsive Table
@@ -44,6 +45,14 @@ const Salesreturn = () => {
 
   // State for visible rows
   const [visibleRows, setVisibleRows] = useState(6);
+
+  // State for delete confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  // State for popup
+  const [showPopup, setShowPopup] = useState(false);
+  const [currentItemId, setCurrentItemId] = useState(null);
 
   // Refs for input fields and table container
   const inputRefs = useRef({});
@@ -164,6 +173,56 @@ const Salesreturn = () => {
     }, 50);
   };
 
+  // Open popup for item selection
+  const openItemPopup = (id) => {
+    setCurrentItemId(id);
+    setShowPopup(true);
+  };
+
+  // Handle item selection from popup
+  const handleItemSelect = (selectedItem) => {
+    if (currentItemId) {
+      const updatedItems = items.map(item => {
+        if (item.id === currentItemId) {
+          return {
+            ...item,
+            barcode: selectedItem.barcode || '',
+            itemName: selectedItem.name || selectedItem.itemName || '',
+            mrp: selectedItem.mrp || '',
+            uom: selectedItem.uom || '',
+            hsn: selectedItem.hsn || '',
+            sRate: selectedItem.rate || selectedItem.sRate || '',
+            rate: selectedItem.rate || '',
+            stock: selectedItem.stock || ''
+          };
+        }
+        return item;
+      });
+      setItems(updatedItems);
+    }
+  };
+
+  // Handle delete confirmation
+  const confirmDelete = (id) => {
+    setItemToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  // Handle actual delete after confirmation
+  const handleDeleteConfirm = () => {
+    if (itemToDelete) {
+      deleteItemRow(itemToDelete);
+    }
+    setShowDeleteConfirm(false);
+    setItemToDelete(null);
+  };
+
+  // Handle cancel delete
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setItemToDelete(null);
+  };
+
   // Delete item row
   const deleteItemRow = (id) => {
     if (items.length <= 1) {
@@ -203,6 +262,13 @@ const Salesreturn = () => {
   // Handle Save action
   const handleSave = () => {
     alert(`Sales Return data saved successfully!\n\nTotal Quantity: ${totalQty}\nTotal Amount: ₹${totalAmount.toFixed(2)}`);
+  };
+
+  // Handle Save All action
+  const handleSaveAll = () => {
+    // Here you would typically save all items to backend
+    const itemsToSave = items.filter(item => item.barcode || item.itemName);
+    alert(`Saving ${itemsToSave.length} items...\n\nTotal Quantity: ${totalQty}\nTotal Amount: ₹${totalAmount.toFixed(2)}`);
   };
 
   // Handle Clear action
@@ -246,7 +312,33 @@ const Salesreturn = () => {
     }, 100);
   };
 
-  // Handle Enter key navigation
+  // Handle Enter key navigation for form fields
+  const handleFormKeyDown = (field, event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      
+      const formFields = ['billNo', 'billDate', 'mobileNo', 'empName', 'salesman', 'custName', 'barcodeInput'];
+      const currentIndex = formFields.indexOf(field);
+      
+      if (currentIndex < formFields.length - 1) {
+        // Focus on next form field
+        const nextField = formFields[currentIndex + 1];
+        const nextInput = document.querySelector(`input[name="${nextField}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      } else {
+        // Move to table's first input (barcode)
+        if (inputRefs.current['barcode-1']) {
+          inputRefs.current['barcode-1'].focus();
+          inputRefs.current['barcode-1'].select();
+        }
+      }
+    }
+  };
+
+  // Handle Enter key navigation for table items
   const handleKeyDown = (id, field, event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -277,29 +369,58 @@ const Salesreturn = () => {
     }
   };
 
+  // Mock function to fetch items for popup
+  const fetchItemsForPopup = async (page, search) => {
+    // This is a mock function - replace with your actual API call
+    const mockItems = [
+      { id: 1, barcode: '123456', name: 'Product A', mrp: 100, uom: 'PCS', hsn: '1234', rate: 85, stock: 50 },
+      { id: 2, barcode: '234567', name: 'Product B', mrp: 200, uom: 'PCS', hsn: '5678', rate: 170, stock: 30 },
+      { id: 3, barcode: '345678', name: 'Product C', mrp: 150, uom: 'PCS', hsn: '9012', rate: 125, stock: 20 },
+      { id: 4, barcode: '456789', name: 'Product D', mrp: 300, uom: 'PCS', hsn: '3456', rate: 250, stock: 15 },
+      { id: 5, barcode: '567890', name: 'Product E', mrp: 250, uom: 'PCS', hsn: '7890', rate: 200, stock: 40 },
+    ];
+    
+    // Filter by search text if provided
+    if (search) {
+      return mockItems.filter(item => 
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.barcode.includes(search)
+      );
+    }
+    
+    return mockItems;
+  };
+
   // Style objects
   const baseButtonStyle = {
     border: 'none',
     padding: '8px 16px',
-    borderRadius: '4px',
+    borderRadius: '6px',
     cursor: 'pointer',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '4px',
+    gap: '6px',
     fontSize: '14px',
     justifyContent: 'center',
     whiteSpace: 'nowrap',
-    transition: 'all 0.3s ease'
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    fontWeight: '500',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    transform: 'translateY(0)',
+    position: 'relative',
+    overflow: 'hidden'
   };
 
+  // Updated tableInputStyle to prevent shaking on hover
   const tableInputStyle = {
     width: '100%', 
     padding: '8px 4px', 
-    border: 'none',
+    border: '1px solid transparent',
     fontSize: '14px', 
     background: 'transparent',
     textAlign: 'center',
-    outline: 'none'
+    outline: 'none',
+    boxSizing: 'border-box'
   };
 
   const brightTotalStyle = {
@@ -326,6 +447,7 @@ const Salesreturn = () => {
     },
     formHeader: {
       position: 'fixed',
+      marginTop: '70px',
       top: '0',
       left: 0,
       right: 0,
@@ -337,39 +459,89 @@ const Salesreturn = () => {
     },
     formGrid: {
       display: 'grid',
-      marginTop: '70px',
       gridTemplateColumns: 'repeat(4, 1fr)',
-      gap: '20px 35px',
+      gap: '15px 20px',
+      alignItems: 'center',
       '@media (max-width: 1200px)': {
         gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '8px 12px'
+        gap: '12px 15px'
       },
       '@media (max-width: 992px)': {
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '8px'
+        gap: '10px'
       },
       '@media (max-width: 768px)': {
         gridTemplateColumns: '1fr',
-        gap: '6px'
+        gap: '8px'
       }
+    },
+    formField: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    formLabel: {
+      fontWeight: '500',
+      fontSize: '16px',
+      whiteSpace: 'nowrap',
+      minWidth: '85px',
+      color: '#333',
+      textAlign: 'right'
+    },
+    formInput: {
+      flex: 1,
+      padding: '8px 10px',
+      border: "1px solid #ddd",
+      borderRadius: '4px',
+      fontSize: '14px',
+      outline: 'none',
+      minHeight: '40px',
+      boxSizing: 'border-box'
+    },
+     formbutton: {
+     padding: '8px 10px',
+      border: "1px solid #ddd",
+      borderRadius: '4px',
+      fontSize: '14px',
+      outline: 'none',
+      minHeight: '40px',
+      boxSizing: 'border-box',
+      width:'305px'
+    },
+    formInputReadOnly: {
+      flex: 1,
+      padding: '8px 10px',
+      border: "1px solid #ddd",
+      borderRadius: '4px',
+      fontSize: '14px',
+      outline: 'none',
+      minHeight: '36px',
+      boxSizing: 'border-box',
+      backgroundColor: '#f8f9fa',
+      color: '#666'
     },
     tableWrapper: {
       backgroundColor: '#ffffff',
+     marginTop: '22px',
       position: 'fixed',
       top: '110px',
       left: 0,
       right: 0,
       bottom: '70px',
-      borderRadius: '8px',
+      borderRadius: '12px 12px 0 0', // Rounded top corners only
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      margin: '10px',
       overflow: 'hidden',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      borderTop: '1px solid #1976d2',
+      borderLeft: '1px solid #ddd',
+      borderRight: '1px solid #ddd'
     },
     tableContainer: {
       flex: 1,
       marginTop: '70px',
+      marginLeft: '11px',
+      marginRight: '11px',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column'
@@ -377,7 +549,8 @@ const Salesreturn = () => {
     tableHeader: {
       position: 'sticky',
       zIndex: 30,
-      backgroundColor: '#1976d2'
+      backgroundColor: '#1976d2',
+      borderRadius: '12px 12px 0 0' // Rounded top for table header
     },
     tableBody: {
       flex: 1,
@@ -395,146 +568,266 @@ const Salesreturn = () => {
       boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
       zIndex: 1000,
       height: '70px'
+    },
+    // Delete confirmation modal styles
+    deleteModalOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 2000
+    },
+    deleteModal: {
+      backgroundColor: 'white',
+      padding: '30px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+      minWidth: '350px',
+      textAlign: 'center'
+    },
+    deleteModalTitle: {
+      fontSize: '20px',
+      fontWeight: 'bold',
+      marginBottom: '15px',
+      color: '#d32f2f'
+    },
+    deleteModalMessage: {
+      fontSize: '16px',
+      marginBottom: '25px',
+      color: '#555'
+    },
+    deleteModalButtons: {
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '15px'
+    },
+    deleteModalButton: {
+      padding: '10px 25px',
+      borderRadius: '6px',
+      border: 'none',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: 'bold',
+      minWidth: '80px',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      transform: 'translateY(0)'
+    },
+    cancelButton: {
+      backgroundColor: '#f5f5f5',
+      color: '#333',
+      border: '1px solid #ddd'
+    },
+    confirmButton: {
+      backgroundColor: '#d32f2f',
+      color: 'white'
     }
   };
 
   return (
     <div style={styles.container}>
+      {/* Popup List Selector */}
+      <PopupListSelector
+        open={showPopup}
+        onClose={() => setShowPopup(false)}
+        onSelect={handleItemSelect}
+        fetchItems={fetchItemsForPopup}
+        title="Select Item"
+        displayFieldKeys={['barcode', 'name', 'mrp', 'uom', 'hsn', 'rate', 'stock']}
+        searchFields={['name', 'barcode']}
+        headerNames={['Barcode', 'Item Name', 'MRP', 'UOM', 'HSN', 'Rate', 'Stock']}
+        searchPlaceholder="Search by item name or barcode..."
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div style={styles.deleteModalOverlay}>
+          <div style={styles.deleteModal}>
+            <div style={styles.deleteModalTitle}>Confirm Delete</div>
+            <div style={styles.deleteModalMessage}>
+              Are you sure you want to delete this item?
+            </div>
+            <div style={styles.deleteModalButtons}>
+              <button 
+                onClick={handleDeleteCancel}
+                style={{ ...styles.deleteModalButton, ...styles.cancelButton }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e8e8e8';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f5f5f5';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDeleteConfirm}
+                style={{ ...styles.deleteModalButton, ...styles.confirmButton }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#b71c1c';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(183, 28, 28, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#d32f2f';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div style={styles.mainContent}>
         {/* Fixed Form Header */}
         <div style={styles.formHeader}>
           <div style={styles.formGrid}>
             {/* Bill No Field */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '55px', color: '#333' }}>Bill No:</span>
+            
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Bill No :</label>
               <input
+                name="billNo"
                 type="text"
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  border: "1px solid #ddd",
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  backgroundColor: '#f8f9fa',
-                  outline: 'none',
-                  color: '#666'
-                }}
+                style={
+                  styles.formInput
+                  
+                }
                 value={formData.billNo}
-                readOnly
+                onChange={handleFormChange('billNo')}
+                onKeyDown={(e) => handleFormKeyDown('billNo', e)}
+                placeholder="Bill No"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
               />
             </div>
 
-            {/* Bill Date Field */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '65px', color: '#333' }}>Bill Date:</span>
+             {/* Salesman Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Salesman:</label>
               <input
-                type="date"
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  border: "1px solid #ddd",
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
-                value={formData.billDate}
-                onChange={handleFormChange('billDate')}
+                name="salesman"
+                type="text"
+                style={styles.formInput}
+                value={formData.salesman}
+                onChange={handleFormChange('salesman')}
+                onKeyDown={(e) => handleFormKeyDown('salesman', e)}
+                placeholder="Salesman"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
               />
             </div>
 
             {/* Mobile No Field */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '75px', color: '#333' }}>Mobile No:</span>
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Mobile No:</label>
               <input
+                name="mobileNo"
                 type="text"
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  border: "1px solid #ddd",
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
+                style={styles.formInput}
                 value={formData.mobileNo}
                 onChange={handleFormChange('mobileNo')}
+                onKeyDown={(e) => handleFormKeyDown('mobileNo', e)}
                 placeholder="Mobile No"
-              />
-            </div>
-
-            {/* EMP Name Field */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '75px', color: '#333' }}>EMP Name:</span>
-              <input
-                type="text"
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  border: "1px solid #ddd",
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
-                value={formData.empName}
-                onChange={handleFormChange('empName')}
-                placeholder="EMP Name"
-              />
-            </div>
-
-            {/* Salesman Field */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '75px', color: '#333' }}>Salesman:</span>
-              <input
-                type="text"
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  border: "1px solid #ddd",
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
-                value={formData.salesman}
-                onChange={handleFormChange('salesman')}
-                placeholder="Salesman"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
               />
             </div>
 
             {/* Customer Name Field */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '100px', color: '#333' }}>Customer Name:</span>
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Customer Name:</label>
               <input
+                name="custName"
                 type="text"
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  border: "1px solid #ddd",
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
+                style={styles.formInput}
                 value={formData.custName}
                 onChange={handleFormChange('custName')}
+                onKeyDown={(e) => handleFormKeyDown('custName', e)}
                 placeholder="Customer Name"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
               />
             </div>
 
-            {/* Barcode Field */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', gridColumn: 'span 2' }}>
-              <span style={{ fontWeight: '500', fontSize: '18px', whiteSpace: 'nowrap', minWidth: '65px', color: '#333' }}>Barcode:</span>
+        
+
+             {/* Bill Date Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Bill Date:</label>
               <input
+                name="billDate"
+                type="date"
+                style={styles.formInput}
+                value={formData.billDate}
+                onChange={handleFormChange('billDate')}
+                onKeyDown={(e) => handleFormKeyDown('billDate', e)}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
+            
+            
+
+
+               {/* EMP Name Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>EMP Name:</label>
+              <input
+                name="empName"
                 type="text"
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  border: "1px solid #ddd",
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
+                style={styles.formInput}
+                value={formData.empName}
+                onChange={handleFormChange('empName')}
+                onKeyDown={(e) => handleFormKeyDown('empName', e)}
+                placeholder="EMP Name"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
+            
+
+            
+            {/* Barcode Field */}
+            <div style={{ ...styles.formField, gridColumn: 'span 2' }}>
+              <label style={styles.formLabel}>Barcode:</label>
+              <input
+                name="barcodeInput"
+                type="text"
+                style={styles.formbutton}
                 value={formData.barcodeInput}
                 onChange={handleFormChange('barcodeInput')}
+                onKeyDown={(e) => handleFormKeyDown('barcodeInput', e)}
                 placeholder="Enter Barcode"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
               />
             </div>
           </div>
@@ -548,8 +841,8 @@ const Salesreturn = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '50px' }}>SNo</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '140px' }}>Barcode</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '50px', borderTopLeftRadius: '12px' }}>SNo</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '100px' }}>Barcode</th>
                     <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '200px' }}>Item Name</th>
                     <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>Stock</th>
                     <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>MRP</th>
@@ -560,7 +853,7 @@ const Salesreturn = () => {
                     <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>RATE</th>
                     <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>QTY</th>
                     <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'right', whiteSpace: 'nowrap', width: '100px' }}>AMOUNT</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>ACTION</th>
+                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '100px', borderTopRightRadius: '12px' }}>ACTION</th>
                   </tr>
                 </thead>
               </table>
@@ -576,15 +869,26 @@ const Salesreturn = () => {
                       <td style={{ padding: '12px 8px', whiteSpace: 'nowrap', textAlign: 'center', width: '50px' }}>{item.sNo}</td>
                       
                       {/* Barcode */}
-                      <td style={{ padding: '12px 8px', width: '140px' }}>
+                      <td style={{ padding: '12px 8px', width: '100px' }}>
                         <input
                           ref={el => inputRefs.current[`barcode-${item.id}`] = el}
                           type="text"
-                          style={{ ...tableInputStyle, fontWeight: '500', textAlign: 'left' }}
+                          style={{ ...tableInputStyle, fontWeight: '500', textAlign: 'center', cursor: 'pointer' }}
                           value={item.barcode}
                           onChange={handleItemChange(item.id, 'barcode')}
                           onKeyDown={(e) => handleKeyDown(item.id, 'barcode', e)}
-                          placeholder="Barcode"
+                          onClick={() => openItemPopup(item.id)}
+                          placeholder="Click to select"
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#1976d2';
+                            e.currentTarget.style.backgroundColor = '#f0f7ff';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'transparent';
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -598,6 +902,10 @@ const Salesreturn = () => {
                           onChange={handleItemChange(item.id, 'itemName')}
                           onKeyDown={(e) => handleKeyDown(item.id, 'itemName', e)}
                           placeholder="Item Name"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -611,6 +919,10 @@ const Salesreturn = () => {
                           onChange={handleItemChange(item.id, 'stock')}
                           onKeyDown={(e) => handleKeyDown(item.id, 'stock', e)}
                           placeholder="Stock"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -624,6 +936,10 @@ const Salesreturn = () => {
                           onChange={handleItemChange(item.id, 'mrp')}
                           onKeyDown={(e) => handleKeyDown(item.id, 'mrp', e)}
                           placeholder="MRP"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -637,6 +953,10 @@ const Salesreturn = () => {
                           onChange={handleItemChange(item.id, 'uom')}
                           onKeyDown={(e) => handleKeyDown(item.id, 'uom', e)}
                           placeholder="UOM"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -650,6 +970,10 @@ const Salesreturn = () => {
                           onChange={handleItemChange(item.id, 'hsn')}
                           onKeyDown={(e) => handleKeyDown(item.id, 'hsn', e)}
                           placeholder="HSN"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -664,6 +988,10 @@ const Salesreturn = () => {
                           onKeyDown={(e) => handleKeyDown(item.id, 'tax', e)}
                           placeholder="Tax"
                           step="0.01"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -678,6 +1006,10 @@ const Salesreturn = () => {
                           onKeyDown={(e) => handleKeyDown(item.id, 'sRate', e)}
                           placeholder="S Rate"
                           step="0.01"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -692,6 +1024,10 @@ const Salesreturn = () => {
                           onKeyDown={(e) => handleKeyDown(item.id, 'rate', e)}
                           placeholder="Rate"
                           step="0.01"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -706,6 +1042,10 @@ const Salesreturn = () => {
                           onKeyDown={(e) => handleKeyDown(item.id, 'qty', e)}
                           placeholder="Qty"
                           step="0.01"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
@@ -720,18 +1060,46 @@ const Salesreturn = () => {
                           })}
                           placeholder="Amount"
                           readOnly
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
                         />
                       </td>
                       
-                      {/* ACTION */}
-                      <td style={{ padding: '12px 8px', textAlign: 'center', width: '60px' }}>
+                      {/* ACTION - Updated with better styling */}
+                      <td style={{ padding: '12px 8px', textAlign: 'center', width: '100px' }}>
                         <button
-                          onClick={() => deleteItemRow(item.id)}
-                          style={{ background: 'none', border: 'none', color: '#d32f2f', cursor: 'pointer', padding: '4px' }}
-                          onMouseEnter={(e) => e.currentTarget.style.color = '#b71c1c'}
-                          onMouseLeave={(e) => e.currentTarget.style.color = '#d32f2f'}
+                          onClick={() => confirmDelete(item.id)}
+                          style={{ 
+                            background: '#ffebee', 
+                            border: '1px solid #ffcdd2', 
+                            color: '#d32f2f', 
+                            cursor: 'pointer', 
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ffcdd2';
+                            e.currentTarget.style.borderColor = '#d32f2f';
+                            e.currentTarget.style.color = '#b71c1c';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ffebee';
+                            e.currentTarget.style.borderColor = '#ffcdd2';
+                            e.currentTarget.style.color = '#d32f2f';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                          }}
                         >
                           <DeleteIcon fontSize="small" />
+                          Trash
                         </button>
                       </td>
                     </tr>
@@ -740,7 +1108,7 @@ const Salesreturn = () => {
               </table>
             </div>
             
-            {/* Add Item Button */}
+            {/* Add Item Button with Updated Hover Color */}
             <div style={{ padding: '15px', textAlign: 'left', borderTop: '1px solid #eee' }}>
               <button
                 onClick={addItemRow}
@@ -749,15 +1117,27 @@ const Salesreturn = () => {
                   color: 'white',
                   border: 'none',
                   padding: '10px 20px',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transform: 'translateY(0)'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0d47a1'; // Updated to darker blue
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(13, 71, 161, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1976d2';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
               >
                 <AddIcon fontSize="small" /> Add Item
               </button>
@@ -772,40 +1152,278 @@ const Salesreturn = () => {
             <div style={{ display: 'flex', gap: '10px' }}>
               <button 
                 onClick={addItemRow}
-                style={{ ...baseButtonStyle, backgroundColor: '#1976d2', color: 'white', minWidth: '100px' }}
+                style={{ 
+                  ...baseButtonStyle, 
+                  backgroundColor: '#1976d2', 
+                  color: 'white', 
+                  minWidth: '100px',
+                  ':after': {
+                    content: '""',
+                    position: 'absolute',
+                    top: '0',
+                    left: '0',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0))',
+                    borderRadius: '6px'
+                  }
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0d47a1'; // Updated to darker blue
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(13, 71, 161, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1976d2';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(13, 71, 161, 0.3)';
+                }}
               >
                 <AddIcon fontSize="small" /> ADD
               </button>
-              <button style={{ ...baseButtonStyle, backgroundColor: 'white', color: '#1976d2', border: '1px solid #1976d2', minWidth: '100px' }}>
+              <button 
+                style={{ 
+                  ...baseButtonStyle, 
+                  backgroundColor: 'white', 
+                  color: '#1976d2', 
+                  border: '2px solid #1976d2', 
+                  minWidth: '100px' 
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1976d2';
+                  e.currentTarget.style.color = 'white';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(25, 118, 210, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white';
+                  e.currentTarget.style.color = '#1976d2';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(25, 118, 210, 0.2)';
+                }}
+              >
                 <EditIcon fontSize="small" /> EDIT
               </button>
-              <button style={{ ...baseButtonStyle, backgroundColor: 'white', color: '#d32f2f', border: '1px solid #d32f2f', minWidth: '100px' }}>
+              <button 
+                style={{ 
+                  ...baseButtonStyle, 
+                  backgroundColor: 'white', 
+                  color: '#d32f2f', 
+                  border: '2px solid #d32f2f', 
+                  minWidth: '100px' 
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#d32f2f';
+                  e.currentTarget.style.color = 'white';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(211, 47, 47, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white';
+                  e.currentTarget.style.color = '#d32f2f';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(211, 47, 47, 0.2)';
+                }}
+              >
                 <DeleteIcon fontSize="small" /> DELETE
               </button>
             </div>
 
-            {/* Center - Totals */}
+            {/* Center - Totals WITHOUT HOVER EFFECTS */}
             <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 20px', backgroundColor: '#f0f7ff', borderRadius: '6px' }}>
-                <div style={{ fontSize: '12px', color: '#1976d2', marginBottom: '2px', fontWeight: '600' }}>Total Quantity</div>
-                <div style={{ ...brightTotalStyle, color: '#1976d2' }}>{totalQty.toFixed(2)}</div>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  padding: '12px 24px', 
+                  backgroundColor: '#f0f7ff', 
+                  borderRadius: '8px',
+                  border: '2px solid #e3f2fd',
+                  minWidth: '140px'
+                }}
+              >
+                <div style={{ 
+                  fontSize: '13px', 
+                  color: '#1976d2', 
+                  marginBottom: '4px', 
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Total Quantity
+                </div>
+                <div style={{ 
+                  ...brightTotalStyle, 
+                  color: '#1976d2'
+                }}>
+                  {totalQty.toFixed(2)}
+                </div>
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 20px', backgroundColor: '#f0fff4', borderRadius: '6px' }}>
-                <div style={{ fontSize: '12px', color: '#28a745', marginBottom: '2px', fontWeight: '600' }}>Total Amount</div>
-                <div style={{ ...brightTotalStyle, color: '#28a745' }}>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  padding: '12px 24px', 
+                  backgroundColor: '#f0fff4', 
+                  borderRadius: '8px',
+                  border: '2px solid #e8f5e9',
+                  minWidth: '140px'
+                }}
+              >
+                <div style={{ 
+                  fontSize: '13px', 
+                  color: '#28a745', 
+                  marginBottom: '4px', 
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Total Amount
+                </div>
+                <div style={{ 
+                  ...brightTotalStyle, 
+                  color: '#28a745'
+                }}>
                   ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
 
-            {/* Right side buttons */}
+            {/* Right side buttons - Added Save All button */}
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={handleClear} style={{ ...baseButtonStyle, backgroundColor: '#f8f9fa', color: '#6c757d', border: '1px solid #6c757d', minWidth: '100px' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', marginRight: '5px', fontSize: '18px', fontWeight: 'bold' }}>×</span>
+              <button 
+                onClick={handleClear}
+                style={{ 
+                  ...baseButtonStyle, 
+                  backgroundColor: '#f8f9fa', 
+                  color: '#6c757d', 
+                  border: '2px solid #6c757d', 
+                  minWidth: '100px' 
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#6c757d';
+                  e.currentTarget.style.color = 'white';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(108, 117, 125, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.color = '#6c757d';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(108, 117, 125, 0.2)';
+                }}
+              >
+                <span style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  width: '20px', 
+                  height: '20px', 
+                  marginRight: '5px', 
+                  fontSize: '18px', 
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease'
+                }}>×</span>
                 Clear
               </button>
-              <button onClick={handleSave} style={{ ...baseButtonStyle, backgroundColor: '#28a745', color: 'white', minWidth: '120px', fontWeight: 'bold' }}>
+              
+              {/* Save All Button */}
+              <button 
+                onClick={handleSaveAll}
+                style={{ 
+                  ...baseButtonStyle, 
+                  backgroundColor: '#ff9800', 
+                  color: 'white', 
+                  minWidth: '120px', 
+                  fontWeight: 'bold',
+                  border: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f57c00';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(255, 152, 0, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ff9800';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(255, 152, 0, 0.3)';
+                }}
+              >
+                <SaveIcon fontSize="small" /> Save All
+              </button>
+              
+              <button 
+                onClick={handleSave}
+                style={{ 
+                  ...baseButtonStyle, 
+                  backgroundColor: '#28a745', 
+                  color: 'white', 
+                  minWidth: '120px', 
+                  fontWeight: 'bold',
+                  border: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1e7e34';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(40, 167, 69, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#28a745';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(40, 167, 69, 0.3)';
+                }}
+              >
                 <SaveIcon fontSize="small" /> Save
               </button>
             </div>
