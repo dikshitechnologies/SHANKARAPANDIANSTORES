@@ -1517,7 +1517,7 @@ export default function LedgerCreation({ onCreated }) {
                 />
               </div>
 
-              <div className="field" style={{ gridColumn: '2 / 3', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+              <div className="field" style={{ gridColumn: '2 / 3', display: 'flex', alignItems: 'center', justifyContent: 'flex-start',marginLeft: '-105px' }}>
                 <div className="switch-container" style={{ margin: 0 }}>
                   <label className="field-label" style={{ margin: 0, marginRight: 12 }}>Active Status</label>
                   <label className="switch" style={{ marginRight: 12 }}>
