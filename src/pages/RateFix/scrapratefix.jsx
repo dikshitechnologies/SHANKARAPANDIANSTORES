@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Modal, Input, Button, Spin } from 'antd';
+import { SearchOutlined, CloseOutlined } from '@ant-design/icons';
 
 const COLORS = {
   primary: '#306AC8',
@@ -30,11 +32,6 @@ const Icon = {
       <path fill="currentColor" d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
     </svg>
   ),
-  Close: ({ size = 18 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 10.59 10.59 16.88 4.29z" />
-    </svg>
-  ),
 };
 
 const ScrapRateFixManagement = () => {
@@ -50,6 +47,13 @@ const ScrapRateFixManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentAction, setCurrentAction] = useState('Add');
   const [isMobile, setIsMobile] = useState(false);
+  
+  // State for list selector popup
+  const [showListSelector, setShowListSelector] = useState(false);
+  const [selectedScrapRate, setSelectedScrapRate] = useState(null);
+  const [listSelectorSearch, setListSelectorSearch] = useState('');
+  const [filteredListData, setFilteredListData] = useState([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   // Check screen size for responsiveness
   useEffect(() => {
@@ -75,15 +79,103 @@ const ScrapRateFixManagement = () => {
         ...formData,
       };
       setScrapRates([...scrapRates, newRate]);
+      setFormData({ date: '', name: '', rate: '' });
+    } else if (popupAction === 'edit' && selectedScrapRate) {
+      // Update the selected scrap rate
+      setScrapRates(prev => prev.map(rate =>
+        rate.id === selectedScrapRate.id ? { ...rate, ...formData } : rate
+      ));
+      setSelectedScrapRate(null);
+      setFormData({ date: '', name: '', rate: '' });
+    } else if (popupAction === 'delete' && selectedScrapRate) {
+      // Delete the selected scrap rate
+      setScrapRates(prev => prev.filter(rate => rate.id !== selectedScrapRate.id));
+      setSelectedScrapRate(null);
     }
-    setFormData({ date: '', name: '', rate: '' });
     setShowPopup(false);
   };
 
   const openPopup = (action) => {
     setPopupAction(action);
     setCurrentAction(action.charAt(0).toUpperCase() + action.slice(1));
-    setShowPopup(true);
+    
+    // For edit and delete actions, open the list selector popup
+    if (action === 'edit' || action === 'delete') {
+      setShowListSelector(true);
+      setListSelectorSearch('');
+      setSelectedIndex(-1);
+      // Filter data for the list
+      setFilteredListData(scrapRates);
+    } else {
+      // For add action, open the form popup
+      setShowPopup(true);
+    }
+  };
+
+  // Filter list data based on search
+  useEffect(() => {
+    if (!listSelectorSearch) {
+      setFilteredListData(scrapRates);
+    } else {
+      const filtered = scrapRates.filter(rate =>
+        rate.name.toLowerCase().includes(listSelectorSearch.toLowerCase()) ||
+        rate.rate.toString().includes(listSelectorSearch)
+      );
+      setFilteredListData(filtered);
+    }
+  }, [listSelectorSearch, scrapRates]);
+
+  // Handle keyboard navigation for list selector
+  const handleListKeyDown = useCallback((e) => {
+    if (!showListSelector) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => prev < filteredListData.length - 1 ? prev + 1 : prev);
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : prev);
+        break;
+
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && filteredListData[selectedIndex]) {
+          handleSelectScrapRate(filteredListData[selectedIndex]);
+        }
+        break;
+
+      case 'Escape':
+        e.preventDefault();
+        setShowListSelector(false);
+        break;
+    }
+  }, [showListSelector, filteredListData, selectedIndex]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleListKeyDown);
+    return () => document.removeEventListener('keydown', handleListKeyDown);
+  }, [handleListKeyDown]);
+
+  // Handle selection from list
+  const handleSelectScrapRate = (selectedRate) => {
+    setSelectedScrapRate(selectedRate);
+    setShowListSelector(false);
+    
+    if (popupAction === 'edit') {
+      // Pre-fill form with selected rate data
+      setFormData({
+        date: selectedRate.date,
+        name: selectedRate.name,
+        rate: selectedRate.rate
+      });
+      setShowPopup(true);
+    } else if (popupAction === 'delete') {
+      // Show delete confirmation popup
+      setShowPopup(true);
+    }
   };
 
   const filteredRates = scrapRates.filter(
@@ -261,14 +353,14 @@ const ScrapRateFixManagement = () => {
                   border: '2px solid #e1e8f0',
                   borderRadius: isMobile ? '10px' : '12px',
                   width: '100%',
-                  fontSize: isMobile ? '15px' : '16px', // Increased from 14px/15px
+                  fontSize: isMobile ? '15px' : '16px',
                   background: '#fafcff',
                   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                   outline: 'none',
                   fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
                   boxSizing: 'border-box',
-                  fontWeight: 500, // Made bolder
-                  color: '#1e293b', // Brighter text color
+                  fontWeight: 500,
+                  color: '#1e293b',
                 }}
                 onFocus={(e) => Object.assign(e.target.style, {
                   ...glowStyle,
@@ -310,8 +402,8 @@ const ScrapRateFixManagement = () => {
                   background: '#f1f7ff',
                   borderBottom: '2px solid #e1e8f0',
                   fontWeight: 600,
-                  fontSize: isMobile ? '14px' : '15px', // Increased
-                  color: '#334155', // Brighter
+                  fontSize: isMobile ? '14px' : '15px',
+                  color: '#334155',
                   fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
                   gap: isMobile ? '8px' : '0',
                   letterSpacing: '0.01em',
@@ -335,7 +427,7 @@ const ScrapRateFixManagement = () => {
                       gridTemplateColumns: isMobile ? '1fr 1.5fr 0.8fr' : '1fr 2fr 1fr',
                       padding: isMobile ? '12px 16px' : '16px 20px',
                       borderBottom: '1px solid #f1f5f9',
-                      fontSize: isMobile ? '15px' : '16px', // Increased from 14px/15px
+                      fontSize: isMobile ? '15px' : '16px',
                       transition: 'background-color 0.2s',
                       cursor: 'pointer',
                       fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
@@ -355,7 +447,7 @@ const ScrapRateFixManagement = () => {
                       {rate.date}
                     </span>
                     <span style={{ 
-                      color: '#0f172a', // Brighter, darker color
+                      color: '#0f172a',
                       fontWeight: 500,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -364,7 +456,7 @@ const ScrapRateFixManagement = () => {
                       {rate.name}
                     </span>
                     <span style={{ 
-                      color: '#0f172a', // Brighter, darker color
+                      color: '#0f172a',
                       fontWeight: 600,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -510,7 +602,7 @@ const ScrapRateFixManagement = () => {
                         display: 'block',
                         marginBottom: '8px',
                         fontWeight: 600,
-                        fontSize: isMobile ? '14px' : '15px', // Increased
+                        fontSize: isMobile ? '14px' : '15px',
                         color: '#334155',
                         fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
                         letterSpacing: '0.01em',
@@ -532,14 +624,14 @@ const ScrapRateFixManagement = () => {
                           width: '100%',
                           border: '2px solid #e1e8f0',
                           borderRadius: isMobile ? '10px' : '10px',
-                          fontSize: isMobile ? '15px' : '16px', // Increased from 14px/15px
+                          fontSize: isMobile ? '15px' : '16px',
                           background: 'white',
-                          color: '#0f172a', // Brighter, darker color
+                          color: '#0f172a',
                           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                           fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
                           outline: 'none',
                           boxSizing: 'border-box',
-                          fontWeight: 500, // Made bolder
+                          fontWeight: 500,
                         }}
                         onFocus={(e) => Object.assign(e.target.style, {
                           ...glowStyle,
@@ -593,7 +685,7 @@ const ScrapRateFixManagement = () => {
                       border: 'none',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: isMobile ? '15px' : '16px', // Increased
+                      fontSize: isMobile ? '15px' : '16px',
                       cursor: 'pointer',
                       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                       boxShadow: '0 4px 12px rgba(6, 167, 234, 0.25)',
@@ -634,7 +726,7 @@ const ScrapRateFixManagement = () => {
                       border: '2px solid #e1e8f0',
                       color: '#475569',
                       fontWeight: 600,
-                      fontSize: isMobile ? '15px' : '16px', // Increased
+                      fontSize: isMobile ? '15px' : '16px',
                       cursor: 'pointer',
                       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                       minWidth: isMobile ? '100%' : '140px',
@@ -677,368 +769,388 @@ const ScrapRateFixManagement = () => {
         </div>
       </div>
 
-      {/* POPUP MODAL - Responsive - UPDATED INPUT FIELDS */}
-      {showPopup && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: isMobile ? '10px' : '20px',
-            zIndex: 1000,
-            backdropFilter: 'blur(4px)',
-            overflowY: 'auto',
+      {/* ADD/EDIT FORM POPUP - Using Ant Design Modal */}
+      <Modal
+        open={showPopup && (popupAction === 'add' || popupAction === 'edit')}
+        onCancel={() => {
+          setShowPopup(false);
+          if (popupAction === 'edit' || popupAction === 'delete') {
+            setSelectedScrapRate(null);
+          }
+        }}
+        footer={null}
+        width={isMobile ? "90%" : "500px"}
+        style={{ top: '20%' }}
+        closeIcon={<CloseOutlined />}
+      >
+        <div style={{ padding: '20px 0' }}>
+          <h3 style={{ 
+            margin: '0 0 20px 0', 
+            fontSize: isMobile ? '18px' : '20px', 
+            fontWeight: 600,
             fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-          }}
-        >
-          <div
-            style={{
-              background: 'white',
-              borderRadius: isMobile ? '14px' : '16px',
-              width: '100%',
-              maxWidth: isMobile ? '95%' : '500px',
-              overflow: 'hidden',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-              animation: 'modalSlideIn 0.3s ease-out',
-              maxHeight: isMobile ? '90vh' : 'auto',
-              overflowY: 'auto',
-            }}
-          >
+            color: '#11303F',
+          }}>
+            {popupAction === 'add' ? 'Add New Scrap Rate' : `Edit ${selectedScrapRate?.name || 'Scrap Rate'}`}
+          </h3>
+          
+          <form onSubmit={handleSubmit}>
+            {[
+              { field: 'date', label: 'Date', type: 'date' },
+              { field: 'name', label: 'Scrap Name', type: 'text' },
+              { field: 'rate', label: 'Rate ($)', type: 'number' }
+            ].map(({ field, label, type }) => (
+              <div key={field} style={{ marginBottom: '20px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    color: '#334155',
+                    fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+                    letterSpacing: '0.01em',
+                  }}
+                >
+                  {label}
+                </label>
+
+                <Input
+                  type={type}
+                  name={field}
+                  value={formData[field]}
+                  onChange={handleInputChange}
+                  step={field === 'rate' ? '0.01' : undefined}
+                  placeholder={field === 'rate' ? '0.00' : ''}
+                  style={{
+                    width: '100%',
+                    fontSize: '15px',
+                    background: 'white',
+                    color: '#0f172a',
+                    fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+                    fontWeight: 500,
+                  }}
+                  required
+                />
+              </div>
+            ))}
+
             <div
               style={{
-                background: 'linear-gradient(135deg, #306AC8 0%, #1B91DA 100%)',
-                color: 'white',
-                padding: isMobile ? '18px 22px' : '22px 28px',
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                position: 'sticky',
-                top: 0,
-                zIndex: 1,
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                marginTop: '32px',
+                width: '100%',
               }}
             >
-              <h3 style={{ 
-                margin: 0, 
-                fontSize: isMobile ? '18px' : '20px', 
-                fontWeight: 600,
-                fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                flex: 1,
-                letterSpacing: '-0.01em',
-              }}>
-                {popupAction === 'add' && 'Add New Scrap Rate'}
-                {popupAction === 'edit' && 'Edit Scrap Rate'}
-                {popupAction === 'delete' && 'Delete Scrap Rate'}
-              </h3>
-
-              <button
-                onClick={() => setShowPopup(false)}
+              <Button
+                type="primary"
+                htmlType="submit"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '14px 24px',
+                  background: 'linear-gradient(135deg, #06A7EA 0%, #1B91DA 100%)',
+                  borderRadius: '10px',
                   border: 'none',
-                  fontSize: isMobile ? '24px' : '28px',
-                  color: 'white',
-                  cursor: 'pointer',
-                  width: isMobile ? '32px' : '36px',
-                  height: isMobile ? '32px' : '36px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s',
-                  outline: 'none',
-                  fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                  flexShrink: 0,
-                  marginLeft: '12px',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  minWidth: isMobile ? '100%' : '140px',
                 }}
-                onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
-                onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
-                onFocus={(e) => e.target.style.outline = 'none'}
               >
-                <Icon.Close size={20} />
-              </button>
+                {popupAction === 'add' ? 'Create' : 'Update'}
+              </Button>
+
+              <Button
+                onClick={() => {
+                  setShowPopup(false);
+                  if (popupAction === 'edit') {
+                    setSelectedScrapRate(null);
+                  }
+                }}
+                style={{
+                  padding: '14px 24px',
+                  background: 'white',
+                  color: '#475569',
+                  border: '2px solid #e1e8f0',
+                  borderRadius: '10px',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  minWidth: isMobile ? '100%' : '140px',
+                }}
+              >
+                Cancel
+              </Button>
             </div>
+          </form>
+        </div>
+      </Modal>
 
-            <div style={{ 
-              padding: isMobile ? '22px 18px' : '32px 28px',
-              overflowY: 'auto',
-              maxHeight: isMobile ? 'calc(90vh - 70px)' : 'none',
-            }}>
-              {popupAction === 'delete' ? (
-                <>
-                  <div style={{ textAlign: 'center', marginBottom: isMobile ? '22px' : '28px' }}>
-                    <div style={{
-                      fontSize: isMobile ? '40px' : '48px',
-                      marginBottom: '16px',
-                    }}>
-                      ⚠️
-                    </div>
-                    <p style={{ 
-                      fontSize: isMobile ? '15px' : '16px', 
-                      color: '#1e293b',
-                      lineHeight: 1.6,
-                      margin: 0,
-                      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                      fontWeight: 400,
-                    }}>
-                      Are you sure you want to delete this scrap rate?<br />
-                      This action cannot be undone.
-                    </p>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: isMobile ? 'column' : 'row',
-                      justifyContent: 'flex-end',
-                      gap: isMobile ? '12px' : '12px',
-                      width: '100%',
-                    }}
-                  >
-                    <button
-                      style={{
-                        padding: isMobile ? '14px 24px' : '16px 32px',
-                        background: 'linear-gradient(135deg, #06A7EA 0%, #1B91DA 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: isMobile ? '10px' : '10px',
-                        fontWeight: 600,
-                        fontSize: isMobile ? '15px' : '16px', // Increased
-                        cursor: 'pointer',
-                        transition: 'all 0.25s',
-                        boxShadow: '0 4px 12px rgba(6, 167, 234, 0.25)',
-                        minWidth: isMobile ? '100%' : '140px',
-                        outline: 'none',
-                        fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                        boxSizing: 'border-box',
-                        letterSpacing: '0.01em',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(6, 167, 234, 0.4)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.outline = 'none';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(6,167,234,0.25), 0 4px 12px rgba(6, 167, 234, 0.25)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.outline = 'none';
-                        e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
-                      }}
-                    >
-                      Delete
-                    </button>
+      {/* DELETE CONFIRMATION POPUP - Using Ant Design Modal */}
+      <Modal
+        open={showPopup && popupAction === 'delete'}
+        onCancel={() => {
+          setShowPopup(false);
+          setSelectedScrapRate(null);
+        }}
+        footer={null}
+        width={isMobile ? "90%" : "500px"}
+        style={{ top: '20%' }}
+        closeIcon={<CloseOutlined />}
+      >
+        <div style={{ padding: '20px 0', textAlign: 'center' }}>
+          <div style={{
+            fontSize: '48px',
+            marginBottom: '16px',
+            color: '#ef4444',
+          }}>
+            ⚠️
+          </div>
+          <h3 style={{ 
+            margin: '0 0 16px 0', 
+            fontSize: '18px', 
+            fontWeight: 600,
+            fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+            color: '#11303F',
+          }}>
+            Delete Confirmation
+          </h3>
+          <p style={{ 
+            fontSize: '15px', 
+            color: '#1e293b',
+            lineHeight: 1.6,
+            margin: '0 0 24px 0',
+            fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+            fontWeight: 400,
+          }}>
+            Are you sure you want to delete the scrap rate:<br />
+            <strong style={{ color: '#ef4444' }}>{selectedScrapRate?.name}</strong> (${selectedScrapRate?.rate})?
+            <br /><br />
+            This action cannot be undone.
+          </p>
+          
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              justifyContent: 'flex-end',
+              gap: '12px',
+              width: '100%',
+            }}
+          >
+            <Button
+              type="primary"
+              danger
+              onClick={handleSubmit}
+              style={{
+                padding: '14px 24px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                borderRadius: '10px',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '15px',
+                minWidth: isMobile ? '100%' : '140px',
+              }}
+            >
+              Delete
+            </Button>
 
-                    <button
-                      onClick={() => setShowPopup(false)}
-                      style={{
-                        padding: isMobile ? '14px 24px' : '16px 32px',
-                        background: 'white',
-                        color: '#475569',
-                        border: '2px solid #e1e8f0',
-                        borderRadius: isMobile ? '10px' : '10px',
-                        fontWeight: 600,
-                        fontSize: isMobile ? '15px' : '16px', // Increased
-                        cursor: 'pointer',
-                        transition: 'all 0.25s',
-                        minWidth: isMobile ? '100%' : '140px',
-                        outline: 'none',
-                        fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                        boxSizing: 'border-box',
-                        letterSpacing: '0.01em',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.borderColor = '#1B91DA';
-                        e.target.style.color = '#1B91DA';
-                        e.target.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.borderColor = '#e1e8f0';
-                        e.target.style.color = '#475569';
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.outline = 'none';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(6,167,234,0.25)';
-                        e.target.style.borderColor = '#06A7EA';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.outline = 'none';
-                        e.target.style.boxShadow = 'none';
-                        e.target.style.borderColor = '#e1e8f0';
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  {[
-                    { field: 'date', label: 'Date', type: 'date' },
-                    { field: 'name', label: 'Scrap Name', type: 'text' },
-                    { field: 'rate', label: 'Rate ($)', type: 'number' }
-                  ].map(({ field, label, type }) => (
-                    <div key={field} style={{ marginBottom: isMobile ? '20px' : '24px' }}>
-                      <label
-                        style={{
-                          display: 'block',
-                          marginBottom: '8px',
-                          fontWeight: 600,
-                          fontSize: isMobile ? '14px' : '15px', // Increased
-                          color: '#334155',
-                          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                          letterSpacing: '0.01em',
-                        }}
-                      >
-                        {label}
-                      </label>
-
-                      <input
-                        type={type}
-                        name={field}
-                        value={formData[field]}
-                        onChange={handleInputChange}
-                        step={field === 'rate' ? '0.01' : undefined}
-                        placeholder={field === 'rate' ? '0.00' : ''}
-                        style={{
-                          padding: isMobile ? '14px 16px' : '14px 16px',
-                          width: '100%',
-                          border: '2px solid #e1e8f0',
-                          borderRadius: isMobile ? '10px' : '10px',
-                          fontSize: isMobile ? '15px' : '16px', // Increased
-                          background: 'white',
-                          color: '#0f172a', // Brighter, darker color
-                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                          outline: 'none',
-                          boxSizing: 'border-box',
-                          fontWeight: 500, // Made bolder
-                        }}
-                        onFocus={(e) => Object.assign(e.target.style, {
-                          ...glowStyle,
-                          background: 'white',
-                          borderColor: '#06A7EA',
-                        })}
-                        onBlur={(e) => {
-                          e.target.style.boxShadow = 'none';
-                          e.target.style.border = '2px solid #e1e8f0';
-                          e.target.style.outline = 'none';
-                        }}
-                        required
-                      />
-                    </div>
-                  ))}
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: isMobile ? 'column' : 'row',
-                      justifyContent: 'flex-end',
-                      gap: isMobile ? '12px' : '12px',
-                      marginTop: isMobile ? '28px' : '32px',
-                      width: '100%',
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      style={{
-                        padding: isMobile ? '14px 24px' : '16px 32px',
-                        background: 'linear-gradient(135deg, #06A7EA 0%, #1B91DA 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: isMobile ? '10px' : '10px',
-                        fontWeight: 600,
-                        fontSize: isMobile ? '15px' : '16px', // Increased
-                        cursor: 'pointer',
-                        transition: 'all 0.25s',
-                        boxShadow: '0 4px 12px rgba(6, 167, 234, 0.25)',
-                        minWidth: isMobile ? '100%' : '140px',
-                        outline: 'none',
-                        fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                        boxSizing: 'border-box',
-                        letterSpacing: '0.01em',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(6, 167, 234, 0.4)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.outline = 'none';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(6,167,234,0.25), 0 4px 12px rgba(6, 167, 234, 0.25)';
-                        e.target.style.transform = 'translateY(-2px)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.outline = 'none';
-                        e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      {popupAction === 'add' ? 'Create' : 'Update'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPopup(false)}
-                      style={{
-                        padding: isMobile ? '14px 24px' : '16px 32px',
-                        background: 'white',
-                        color: '#475569',
-                        border: '2px solid #e1e8f0',
-                        borderRadius: isMobile ? '10px' : '10px',
-                        fontWeight: 600,
-                        fontSize: isMobile ? '15px' : '16px', // Increased
-                        cursor: 'pointer',
-                        transition: 'all 0.25s',
-                        minWidth: isMobile ? '100%' : '140px',
-                        outline: 'none',
-                        fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                        boxSizing: 'border-box',
-                        letterSpacing: '0.01em',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.borderColor = '#1B91DA';
-                        e.target.style.color = '#1B91DA';
-                        e.target.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.borderColor = '#e1e8f0';
-                        e.target.style.color = '#475569';
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.outline = 'none';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(6,167,234,0.25)';
-                        e.target.style.borderColor = '#06A7EA';
-                        e.target.style.transform = 'translateY(-2px)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.outline = 'none';
-                        e.target.style.boxShadow = 'none';
-                        e.target.style.borderColor = '#e1e8f0';
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
+            <Button
+              onClick={() => {
+                setShowPopup(false);
+                setSelectedScrapRate(null);
+              }}
+              style={{
+                padding: '14px 24px',
+                background: 'white',
+                color: '#475569',
+                border: '2px solid #e1e8f0',
+                borderRadius: '10px',
+                fontWeight: 600,
+                fontSize: '15px',
+                minWidth: isMobile ? '100%' : '140px',
+              }}
+            >
+              Cancel
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
+
+      {/* LIST SELECTOR POPUP - Using Ant Design Modal */}
+      <Modal
+        open={showListSelector}
+        onCancel={() => {
+          setShowListSelector(false);
+          setListSelectorSearch('');
+          setSelectedIndex(-1);
+          if (popupAction === 'edit' || popupAction === 'delete') {
+            setPopupAction('add');
+          }
+        }}
+        footer={null}
+        width={isMobile ? "90%" : "800px"}
+        style={{ top: '20%', maxHeight: '70vh' }}
+        closeIcon={<CloseOutlined />}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', height: '60vh' }}>
+          <h3 style={{ 
+            margin: '0 0 20px 0', 
+            fontSize: isMobile ? '18px' : '20px', 
+            fontWeight: 600,
+            fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+            color: '#11303F',
+          }}>
+            {popupAction === 'edit' ? 'Select Scrap Rate to Edit' : 'Select Scrap Rate to Delete'}
+          </h3>
+          
+          {/* Search */}
+          <div style={{ marginBottom: '20px' }}>
+            <Input
+              placeholder="Search scrap rates by name or rate..."
+              value={listSelectorSearch}
+              onChange={(e) => setListSelectorSearch(e.target.value)}
+              prefix={<SearchOutlined />}
+              style={{
+                width: '100%',
+                fontSize: '15px',
+              }}
+            />
+          </div>
+
+          {/* Table Header */}
+          {!isMobile && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 2fr 1fr',
+              padding: '16px 20px',
+              background: '#f1f7ff',
+              borderBottom: '2px solid #e1e8f0',
+              fontWeight: 600,
+              fontSize: '15px',
+              color: '#334155',
+              fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+              letterSpacing: '0.01em',
+            }}>
+              <span>Date</span>
+              <span>Scrap Name</span>
+              <span>Rate</span>
+            </div>
+          )}
+
+          {/* List */}
+          <div style={{ 
+            flex: 1,
+            overflowY: 'auto',
+            border: '1px solid #f0f0f0',
+            borderRadius: '8px',
+          }}>
+            {filteredListData.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '40px 20px',
+                color: '#64748b',
+                fontSize: '15px',
+                fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+                fontWeight: 400,
+              }}>
+                {listSelectorSearch ? 'No scrap rates found. Try a different search term.' : 'No scrap rates available.'}
+              </div>
+            ) : (
+              filteredListData.map((rate, index) => (
+                <div
+                  key={rate.id}
+                  style={{
+                    display: isMobile ? 'block' : 'grid',
+                    gridTemplateColumns: '1fr 2fr 1fr',
+                    padding: isMobile ? '12px 16px' : '16px 20px',
+                    borderBottom: '1px solid #f1f5f9',
+                    fontSize: '15px',
+                    transition: 'background-color 0.2s',
+                    cursor: 'pointer',
+                    fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+                    backgroundColor: selectedIndex === index ? '#f0f7ff' : 'transparent',
+                    gap: isMobile ? '8px' : '0',
+                    alignItems: 'center',
+                  }}
+                  onClick={() => handleSelectScrapRate(rate)}
+                  onMouseEnter={(e) => {
+                    if (selectedIndex !== index) e.target.style.backgroundColor = '#f8fafc';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIndex !== index) e.target.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  {isMobile ? (
+                    <>
+                      <div style={{ 
+                        color: '#0f172a',
+                        fontWeight: 500,
+                        marginBottom: '4px',
+                      }}>
+                        <strong>{rate.name}</strong>
+                      </div>
+                      <div style={{ 
+                        color: '#475569', 
+                        fontWeight: 500,
+                        fontSize: '14px',
+                        marginBottom: '4px',
+                      }}>
+                        {rate.date}
+                      </div>
+                      <div style={{ 
+                        color: '#0f172a',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                      }}>
+                        ${rate.rate}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ 
+                        color: '#475569', 
+                        fontWeight: 500,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {rate.date}
+                      </span>
+                      <span style={{ 
+                        color: '#0f172a',
+                        fontWeight: 500,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {rate.name}
+                      </span>
+                      <span style={{ 
+                        color: '#0f172a',
+                        fontWeight: 600,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        ${rate.rate}
+                      </span>
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
+
+// Fix for React Fast Refresh
+if (typeof window !== 'undefined') {
+  window.$RefreshReg$ = () => {};
+  window.$RefreshSig$ = () => (type) => type;
+}
 
 export default ScrapRateFixManagement;
