@@ -120,7 +120,7 @@ const ItemCreation = ({ onCreated }) => {
   // State management
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isTreeOpen, setIsTreeOpen] = useState(true);
+  const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [actionType, setActionType] = useState('create');
@@ -159,6 +159,7 @@ const ItemCreation = ({ onCreated }) => {
 
   // Refs for form inputs
   const itemNameRef = useRef(null);
+  const groupNameRef = useRef(null);
   const shortNameRef = useRef(null);
   const counterRef = useRef(null);
   const prefixRef = useRef(null);
@@ -169,6 +170,13 @@ const ItemCreation = ({ onCreated }) => {
   // The `useFormPermissions` hook may not be available in this workspace yet.
   // Use a safe permissive fallback to avoid runtime ReferenceError.
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
+
+  // Auto-focus Group Name on component mount
+  useEffect(() => {
+    if (groupNameRef.current) {
+      groupNameRef.current.focus();
+    }
+  }, []);
 
   useEffect(() => {
     loadInitial();
@@ -239,7 +247,6 @@ const ItemCreation = ({ onCreated }) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
     setIsTreeOpen(false);
-    setTimeout(() => itemNameRef.current?.focus(), 100);
   };
 
   const handleChange = (name, value) => {
@@ -1116,9 +1123,11 @@ const ItemCreation = ({ onCreated }) => {
       boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
     }}>
       <input
+        ref={groupNameRef}
         className="input"
         value={mainGroup}
         onChange={(e) => setMainGroup(e.target.value)}
+        onFocus={() => setIsTreeOpen(true)}
         placeholder="Select Group Name"
         disabled={isSubmitting}
         aria-label="Group Name"
@@ -1129,7 +1138,8 @@ const ItemCreation = ({ onCreated }) => {
           padding: "10px 12px",
           minWidth: "120px",
           fontSize: "14px",
-          outline: "none"
+          outline: "none",
+          cursor: "pointer"
         }}
       />
       <button

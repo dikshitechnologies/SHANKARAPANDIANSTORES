@@ -120,7 +120,7 @@ export default function LedgerCreation({ onCreated }) {
   // State management
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isTreeOpen, setIsTreeOpen] = useState(true);
+  const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [actionType, setActionType] = useState('create');
@@ -155,6 +155,7 @@ export default function LedgerCreation({ onCreated }) {
 
   // Refs for form inputs
   const partyNameRef = useRef(null);
+  const groupNameRef = useRef(null);
   const dueDayRef = useRef(null);
   const fStreetRef = useRef(null);
   const areaRef = useRef(null);
@@ -168,6 +169,13 @@ export default function LedgerCreation({ onCreated }) {
 
   // Get permissions for this form (fallback when hook isn't available)
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
+
+  // Auto-focus Ledger Name on component mount
+  useEffect(() => {
+    if (partyNameRef.current) {
+      partyNameRef.current.focus();
+    }
+  }, []);
 
   useEffect(() => {
     loadInitial();
@@ -283,7 +291,6 @@ export default function LedgerCreation({ onCreated }) {
     setSelectedNode(node);
     setMainGroup(node.displayName);
     setIsTreeOpen(false);
-    setTimeout(() => partyNameRef.current?.focus(), 100);
   };
 
   const handleChange = (name, value) => {
@@ -1275,11 +1282,13 @@ export default function LedgerCreation({ onCreated }) {
       boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
     }}>
       <input
+        ref={groupNameRef}
         type="text"
         className="input"
         placeholder="Select group"
         value={mainGroup}
         readOnly
+        onFocus={() => setIsTreeOpen(true)}
         disabled={isSubmitting}
         aria-label="Group Name"
         style={{
@@ -1290,7 +1299,8 @@ export default function LedgerCreation({ onCreated }) {
           minWidth: "120px",
           fontSize: "14px",
           outline: "none",
-          background: "transparent"
+          background: "transparent",
+          cursor: "pointer"
         }}
       />
       <button
