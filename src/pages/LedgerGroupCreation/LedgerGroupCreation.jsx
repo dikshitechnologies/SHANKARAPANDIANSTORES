@@ -1130,7 +1130,7 @@ export default function LedgerGroupCreation() {
                   />
                 )}
 
-                {(actionType === "edit" || actionType === "delete") && (
+                {/* {(actionType === "edit" || actionType === "delete") && (
                   <button
                     className="btn"
                     onClick={() => { setIsDropdownOpen(true); setIsTreeOpen(false); }}
@@ -1140,7 +1140,7 @@ export default function LedgerGroupCreation() {
                   >
                     <Icon.Search /> Search
                   </button>
-                )}
+                )} */}
               </div>
             </div>
 
