@@ -35,7 +35,7 @@ export const API_ENDPOINTS = {
   },
 user_creation: {
     getuserdetails: "UserCreation/getUserItem",
-    getDropdown: "ItemGroupCreation/ItemgroupCreationDropdownlist",
+    getDropdown: "UserCreation/GetUserCreationdropdowslist",
     postCreate: "UserCreation/CreateUser",
     putEdit: "UserCreation/UpdateUser",
     delete: (fCode) => `UserCreation/deleteUser/${fCode}`,
