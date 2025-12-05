@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { api } from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 // import { useFormPermissions } from '../../../hooks/useFormPermissions';
@@ -139,7 +139,7 @@ export default function ItemGroupCreation() {
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [selectedNode, setSelectedNode] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
-
+  const subGroupRef = useRef(null); 
   // Get permissions for this form. Hook may not be present in workspace,
   // use permissive fallback to avoid runtime ReferenceError.
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
@@ -244,7 +244,8 @@ export default function ItemGroupCreation() {
   const handleSelectNode = (node) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
-    setIsTreeOpen(true);
+    setIsTreeOpen(false);
+    setTimeout(() => subGroupRef.current?.focus(), 100);
   };
 
   const handleSelectSub = (option) => {
@@ -1100,15 +1101,16 @@ export default function ItemGroupCreation() {
               <label className="field-label">Sub Group</label>
               <div className="row">
                 {actionType === "Add" ? (
-                  <input
-                    className="input"
-                    value={subGroup}
-                    onChange={(e) => setSubGroup(e.target.value)}
-                    placeholder="Enter Sub Group"
-                    disabled={submitting}
-                    aria-label="Sub Group"
-                  />
-                ) : (
+  <input
+    ref={subGroupRef} // <-- ADD THIS ATTRIBUTE
+    className="input"
+    value={subGroup}
+    onChange={(e) => setSubGroup(e.target.value)}
+    placeholder="Enter Sub Group"
+    disabled={submitting}
+    aria-label="Sub Group"
+  />
+) : (
                   <input
                     className="input"
                     value={subGroup}

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
-
+import { API_ENDPOINTS } from "../../api/endpoints";
+import apiService from "../../api/apiService";
 export default function UserCreation() {
   // ---------- state ----------
   const [companies, setCompanies] = useState([]);
@@ -60,39 +61,51 @@ export default function UserCreation() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
+ 
   // ---------- API functions ----------
   const fetchCompanies = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const response = await fetch("http://dikshiserver/spstores/api/UserCreation/GetUserCreationdropdowslist");
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setCompanies(data || []);
-    } catch (err) {
-      setError(err.message || "Failed to load companies");
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    setError("");
+    const response = await apiService.get(API_ENDPOINTS.user_creation.getuserdetails);
+    console.log("API Response structure:", response); // Debug log
+    
+    // Check if response is an array or object
+    const data = Array.isArray(response) ? response : 
+                 response.data ? (Array.isArray(response.data) ? response.data : []) : 
+                 [];
+    
+    console.log("Fetched companies structure:", data);
+    console.log("First company sample:", data[0]); // Show structure of first item
+    
+    // Check all keys in the first company object
+    if (data[0]) {
+      console.log("Keys in company object:", Object.keys(data[0]));
     }
-  };
+    
+    setCompanies(data || []);
+  } catch (err) {
+    setError(err.message || "Failed to load companies");
+    console.error("API Error:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  
+
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError("");
-      const response = await fetch("http://dikshiserver/spstores/api/UserCreation/GetUserCreationdropdowslist");
+      const response = await apiService.get(API_ENDPOINTS.user_creation.getDropdown);
+      console.log("API Response:", response);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
-      const data = await response.json();
+      const data =response;
+      console.log("Fetched users:", data);
       setUsers(data || []);
     } catch (err) {
       setError(err.message || "Failed to load users");
@@ -103,38 +116,36 @@ export default function UserCreation() {
   };
 
   const createUser = async (userData) => {
-    console.log("Creating user with data:", userData);
-    try {
-      setLoading(true);
-      setError("");
-      const response = await fetch("http://dikshiserver/spstores/api/UserCreation/CreateUser", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
+  console.log("Creating user with data:", userData);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  try {
+    setLoading(true);
+    setError("");
 
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      setError(err.message || "Failed to create user");
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Correct Axios POST usage
+    const response = await apiService.post(
+      API_ENDPOINTS.user_creation.postCreate,
+      userData
+    );
+
+    console.log("API Response:", response.data);
+    return response.data;
+
+  } catch (err) {
+    setError(err.message || "Failed to create user");
+    console.error("API Error:", err);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const updateUser = async (userData) => {
     try {
       setLoading(true);
       setError("");
-      const response = await fetch("http://dikshiserver/spstores/api/UserCreation/UpdateUser", {
+      const response = await apiService.put(API_ENDPOINTS.user_creation.putEdit, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -163,7 +174,7 @@ export default function UserCreation() {
     try {
       setLoading(true);
       setError("");
-      const response = await fetch(`http://dikshiserver/spstores/api/UserCreation/deleteUser/${userId}`, {
+      const response = await apiService.delete(`API_ENDPOINTS.user_creation.delete/${fcode}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -320,27 +331,40 @@ export default function UserCreation() {
 
   // ---------- handlers ----------
   function openCompanyModal() {
-    const companyData = companies.map(c => ({
-      id: c.code,
-      code: c.code,
-      companyName: c.compaytName,
-      displayName: `${c.code} - ${c.compaytName}`
-    }));
-    
-    setPopupData(companyData);
-    setPopupTitle("Select Company");
-    setPopupType("company");
-    setPopupOpen(true);
-  }
+  console.log("Companies data:", companies); // Debug log
+  
+  // Fix property names - adjust based on your actual API response
+  const companyData = companies.map(c => ({
+    id: c.fCompCode || c.code || c.fCompCode,  // Use actual property name
+    code: c.fCompCode || c.code || c.fCompCode,
+    companyName: c.fCompName || c.companyName || c.fCompName,  // Use actual property name
+    displayName: `${c.fCompCode || c.code} - ${c.fCompName || c.companyName || ''}`
+  }));
+  
+  console.log("Mapped company data:", companyData); // Debug log
+  
+  setPopupData(companyData);
+  setPopupTitle("Select Company");
+  setPopupType("company");
+  setPopupOpen(true);
+}
 
-  function selectCompany(c) {
-    setForm((s) => ({ 
-      ...s, 
-      company: `${c.code} - ${c.compaytName}`,
-      companyCode: c.code 
-    }));
-    setTimeout(() => usernameRef.current && usernameRef.current.focus(), 60);
-  }
+ function selectCompany(c) {
+  console.log("Selected company:", c); // Debug log
+  
+  // Fix property names here too
+  const companyCode = c.fCompCode || c.code || c.fCompCode;
+  const companyName = c.fCompName || c.companyName || c.fCompName;
+  
+  setForm((s) => ({ 
+    ...s, 
+    company: `${companyCode} - ${companyName}`,
+    companyCode: companyCode 
+  }));
+  
+  console.log("Form after select:", form); // Debug log
+  setTimeout(() => usernameRef.current && usernameRef.current.focus(), 60);
+}
 
   function openEditModal() {
     const editUserData = users.map(u => ({
@@ -404,54 +428,85 @@ export default function UserCreation() {
     setTimeout(() => prefixRef.current && prefixRef.current.focus(), 60);
   }
 
-  const handlePopupSelect = (selectedItem) => {
-    if (popupType === "company") {
-      const originalCompany = companies.find(c => c.code === selectedItem.id);
-      if (originalCompany) {
-        selectCompany(originalCompany);
-      }
-    } else if (popupType === "edit") {
-      const originalUser = users.find(u => u.code === selectedItem.id);
-      if (originalUser) {
-        handleEditRowClick(originalUser);
-      }
-    } else if (popupType === "delete") {
-      const originalUser = users.find(u => u.code === selectedItem.id);
-      if (originalUser) {
-        handleDeleteRowClick(originalUser);
-      }
+ const handlePopupSelect = (selectedItem) => {
+  console.log("Popup selected item:", selectedItem); // Debug log
+  
+  if (popupType === "company") {
+    // Try different ways to find the company
+    const originalCompany = companies.find(c => 
+      (c.fCompCode && c.fCompCode.toString() === selectedItem.id.toString()) ||
+      (c.code && c.code.toString() === selectedItem.id.toString()) ||
+      (c.fCompCode && c.fCompCode.toString() === selectedItem.code.toString())
+    );
+    
+    console.log("Found company:", originalCompany); // Debug log
+    
+    if (originalCompany) {
+      selectCompany(originalCompany);
+    } else {
+      // Fallback - use the selectedItem data directly
+      console.log("Company not found in companies array, using selectedItem");
+      selectCompany({
+        fCompCode: selectedItem.code || selectedItem.id,
+        fCompName: selectedItem.companyName || selectedItem.displayName?.split(' - ')[1] || ''
+      });
     }
-    setPopupOpen(false);
-    setPopupType("");
-    setPopupData([]);
-  };
-
-  async function handleCreate() {
-    if (!form.companyCode || !form.username || !form.password) {
-      alert("Please fill required fields: Company, Username, Password.");
-      return;
+  } else if (popupType === "edit") {
+    const originalUser = users.find(u => u.code === selectedItem.id);
+    if (originalUser) {
+      handleEditRowClick(originalUser);
     }
-
-    try {
-      const userData = {
-        code: '009',
-        userName: form.username,
-        password: form.password,
-        fCompCode: form.companyCode,
-        fPrefix: form.prefix || ""
-      };
-
-      await createUser(userData);
-      await fetchUsers();
-      
-      setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
-      setMode("create");
-      alert("✅ User created successfully.");
-      setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
-    } catch (err) {
-      alert(`Failed to create user: ${err.message}`);
+  } else if (popupType === "delete") {
+    const originalUser = users.find(u => u.code === selectedItem.id);
+    if (originalUser) {
+      handleDeleteRowClick(originalUser);
     }
   }
+  setPopupOpen(false);
+  setPopupType("");
+  setPopupData([]);
+};
+
+ async function handleCreate() {
+  if (!form.companyCode || !form.username || !form.password) {
+    alert("Please fill required fields: Company, Username, Password.");
+    return;
+  }
+
+  try {
+    const userData = {
+      code: "009",
+      userName: form.username,
+      password: form.password,
+      fCompCode: form.companyCode,
+      fPrefix: form.prefix || ""
+    };
+
+    await createUser(userData);
+    await fetchUsers();
+
+    // Reset form
+    setForm({
+      company: "",
+      companyCode: "",
+      username: "",
+      password: "",
+      prefix: "",
+      userId: null,
+    });
+
+    setMode("create");
+    alert("✅ User created successfully.");
+
+    setTimeout(() => {
+      if (companyRef.current) companyRef.current.focus();
+    }, 60);
+
+  } catch (err) {
+    alert(`Failed to create user: ${err.message}`);
+  }
+}
+
 
   async function handleUpdate() {
     if (!editingId) return alert("No user selected to update.");
