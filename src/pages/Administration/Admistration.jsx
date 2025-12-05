@@ -1135,6 +1135,7 @@ const styles = {
   tabsContainer: {
     display: 'flex',
     gap: '8px',
+    
     flex: '1',
     minWidth: '300px',
   },
@@ -1319,17 +1320,19 @@ const styles = {
   },
   table: {
     width: '100%',
+    
     borderCollapse: 'collapse',
     minWidth: '800px',
   },
   tableHeaderCell: {
     padding: '14px 16px',
-    backgroundColor: '#f8fafc',
+   
+    backgroundColor:'#2171c7b6',
     borderBottom: '2px solid #e5e7eb',
     textAlign: 'left',
     fontSize: '14px',
     fontWeight: '700',
-    color: '#374151',
+    color: 'white',
     position: 'sticky',
     top: '0',
     zIndex: '10',

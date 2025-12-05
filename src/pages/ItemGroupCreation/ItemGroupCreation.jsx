@@ -1122,7 +1122,7 @@ export default function ItemGroupCreation() {
                   />
                 )}
 
-                {(actionType === "edit" || actionType === "delete") && (
+                {/* {(actionType === "edit" || actionType === "delete") && (
                   <button
                     className="btn"
                     onClick={() => { setIsDropdownOpen(true); setIsTreeOpen(false); }}
@@ -1132,7 +1132,7 @@ export default function ItemGroupCreation() {
                   >
                     <Icon.Search /> Search
                   </button>
-                )}
+                )} */}
               </div>
             </div>
 
