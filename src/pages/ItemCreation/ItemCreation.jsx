@@ -861,28 +861,28 @@ const ItemCreation = ({ onCreated }) => {
         }
 
         /* dropdown modal (glass) */
-        .modal-overlay {
-          position:fixed; 
-          inset:0; 
-          display:flex; 
-          align-items:center; 
-          justify-content:center; 
-          background: rgba(2,6,23,0.46); 
-          z-index:1200; 
-          padding:20px;
-        }
-        .modal {
-          width:100%; 
-          max-width:720px; 
-          max-height:80vh; 
-          overflow:auto; 
-          background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
-          border-radius:12px; 
-          padding:14px;
-          border:1px solid rgba(255,255,255,0.5);
-          box-shadow: 0 18px 50px rgba(2,6,23,0.36);
-          backdrop-filter: blur(8px);
-        }
+        // .modal-overlay {
+        //   position:fixed; 
+        //   inset:0; 
+        //   display:flex; 
+        //   align-items:center; 
+        //   justify-content:center; 
+        //   background: rgba(2,6,23,0.46); 
+        //   z-index:1200; 
+        //   padding:20px;
+        // }
+        // .modal {
+        //   width:100%; 
+        //   max-width:720px; 
+        //   max-height:80vh; 
+        //   overflow:auto; 
+        //   background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
+        //   border-radius:12px; 
+        //   padding:14px;
+        //   border:1px solid rgba(255,255,255,0.5);
+        //   box-shadow: 0 18px 50px rgba(2,6,23,0.36);
+        //   backdrop-filter: blur(8px);
+        // }
         .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
         .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; }
         .dropdown-item:hover { background: linear-gradient(90deg, rgba(16,163,98,0.04), rgba(16,163,98,0.01)); transform: translateX(6px); }
@@ -1531,7 +1531,7 @@ const ItemCreation = ({ onCreated }) => {
       </div>
 
       {/* Data List Modal for Edit/Delete */}
-      {modalVisible && (
+      {/* {modalVisible && (
         <div className="modal-overlay" onClick={() => setModalVisible(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Item selection modal">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -1620,7 +1620,7 @@ const ItemCreation = ({ onCreated }) => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Counter List Modal */}
       {counterModalVisible && (
