@@ -83,6 +83,7 @@ const Navbar = () => {
     { name: 'Administration', path: '/Administration', icon: <BuildOutlined /> },
     // { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },   
     { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined /> },
+     { name: 'Scrap', path: '/masters/Scrap', icon: <BuildOutlined /> },
    
      
   ];
@@ -95,7 +96,9 @@ const Navbar = () => {
     { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined  /> },
      { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined /> },
     { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
-    {name: 'Scrap Procurement', path: '/transactions/scrap', icon: <BuildOutlined /> }
+    {name: 'Scrap Procurement', path: '/transactions/scrap', icon: <BuildOutlined /> },
+  {name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> }
+    
   ];
 
   // Desktop hover handlers

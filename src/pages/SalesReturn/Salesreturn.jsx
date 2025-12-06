@@ -1,17 +1,260 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Add as AddIcon, 
-  Edit as EditIcon, 
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  Clear as ClearIcon
-} from '@mui/icons-material';
-import PopupListSelector from '../../components/Listpopup/PopupListSelector'; // Import your popup component
+import { Modal, Button } from 'antd';
+import { CloseOutlined } from '@ant-design/icons';
+
+// Add this CSS for scrollbar styling at the top of your component file
+// Or better, move this to a separate CSS file
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1976d2;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #1565c0;
+  }
+`;
+
+// Common Button Icons
+const CreateIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
+  </svg>
+);
+
+const EditIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zM13.75 3.19l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+    <path fillRule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+  </svg>
+);
+
+const DeleteIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995zm-2.487 1a.5.5 0 0 1 .528.47l.8 10a1 1 0 0 0 .997.93h6.23a1 1 0 0 0 .997-.93l.8-10a.5.5 0 0 1 .528-.47H3.513z"/>
+    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5"/>
+  </svg>
+);
+
+const ClearIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+  </svg>
+);
+
+const SaveIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M8 0a2 2 0 0 0-2 2v2H2v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V4L8 0zM7 2a1 1 0 0 1 1-1h4.5L14 4H8V2z"/>
+    <path d="M5 8.5a.5.5 0 0 1 .5-.5H10a.5.5 0 0 1 0 1H5.5a.5.5 0 0 1-.5-.5z"/>
+  </svg>
+);
+
+const PrintIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
+    <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+  </svg>
+);
+
+// Common Button Components
+const AddButton = ({ onClick, disabled, isActive, buttonType = 'add', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'add' && isActive ? buttonStyles.addBtn : {}),
+      ...(buttonType === 'edit' && isActive ? buttonStyles.editBtn : {}),
+      ...(buttonType === 'delete' && isActive ? buttonStyles.deleteBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style 
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }} 
+    disabled={disabled}
+  >
+    <CreateIcon /> Add
+  </button>
+);
+
+const EditButton = ({ onClick, disabled, isActive, buttonType = 'edit', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'add' && isActive ? buttonStyles.addBtn : {}),
+      ...(buttonType === 'edit' && isActive ? buttonStyles.editBtn : {}),
+      ...(buttonType === 'delete' && isActive ? buttonStyles.deleteBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <EditIcon /> Edit
+  </button>
+);
+
+const DeleteButton = ({ onClick, disabled, isActive, buttonType = 'delete', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'add' && isActive ? buttonStyles.addBtn : {}),
+      ...(buttonType === 'edit' && isActive ? buttonStyles.editBtn : {}),
+      ...(buttonType === 'delete' && isActive ? buttonStyles.deleteBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <DeleteIcon /> Delete
+  </button>
+);
+
+const ClearButton = ({ onClick, disabled, isActive, buttonType = 'clear', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'clear' && isActive ? buttonStyles.clearBtn : {}),
+      ...(buttonType === 'save' && isActive ? buttonStyles.saveBtn : {}),
+      ...(buttonType === 'print' && isActive ? buttonStyles.printBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <ClearIcon /> Clear
+  </button>
+);
+
+const SaveButton = ({ onClick, disabled, isActive, buttonType = 'save', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'clear' && isActive ? buttonStyles.clearBtn : {}),
+      ...(buttonType === 'save' && isActive ? buttonStyles.saveBtn : {}),
+      ...(buttonType === 'print' && isActive ? buttonStyles.printBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <SaveIcon /> Save
+  </button>
+);
+
+const PrintButton = ({ onClick, disabled, isActive, buttonType = 'print', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'clear' && isActive ? buttonStyles.clearBtn : {}),
+      ...(buttonType === 'save' && isActive ? buttonStyles.saveBtn : {}),
+      ...(buttonType === 'print' && isActive ? buttonStyles.printBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <PrintIcon /> Print
+  </button>
+);
+
+const buttonStyles = {
+  btn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '0.6rem 1.2rem',
+    border: 'none',
+    cursor: 'pointer',
+    borderRadius: '6px',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    margin: '2px'
+  },
+  inactiveBtn: {
+    background: '#e9ecef',
+    color: '#6c757d',
+    border: '1px solid #dee2e6'
+  },
+  activeBtn: {
+    color: 'white',
+    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+    transform: 'translateY(-2px)'
+  },
+  addBtn: {
+    background: '#02a85a',
+  },
+  editBtn: {
+    background: '#fbc02d',
+  },
+  deleteBtn: {
+    background: '#e53935',
+  },
+  clearBtn: {
+    background: '#e53935',
+  },
+  saveBtn: {
+    background: '#1976d2',
+  },
+  printBtn: {
+    background: '#6f42c1',
+  },
+  disabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+    pointerEvents: 'none'
+  }
+};
 
 /**
- * Sales Return Form Component with Responsive Table
+ * Sales Return Form Component with Fixed Layout
  */
 const Salesreturn = () => {
+  // Add scrollbar styles to document head
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = scrollbarStyles;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
   // Initial state for form fields
   const [formData, setFormData] = useState({
     salesman: '',
@@ -43,20 +286,33 @@ const Salesreturn = () => {
     amount: '0.00'
   }]);
 
-  // State for visible rows
-  const [visibleRows, setVisibleRows] = useState(6);
+  // State for button groups
+  const [topButtonActive, setTopButtonActive] = useState('add'); // 'add', 'edit', 'delete'
+  const [bottomButtonActive, setBottomButtonActive] = useState('save'); // 'clear', 'save', 'print'
+
+  // State for responsive design
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   // State for delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // State for popup
-  const [showPopup, setShowPopup] = useState(false);
-  const [currentItemId, setCurrentItemId] = useState(null);
+  // State for heights (for dynamic calculations)
+  const [formHeaderHeight, setFormHeaderHeight] = useState(0);
+  const [tableHeaderHeight, setTableHeaderHeight] = useState(0);
+  const [actionBarHeight, setActionBarHeight] = useState(0);
+  const [addItemButtonHeight, setAddItemButtonHeight] = useState(0);
 
   // Refs for input fields and table container
   const inputRefs = useRef({});
-  const tableContainerRef = useRef(null);
+  const formHeaderRef = useRef(null);
+  const tableHeaderRef = useRef(null);
+  const actionBarRef = useRef(null);
+  const addItemButtonRef = useRef(null);
+  const tableBodyRef = useRef(null);
+  const tableHeaderInnerRef = useRef(null);
 
   // Calculate amount
   const calculateAmount = (qty, sRate) => {
@@ -69,39 +325,62 @@ const Salesreturn = () => {
   const totalQty = items.reduce((sum, item) => sum + parseFloat(item.qty || 0), 0);
   const totalAmount = items.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
-  // Calculate visible rows based on window height
-  const calculateVisibleRows = () => {
-    const windowWidth = window.innerWidth;
+  // Handle top button state change
+  const handleTopButtonStateChange = (buttonType) => {
+    setTopButtonActive(buttonType);
+  };
+
+  // Handle bottom button state change
+  const handleBottomButtonStateChange = (buttonType) => {
+    setBottomButtonActive(buttonType);
+  };
+
+  // Handle responsive window resize
+  const handleResize = () => {
+    const width = window.innerWidth;
+    setWindowWidth(width);
+    setIsMobile(width < 768);
+    setIsTablet(width >= 768 && width < 1024);
     
-    // Based on window dimensions, set different visible rows
-    if (windowWidth >= 1920) {
-      setVisibleRows(13);
-    } else if (windowWidth >= 1600) {
-      setVisibleRows(11);
-    } else if (windowWidth >= 1366) {
-      setVisibleRows(9);
-    } else if (windowWidth >= 1024) {
-      setVisibleRows(7);
-    } else if (windowWidth >= 768) {
-      setVisibleRows(6);
-    } else if (windowWidth >= 480) {
-      setVisibleRows(4);
-    } else {
-      setVisibleRows(3);
+    // Calculate heights after resize
+    calculateHeights();
+  };
+
+  // Calculate all heights
+  const calculateHeights = () => {
+    if (formHeaderRef.current) {
+      setFormHeaderHeight(formHeaderRef.current.offsetHeight);
+    }
+    if (tableHeaderRef.current) {
+      setTableHeaderHeight(tableHeaderRef.current.offsetHeight);
+    }
+    if (actionBarRef.current) {
+      setActionBarHeight(actionBarRef.current.offsetHeight);
+    }
+    if (addItemButtonRef.current) {
+      setAddItemButtonHeight(addItemButtonRef.current.offsetHeight);
     }
   };
 
-  // Handle window resize
+  // Handle window resize and calculate heights
   useEffect(() => {
-    calculateVisibleRows();
-    
-    const handleResize = () => {
-      calculateVisibleRows();
-    };
-    
+    handleResize();
     window.addEventListener('resize', handleResize);
+    
+    // Calculate initial heights
+    setTimeout(() => {
+      calculateHeights();
+    }, 100);
+    
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Update heights when mobile state changes
+  useEffect(() => {
+    setTimeout(() => {
+      calculateHeights();
+    }, 100);
+  }, [isMobile, isTablet]);
 
   // Focus on first barcode input on initial load
   useEffect(() => {
@@ -109,6 +388,13 @@ const Salesreturn = () => {
       setTimeout(() => inputRefs.current['barcode-1'].focus(), 100);
     }
   }, []);
+
+  // Handle horizontal scroll synchronization
+  const handleTableBodyScroll = (e) => {
+    if (tableHeaderInnerRef.current) {
+      tableHeaderInnerRef.current.scrollLeft = e.target.scrollLeft;
+    }
+  };
 
   // Handle form field changes
   const handleFormChange = (field) => (event) => {
@@ -173,35 +459,6 @@ const Salesreturn = () => {
     }, 50);
   };
 
-  // Open popup for item selection
-  const openItemPopup = (id) => {
-    setCurrentItemId(id);
-    setShowPopup(true);
-  };
-
-  // Handle item selection from popup
-  const handleItemSelect = (selectedItem) => {
-    if (currentItemId) {
-      const updatedItems = items.map(item => {
-        if (item.id === currentItemId) {
-          return {
-            ...item,
-            barcode: selectedItem.barcode || '',
-            itemName: selectedItem.name || selectedItem.itemName || '',
-            mrp: selectedItem.mrp || '',
-            uom: selectedItem.uom || '',
-            hsn: selectedItem.hsn || '',
-            sRate: selectedItem.rate || selectedItem.sRate || '',
-            rate: selectedItem.rate || '',
-            stock: selectedItem.stock || ''
-          };
-        }
-        return item;
-      });
-      setItems(updatedItems);
-    }
-  };
-
   // Handle delete confirmation
   const confirmDelete = (id) => {
     setItemToDelete(id);
@@ -264,11 +521,9 @@ const Salesreturn = () => {
     alert(`Sales Return data saved successfully!\n\nTotal Quantity: ${totalQty}\nTotal Amount: ₹${totalAmount.toFixed(2)}`);
   };
 
-  // Handle Save All action
-  const handleSaveAll = () => {
-    // Here you would typically save all items to backend
-    const itemsToSave = items.filter(item => item.barcode || item.itemName);
-    alert(`Saving ${itemsToSave.length} items...\n\nTotal Quantity: ${totalQty}\nTotal Amount: ₹${totalAmount.toFixed(2)}`);
+  // Handle Print action
+  const handlePrint = () => {
+    window.print();
   };
 
   // Handle Clear action
@@ -317,7 +572,7 @@ const Salesreturn = () => {
     if (event.key === 'Enter') {
       event.preventDefault();
       
-      const formFields = ['billNo', 'billDate', 'mobileNo', 'empName', 'salesman', 'custName', 'barcodeInput'];
+      const formFields = ['billNo', 'billDate', 'mobileNo', 'empName', 'salesman', 'custName', 'barcode'];
       const currentIndex = formFields.indexOf(field);
       
       if (currentIndex < formFields.length - 1) {
@@ -369,26 +624,18 @@ const Salesreturn = () => {
     }
   };
 
-  // Mock function to fetch items for popup
-  const fetchItemsForPopup = async (page, search) => {
-    // This is a mock function - replace with your actual API call
-    const mockItems = [
-      { id: 1, barcode: '123456', name: 'Product A', mrp: 100, uom: 'PCS', hsn: '1234', rate: 85, stock: 50 },
-      { id: 2, barcode: '234567', name: 'Product B', mrp: 200, uom: 'PCS', hsn: '5678', rate: 170, stock: 30 },
-      { id: 3, barcode: '345678', name: 'Product C', mrp: 150, uom: 'PCS', hsn: '9012', rate: 125, stock: 20 },
-      { id: 4, barcode: '456789', name: 'Product D', mrp: 300, uom: 'PCS', hsn: '3456', rate: 250, stock: 15 },
-      { id: 5, barcode: '567890', name: 'Product E', mrp: 250, uom: 'PCS', hsn: '7890', rate: 200, stock: 40 },
-    ];
+  // Calculate table body height for scrolling
+  const getTableBodyHeight = () => {
+    const viewportHeight = window.innerHeight;
+    const mainHeaderHeight = 60; // Fixed main header
     
-    // Filter by search text if provided
-    if (search) {
-      return mockItems.filter(item => 
-        item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.barcode.includes(search)
-      );
+    // Calculate available height for table body
+    if (isMobile) {
+      return `calc(${viewportHeight}px - ${mainHeaderHeight}px - ${formHeaderHeight}px - ${tableHeaderHeight}px - ${addItemButtonHeight}px - ${actionBarHeight}px - 30px)`;
+    } else if (isTablet) {
+      return `calc(${viewportHeight}px - ${mainHeaderHeight}px - ${formHeaderHeight}px - ${tableHeaderHeight}px - ${addItemButtonHeight}px - ${actionBarHeight}px - 25px)`;
     }
-    
-    return mockItems;
+    return `calc(${viewportHeight}px - ${mainHeaderHeight}px - ${formHeaderHeight}px - ${tableHeaderHeight}px - ${addItemButtonHeight}px - ${actionBarHeight}px - 20px)`;
   };
 
   // Style objects
@@ -411,11 +658,11 @@ const Salesreturn = () => {
     overflow: 'hidden'
   };
 
-  // Updated tableInputStyle to prevent shaking on hover
+  // Updated tableInputStyle
   const tableInputStyle = {
     width: '100%', 
     padding: '8px 4px', 
-    border: '1px solid transparent',
+    border: 'none',
     fontSize: '14px', 
     background: 'transparent',
     textAlign: 'center',
@@ -423,289 +670,349 @@ const Salesreturn = () => {
     boxSizing: 'border-box'
   };
 
+  // Table cell border style
+  const tableCellBorderStyle = {
+    border: '1px solid #e0e0e0'
+  };
+
   const brightTotalStyle = {
     fontWeight: 'bold',
     fontSize: '22px',
     textShadow: '0 1px 2px rgba(0,0,0,0.1)',
-    letterSpacing: '0.5px'
+    letterSpacing: '0.5px',
+    transition: 'all 0.3s ease'
   };
 
-  // Styles for responsive design
+  // Popup styles (matching PopupListSelector)
+  const popupStyles = {
+    container: {
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: '70vh'
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '16px 24px',
+      borderBottom: '1px solid #f0f0f0'
+    },
+    headerTitle: {
+      fontSize: '16px',
+      fontWeight: 500
+    },
+    closeBtn: {
+      border: 'none',
+      background: 'transparent',
+      cursor: 'pointer',
+      padding: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    content: {
+      padding: '24px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '24px'
+    },
+    message: {
+      fontSize: '14px',
+      color: '#333',
+      textAlign: 'center'
+    },
+    buttons: {
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '12px',
+      marginTop: '8px'
+    }
+  };
+
+  // Responsive styles - SINGLE SCROLL LAYOUT
   const styles = {
     container: {
       backgroundColor: '#f5f5f5',
-      minHeight: '100vh',
+      height: '100vh',
       padding: '0',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      overflow: 'hidden',
+      position: 'relative'
     },
     mainContent: {
       marginTop: '60px',
+      flex: 1,
       display: 'flex',
       flexDirection: 'column',
-      flex: 1
+      overflow: 'hidden'
     },
+    // Form Header - Fixed at top
     formHeader: {
       position: 'fixed',
-      marginTop: '70px',
-      top: '0',
+      top: '60px',
       left: 0,
       right: 0,
       backgroundColor: 'white',
-      zIndex: 900,
+      zIndex: 500,
       boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-      padding: '15px 25px',
+      padding: isMobile ? '10px 15px' : '15px 25px',
       borderBottom: '3px solid #ddd',
     },
     formGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(4, 1fr)',
-      gap: '15px 20px',
-      alignItems: 'center',
-      '@media (max-width: 1200px)': {
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '12px 15px'
-      },
-      '@media (max-width: 992px)': {
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '10px'
-      },
-      '@media (max-width: 768px)': {
-        gridTemplateColumns: '1fr',
-        gap: '8px'
-      }
+      gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+      gap: isMobile ? '8px' : isTablet ? '10px' : '15px 20px',
+      alignItems: 'center'
     },
     formField: {
       display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
+      flexDirection: isMobile ? 'column' : 'row',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      gap: isMobile ? '4px' : '8px'
     },
     formLabel: {
-      fontWeight: '500',
-      fontSize: '16px',
+      fontWeight: '600',
+      fontSize: isMobile ? '12px' : '17px',
       whiteSpace: 'nowrap',
-      minWidth: '85px',
+      minWidth: isMobile ? 'auto' : '85px',
       color: '#333',
-      textAlign: 'right'
+      textAlign: isMobile ? 'left' : 'right',
+      width: isMobile ? '100%' : 'auto'
     },
     formInput: {
       flex: 1,
       padding: '8px 10px',
       border: "1px solid #ddd",
       borderRadius: '4px',
-      fontSize: '14px',
+      fontSize: isMobile ? '12px' : '14px',
       outline: 'none',
-      minHeight: '40px',
-      boxSizing: 'border-box'
-    },
-     formbutton: {
-     padding: '8px 10px',
-      border: "1px solid #ddd",
-      borderRadius: '4px',
-      fontSize: '14px',
-      outline: 'none',
-      minHeight: '40px',
+      minHeight: '35px',
       boxSizing: 'border-box',
-      width:'305px'
+      width: '100%',
+      maxWidth: '100%'
     },
-    formInputReadOnly: {
-      flex: 1,
-      padding: '8px 10px',
+    // Main table container - SINGLE SCROLL (Fixed Header, Scrollable Body)
+    tableContainerWrapper: {
+      position: "fixed",
+      top: formHeaderHeight + 65,
+      left: isMobile ? 10 : 20,
+      right: isMobile ? 10 : 20,
+      bottom: actionBarHeight + 10,
+      backgroundColor: "#fff",
+      display: "flex",
+      flexDirection: "column",
       border: "1px solid #ddd",
-      borderRadius: '4px',
-      fontSize: '14px',
-      outline: 'none',
-      minHeight: '36px',
-      boxSizing: 'border-box',
-      backgroundColor: '#f8f9fa',
-      color: '#666'
+      borderRadius: "10px 10px 0 0",
+      overflow: "hidden",
     },
-    tableWrapper: {
-      backgroundColor: '#ffffff',
-     marginTop: '22px',
-      position: 'fixed',
-      top: '110px',
-      left: 0,
-      right: 0,
-      bottom: '70px',
-      borderRadius: '12px 12px 0 0', // Rounded top corners only
+    // Table header - Fixed with synchronized horizontal scroll
+    tableHeaderContainer: {
+      backgroundColor: '#1976d2af',
+      
+      borderRadius: '12px 12px 0 0',
+      width: '100%',
+      overflow: 'hidden',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-      borderTop: '1px solid #1976d2',
-      borderLeft: '1px solid #ddd',
-      borderRight: '1px solid #ddd'
+      flexShrink: 0
     },
-    tableContainer: {
-      flex: 1,
-      marginTop: '70px',
-      marginLeft: '11px',
-      marginRight: '11px',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
+    tableHeaderInner: {
+      width: '100%',
+      overflowX: 'auto',
+      
+      overflowY: 'hidden',
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
     },
-    tableHeader: {
-      position: 'sticky',
-      zIndex: 30,
-      backgroundColor: '#1976d2',
-      borderRadius: '12px 12px 0 0' // Rounded top for table header
+    tableHeaderTable: {
+      
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize: isMobile ? '11px' : '14px',
+      tableLayout: 'fixed',
+      minWidth: isMobile ? '1100px' : 'auto'
     },
-    tableBody: {
+    // Table body container - Scrollable (ONLY ROWS) with smooth scrolling
+    tableBodyContainer: {
       flex: 1,
       overflowY: 'auto',
-      overflowX: 'auto'
+      overflowX: 'auto',
+      height: getTableBodyHeight(),
+      backgroundColor: '#ffffff',
+      borderLeft: '1px solid #ddd',
+      borderRight: '1px solid #ddd',
+      WebkitOverflowScrolling: 'touch',
+      scrollBehavior: 'smooth',
+      msOverflowStyle: '-ms-autohiding-scrollbar',
+      scrollbarWidth: 'thin',
+      scrollbarColor: '#1976d2 #f1f1f1',
     },
+    tableBody: {
+      minWidth: isMobile ? '1100px' : '100%',
+      borderCollapse: 'collapse',
+      fontSize: isMobile ? '11px' : '14px',
+      tableLayout: 'fixed',
+      width: '100%'
+    },
+    // Add Item Button Container (FIXED below table rows)
+    addItemButtonContainer: {
+      padding: isMobile ? '12px 20px' : '15px 25px',
+      textAlign: 'left',
+      backgroundColor: '#ffffff',
+      borderLeft: '1px solid #ddd',
+      borderRight: '1px solid #ddd',
+      borderBottom: '1px solid #ddd',
+      borderTop: '2px solid #f0f0f0',
+      flexShrink: 0
+    },
+    // Action Bar - Fixed at bottom
     actionBar: {
       position: 'fixed',
       bottom: 0,
       left: 0,
       right: 0,
       backgroundColor: 'white',
-      padding: '12px 20px',
+      padding: isMobile ? '8px 10px' : '12px 20px',
       borderTop: '2px solid #dee2e6',
       boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
       zIndex: 1000,
-      height: '70px'
-    },
-    // Delete confirmation modal styles
-    deleteModalOverlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      height: isMobile ? 'auto' : '70px',
       display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 2000
-    },
-    deleteModal: {
-      backgroundColor: 'white',
-      padding: '30px',
-      borderRadius: '8px',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-      minWidth: '350px',
-      textAlign: 'center'
-    },
-    deleteModalTitle: {
-      fontSize: '20px',
-      fontWeight: 'bold',
-      marginBottom: '15px',
-      color: '#d32f2f'
-    },
-    deleteModalMessage: {
-      fontSize: '16px',
-      marginBottom: '25px',
-      color: '#555'
-    },
-    deleteModalButtons: {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: '15px'
-    },
-    deleteModalButton: {
-      padding: '10px 25px',
-      borderRadius: '6px',
-      border: 'none',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: 'bold',
-      minWidth: '80px',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      transform: 'translateY(0)'
-    },
-    cancelButton: {
-      backgroundColor: '#f5f5f5',
-      color: '#333',
-      border: '1px solid #ddd'
-    },
-    confirmButton: {
-      backgroundColor: '#d32f2f',
-      color: 'white'
+      flexDirection: isMobile ? 'column' : 'row'
     }
   };
 
+  // Responsive column widths for table
+  const getColumnWidth = (column) => {
+    if (isMobile) {
+      const mobileWidths = {
+        sNo: '35px',
+        barcode: '80px',
+        itemName: '120px',
+        stock: '60px',
+        mrp: '60px',
+        uom: '40px',
+        hsn: '60px',
+        tax: '40px',
+        sRate: '60px',
+        rate: '60px',
+        qty: '40px',
+        amount: '80px',
+        action: '40px'
+      };
+      return mobileWidths[column] || 'auto';
+    } else if (isTablet) {
+      const tabletWidths = {
+        sNo: '45px',
+        barcode: '95px',
+        itemName: '180px',
+        stock: '75px',
+        mrp: '75px',
+        uom: '55px',
+        hsn: '75px',
+        tax: '55px',
+        sRate: '75px',
+        rate: '75px',
+        qty: '55px',
+        amount: '95px',
+        action: '55px'
+      };
+      return tabletWidths[column] || 'auto';
+    }
+    // Desktop widths
+    const desktopWidths = {
+      sNo: '50px',
+      barcode: '100px',
+      itemName: '200px',
+      stock: '80px',
+      mrp: '80px',
+      uom: '60px',
+      hsn: '80px',
+      tax: '60px',
+      sRate: '80px',
+      rate: '80px',
+      qty: '60px',
+      amount: '100px',
+      action: '60px'
+    };
+    return desktopWidths[column] || 'auto';
+  };
+
+  // Button styles for mobile
+  const getButtonStyle = () => ({
+    minWidth: isMobile ? '70px' : '100px',
+    padding: isMobile ? '6px 10px' : '8px 16px',
+    fontSize: isMobile ? '12px' : '14px',
+    borderRadius: '50px'
+  });
+
   return (
     <div style={styles.container}>
-      {/* Popup List Selector */}
-      <PopupListSelector
-        open={showPopup}
-        onClose={() => setShowPopup(false)}
-        onSelect={handleItemSelect}
-        fetchItems={fetchItemsForPopup}
-        title="Select Item"
-        displayFieldKeys={['barcode', 'name', 'mrp', 'uom', 'hsn', 'rate', 'stock']}
-        searchFields={['name', 'barcode']}
-        headerNames={['Barcode', 'Item Name', 'MRP', 'UOM', 'HSN', 'Rate', 'Stock']}
-        searchPlaceholder="Search by item name or barcode..."
-      />
+      {/* Delete Confirmation Modal - Updated to match PopupListSelector style */}
+      <Modal
+        open={showDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        footer={null}
+        width="auto"
+        style={{ maxWidth: '500px', top: '20%' }}
+        closeIcon={null}
+      >
+        <div style={popupStyles.container}>
+          {/* Header */}
+          <div style={popupStyles.header}>
+            <div style={popupStyles.headerTitle}>Confirm Delete</div>
+            <Button 
+              type="text" 
+              icon={<CloseOutlined />} 
+              onClick={handleDeleteCancel} 
+              style={popupStyles.closeBtn} 
+            />
+          </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div style={styles.deleteModalOverlay}>
-          <div style={styles.deleteModal}>
-            <div style={styles.deleteModalTitle}>Confirm Delete</div>
-            <div style={styles.deleteModalMessage}>
+          {/* Content */}
+          <div style={popupStyles.content}>
+            <div style={popupStyles.message}>
               Are you sure you want to delete this item?
             </div>
-            <div style={styles.deleteModalButtons}>
-              <button 
+            
+            <div style={popupStyles.buttons}>
+              <Button 
                 onClick={handleDeleteCancel}
-                style={{ ...styles.deleteModalButton, ...styles.cancelButton }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#e8e8e8';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f5f5f5';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                style={{ 
+                  minWidth: '80px',
+                  padding: '8px 16px'
                 }}
               >
                 Cancel
-              </button>
-              <button 
+              </Button>
+              <Button 
+                type="primary" 
+                danger
                 onClick={handleDeleteConfirm}
-                style={{ ...styles.deleteModalButton, ...styles.confirmButton }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#b71c1c';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(183, 28, 28, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#d32f2f';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                style={{ 
+                  minWidth: '80px',
+                  padding: '8px 16px'
                 }}
               >
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Main Content Area */}
       <div style={styles.mainContent}>
         {/* Fixed Form Header */}
-        <div style={styles.formHeader}>
+        <div ref={formHeaderRef} style={styles.formHeader}>
           <div style={styles.formGrid}>
             {/* Bill No Field */}
-            
             <div style={styles.formField}>
               <label style={styles.formLabel}>Bill No :</label>
               <input
                 name="billNo"
                 type="text"
-                style={
-                  styles.formInput
-                  
-                }
+                style={styles.formInput}
                 value={formData.billNo}
                 onChange={handleFormChange('billNo')}
                 onKeyDown={(e) => handleFormKeyDown('billNo', e)}
@@ -717,17 +1024,16 @@ const Salesreturn = () => {
               />
             </div>
 
-             {/* Salesman Field */}
+            {/* Bill Date Field */}
             <div style={styles.formField}>
-              <label style={styles.formLabel}>Salesman:</label>
+              <label style={styles.formLabel}>Bill Date:</label>
               <input
-                name="salesman"
-                type="text"
+                name="billDate"
+                type="date"
                 style={styles.formInput}
-                value={formData.salesman}
-                onChange={handleFormChange('salesman')}
-                onKeyDown={(e) => handleFormKeyDown('salesman', e)}
-                placeholder="Salesman"
+                value={formData.billDate}
+                onChange={handleFormChange('billDate')}
+                onKeyDown={(e) => handleFormKeyDown('billDate', e)}
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
                 onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
@@ -735,7 +1041,7 @@ const Salesreturn = () => {
               />
             </div>
 
-            {/* Mobile No Field */}
+             {/* Mobile No Field */}
             <div style={styles.formField}>
               <label style={styles.formLabel}>Mobile No:</label>
               <input
@@ -753,47 +1059,9 @@ const Salesreturn = () => {
               />
             </div>
 
-            {/* Customer Name Field */}
-            <div style={styles.formField}>
-              <label style={styles.formLabel}>Customer Name:</label>
-              <input
-                name="custName"
-                type="text"
-                style={styles.formInput}
-                value={formData.custName}
-                onChange={handleFormChange('custName')}
-                onKeyDown={(e) => handleFormKeyDown('custName', e)}
-                placeholder="Customer Name"
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
-                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
-              />
-            </div>
-
-        
-
-             {/* Bill Date Field */}
-            <div style={styles.formField}>
-              <label style={styles.formLabel}>Bill Date:</label>
-              <input
-                name="billDate"
-                type="date"
-                style={styles.formInput}
-                value={formData.billDate}
-                onChange={handleFormChange('billDate')}
-                onKeyDown={(e) => handleFormKeyDown('billDate', e)}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
-                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
-              />
-            </div>
-            
             
 
-
-               {/* EMP Name Field */}
+            {/* EMP Name Field */}
             <div style={styles.formField}>
               <label style={styles.formLabel}>EMP Name:</label>
               <input
@@ -810,20 +1078,56 @@ const Salesreturn = () => {
                 onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
               />
             </div>
-            
 
-            
-            {/* Barcode Field */}
-            <div style={{ ...styles.formField, gridColumn: 'span 2' }}>
+            {/* Salesman Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Salesman:</label>
+              <input
+                name="salesman"
+                type="text"
+                style={styles.formInput}
+                value={formData.salesman}
+                onChange={handleFormChange('salesman')}
+                onKeyDown={(e) => handleFormKeyDown('salesman', e)}
+                placeholder="Salesman"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
+
+           
+
+            {/* Customer Name Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Customer:</label>
+              <input
+                name="custName"
+                type="text"
+                style={styles.formInput}
+                value={formData.custName}
+                onChange={handleFormChange('custName')}
+                onKeyDown={(e) => handleFormKeyDown('custName', e)}
+                placeholder="Customer Name"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
+
+            {/* Barcode Field - Now using the same formInput style with proper sizing */}
+           <div style={styles.formField}>
               <label style={styles.formLabel}>Barcode:</label>
               <input
-                name="barcodeInput"
+                name="barcode"
                 type="text"
-                style={styles.formbutton}
-                value={formData.barcodeInput}
-                onChange={handleFormChange('barcodeInput')}
-                onKeyDown={(e) => handleFormKeyDown('barcodeInput', e)}
-                placeholder="Enter Barcode"
+                style={styles.formInput}
+                value={formData.barcode}
+                onChange={handleFormChange('barcode')}
+                onKeyDown={(e) => handleFormKeyDown('barcode', e)}
+                placeholder="Barcode"
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
                 onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
@@ -834,599 +1138,409 @@ const Salesreturn = () => {
         </div>
 
         {/* Table Area */}
-        <div ref={tableContainerRef} style={styles.tableWrapper}>
-          <div style={styles.tableContainer}>
-            {/* Table Header */}
-            <div style={styles.tableHeader}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', tableLayout: 'fixed' }}>
+        <div style={styles.tableContainerWrapper}>
+          {/* Fixed Table Header with synchronized horizontal scroll */}
+          <div ref={tableHeaderRef} style={styles.tableHeaderContainer}>
+            <div 
+              ref={tableHeaderInnerRef} 
+              style={styles.tableHeaderInner}
+            >
+              <table style={styles.tableHeaderTable}>
                 <thead>
                   <tr>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '50px', borderTopLeftRadius: '12px' }}>SNo</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '100px' }}>Barcode</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: '200px' }}>Item Name</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>Stock</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>MRP</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>UOM</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>HSN</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>TAX</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>SRATE</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>RATE</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '60px' }}>QTY</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'right', whiteSpace: 'nowrap', width: '100px' }}>AMOUNT</th>
-                    <th style={{ color: 'white', fontWeight: 'bold', padding: '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: '100px', borderTopRightRadius: '12px' }}>ACTION</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('sNo'), borderTopLeftRadius: '12px' }}>SNo</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('barcode') }}>Barcode</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: getColumnWidth('itemName') }}>Item Name</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('stock') }}>Stock</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('mrp') }}>MIP</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('uom') }}>UOM</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('hsn') }}>HSN</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('tax') }}>TAX (%)</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('sRate') }}>State</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('rate') }}>Waste</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('qty') }}>Qty</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'right', whiteSpace: 'nowrap', width: getColumnWidth('amount') }}>Amount</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('action'), borderTopRightRadius: '12px' }}>ACTION</th>
                   </tr>
                 </thead>
               </table>
             </div>
-            
-            {/* Table Body - Responsive height */}
-            <div style={{ ...styles.tableBody, height: `${visibleRows * 50}px` }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', tableLayout: 'fixed' }}>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id} style={{ backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff', borderBottom: '1px solid #eee' }}>
-                      {/* SNo */}
-                      <td style={{ padding: '12px 8px', whiteSpace: 'nowrap', textAlign: 'center', width: '50px' }}>{item.sNo}</td>
-                      
-                      {/* Barcode */}
-                      <td style={{ padding: '12px 8px', width: '100px' }}>
-                        <input
-                          ref={el => inputRefs.current[`barcode-${item.id}`] = el}
-                          type="text"
-                          style={{ ...tableInputStyle, fontWeight: '500', textAlign: 'center', cursor: 'pointer' }}
-                          value={item.barcode}
-                          onChange={handleItemChange(item.id, 'barcode')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'barcode', e)}
-                          onClick={() => openItemPopup(item.id)}
-                          placeholder="Click to select"
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#1976d2';
-                            e.currentTarget.style.backgroundColor = '#f0f7ff';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'transparent';
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* Item Name */}
-                      <td style={{ padding: '12px 8px', width: '200px' }}>
-                        <input
-                          ref={el => inputRefs.current[`itemName-${item.id}`] = el}
-                          type="text"
-                          style={{ ...tableInputStyle, textAlign: 'left' }}
-                          value={item.itemName}
-                          onChange={handleItemChange(item.id, 'itemName')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'itemName', e)}
-                          placeholder="Item Name"
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* Stock */}
-                      <td style={{ padding: '12px 8px', width: '80px' }}>
-                        <input
-                          ref={el => inputRefs.current[`stock-${item.id}`] = el}
-                          type="text"
-                          style={tableInputStyle}
-                          value={item.stock || ''}
-                          onChange={handleItemChange(item.id, 'stock')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'stock', e)}
-                          placeholder="Stock"
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* MRP */}
-                      <td style={{ padding: '12px 8px', width: '80px' }}>
-                        <input
-                          ref={el => inputRefs.current[`mrp-${item.id}`] = el}
-                          type="text"
-                          style={tableInputStyle}
-                          value={item.mrp || ''}
-                          onChange={handleItemChange(item.id, 'mrp')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'mrp', e)}
-                          placeholder="MRP"
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* UOM */}
-                      <td style={{ padding: '12px 8px', width: '60px' }}>
-                        <input
-                          ref={el => inputRefs.current[`uom-${item.id}`] = el}
-                          type="text"
-                          style={tableInputStyle}
-                          value={item.uom}
-                          onChange={handleItemChange(item.id, 'uom')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'uom', e)}
-                          placeholder="UOM"
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* HSN */}
-                      <td style={{ padding: '12px 8px', width: '80px' }}>
-                        <input
-                          ref={el => inputRefs.current[`hsn-${item.id}`] = el}
-                          type="text"
-                          style={tableInputStyle}
-                          value={item.hsn || ''}
-                          onChange={handleItemChange(item.id, 'hsn')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'hsn', e)}
-                          placeholder="HSN"
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* TAX */}
-                      <td style={{ padding: '12px 8px', width: '60px' }}>
-                        <input
-                          ref={el => inputRefs.current[`tax-${item.id}`] = el}
-                          type="number"
-                          style={tableInputStyle}
-                          value={item.tax}
-                          onChange={handleItemChange(item.id, 'tax')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'tax', e)}
-                          placeholder="Tax"
-                          step="0.01"
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* SRATE */}
-                      <td style={{ padding: '12px 8px', width: '80px' }}>
-                        <input
-                          ref={el => inputRefs.current[`sRate-${item.id}`] = el}
-                          type="number"
-                          style={tableInputStyle}
-                          value={item.sRate}
-                          onChange={handleItemChange(item.id, 'sRate')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'sRate', e)}
-                          placeholder="S Rate"
-                          step="0.01"
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* RATE */}
-                      <td style={{ padding: '12px 8px', width: '80px' }}>
-                        <input
-                          ref={el => inputRefs.current[`rate-${item.id}`] = el}
-                          type="number"
-                          style={tableInputStyle}
-                          value={item.rate || ''}
-                          onChange={handleItemChange(item.id, 'rate')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'rate', e)}
-                          placeholder="Rate"
-                          step="0.01"
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* QTY */}
-                      <td style={{ padding: '12px 8px', width: '60px' }}>
-                        <input
-                          ref={el => inputRefs.current[`qty-${item.id}`] = el}
-                          type="number"
-                          style={{ ...tableInputStyle, fontWeight: 'bold' }}
-                          value={item.qty}
-                          onChange={handleItemChange(item.id, 'qty')}
-                          onKeyDown={(e) => handleKeyDown(item.id, 'qty', e)}
-                          placeholder="Qty"
-                          step="0.01"
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* AMOUNT */}
-                      <td style={{ padding: '12px 8px', width: '100px' }}>
-                        <input
-                          type="text"
-                          style={{ ...tableInputStyle, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff' }}
-                          value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                          })}
-                          placeholder="Amount"
-                          readOnly
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                          onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-                          onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        />
-                      </td>
-                      
-                      {/* ACTION - Updated with better styling */}
-                      <td style={{ padding: '12px 8px', textAlign: 'center', width: '100px' }}>
-                        <button
-                          onClick={() => confirmDelete(item.id)}
-                          style={{ 
-                            background: '#ffebee', 
-                            border: '1px solid #ffcdd2', 
-                            color: '#d32f2f', 
-                            cursor: 'pointer', 
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '13px',
-                            fontWeight: '500',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#ffcdd2';
-                            e.currentTarget.style.borderColor = '#d32f2f';
-                            e.currentTarget.style.color = '#b71c1c';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#ffebee';
-                            e.currentTarget.style.borderColor = '#ffcdd2';
-                            e.currentTarget.style.color = '#d32f2f';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                          Trash
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            {/* Add Item Button with Updated Hover Color */}
-            <div style={{ padding: '15px', textAlign: 'left', borderTop: '1px solid #eee' }}>
-              <button
-                onClick={addItemRow}
-                style={{ 
-                  backgroundColor: '#1976d2',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  transform: 'translateY(0)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#0d47a1'; // Updated to darker blue
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(13, 71, 161, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1976d2';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }}
-              >
-                <AddIcon fontSize="small" /> Add Item
-              </button>
-            </div>
+          </div>
+          
+          {/* Scrollable Table Body with Inputs (ONLY ROWS) */}
+          <div 
+            ref={tableBodyRef} 
+            style={styles.tableBodyContainer}
+            className="custom-scrollbar"
+            onScroll={handleTableBodyScroll}
+          >
+            <table style={styles.tableBody}>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.id} style={{ backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                    {/* SNo */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', whiteSpace: 'nowrap', textAlign: 'center', width: getColumnWidth('sNo') }}>{item.sNo}</td>
+                    
+                    {/* Barcode */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('barcode') }}>
+                      <input
+                        ref={el => inputRefs.current[`barcode-${item.id}`] = el}
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle, 
+                          fontWeight: '500', 
+                          textAlign: 'center',
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.barcode}
+                        onChange={handleItemChange(item.id, 'barcode')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'barcode', e)}
+                        placeholder="Barcode"
+                      />
+                    </td>
+                    
+                    {/* Item Name */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('itemName') }}>
+                      <input
+                        ref={el => inputRefs.current[`itemName-${item.id}`] = el}
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle, 
+                          textAlign: 'left',
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.itemName}
+                        onChange={handleItemChange(item.id, 'itemName')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'itemName', e)}
+                        placeholder="Item Name"
+                      />
+                    </td>
+                    
+                    {/* Stock */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('stock') }}>
+                      <input
+                        ref={el => inputRefs.current[`stock-${item.id}`] = el}
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.stock || ''}
+                        onChange={handleItemChange(item.id, 'stock')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'stock', e)}
+                        placeholder="Stock"
+                      />
+                    </td>
+                    
+                    {/* MRP */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('mrp') }}>
+                      <input
+                        ref={el => inputRefs.current[`mrp-${item.id}`] = el}
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.mrp || ''}
+                        onChange={handleItemChange(item.id, 'mrp')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'mrp', e)}
+                        placeholder="MIP"
+                      />
+                    </td>
+                    
+                    {/* UOM */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('uom') }}>
+                      <input
+                        ref={el => inputRefs.current[`uom-${item.id}`] = el}
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.uom}
+                        onChange={handleItemChange(item.id, 'uom')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'uom', e)}
+                        placeholder="UOM"
+                      />
+                    </td>
+                    
+                    {/* HSN */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('hsn') }}>
+                      <input
+                        ref={el => inputRefs.current[`hsn-${item.id}`] = el}
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.hsn || ''}
+                        onChange={handleItemChange(item.id, 'hsn')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'hsn', e)}
+                        placeholder="HSN"
+                      />
+                    </td>
+                    
+                    {/* TAX */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('tax') }}>
+                      <input
+                        ref={el => inputRefs.current[`tax-${item.id}`] = el}
+                        type="number"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.tax}
+                        onChange={handleItemChange(item.id, 'tax')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'tax', e)}
+                        placeholder="Tax"
+                        step="0.01"
+                      />
+                    </td>
+                    
+                    {/* SRATE */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('sRate') }}>
+                      <input
+                        ref={el => inputRefs.current[`sRate-${item.id}`] = el}
+                        type="number"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.sRate}
+                        onChange={handleItemChange(item.id, 'sRate')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'sRate', e)}
+                        placeholder="State"
+                        step="0.01"
+                      />
+                    </td>
+                    
+                    {/* RATE */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('rate') }}>
+                      <input
+                        ref={el => inputRefs.current[`rate-${item.id}`] = el}
+                        type="number"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.rate || ''}
+                        onChange={handleItemChange(item.id, 'rate')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'rate', e)}
+                        placeholder="Waste"
+                        step="0.01"
+                      />
+                    </td>
+                    
+                    {/* QTY */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('qty') }}>
+                      <input
+                        ref={el => inputRefs.current[`qty-${item.id}`] = el}
+                        type="number"
+                        style={{ 
+                          ...tableInputStyle, 
+                          fontWeight: 'bold',
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.qty}
+                        onChange={handleItemChange(item.id, 'qty')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'qty', e)}
+                        placeholder="Qty"
+                        step="0.01"
+                      />
+                    </td>
+                    
+                    {/* AMOUNT */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('amount') }}>
+                      <input
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle, 
+                          textAlign: 'right', 
+                          fontWeight: 'bold', 
+                          color: '#1565c0', 
+                          backgroundColor: '#f0f7ff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                        placeholder="Amount"
+                        readOnly
+                      />
+                    </td>
+                    
+                    {/* ACTION */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', width: getColumnWidth('action') }}>
+                      <button
+                        onClick={() => confirmDelete(item.id)}
+                        style={{ background: 'none', border: 'none', color: '#d32f2f', cursor: 'pointer', padding: '2px' }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = '#b71c1c'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#d32f2f'}
+                      >
+                        <DeleteIcon fontSize={isMobile ? "small" : "small"} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Add Item Button (FIXED below table rows) */}
+          <div ref={addItemButtonRef} style={styles.addItemButtonContainer}>
+            <button 
+              onClick={addItemRow} 
+              style={{
+                ...buttonStyles.btn,
+                ...buttonStyles.addBtn,
+                padding: isMobile ? '8px 16px' : '10px 25px',
+                fontSize: isMobile ? '13px' : '16px',
+                borderRadius: '6px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+            >
+              <CreateIcon /> Add Item
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Fixed Action Bar at Bottom */}
-        <div style={styles.actionBar}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%' }}>
-            {/* Left side buttons */}
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={addItemRow}
-                style={{ 
-                  ...baseButtonStyle, 
-                  backgroundColor: '#1976d2', 
-                  color: 'white', 
-                  minWidth: '100px',
-                  ':after': {
-                    content: '""',
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    width: '100%',
-                    height: '100%',
-                    background: 'linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0))',
-                    borderRadius: '6px'
-                  }
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#0d47a1'; // Updated to darker blue
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(13, 71, 161, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1976d2';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(13, 71, 161, 0.3)';
-                }}
-              >
-                <AddIcon fontSize="small" /> ADD
-              </button>
-              <button 
-                style={{ 
-                  ...baseButtonStyle, 
-                  backgroundColor: 'white', 
-                  color: '#1976d2', 
-                  border: '2px solid #1976d2', 
-                  minWidth: '100px' 
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1976d2';
-                  e.currentTarget.style.color = 'white';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(25, 118, 210, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                  e.currentTarget.style.color = '#1976d2';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(25, 118, 210, 0.2)';
-                }}
-              >
-                <EditIcon fontSize="small" /> EDIT
-              </button>
-              <button 
-                style={{ 
-                  ...baseButtonStyle, 
-                  backgroundColor: 'white', 
-                  color: '#d32f2f', 
-                  border: '2px solid #d32f2f', 
-                  minWidth: '100px' 
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#d32f2f';
-                  e.currentTarget.style.color = 'white';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(211, 47, 47, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                  e.currentTarget.style.color = '#d32f2f';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(211, 47, 47, 0.2)';
-                }}
-              >
-                <DeleteIcon fontSize="small" /> DELETE
-              </button>
-            </div>
+      {/* Fixed Action Bar at Bottom */}
+      <div ref={actionBarRef} style={styles.actionBar}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          height: '100%',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '10px' : '0',
+          width: '100%'
+        }}>
+          {/* Left side buttons */}
+          <div style={{ display: 'flex', gap: isMobile ? '5px' : '10px', justifyContent: isMobile ? 'center' : 'flex-start', width: isMobile ? '100%' : 'auto' }}>
+            <AddButton 
+              onClick={addItemRow}
+              isActive={topButtonActive === 'add'}
+              onStateChange={handleTopButtonStateChange}
+              style={getButtonStyle()}
+            />
+            <EditButton 
+              isActive={topButtonActive === 'edit'}
+              onStateChange={handleTopButtonStateChange}
+              style={getButtonStyle()}
+            />
+            <DeleteButton 
+              isActive={topButtonActive === 'delete'}
+              onStateChange={handleTopButtonStateChange}
+              style={getButtonStyle()}
+            />
+          </div>
 
-            {/* Center - Totals WITHOUT HOVER EFFECTS */}
-            <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  padding: '12px 24px', 
-                  backgroundColor: '#f0f7ff', 
-                  borderRadius: '8px',
-                  border: '2px solid #e3f2fd',
-                  minWidth: '140px'
-                }}
-              >
-                <div style={{ 
-                  fontSize: '13px', 
-                  color: '#1976d2', 
-                  marginBottom: '4px', 
-                  fontWeight: '600',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  Total Quantity
-                </div>
-                <div style={{ 
-                  ...brightTotalStyle, 
-                  color: '#1976d2'
-                }}>
-                  {totalQty.toFixed(2)}
-                </div>
+          {/* Center - Totals */}
+          <div style={{ 
+            display: 'flex', 
+            gap: isMobile ? '10px' : '30px', 
+            alignItems: 'center',
+            justifyContent: isMobile ? 'center' : 'center',
+            width: isMobile ? '100%' : 'auto'
+          }}>
+            <div 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                padding: isMobile ? '8px' : '12px 11px', 
+                borderRadius: '8px',
+                backgroundColor: '#f0f7ff',
+                border: '1px solid #e3f2fd',
+                boxShadow: '0 2px 4px rgba(33, 150, 243, 0.1)',
+                minWidth: isMobile ? '120px' : '140px'
+              }}
+            >
+              <div style={{ 
+                fontSize: isMobile ? '11px' : '13px', 
+                color: '#1976d2', 
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Total Quantity
               </div>
-              
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  padding: '12px 24px', 
-                  backgroundColor: '#f0fff4', 
-                  borderRadius: '8px',
-                  border: '2px solid #e8f5e9',
-                  minWidth: '140px'
-                }}
-              >
-                <div style={{ 
-                  fontSize: '13px', 
-                  color: '#28a745', 
-                  marginBottom: '4px', 
-                  fontWeight: '600',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  Total Amount
-                </div>
-                <div style={{ 
-                  ...brightTotalStyle, 
-                  color: '#28a745'
-                }}>
-                  ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
+              <div style={{ 
+                ...brightTotalStyle, 
+                color: '#1976d2',
+                fontSize: isMobile ? '18px' : '22px'
+              }}>
+                {totalQty.toFixed(2)}
               </div>
             </div>
-
-            {/* Right side buttons - Added Save All button */}
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={handleClear}
-                style={{ 
-                  ...baseButtonStyle, 
-                  backgroundColor: '#f8f9fa', 
-                  color: '#6c757d', 
-                  border: '2px solid #6c757d', 
-                  minWidth: '100px' 
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#6c757d';
-                  e.currentTarget.style.color = 'white';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(108, 117, 125, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f8f9fa';
-                  e.currentTarget.style.color = '#6c757d';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(108, 117, 125, 0.2)';
-                }}
-              >
-                <span style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  width: '20px', 
-                  height: '20px', 
-                  marginRight: '5px', 
-                  fontSize: '18px', 
-                  fontWeight: 'bold',
-                  transition: 'all 0.3s ease'
-                }}>×</span>
-                Clear
-              </button>
-              
-              {/* Save All Button */}
-              <button 
-                onClick={handleSaveAll}
-                style={{ 
-                  ...baseButtonStyle, 
-                  backgroundColor: '#ff9800', 
-                  color: 'white', 
-                  minWidth: '120px', 
-                  fontWeight: 'bold',
-                  border: 'none'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f57c00';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(255, 152, 0, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ff9800';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(255, 152, 0, 0.3)';
-                }}
-              >
-                <SaveIcon fontSize="small" /> Save All
-              </button>
-              
-              <button 
-                onClick={handleSave}
-                style={{ 
-                  ...baseButtonStyle, 
-                  backgroundColor: '#28a745', 
-                  color: 'white', 
-                  minWidth: '120px', 
-                  fontWeight: 'bold',
-                  border: 'none'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1e7e34';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(40, 167, 69, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#28a745';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(40, 167, 69, 0.3)';
-                }}
-              >
-                <SaveIcon fontSize="small" /> Save
-              </button>
+            
+            <div 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                padding: isMobile ? '8px' : '12px 11px', 
+                borderRadius: '8px',
+                backgroundColor: '#f0fff4',
+                border: '1px solid #e8f5e9',
+                minWidth: isMobile ? '120px' : '140px'
+              }}
+            >
+              <div style={{ 
+                fontSize: isMobile ? '11px' : '13px', 
+                color: '#28a745', 
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Total Amount
+              </div>
+              <div style={{ 
+                ...brightTotalStyle, 
+                color: '#28a745',
+                fontSize: isMobile ? '18px' : '22px'
+              }}>
+                ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
             </div>
+          </div>
+
+          {/* Right side buttons */}
+          <div style={{ 
+            display: 'flex', 
+            
+            gap: isMobile ? '5px' : '10px', 
+            justifyContent: isMobile ? 'center' : 'flex-end',
+            width: isMobile ? '100%' : 'auto'
+          }}>
+            <ClearButton 
+              onClick={handleClear}
+              isActive={bottomButtonActive === 'clear'}
+              onStateChange={handleBottomButtonStateChange}
+              style={getButtonStyle()}
+            />
+            <SaveButton 
+              onClick={handleSave}
+              isActive={bottomButtonActive === 'save'}
+              onStateChange={handleBottomButtonStateChange}
+              style={{
+                ...getButtonStyle(),
+                minWidth: isMobile ? '70px' : '120px'
+              }}
+            />
+            
           </div>
         </div>
       </div>

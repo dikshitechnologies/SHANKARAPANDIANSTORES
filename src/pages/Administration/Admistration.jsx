@@ -1327,12 +1327,12 @@ const styles = {
   tableHeaderCell: {
     padding: '14px 16px',
    
-    backgroundColor:'#2171c7b6',
+    backgroundColor:'white',
     borderBottom: '2px solid #e5e7eb',
     textAlign: 'left',
     fontSize: '14px',
     fontWeight: '700',
-    color: 'white',
+    
     position: 'sticky',
     top: '0',
     zIndex: '10',

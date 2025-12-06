@@ -18,6 +18,8 @@ export const API_ENDPOINTS = {
     delete: (fCode) => `ItemCreation/ItemCreationDelete/${fCode}`,
   },
 
+  GET_COUNTER_LIST: "CounterCreation/getCounterList",
+
   LEDGER_GROUP_CREATION_ENDPOINTS: {
     getTree: "LedgerGroupCreation/LedgerGroupCreationGet",
     getDropdown: "LedgerGroupCreation/ledgergroupCreationDropdownlist",
