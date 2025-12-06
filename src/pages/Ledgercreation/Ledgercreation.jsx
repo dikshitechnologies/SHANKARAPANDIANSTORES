@@ -120,7 +120,7 @@ export default function LedgerCreation({ onCreated }) {
   // State management
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isTreeOpen, setIsTreeOpen] = useState(true);
+  const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [actionType, setActionType] = useState('create');
@@ -128,7 +128,6 @@ export default function LedgerCreation({ onCreated }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [isActive, setIsActive] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
   const [dataList, setDataList] = useState([]);
   const [message, setMessage] = useState(null);
   const [lastNetworkError, setLastNetworkError] = useState(null);
@@ -156,6 +155,7 @@ export default function LedgerCreation({ onCreated }) {
 
   // Refs for form inputs
   const partyNameRef = useRef(null);
+  const groupNameRef = useRef(null);
   const dueDayRef = useRef(null);
   const fStreetRef = useRef(null);
   const areaRef = useRef(null);
@@ -169,6 +169,13 @@ export default function LedgerCreation({ onCreated }) {
 
   // Get permissions for this form (fallback when hook isn't available)
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
+
+  // Auto-focus Ledger Name on component mount
+  useEffect(() => {
+    if (partyNameRef.current) {
+      partyNameRef.current.focus();
+    }
+  }, []);
 
   useEffect(() => {
     loadInitial();
@@ -283,7 +290,7 @@ export default function LedgerCreation({ onCreated }) {
   const handleSelectNode = (node) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
-    setIsTreeOpen(true);
+    setIsTreeOpen(false);
   };
 
   const handleChange = (name, value) => {
@@ -496,7 +503,7 @@ export default function LedgerCreation({ onCreated }) {
 
       const dataArray = Array.isArray(responseData) ? responseData : [];
       setDataList(dataArray);
-      setModalVisible(true);
+
     } catch (error) {
       console.error('Fetch error:', error);
       setMessage({ type: "error", text: 'Failed to fetch data' });
@@ -857,9 +864,8 @@ export default function LedgerCreation({ onCreated }) {
           font-size: 14px;
           transition: all 0.2s;
         }
-        /* Limit search input width inside panels and modals */
-        .panel .search-with-clear,
-        .modal .search-with-clear {
+        /* Limit search input width inside panels */
+        .panel .search-with-clear {
           max-width: 420px;
           width: 100%;
         }
@@ -892,24 +898,24 @@ export default function LedgerCreation({ onCreated }) {
         }
 
         /* dropdown modal (glass) */
-        .modal-overlay {
+        // .modal-overlay {
           
-        }
-        .modal {
-          width:100%; 
-          max-width:720px; 
-          max-height:80vh; 
-          overflow:auto; 
-          background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
-          border-radius:12px; 
-          padding:14px;
-          border:1px solid rgba(255,255,255,0.5);
-          box-shadow: 0 18px 50px rgba(2,6,23,0.36);
-          backdrop-filter: blur(8px);
-        }
-        .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
-        .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; }
-        .dropdown-item:hover { background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); transform: translateX(6px); }
+        // }
+        // .modal {
+        //   width:100%; 
+        //   max-width:720px; 
+        //   max-height:80vh; 
+        //   overflow:auto; 
+        //   background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
+        //   border-radius:12px; 
+        //   padding:14px;
+        //   border:1px solid rgba(255,255,255,0.5);
+        //   box-shadow: 0 18px 50px rgba(2,6,23,0.36);
+        //   backdrop-filter: blur(8px);
+        // }
+        // .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
+        // .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; }
+        // .dropdown-item:hover { background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); transform: translateX(6px); }
 
         /* form grid */
         .form-grid {
@@ -1276,11 +1282,13 @@ export default function LedgerCreation({ onCreated }) {
       boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
     }}>
       <input
+        ref={groupNameRef}
         type="text"
         className="input"
         placeholder="Select group"
         value={mainGroup}
         readOnly
+        onFocus={() => setIsTreeOpen(true)}
         disabled={isSubmitting}
         aria-label="Group Name"
         style={{
@@ -1291,7 +1299,8 @@ export default function LedgerCreation({ onCreated }) {
           minWidth: "120px",
           fontSize: "14px",
           outline: "none",
-          background: "transparent"
+          background: "transparent",
+          cursor: "pointer"
         }}
       />
       <button
@@ -1508,7 +1517,7 @@ export default function LedgerCreation({ onCreated }) {
                 />
               </div>
 
-              <div className="field" style={{ gridColumn: '2 / 3', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+              <div className="field" style={{ gridColumn: '2 / 3', display: 'flex', alignItems: 'center', justifyContent: 'flex-start',marginLeft: '-105px' }}>
                 <div className="switch-container" style={{ margin: 0 }}>
                   <label className="field-label" style={{ margin: 0, marginRight: 12 }}>Active Status</label>
                   <label className="switch" style={{ marginRight: 12 }}>
@@ -1597,65 +1606,7 @@ export default function LedgerCreation({ onCreated }) {
         </div>
       </div>
 
-      {modalVisible && (
-        <div className="modal-overlay" onClick={() => setModalVisible(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0 }}>Select Ledger</h3>
-              <button
-                onClick={() => setModalVisible(false)}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}
-                aria-label="Close"
-              >
-                <Icon.Close size={20} />
-              </button>
-            </div>
-            <div className="dropdown-list">
-              {loading ? (
-                <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>
-              ) : dataList.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center' }}>No data found</div>
-              ) : (
-                dataList.map((item, index) => (
-                  <div
-                    key={index}
-                    className="dropdown-item"
-                    onClick={() => {
-                      // backend can return group name as fParent or GroupName; prefer fParent
-                      const groupValue = item.fParent || item.GroupName || item.Group || '';
-                      setFormData({
-                        partyName: item.fAcname || item.fAcName || '',
-                        // keep a copy in formData in case other code expects it
-                        groupName: groupValue,
-                        dueDay: item.fDueDays || item.fDueDay || '',
-                        dueDate: item.fDueDt || item.fDueDate || '',
-                        fStreet: item.fStreet || '',
-                        hallmark: item.fTngst || '',
-                        area: item.fArea || '',
-                        gstin: item.fCstno || item.fGst || '',
-                        city: item.fCity || '',
-                        pincode: item.fPincode || '',
-                        phone: item.fPhone || '',
-                        email: item.fMail || item.fEmail || '',
-                        Hide: item.Hide || '1',
-                        fCode: item.fCode || item.fcode || '',
-                        shortName: item.fFax || item.fShort || '',
-                      });
-                      setMainGroup(groupValue);
-                      setIsActive(item.Hide !== '0');
-                      setModalVisible(false);
-                    }}
-                  >
-                    <div style={{ fontWeight: '600' }}>{item.fAcname || item.fAcName}</div>
-                    {/* preview: try fParent then GroupName */}
-                    {/* <div style={{ fontSize: '13px', color: 'var(--muted)' }}>{(item.fParent || item.GroupName || '') + ' • ' + (item.fcode || item.fCode || '')}</div> */}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Modal overlay backdrop */}
       {isPopupOpen && (

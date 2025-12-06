@@ -120,7 +120,7 @@ const ItemCreation = ({ onCreated }) => {
   // State management
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isTreeOpen, setIsTreeOpen] = useState(true);
+  const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [actionType, setActionType] = useState('create');
@@ -128,12 +128,7 @@ const ItemCreation = ({ onCreated }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
-  const [modalVisible, setModalVisible] = useState(false);
-  const [dataList, setDataList] = useState([]);
-  const [counterModalVisible, setCounterModalVisible] = useState(false);
-  const [counterList, setCounterList] = useState([]);
-  const [filteredCounterList, setFilteredCounterList] = useState([]);
-  const [counterSearch, setCounterSearch] = useState('');
+  const [isCounterPopupOpen, setIsCounterPopupOpen] = useState(false);
   const [message, setMessage] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
 
@@ -159,6 +154,7 @@ const ItemCreation = ({ onCreated }) => {
 
   // Refs for form inputs
   const itemNameRef = useRef(null);
+  const groupNameRef = useRef(null);
   const shortNameRef = useRef(null);
   const counterRef = useRef(null);
   const prefixRef = useRef(null);
@@ -169,6 +165,13 @@ const ItemCreation = ({ onCreated }) => {
   // The `useFormPermissions` hook may not be available in this workspace yet.
   // Use a safe permissive fallback to avoid runtime ReferenceError.
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
+
+  // Auto-focus Group Name on component mount
+  useEffect(() => {
+    if (groupNameRef.current) {
+      groupNameRef.current.focus();
+    }
+  }, []);
 
   useEffect(() => {
     loadInitial();
@@ -238,7 +241,7 @@ const ItemCreation = ({ onCreated }) => {
   const handleSelectNode = (node) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
-    setIsTreeOpen(true);
+    setIsTreeOpen(false);
   };
 
   const handleChange = (name, value) => {
@@ -482,26 +485,29 @@ const ItemCreation = ({ onCreated }) => {
     }
   }, []);
 
-  const fetchCounterList = async () => {
+  // Fetch function for Counter PopupListSelector
+  const fetchCounterItems = useCallback(async (page = 1, search = '') => {
     try {
-  // Use the top-level GET_COUNTER_LIST endpoint defined in src/api/endpoints.js
-  const response = await axiosInstance.get(API_ENDPOINTS.GET_COUNTER_LIST);
+      const response = await axiosInstance.get(API_ENDPOINTS.GET_COUNTER_LIST);
       const counterData = Array.isArray(response.data) ? response.data : [];
-      setCounterList(counterData);
-      setFilteredCounterList(counterData);
-      setCounterModalVisible(true);
-    } catch (error) {
-      console.error('Error fetching counter list:', error);
-      setMessage({ type: "error", text: 'Failed to fetch counter list' });
+      
+      // Filter by search text if provided
+      const filtered = search ? counterData.filter(item => 
+        item.fbox?.toLowerCase().includes(search.toLowerCase())
+      ) : counterData;
+      
+      return filtered.map((item) => ({
+        ...item,
+        fbox: item.fbox || '',
+        fcode: item.fcode || ''
+      }));
+    } catch (err) {
+      console.error('fetchCounterItems error', err);
+      return [];
     }
-  };
+  }, []);
 
-  const filterCounterList = (searchText) => {
-    const filtered = counterList.filter(item =>
-      item.fbox?.toLowerCase().includes(searchText.toLowerCase())
-    );
-    setFilteredCounterList(filtered);
-  };
+
 
   const resetForm = (keepAction = false) => {
     setMainGroup('');
@@ -860,28 +866,7 @@ const ItemCreation = ({ onCreated }) => {
         }
 
         /* dropdown modal (glass) */
-        .modal-overlay {
-          position:fixed; 
-          inset:0; 
-          display:flex; 
-          align-items:center; 
-          justify-content:center; 
-          background: rgba(2,6,23,0.46); 
-          z-index:1200; 
-          padding:20px;
-        }
-        .modal {
-          width:100%; 
-          max-width:720px; 
-          max-height:80vh; 
-          overflow:auto; 
-          background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
-          border-radius:12px; 
-          padding:14px;
-          border:1px solid rgba(255,255,255,0.5);
-          box-shadow: 0 18px 50px rgba(2,6,23,0.36);
-          backdrop-filter: blur(8px);
-        }
+         
         .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
         .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; }
         .dropdown-item:hover { background: linear-gradient(90deg, rgba(16,163,98,0.04), rgba(16,163,98,0.01)); transform: translateX(6px); }
@@ -1115,9 +1100,11 @@ const ItemCreation = ({ onCreated }) => {
       boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
     }}>
       <input
+        ref={groupNameRef}
         className="input"
         value={mainGroup}
         onChange={(e) => setMainGroup(e.target.value)}
+        onFocus={() => setIsTreeOpen(true)}
         placeholder="Select Group Name"
         disabled={isSubmitting}
         aria-label="Group Name"
@@ -1128,7 +1115,8 @@ const ItemCreation = ({ onCreated }) => {
           padding: "10px 12px",
           minWidth: "120px",
           fontSize: "14px",
-          outline: "none"
+          outline: "none",
+          cursor: "pointer"
         }}
       />
       <button
@@ -1301,19 +1289,39 @@ const ItemCreation = ({ onCreated }) => {
               </div>
 
               {/* Counter */}
-              <div className="field">
-                <label className="field-label">Counter</label>
-                <input
-                  ref={counterRef}
-                  className="input"
-                  value={formData.counter}
-                  onChange={(e) => handleChange('counter', e.target.value)}
-                  onFocus={fetchCounterList}
-                  placeholder="Select Counter"
-                  disabled={isSubmitting}
-                  aria-label="Counter"
-                />
-              </div>
+<div className="field">
+  <label className="field-label">Counter</label>
+  <div style={{ display: "flex", gap: "8px" }}>
+    <input
+      ref={counterRef}
+      className="input"
+      value={formData.counter}
+      onChange={(e) => handleChange('counter', e.target.value)}
+      placeholder="Select Counter"
+      disabled={isSubmitting}
+      readOnly
+      aria-label="Counter"
+      style={{ flex: 1 }}
+    />
+    <button
+      type="button"
+      onClick={() => setIsCounterPopupOpen(true)}
+      disabled={isSubmitting}
+      style={{
+        padding: "10px 12px",
+        backgroundColor: "#f0f7fb",
+        border: "1px solid #307AC8",
+        borderRadius: "10px",
+        cursor: "pointer",
+        color: "#307AC8",
+        fontWeight: "600"
+      }}
+      title="Browse Counters"
+    >
+      Browse
+    </button>
+  </div>
+</div>
 
               {/* GST Checkbox */}
               <div className="field">
@@ -1498,6 +1506,13 @@ const ItemCreation = ({ onCreated }) => {
               </div>
             </div>
 
+            <div className="stat">
+  <div className="muted">Counter</div>
+  <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+    {formData.counter || ""}
+  </div>
+</div>
+
             <div className="stat tips-panel">
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -1530,7 +1545,7 @@ const ItemCreation = ({ onCreated }) => {
       </div>
 
       {/* Data List Modal for Edit/Delete */}
-      {modalVisible && (
+      {/* {modalVisible && (
         <div className="modal-overlay" onClick={() => setModalVisible(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Item selection modal">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -1619,68 +1634,25 @@ const ItemCreation = ({ onCreated }) => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
-      {/* Counter List Modal */}
-      {counterModalVisible && (
-        <div className="modal-overlay" onClick={() => setCounterModalVisible(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Counter selection modal">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 18 }}>Select Counter</h3>
-              <button
-                onClick={() => setCounterModalVisible(false)}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-                aria-label="Close"
-              >
-                <Icon.Close />
-              </button>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div className="search-container">
-                <input
-                  className="search-with-clear"
-                  placeholder="Search counters..."
-                  value={counterSearch}
-                  onChange={(e) => {
-                    setCounterSearch(e.target.value);
-                    filterCounterList(e.target.value);
-                  }}
-                  aria-label="Search counters"
-                />
-              </div>
-            </div>
-
-            <div className="dropdown-list" role="listbox" aria-label="Counter options">
-              {filteredCounterList.length === 0 ? (
-                <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No counters found</div>
-              ) : (
-                filteredCounterList.map((item, index) => (
-                  <div
-                    key={index}
-                    className="dropdown-item"
-                    onClick={() => {
-                      setFormData(prev => ({ ...prev, counter: item.fbox || '' }));
-                      setCounterModalVisible(false);
-                      setCounterSearch('');
-                    }}
-                    role="option"
-                    aria-selected={item.fbox === formData.counter}
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && (() => {
-                      setFormData(prev => ({ ...prev, counter: item.fbox || '' }));
-                      setCounterModalVisible(false);
-                      setCounterSearch('');
-                    })()}
-                  >
-                    <div style={{ fontWeight: 600, color: "#0f172a" }}>{item.fbox}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* PopupListSelector for Counter Selection */}
+      <PopupListSelector
+        open={isCounterPopupOpen}
+        onClose={() => setIsCounterPopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, counter: item.fbox || '' }));
+          setIsCounterPopupOpen(false);
+        }}
+        fetchItems={fetchCounterItems}
+        title="Select Counter"
+        displayFieldKeys={['fbox']}
+        searchFields={['fbox']}
+        headerNames={['Counter Name']}
+        columnWidths={{ fbox: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
 
       {/* PopupListSelector for Edit/Delete actions */}
       <PopupListSelector
