@@ -359,24 +359,16 @@ const PurchaseInvoice = () => {
       flexDirection: 'column',
       gap: '12px',
     },
-    formField: {
-      display: 'flex',
-      flexDirection: screenSize.isMobile ? 'column' : 'row',
-      alignItems: screenSize.isMobile ? 'flex-start' : 'center',
-      gap: screenSize.isMobile ? '4px' : '8px',
-      flex: 1,
-    },
     inlineLabel: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#333',
-      minWidth: screenSize.isMobile ? '100%' : screenSize.isTablet ? '70px' : '80px',
-      whiteSpace: screenSize.isMobile ? 'normal' : 'nowrap',
+      minWidth: screenSize.isMobile ? '70px' : '80px',
+      whiteSpace: 'nowrap',
       display: 'block',
-      flexShrink: 0,
-      marginBottom: 0,
+      marginBottom: '4px'
     },
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -389,13 +381,11 @@ const PurchaseInvoice = () => {
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease',
       outline: 'none',
-      flex: 1,
-      minWidth: screenSize.isMobile ? '100%' : '0',
+      width: '100%',
       height: screenSize.isMobile ? '36px' : '40px'
     },
     gridRow: {
-      display: 'flex',
-      flexWrap: 'wrap',
+      display: 'grid',
       gap: screenSize.isMobile ? '12px' : '16px',
       marginBottom: screenSize.isMobile ? '16px' : '20px',
     },
@@ -414,7 +404,7 @@ const PurchaseInvoice = () => {
       flex: '1 1 auto',
       display: 'flex',
       flexDirection: 'column',
-      maxHeight: screenSize.isMobile ? 'calc(100vh - 10px)' : 'none',
+      maxHeight: screenSize.isMobile ? 'calc(100vh - 100px)' : 'none',
     },
     table: {
       width: 'max-content',
@@ -782,7 +772,7 @@ const PurchaseInvoice = () => {
             <label style={styles.inlineLabel}>GST No:</label>
             <input
               type="text"
-              style={{...styles.inlineInput, flex: screenSize.isMobile ? 1 : '0 0 210px', minWidth: '120px'}}
+              style={styles.inlineInput}
               value={billDetails.gstno}
               name="gstno"
               onChange={handleInputChange}

@@ -23,11 +23,14 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f8f9fa;
   color: #333;
+  overflow: hidden;
 }
 
 /* Ensure proper scrolling and positioning */
 html, body {
   height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .app {
@@ -35,8 +38,8 @@ html, body {
 }
 
 .main-content {
-  padding-top: 10px;
-  min-height: calc(100vh - 120px);
+  min-height: 100vh;
+  overflow-y: auto;
 }
 
 /* Page container styling */
