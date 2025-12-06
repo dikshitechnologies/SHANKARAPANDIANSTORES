@@ -1461,10 +1461,10 @@ const Salesreturn = () => {
                 flexDirection: 'column', 
                 alignItems: 'center', 
                 padding: isMobile ? '8px' : '12px 11px', 
-                borderRadius: '8px',
-                backgroundColor: '#f0f7ff',
-                border: '1px solid #e3f2fd',
-                boxShadow: '0 2px 4px rgba(33, 150, 243, 0.1)',
+                
+                
+                
+                
                 minWidth: isMobile ? '120px' : '140px'
               }}
             >
@@ -1492,9 +1492,8 @@ const Salesreturn = () => {
                 flexDirection: 'column', 
                 alignItems: 'center', 
                 padding: isMobile ? '8px' : '12px 11px', 
-                borderRadius: '8px',
-                backgroundColor: '#f0fff4',
-                border: '1px solid #e8f5e9',
+                
+               
                 minWidth: isMobile ? '120px' : '140px'
               }}
             >
