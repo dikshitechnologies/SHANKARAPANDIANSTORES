@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
