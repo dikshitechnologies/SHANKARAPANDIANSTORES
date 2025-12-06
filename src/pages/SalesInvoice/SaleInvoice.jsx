@@ -1,671 +1,1372 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Add as AddIcon, 
-  Edit as EditIcon, 
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  Clear as ClearIcon
-} from '@mui/icons-material';
+import { Modal, Button } from 'antd';
+import { CloseOutlined } from '@ant-design/icons';
 
-const SalesInvoices = () => {
-  // --- STATE MANAGEMENT ---
-  
-  // 1. Header Details State
-  const [billDetails, setBillDetails] = useState({
-    billNo: '',
-    billDate: '',
-    saleMan: '',
-    mobileNo: '',
-    customerName: '',
-    type: 'Retail',
-    barcodeInput: ''
-  });
+// Add this CSS for scrollbar styling at the top of your component file
+// Or better, move this to a separate CSS file
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1976d2;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #1565c0;
+  }
+`;
 
-  // 2. Table Items State
-  const [items, setItems] = useState([
-    { id: 1, barcode: 'BAR001', name: 'Product 1', sub: '', stock: 0, mrp: 100, uom: 'KG', hsn: '', tax: 18, rate: 100, qty: 1 }
-  ]);
+// Common Button Icons
+const CreateIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
+  </svg>
+);
 
-  // 3. Totals State
-  const [netTotal, setNetTotal] = useState(0);
+const EditIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zM13.75 3.19l-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+    <path fillRule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+  </svg>
+);
 
-  // 4. Sales Details Popup State
-  const [showSalesDetails, setShowSalesDetails] = useState(false);
-  const [salesDetails, setSalesDetails] = useState({
-    items: '',
-    billDiscPct: '',
-    roundOff: '',
-    service: '',
-    scrapAmt: '',
-    upi: '',
-    cash: '',
-    qty: '',
-    billDiscAmt: '',
-    grandTotal: '',
-    delivery: '',
-    salesReturn: '',
-    card: '',
-    balance: ''
-  });
+const DeleteIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995zm-2.487 1a.5.5 0 0 1 .528.47l.8 10a1 1 0 0 0 .997.93h6.23a1 1 0 0 0 .997-.93l.8-10a.5.5 0 0 1 .528-.47H3.513z"/>
+    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5"/>
+  </svg>
+);
 
-  // --- REFS FOR ENTER KEY NAVIGATION ---
-  const billNoRef = useRef(null);
-  const dateRef = useRef(null);
-  const saleManRef = useRef(null);
-  const mobileRef = useRef(null);
-  const customerRef = useRef(null);
-  const barcodeRef = useRef(null);
-  const addBtnRef = useRef(null);
+const ClearIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+  </svg>
+);
 
-  // --- EFFECTS ---
+const SaveIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M8 0a2 2 0 0 0-2 2v2H2v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V4L8 0zM7 2a1 1 0 0 1 1-1h4.5L14 4H8V2z"/>
+    <path d="M5 8.5a.5.5 0 0 1 .5-.5H10a.5.5 0 0 1 0 1H5.5a.5.5 0 0 1-.5-.5z"/>
+  </svg>
+);
 
-  // Calculate Totals whenever items change
+const PrintIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
+    <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+  </svg>
+);
+
+// Common Button Components
+const AddButton = ({ onClick, disabled, isActive, buttonType = 'add', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'add' && isActive ? buttonStyles.addBtn : {}),
+      ...(buttonType === 'edit' && isActive ? buttonStyles.editBtn : {}),
+      ...(buttonType === 'delete' && isActive ? buttonStyles.deleteBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style 
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }} 
+    disabled={disabled}
+  >
+    <CreateIcon /> Add
+  </button>
+);
+
+const EditButton = ({ onClick, disabled, isActive, buttonType = 'edit', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'add' && isActive ? buttonStyles.addBtn : {}),
+      ...(buttonType === 'edit' && isActive ? buttonStyles.editBtn : {}),
+      ...(buttonType === 'delete' && isActive ? buttonStyles.deleteBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <EditIcon /> Edit
+  </button>
+);
+
+const DeleteButton = ({ onClick, disabled, isActive, buttonType = 'delete', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'add' && isActive ? buttonStyles.addBtn : {}),
+      ...(buttonType === 'edit' && isActive ? buttonStyles.editBtn : {}),
+      ...(buttonType === 'delete' && isActive ? buttonStyles.deleteBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <DeleteIcon /> Delete
+  </button>
+);
+
+const ClearButton = ({ onClick, disabled, isActive, buttonType = 'clear', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'clear' && isActive ? buttonStyles.clearBtn : {}),
+      ...(buttonType === 'save' && isActive ? buttonStyles.saveBtn : {}),
+      ...(buttonType === 'print' && isActive ? buttonStyles.printBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <ClearIcon /> Clear
+  </button>
+);
+
+const SaveButton = ({ onClick, disabled, isActive, buttonType = 'save', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'clear' && isActive ? buttonStyles.clearBtn : {}),
+      ...(buttonType === 'save' && isActive ? buttonStyles.saveBtn : {}),
+      ...(buttonType === 'print' && isActive ? buttonStyles.printBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <SaveIcon /> Save
+  </button>
+);
+
+const PrintButton = ({ onClick, disabled, isActive, buttonType = 'print', style, onStateChange }) => (
+  <button 
+    style={{ 
+      ...buttonStyles.btn, 
+      ...(isActive ? buttonStyles.activeBtn : buttonStyles.inactiveBtn),
+      ...(buttonType === 'clear' && isActive ? buttonStyles.clearBtn : {}),
+      ...(buttonType === 'save' && isActive ? buttonStyles.saveBtn : {}),
+      ...(buttonType === 'print' && isActive ? buttonStyles.printBtn : {}),
+      ...(disabled ? buttonStyles.disabled : {}),
+      ...style
+    }} 
+    onClick={(e) => {
+      if (onStateChange) onStateChange(buttonType);
+      if (onClick) onClick(e);
+    }}
+    disabled={disabled}
+  >
+    <PrintIcon /> Print
+  </button>
+);
+
+const buttonStyles = {
+  btn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '0.6rem 1.2rem',
+    border: 'none',
+    cursor: 'pointer',
+    borderRadius: '6px',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    margin: '2px'
+  },
+  inactiveBtn: {
+    background: '#e9ecef',
+    color: '#6c757d',
+    border: '1px solid #dee2e6'
+  },
+  activeBtn: {
+    color: 'white',
+    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+    transform: 'translateY(-2px)'
+  },
+  addBtn: {
+    background: '#02a85a',
+  },
+  editBtn: {
+    background: '#fbc02d',
+  },
+  deleteBtn: {
+    background: '#e53935',
+  },
+  clearBtn: {
+    background: '#e53935',
+  },
+  saveBtn: {
+    background: '#1976d2',
+  },
+  printBtn: {
+    background: '#6f42c1',
+  },
+  disabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+    pointerEvents: 'none'
+  }
+};
+
+/**
+ * Sale Invoice Form Component with Fixed Layout
+ */
+const SaleInvoice = () => {
+  // Add scrollbar styles to document head
   useEffect(() => {
-    const total = items.reduce((acc, item) => acc + (item.rate * item.qty), 0);
-    setNetTotal(total);
-  }, [items]);
-
-  // --- HANDLERS ---
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setBillDetails(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSalesDetailsChange = (e) => {
-    const { name, value } = e.target;
-    setSalesDetails(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSaveSalesDetails = () => {
-    console.log('Sales Details:', salesDetails);
-    // Optionally merge into billDetails or send to API
-    setShowSalesDetails(false);
-    alert('Sales details saved');
-  };
-
-  // Handle Enter Key Navigation
-  const handleKeyDown = (e, nextRef) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (nextRef && nextRef.current) {
-        nextRef.current.focus();
-      }
-    }
-  };
-
-  const handleAddItem = () => {
-    if (!billDetails.barcodeInput) return alert("Please enter barcode");
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = scrollbarStyles;
+    document.head.appendChild(styleElement);
     
-    const newItem = {
-      id: items.length + 1,
-      barcode: billDetails.barcodeInput,
-      name: 'Product Item',
-      sub: '',
-      stock: 0,
-      mrp: 0,
-      uom: 'KG',
-      hsn: '',
-      tax: 18,
-      rate: 0,
-      qty: 1,
+    return () => {
+      document.head.removeChild(styleElement);
     };
-    
-    setItems([...items, newItem]);
-    setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
-    barcodeRef.current.focus();
-  };
+  }, []);
 
-  const handleAddRow = () => {
-    const newRow = {
-      id: items.length + 1,
-      barcode: '',
-      name: '',
-      sub: '',
-      stock: 0,
-      mrp: 0,
-      uom: '',
-      hsn: '',
-      tax: 0,
-      rate: 0,
-      qty: 1,
-    };
-    setItems([...items, newRow]);
-  };
+  // Initial state for form fields
+  const [formData, setFormData] = useState({
+    salesman: '',
+    type: 'Retail',
+    billNo: 'SE00001AA',
+    billDate: new Date().toISOString().substring(0, 10),
+    mobileNo: '',
+    custName: '',
+    barcode: '',
+    qty: '',
+    items: ''
+  });
 
-  const handleItemChange = (id, field, value) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        // Recalculate amount if qty or rate changes
-        if (field === 'qty' || field === 'rate') {
-          const qty = parseFloat(updatedItem.qty || 0);
-          const rate = parseFloat(updatedItem.rate || 0);
-        }
-        return updatedItem;
-      }
-      return item;
-    }));
-  };
+  // State for items table - Start with 1 empty row
+  const [items, setItems] = useState([{
+    id: 1,
+    sNo: 1,
+    barcode: '',
+    itemName: '',
+    stock: '',
+    mrp: '',
+    uom: '',
+    hsn: '',
+    tax: '',
+    state: '',
+    qty: '',
+    amount: '0.00'
+  }]);
 
-  const handleDeleteRow = (id) => {
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
-    }
-  };
+  // State for button groups
+  const [topButtonActive, setTopButtonActive] = useState('add'); // 'add', 'edit', 'delete'
+  const [bottomButtonActive, setBottomButtonActive] = useState('save'); // 'clear', 'save', 'print'
 
-  const handleClear = () => {
-    setItems([
-      { id: 1, barcode: '', name: '', sub: '', stock: 0, mrp: 0, uom: '', hsn: '', tax: 0, rate: 0, qty: 1 }
-    ]);
-    setBillDetails({
-      billNo: '',
-      billDate: '',
-      saleMan: '',
-      mobileNo: '',
-      customerName: '',
-      type: 'Retail',
-      barcodeInput: ''
-    });
-    alert('Form cleared!');
-  };
+  // State for responsive design
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const handleSave = () => {
-    console.log('Bill Details:', billDetails);
-    console.log('Items:', items);
-    alert('Sales invoice saved successfully!');
+  // State for delete confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  // State for heights (for dynamic calculations)
+  const [formHeaderHeight, setFormHeaderHeight] = useState(0);
+  const [tableHeaderHeight, setTableHeaderHeight] = useState(0);
+  const [actionBarHeight, setActionBarHeight] = useState(0);
+  const [addItemButtonHeight, setAddItemButtonHeight] = useState(0);
+
+  // Refs for input fields and table container
+  const inputRefs = useRef({});
+  const formHeaderRef = useRef(null);
+  const tableHeaderRef = useRef(null);
+  const actionBarRef = useRef(null);
+  const addItemButtonRef = useRef(null);
+  const tableBodyRef = useRef(null);
+  const tableHeaderInnerRef = useRef(null);
+
+  // Calculate amount based on state and qty
+  const calculateAmount = (state, qty) => {
+    const stateNum = parseFloat(state || 0);
+    const qtyNum = parseFloat(qty || 0);
+    return (stateNum * qtyNum).toFixed(2);
   };
 
   // Calculate totals
   const totalQty = items.reduce((sum, item) => sum + parseFloat(item.qty || 0), 0);
-  const totalAmount = items.reduce((sum, item) => sum + (parseFloat(item.rate || 0) * parseFloat(item.qty || 0)), 0);
+  const totalAmount = items.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
-  // --- STYLES (Inline CSS) ---
-  // Shared input style to match bill header inputs
-  const inputStyle = {
-    padding: '8px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '14px',
-    marginTop: '6px',
-    width: '100%',
-    boxSizing: 'border-box',
-    background: 'white'
+  // Handle top button state change
+  const handleTopButtonStateChange = (buttonType) => {
+    setTopButtonActive(buttonType);
   };
 
-  return (
-    <div style={{ 
+  // Handle bottom button state change
+  const handleBottomButtonStateChange = (buttonType) => {
+    setBottomButtonActive(buttonType);
+  };
+
+  // Handle responsive window resize
+  const handleResize = () => {
+    const width = window.innerWidth;
+    setWindowWidth(width);
+    setIsMobile(width < 768);
+    setIsTablet(width >= 768 && width < 1024);
+    
+    // Calculate heights after resize
+    calculateHeights();
+  };
+
+  // Calculate all heights
+  const calculateHeights = () => {
+    if (formHeaderRef.current) {
+      setFormHeaderHeight(formHeaderRef.current.offsetHeight);
+    }
+    if (tableHeaderRef.current) {
+      setTableHeaderHeight(tableHeaderRef.current.offsetHeight);
+    }
+    if (actionBarRef.current) {
+      setActionBarHeight(actionBarRef.current.offsetHeight);
+    }
+    if (addItemButtonRef.current) {
+      setAddItemButtonHeight(addItemButtonRef.current.offsetHeight);
+    }
+  };
+
+  // Handle window resize and calculate heights
+  useEffect(() => {
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    
+    // Calculate initial heights
+    setTimeout(() => {
+      calculateHeights();
+    }, 100);
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Update heights when mobile state changes
+  useEffect(() => {
+    setTimeout(() => {
+      calculateHeights();
+    }, 100);
+  }, [isMobile, isTablet]);
+
+  // Focus on first barcode input on initial load
+  useEffect(() => {
+    if (inputRefs.current['barcode-1']) {
+      setTimeout(() => inputRefs.current['barcode-1'].focus(), 100);
+    }
+  }, []);
+
+  // Handle horizontal scroll synchronization
+  const handleTableBodyScroll = (e) => {
+    if (tableHeaderInnerRef.current) {
+      tableHeaderInnerRef.current.scrollLeft = e.target.scrollLeft;
+    }
+  };
+
+  // Handle form field changes
+  const handleFormChange = (field) => (event) => {
+    setFormData({
+      ...formData,
+      [field]: event.target.value
+    });
+  };
+
+  // Handle item field changes
+  const handleItemChange = (id, field) => (event) => {
+    const value = event.target.value;
+    const updatedItems = items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        
+        if (field === 'state' || field === 'qty') {
+          const state = field === 'state' ? value : updatedItem.state;
+          const qty = field === 'qty' ? value : updatedItem.qty;
+          updatedItem.amount = calculateAmount(state, qty);
+        }
+        
+        return updatedItem;
+      }
+      return item;
+    });
+    setItems(updatedItems);
+  };
+
+  // Add new empty item row
+  const addItemRow = () => {
+    const newId = items.length > 0 ? Math.max(...items.map(item => item.id)) + 1 : 1;
+    const newSNo = items.length + 1;
+    
+    const newItem = {
+      id: newId,
+      sNo: newSNo,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      state: '',
+      qty: '',
+      amount: '0.00'
+    };
+    
+    setItems([...items, newItem]);
+    
+    // Focus on the new row's barcode input
+    setTimeout(() => {
+      if (inputRefs.current[`barcode-${newId}`]) {
+        inputRefs.current[`barcode-${newId}`].focus();
+      }
+    }, 50);
+  };
+
+  // Handle delete confirmation
+  const confirmDelete = (id) => {
+    setItemToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  // Handle actual delete after confirmation
+  const handleDeleteConfirm = () => {
+    if (itemToDelete) {
+      deleteItemRow(itemToDelete);
+    }
+    setShowDeleteConfirm(false);
+    setItemToDelete(null);
+  };
+
+  // Handle cancel delete
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setItemToDelete(null);
+  };
+
+  // Delete item row
+  const deleteItemRow = (id) => {
+    if (items.length <= 1) {
+      // Don't delete the last row, just clear it
+      const clearedItem = {
+        id: 1,
+        sNo: 1,
+        barcode: '',
+        itemName: '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        state: '',
+        qty: '',
+        amount: '0.00'
+      };
+      setItems([clearedItem]);
+      
+      setTimeout(() => {
+        if (inputRefs.current['barcode-1']) {
+          inputRefs.current['barcode-1'].focus();
+        }
+      }, 50);
+    } else {
+      const filteredItems = items.filter(item => item.id !== id);
+      const updatedItems = filteredItems.map((item, index) => ({
+        ...item,
+        sNo: index + 1
+      }));
+      setItems(updatedItems);
+    }
+  };
+
+  // Handle Save action
+  const handleSave = () => {
+    alert(`Sale Invoice data saved successfully!\n\nTotal Quantity: ${totalQty}\nTotal Amount: ₹${totalAmount.toFixed(2)}`);
+  };
+
+  // Handle Print action
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Handle Clear action
+  const handleClear = () => {
+    setFormData({
+      salesman: '',
+      type: 'Retail',
+      billNo: 'SE00001AA',
+      billDate: new Date().toISOString().substring(0, 10),
+      mobileNo: '',
+      custName: '',
+      barcode: '',
+      qty: '',
+      items: ''
+    });
+    
+    // Reset to 1 empty row
+    const clearedItem = {
+      id: 1,
+      sNo: 1,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      state: '',
+      qty: '',
+      amount: '0.00'
+    };
+    
+    setItems([clearedItem]);
+    
+    setTimeout(() => {
+      if (inputRefs.current['barcode-1']) {
+        inputRefs.current['barcode-1'].focus();
+      }
+    }, 100);
+  };
+
+  // Handle Enter key navigation for form fields
+  const handleFormKeyDown = (field, event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      
+      const formFields = ['billNo', 'billDate', 'mobileNo', 'type', 'salesman', 'custName', 'barcode'];
+      const currentIndex = formFields.indexOf(field);
+      
+      if (currentIndex < formFields.length - 1) {
+        // Focus on next form field
+        const nextField = formFields[currentIndex + 1];
+        const nextInput = document.querySelector(`input[name="${nextField}"], select[name="${nextField}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          if (nextInput.tagName === 'INPUT') {
+            nextInput.select();
+          }
+        }
+      } else {
+        // Move to table's first input (barcode)
+        if (inputRefs.current['barcode-1']) {
+          inputRefs.current['barcode-1'].focus();
+          inputRefs.current['barcode-1'].select();
+        }
+      }
+    }
+  };
+
+  // Handle Enter key navigation for table items
+  const handleKeyDown = (id, field, event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      
+      // Updated fields to match the new column structure (removed waste)
+      const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'state', 'qty'];
+      const currentIndex = fields.indexOf(field);
+      
+      if (currentIndex < fields.length - 1) {
+        const nextField = fields[currentIndex + 1];
+        const nextRef = inputRefs.current[`${nextField}-${id}`];
+        if (nextRef) {
+          nextRef.focus();
+          nextRef.select();
+        }
+      } else {
+        const currentRowIndex = items.findIndex(item => item.id === id);
+        if (currentRowIndex < items.length - 1) {
+          const nextRowId = items[currentRowIndex + 1].id;
+          const nextRef = inputRefs.current[`barcode-${nextRowId}`];
+          if (nextRef) {
+            nextRef.focus();
+            nextRef.select();
+          }
+        } else {
+          addItemRow();
+        }
+      }
+    }
+  };
+
+  // Calculate table body height for scrolling
+  const getTableBodyHeight = () => {
+    const viewportHeight = window.innerHeight;
+    const mainHeaderHeight = 60; // Fixed main header
+    
+    // Calculate available height for table body
+    if (isMobile) {
+      return `calc(${viewportHeight}px - ${mainHeaderHeight}px - ${formHeaderHeight}px - ${tableHeaderHeight}px - ${addItemButtonHeight}px - ${actionBarHeight}px - 30px)`;
+    } else if (isTablet) {
+      return `calc(${viewportHeight}px - ${mainHeaderHeight}px - ${formHeaderHeight}px - ${tableHeaderHeight}px - ${addItemButtonHeight}px - ${actionBarHeight}px - 25px)`;
+    }
+    return `calc(${viewportHeight}px - ${mainHeaderHeight}px - ${formHeaderHeight}px - ${tableHeaderHeight}px - ${addItemButtonHeight}px - ${actionBarHeight}px - 20px)`;
+  };
+
+  // Style objects
+  const baseButtonStyle = {
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '14px',
+    justifyContent: 'center',
+    whiteSpace: 'nowrap',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    fontWeight: '500',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    transform: 'translateY(0)',
+    position: 'relative',
+    overflow: 'hidden'
+  };
+
+  // Updated tableInputStyle
+  const tableInputStyle = {
+    width: '100%', 
+    padding: '8px 4px', 
+    border: 'none',
+    fontSize: '14px', 
+    background: 'transparent',
+    textAlign: 'center',
+    outline: 'none',
+    boxSizing: 'border-box'
+  };
+
+  // Table cell border style
+  const tableCellBorderStyle = {
+    border: '1px solid #e0e0e0'
+  };
+
+  const brightTotalStyle = {
+    fontWeight: 'bold',
+    fontSize: '22px',
+    textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+    letterSpacing: '0.5px',
+    transition: 'all 0.3s ease'
+  };
+
+  // Popup styles (matching PopupListSelector)
+  const popupStyles = {
+    container: {
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: '70vh'
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '16px 24px',
+      borderBottom: '1px solid #f0f0f0'
+    },
+    headerTitle: {
+      fontSize: '16px',
+      fontWeight: 500
+    },
+    closeBtn: {
+      border: 'none',
+      background: 'transparent',
+      cursor: 'pointer',
+      padding: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    content: {
+      padding: '24px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '24px'
+    },
+    message: {
+      fontSize: '14px',
+      color: '#333',
+      textAlign: 'center'
+    },
+    buttons: {
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '12px',
+      marginTop: '8px'
+    }
+  };
+
+  // Responsive styles - SINGLE SCROLL LAYOUT
+  const styles = {
+    container: {
       backgroundColor: '#f5f5f5',
-      minHeight: '100vh',
-      padding: '4px',
-    }}>
-      <div style={{ 
-        backgroundColor: '#ffffff',
-        borderRadius: '20px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        padding: '12px 8px'
-      }}>
-        {/* Form Section - Top Row */}
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '16px',
-          marginBottom: '16px',
-          overflow: 'hidden'
-        }}>
-          {/* Bill No */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '90px' }}>
-              Bill No:
-            </label>
-            <input
-              type="text"
-              style={{
-                flex: 1,
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                minWidth: '0',
-              }}
-              value={billDetails.billNo}
-              onChange={handleInputChange}
-              name="billNo"
-              ref={billNoRef}
-              onKeyDown={(e) => handleKeyDown(e, dateRef)}
-              placeholder="Bill No"
+      height: '100vh',
+      padding: '0',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      position: 'relative'
+    },
+    mainContent: {
+      marginTop: '60px',
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    },
+    // Form Header - Fixed at top
+    formHeader: {
+      position: 'fixed',
+      top: '60px',
+      left: 0,
+      right: 0,
+      backgroundColor: 'white',
+      zIndex: 500,
+      boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+      padding: isMobile ? '10px 15px' : '15px 25px',
+      borderBottom: '3px solid #ddd',
+    },
+    formGrid: {
+      display: 'grid',
+      gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+      gap: isMobile ? '8px' : isTablet ? '10px' : '15px 20px',
+      alignItems: 'center'
+    },
+    formField: {
+      display: 'flex',
+      flexDirection: isMobile ? 'column' : 'row',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      gap: isMobile ? '4px' : '8px'
+    },
+    formLabel: {
+      fontWeight: '600',
+      fontSize: isMobile ? '12px' : '17px',
+      whiteSpace: 'nowrap',
+      minWidth: isMobile ? 'auto' : '85px',
+      color: '#333',
+      textAlign: isMobile ? 'left' : 'right',
+      width: isMobile ? '100%' : 'auto'
+    },
+    formInput: {
+      flex: 1,
+      padding: '8px 10px',
+      border: "1px solid #ddd",
+      borderRadius: '4px',
+      fontSize: isMobile ? '12px' : '14px',
+      outline: 'none',
+      minHeight: '35px',
+      boxSizing: 'border-box',
+      width: '100%',
+      maxWidth: '100%'
+    },
+    formSelect: {
+      flex: 1,
+      padding: '8px 10px',
+      border: "1px solid #ddd",
+      borderRadius: '4px',
+      fontSize: isMobile ? '12px' : '14px',
+      outline: 'none',
+      minHeight: '35px',
+      boxSizing: 'border-box',
+      width: '100%',
+      maxWidth: '100%',
+      background: 'white'
+    },
+    // Main table container - SINGLE SCROLL (Fixed Header, Scrollable Body)
+    tableContainerWrapper: {
+      position: "fixed",
+      top: formHeaderHeight + 65,
+      left: isMobile ? 10 : 20,
+      right: isMobile ? 10 : 20,
+      bottom: actionBarHeight + 10,
+      backgroundColor: "#fff",
+      display: "flex",
+      flexDirection: "column",
+      border: "1px solid #ddd",
+      borderRadius: "10px 10px 0 0",
+      overflow: "hidden",
+    },
+    // Table header - Fixed with synchronized horizontal scroll
+    tableHeaderContainer: {
+      backgroundColor: '#1976d2af',
+      borderRadius: '12px 12px 0 0',
+      width: '100%',
+      overflow: 'hidden',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      flexShrink: 0
+    },
+    tableHeaderInner: {
+      width: '100%',
+      overflowX: 'auto',
+      overflowY: 'hidden',
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+    },
+    tableHeaderTable: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize: isMobile ? '11px' : '14px',
+      tableLayout: 'fixed',
+      minWidth: isMobile ? '1100px' : 'auto'
+    },
+    // Table body container - Scrollable (ONLY ROWS) with smooth scrolling
+    tableBodyContainer: {
+      flex: 1,
+      overflowY: 'auto',
+      overflowX: 'auto',
+      height: getTableBodyHeight(),
+      backgroundColor: '#ffffff',
+      borderLeft: '1px solid #ddd',
+      borderRight: '1px solid #ddd',
+      WebkitOverflowScrolling: 'touch',
+      scrollBehavior: 'smooth',
+      msOverflowStyle: '-ms-autohiding-scrollbar',
+      scrollbarWidth: 'thin',
+      scrollbarColor: '#1976d2 #f1f1f1',
+    },
+    tableBody: {
+      minWidth: isMobile ? '1100px' : '100%',
+      borderCollapse: 'collapse',
+      fontSize: isMobile ? '11px' : '14px',
+      tableLayout: 'fixed',
+      width: '100%'
+    },
+    // Add Item Button Container (FIXED below table rows)
+    addItemButtonContainer: {
+      padding: isMobile ? '12px 20px' : '15px 25px',
+      textAlign: 'left',
+      backgroundColor: '#ffffff',
+      borderLeft: '1px solid #ddd',
+      borderRight: '1px solid #ddd',
+      borderBottom: '1px solid #ddd',
+      borderTop: '2px solid #f0f0f0',
+      flexShrink: 0
+    },
+    // Action Bar - Fixed at bottom
+    actionBar: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: 'white',
+      padding: isMobile ? '8px 10px' : '12px 20px',
+      borderTop: '2px solid #dee2e6',
+      boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+      zIndex: 500,
+      height: isMobile ? 'auto' : '70px',
+      display: 'flex',
+      flexDirection: isMobile ? 'column' : 'row'
+    }
+  };
+
+  // Responsive column widths for table - UPDATED to match image structure (without Waste column)
+  const getColumnWidth = (column) => {
+    if (isMobile) {
+      const mobileWidths = {
+        sNo: '35px',
+        barcode: '80px',
+        itemName: '100px',
+        stock: '50px',
+        mrp: '50px',
+        uom: '40px',
+        hsn: '50px',
+        tax: '50px',
+        state: '50px',
+        qty: '40px',
+        amount: '70px',
+        action: '40px'
+      };
+      return mobileWidths[column] || 'auto';
+    } else if (isTablet) {
+      const tabletWidths = {
+        sNo: '45px',
+        barcode: '95px',
+        itemName: '150px',
+        stock: '65px',
+        mrp: '65px',
+        uom: '55px',
+        hsn: '65px',
+        tax: '65px',
+        state: '65px',
+        qty: '55px',
+        amount: '85px',
+        action: '55px'
+      };
+      return tabletWidths[column] || 'auto';
+    }
+    // Desktop widths - MATCHING THE IMAGE STRUCTURE (without Waste)
+    const desktopWidths = {
+      sNo: '50px',
+      barcode: '100px',
+      itemName: '180px',
+      stock: '70px',
+      mrp: '70px',
+      uom: '60px',
+      hsn: '70px',
+      tax: '70px',
+      state: '70px',
+      qty: '60px',
+      amount: '90px',
+      action: '60px'
+    };
+    return desktopWidths[column] || 'auto';
+  };
+
+  // Button styles for mobile
+  const getButtonStyle = () => ({
+    minWidth: isMobile ? '70px' : '100px',
+    padding: isMobile ? '6px 10px' : '8px 16px',
+    fontSize: isMobile ? '12px' : '14px',
+    borderRadius: '50px'
+  });
+
+  return (
+    <div style={styles.container}>
+      {/* Delete Confirmation Modal - Updated to match PopupListSelector style */}
+      <Modal
+        open={showDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        footer={null}
+        width="auto"
+        style={{ maxWidth: '500px', top: '20%' }}
+        closeIcon={null}
+      >
+        <div style={popupStyles.container}>
+          {/* Header */}
+          <div style={popupStyles.header}>
+            <div style={popupStyles.headerTitle}>Confirm Delete</div>
+            <Button 
+              type="text" 
+              icon={<CloseOutlined />} 
+              onClick={handleDeleteCancel} 
+              style={popupStyles.closeBtn} 
             />
           </div>
-          
-          {/* Bill Date */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '120px' }}>
-              Bill Date:
-            </label>
-            <input
-              type="date"
-              style={{
-                flex: 1,
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                minWidth: '0'
-              }}
-              value={billDetails.billDate}
-              onChange={handleInputChange}
-              name="billDate"
-              ref={dateRef}
-              onKeyDown={(e) => handleKeyDown(e, saleManRef)}
-            />
-          </div>
-          
-          {/* Mobile No */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '90px' }}>
-              Mobile No:
-            </label>
-            <input
-              type="text"
-              style={{
-                flex: 1,
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                minWidth: '0',
-              }}
-              value={billDetails.mobileNo}
-              onChange={handleInputChange}
-              name="mobileNo"
-              ref={mobileRef}
-              onKeyDown={(e) => handleKeyDown(e, customerRef)}
-              placeholder="Mobile No"
-            />
-          </div>
-          
-          {/* Type */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '90px' }}>
-              Type:
-            </label>
-            <select
-              style={{
-                flex: 1,
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                minWidth: '0'
-              }}
-              value={billDetails.type}
-              onChange={(e) => setBillDetails({...billDetails, type: e.target.value})}
-            >
-              <option>Retail</option>
-              <option>Wholesale</option>
-            </select>
-          </div>
-        </div>
-        {/* Sales Details Modal */}
-        {showSalesDetails && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(0,0,0,0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999
-            }}
-            onClick={(e) => { if (e.target === e.currentTarget) setShowSalesDetails(false); }}
-          >
-            <div style={{ width: 720, maxWidth: '95%', background: '#fff', borderRadius: 8, padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <h3 style={{ margin: 0 }}>Sales Details</h3>
-                <button onClick={() => setShowSalesDetails(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>✕</button>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Item(s) :
-                  <input name="items" value={salesDetails.items} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Bill Disc (%) :
-                  <input name="billDiscPct" value={salesDetails.billDiscPct} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Round Off :
-                  <input name="roundOff" value={salesDetails.roundOff} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Service :
-                  <input name="service" value={salesDetails.service} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Scrap Amt :
-                  <input name="scrapAmt" value={salesDetails.scrapAmt} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  UPI :
-                  <input name="upi" value={salesDetails.upi} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Cash :
-                  <input name="cash" value={salesDetails.cash} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Qty (s) :
-                  <input name="qty" value={salesDetails.qty} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Bill Disc Amt :
-                  <input name="billDiscAmt" value={salesDetails.billDiscAmt} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Grand Total :
-                  <input name="grandTotal" value={salesDetails.grandTotal} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Delivery :
-                  <input name="delivery" value={salesDetails.delivery} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Sales Return :
-                  <input name="salesReturn" value={salesDetails.salesReturn} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Card :
-                  <input name="card" value={salesDetails.card} onChange={handleSalesDetailsChange} style={inputStyle} />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column' }}>
-                  Balance :
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                    <input name="balance" value={salesDetails.balance} onChange={handleSalesDetailsChange} style={{ ...inputStyle, flex: 1 }} />
-                    <span>.00</span>
-                  </div>
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-                <button onClick={() => setShowSalesDetails(false)} style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid #ccc', background: 'transparent' }}>Cancel</button>
-                <button onClick={handleSaveSalesDetails} style={{ padding: '6px 12px', borderRadius: 4, border: 'none', background: '#1976d2', color: '#fff' }}>Save</button>
-              </div>
+          {/* Content */}
+          <div style={popupStyles.content}>
+            <div style={popupStyles.message}>
+              Are you sure you want to delete this item?
+            </div>
+            
+            <div style={popupStyles.buttons}>
+              <Button 
+                onClick={handleDeleteCancel}
+                style={{ 
+                  minWidth: '80px',
+                  padding: '8px 16px'
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="primary" 
+                danger
+                onClick={handleDeleteConfirm}
+                style={{ 
+                  minWidth: '80px',
+                  padding: '8px 16px'
+                }}
+              >
+                Delete
+              </Button>
             </div>
           </div>
-        )}
+        </div>
+      </Modal>
 
-        {/* Form Section - Bottom Row */}
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '16px',
-          marginBottom: '20px',
-          overflow: 'hidden'
-        }}>
-          {/* Sale Man */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '90px' }}>
-              Sale Man:
-            </label>
-            <input
-              type="text"
-              style={{
-                flex: 1,
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                minWidth: '0'
-              }}
-              value={billDetails.saleMan}
-              onChange={handleInputChange}
-              name="saleMan"
-              ref={saleManRef}
-              onKeyDown={(e) => handleKeyDown(e, mobileRef)}
-              placeholder="Sale Man"
-            />
-          </div>
-          
-          {/* Customer Name */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: '500', minWidth: '90px' }}>
-              Customer Name:
-            </label>
-            <input
-              type="text"
-              style={{
-                flex: 1,
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                minWidth: '0'
-              }}
-              value={billDetails.customerName}
-              onChange={handleInputChange}
-              name="customerName"
-              ref={customerRef}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-              placeholder="Customer Name"
-            />
-          </div>
+      {/* Main Content Area */}
+      <div style={styles.mainContent}>
+        {/* Fixed Form Header */}
+        <div ref={formHeaderRef} style={styles.formHeader}>
+          <div style={styles.formGrid}>
+            {/* Bill No Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Bill No:</label>
+              <input
+                name="billNo"
+                type="text"
+                style={styles.formInput}
+                value={formData.billNo}
+                onChange={handleFormChange('billNo')}
+                onKeyDown={(e) => handleFormKeyDown('billNo', e)}
+                placeholder="Bill No"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
 
-          {/* Barcode/SKU - Spans 2 columns */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', gridColumn: 'span 2' }}>
-            <label style={{ fontWeight: '500', minWidth: '90px' }}>
-              Barcode:
-            </label>
-            <input
-              type="text"
-              style={{
-                flex: 1,
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-                minWidth: '0'
-              }}
-              value={billDetails.barcodeInput}
-              onChange={handleInputChange}
-              name="barcodeInput"
-              ref={barcodeRef}
-              onKeyDown={(e) => {
-                if(e.key === 'Enter') handleAddItem();
-              }}
-              placeholder="Enter Barcode"
-            />
+            {/* Bill Date Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Bill Date:</label>
+              <input
+                name="billDate"
+                type="date"
+                style={styles.formInput}
+                value={formData.billDate}
+                onChange={handleFormChange('billDate')}
+                onKeyDown={(e) => handleFormKeyDown('billDate', e)}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
+
+            {/* Mobile No Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Mobile No:</label>
+              <input
+                name="mobileNo"
+                type="text"
+                style={styles.formInput}
+                value={formData.mobileNo}
+                onChange={handleFormChange('mobileNo')}
+                onKeyDown={(e) => handleFormKeyDown('mobileNo', e)}
+                placeholder="Mobile No"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
+
+            {/* Type Field (Replaced EMP Name) */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Type:</label>
+              <select
+                name="type"
+                style={styles.formSelect}
+                value={formData.type}
+                onChange={handleFormChange('type')}
+                onKeyDown={(e) => handleFormKeyDown('type', e)}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              >
+                <option value="Retail">Retail</option>
+                <option value="Wholesale">Wholesale</option>
+              </select>
+            </div>
+
+            {/* Salesman Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Salesman:</label>
+              <input
+                name="salesman"
+                type="text"
+                style={styles.formInput}
+                value={formData.salesman}
+                onChange={handleFormChange('salesman')}
+                onKeyDown={(e) => handleFormKeyDown('salesman', e)}
+                placeholder="Salesman"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
+
+            {/* Customer Name Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Customer:</label>
+              <input
+                name="custName"
+                type="text"
+                style={styles.formInput}
+                value={formData.custName}
+                onChange={handleFormChange('custName')}
+                onKeyDown={(e) => handleFormKeyDown('custName', e)}
+                placeholder="Customer Name"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
+
+            {/* Barcode Field */}
+            <div style={styles.formField}>
+              <label style={styles.formLabel}>Barcode:</label>
+              <input
+                name="barcode"
+                type="text"
+                style={styles.formInput}
+                value={formData.barcode}
+                onChange={handleFormChange('barcode')}
+                onKeyDown={(e) => handleFormKeyDown('barcode', e)}
+                placeholder="Barcode"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#ddd'}
+              />
+            </div>
           </div>
         </div>
 
-        <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #ddd' }} />
-
-        {/* Items Table */}
-        <div style={{ 
-          backgroundColor: '#fff',
-          borderRadius: '4px',
-          border: '1px solid #ddd',
-          marginBottom: '16px',
-          overflow: 'hidden'
-        }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#1976d2' }}>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>SNo</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>Barcode</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>Item Name</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>Stock</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>MRP</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>UOM</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>Tax (%)</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>S Rate</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>Qty</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'left' }}>Amount</th>
-                  <th style={{ color: 'white', fontWeight: 'bold', padding: '8px', textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
+        {/* Table Area */}
+        <div style={styles.tableContainerWrapper}>
+          {/* Fixed Table Header with synchronized horizontal scroll - UPDATED TO MATCH IMAGE */}
+          <div ref={tableHeaderRef} style={styles.tableHeaderContainer}>
+            <div 
+              ref={tableHeaderInnerRef} 
+              style={styles.tableHeaderInner}
+            >
+              <table style={styles.tableHeaderTable}>
+                <thead>
+                  <tr>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('sNo'), borderTopLeftRadius: '12px' }}>S.No</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('barcode') }}>Barcode</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: getColumnWidth('itemName') }}>Item Name</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('stock') }}>Stock</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('mrp') }}>MRP</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('uom') }}>UOM</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('hsn') }}>HSN</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('tax') }}>TAX(%)</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('state') }}>SRate</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('qty') }}>Qty</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'right', whiteSpace: 'nowrap', width: getColumnWidth('amount') }}>Amount</th>
+                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('action'), borderTopRightRadius: '12px' }}>ACTION</th>
+                  </tr>
+                </thead>
+              </table>
+            </div>
+          </div>
+          
+          {/* Scrollable Table Body with Inputs (ONLY ROWS) */}
+          <div 
+            ref={tableBodyRef} 
+            style={styles.tableBodyContainer}
+            className="custom-scrollbar"
+            onScroll={handleTableBodyScroll}
+          >
+            <table style={styles.tableBody}>
               <tbody>
-                {items.map((item, index) => (
-                  <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '8px' }}>{index + 1}</td>
-                    <td style={{ padding: '8px' }}>
+                {items.map((item) => (
+                  <tr key={item.id} style={{ backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                    {/* SNo */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', whiteSpace: 'nowrap', textAlign: 'center', width: getColumnWidth('sNo') }}>{item.sNo}</td>
+                    
+                    {/* Barcode */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('barcode') }}>
                       <input
+                        ref={el => inputRefs.current[`barcode-${item.id}`] = el}
                         type="text"
-                        style={{
-                          width: '100%',
-                          padding: '4px',
-                          border: 'none',
-                          borderBottom: '1px solid #ddd',
-                          fontSize: '14px',
-                          background: 'transparent'
+                        style={{ 
+                          ...tableInputStyle, 
+                          fontWeight: '500', 
+                          textAlign: 'center',
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.barcode}
-                        onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
+                        onChange={handleItemChange(item.id, 'barcode')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'barcode', e)}
                         placeholder="Barcode"
                       />
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    
+                    {/* Item Name */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('itemName') }}>
                       <input
+                        ref={el => inputRefs.current[`itemName-${item.id}`] = el}
                         type="text"
-                        style={{
-                          width: '100%',
-                          padding: '4px',
-                          border: 'none',
-                          borderBottom: '1px solid #ddd',
-                          fontSize: '14px',
-                          background: 'transparent'
+                        style={{ 
+                          ...tableInputStyle, 
+                          textAlign: 'left',
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
                         }}
-                        value={item.name}
-                        onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
+                        value={item.itemName}
+                        onChange={handleItemChange(item.id, 'itemName')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'itemName', e)}
                         placeholder="Item Name"
                       />
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    
+                    {/* Stock */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('stock') }}>
                       <input
-                        type="number"
-                        style={{
-                          width: '100%',
-                          padding: '4px',
-                          border: 'none',
-                          borderBottom: '1px solid #ddd',
-                          fontSize: '14px',
-                          background: 'transparent'
+                        ref={el => inputRefs.current[`stock-${item.id}`] = el}
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
                         }}
-                        value={item.stock}
-                        onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
+                        value={item.stock || ''}
+                        onChange={handleItemChange(item.id, 'stock')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'stock', e)}
                         placeholder="Stock"
                       />
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    
+                    {/* MRP */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('mrp') }}>
                       <input
-                        type="number"
-                        style={{
-                          width: '100%',
-                          padding: '4px',
-                          border: 'none',
-                          borderBottom: '1px solid #ddd',
-                          fontSize: '14px',
-                          background: 'transparent'
+                        ref={el => inputRefs.current[`mrp-${item.id}`] = el}
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
                         }}
-                        value={item.mrp}
-                        onChange={(e) => handleItemChange(item.id, 'mrp', e.target.value)}
-                        placeholder="MRP"
+                        value={item.mrp || ''}
+                        onChange={handleItemChange(item.id, 'mrp')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'mrp', e)}
+                        placeholder="MIP"
                       />
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    
+                    {/* UOM */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('uom') }}>
                       <input
+                        ref={el => inputRefs.current[`uom-${item.id}`] = el}
                         type="text"
-                        style={{
-                          width: '100%',
-                          padding: '4px',
-                          border: 'none',
-                          borderBottom: '1px solid #ddd',
-                          fontSize: '14px',
-                          background: 'transparent'
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.uom}
-                        onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
+                        onChange={handleItemChange(item.id, 'uom')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'uom', e)}
                         placeholder="UOM"
                       />
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    
+                    {/* HSN */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('hsn') }}>
                       <input
+                        ref={el => inputRefs.current[`hsn-${item.id}`] = el}
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
+                        }}
+                        value={item.hsn || ''}
+                        onChange={handleItemChange(item.id, 'hsn')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'hsn', e)}
+                        placeholder="HSN"
+                      />
+                    </td>
+                    
+                    {/* TAX */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('tax') }}>
+                      <input
+                        ref={el => inputRefs.current[`tax-${item.id}`] = el}
                         type="number"
-                        style={{
-                          width: '100%',
-                          padding: '4px',
-                          border: 'none',
-                          borderBottom: '1px solid #ddd',
-                          fontSize: '14px',
-                          background: 'transparent'
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.tax}
-                        onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
+                        onChange={handleItemChange(item.id, 'tax')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'tax', e)}
                         placeholder="Tax"
+                        step="0.01"
                       />
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    
+                    {/* STATE */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('state') }}>
                       <input
+                        ref={el => inputRefs.current[`state-${item.id}`] = el}
                         type="number"
-                        style={{
-                          width: '100%',
-                          padding: '4px',
-                          border: 'none',
-                          borderBottom: '1px solid #ddd',
-                          fontSize: '14px',
-                          background: 'transparent'
+                        style={{ 
+                          ...tableInputStyle,
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
                         }}
-                        value={item.rate}
-                        onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
-                        placeholder="S Rate"
+                        value={item.state}
+                        onChange={handleItemChange(item.id, 'state')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'state', e)}
+                        placeholder="State"
+                        step="0.01"
                       />
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    
+                    {/* QTY */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('qty') }}>
                       <input
+                        ref={el => inputRefs.current[`qty-${item.id}`] = el}
                         type="number"
-                        style={{
-                          width: '100%',
-                          padding: '4px',
-                          border: 'none',
-                          borderBottom: '1px solid #ddd',
-                          fontSize: '14px',
-                          background: 'transparent'
+                        style={{ 
+                          ...tableInputStyle, 
+                          fontWeight: 'bold',
+                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.qty}
-                        onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
+                        onChange={handleItemChange(item.id, 'qty')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'qty', e)}
                         placeholder="Qty"
+                        step="0.01"
                       />
                     </td>
-                    <td style={{ padding: '8px', fontWeight: 'bold', color: '#1976d2' }}>
-                      {(item.rate * item.qty).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ padding: '8px', textAlign: 'center' }}>
-                      <button
-                        onClick={() => handleDeleteRow(item.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#d32f2f',
-                          cursor: 'pointer',
-                          padding: '4px'
+                    
+                    {/* AMOUNT */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('amount') }}>
+                      <input
+                        type="text"
+                        style={{ 
+                          ...tableInputStyle, 
+                          textAlign: 'right', 
+                          fontWeight: 'bold', 
+                          color: '#1565c0', 
+                          backgroundColor: '#f0f7ff',
+                          fontSize: isMobile ? '11px' : '14px'
                         }}
+                        value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                        placeholder="Amount"
+                        readOnly
+                      />
+                    </td>
+                    
+                    {/* ACTION */}
+                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', width: getColumnWidth('action') }}>
+                      <button
+                        onClick={() => confirmDelete(item.id)}
+                        style={{ background: 'none', border: 'none', color: '#d32f2f', cursor: 'pointer', padding: '2px' }}
                         onMouseEnter={(e) => e.currentTarget.style.color = '#b71c1c'}
                         onMouseLeave={(e) => e.currentTarget.style.color = '#d32f2f'}
                       >
-                        <DeleteIcon fontSize="small" />
+                        <DeleteIcon fontSize={isMobile ? "small" : "small"} />
                       </button>
                     </td>
                   </tr>
@@ -674,215 +1375,141 @@ const SalesInvoices = () => {
             </table>
           </div>
           
-          {/* Add Item Button */}
-          <div style={{ padding: '12px', textAlign: 'center' }}>
-            <button
-              onClick={handleAddRow}
-              style={{ 
-                backgroundColor: '#1976d2',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '14px',
-                marginLeft: '-87%'
+          {/* Add Item Button (FIXED below table rows) */}
+          <div ref={addItemButtonRef} style={styles.addItemButtonContainer}>
+            <button 
+              onClick={addItemRow} 
+              style={{
+                ...buttonStyles.btn,
+                ...buttonStyles.addBtn,
+                padding: isMobile ? '8px 16px' : '10px 25px',
+                fontSize: isMobile ? '13px' : '16px',
+                borderRadius: '6px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
             >
-              <AddIcon fontSize="small" /> Add Item
+              <CreateIcon /> Add Item
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Totals Section */}
+      {/* Fixed Action Bar at Bottom */}
+      <div ref={actionBarRef} style={styles.actionBar}>
         <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '12px',
-          marginBottom: '16px'
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          height: '100%',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '10px' : '0',
+          width: '100%'
         }}>
-          <div style={{ 
-            padding: '12px', 
-            backgroundColor: '#f0f0f0',
-            borderRadius: '4px'
-          }}>
-            <h3 style={{ fontWeight: 'bold', fontSize: '16px', margin: 0 }}>
-              Total Qty: <span style={{ color: '#1976d2' }}>{totalQty.toLocaleString()}</span>
-            </h3>
+          {/* Left side buttons */}
+          <div style={{ display: 'flex', gap: isMobile ? '5px' : '10px', justifyContent: isMobile ? 'center' : 'flex-start', width: isMobile ? '100%' : 'auto' }}>
+            <AddButton 
+              onClick={addItemRow}
+              isActive={topButtonActive === 'add'}
+              onStateChange={handleTopButtonStateChange}
+              style={getButtonStyle()}
+            />
+            <EditButton 
+              isActive={topButtonActive === 'edit'}
+              onStateChange={handleTopButtonStateChange}
+              style={getButtonStyle()}
+            />
+            <DeleteButton 
+              isActive={topButtonActive === 'delete'}
+              onStateChange={handleTopButtonStateChange}
+              style={getButtonStyle()}
+            />
           </div>
-          <div style={{ 
-            padding: '12px', 
-            backgroundColor: '#f0f0f0',
-            borderRadius: '4px'
-          }}>
-            <h3 style={{ fontWeight: 'bold', fontSize: '16px', margin: 0 }}>
-              Total Amount: ₹<span style={{ color: '#1976d2' }}>
-                {totalAmount.toLocaleString('en-IN', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                })}
-              </span>
-            </h3>
-          </div>
-        </div>
 
-        {/* Action Buttons Section */}
-        <div style={{ 
-          marginTop: '12%', 
-          padding: '12px', 
-          border: '1px solid #ddd', 
-          borderRadius: '4px' 
-        }}>
+          {/* Center - Totals */}
           <div style={{ 
-            display: 'flex',
-            justifyContent: 'space-between',
+            display: 'flex', 
+            gap: isMobile ? '10px' : '30px', 
             alignItems: 'center',
-            gap: '12px'
+            justifyContent: isMobile ? 'center' : 'center',
+            width: isMobile ? '100%' : 'auto'
           }}>
-            {/* Left side: ADD, EDIT, DELETE buttons */}
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                onClick={handleAddItem}
-                style={{
-                  backgroundColor: '#1976d2',
-                  color: 'white',
-                  border: 'none',
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '12px',
-                  minWidth: '80px',
-                  justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
-              >
-                <AddIcon fontSize="small" /> ADD
-              </button>
-              <button 
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#1976d2',
-                  border: '1px solid #1976d2',
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '12px',
-                  minWidth: '80px',
-                  justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e3f2fd'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <EditIcon fontSize="small" /> EDIT
-              </button>
-              <button 
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#d32f2f',
-                  border: '1px solid #d32f2f',
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '12px',
-                  minWidth: '80px',
-                  justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ffebee'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <DeleteIcon fontSize="small" /> DELETE
-              </button>
-
-              {/* Sales Details popup button (beside Delete) */}
-              <button
-                onClick={() => setShowSalesDetails(true)}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#1976d2',
-                  border: '1px solid #1976d2',
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '12px',
-                  minWidth: '110px',
-                  justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e3f2fd'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                Sales Details
-              </button>
+            <div 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                padding: isMobile ? '8px' : '12px 11px', 
+                minWidth: isMobile ? '120px' : '140px'
+              }}
+            >
+              <div style={{ 
+                fontSize: isMobile ? '11px' : '13px', 
+                color: '#1976d2', 
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Total Quantity
+              </div>
+              <div style={{ 
+                ...brightTotalStyle, 
+                color: '#1976d2',
+                fontSize: isMobile ? '18px' : '22px'
+              }}>
+                {totalQty.toFixed(2)}
+              </div>
             </div>
-
-            {/* Right side: Clear and Save Bill buttons */}
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={handleClear}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#666',
-                  border: '1px solid #666',
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '12px',
-                  minWidth: '80px',
-                  justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f5f5f5';
-                  e.currentTarget.style.borderColor = '#333';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.borderColor = '#666';
-                }}
-              >
-                <ClearIcon fontSize="small" /> Clear
-              </button>
-              <button
-                onClick={handleSave}
-                style={{
-                  backgroundColor: '#1976d2',
-                  color: 'white',
-                  border: 'none',
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '12px',
-                  minWidth: '80px',
-                  justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
-              >
-                <SaveIcon fontSize="small" /> Save Bill
-              </button>
+            
+            <div 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                padding: isMobile ? '8px' : '12px 11px', 
+                minWidth: isMobile ? '120px' : '140px'
+              }}
+            >
+              <div style={{ 
+                fontSize: isMobile ? '11px' : '13px', 
+                color: '#28a745', 
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Total Amount
+              </div>
+              <div style={{ 
+                ...brightTotalStyle, 
+                color: '#28a745',
+                fontSize: isMobile ? '18px' : '22px'
+              }}>
+                ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
             </div>
+          </div>
+
+          {/* Right side buttons */}
+          <div style={{ 
+            display: 'flex', 
+            gap: isMobile ? '5px' : '10px', 
+            justifyContent: isMobile ? 'center' : 'flex-end',
+            width: isMobile ? '100%' : 'auto'
+          }}>
+            <ClearButton 
+              onClick={handleClear}
+              isActive={bottomButtonActive === 'clear'}
+              onStateChange={handleBottomButtonStateChange}
+              style={getButtonStyle()}
+            />
+            <SaveButton 
+              onClick={handleSave}
+              isActive={bottomButtonActive === 'save'}
+              onStateChange={handleBottomButtonStateChange}
+              style={{
+                ...getButtonStyle(),
+                minWidth: isMobile ? '70px' : '120px'
+              }}
+            />
           </div>
         </div>
       </div>
@@ -890,4 +1517,4 @@ const SalesInvoices = () => {
   );
 };
 
-export default SalesInvoices;
+export default SaleInvoice;
