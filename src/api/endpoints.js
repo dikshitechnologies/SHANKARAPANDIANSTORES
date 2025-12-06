@@ -18,6 +18,8 @@ export const API_ENDPOINTS = {
     delete: (fCode) => `ItemCreation/ItemCreationDelete/${fCode}`,
   },
 
+  GET_COUNTER_LIST: "CounterCreation/getCounterList",
+
   LEDGER_GROUP_CREATION_ENDPOINTS: {
     getTree: "LedgerGroupCreation/LedgerGroupCreationGet",
     getDropdown: "LedgerGroupCreation/ledgergroupCreationDropdownlist",
@@ -35,7 +37,7 @@ export const API_ENDPOINTS = {
   },
 user_creation: {
     getuserdetails: "UserCreation/getUserItem",
-    getDropdown: "ItemGroupCreation/ItemgroupCreationDropdownlist",
+    getDropdown: "UserCreation/GetUserCreationdropdowslist",
     postCreate: "UserCreation/CreateUser",
     putEdit: "UserCreation/UpdateUser",
     delete: (fCode) => `UserCreation/deleteUser/${fCode}`,
@@ -48,9 +50,7 @@ user_creation: {
     GET_COMPANY_LIST: "CompanyCreation/GetCompanyList",
     GET_COMPANY_DETAILS: (compCode) => `CompanyCreation/GetCompany/${compCode}`,
     DELETE_COMPANY: (fcompcode) => `CompanyCreation/DeleteCompany/${fcompcode}`,
-  //  /api/CompanyCreation/GetCompany/{compCode}
-    // CompanyCreation/GetCompanyList (compCode) => `CompanyCreation/GetCompany/${compCode}`,
-    
+  
     
     
   },

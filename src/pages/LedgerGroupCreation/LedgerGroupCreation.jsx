@@ -1,5 +1,5 @@
 // LedgerGroupCreation.js
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { api } from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
@@ -146,6 +146,9 @@ export default function LedgerGroupCreation() {
   // so use a permissive fallback to avoid runtime ReferenceError.
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
 
+  // Ref for auto-focusing SubGroup input after main group selection
+  const subGroupRef = useRef(null);
+
   useEffect(() => {
     loadInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,8 +215,10 @@ export default function LedgerGroupCreation() {
   const handleSelectNode = (node) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
-    // keep tree open — user asked tree should remain open by default, so selecting won't auto-close
-    setIsTreeOpen(true);
+    // Auto-close tree after selection
+    setIsTreeOpen(false);
+    // Auto-focus SubGroup input
+    setTimeout(() => subGroupRef.current?.focus(), 100);
   };
 
   const handleSelectSub = (option) => {
@@ -956,6 +961,7 @@ export default function LedgerGroupCreation() {
         className="input"
         value={mainGroup}
         onChange={(e) => setMainGroup(e.target.value)}
+        onFocus={() => setIsTreeOpen(true)}
         readOnly={actionType !== "Add"}
         placeholder="Select Main Group"
         disabled={submitting}
@@ -1103,6 +1109,7 @@ export default function LedgerGroupCreation() {
               <div className="row">
                 {actionType === "Add" ? (
                   <input
+                    ref={subGroupRef}
                     className="input"
                     value={subGroup}
                     onChange={(e) => setSubGroup(e.target.value)}
@@ -1123,7 +1130,7 @@ export default function LedgerGroupCreation() {
                   />
                 )}
 
-                {(actionType === "edit" || actionType === "delete") && (
+                {/* {(actionType === "edit" || actionType === "delete") && (
                   <button
                     className="btn"
                     onClick={() => { setIsDropdownOpen(true); setIsTreeOpen(false); }}
@@ -1133,7 +1140,7 @@ export default function LedgerGroupCreation() {
                   >
                     <Icon.Search /> Search
                   </button>
-                )}
+                )} */}
               </div>
             </div>
 
