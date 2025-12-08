@@ -725,22 +725,7 @@ const SalesReturn = () => {
             />
           </div>
 
-          {/* Return Reason */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Return Reason:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.returnReason}
-              name="returnReason"
-              onChange={handleInputChange}
-              ref={returnReasonRef}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-              onFocus={() => setFocusedField('returnReason')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Return Reason"
-            />
-          </div>
+          
 
           {/* Barcode */}
           <div style={styles.formField}>
@@ -771,67 +756,12 @@ const SalesReturn = () => {
           gridTemplateColumns: getGridColumns(),
           marginBottom: '0',
         }}>
-          {/* Party Code */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Party Code:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.partyCode}
-              name="partyCode"
-              onChange={handleInputChange}
-              onFocus={() => setFocusedField('partyCode')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Party Code"
-            />
-          </div>
+       
 
-          {/* GST No */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>GST No:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.gstno}
-              name="gstno"
-              onChange={handleInputChange}
-              onFocus={() => setFocusedField('gstno')}
-              onBlur={() => setFocusedField('')}
-              placeholder="GST No"
-            />
-          </div>
+          
 
-          {/* City */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>City:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.city}
-              name="city"
-              onChange={handleInputChange}
-              onFocus={() => setFocusedField('city')}
-              onBlur={() => setFocusedField('')}
-              placeholder="City"
-            />
-          </div>
+          
 
-          {/* Trans Type */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Trans Type:</label>
-            <select
-              name="transType"
-              style={styles.inlineInput}
-              value={billDetails.transType}
-              onChange={handleInputChange}
-              onFocus={() => setFocusedField('transType')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="SALES RETURN">SALES RETURN</option>
-              <option value="PURCHASE">PURCHASE</option>
-              <option value="SALE">SALE</option>
-            </select>
-          </div>
         </div>
       </div>
 
