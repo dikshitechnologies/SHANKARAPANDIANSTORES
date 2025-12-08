@@ -6,6 +6,7 @@ import ItemCreation from '../pages/ItemCreation/ItemCreation';
 import LedgerGroupCreation from '../pages/Ledgergroupcreation/Ledgergroupcreation';
 import ItemGroupCreation from '../pages/ItemGroupCreation/ItemGroupCreation';
 import BillCollector from '../pages/billcollector/billcollectior';
+import DesignCreation from '../pages/DesignCreation/DesignCreation';
 
 const AppRoutes = () => {
   return (
@@ -19,6 +20,7 @@ const AppRoutes = () => {
         <Route path="/ledger-group-creation" element={<LedgerGroupCreation />} />
         <Route path="/item-group-creation" element={<ItemGroupCreation />} />
         <Route path="/bill-collector" element={<BillCollector />} />
+        <Route path="/design-creation" element={<DesignCreation />} />
         {/* Add more routes here */}
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         {/* <Route path="/products" element={<Products />} /> */}

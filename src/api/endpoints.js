@@ -69,13 +69,26 @@ UNITCREATION: {
     GET_PERMISSIONS_BY_USER: "Administartor/GetPermissionsByUserCode",
     DELETE_PERMISSIONS: "Administartor/administration/delete"
   },
-scrap:{
-  getscrapitem:"ScrapCreation/getScrapItem",
-  getscrapcode:"ScrapCreation/getNextScrapFcode",
-  postcreatescrap:"ScrapCreation/createScrap",
-  putupdatedscrap:"Sction/deleteUserrapCreation/updateScrap",
- delete: (fCode) => `ScrapCreation/deleteScrap/${fCode}`,
- },
+
+  SCRAP_CREATION: {
+    GET_SCRAP_ITEMS: '/ScrapCreation/getScrapItem',
+    GET_NEXT_SCRAP_CODE: '/ScrapCreation/getNextScrapFcode',
+    CREATE_SCRAP: '/ScrapCreation/createScrap',
+    UPDATE_SCRAP: '/ScrapCreation/updateScrap',
+    DELETE_SCRAP: (scrapCode) => `/ScrapCreation/deleteScrap/${scrapCode}`,
+    GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
+  },
+
+
+
+
+
+
+
+
+
+
+
  scrapratefix:
  {
   getscrapratefixing:"ScrapRateFixing/getFullScrapRateFixing",
@@ -86,9 +99,6 @@ scrap:{
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
     CREATE_PURCHASE_INVOICE: "PurchaseInvoice/CreatePurchase",
   }
-    
-
 };
 
-// Named convenience export for older imports that expect ADMINISTRATION directly
 export const ADMINISTRATION = API_ENDPOINTS.ADMINISTRATION;

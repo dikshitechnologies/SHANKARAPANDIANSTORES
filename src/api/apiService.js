@@ -63,7 +63,7 @@ const positionNotifyTopRight = () => {
 // Axios Instance
 // ---------------------
 const apiService = axios.create({
-  baseURL: "http://dikshiserver/spstores/api/",
+  baseURL: "http://dikshiserver/spstorewebapi/api/",
   headers: { "Content-Type": "application/json" },
 });
 
@@ -81,16 +81,10 @@ apiService.interceptors.response.use(
 // ---------------------
 // API ENDPOINTS EXPORT
 // ---------------------
-export const API_BASE = "http://dikshiserver/spstores/api";
+export const API_BASE = "http://dikshiserver/spstorewebapi/api/";
 
-export const API_ENDPOINTS = {
-  ADMINISTRATION: {
-    USER_LIST: "Administartor/UserNameList",
-    GET_PERMISSIONS_BY_USER: "Administartor/GetPermissionsByUserCode",
-    ADMIN_BATCH_INSERT: "Administartor/administration/InsertBatch",
-    DELETE_PERMISSIONS: "Administartor/administration/delete",
-  },
-};
+
+
 
 // ---------------------
 // Alert handler

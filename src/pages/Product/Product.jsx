@@ -4,7 +4,7 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
-// Inline SVG icons (matching ItemGroupCreation style)
+// --- Inline SVG icons (matching Category/Brand style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -46,18 +46,25 @@ const Icon = {
       <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
     </svg>
   ),
+  Product: ({ size = 38 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <rect width="24" height="24" rx="6" fill="#ffffffff" />
+      <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 8h8v2H8V8zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" fill="#307AC8" />
+      {/* <circle cx="12" cy="12" r="3" fill="#307AC8" /> */}
+    </svg>
+  ),
 };
 
-export default function ScrapCreation() {
+export default function ProductPage() {
   // ---------- state ----------
-  const [scraps, setScraps] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    scrapCode: "", 
-    scrapName: ""
+    fproductcode: "", 
+    fproductname: ""
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -74,87 +81,28 @@ export default function ScrapCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const scrapCodeRef = useRef(null);
-  const scrapNameRef = useRef(null);
+  const productCodeRef = useRef(null);
+  const productNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Base URL for API
-  const BASE_URL = "http://dikshiserver/spstorewebapi/api";
-
   // ---------- API functions ----------
-  const fetchNextScrapCode = async () => {
+  const fetchProducts = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_NEXT_SCRAP_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, scrapCode: data.trim() }));
-      } else if (data && (data.nextScrapCode || data.scrapCode || data.fcode)) {
-        setForm(prev => ({ ...prev, scrapCode: data.nextScrapCode || data.scrapCode || data.fcode }));
-      } else if (data && data.nextCode) {
-        setForm(prev => ({ ...prev, scrapCode: data.nextCode }));
-      } else {
-        // Fallback: if API doesn't return a code, generate locally
-        generateLocalNextCode();
-      }
-      return data;
-    } catch (err) {
-      console.error("API Error fetching next scrap code:", err);
-      // Fallback: generate local code if API fails
-      generateLocalNextCode();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateLocalNextCode = () => {
-    if (scraps.length === 0) {
-      setForm(prev => ({ ...prev, scrapCode: "001" }));
-    } else {
-      // Get highest numeric code and increment
-      const maxCode = Math.max(...scraps.map(s => {
-        const code = s.scrapCode || s.fcode || s.scrapCode;
-        return parseInt(code) || 0;
-      }));
-      const nextCode = (maxCode + 1).toString().padStart(3, '0');
-      setForm(prev => ({ ...prev, scrapCode: nextCode }));
-    }
-  };
-
-  const fetchScraps = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_ITEMS);
-      
-      // Transform API response to match our expected format
-      const transformedData = Array.isArray(data) 
-        ? data.map(item => ({
-            id: item.id || item.scrapCode,
-            scrapCode: item.scrapCode || item.fcode || item.code,
-            scrapName: item.scrapName || item.name || item.scrapName
-          }))
-        : [];
-      
-      setScraps(transformedData);
+      const data = await apiService.get(API_ENDPOINTS.PRODUCT.GET_PRODUCTS);
+      // Transform API data to match our naming convention
+      const transformedData = Array.isArray(data) ? data.map(item => ({
+        fproductcode: item.fproductcode || '',
+        fproductname: item.fproductname || ''
+      })) : [];
+      setProducts(transformedData);
       setMessage(null);
+      return transformedData;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load scrap items" });
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getScrapByCode = async (code) => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_BY_CODE(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch scrap" });
+      setMessage({ type: "error", text: "Failed to load products" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -162,57 +110,122 @@ export default function ScrapCreation() {
     }
   };
 
-  const createScrap = async (scrapData) => {
+  const getNextProductCode = async () => {
+    try {
+      const response = await apiService.get(API_ENDPOINTS.PRODUCT.GET_NEXT_CODE);
+      
+      // Handle different response formats
+      let nextCode = "00001"; // Default fallback
+      
+      if (typeof response === 'string' || typeof response === 'number') {
+        // If response is a string or number, use it directly
+        nextCode = response.toString().padStart(5, '0');
+      } else if (response && response.code) {
+        // If response has code property (as shown in your example)
+        nextCode = response.code.toString().padStart(5, '0');
+      } else if (response && response.fproductcode) {
+        // If response has fproductcode property
+        nextCode = response.fproductcode.toString().padStart(5, '0');
+      } else if (response && response.nextCode) {
+        // If response has nextCode property
+        nextCode = response.nextCode.toString().padStart(5, '0');
+      }
+      
+      setForm(prev => ({ ...prev, fproductcode: nextCode }));
+      return nextCode;
+    } catch (err) {
+      console.error("Failed to get next product code:", err);
+      // Fallback: find highest code from existing products
+      try {
+        const productsData = await fetchProducts();
+        if (productsData.length > 0) {
+          const codes = productsData.map(p => {
+            const codeNum = parseInt(p.fproductcode) || 0;
+            return isNaN(codeNum) ? 0 : codeNum;
+          });
+          const maxCode = Math.max(...codes);
+          const nextCode = (maxCode + 1).toString().padStart(5, '0');
+          setForm(prev => ({ ...prev, fproductcode: nextCode }));
+          return nextCode;
+        } else {
+          setForm(prev => ({ ...prev, fproductcode: "00001" }));
+          return "00001";
+        }
+      } catch (innerErr) {
+        setForm(prev => ({ ...prev, fproductcode: "00001" }));
+        return "00001";
+      }
+    }
+  };
+
+  const getProductByCode = async (code) => {
     try {
       setLoading(true);
+      // Since API doesn't have a specific endpoint, filter from existing items
+      const product = products.find(p => p.fproductcode === code);
+      return product || null;
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to fetch product" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createProduct = async (productData) => {
+    try {
+      setLoading(true);
+      // Transform to API expected format
+      const apiData = {
+        fproductcode: productData.fproductcode,
+        fproductname: productData.fproductname
+      };
+      const data = await apiService.post(API_ENDPOINTS.PRODUCT.CREATE_PRODUCT, apiData);
+      return data;
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to create product" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateProduct = async (productData) => {
+    try {
+      setLoading(true);
+      console.log("Sending update data:", productData);
       
-      // Prepare payload based on your API requirements
-      const payload = {
-        scrapCode: scrapData.scrapCode,
-        scrapName: scrapData.scrapName.toUpperCase(),
-        // Add other fields if required by your API
+      // Transform to API expected format
+      const apiData = {
+        fproductcode: productData.fproductcode,
+        fproductname: productData.fproductname
       };
       
-      const data = await apiService.post(API_ENDPOINTS.SCRAP_CREATION.CREATE_SCRAP, payload);
-      return data;
+      const response = await apiService.post(API_ENDPOINTS.PRODUCT.UPDATE_PRODUCT, apiData);
+      console.log("Update response:", response);
+      
+      if (typeof response === 'string' && response.includes("successfully")) {
+        return { success: true, message: response };
+      }
+      return response;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to create scrap" });
-      console.error("API Error:", err);
+      console.error("Update error details:", err.response || err);
+      setMessage({ type: "error", text: err.message || "Failed to update product" });
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const updateScrap = async (scrapData) => {
+  const deleteProduct = async (fproductcode) => {
     try {
       setLoading(true);
-      
-      // Prepare payload based on your API requirements
-      const payload = {
-        scrapCode: scrapData.scrapCode,
-        scrapName: scrapData.scrapName.toUpperCase(),
-        // Add other fields if required by your API
-      };
-      
-      const data = await apiService.put(API_ENDPOINTS.SCRAP_CREATION.UPDATE_SCRAP, payload);
+      const data = await apiService.del(API_ENDPOINTS.PRODUCT.DELETE_PRODUCT(fproductcode));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update scrap" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteScrap = async (scrapCode) => {
-    try {
-      setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.SCRAP_CREATION.DELETE_SCRAP(scrapCode));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete scrap" });
+      setMessage({ type: "error", text: err.message || "Failed to delete product" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -235,83 +248,89 @@ export default function ScrapCreation() {
   }, []);
 
   useEffect(() => {
-    if (scrapCodeRef.current) scrapCodeRef.current.focus();
+    if (productCodeRef.current) productCodeRef.current.focus();
   }, []);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchScraps(), fetchNextScrapCode()]);
+    await Promise.all([fetchProducts(), getNextProductCode()]);
   };
 
   const handleEdit = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    if (!form.fproductcode || !form.fproductname) {
+      setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to update product "${form.fproductname}"?`)) return;
 
     try {
-      const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
-      await updateScrap(scrapData);
+      const productData = { 
+        fproductcode: form.fproductcode, 
+        fproductname: form.fproductname
+      };
+      await updateProduct(productData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Scrap updated successfully." });
+      setMessage({ type: "success", text: "Product updated successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in updateScrap
+      // Error message already set in updateProduct
     }
   };
 
   const handleDelete = async () => {
-    if (!form.scrapCode) {
-      setMessage({ type: "error", text: "Please select a scrap to delete." });
+    if (!form.fproductcode) {
+      setMessage({ type: "error", text: "Please select a product to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to delete product "${form.fproductname}"?`)) return;
 
     try {
-      await deleteScrap(form.scrapCode);
+      await deleteProduct(form.fproductcode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Scrap deleted successfully." });
+      setMessage({ type: "success", text: "Product deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced scraps
+      // Special handling for referenced products
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete scrap "${form.scrapName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete product "${form.fproductname}". It is referenced in other tables and cannot be removed.` 
         });
       }
     }
   };
 
   const handleAdd = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    if (!form.fproductcode || !form.fproductname) {
+      setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
       return;
     }
 
-    // Check if scrap code already exists
-    const exists = scraps.some(s => s.scrapCode === form.scrapCode);
+    // Check if product code already exists
+    const exists = products.some(p => p.fproductcode === form.fproductcode);
     if (exists) {
-      setMessage({ type: "error", text: `Scrap code ${form.scrapCode} already exists.` });
+      setMessage({ type: "error", text: `Product code ${form.fproductcode} already exists.` });
       return;
     }
 
-    if (!window.confirm(`Do you want to create scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to create product "${form.fproductname}"?`)) return;
 
     try {
-      const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
-      await createScrap(scrapData);
+      const productData = { 
+        fproductcode: form.fproductcode, 
+        fproductname: form.fproductname
+      };
+      await createProduct(productData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Scrap created successfully." });
+      setMessage({ type: "success", text: "Product created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createScrap
+      // Error message already set in createProduct
     }
   };
 
@@ -322,8 +341,8 @@ export default function ScrapCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextScrapCode();
-    setForm(prev => ({ ...prev, scrapName: "" }));
+    getNextProductCode();
+    setForm(prev => ({ ...prev, fproductname: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -331,7 +350,7 @@ export default function ScrapCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => productNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -339,12 +358,12 @@ export default function ScrapCreation() {
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (s) => {
-    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+  const handleEditRowClick = (p) => {
+    setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
     setActionType("edit");
-    setEditingId(s.scrapCode);
+    setEditingId(p.fproductcode);
     setEditModalOpen(false);
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => productNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -352,33 +371,36 @@ export default function ScrapCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  const handleDeleteRowClick = (p) => {
+    setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
+    setActionType("delete");
+    setDeleteTargetId(p.fproductcode);
+    setDeleteModalOpen(false);
+    setTimeout(() => productNameRef.current?.focus(), 60);
+  };
+
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? scraps.filter(s => (s.scrapCode || '').toLowerCase().includes(q) || (s.scrapName || '').toLowerCase().includes(q))
-      : scraps;
+      ? products.filter(p => 
+          (p.fproductcode || '').toLowerCase().includes(q) || 
+          (p.fproductname || '').toLowerCase().includes(q)
+        )
+      : products;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [scraps]);
+  }, [products]);
 
-  const handleDeleteRowClick = (s) => {
-    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
-    setActionType("delete");
-    setDeleteTargetId(s.scrapCode);
-    setDeleteModalOpen(false);
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
-  };
-
-  const onScrapCodeKeyDown = (e) => {
+  const onProductCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      scrapNameRef.current?.focus();
+      productNameRef.current?.focus();
     }
   };
 
-  const onScrapNameKeyDown = (e) => {
+  const onProductNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -393,45 +415,45 @@ export default function ScrapCreation() {
   };
 
   // ---------- filters ----------
-  const filteredEditScraps = useMemo(() => {
+  const filteredEditProducts = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return scraps;
-    return scraps.filter(
-      (s) =>
-        (s.scrapCode || "").toLowerCase().includes(q) ||
-        (s.scrapName || "").toLowerCase().includes(q)
+    if (!q) return products;
+    return products.filter(
+      (p) =>
+        (p.fproductcode || "").toLowerCase().includes(q) ||
+        (p.fproductname || "").toLowerCase().includes(q)
     );
-  }, [editQuery, scraps]);
+  }, [editQuery, products]);
 
-  const filteredDeleteScraps = useMemo(() => {
+  const filteredDeleteProducts = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return scraps;
-    return scraps.filter(
-      (s) =>
-        (s.scrapCode || "").toLowerCase().includes(q) ||
-        (s.scrapName || "").toLowerCase().includes(q)
+    if (!q) return products;
+    return products.filter(
+      (p) =>
+        (p.fproductcode || "").toLowerCase().includes(q) ||
+        (p.fproductname || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, scraps]);
+  }, [deleteQuery, products]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return scraps;
-    return scraps.filter(
-      (s) => 
-        (s.scrapCode || "").toLowerCase().includes(q) || 
-        (s.scrapName || "").toLowerCase().includes(q)
+    if (!q) return products;
+    return products.filter(
+      (p) => 
+        (p.fproductcode || "").toLowerCase().includes(q) || 
+        (p.fproductname || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, scraps]);
+  }, [existingQuery, products]);
 
   // ---------- render ----------
   return (
-    <div className="uc-root" role="region" aria-labelledby="scrap-creation-title">
+    <div className="product-root" role="region" aria-labelledby="product-management-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* blue theme (matching ItemGroupCreation style) */
+          /* blue theme (matching ItemGroupCreation) */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
@@ -448,7 +470,7 @@ export default function ScrapCreation() {
         }
 
         /* Page layout */
-        .uc-root {
+        .product-root {
           min-height: 100vh;
           display: flex;
           align-items: center;
@@ -456,7 +478,7 @@ export default function ScrapCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 18px; /* increased base font size */
+          font-size: 18px;
           box-sizing: border-box;
         }
 
@@ -466,7 +488,7 @@ export default function ScrapCreation() {
           max-width: 1100px;
           border-radius: 16px;
           padding: 20px;
-          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
+           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,253,250,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
@@ -492,7 +514,7 @@ export default function ScrapCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px; /* slightly larger title */
+          font-size: 24px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
@@ -588,12 +610,13 @@ export default function ScrapCreation() {
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
+          font-family: inherit;
         }
         .input:focus, .search:focus { 
           outline:none; 
-          box-shadow: 0 8px 26px rgba(48,122,200,0.08); 
+          box-shadow: 0 8px 26px rgba(245,158,11,0.08); 
           transform: translateY(-1px); 
-          border-color: rgba(48,122,200,0.25); 
+          border-color: var(--accent); 
         }
         .input:read-only {
           background: #f8fafc;
@@ -672,7 +695,7 @@ export default function ScrapCreation() {
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(48,122,200,0.25);
+          box-shadow: 0 8px 24px rgba(245,158,11,0.25);
         }
         .submit-primary:disabled {
           opacity: 0.7;
@@ -687,11 +710,10 @@ export default function ScrapCreation() {
           cursor:pointer;
           transition: all 0.2s;
           font-size: 18px;
-
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: rgba(48,122,200,0.3);
+          border-color: rgba(245,158,11,0.3);
           transform: translateY(-1px);
         }
         
@@ -714,7 +736,7 @@ export default function ScrapCreation() {
         .search-with-clear:focus {
           outline: none;
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px rgba(48, 122, 200, 0.1);
+          box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
         }
 
         .clear-search-btn {
@@ -738,8 +760,8 @@ export default function ScrapCreation() {
           color: #374151;
         }
 
-        /* scraps table */
-        .scraps-table-container {
+        /* products table */
+        .products-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -747,13 +769,13 @@ export default function ScrapCreation() {
           margin-top: 12px;
         }
 
-        .scraps-table {
+        .products-table {
           width: 100%;
           border-collapse: collapse;
           font-size: 18px;
         }
 
-        .scraps-table th {
+        .products-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -766,19 +788,19 @@ export default function ScrapCreation() {
           z-index: 1;
         }
 
-        .scraps-table td {
+        .products-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .scraps-table tr:hover {
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
+        .products-table tr:hover {
+          background: linear-gradient(90deg, rgba(245,158,11,0.04), rgba(245,158,11,0.01));
           cursor: pointer;
         }
 
-        .scraps-table tr.selected {
-          background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
+        .products-table tr.selected {
+          background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
@@ -825,13 +847,13 @@ export default function ScrapCreation() {
           transition: all 0.2s;
         }
         .dropdown-item:hover { 
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
+          background: linear-gradient(90deg, rgba(245,158,11,0.04), rgba(245,158,11,0.01)); 
           transform: translateX(6px); 
         }
 
         /* tips panel */
         .tips-panel {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
+          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(250,245,255,0.8));
           border-left: 3px solid var(--accent);
         }
 
@@ -850,7 +872,7 @@ export default function ScrapCreation() {
         }
 
         @media (max-width: 768px) {
-          .uc-root {
+          .product-root {
             padding: 16px 12px;
           }
           .dashboard {
@@ -870,13 +892,13 @@ export default function ScrapCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .scraps-table-container {
+          .products-table-container {
             max-height: 300px;
           }
         }
 
         @media (max-width: 480px) {
-          .uc-root {
+          .product-root {
             padding: 12px 8px;
           }
           .dashboard {
@@ -903,8 +925,8 @@ export default function ScrapCreation() {
             flex: 1;
             min-width: 0;
           }
-          .scraps-table th,
-          .scraps-table td {
+          .products-table th,
+          .products-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -917,7 +939,7 @@ export default function ScrapCreation() {
         }
 
         @media (max-width: 360px) {
-          .uc-root {
+          .product-root {
             padding: 8px 6px;
           }
           .dashboard {
@@ -953,16 +975,13 @@ export default function ScrapCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="scrap-creation-title">
+      <div className="dashboard" aria-labelledby="product-management-title">
         <div className="top-row">
           <div className="title-block">
-            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#eff6ff" />
-              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <Icon.Product size={38} />
             <div>
-              <h2 id="scrap-creation-title">Scrap Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete scrap items.</div>
+              <h2 id="product-management-title">Product Management</h2>
+              <div className="subtitle muted">Create, edit, or delete products.</div>
             </div>
           </div>
 
@@ -975,41 +994,40 @@ export default function ScrapCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Scrap Code field */}
+            {/* Product Code field */}
             <div className="field">
               <label className="field-label">
-                Scrap Code <span className="asterisk">*</span>
+                Product Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={scrapCodeRef}
+                  ref={productCodeRef}
                   className="input"
-                  value={form.scrapCode}
-                  onChange={(e) => setForm(s => ({ ...s, scrapCode: e.target.value }))}
-                  placeholder="Scrap code (auto-generated)"
-                  onKeyDown={onScrapCodeKeyDown}
+                  value={form.fproductcode}
+                  onChange={(e) => setForm(s => ({ ...s, fproductcode: e.target.value }))}
+                  onKeyDown={onProductCodeKeyDown}
                   disabled={loading}
-                  aria-label="Scrap Code"
+                  aria-label="Product Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
               </div>
             </div>
 
-            {/* Scrap Name field */}
+            {/* Product Name field */}
             <div className="field">
               <label className="field-label">
-                Scrap Name <span className="asterisk">*</span>
+                Product Name <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
-                  ref={scrapNameRef} 
+                  ref={productNameRef} 
                   className="input" 
-                  value={form.scrapName} 
-                  onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))} 
-                  placeholder="Enter scrap name" 
-                  onKeyDown={onScrapNameKeyDown}
+                  value={form.fproductname} 
+                  onChange={(e) => setForm(s => ({ ...s, fproductname: e.target.value }))} 
+                  placeholder="Enter product name" 
+                  onKeyDown={onProductNameKeyDown}
                   disabled={loading}
-                  aria-label="Scrap Name"
+                  aria-label="Product Name"
                   readOnly={actionType === "delete"}
                 />
               </div>
@@ -1021,7 +1039,7 @@ export default function ScrapCreation() {
                 {message.text}
               </div>
             )}
-
+            
             {/* Submit controls */}
             <div className="submit-row">
               <button
@@ -1041,15 +1059,16 @@ export default function ScrapCreation() {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Scraps</div>
+            
+            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Products</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing scraps..."
+                  placeholder="Search products..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing scraps"
+                  aria-label="Search products"
                 />
                 {existingQuery && (
                   <button
@@ -1063,35 +1082,38 @@ export default function ScrapCreation() {
                 )}
               </div>
               
-              <div className="scraps-table-container">
+              <div className="products-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading scraps...
+                    Loading products...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {scraps.length === 0 ? "No scraps found" : "No matching scraps"}
+                    {products.length === 0 ? "No products found" : "No matching products"}
                   </div>
                 ) : (
-                  <table className="scraps-table">
+                  <table className="products-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Scrap Name</th>
+                        <th>Product Name</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExisting.map((s) => (
+                      {filteredExisting.map((p) => (
                         <tr 
-                          key={s.scrapCode}
-                          className={form.scrapCode === s.scrapCode ? "selected" : ""}
+                          key={p.fproductcode}
+                          className={form.fproductcode === p.fproductcode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+                            setForm({ 
+                              fproductcode: p.fproductcode, 
+                              fproductname: p.fproductname
+                            });
                             setActionType("edit");
                           }}
                         >
-                          <td>{s.scrapCode}</td>
-                          <td>{s.scrapName}</td>
+                          <td>{p.fproductcode}</td>
+                          <td>{p.fproductname}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1106,28 +1128,28 @@ export default function ScrapCreation() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Scrap" : "Delete Scrap"}
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Product" : "Delete Product"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Scrap Code</div>
+              <div className="muted">Product Code</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.scrapCode || "Auto-generated"}
+                {form.fproductcode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Scrap Name</div>
+              <div className="muted">Product Name</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.scrapName || "Not set"}
+                {form.fproductname || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing Scraps</div>
+              <div className="muted">Existing Products</div>
               <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
-                {scraps.length}
+                {products.length}
               </div>
             </div>
 
@@ -1140,15 +1162,19 @@ export default function ScrapCreation() {
               <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Scrap code is auto-generated for new scraps</span>
+                  <span>Product code is auto-generated from API</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find scraps</span>
+                  <span>For edit/delete, use search modals to find products</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Use Tab/Enter to navigate between fields</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common scraps: METAL, PLASTIC, PAPER, GLASS, RUBBER</span>
+                  <span>Click on any product in the table to edit it</span>
                 </div>
               </div>
             </div>
@@ -1161,11 +1187,11 @@ export default function ScrapCreation() {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap to Edit"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        title="Select Product to Edit"
+        displayFieldKeys={[ 'fproductname', 'fproductcode' ]}
+        searchFields={[ 'fproductname', 'fproductcode' ]}
+        headerNames={[ 'Product Name', 'Code' ]}
+        columnWidths={{ fproductname: '70%', fproductcode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1174,11 +1200,11 @@ export default function ScrapCreation() {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap to Delete"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        title="Select Product to Delete"
+        displayFieldKeys={[ 'fproductname', 'fproductcode' ]}
+        searchFields={[ 'fproductname', 'fproductcode' ]}
+        headerNames={[ 'Product Name', 'Code' ]}
+        columnWidths={{ fproductname: '70%', fproductcode: '30%' }}
         maxHeight="60vh"
       />
     </div>
