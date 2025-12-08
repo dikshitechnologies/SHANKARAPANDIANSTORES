@@ -86,9 +86,7 @@ const Navbar = () => {
     { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined /> },
     { name: 'Brand Creation', path: '/masters/brand-creation', icon: <BuildOutlined /> },
     { name: 'Category Creation', path: '/masters/category-creation', icon: <BuildOutlined /> },
-    { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined /> }
-
-     { name: 'Scrap', path: '/masters/Scrap', icon: <BuildOutlined /> },
+    { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined /> },
      { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined /> },
      
    
