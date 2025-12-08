@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import axiosInstance from '../../api/axiosInstance';
+import { API_ENDPOINTS } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
@@ -87,6 +90,28 @@ const PurchaseInvoice = () => {
     isTablet: false,
     isDesktop: true
   });
+
+  // Auth context for company code
+  const { userData } = useAuth() || {};
+
+  // Fetch next invoice number on mount
+  useEffect(() => {
+    const fetchNextInvNo = async () => {
+      try {
+        const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
+        const endpoint = API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_INVOICES(compCode);
+        const response = await axiosInstance.get(endpoint);
+        const nextCode = response?.data?.nextCode ?? response?.nextCode; // handle axios vs wrapped service
+        if (nextCode) {
+          setBillDetails((prev) => ({ ...prev, invNo: nextCode }));
+        }
+      } catch (err) {
+        // Silent failure; users can manually enter Inv No
+        console.warn('Failed to fetch next invoice number:', err);
+      }
+    };
+    fetchNextInvNo();
+  }, [userData]);
 
   // Update screen size on resize
   useEffect(() => {
@@ -287,8 +312,96 @@ const PurchaseInvoice = () => {
   };
 
   const handleSave = () => {
-    // Save logic here
-    alert('Save functionality to be implemented');
+    try {
+      const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
+      const username = (userData && userData.username) ? userData.username : '';
+
+      const toNumber = (v) => {
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n : 0;
+      };
+
+      const toISODate = (d) => {
+        try {
+          if (!d) return new Date().toISOString();
+          const date = new Date(d);
+          return date.toISOString();
+        } catch {
+          return new Date().toISOString();
+        }
+      };
+
+      const voucherNo = billDetails.invNo || '';
+      const voucherDateISO = toISODate(billDetails.billDate || billDetails.purDate);
+
+      const payload = {
+        bledger: {
+          customerCode: billDetails.partyCode || '',
+          voucherNo: voucherNo,
+          voucherDate: voucherDateISO,
+          billAmount: toNumber(netTotal),
+          balanceAmount: toNumber(netTotal),
+          refType: billDetails.transType || '',
+          refName: billDetails.customerName || '',
+          compCode: compCode,
+          taxMode: '',
+          user: username,
+          gstType: '',
+        },
+        iledger: {
+          vrNo: voucherNo,
+          less: 0,
+          subTotal: toNumber(netTotal),
+          total: toNumber(netTotal),
+          net: toNumber(netTotal),
+          add1: '',
+          add2: '',
+          cstsNo: '',
+          add3: '',
+          add4: '',
+        },
+        items: items.map((it) => ({
+          voucher: voucherNo,
+          itemCode: it.barcode || '',
+          qty: toNumber(it.qty),
+          rate: toNumber(it.rate),
+          amount: toNumber(it.qty) * toNumber(it.rate),
+          fTax: toNumber(it.tax),
+          wRate: toNumber(it.wsRate),
+          fid: String(it.id || ''),
+          fDate: voucherDateISO,
+          fUnit: it.uom || '',
+          fhsn: it.hsn || '',
+          ovrWt: toNumber(it.ovrwt),
+          avgWt: toNumber(it.avgwt),
+          inTax: toNumber(it.intax),
+          outTax: toNumber(it.outtax),
+          acost: toNumber(it.acost),
+          sudo: it.sudo || '',
+          profitPercent: toNumber(it.profitPercent),
+          preRate: toNumber(it.preRT),
+          sRate: toNumber(it.sRate),
+          asRate: toNumber(it.asRate),
+          mrp: toNumber(it.mrp),
+          letProfPer: toNumber(it.letProfPer),
+          ntCost: toNumber(it.ntCost),
+          wsPer: toNumber(it.wsPercent),
+        })).filter((it) => it.itemCode && it.qty > 0),
+      };
+
+      axiosInstance
+        .post(API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE, payload)
+        .then((res) => {
+          alert('Purchase saved successfully');
+        })
+        .catch((err) => {
+          console.warn('CreatePurchase failed:', err);
+          alert('Failed to save purchase');
+        });
+    } catch (e) {
+      console.warn('Save error:', e);
+      alert('Failed to save purchase');
+    }
   };
 
   const handlePrint = () => {
@@ -696,7 +809,7 @@ const PurchaseInvoice = () => {
 
           {/* Customer Name */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Customer:</label>
+            <label style={styles.inlineLabel}>Name:</label>
             <input
               type="text"
               style={styles.inlineInput}
@@ -761,7 +874,17 @@ const PurchaseInvoice = () => {
             />
           </div>
 
-          {/* Mobile No */}
+         
+        </div>
+
+        {/* ROW 3 */}
+        <div style={{
+          ...styles.gridRow,
+          gridTemplateColumns: getGridColumns(),
+          marginBottom: '0',
+        }}>
+
+           {/* Mobile No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Mobile No:</label>
             <input
@@ -777,14 +900,6 @@ const PurchaseInvoice = () => {
               placeholder="Mobile No"
             />
           </div>
-        </div>
-
-        {/* ROW 3 */}
-        <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
-          marginBottom: '0',
-        }}>
           {/* GST No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>GST No:</label>
@@ -851,8 +966,8 @@ const PurchaseInvoice = () => {
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
                 <th style={styles.th}>WSate</th>
-                <th style={styles.th}>Min</th>
-                <th style={styles.th}>Max</th>
+                {/* <th style={styles.th}>Min</th>
+                <th style={styles.th}>Max</th> */}
                 <th style={styles.th}>Action</th>
               </tr>
             </thead>
@@ -1081,7 +1196,7 @@ const PurchaseInvoice = () => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
                     />
                   </td>
-                  <td style={styles.td}>
+                  {/* <td style={styles.td}>
                     <input
                       style={styles.editableInput}
                       value={item.min || ''}
@@ -1100,7 +1215,7 @@ const PurchaseInvoice = () => {
                       onChange={(e) => handleItemChange(item.id, 'max', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'max')}
                     />
-                  </td>
+                  </td> */}
                   <td style={styles.td}>
                     <button
                       aria-label="Delete row"

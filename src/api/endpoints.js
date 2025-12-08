@@ -80,7 +80,12 @@ scrap:{
  {
   getscrapratefixing:"ScrapRateFixing/getFullScrapRateFixing",
   putscrapratefixing:"ScrapRateFixing/updateFullScrapRateFixing",
- }
+ },
+
+  PURCHASE_INVOICE: {
+    GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
+    CREATE_PURCHASE_INVOICE: "PurchaseInvoice/CreatePurchase",
+  }
     
 
 };
