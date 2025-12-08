@@ -4,7 +4,7 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
-// Inline SVG icons (matching ItemGroupCreation style)
+// --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -48,16 +48,16 @@ const Icon = {
   ),
 };
 
-export default function ScrapCreation() {
+export default function StateCreation() {
   // ---------- state ----------
-  const [scraps, setScraps] = useState([]);
+  const [states, setStates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    scrapCode: "", 
-    scrapName: ""
+    fuCode: "", 
+    stateName: ""
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -74,109 +74,55 @@ export default function ScrapCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const scrapCodeRef = useRef(null);
-  const scrapNameRef = useRef(null);
+  const stateCodeRef = useRef(null);
+  const stateNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Base URL for API
-  const BASE_URL = "http://dikshiserver/spstorewebapi/api";
-
   // ---------- API functions ----------
-  const fetchNextScrapCode = async () => {
+  const fetchNextStateCode = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_NEXT_SCRAP_CODE);
+      const data = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
       // Support both string and object responses
       if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, scrapCode: data.trim() }));
-      } else if (data && (data.nextScrapCode || data.scrapCode || data.fcode)) {
-        setForm(prev => ({ ...prev, scrapCode: data.nextScrapCode || data.scrapCode || data.fcode }));
-      } else if (data && data.nextCode) {
-        setForm(prev => ({ ...prev, scrapCode: data.nextCode }));
-      } else {
-        // Fallback: if API doesn't return a code, generate locally
-        generateLocalNextCode();
+        setForm(prev => ({ ...prev, fuCode: data.trim() }));
+      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
+        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
       }
       return data;
     } catch (err) {
-      console.error("API Error fetching next scrap code:", err);
-      // Fallback: generate local code if API fails
-      generateLocalNextCode();
+      setMessage({ type: "error", text: "Failed to load next state code" });
+      console.error("API Error:", err);
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const generateLocalNextCode = () => {
-    if (scraps.length === 0) {
-      setForm(prev => ({ ...prev, scrapCode: "001" }));
-    } else {
-      // Get highest numeric code and increment
-      const maxCode = Math.max(...scraps.map(s => {
-        const code = s.scrapCode || s.fcode || s.scrapCode;
-        return parseInt(code) || 0;
-      }));
-      const nextCode = (maxCode + 1).toString().padStart(3, '0');
-      setForm(prev => ({ ...prev, scrapCode: nextCode }));
-    }
-  };
-
-  const fetchScraps = async () => {
+  const fetchStates = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_ITEMS);
-      
-      // Transform API response to match our expected format
-      const transformedData = Array.isArray(data) 
-        ? data.map(item => ({
-            id: item.id || item.scrapCode,
-            scrapCode: item.scrapCode || item.fcode || item.code,
-            scrapName: item.scrapName || item.name || item.scrapName
-          }))
-        : [];
-      
-      setScraps(transformedData);
+      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS);
+      setStates(data || []);
       setMessage(null);
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load scrap items" });
+      setMessage({ type: "error", text: "Failed to load states" });
       console.error("API Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getScrapByCode = async (code) => {
+  const getStateByCode = async (code) => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_BY_CODE(code));
+      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GETSTATECODE(code));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch scrap" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createScrap = async (scrapData) => {
-    try {
-      setLoading(true);
-      
-      // Prepare payload based on your API requirements
-      const payload = {
-        scrapCode: scrapData.scrapCode,
-        scrapName: scrapData.scrapName.toUpperCase(),
-        // Add other fields if required by your API
-      };
-      
-      const data = await apiService.post(API_ENDPOINTS.SCRAP_CREATION.CREATE_SCRAP, payload);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to create scrap" });
+      setMessage({ type: "error", text: "Failed to fetch state" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -184,21 +130,13 @@ export default function ScrapCreation() {
     }
   };
 
-  const updateScrap = async (scrapData) => {
+  const createState = async (stateData) => {
     try {
       setLoading(true);
-      
-      // Prepare payload based on your API requirements
-      const payload = {
-        scrapCode: scrapData.scrapCode,
-        scrapName: scrapData.scrapName.toUpperCase(),
-        // Add other fields if required by your API
-      };
-      
-      const data = await apiService.put(API_ENDPOINTS.SCRAP_CREATION.UPDATE_SCRAP, payload);
+      const data = await apiService.post(API_ENDPOINTS.STATECREATION.CREATE_STATE, stateData);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update scrap" });
+      setMessage({ type: "error", text: "Failed to create state" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -206,13 +144,27 @@ export default function ScrapCreation() {
     }
   };
 
-  const deleteScrap = async (scrapCode) => {
+  const updateState = async (stateData) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.SCRAP_CREATION.DELETE_SCRAP(scrapCode));
+      const data = await apiService.put(API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), stateData);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete scrap" });
+      setMessage({ type: "error", text: "Failed to update state" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteState = async (stateCode) => {
+    try {
+      setLoading(true);
+      const data = await apiService.del(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
+      return data;
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Failed to delete state" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -235,83 +187,76 @@ export default function ScrapCreation() {
   }, []);
 
   useEffect(() => {
-    if (scrapCodeRef.current) scrapCodeRef.current.focus();
+    if (stateCodeRef.current) stateCodeRef.current.focus();
   }, []);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchScraps(), fetchNextScrapCode()]);
+    await Promise.all([fetchStates(), fetchNextStateCode()]);
   };
 
   const handleEdit = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    if (!form.fuCode || !form.stateName) {
+      setMessage({ type: "error", text: "Please fill State Code and State Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to update state "${form.stateName}"?`)) return;
 
     try {
-      const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
-      await updateScrap(scrapData);
+      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
+      await updateState(stateData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Scrap updated successfully." });
+      setMessage({ type: "success", text: "State updated successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in updateScrap
+      // Error message already set in updateState
     }
   };
 
   const handleDelete = async () => {
-    if (!form.scrapCode) {
-      setMessage({ type: "error", text: "Please select a scrap to delete." });
+    if (!form.fuCode) {
+      setMessage({ type: "error", text: "Please select a state to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to delete state "${form.stateName}"?`)) return;
 
     try {
-      await deleteScrap(form.scrapCode);
+      await deleteState(form.fuCode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Scrap deleted successfully." });
+      setMessage({ type: "success", text: "State deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced scraps
+      // Special handling for referenced states
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete scrap "${form.scrapName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete state "${form.stateName}". It is referenced in other tables and cannot be removed.` 
         });
       }
     }
   };
 
   const handleAdd = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    if (!form.fuCode || !form.stateName) {
+      setMessage({ type: "error", text: "Please fill State Code and State Name." });
       return;
     }
 
-    // Check if scrap code already exists
-    const exists = scraps.some(s => s.scrapCode === form.scrapCode);
-    if (exists) {
-      setMessage({ type: "error", text: `Scrap code ${form.scrapCode} already exists.` });
-      return;
-    }
-
-    if (!window.confirm(`Do you want to create scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to create state "${form.stateName}"?`)) return;
 
     try {
-      const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
-      await createScrap(scrapData);
+      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
+      await createState(stateData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Scrap created successfully." });
+      setMessage({ type: "success", text: "State created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createScrap
+      // Error message already set in createState
     }
   };
 
@@ -322,8 +267,8 @@ export default function ScrapCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextScrapCode();
-    setForm(prev => ({ ...prev, scrapName: "" }));
+    fetchNextStateCode();
+    setForm(prev => ({ ...prev, stateName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -331,7 +276,7 @@ export default function ScrapCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => stateNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -340,11 +285,11 @@ export default function ScrapCreation() {
   };
 
   const handleEditRowClick = (s) => {
-    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+    setForm({ fuCode: s.uCode, stateName: s.stateName });
     setActionType("edit");
-    setEditingId(s.scrapCode);
+    setEditingId(s.uCode);
     setEditModalOpen(false);
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => stateNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -357,28 +302,28 @@ export default function ScrapCreation() {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? scraps.filter(s => (s.scrapCode || '').toLowerCase().includes(q) || (s.scrapName || '').toLowerCase().includes(q))
-      : scraps;
+      ? states.filter(s => (s.uCode || '').toLowerCase().includes(q) || (s.stateName || '').toLowerCase().includes(q))
+      : states;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [scraps]);
+  }, [states]);
 
   const handleDeleteRowClick = (s) => {
-    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+    setForm({ fuCode: s.uCode, stateName: s.stateName });
     setActionType("delete");
-    setDeleteTargetId(s.scrapCode);
+    setDeleteTargetId(s.uCode);
     setDeleteModalOpen(false);
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => stateNameRef.current?.focus(), 60);
   };
 
-  const onScrapCodeKeyDown = (e) => {
+  const onStateCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      scrapNameRef.current?.focus();
+      stateNameRef.current?.focus();
     }
   };
 
-  const onScrapNameKeyDown = (e) => {
+  const onStateNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -393,39 +338,39 @@ export default function ScrapCreation() {
   };
 
   // ---------- filters ----------
-  const filteredEditScraps = useMemo(() => {
+  const filteredEditStates = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return scraps;
-    return scraps.filter(
+    if (!q) return states;
+    return states.filter(
       (s) =>
-        (s.scrapCode || "").toLowerCase().includes(q) ||
-        (s.scrapName || "").toLowerCase().includes(q)
+        (s.uCode || "").toLowerCase().includes(q) ||
+        (s.stateName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, scraps]);
+  }, [editQuery, states]);
 
-  const filteredDeleteScraps = useMemo(() => {
+  const filteredDeleteStates = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return scraps;
-    return scraps.filter(
+    if (!q) return states;
+    return states.filter(
       (s) =>
-        (s.scrapCode || "").toLowerCase().includes(q) ||
-        (s.scrapName || "").toLowerCase().includes(q)
+        (s.uCode || "").toLowerCase().includes(q) ||
+        (s.stateName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, scraps]);
+  }, [deleteQuery, states]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return scraps;
-    return scraps.filter(
+    if (!q) return states;
+    return states.filter(
       (s) => 
-        (s.scrapCode || "").toLowerCase().includes(q) || 
-        (s.scrapName || "").toLowerCase().includes(q)
+        (s.uCode || "").toLowerCase().includes(q) || 
+        (s.stateName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, scraps]);
+  }, [existingQuery, states]);
 
   // ---------- render ----------
   return (
-    <div className="uc-root" role="region" aria-labelledby="scrap-creation-title">
+    <div className="uc-root" role="region" aria-labelledby="state-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
@@ -738,8 +683,8 @@ export default function ScrapCreation() {
           color: #374151;
         }
 
-        /* scraps table */
-        .scraps-table-container {
+        /* states table */
+        .states-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -747,13 +692,13 @@ export default function ScrapCreation() {
           margin-top: 12px;
         }
 
-        .scraps-table {
+        .states-table {
           width: 100%;
           border-collapse: collapse;
           font-size: 18px;
         }
 
-        .scraps-table th {
+        .states-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -766,18 +711,18 @@ export default function ScrapCreation() {
           z-index: 1;
         }
 
-        .scraps-table td {
+        .states-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .scraps-table tr:hover {
+        .states-table tr:hover {
           background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
           cursor: pointer;
         }
 
-        .scraps-table tr.selected {
+        .states-table tr.selected {
           background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
@@ -870,7 +815,7 @@ export default function ScrapCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .scraps-table-container {
+          .states-table-container {
             max-height: 300px;
           }
         }
@@ -903,8 +848,8 @@ export default function ScrapCreation() {
             flex: 1;
             min-width: 0;
           }
-          .scraps-table th,
-          .scraps-table td {
+          .states-table th,
+          .states-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -953,7 +898,7 @@ export default function ScrapCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="scrap-creation-title">
+      <div className="dashboard" aria-labelledby="state-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -961,8 +906,8 @@ export default function ScrapCreation() {
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
-              <h2 id="scrap-creation-title">Scrap Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete scrap items.</div>
+              <h2 id="state-creation-title">State Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete states.</div>
             </div>
           </div>
 
@@ -975,41 +920,41 @@ export default function ScrapCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Scrap Code field */}
+            {/* State Code field */}
             <div className="field">
               <label className="field-label">
-                Scrap Code <span className="asterisk">*</span>
+                State Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={scrapCodeRef}
+                  ref={stateCodeRef}
                   className="input"
-                  value={form.scrapCode}
-                  onChange={(e) => setForm(s => ({ ...s, scrapCode: e.target.value }))}
-                  placeholder="Scrap code (auto-generated)"
-                  onKeyDown={onScrapCodeKeyDown}
+                  value={form.fuCode}
+                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
+                  placeholder="State code (auto-generated)"
+                  onKeyDown={onStateCodeKeyDown}
                   disabled={loading}
-                  aria-label="Scrap Code"
+                  aria-label="State Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
               </div>
             </div>
 
-            {/* Scrap Name field */}
+            {/* State Name field */}
             <div className="field">
               <label className="field-label">
-                Scrap Name <span className="asterisk">*</span>
+                State Name <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
-                  ref={scrapNameRef} 
+                  ref={stateNameRef} 
                   className="input" 
-                  value={form.scrapName} 
-                  onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))} 
-                  placeholder="Enter scrap name" 
-                  onKeyDown={onScrapNameKeyDown}
+                  value={form.stateName} 
+                  onChange={(e) => setForm(s => ({ ...s, stateName: e.target.value }))} 
+                  placeholder="Enter state name" 
+                  onKeyDown={onStateNameKeyDown}
                   disabled={loading}
-                  aria-label="Scrap Name"
+                  aria-label="State Name"
                   readOnly={actionType === "delete"}
                 />
               </div>
@@ -1042,14 +987,14 @@ export default function ScrapCreation() {
               </button>
             </div>
                <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Scraps</div>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing States</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing scraps..."
+                  placeholder="Search existing states..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing scraps"
+                  aria-label="Search existing states"
                 />
                 {existingQuery && (
                   <button
@@ -1063,35 +1008,35 @@ export default function ScrapCreation() {
                 )}
               </div>
               
-              <div className="scraps-table-container">
+              <div className="states-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading scraps...
+                    Loading states...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {scraps.length === 0 ? "No scraps found" : "No matching scraps"}
+                    {states.length === 0 ? "No states found" : "No matching states"}
                   </div>
                 ) : (
-                  <table className="scraps-table">
+                  <table className="states-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Scrap Name</th>
+                        <th>State Name</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredExisting.map((s) => (
                         <tr 
-                          key={s.scrapCode}
-                          className={form.scrapCode === s.scrapCode ? "selected" : ""}
+                          key={s.uCode}
+                          className={form.fuCode === s.uCode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+                            setForm({ fuCode: s.uCode, stateName: s.stateName });
                             setActionType("edit");
                           }}
                         >
-                          <td>{s.scrapCode}</td>
-                          <td>{s.scrapName}</td>
+                          <td>{s.uCode}</td>
+                          <td>{s.stateName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1106,28 +1051,28 @@ export default function ScrapCreation() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Scrap" : "Delete Scrap"}
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit State" : "Delete State"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Scrap Code</div>
+              <div className="muted">State Code</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.scrapCode || "Auto-generated"}
+                {form.fuCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Scrap Name</div>
+              <div className="muted">State Name</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.scrapName || "Not set"}
+                {form.stateName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing Scraps</div>
+              <div className="muted">Existing States</div>
               <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
-                {scraps.length}
+                {states.length}
               </div>
             </div>
 
@@ -1140,15 +1085,15 @@ export default function ScrapCreation() {
               <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Scrap code is auto-generated for new scraps</span>
+                  <span>State code is auto-generated for new states</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find scraps</span>
+                  <span>For edit/delete, use search modals to find states</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common scraps: METAL, PLASTIC, PAPER, GLASS, RUBBER</span>
+                  <span>Examples: Maharashtra, Karnataka, Tamil Nadu</span>
                 </div>
               </div>
             </div>
@@ -1156,29 +1101,31 @@ export default function ScrapCreation() {
         </div>
       </div>
 
+      {/* Edit Popup */}
       <PopupListSelector
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap to Edit"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        title="Select State to Edit"
+        displayFieldKeys={[ 'stateName', 'uCode' ]}
+        searchFields={[ 'stateName', 'uCode' ]}
+        headerNames={[ 'State Name', 'Code' ]}
+        columnWidths={{ stateName: '70%', uCode: '30%' }}
         maxHeight="60vh"
       />
 
+      {/* Delete Popup */}
       <PopupListSelector
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap to Delete"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        title="Select State to Delete"
+        displayFieldKeys={[ 'stateName', 'uCode' ]}
+        searchFields={[ 'stateName', 'uCode' ]}
+        headerNames={[ 'State Name', 'Code' ]}
+        columnWidths={{ stateName: '70%', uCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

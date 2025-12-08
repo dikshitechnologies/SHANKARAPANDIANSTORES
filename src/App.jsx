@@ -10,9 +10,9 @@ import LedgerGroupCreation from './pages/Ledgergroupcreation/Ledgergroupcreation
 import ItemGroupCreation from './pages/ItemGroupCreation/ItemGroupCreation'
 import Administration from './pages/Administration/Admistration'
 import SalesReturn from './pages/SalesReturn/Salesreturn'
-import UserCreation from './pages/UserCreation/usercreation'
+import UserCreation from './pages/UserCreation/UserCreation'
 import ScrapRateFix from './pages/RateFix/scrapratefix'  
-import Scrap from './pages/Scrap/Scrap'
+import Scrap from './pages/Scrap/scrap'
 import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
 import UnitCreation from './pages/UnitCreation/UnitCreation'
@@ -20,10 +20,17 @@ import ColorCreation from './pages/ColorCreation/ColorCreation'
 import SizeCreation from './pages/SizeCreation/SizeCreation'
 import ModelCreation from './pages/ModelCreation/ModelCreation'
 import Billcollector  from './pages/billcollector/billcollectior'
-
+import Design from './pages/DesignCreation/DesignCreation'
 import Tender from './pages/Tender/Tender'
-import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
+import ScrapPage from './pages/scrappage/scrappage'
+import BrandPage from './pages/Brand/Brand'
+import Category from './pages/category/category'
+import Product from './pages/Product/Product'
 
+import ScrapProcurement from './pages/ScrapProcurement/Scrapprocurement'
+import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
+import Statecreation from './pages/statecreation/statecreation'
+import Purchasereturn from './pages/Purchasereturn/Purchasereturn'
 function App() {
   return (
     <div className="app">
@@ -34,9 +41,6 @@ function App() {
           <Route path="test" element={<TestPage />} />
           {/* <Route path="test" element={<Test />} /> */}
           <Route path="/masters/company-creation" element={<Company />} />
-          
-          
-
           <Route path="sales-invoice" element={<SalesInvoice />} />
           <Route path="/masters/ledger-creation" element={<LedgerCreation />} />
           <Route path="/masters/item-creation" element={<ItemCreation />} />
@@ -55,6 +59,14 @@ function App() {
           <Route path="/transactions/bill-collector" element={<Billcollector />} />
           <Route path="/Transaction/Tender" element={<Tender />} />
           <Route path="/transactions/purchase-invoice" element={<PurchaseInvoice />} />
+          <Route path="/design-creation" element={<Design />} />
+          <Route path="/masters/scrap-page" element={<ScrapPage />} />
+          <Route path="/masters/brand-creation" element={<BrandPage />} />
+          <Route path="/masters/category-creation" element={<Category />} />
+          <Route path="/masters/product-creation" element={<Product />} />
+           <Route path="/ScrapProcurement" element={<ScrapProcurement />} />
+           <Route path="/masters/Statecreation" element={<Statecreation />} /> 
+          <Route path="/transactions/Purchasereturn" element={<Purchasereturn />} />
         </Routes>
       </main>
     </div>

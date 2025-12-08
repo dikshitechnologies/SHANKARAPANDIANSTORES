@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import axiosInstance from '../../api/axiosInstance';
-import { API_ENDPOINTS } from '../../api/endpoints';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
-// import { useFormPermissions } from '../../../hooks/useFormPermissions';
 
 const FCompCode = "001";
 
@@ -25,7 +22,7 @@ const Icon = {
   ),
   Search: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
+      <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
     </svg>
   ),
   Close: ({ size = 18 }) => (
@@ -116,10 +113,305 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
   );
 }
 
+// Mock data for tree
+const MOCK_TREE_DATA = [
+  {
+    key: "/electronics",
+    displayName: "Electronics",
+    id: "ELEC001",
+    children: [
+      {
+        key: "/electronics/mobile",
+        displayName: "Mobile Phones",
+        id: "MOB001",
+        children: [
+          { key: "/electronics/mobile/samsung", displayName: "Samsung", id: "SAM001", children: [] },
+          { key: "/electronics/mobile/apple", displayName: "Apple", id: "APP001", children: [] },
+          { key: "/electronics/mobile/xiaomi", displayName: "Xiaomi", id: "XIA001", children: [] }
+        ]
+      },
+      {
+        key: "/electronics/laptop",
+        displayName: "Laptops",
+        id: "LAP001",
+        children: [
+          { key: "/electronics/laptop/dell", displayName: "Dell", id: "DEL001", children: [] },
+          { key: "/electronics/laptop/hp", displayName: "HP", id: "HP001", children: [] },
+          { key: "/electronics/laptop/lenovo", displayName: "Lenovo", id: "LEN001", children: [] }
+        ]
+      },
+      {
+        key: "/electronics/tv",
+        displayName: "Televisions",
+        id: "TV001",
+        children: [
+          { key: "/electronics/tv/lg", displayName: "LG", id: "LG001", children: [] },
+          { key: "/electronics/tv/sony", displayName: "Sony", id: "SON001", children: [] }
+        ]
+      }
+    ]
+  },
+  {
+    key: "/clothing",
+    displayName: "Clothing",
+    id: "CLOTH001",
+    children: [
+      {
+        key: "/clothing/men",
+        displayName: "Men's Wear",
+        id: "MEN001",
+        children: [
+          { key: "/clothing/men/shirts", displayName: "Shirts", id: "SHIRT001", children: [] },
+          { key: "/clothing/men/pants", displayName: "Pants", id: "PANT001", children: [] },
+          { key: "/clothing/men/jackets", displayName: "Jackets", id: "JACK001", children: [] }
+        ]
+      },
+      {
+        key: "/clothing/women",
+        displayName: "Women's Wear",
+        id: "WOM001",
+        children: [
+          { key: "/clothing/women/dresses", displayName: "Dresses", id: "DRESS001", children: [] },
+          { key: "/clothing/women/tops", displayName: "Tops", id: "TOP001", children: [] },
+          { key: "/clothing/women/skirts", displayName: "Skirts", id: "SKIRT001", children: [] }
+        ]
+      },
+      {
+        key: "/clothing/kids",
+        displayName: "Kids Wear",
+        id: "KIDS001",
+        children: [
+          { key: "/clothing/kids/toys", displayName: "Toys", id: "TOY001", children: [] },
+          { key: "/clothing/kids/school", displayName: "School Uniform", id: "SCHOOL001", children: [] }
+        ]
+      }
+    ]
+  },
+  {
+    key: "/furniture",
+    displayName: "Furniture",
+    id: "FURN001",
+    children: [
+      {
+        key: "/furniture/living",
+        displayName: "Living Room",
+        id: "LIV001",
+        children: [
+          { key: "/furniture/living/sofa", displayName: "Sofa", id: "SOFA001", children: [] },
+          { key: "/furniture/living/tables", displayName: "Tables", id: "TABLE001", children: [] },
+          { key: "/furniture/living/chairs", displayName: "Chairs", id: "CHAIR001", children: [] }
+        ]
+      },
+      {
+        key: "/furniture/bedroom",
+        displayName: "Bedroom",
+        id: "BED001",
+        children: [
+          { key: "/furniture/bedroom/beds", displayName: "Beds", id: "BED002", children: [] },
+          { key: "/furniture/bedroom/wardrobes", displayName: "Wardrobes", id: "WARD001", children: [] }
+        ]
+      },
+      {
+        key: "/furniture/office",
+        displayName: "Office Furniture",
+        id: "OFF001",
+        children: [
+          { key: "/furniture/office/desks", displayName: "Desks", id: "DESK001", children: [] },
+          { key: "/furniture/office/cabinets", displayName: "Cabinets", id: "CAB001", children: [] }
+        ]
+      }
+    ]
+  },
+  {
+    key: "/groceries",
+    displayName: "Groceries",
+    id: "GROC001",
+    children: [
+      {
+        key: "/groceries/food",
+        displayName: "Food Items",
+        id: "FOOD001",
+        children: [
+          { key: "/groceries/food/grains", displayName: "Grains", id: "GRAIN001", children: [] },
+          { key: "/groceries/food/spices", displayName: "Spices", id: "SPICE001", children: [] }
+        ]
+      },
+      {
+        key: "/groceries/beverages",
+        displayName: "Beverages",
+        id: "BEV001",
+        children: [
+          { key: "/groceries/beverages/softdrinks", displayName: "Soft Drinks", id: "DRINK001", children: [] },
+          { key: "/groceries/beverages/juices", displayName: "Juices", id: "JUICE001", children: [] }
+        ]
+      }
+    ]
+  },
+  {
+    key: "/stationery",
+    displayName: "Stationery",
+    id: "STAT001",
+    children: [
+      {
+        key: "/stationery/writing",
+        displayName: "Writing Materials",
+        id: "WRITE001",
+        children: [
+          { key: "/stationery/writing/pens", displayName: "Pens", id: "PEN001", children: [] },
+          { key: "/stationery/writing/notebooks", displayName: "Notebooks", id: "NOTE001", children: [] }
+        ]
+      },
+      {
+        key: "/stationery/office",
+        displayName: "Office Supplies",
+        id: "OFFSUP001",
+        children: [
+          { key: "/stationery/office/files", displayName: "Files", id: "FILE001", children: [] },
+          { key: "/stationery/office/staplers", displayName: "Staplers", id: "STAP001", children: [] }
+        ]
+      }
+    ]
+  }
+];
+
+// Mock data for items
+const MOCK_ITEMS_DATA = [
+  { fItemcode: "ITEM001", fItemName: "iPhone 15 Pro", fParent: "Electronics/Apple", fShort: "i15P", fBrand: "Apple", fCategory: "Smartphones", fProduct: "iPhone", fModel: "15 Pro", fSize: "128GB", fMax: "100", fMin: "10", ftax: "18", fPrefix: "1001", gstcheckbox: "Y", manualprefix: "Y" },
+  { fItemcode: "ITEM002", fItemName: "Samsung Galaxy S24", fParent: "Electronics/Samsung", fShort: "SGS24", fBrand: "Samsung", fCategory: "Smartphones", fProduct: "Galaxy", fModel: "S24", fSize: "256GB", fMax: "150", fMin: "15", ftax: "18", fPrefix: "1002", gstcheckbox: "Y", manualprefix: "Y" },
+  { fItemcode: "ITEM003", fItemName: "Dell XPS 13", fParent: "Electronics/Dell", fShort: "DXPS13", fBrand: "Dell", fCategory: "Laptops", fProduct: "XPS", fModel: "13", fSize: "16GB/512GB", fMax: "50", fMin: "5", ftax: "18", fPrefix: "1003", gstcheckbox: "Y", manualprefix: "Y" },
+  { fItemcode: "ITEM004", fItemName: "Men's Formal Shirt", fParent: "Clothing/Shirts", fShort: "MFS", fBrand: "Van Heusen", fCategory: "Clothing", fProduct: "Shirt", fModel: "Formal", fSize: "M", fMax: "200", fMin: "20", ftax: "12", fPrefix: "1004", gstcheckbox: "Y", manualprefix: "Y" },
+  { fItemcode: "ITEM005", fItemName: "Women's Summer Dress", fParent: "Clothing/Dresses", fShort: "WSSD", fBrand: "Zara", fCategory: "Clothing", fProduct: "Dress", fModel: "Summer", fSize: "S", fMax: "180", fMin: "18", ftax: "12", fPrefix: "1005", gstcheckbox: "Y", manualprefix: "Y" },
+  { fItemcode: "ITEM006", fItemName: "Leather Sofa", fParent: "Furniture/Sofa", fShort: "LS", fBrand: "Urban Ladder", fCategory: "Furniture", fProduct: "Sofa", fModel: "Leather", fSize: "3 Seater", fMax: "30", fMin: "3", ftax: "18", fPrefix: "1006", gstcheckbox: "Y", manualprefix: "Y" },
+  { fItemcode: "ITEM007", fItemName: "Office Desk", fParent: "Furniture/Desks", fShort: "OD", fBrand: "Godrej", fCategory: "Furniture", fProduct: "Desk", fModel: "Executive", fSize: "150x75cm", fMax: "40", fMin: "4", ftax: "18", fPrefix: "1007", gstcheckbox: "Y", manualprefix: "Y" },
+  { fItemcode: "ITEM008", fItemName: "Basmati Rice", fParent: "Groceries/Grains", fShort: "BR", fBrand: "India Gate", fCategory: "Groceries", fProduct: "Rice", fModel: "Basmati", fSize: "5kg", fMax: "500", fMin: "50", ftax: "5", fPrefix: "1008", gstcheckbox: "Y", manualprefix: "N" },
+  { fItemcode: "ITEM009", fItemName: "Red Bull Energy Drink", fParent: "Groceries/Soft Drinks", fShort: "RBED", fBrand: "Red Bull", fCategory: "Beverages", fProduct: "Energy Drink", fModel: "Original", fSize: "250ml", fMax: "1000", fMin: "100", ftax: "28", fPrefix: "1009", gstcheckbox: "Y", manualprefix: "N" },
+  { fItemcode: "ITEM010", fItemName: "Ballpoint Pen Pack", fParent: "Stationery/Pens", fShort: "BPP", fBrand: "Reynolds", fCategory: "Stationery", fProduct: "Pen", fModel: "Ballpoint", fSize: "10 Pack", fMax: "2000", fMin: "200", ftax: "18", fPrefix: "1010", gstcheckbox: "N", manualprefix: "N" },
+  { fItemcode: "ITEM011", fItemName: "A4 Notebook", fParent: "Stationery/Notebooks", fShort: "A4N", fBrand: "Classmate", fCategory: "Stationery", fProduct: "Notebook", fModel: "A4", fSize: "200 Pages", fMax: "800", fMin: "80", ftax: "12", fPrefix: "1011", gstcheckbox: "Y", manualprefix: "N" },
+  { fItemcode: "ITEM012", fItemName: "LED TV 55 inch", fParent: "Electronics/LG", fShort: "LED55", fBrand: "LG", fCategory: "Electronics", fProduct: "TV", fModel: "OLED", fSize: "55 inch", fMax: "25", fMin: "2", ftax: "28", fPrefix: "1012", gstcheckbox: "Y", manualprefix: "Y" },
+  { fItemcode: "ITEM013", fItemName: "Kids School Bag", fParent: "Clothing/School Uniform", fShort: "KSB", fBrand: "Skybags", fCategory: "Bags", fProduct: "School Bag", fModel: "Junior", fSize: "Medium", fMax: "300", fMin: "30", ftax: "12", fPrefix: "1013", gstcheckbox: "Y", manualprefix: "N" },
+  { fItemcode: "ITEM014", fItemName: "Kitchen Cabinet", fParent: "Furniture/Cabinets", fShort: "KC", fBrand: "Hafele", fCategory: "Furniture", fProduct: "Cabinet", fModel: "Kitchen", fSize: "6x2 feet", fMax: "20", fMin: "2", ftax: "18", fPrefix: "1014", gstcheckbox: "Y", manualprefix: "Y" },
+  { fItemcode: "ITEM015", fItemName: "Turmeric Powder", fParent: "Groceries/Spices", fShort: "TP", fBrand: "Everest", fCategory: "Groceries", fProduct: "Spice", fModel: "Turmeric", fSize: "200g", fMax: "1000", fMin: "100", ftax: "5", fPrefix: "1015", gstcheckbox: "Y", manualprefix: "N" }
+];
+
+// Mock data for brands
+const MOCK_BRANDS_DATA = [
+  { fcode: "BR001", fname: "Apple" },
+  { fcode: "BR002", fname: "Samsung" },
+  { fcode: "BR003", fname: "Dell" },
+  { fcode: "BR004", fname: "HP" },
+  { fcode: "BR005", fname: "LG" },
+  { fcode: "BR006", fname: "Sony" },
+  { fcode: "BR007", fname: "Van Heusen" },
+  { fcode: "BR008", fname: "Zara" },
+  { fcode: "BR009", fname: "Urban Ladder" },
+  { fcode: "BR010", fname: "Godrej" },
+  { fcode: "BR011", fname: "India Gate" },
+  { fcode: "BR012", fname: "Red Bull" },
+  { fcode: "BR013", fname: "Reynolds" },
+  { fcode: "BR014", fname: "Classmate" },
+  { fcode: "BR015", fname: "Skybags" },
+  { fcode: "BR016", fname: "Hafele" },
+  { fcode: "BR017", fname: "Everest" },
+  { fcode: "BR018", fname: "Nike" },
+  { fcode: "BR019", fname: "Adidas" },
+  { fcode: "BR020", fname: "Puma" }
+];
+
+// Mock data for categories
+const MOCK_CATEGORIES_DATA = [
+  { fcode: "CAT001", fname: "Electronics" },
+  { fcode: "CAT002", fname: "Clothing" },
+  { fcode: "CAT003", fname: "Furniture" },
+  { fcode: "CAT004", fname: "Groceries" },
+  { fcode: "CAT005", fname: "Stationery" },
+  { fcode: "CAT006", fname: "Beverages" },
+  { fcode: "CAT007", fname: "Footwear" },
+  { fcode: "CAT008", fname: "Home Appliances" },
+  { fcode: "CAT009", fname: "Beauty & Personal Care" },
+  { fcode: "CAT010", fname: "Sports" },
+  { fcode: "CAT011", fname: "Toys" },
+  { fcode: "CAT012", fname: "Jewelry" },
+  { fcode: "CAT013", fname: "Books" },
+  { fcode: "CAT014", fname: "Automotive" },
+  { fcode: "CAT015", fname: "Health & Wellness" }
+];
+
+// Mock data for products
+const MOCK_PRODUCTS_DATA = [
+  { fcode: "PROD001", fname: "Smartphones" },
+  { fcode: "PROD002", fname: "Laptops" },
+  { fcode: "PROD003", fname: "Televisions" },
+  { fcode: "PROD004", fname: "Shirts" },
+  { fcode: "PROD005", fname: "Dresses" },
+  { fcode: "PROD006", fname: "Sofa" },
+  { fcode: "PROD007", fname: "Desk" },
+  { fcode: "PROD008", fname: "Rice" },
+  { fcode: "PROD009", fname: "Energy Drink" },
+  { fcode: "PROD010", fname: "Pen" },
+  { fcode: "PROD011", fname: "Notebook" },
+  { fcode: "PROD012", fname: "TV" },
+  { fcode: "PROD013", fname: "School Bag" },
+  { fcode: "PROD014", fname: "Cabinet" },
+  { fcode: "PROD015", fname: "Spice" },
+  { fcode: "PROD016", fname: "Shoes" },
+  { fcode: "PROD017", fname: "Watch" },
+  { fcode: "PROD018", fname: "Headphones" },
+  { fcode: "PROD019", fname: "Tablet" },
+  { fcode: "PROD020", fname: "Refrigerator" }
+];
+
+// Mock data for models
+const MOCK_MODELS_DATA = [
+  { fcode: "MOD001", fname: "15 Pro" },
+  { fcode: "MOD002", fname: "Galaxy S24" },
+  { fcode: "MOD003", fname: "XPS 13" },
+  { fcode: "MOD004", fname: "Formal" },
+  { fcode: "MOD005", fname: "Summer" },
+  { fcode: "MOD006", fname: "Leather" },
+  { fcode: "MOD007", fname: "Executive" },
+  { fcode: "MOD008", fname: "Basmati" },
+  { fcode: "MOD009", fname: "Original" },
+  { fcode: "MOD010", fname: "Ballpoint" },
+  { fcode: "MOD011", fname: "A4" },
+  { fcode: "MOD012", fname: "OLED" },
+  { fcode: "MOD013", fname: "Junior" },
+  { fcode: "MOD014", fname: "Kitchen" },
+  { fcode: "MOD015", fname: "Turmeric" },
+  { fcode: "MOD016", fname: "Air Max" },
+  { fcode: "MOD017", fname: "Classic" },
+  { fcode: "MOD018", fname: "Wireless" },
+  { fcode: "MOD019", fname: "iPad Air" },
+  { fcode: "MOD020", fname: "Frost Free" }
+];
+
+// Mock data for sizes
+const MOCK_SIZES_DATA = [
+  { fcode: "SIZ001", fname: "128GB" },
+  { fcode: "SIZ002", fname: "256GB" },
+  { fcode: "SIZ003", fname: "16GB/512GB" },
+  { fcode: "SIZ004", fname: "M" },
+  { fcode: "SIZ005", fname: "S" },
+  { fcode: "SIZ006", fname: "3 Seater" },
+  { fcode: "SIZ007", fname: "150x75cm" },
+  { fcode: "SIZ008", fname: "5kg" },
+  { fcode: "SIZ009", fname: "250ml" },
+  { fcode: "SIZ010", fname: "10 Pack" },
+  { fcode: "SIZ011", fname: "200 Pages" },
+  { fcode: "SIZ012", fname: "55 inch" },
+  { fcode: "SIZ013", fname: "Medium" },
+  { fcode: "SIZ014", fname: "6x2 feet" },
+  { fcode: "SIZ015", fname: "200g" },
+  { fcode: "SIZ016", fname: "L" },
+  { fcode: "SIZ017", fname: "XL" },
+  { fcode: "SIZ018", fname: "XXL" },
+  { fcode: "SIZ019", fname: "10 inch" },
+  { fcode: "SIZ020", fname: "15 inch" }
+];
+
 const ItemCreation = ({ onCreated }) => {
   // State management
   const [treeData, setTreeData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
@@ -128,42 +420,54 @@ const ItemCreation = ({ onCreated }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
-  const [isCounterPopupOpen, setIsCounterPopupOpen] = useState(false);
   const [message, setMessage] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
 
   // Checkbox states
   const [gstChecked, setGstChecked] = useState(false);
   const [manualPrefixChecked, setManualPrefixChecked] = useState(false);
-  const [pieceRateChecked, setPieceRateChecked] = useState(false);
 
-  // Form data state
+  // Form data state - Updated
   const [formData, setFormData] = useState({
     fitemCode: '',
     itemName: '',
     groupName: '',
     shortName: '',
-    counter: '',
+    brand: '',
+    category: '',
+    product: '',
+    model: '',
+    size: '',
+    max: '',
+    min: '',
     prefix: '',
-    hsnCode: '',
     gstin: '',
-    pieceRate: 'N',
     gst: 'N',
     manualprefix: 'N'
   });
 
+  // Popup states for fields
+  const [isBrandPopupOpen, setIsBrandPopupOpen] = useState(false);
+  const [isCategoryPopupOpen, setIsCategoryPopupOpen] = useState(false);
+  const [isProductPopupOpen, setIsProductPopupOpen] = useState(false);
+  const [isModelPopupOpen, setIsModelPopupOpen] = useState(false);
+  const [isSizePopupOpen, setIsSizePopupOpen] = useState(false);
+
   // Refs for form inputs
   const itemNameRef = useRef(null);
-  const groupNameRef = useRef(null);
   const shortNameRef = useRef(null);
-  const counterRef = useRef(null);
+  const groupNameRef = useRef(null);
+  const brandRef = useRef(null);
+  const categoryRef = useRef(null);
+  const productRef = useRef(null);
+  const modelRef = useRef(null);
+  const sizeRef = useRef(null);
+  const maxRef = useRef(null);
+  const minRef = useRef(null);
   const prefixRef = useRef(null);
-  const hsnCodeRef = useRef(null);
   const gstinRef = useRef(null);
 
   // Get permissions for this form.
-  // The `useFormPermissions` hook may not be available in this workspace yet.
-  // Use a safe permissive fallback to avoid runtime ReferenceError.
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
 
   // Auto-focus Group Name on component mount
@@ -201,32 +505,15 @@ const ItemCreation = ({ onCreated }) => {
 
   const fetchTreeData = async () => {
     try {
-      const response = await axiosInstance.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
-      if (!response.data) throw new Error('Invalid tree data format');
+      // Mock API call - using static data
+      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
       
-      const transformedData = transformApiData(response.data);
-      setTreeData(transformedData);
-      setExpandedKeys(new Set(transformedData.map(item => item.key)));
+      setTreeData(MOCK_TREE_DATA);
+      setExpandedKeys(new Set(MOCK_TREE_DATA.map(item => item.key)));
     } catch (error) {
       console.error('Tree data fetch error:', error);
       setMessage({ type: "error", text: 'Failed to fetch tree data.' });
     }
-  };
-
-  const transformApiData = (apiData) => {
-    if (!Array.isArray(apiData)) return [];
-    
-    const buildTree = (items, parentPath = "") =>
-      items.map((item, idx) => {
-        const key = `${parentPath}/${item.fitemcode || item.fitemCode || idx}`;
-        return {
-          key,
-          displayName: item.fitemname || item.fitemName || "Unnamed",
-          id: item.fitemcode || item.fitemCode || null,
-          children: Array.isArray(item.children) ? buildTree(item.children, key) : [],
-        };
-      });
-    return buildTree(apiData);
   };
 
   const toggleExpand = (key) => {
@@ -269,18 +556,13 @@ const ItemCreation = ({ onCreated }) => {
     }
   };
 
-  const handlePieceRateToggle = () => {
-    const newValue = !pieceRateChecked;
-    setPieceRateChecked(newValue);
-    handleChange('pieceRate', newValue ? 'Y' : 'N');
-  };
-
   const getMaxPrefixFromAPI = async () => {
     try {
-      const response = await axiosInstance.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getMaxPrefix);
-      if (response.status === 200 && response.data.prefix) {
-        handleChange('prefix', response.data.prefix);
-      }
+      // Mock API call - generate next available prefix
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const maxPrefix = Math.max(...MOCK_ITEMS_DATA.map(item => parseInt(item.fPrefix || '0')), 1000);
+      const nextPrefix = (maxPrefix + 1).toString();
+      handleChange('prefix', nextPrefix);
     } catch (error) {
       console.error('Error fetching max prefix:', error);
       setMessage({ type: "error", text: 'Failed to fetch prefix. Please try again.' });
@@ -307,13 +589,6 @@ const ItemCreation = ({ onCreated }) => {
         gstinRef.current?.focus();
         return false;
       }
-    }
-
-    // Validate HSN Code (8 digits)
-    if (formData.hsnCode && (isNaN(formData.hsnCode) || formData.hsnCode.length !== 8)) {
-      setMessage({ type: "error", text: 'HSN Code must be an 8-digit number.' });
-      hsnCodeRef.current?.focus();
-      return false;
     }
 
     return true;
@@ -350,9 +625,8 @@ const ItemCreation = ({ onCreated }) => {
       // For create operations, check for duplicates
       if (actionType === 'create') {
         try {
-          const response = await axiosInstance.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown);
-          const existingItems = Array.isArray(response.data) ? response.data : [];
-          const isDuplicate = existingItems.some(item => 
+          await new Promise(resolve => setTimeout(resolve, 200)); // Simulate network delay
+          const isDuplicate = MOCK_ITEMS_DATA.some(item => 
             item.fItemName?.toLowerCase() === formData.itemName.toLowerCase()
           );
           if (isDuplicate) {
@@ -369,15 +643,19 @@ const ItemCreation = ({ onCreated }) => {
       }
 
       const requestData = {
-        fitemCode: formData.fitemCode || '',
+        fitemCode: formData.fitemCode || `ITEM${String(MOCK_ITEMS_DATA.length + 101).padStart(3, '0')}`,
         fitemName: formData.itemName || '',
         groupName: mainGroup || '',
         shortName: formData.shortName || '',
-        counter: formData.counter || '',
+        brand: formData.brand || '',
+        category: formData.category || '',
+        product: formData.product || '',
+        model: formData.model || '',
+        size: formData.size || '',
+        max: formData.max || '',
+        min: formData.min || '',
         prefix: formData.prefix || '',
-        hsnCode: formData.hsnCode || '',
         gstNumber: formData.gstin || '', 
-        pieceRate: formData.pieceRate || 'N',
         gst: formData.gst || 'N',
         manualprefix: formData.manualprefix || 'N',
         fCompCode: FCompCode || '',
@@ -385,10 +663,13 @@ const ItemCreation = ({ onCreated }) => {
 
       console.log('Submitted Request Data:', requestData);
 
-      let response;
+      // Simulate API response delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       switch (actionType) {
         case 'create':
-          response = await axiosInstance.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
+          // In real scenario, this would be an API call
+          // For mock, we'll just show success message
           setMessage({ type: "success", text: 'Data saved successfully!' });
           if (onCreated) {
             onCreated({
@@ -398,15 +679,9 @@ const ItemCreation = ({ onCreated }) => {
           }
           break;
         case 'edit':
-          response = await axiosInstance.put(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.putEdit, requestData);
           setMessage({ type: "success", text: 'Data updated successfully!' });
           break;
         case 'delete':
-          if (!formData.fitemCode) {
-            setMessage({ type: "error", text: 'fitemCode is required for deletion' });
-            return;
-          }
-          response = await axiosInstance.delete(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
           setMessage({ type: "success", text: 'Data deleted successfully!' });
           break;
         default:
@@ -414,12 +689,10 @@ const ItemCreation = ({ onCreated }) => {
           return;
       }
 
-      if (response.status === 200 || response.status === 201) {
-        handleClear();
-        await fetchTreeData();
-      } else {
-        setMessage({ type: "error", text: 'Failed to process request' });
-      }
+      // Simulate success response
+      handleClear();
+      await fetchTreeData();
+      
     } catch (error) {
       console.error('Submit error:', error);
       if (error.response) {
@@ -441,43 +714,36 @@ const ItemCreation = ({ onCreated }) => {
     }
   };
 
-  const fetchData = async (searchText = '') => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get(
-        `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?searchText=${searchText}`,
-      );
-
-      let responseData = response.data;
-      if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
-        responseData = responseData.data || responseData.result || [];
-      }
-
-      const dataArray = Array.isArray(responseData) ? responseData : [];
-      setDataList(dataArray);
-      setModalVisible(true);
-    } catch (error) {
-      console.error('Fetch error:', error);
-      setMessage({ type: "error", text: 'Failed to fetch data' });
-      setDataList([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Fetch function used by PopupListSelector for Edit/Delete
   const fetchPopupItems = useCallback(async (page = 1, search = '') => {
     try {
-      const url = `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?searchText=${encodeURIComponent(search)}`;
-      const resp = await axiosInstance.get(url);
-      let items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || resp.data?.result || []);
-
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      let items = [...MOCK_ITEMS_DATA];
+      
+      // Filter by search text if provided
+      if (search.trim()) {
+        const searchLower = search.toLowerCase();
+        items = items.filter(item => 
+          item.fItemName?.toLowerCase().includes(searchLower) ||
+          item.fParent?.toLowerCase().includes(searchLower)
+        );
+      }
+      
       return items.map((it) => ({
         ...it,
         // normalized fields for consumers
         fItemName: it.fItemName ?? it.fitemName ?? it.fItemname ?? it.fItem ?? '',
         fItemcode: it.fItemcode ?? it.fitemCode ?? it.fitemcode ?? it.fCode ?? '',
-        fParent: it.fParent ?? it.groupName ?? it.fParentName ?? ''
+        fParent: it.fParent ?? it.groupName ?? it.fParentName ?? '',
+        fBrand: it.fBrand || '',
+        fCategory: it.fCategory || '',
+        fProduct: it.fProduct || '',
+        fModel: it.fModel || '',
+        fSize: it.fSize || '',
+        fMax: it.fMax || '',
+        fMin: it.fMin || ''
       }));
     } catch (err) {
       console.error('fetchPopupItems error', err);
@@ -485,29 +751,126 @@ const ItemCreation = ({ onCreated }) => {
     }
   }, []);
 
-  // Fetch function for Counter PopupListSelector
-  const fetchCounterItems = useCallback(async (page = 1, search = '') => {
+  // Fetch functions for popups
+  const fetchBrands = useCallback(async (page = 1, search = '') => {
     try {
-      const response = await axiosInstance.get(API_ENDPOINTS.GET_COUNTER_LIST);
-      const counterData = Array.isArray(response.data) ? response.data : [];
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Filter by search text if provided
-      const filtered = search ? counterData.filter(item => 
-        item.fbox?.toLowerCase().includes(search.toLowerCase())
-      ) : counterData;
+      let items = [...MOCK_BRANDS_DATA];
       
-      return filtered.map((item) => ({
+      if (search.trim()) {
+        const searchLower = search.toLowerCase();
+        items = items.filter(item => 
+          item.fname?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return items.map((item) => ({
         ...item,
-        fbox: item.fbox || '',
+        fname: item.fname || '',
         fcode: item.fcode || ''
       }));
     } catch (err) {
-      console.error('fetchCounterItems error', err);
+      console.error('fetchBrands error', err);
       return [];
     }
   }, []);
 
+  const fetchCategories = useCallback(async (page = 1, search = '') => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      let items = [...MOCK_CATEGORIES_DATA];
+      
+      if (search.trim()) {
+        const searchLower = search.toLowerCase();
+        items = items.filter(item => 
+          item.fname?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return items.map((item) => ({
+        ...item,
+        fname: item.fname || '',
+        fcode: item.fcode || ''
+      }));
+    } catch (err) {
+      console.error('fetchCategories error', err);
+      return [];
+    }
+  }, []);
 
+  const fetchProducts = useCallback(async (page = 1, search = '') => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      let items = [...MOCK_PRODUCTS_DATA];
+      
+      if (search.trim()) {
+        const searchLower = search.toLowerCase();
+        items = items.filter(item => 
+          item.fname?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return items.map((item) => ({
+        ...item,
+        fname: item.fname || '',
+        fcode: item.fcode || ''
+      }));
+    } catch (err) {
+      console.error('fetchProducts error', err);
+      return [];
+    }
+  }, []);
+
+  const fetchModels = useCallback(async (page = 1, search = '') => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      let items = [...MOCK_MODELS_DATA];
+      
+      if (search.trim()) {
+        const searchLower = search.toLowerCase();
+        items = items.filter(item => 
+          item.fname?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return items.map((item) => ({
+        ...item,
+        fname: item.fname || '',
+        fcode: item.fcode || ''
+      }));
+    } catch (err) {
+      console.error('fetchModels error', err);
+      return [];
+    }
+  }, []);
+
+  const fetchSizes = useCallback(async (page = 1, search = '') => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      let items = [...MOCK_SIZES_DATA];
+      
+      if (search.trim()) {
+        const searchLower = search.toLowerCase();
+        items = items.filter(item => 
+          item.fname?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return items.map((item) => ({
+        ...item,
+        fname: item.fname || '',
+        fcode: item.fcode || ''
+      }));
+    } catch (err) {
+      console.error('fetchSizes error', err);
+      return [];
+    }
+  }, []);
 
   const resetForm = (keepAction = false) => {
     setMainGroup('');
@@ -517,17 +880,20 @@ const ItemCreation = ({ onCreated }) => {
       itemName: '',
       groupName: '',
       shortName: '',
-      counter: '',
+      brand: '',
+      category: '',
+      product: '',
+      model: '',
+      size: '',
+      max: '',
+      min: '',
       prefix: '',
-      hsnCode: '',
       gstin: '',
-      pieceRate: 'N',
       gst: 'N',
       manualprefix: 'N'
     });
     setGstChecked(false);
     setManualPrefixChecked(false);
-    setPieceRateChecked(false);
     setMessage(null);
     setSearchTree('');
     if (!keepAction) setActionType('create');
@@ -541,7 +907,7 @@ const ItemCreation = ({ onCreated }) => {
     setIsTreeOpen(true);
     
     if (type === 'edit' || type === 'delete') {
-      fetchData();
+      // No need to fetch data here - PopupListSelector will handle it
     }
   };
 
@@ -737,7 +1103,30 @@ const ItemCreation = ({ onCreated }) => {
           padding:10px;
           width: 100%;
         }
-        .tree-scroll { max-height:260px; overflow:auto; padding-right:6px; }
+        .tree-scroll { 
+          max-height:260px; 
+          overflow:auto; 
+          padding-right:6px;
+          /* Scrollbar styles */
+          scrollbar-width: thin;
+          scrollbar-color: rgba(12,18,35,0.1) transparent;
+        }
+        .tree-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .tree-scroll::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 10px;
+        }
+        .tree-scroll::-webkit-scrollbar-thumb {
+          background: rgba(12,18,35,0.15);
+          border-radius: 10px;
+          border: 2px solid transparent;
+          background-clip: padding-box;
+        }
+        .tree-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(12,18,35,0.25);
+        }
 
         .tree-row {
           display:flex;
@@ -866,17 +1255,41 @@ const ItemCreation = ({ onCreated }) => {
         }
 
         /* dropdown modal (glass) */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 16px;
+        }
+        
+        .modal {
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
+          max-width: 600px;
+          width: 100%;
+          max-height: 80vh;
+          overflow: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
          
         .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
         .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; }
         .dropdown-item:hover { background: linear-gradient(90deg, rgba(16,163,98,0.04), rgba(16,163,98,0.01)); transform: translateX(6px); }
         .dropdown-item, .node-text { text-align: left; }
 
-        /* form grid */
+        /* form grid - UPDATED WITH MORE SPACE BETWEEN COLUMNS */
         .form-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 24px 32px; /* Increased horizontal gap to 32px */
           margin-bottom: 16px;
           align-items: start;
         }
@@ -923,6 +1336,71 @@ const ItemCreation = ({ onCreated }) => {
           color: #374151;
         }
 
+        /* Custom styles for browse buttons with search icon */
+        .browse-btn {
+          padding: 10px 12px;
+          background: linear-gradient(180deg, var(--accent), var(--accent-2));
+          border: 1px solid var(--accent);
+          border-radius: 10px;
+          cursor: pointer;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 42px;
+          height: 42px;
+          transition: all 0.2s;
+        }
+        
+        .browse-btn:hover {
+          background: linear-gradient(180deg, var(--accent-2), var(--accent-3));
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(48, 122, 200, 0.2);
+        }
+        
+        .browse-btn:disabled {
+          background: #cbd5e1;
+          border-color: #cbd5e1;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
+        /* Styles for input fields with built-in search icon */
+        .input-with-search {
+          position: relative;
+          width: 100%;
+        }
+        
+        .input-with-search .input {
+          width: 100%;
+          padding-right: 40px;
+          cursor: pointer;
+        }
+        
+        .input-search-icon {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--accent);
+          pointer-events: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .input-with-search .input:focus + .input-search-icon {
+          color: var(--accent-2);
+        }
+
+        /* Compact Max & Min fields layout */
+        .field .row input[placeholder="Max"],
+        .field .row input[placeholder="Min"] {
+          text-align: center;
+          padding: 10px 8px;
+        }
+
         /* Responsive styles */
         /* Large tablets and small laptops */
         @media (max-width: 1024px) {
@@ -962,6 +1440,12 @@ const ItemCreation = ({ onCreated }) => {
           }
           .form-grid {
             grid-template-columns: 1fr;
+            gap: 16px; /* Reset gap for mobile */
+          }
+          .field .row input[placeholder="Max"],
+          .field .row input[placeholder="Min"] {
+            min-width: 70px;
+            padding: 8px 6px;
           }
         }
 
@@ -985,10 +1469,11 @@ const ItemCreation = ({ onCreated }) => {
             padding: 8px 10px;
             font-size: 13px;
           }
-          .btn {
+          .btn, .browse-btn {
             padding: 8px 10px;
-            min-width: 70px;
+            min-width: 38px;
             font-size: 13px;
+            height: 38px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
@@ -1006,6 +1491,12 @@ const ItemCreation = ({ onCreated }) => {
           }
           .modal {
             padding: 12px;
+          }
+          .field .row input[placeholder="Max"],
+          .field .row input[placeholder="Min"] {
+            min-width: 60px;
+            padding: 8px 4px;
+            font-size: 13px;
           }
         }
 
@@ -1041,10 +1532,6 @@ const ItemCreation = ({ onCreated }) => {
       <div className="dashboard" aria-labelledby="item-title">
         <div className="top-row">
           <div className="title-block">
-            {/* <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#ecfdf5" />
-              <path d="M6 12h12M6 8h12M6 16h12" stroke="var(--accent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg> */}
             <div>
               <h2 id="item-title">Item Creation</h2>
               <div className="subtitle muted">Create, edit, or delete items — organized & fast.</div>
@@ -1087,72 +1574,72 @@ const ItemCreation = ({ onCreated }) => {
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
             {/* Group Name field */}
-<div className="field">
-  <label className="field-label">Group Name *</label>
-  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-    <div style={{
-      display: "flex",
-      flex: 1,
-      border: "1px solid rgba(15,23,42,0.06)",
-      borderRadius: "10px",
-      overflow: "hidden",
-      background: "linear-gradient(180deg, #fff, #fbfdff)",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-    }}>
-      <input
-        ref={groupNameRef}
-        className="input"
-        value={mainGroup}
-        onChange={(e) => setMainGroup(e.target.value)}
-        onFocus={() => setIsTreeOpen(true)}
-        placeholder="Select Group Name"
-        disabled={isSubmitting}
-        aria-label="Group Name"
-        style={{
-          flex: 1,
-          border: "none",
-          borderRadius: 0,
-          padding: "10px 12px",
-          minWidth: "120px",
-          fontSize: "14px",
-          outline: "none",
-          cursor: "pointer"
-        }}
-      />
-      <button
-        className="btn"
-        onClick={() => { setIsTreeOpen((v) => !v); setModalVisible(false); }}
-        disabled={isSubmitting}
-        type="button"
-        aria-expanded={isTreeOpen}
-        aria-controls="group-tree"
-        style={{
-          flexShrink: 0,
-          border: "none",
-          borderLeft: "1px solid rgba(15,23,42,0.06)",
-          borderRadius: 0,
-          padding: "8px 12px",
-          minWidth: "70px",
-          fontSize: "12px",
-          fontWeight: "600",
-          background: "linear-gradient(180deg,#fff,#f8fafc)",
-          cursor: isSubmitting ? "not-allowed" : "pointer",
-          color: "#0f172a",
-          transition: "all 0.2s"
-        }}
-        onMouseOver={(e) => {
-          if (!isSubmitting) {
-            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
-          }
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
-        }}
-      >
-        {isTreeOpen ? "Close" : "Open"}
-      </button>
-    </div>
-  </div>
+            <div className="field">
+              <label className="field-label">Group Name *</label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    ref={groupNameRef}
+                    className="input"
+                    value={mainGroup}
+                    onChange={(e) => setMainGroup(e.target.value)}
+                    onFocus={() => setIsTreeOpen(true)}
+                    placeholder="Select Group Name"
+                    disabled={isSubmitting}
+                    aria-label="Group Name"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      minWidth: "120px",
+                      fontSize: "14px",
+                      outline: "none",
+                      cursor: "pointer"
+                    }}
+                  />
+                  <button
+                    className="btn"
+                    onClick={() => { setIsTreeOpen((v) => !v); }}
+                    disabled={isSubmitting}
+                    type="button"
+                    aria-expanded={isTreeOpen}
+                    aria-controls="group-tree"
+                    style={{
+                      flexShrink: 0,
+                      border: "none",
+                      borderLeft: "1px solid rgba(15,23,42,0.06)",
+                      borderRadius: 0,
+                      padding: "8px 12px",
+                      minWidth: "70px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      background: "linear-gradient(180deg,#fff,#f8fafc)",
+                      cursor: isSubmitting ? "not-allowed" : "pointer",
+                      color: "#0f172a",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseOver={(e) => {
+                      if (!isSubmitting) {
+                        e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
+                    }}
+                  >
+                    {isTreeOpen ? "Close" : "Open"}
+                  </button>
+                </div>
+              </div>
 
               {isTreeOpen && (
                 isMobile ? (
@@ -1238,90 +1725,244 @@ const ItemCreation = ({ onCreated }) => {
                     <div className="tree-scroll" role="tree" aria-label="Group list">
                       {loading ? (
                         <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-                      ) : filteredTree.length === 0 ? (
-                        <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-                      ) : (
-                        filteredTree.map((node) => (
-                          <TreeNode
-                            key={node.key}
-                            node={node}
-                            onSelect={handleSelectNode}
-                            expandedKeys={expandedKeys}
-                            toggleExpand={toggleExpand}
-                            selectedKey={selectedNode?.key}
-                          />
-                        ))
-                      )}
+                        ) : filteredTree.length === 0 ? (
+                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+                        ) : (
+                          filteredTree.map((node) => (
+                            <TreeNode
+                              key={node.key}
+                              node={node}
+                              onSelect={handleSelectNode}
+                              expandedKeys={expandedKeys}
+                              toggleExpand={toggleExpand}
+                              selectedKey={selectedNode?.key}
+                            />
+                          ))
+                        )}
                     </div>
                   </div>
                 )
               )}
             </div>
 
+            {/* Item Name field - Full width with search icon */}
+            <div className="field">
+              <label className="field-label">Item Name *</label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    ref={itemNameRef}
+                    className="input"
+                    value={formData.itemName}
+                    onChange={(e) => handleChange('itemName', e.target.value)}
+                    placeholder="Enter Item Name"
+                    disabled={isSubmitting}
+                    aria-label="Item Name"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      minWidth: "120px",
+                      fontSize: "14px",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Short Name field - Full width with search icon */}
+            <div className="field">
+              <label className="field-label">Short Name</label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    ref={shortNameRef}
+                    className="input"
+                    value={formData.shortName}
+                    onChange={(e) => handleChange('shortName', e.target.value)}
+                    placeholder="Enter Short Name"
+                    disabled={isSubmitting}
+                    aria-label="Short Name"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      minWidth: "120px",
+                      fontSize: "14px",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Form Grid */}
             <div className="form-grid">
-              {/* Item Name */}
-              <div className="field full-width">
-                <label className="field-label">Item Name *</label>
-                <input
-                  ref={itemNameRef}
-                  className="input"
-                  value={formData.itemName}
-                  onChange={(e) => handleChange('itemName', e.target.value)}
-                  placeholder="Enter Item Name"
-                  disabled={isSubmitting}
-                  aria-label="Item Name"
-                />
-              </div>
-
-              {/* Short Name */}
+              {/* Brand - with built-in search icon */}
               <div className="field">
-                <label className="field-label">Short Name</label>
-                <input
-                  ref={shortNameRef}
-                  className="input"
-                  value={formData.shortName}
-                  onChange={(e) => handleChange('shortName', e.target.value)}
-                  placeholder="Enter Short Name"
-                  disabled={isSubmitting}
-                  aria-label="Short Name"
-                />
+                <label className="field-label">Brand</label>
+                <div className="input-with-search">
+                  <input
+                    ref={brandRef}
+                    className="input"
+                    value={formData.brand}
+                    onChange={(e) => handleChange('brand', e.target.value)}
+                    onClick={() => setIsBrandPopupOpen(true)}
+                    placeholder="Select Brand"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Brand"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
               </div>
 
-              {/* Counter */}
-<div className="field">
-  <label className="field-label">Counter</label>
-  <div style={{ display: "flex", gap: "8px" }}>
-    <input
-      ref={counterRef}
-      className="input"
-      value={formData.counter}
-      onChange={(e) => handleChange('counter', e.target.value)}
-      placeholder="Select Counter"
-      disabled={isSubmitting}
-      readOnly
-      aria-label="Counter"
-      style={{ flex: 1 }}
-    />
-    <button
-      type="button"
-      onClick={() => setIsCounterPopupOpen(true)}
-      disabled={isSubmitting}
-      style={{
-        padding: "10px 12px",
-        backgroundColor: "#f0f7fb",
-        border: "1px solid #307AC8",
-        borderRadius: "10px",
-        cursor: "pointer",
-        color: "#307AC8",
-        fontWeight: "600"
-      }}
-      title="Browse Counters"
-    >
-      Browse
-    </button>
-  </div>
-</div>
+              {/* Category - with built-in search icon */}
+              <div className="field">
+                <label className="field-label">Category</label>
+                <div className="input-with-search">
+                  <input
+                    ref={categoryRef}
+                    className="input"
+                    value={formData.category}
+                    onChange={(e) => handleChange('category', e.target.value)}
+                    onClick={() => setIsCategoryPopupOpen(true)}
+                    placeholder="Select Category"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Category"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Product - with built-in search icon */}
+              <div className="field">
+                <label className="field-label">Product</label>
+                <div className="input-with-search">
+                  <input
+                    ref={productRef}
+                    className="input"
+                    value={formData.product}
+                    onChange={(e) => handleChange('product', e.target.value)}
+                    onClick={() => setIsProductPopupOpen(true)}
+                    placeholder="Select Product"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Product"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Model - with built-in search icon */}
+              <div className="field">
+                <label className="field-label">Model</label>
+                <div className="input-with-search">
+                  <input
+                    ref={modelRef}
+                    className="input"
+                    value={formData.model}
+                    onChange={(e) => handleChange('model', e.target.value)}
+                    onClick={() => setIsModelPopupOpen(true)}
+                    placeholder="Select Model"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Model"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Size - with built-in search icon */}
+              <div className="field">
+                <label className="field-label">Size</label>
+                <div className="input-with-search">
+                  <input
+                    ref={sizeRef}
+                    className="input"
+                    value={formData.size}
+                    onChange={(e) => handleChange('size', e.target.value)}
+                    onClick={() => setIsSizePopupOpen(true)}
+                    placeholder="Select Size"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Size"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Max and Min - Side by side (KEPT IN ORIGINAL POSITION) */}
+              <div className="field">
+                <label className="field-label">Max & Min</label>
+                <div className="row" style={{ display: "flex", gap: "12px", alignItems: "center", width: "100%" }}>
+                  <input
+                    ref={maxRef}
+                    className="input"
+                    value={formData.max}
+                    onChange={(e) => handleChange('max', e.target.value)}
+                    placeholder="Max"
+                    disabled={isSubmitting}
+                    aria-label="Max"
+                    style={{ 
+                      flex: 1, 
+                      textAlign: "center", 
+                      padding: "10px 8px"
+                    }}
+                  />
+                  <span style={{ 
+                    color: "var(--muted)", 
+                    fontSize: "14px", 
+                    whiteSpace: "nowrap", 
+                    margin: "0 6px",
+                    flexShrink: 0 
+                  }}>|</span>
+                  <input
+                    ref={minRef}
+                    className="input"
+                    value={formData.min}
+                    onChange={(e) => handleChange('min', e.target.value)}
+                    placeholder="Min"
+                    disabled={isSubmitting}
+                    aria-label="Min"
+                    style={{ 
+                      flex: 1, 
+                      textAlign: "center", 
+                      padding: "10px 8px"
+                    }}
+                  />
+                </div>
+              </div>
 
               {/* GST Checkbox */}
               <div className="field">
@@ -1387,36 +2028,6 @@ const ItemCreation = ({ onCreated }) => {
                   placeholder="Enter Prefix"
                   disabled={isSubmitting || !manualPrefixChecked}
                   aria-label="Prefix"
-                />
-              </div>
-
-              {/* Piece Rate Checkbox */}
-              <div className="field">
-                <div className="checkbox-group">
-                  <div 
-                    className={`checkbox ${pieceRateChecked ? 'checked' : ''}`}
-                    onClick={handlePieceRateToggle}
-                  />
-                  <span className="checkbox-label">Piece Rate</span>
-                </div>
-              </div>
-
-              {/* HSN Code */}
-              <div className="field">
-                <label className="field-label">HSN Code</label>
-                <input
-                  ref={hsnCodeRef}
-                  className="input"
-                  value={formData.hsnCode}
-                  onChange={(e) => {
-                    if (/^\d*$/.test(e.target.value)) {
-                      handleChange('hsnCode', e.target.value);
-                    }
-                  }}
-                  maxLength="8"
-                  placeholder="Enter HSN Code"
-                  disabled={isSubmitting}
-                  aria-label="HSN Code"
                 />
               </div>
             </div>
@@ -1500,18 +2111,53 @@ const ItemCreation = ({ onCreated }) => {
             </div>
 
             <div className="stat">
-              <div className="muted">F-Code</div>
+              <div className="muted">Brand</div>
               <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.fitemCode || ""}
+                {formData.brand || ""}
               </div>
             </div>
 
             <div className="stat">
-  <div className="muted">Counter</div>
-  <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-    {formData.counter || ""}
-  </div>
-</div>
+              <div className="muted">Category</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.category || ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Product</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.product || ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Model</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.model || ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Size</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.size || ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Max</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.max || ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Min</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.min || ""}
+              </div>
+            </div>
 
             <div className="stat tips-panel">
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
@@ -1536,7 +2182,7 @@ const ItemCreation = ({ onCreated }) => {
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>HSN Code must be 8 digits</span>
+                  <span>Click search icons to browse available options</span>
                 </div>
               </div>
             </div>
@@ -1544,112 +2190,92 @@ const ItemCreation = ({ onCreated }) => {
         </div>
       </div>
 
-      {/* Data List Modal for Edit/Delete */}
-      {/* {modalVisible && (
-        <div className="modal-overlay" onClick={() => setModalVisible(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Item selection modal">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 18 }}>Select Item</h3>
-              <button
-                onClick={() => setModalVisible(false)}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-                aria-label="Close"
-              >
-                <Icon.Close />
-              </button>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div className="search-container">
-                <input
-                  className="search-with-clear"
-                  placeholder="Search items..."
-                  onChange={(e) => fetchData(e.target.value)}
-                  aria-label="Search items"
-                />
-              </div>
-            </div>
-
-            <div className="dropdown-list" role="listbox" aria-label="Item options">
-              {loading ? (
-                <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-              ) : dataList.length === 0 ? (
-                <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No items found</div>
-              ) : (
-                dataList.map((item, index) => (
-                  <div
-                    key={index}
-                    className="dropdown-item"
-                    onClick={() => {
-                      setMainGroup(item.fParent || '');
-                      setFormData({
-                        fitemCode: item.fItemcode || '',
-                        itemName: item.fItemName || '',
-                        groupName: item.fParent || '',
-                        shortName: item.fShort || '',
-                        counter: item.fCounter || '',
-                        hsnCode: item.fhsn || '',
-                        gstin: item.ftax || '',
-                        prefix: item.fPrefix || '',
-                        pieceRate: item.pieceRate === "Y" ? "Y" : "N",
-                        gst: item.gstcheckbox === "Y" ? "Y" : "N",
-                        manualprefix: item.manualprefix === "Y" ? "Y" : "N"
-                      });
-                      setGstChecked(item.gstcheckbox === "Y");
-                      setManualPrefixChecked(item.manualprefix === "Y");
-                      setPieceRateChecked(item.pieceRate === "Y");
-                      setModalVisible(false);
-                    }}
-                    role="option"
-                    aria-selected={item.fItemName === formData.itemName}
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && (() => {
-                      setMainGroup(item.fParent || '');
-                      setFormData({
-                        fitemCode: item.fItemcode || '',
-                        itemName: item.fItemName || '',
-                        groupName: item.fParent || '',
-                        shortName: item.fShort || '',
-                        counter: item.fCounter || '',
-                        hsnCode: item.fhsn || '',
-                        gstin: item.ftax || '',
-                        prefix: item.fPrefix || '',
-                        pieceRate: item.pieceRate === "Y" ? "Y" : "N",
-                        gst: item.gstcheckbox === "Y" ? "Y" : "N",
-                        manualprefix: item.manualprefix === "Y" ? "Y" : "N"
-                      });
-                      setGstChecked(item.gstcheckbox === "Y");
-                      setManualPrefixChecked(item.manualprefix === "Y");
-                      setPieceRateChecked(item.pieceRate === "Y");
-                      setModalVisible(false);
-                    })()}
-                  >
-                    <div style={{ fontWeight: 600, color: "#0f172a" }}>{item.fItemName}</div>
-                    {item.fParent && (
-                      <div style={{ fontSize: 12, color: "var(--muted)" }}>Group: {item.fParent}</div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )} */}
-
-      {/* PopupListSelector for Counter Selection */}
+      {/* PopupListSelector for Brand Selection */}
       <PopupListSelector
-        open={isCounterPopupOpen}
-        onClose={() => setIsCounterPopupOpen(false)}
+        open={isBrandPopupOpen}
+        onClose={() => setIsBrandPopupOpen(false)}
         onSelect={(item) => {
-          setFormData(prev => ({ ...prev, counter: item.fbox || '' }));
-          setIsCounterPopupOpen(false);
+          setFormData(prev => ({ ...prev, brand: item.fname || '' }));
+          setIsBrandPopupOpen(false);
         }}
-        fetchItems={fetchCounterItems}
-        title="Select Counter"
-        displayFieldKeys={['fbox']}
-        searchFields={['fbox']}
-        headerNames={['Counter Name']}
-        columnWidths={{ fbox: '100%' }}
+        fetchItems={fetchBrands}
+        title="Select Brand"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Brand Name']}
+        columnWidths={{ fname: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
+      {/* PopupListSelector for Category Selection */}
+      <PopupListSelector
+        open={isCategoryPopupOpen}
+        onClose={() => setIsCategoryPopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, category: item.fname || '' }));
+          setIsCategoryPopupOpen(false);
+        }}
+        fetchItems={fetchCategories}
+        title="Select Category"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Category Name']}
+        columnWidths={{ fname: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
+      {/* PopupListSelector for Product Selection */}
+      <PopupListSelector
+        open={isProductPopupOpen}
+        onClose={() => setIsProductPopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, product: item.fname || '' }));
+          setIsProductPopupOpen(false);
+        }}
+        fetchItems={fetchProducts}
+        title="Select Product"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Product Name']}
+        columnWidths={{ fname: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
+      {/* PopupListSelector for Model Selection */}
+      <PopupListSelector
+        open={isModelPopupOpen}
+        onClose={() => setIsModelPopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, model: item.fname || '' }));
+          setIsModelPopupOpen(false);
+        }}
+        fetchItems={fetchModels}
+        title="Select Model"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Model Name']}
+        columnWidths={{ fname: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
+      {/* PopupListSelector for Size Selection */}
+      <PopupListSelector
+        open={isSizePopupOpen}
+        onClose={() => setIsSizePopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, size: item.fname || '' }));
+          setIsSizePopupOpen(false);
+        }}
+        fetchItems={fetchSizes}
+        title="Select Size"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Size']}
+        columnWidths={{ fname: '100%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
@@ -1665,17 +2291,20 @@ const ItemCreation = ({ onCreated }) => {
             itemName: item.fItemName || item.fItemname || item.fItem || '',
             groupName: groupValue,
             shortName: item.fShort || item.fshort || '',
-            counter: item.fCounter || item.fcounter || '',
-            hsnCode: item.fhsn || item.fHsn || '',
+            brand: item.fBrand || '',
+            category: item.fCategory || '',
+            product: item.fProduct || '',
+            model: item.fModel || '',
+            size: item.fSize || '',
+            max: item.fMax || '',
+            min: item.fMin || '',
             gstin: item.ftax || item.fTax || '',
             prefix: item.fPrefix || item.fprefix || '',
-            pieceRate: item.pieceRate === 'Y' ? 'Y' : 'N',
             gst: item.gstcheckbox === 'Y' ? 'Y' : 'N',
             manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N'
           });
           setGstChecked(item.gstcheckbox === 'Y');
           setManualPrefixChecked(item.manualprefix === 'Y');
-          setPieceRateChecked(item.pieceRate === 'Y');
           setMainGroup(groupValue);
           setIsPopupOpen(false);
         }}
