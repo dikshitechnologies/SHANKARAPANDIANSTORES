@@ -847,7 +847,7 @@ const PurchaseInvoice = () => {
                 <th style={styles.th}>SRate</th>
                 <th style={styles.th}>ASRate</th>
                 <th style={styles.th}>MRP</th>
-                <th style={styles.th}>LetProfPer</th>
+                <th style={styles.th}>PPer</th>
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
                 <th style={styles.th}>WSate</th>
