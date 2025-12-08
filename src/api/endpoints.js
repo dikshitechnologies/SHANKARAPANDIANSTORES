@@ -74,7 +74,7 @@ scrap:{
   getscrapcode:"ScrapCreation/getNextScrapFcode",
   postcreatescrap:"ScrapCreation/createScrap",
   putupdatedscrap:"Sction/deleteUserrapCreation/updateScrap",
- delete: (fCode) => `ScrapCreation/deleteScrap/001/${fCode}`,
+ delete: (fCode) => `ScrapCreation/deleteScrap/${fCode}`,
  },
  scrapratefix:
  {
