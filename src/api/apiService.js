@@ -81,7 +81,8 @@ apiService.interceptors.response.use(
 // ---------------------
 // API ENDPOINTS EXPORT
 // ---------------------
-export const API_BASE = "http://dikshiserver/spstorewebapi/api";
+export const API_BASE = "http://dikshiserver/spstorewebapi/api/";
+
 
 
 

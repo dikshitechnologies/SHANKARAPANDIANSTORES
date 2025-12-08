@@ -17,6 +17,14 @@ import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
 import UnitCreation from './pages/UnitCreation/UnitCreation'
 import Billcollector  from './pages/billcollector/billcollectior'
+import Design from './pages/DesignCreation/DesignCreation'
+import Tender from './pages/Tender/Tender'
+import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
+import ScrapPage from './pages/scrappage/scrappage'
+import BrandPage from './pages/Brand/Brand'
+import Category from './pages/category/category'
+import Product from './pages/Product/Product'
+
 import ScrapProcurement from './pages/ScrapProcurement/Scrapprocurement'
 import Tender from './pages/Tender/Tender'
 import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
@@ -47,6 +55,11 @@ function App() {
           <Route path="/transactions/bill-collector" element={<Billcollector />} />
           <Route path="/Transaction/Tender" element={<Tender />} />
           <Route path="/transactions/purchase-invoice" element={<PurchaseInvoice />} />
+          <Route path="/design-creation" element={<Design />} />
+          <Route path="/masters/scrap-page" element={<ScrapPage />} />
+          <Route path="/masters/brand-creation" element={<BrandPage />} />
+          <Route path="/masters/category-creation" element={<Category />} />
+          <Route path="/masters/product-creation" element={<Product />} />
            <Route path="/ScrapProcurement" element={<ScrapProcurement />} />
            <Route path="/masters/Statecreation" element={<Statecreation />} /> 
           <Route path="/transactions/Purchasereturn" element={<Purchasereturn />} />

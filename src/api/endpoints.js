@@ -99,6 +99,6 @@ UNITCREATION: {
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
     CREATE_PURCHASE_INVOICE: "PurchaseInvoice/CreatePurchase",
   }
-    
-
 };
+
+export const ADMINISTRATION = API_ENDPOINTS.ADMINISTRATION;
