@@ -80,11 +80,10 @@ const Navbar = () => {
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined /> },
     { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },
     { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined /> },
-    { name: 'Administration', path: '/Administration', icon: <BuildOutlined /> },
-    // { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },   
+    { name: 'Administration', path: '/Administration', icon: <BuildOutlined /> },  
     { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined /> },
      { name: 'Scrap', path: '/masters/Scrap', icon: <BuildOutlined /> },
-     { name: 'Salecreation', path: '/masters/Salecreation', icon: <BuildOutlined /> },
+     { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined /> },
      
    
      
@@ -94,7 +93,7 @@ const Navbar = () => {
     { name: 'Sales Invoice', path: 'sales-invoice', icon: <FileTextOutlined /> },
     { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
-    { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> },
+    { name: 'Purchase Return', path: '/transactions/Purchasereturn', icon: <DollarOutlined /> },
     { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined  /> },
      { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined /> },
     { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },

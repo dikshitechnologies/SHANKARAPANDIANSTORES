@@ -20,7 +20,8 @@ import Billcollector  from './pages/billcollector/billcollectior'
 import ScrapProcurement from './pages/ScrapProcurement/Scrapprocurement'
 import Tender from './pages/Tender/Tender'
 import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
-import Salecreation from './pages/statecreation/statecreation'
+import Statecreation from './pages/statecreation/statecreation'
+import Purchasereturn from './pages/Purchasereturn/Purchasereturn'
 function App() {
   return (
     <div className="app">
@@ -31,9 +32,6 @@ function App() {
           <Route path="test" element={<TestPage />} />
           {/* <Route path="test" element={<Test />} /> */}
           <Route path="/masters/company-creation" element={<Company />} />
-          
-          
-
           <Route path="sales-invoice" element={<SalesInvoice />} />
           <Route path="/masters/ledger-creation" element={<LedgerCreation />} />
           <Route path="/masters/item-creation" element={<ItemCreation />} />
@@ -50,7 +48,8 @@ function App() {
           <Route path="/Transaction/Tender" element={<Tender />} />
           <Route path="/transactions/purchase-invoice" element={<PurchaseInvoice />} />
            <Route path="/ScrapProcurement" element={<ScrapProcurement />} />
-           <Route path="/masters/Salecreation" element={<Salecreation />} /> 
+           <Route path="/masters/Statecreation" element={<Statecreation />} /> 
+          <Route path="/transactions/Purchasereturn" element={<Purchasereturn />} />
         </Routes>
       </main>
     </div>

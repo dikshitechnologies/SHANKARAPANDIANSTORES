@@ -1,79 +1,102 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import PopupListSelector from "../../components/Listpopup/PopupListSelector";
-import { API_ENDPOINTS } from "../../api/endpoints";
-import apiService from "../../api/apiService";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import apiService from '../../api/apiService';
+import { API_ENDPOINTS } from '../../api/endpoints';
+import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+
+// --- Inline SVG icons (matching ItemGroupCreation style) ---
+const Icon = {
+  Plus: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" />
+    </svg>
+  ),
+  Edit: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+    </svg>
+  ),
+  Trash: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+    </svg>
+  ),
+  Search: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
+    </svg>
+  ),
+  Close: ({ size = 18 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 16.88 16.88z" />
+    </svg>
+  ),
+  Refresh: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M17.65 6.35A8 8 0 103.95 15.5H6a6 6 0 118.9-5.31l-1.9-1.9h6v6l-2.35-2.35z" />
+    </svg>
+  ),
+  Check: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+    </svg>
+  ),
+  Info: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+    </svg>
+  ),
+};
 
 export default function StateCreation() {
   // ---------- state ----------
-  const [codes, setCodes] = useState([]);
   const [states, setStates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    code: "", 
-    stateName: "", 
-    codeId: null,
+    fuCode: "", 
+    stateName: ""
   });
   
-  const [mode, setMode] = useState("create");
+  const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
 
-  const [popupOpen, setPopupOpen] = useState(false);
-  const [popupType, setPopupType] = useState("");
-  const [popupTitle, setPopupTitle] = useState("");
-  const [popupData, setPopupData] = useState([]);
-  
-  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
-  const [deleteWarningMessage, setDeleteWarningMessage] = useState("");
+  // modals & queries
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editQuery, setEditQuery] = useState("");
 
-  // Refs
-  const codeRef = useRef(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteQuery, setDeleteQuery] = useState("");
+
+  const [existingQuery, setExistingQuery] = useState("");
+
+  // refs for step-by-step Enter navigation
+  const stateCodeRef = useRef(null);
   const stateNameRef = useRef(null);
 
-  // Responsive state
+  // Screen width state for responsive design
+  const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
 
-  // Color constants
-  const DARK_BLUE = "#306AC8";
-  const MEDIUM_BLUE = "#1B91DA";
-  const LIGHT_BLUE = "#06A7EA";
-  const BG = "#ffffff";
-  const BORDER_SOFT = "#e1e8f0";
-  const INPUT_BG = "#fafcff";
-  const LIGHT_BLUE_BG = "#f1f7ff";
-
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      setIsMobile(width < 768);
-      setIsTablet(width >= 768 && width < 1024);
-    };
-    
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
- 
   // ---------- API functions ----------
-  const fetchCodes = async () => {
+  const fetchNextStateCode = async () => {
     try {
       setLoading(true);
-      setError("");
-      // Mock data for codes
-      const mockCodes = [
-        { id: 1, code: "001", description: "Code 001" },
-        { id: 2, code: "002", description: "Code 002" },
-        { id: 3, code: "003", description: "Code 003" },
-        { id: 4, code: "004", description: "Code 004" },
-        { id: 5, code: "005", description: "Code 005" },
-      ];
-      setCodes(mockCodes);
+      const data = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
+      // Support both string and object responses
+      if (typeof data === 'string' && data.trim()) {
+        setForm(prev => ({ ...prev, fuCode: data.trim() }));
+      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
+        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
+      }
+      return data;
     } catch (err) {
-      setError(err.message || "Failed to load codes");
-      console.error("Error:", err);
+      setMessage({ type: "error", text: "Failed to load next state code" });
+      console.error("API Error:", err);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -82,19 +105,26 @@ export default function StateCreation() {
   const fetchStates = async () => {
     try {
       setLoading(true);
-      setError("");
-      // Mock data for states
-      const mockStates = [
-        { id: 1, code: "001", stateName: "Tamil Nadu" },
-        { id: 2, code: "002", stateName: "Karnataka" },
-        { id: 3, code: "003", stateName: "Kerala" },
-        { id: 4, code: "004", stateName: "Andhra Pradesh" },
-        { id: 5, code: "005", stateName: "Maharashtra" },
-      ];
-      setStates(mockStates);
+      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS);
+      setStates(data || []);
+      setMessage(null);
     } catch (err) {
-      setError(err.message || "Failed to load states");
-      console.error("Error:", err);
+      setMessage({ type: "error", text: "Failed to load states" });
+      console.error("API Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStateByCode = async (code) => {
+    try {
+      setLoading(true);
+      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GETSTATECODE(code));
+      return data;
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to fetch state" });
+      console.error("API Error:", err);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -103,24 +133,11 @@ export default function StateCreation() {
   const createState = async (stateData) => {
     try {
       setLoading(true);
-      setError("");
-      // Mock API call for creating state
-      console.log("Creating state with data:", stateData);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Add to local state
-      const newState = {
-        id: states.length + 1,
-        code: stateData.code,
-        stateName: stateData.stateName,
-      };
-      setStates(prev => [...prev, newState]);
-      
-      return { success: true, data: newState };
+      const data = await apiService.post(API_ENDPOINTS.STATECREATION.CREATE_STATE, stateData);
+      return data;
     } catch (err) {
-      setError(err.message || "Failed to create state");
-      console.error("Error:", err);
+      setMessage({ type: "error", text: "Failed to create state" });
+      console.error("API Error:", err);
       throw err;
     } finally {
       setLoading(false);
@@ -130,1295 +147,987 @@ export default function StateCreation() {
   const updateState = async (stateData) => {
     try {
       setLoading(true);
-      setError("");
-      // Mock API call for updating state
-      console.log("Updating state with data:", stateData);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Update local state
-      setStates(prev => prev.map(state => 
-        state.id === stateData.id ? { ...state, ...stateData } : state
-      ));
-      
-      return { success: true };
+      const data = await apiService.put(API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), stateData);
+      return data;
     } catch (err) {
-      setError(err.message || "Failed to update state");
-      console.error("Error:", err);
+      setMessage({ type: "error", text: "Failed to update state" });
+      console.error("API Error:", err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteState = async (stateId) => {
+  const deleteState = async (stateCode) => {
     try {
       setLoading(true);
-      setError("");
-      // Mock API call for deleting state
-      console.log("Deleting state with ID:", stateId);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Remove from local state
-      setStates(prev => prev.filter(state => state.id !== stateId));
-      
-      return { success: true };
+      const data = await apiService.del(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
+      return data;
     } catch (err) {
-      setError(err.message || "Failed to delete state");
-      console.error("Error:", err);
+      setMessage({ type: "error", text: err.message || "Failed to delete state" });
+      console.error("API Error:", err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
-
-  async function handleDelete() {
-    if (!deleteTargetId) {
-      alert("No state selected to delete.");
-      return;
-    }
-    
-    const confirmDelete = window.confirm(`Are you sure you want to delete state "${form.stateName}" (Code: ${form.code})?\n\nThis action cannot be undone.`);
-    if (!confirmDelete) return;
-
-    try {
-      await deleteState(deleteTargetId);
-      
-      setDeleteTargetId(null);
-      setForm({ code: "", stateName: "", codeId: null });
-      setMode("create");
-      
-      alert(`✅ State "${form.stateName}" has been deleted successfully.`);
-      setTimeout(() => codeRef.current && codeRef.current.focus(), 60);
-    } catch (err) {
-      const errorMsg = err.message || "";
-      
-      if (errorMsg.includes("used in related tables") || 
-          errorMsg.includes("409") || 
-          errorMsg.includes("Conflict") ||
-          errorMsg.includes("foreign key") ||
-          errorMsg.includes("reference")) {
-        
-        setDeleteWarningMessage(`
-          🚫 Cannot Delete State: "${form.stateName}" (Code: ${form.code})
-          
-          Reason: This state is referenced in other system tables.
-          
-          Possible Solutions:
-          1. Check if this state has:
-             • Related cities
-             • Associated customers
-             • Tax configurations
-             • Shipping zones
-          
-          2. Contact your system administrator to:
-             • Remove references from related tables first
-             • Check database constraints
-          
-          3. Alternative actions:
-             • Mark the state as inactive instead of deleting
-             • Archive state data
-          
-          Note: For immediate assistance, please contact the database administrator.
-        `);
-        
-        setShowDeleteWarning(true);
-      } else {
-        alert(`Failed to delete state: ${errorMsg}`);
-      }
-    }
-  }
 
   // ---------- effects ----------
   useEffect(() => {
-    fetchCodes();
+    loadInitial();
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setScreenWidth(width);
+      setIsMobile(width <= 768);
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
-    if (codes.length > 0) {
-      fetchStates();
-    }
-  }, [codes]);
-
-  useEffect(() => {
-    if (codeRef.current) codeRef.current.focus();
+    if (stateCodeRef.current) stateCodeRef.current.focus();
   }, []);
-
-  // ---------- filtered data ----------
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const filteredStates = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter((s) => 
-      (s.code || "").toLowerCase().includes(q) || 
-      (s.stateName || "").toLowerCase().includes(q)
-    );
-  }, [searchTerm, states]);
 
   // ---------- handlers ----------
-  function openCodeModal() {
-    const codeData = codes.map(c => ({
-      id: c.id,
-      code: c.code,
-      description: c.description,
-      displayName: `${c.code} - ${c.description}`
-    }));
-    
-    setPopupData(codeData);
-    setPopupTitle("Select Code");
-    setPopupType("code");
-    setPopupOpen(true);
-  }
-
-  function selectCode(c) {
-    setForm((s) => ({ 
-      ...s, 
-      code: c.code,
-    }));
-    setTimeout(() => stateNameRef.current && stateNameRef.current.focus(), 60);
-  }
-
-  function openEditModal() {
-    const editStateData = states.map(s => ({
-      id: s.id,
-      code: s.code,
-      stateName: s.stateName,
-      displayName: `${s.code} - ${s.stateName}`
-    }));
-    
-    setPopupData(editStateData);
-    setPopupTitle("Select State to Edit");
-    setPopupType("edit");
-    setPopupOpen(true);
-  }
-
-  function handleEditRowClick(s) {
-    setForm({ 
-      code: s.code,
-      stateName: s.stateName,
-      codeId: s.id 
-    });
-    setMode("edit");
-    setEditingId(s.id);
-    setTimeout(() => stateNameRef.current && stateNameRef.current.focus(), 60);
-  }
-
-  function openDeleteModal() {
-    const deleteStateData = states.map(s => ({
-      id: s.id,
-      code: s.code,
-      stateName: s.stateName,
-      displayName: `${s.code} - ${s.stateName}`
-    }));
-    
-    setPopupData(deleteStateData);
-    setPopupTitle("Select State to Delete");
-    setPopupType("delete");
-    setPopupOpen(true);
-  }
-
-  function handleDeleteRowClick(s) {
-    setForm({ 
-      code: s.code,
-      stateName: s.stateName,
-      codeId: s.id 
-    });
-    setMode("delete");
-    setDeleteTargetId(s.id);
-  }
-
-  const handlePopupSelect = (selectedItem) => {
-    if (popupType === "code") {
-      const originalCode = codes.find(c => c.id === selectedItem.id);
-      if (originalCode) {
-        selectCode(originalCode);
-      }
-    } else if (popupType === "edit") {
-      const originalState = states.find(s => s.id === selectedItem.id);
-      if (originalState) {
-        handleEditRowClick(originalState);
-      }
-    } else if (popupType === "delete") {
-      const originalState = states.find(s => s.id === selectedItem.id);
-      if (originalState) {
-        handleDeleteRowClick(originalState);
-      }
-    }
-    setPopupOpen(false);
-    setPopupType("");
-    setPopupData([]);
+  const loadInitial = async () => {
+    await Promise.all([fetchStates(), fetchNextStateCode()]);
   };
 
-  async function handleCreate() {
-    if (!form.code || !form.stateName) {
-      alert("Please fill required fields: CODE and State Name.");
+  const handleEdit = async () => {
+    if (!form.fuCode || !form.stateName) {
+      setMessage({ type: "error", text: "Please fill State Code and State Name." });
       return;
     }
 
-    try {
-      const stateData = {
-        code: form.code,
-        stateName: form.stateName,
-      };
-
-      await createState(stateData);
-
-      // Reset form
-      setForm({
-        code: "",
-        stateName: "",
-        codeId: null,
-      });
-
-      setMode("create");
-      alert("✅ State created successfully.");
-
-      setTimeout(() => {
-        if (codeRef.current) codeRef.current.focus();
-      }, 60);
-
-    } catch (err) {
-      alert(`Failed to create state: ${err.message}`);
-    }
-  }
-
-  async function handleUpdate() {
-    if (!editingId) return alert("No state selected to update.");
-    if (!form.code || !form.stateName) return alert("Please fill CODE and State Name.");
+    if (!window.confirm(`Do you want to update state "${form.stateName}"?`)) return;
 
     try {
-      const stateData = {
-        id: editingId,
-        code: form.code,
-        stateName: form.stateName,
-      };
-
+      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
       await updateState(stateData);
+      await loadInitial();
       
-      setEditingId(null);
-      setForm({ code: "", stateName: "", codeId: null });
-      setMode("create");
-      alert("✅ State updated successfully.");
-      setTimeout(() => codeRef.current && codeRef.current.focus(), 60);
+      setMessage({ type: "success", text: "State updated successfully." });
+      resetForm(true);
     } catch (err) {
-      alert(`Failed to update state: ${err.message}`);
+      // Error message already set in updateState
     }
-  }
+  };
 
-  function handlePrimaryAction() {
-    if (mode === "create") handleCreate();
-    else if (mode === "edit") handleUpdate();
-    else if (mode === "delete") handleDelete();
-  }
+  const handleDelete = async () => {
+    if (!form.fuCode) {
+      setMessage({ type: "error", text: "Please select a state to delete." });
+      return;
+    }
 
-  function handleClear() {
-    setForm({ code: "", stateName: "", codeId: null });
-    setMode("create");
+    if (!window.confirm(`Do you want to delete state "${form.stateName}"?`)) return;
+
+    try {
+      await deleteState(form.fuCode);
+      await loadInitial();
+      
+      setMessage({ type: "success", text: "State deleted successfully." });
+      resetForm();
+    } catch (err) {
+      // Special handling for referenced states
+      if (err.message.includes("used in related tables") || err.message.includes("409")) {
+        setMessage({ 
+          type: "error", 
+          text: `Cannot delete state "${form.stateName}". It is referenced in other tables and cannot be removed.` 
+        });
+      }
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!form.fuCode || !form.stateName) {
+      setMessage({ type: "error", text: "Please fill State Code and State Name." });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to create state "${form.stateName}"?`)) return;
+
+    try {
+      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
+      await createState(stateData);
+      await loadInitial();
+      
+      setMessage({ type: "success", text: "State created successfully." });
+      resetForm(true);
+    } catch (err) {
+      // Error message already set in createState
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (actionType === "Add") await handleAdd();
+    else if (actionType === "edit") await handleEdit();
+    else if (actionType === "delete") await handleDelete();
+  };
+
+  const resetForm = (keepAction = false) => {
+    fetchNextStateCode();
+    setForm(prev => ({ ...prev, stateName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
-    setTimeout(() => codeRef.current && codeRef.current.focus(), 60);
-  }
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
+    setTimeout(() => stateNameRef.current?.focus(), 60);
+  };
 
-  function onCodeKeyDown(e) {
+  const openEditModal = () => {
+    setEditQuery("");
+    setEditModalOpen(true);
+  };
+
+  const handleEditRowClick = (s) => {
+    setForm({ fuCode: s.uCode, stateName: s.stateName });
+    setActionType("edit");
+    setEditingId(s.uCode);
+    setEditModalOpen(false);
+    setTimeout(() => stateNameRef.current?.focus(), 60);
+  };
+
+  const openDeleteModal = () => {
+    setDeleteQuery("");
+    setDeleteModalOpen(true);
+  };
+
+  // Fetch items for popup list selector (simple client-side paging/filtering)
+  const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
+    const pageSize = 20;
+    const q = (search || '').trim().toLowerCase();
+    const filtered = q
+      ? states.filter(s => (s.uCode || '').toLowerCase().includes(q) || (s.stateName || '').toLowerCase().includes(q))
+      : states;
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [states]);
+
+  const handleDeleteRowClick = (s) => {
+    setForm({ fuCode: s.uCode, stateName: s.stateName });
+    setActionType("delete");
+    setDeleteTargetId(s.uCode);
+    setDeleteModalOpen(false);
+    setTimeout(() => stateNameRef.current?.focus(), 60);
+  };
+
+  const onStateCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (stateNameRef.current) stateNameRef.current.focus();
+      stateNameRef.current?.focus();
     }
-  }
+  };
 
-  function onStateNameKeyDown(e) {
+  const onStateNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handlePrimaryAction();
+      handleSubmit();
     }
-  }
-
-  function closeDeleteWarning() {
-    setShowDeleteWarning(false);
-    setDeleteWarningMessage("");
-  }
-
-  const fetchItemsForPopup = async (pageNum, search) => {
-    const filtered = popupData.filter(item => {
-      if (!search) return true;
-      const searchLower = search.toLowerCase();
-      return (
-        (item.code && item.code.toString().toLowerCase().includes(searchLower)) ||
-        (item.stateName && item.stateName.toLowerCase().includes(searchLower)) ||
-        (item.description && item.description.toLowerCase().includes(searchLower)) ||
-        (item.displayName && item.displayName.toLowerCase().includes(searchLower))
-      );
-    });
-    
-    const startIndex = (pageNum - 1) * 20;
-    const endIndex = startIndex + 20;
-    return filtered.slice(startIndex, endIndex);
   };
 
-  const getPopupConfig = () => {
-    const configs = {
-      code: {
-        displayFieldKeys: ['code', 'description'],
-        searchFields: ['code', 'description'],
-        headerNames: ['Code', 'Description'],
-        columnWidths: { code: '30%', description: '70%' },
-        searchPlaceholder: 'Search codes...'
-      },
-      edit: {
-        displayFieldKeys: ['code', 'stateName'],
-        searchFields: ['code', 'stateName'],
-        headerNames: ['Code', 'State Name'],
-        columnWidths: { code: '30%', stateName: '70%' },
-        searchPlaceholder: 'Search states...'
-      },
-      delete: {
-        displayFieldKeys: ['code', 'stateName'],
-        searchFields: ['code', 'stateName'],
-        headerNames: ['Code', 'State Name'],
-        columnWidths: { code: '30%', stateName: '70%' },
-        searchPlaceholder: 'Search states...'
-      }
-    };
-    
-    return configs[popupType] || configs.code;
-  };
-
-  // ---------- styles ----------
-  const styles = {
-    page: { 
-      minHeight: "100vh", 
-      background: 'linear-gradient(135deg, #f8fbff 0%, #f0f7ff 100%)',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      display: "flex", 
-      justifyContent: "center",
-      alignItems: "flex-start",
-      padding: isMobile ? "15px 10px" : "30px 20px",
-      boxSizing: "border-box",
-      fontWeight: 400,
-      lineHeight: 1.6,
-    },
-    
-    mainContainer: {
-      background: 'white',
-      borderRadius: isMobile ? '12px' : '20px',
-      padding: isMobile ? '15px' : '30px',
-      maxWidth: '1400px',
-      margin: '0 auto',
-      boxShadow: '0 15px 40px rgba(48, 122, 200, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05)',
-      border: '1px solid rgba(48, 122, 200, 0.08)',
-      width: '100%',
-    },
-    
-    twoColumnLayout: {
-      display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      gap: isMobile ? '20px' : '40px',
-      flexWrap: 'wrap',
-    },
-    
-    // LEFT PANEL - Existing States
-    leftPanel: {
-      flex: 1,
-      minWidth: isMobile ? '100%' : '350px',
-      width: '100%',
-    },
-    
-    leftHeader: {
-      marginBottom: isMobile ? '15px' : '25px',
-    },
-    
-    leftTitle: {
-      fontSize: isMobile ? '20px' : '26px',
-      fontWeight: 700,
-      marginBottom: '6px',
-      color: '#11303F',
-      letterSpacing: '-0.3px',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      lineHeight: 1.3,
-    },
-    
-    leftSubtitle: {
-      color: '#666',
-      fontSize: isMobile ? '13px' : '15px',
-      margin: 0,
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      fontWeight: 400,
-      opacity: 0.8,
-    },
-    
-    searchContainer: {
-      position: 'relative',
-      marginBottom: isMobile ? '15px' : '25px',
-    },
-    
-    searchInput: {
-      padding: isMobile ? '12px 14px 12px 42px' : '14px 16px 14px 45px',
-      border: '2px solid #e1e8f0',
-      borderRadius: isMobile ? '10px' : '12px',
-      width: '100%',
-      fontSize: isMobile ? '15px' : '16px',
-      background: '#fafcff',
-      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-      outline: 'none',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      boxSizing: 'border-box',
-      fontWeight: 500,
-      color: '#1e293b',
-    },
-    
-    searchIcon: {
-      position: 'absolute',
-      left: '14px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      color: '#94a3b8',
-      fontSize: isMobile ? '16px' : '18px',
-    },
-    
-    tableContainer: {
-      background: '#fafcff',
-      borderRadius: isMobile ? '10px' : '12px',
-      border: '1px solid #e1e8f0',
-      overflow: 'hidden',
-      width: '100%',
-    },
-    
-    tableHeader: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 2fr',
-      padding: isMobile ? '14px 16px' : '16px 20px',
-      background: '#f1f7ff',
-      borderBottom: '2px solid #e1e8f0',
-      fontWeight: 600,
-      fontSize: isMobile ? '14px' : '15px',
-      color: '#334155',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      gap: isMobile ? '8px' : '0',
-      letterSpacing: '0.01em',
-    },
-    
-    tableContent: {
-      maxHeight: isMobile ? '250px' : '400px',
-      overflowY: 'auto',
-      width: '100%',
-    },
-    
-    tableRow: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 2fr',
-      padding: isMobile ? '12px 16px' : '16px 20px',
-      borderBottom: '1px solid #f1f5f9',
-      fontSize: isMobile ? '15px' : '16px',
-      transition: 'background-color 0.2s',
-      cursor: 'pointer',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      gap: isMobile ? '8px' : '0',
-      alignItems: 'center',
-    },
-    
-    tableCell: {
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-    },
-    
-    // RIGHT PANEL - Sales Creation Form
-    rightPanel: {
-      flex: 1,
-      minWidth: isMobile ? '100%' : '350px',
-      width: '100%',
-    },
-    
-    rightHeader: {
-      display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      justifyContent: 'space-between',
-      alignItems: isMobile ? 'flex-start' : 'flex-start',
-      marginBottom: isMobile ? '20px' : '30px',
-      flexWrap: 'wrap',
-      gap: isMobile ? '12px' : '20px',
-    },
-    
-    rightTitleContainer: {
-      flex: 1,
-    },
-    
-    rightTitle: {
-      fontSize: isMobile ? '20px' : '26px',
-      fontWeight: 700,
-      marginBottom: '6px',
-      color: '#11303F',
-      letterSpacing: '-0.3px',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      lineHeight: 1.3,
-    },
-    
-    rightSubtitle: {
-      color: '#666',
-      fontSize: isMobile ? '13px' : '15px',
-      margin: 0,
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      fontWeight: 400,
-      opacity: 0.8,
-    },
-    
-    actionButtonsContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: isMobile ? '8px' : '12px',
-      minWidth: isMobile ? '100%' : '250px',
-      justifyContent: isMobile ? 'flex-start' : 'flex-end',
-      width: isMobile ? '100%' : 'auto',
-    },
-    
-    actionButtonsGroup: {
-      display: 'flex',
-      gap: isMobile ? '6px' : '8px',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      width: isMobile ? '100%' : 'auto',
-      justifyContent: isMobile ? 'space-between' : 'flex-end',
-    },
-    
-    actionPill: {
-      display: 'inline-flex',
-      gap: '6px',
-      alignItems: 'center',
-      padding: isMobile ? '8px 10px' : '10px 14px',
-      borderRadius: '999px',
-      background: 'linear-gradient(180deg, rgba(255,255,255,0.8), rgba(250,250,252,0.9))',
-      border: '1px solid rgba(255,255,255,0.45)',
-      cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(2,6,23,0.04)',
-      fontWeight: 600,
-      fontSize: isMobile ? '12px' : '13px',
-      color: '#334155',
-      transition: 'all 0.2s ease',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      outline: 'none',
-      minWidth: isMobile ? '30%' : '80px',
-      justifyContent: 'center',
-      flex: isMobile ? '1' : 'none',
-      boxSizing: 'border-box',
-      letterSpacing: '0.01em',
-      whiteSpace: 'nowrap',
-    },
-    
-    actionPillHover: {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 20px rgba(2,6,23,0.08)',
-      borderColor: 'rgba(48,122,200,0.2)',
-    },
-    
-    actionPillAdd: {
-      color: 'white',
-      background: 'linear-gradient(180deg, #306AC8, #1B91DA)',
-      borderColor: 'rgba(48,122,200,0.3)',
-    },
-    
-    actionPillEdit: {
-      color: 'white',
-      background: 'linear-gradient(180deg, #f59e0b, #f97316)',
-      borderColor: 'rgba(245,158,11,0.3)',
-    },
-    
-    actionPillDelete: {
-      color: 'white',
-      background: 'linear-gradient(180deg, #ef4444, #f97373)',
-      borderColor: 'rgba(239,68,68,0.3)',
-    },
-    
-    formContainer: {
-      background: '#fafcff',
-      borderRadius: isMobile ? '12px' : '16px',
-      padding: isMobile ? '20px' : '28px',
-      border: '1px solid #e1e8f0',
-      width: '100%',
-      boxSizing: 'border-box',
-    },
-    
-    formGroup: {
-      marginBottom: isMobile ? '18px' : '24px',
-    },
-    
-    formLabel: {
-      display: 'block',
-      marginBottom: '8px',
-      fontWeight: 600,
-      fontSize: isMobile ? '14px' : '15px',
-      color: '#334155',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      letterSpacing: '0.01em',
-    },
-    
-    formInputContainer: {
-      position: 'relative',
-      width: '100%',
-    },
-    
-    formInput: {
-      padding: isMobile ? '12px 14px' : '14px 16px',
-      width: '100%',
-      border: '2px solid #e1e8f0',
-      borderRadius: isMobile ? '10px' : '10px',
-      fontSize: isMobile ? '15px' : '16px',
-      background: 'white',
-      color: '#0f172a',
-      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      outline: 'none',
-      boxSizing: 'border-box',
-      fontWeight: 500,
-    },
-    
-    codeInput: {
-      padding: isMobile ? '12px 14px 12px 42px' : '14px 16px 14px 45px',
-      width: '100%',
-      border: '2px solid #e1e8f0',
-      borderRadius: isMobile ? '10px' : '10px',
-      fontSize: isMobile ? '15px' : '16px',
-      background: 'white',
-      color: '#0f172a',
-      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      outline: 'none',
-      boxSizing: 'border-box',
-      fontWeight: 500,
-      cursor: 'pointer',
-    },
-    
-    codeIcon: {
-      position: 'absolute',
-      left: '14px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      color: '#94a3b8',
-      fontSize: isMobile ? '16px' : '18px',
-    },
-    
-    formActions: {
-      display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      justifyContent: 'flex-end',
-      gap: isMobile ? '12px' : '16px',
-      marginTop: isMobile ? '28px' : '32px',
-      paddingTop: isMobile ? '20px' : '24px',
-      borderTop: '1px solid #e1e8f0',
-      width: '100%',
-    },
-    
-    submitButton: {
-      padding: isMobile ? '14px 24px' : '16px 32px',
-      background: 'linear-gradient(135deg, #06A7EA 0%, #1B91DA 100%)',
-      borderRadius: isMobile ? '10px' : '10px',
-      border: 'none',
-      color: 'white',
-      fontWeight: 600,
-      fontSize: isMobile ? '15px' : '16px',
-      cursor: 'pointer',
-      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 4px 12px rgba(6, 167, 234, 0.25)',
-      minWidth: isMobile ? '100%' : '140px',
-      outline: 'none',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      boxSizing: 'border-box',
-      letterSpacing: '0.01em',
-    },
-    
-    submitButtonHover: {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 20px rgba(6, 167, 234, 0.4)',
-    },
-    
-    clearButton: {
-      padding: isMobile ? '14px 24px' : '16px 32px',
-      background: 'white',
-      borderRadius: isMobile ? '10px' : '10px',
-      border: '2px solid #e1e8f0',
-      color: '#475569',
-      fontWeight: 600,
-      fontSize: isMobile ? '15px' : '16px',
-      cursor: 'pointer',
-      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-      minWidth: isMobile ? '100%' : '140px',
-      outline: 'none',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      boxSizing: 'border-box',
-      letterSpacing: '0.01em',
-    },
-    
-    clearButtonHover: {
-      borderColor: '#1B91DA',
-      color: '#1B91DA',
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 12px rgba(48, 122, 200, 0.1)',
-    },
-    
-    noDataMessage: {
-      textAlign: 'center',
-      padding: isMobile ? '20px 15px' : '40px 20px',
-      color: '#64748b',
-      fontSize: isMobile ? '14px' : '15px',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-      fontWeight: 400,
-    },
-    
-    // Error message
-    errorContainer: {
-      background: '#fff1f2',
-      color: '#9f1239',
-      padding: isMobile ? '12px' : '15px',
-      borderRadius: '10px',
-      marginBottom: isMobile ? '16px' : '20px',
-      textAlign: 'center',
-      borderLeft: '4px solid #ef4444',
-      fontSize: isMobile ? '14px' : '15px',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-    },
-  };
-
-  const getPrimaryButtonStyle = () => {
-    if (mode === "edit") return {
-      ...styles.submitButton,
-      background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
-      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)',
-    };
-    if (mode === "delete") return {
-      ...styles.submitButton,
-      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
-    };
-    return styles.submitButton;
-  };
-
-  const getPrimaryButtonText = () => {
-    if (loading) {
-      if (mode === "create") return "Creating...";
-      if (mode === "edit") return "Updating...";
-      if (mode === "delete") return "Deleting...";
-      return "Processing...";
+  const stopEnterPropagation = (e) => {
+    if (e.key === "Enter") {
+      e.stopPropagation();
+      e.preventDefault();
     }
-    if (mode === "create") return "Create";
-    if (mode === "edit") return "Update";
-    if (mode === "delete") return "Delete";
-    return "Submit";
   };
+
+  // ---------- filters ----------
+  const filteredEditStates = useMemo(() => {
+    const q = editQuery.trim().toLowerCase();
+    if (!q) return states;
+    return states.filter(
+      (s) =>
+        (s.uCode || "").toLowerCase().includes(q) ||
+        (s.stateName || "").toLowerCase().includes(q)
+    );
+  }, [editQuery, states]);
+
+  const filteredDeleteStates = useMemo(() => {
+    const q = deleteQuery.trim().toLowerCase();
+    if (!q) return states;
+    return states.filter(
+      (s) =>
+        (s.uCode || "").toLowerCase().includes(q) ||
+        (s.stateName || "").toLowerCase().includes(q)
+    );
+  }, [deleteQuery, states]);
+
+  const filteredExisting = useMemo(() => {
+    const q = existingQuery.trim().toLowerCase();
+    if (!q) return states;
+    return states.filter(
+      (s) => 
+        (s.uCode || "").toLowerCase().includes(q) || 
+        (s.stateName || "").toLowerCase().includes(q)
+    );
+  }, [existingQuery, states]);
 
   // ---------- render ----------
   return (
-    <div style={styles.page}>
-      <style>
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-          
-          .action-pill:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(2,6,23,0.08);
-            border-color: rgba(48,122,200,0.2);
-          }
-          
-          .form-input-focus {
-            box-shadow: 0 0 0 3px rgba(6,167,234,0.25);
-            border: 1px solid #06A7EA;
-            outline: none;
-          }
-          
-          .table-row-hover {
-            background-color: #f8fafc !important;
-          }
-          
-          @media (max-width: 768px) {
-            input, button, select, textarea {
-              font-size: 16px !important;
-            }
-            
-            button {
-              min-height: 44px;
-            }
-            
-            input, select {
-              min-height: 44px;
-            }
-          }
-        `}
-      </style>
+    <div className="uc-root" role="region" aria-labelledby="state-creation-title">
+      {/* Google/Local font */}
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
-      <div style={styles.mainContainer}>
-        <div style={styles.twoColumnLayout}>
-          {/* LEFT PANEL - Existing States */}
-          <div style={styles.leftPanel}>
-            <div style={styles.leftHeader}>
-              <h2 style={styles.leftTitle}>
-                Existing States
-              </h2>
-              <p style={styles.leftSubtitle}>
-                View and search through all state records
-              </p>
+      <style>{`
+        :root{
+          /* blue theme (matching ItemGroupCreation style) */
+          --bg-1: #f0f7fb;
+          --bg-2: #f7fbff;
+          --glass: rgba(255,255,255,0.55);
+          --glass-2: rgba(255,255,255,0.35);
+          --accent: #307AC8; /* primary */
+          --accent-2: #1B91DA; /* secondary */
+          --accent-3: #06A7EA; /* tertiary */
+          --success: #06A7EA;
+          --danger: #ef4444;
+          --warning: #f59e0b;
+          --muted: #64748b;
+          --card-shadow: 0 8px 30px rgba(16,24,40,0.08);
+          --glass-border: rgba(255,255,255,0.45);
+        }
+
+        /* Page layout */
+        .uc-root {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px 16px;
+          background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+          font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+          font-size: 18px; /* increased base font size */
+          box-sizing: border-box;
+        }
+
+        /* Main dashboard card (glass) */
+        .dashboard {
+          width: 100%;
+          max-width: 1100px;
+          border-radius: 16px;
+          padding: 20px;
+          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
+          box-shadow: var(--card-shadow);
+          backdrop-filter: blur(8px) saturate(120%);
+          border: 1px solid rgba(255,255,255,0.6);
+          overflow: visible;
+          transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+        }
+        .dashboard:hover { transform: translateY(-6px); }
+
+        /* header */
+        .top-row {
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:12px;
+          margin-bottom: 18px;
+          flex-wrap: wrap;
+        }
+        .title-block {
+          display:flex;
+          align-items: center;
+          gap:12px;
+        }
+        .title-block h2 {
+          margin:0;
+          font-family: 'Poppins', 'Inter', sans-serif;
+          font-size: 24px; /* slightly larger title */
+          color: #0f172a;
+          letter-spacing: -0.2px;
+        }
+        .subtitle {
+          color: var(--muted);
+          font-size: 16px;
+        }
+
+        /* action pills */
+        .actions {
+          display:flex;
+          gap:10px;
+          align-items:center;
+          flex-wrap:wrap;
+        }
+        .action-pill {
+          display:inline-flex;
+          gap:8px;
+          align-items:center;
+          padding:10px 12px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(250,250,252,0.9));
+          border: 1px solid var(--glass-border);
+          cursor:pointer;
+          box-shadow: 0 6px 16px rgba(2,6,23,0.04);
+          font-weight: 600;
+          font-size: 18px;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .action-pill:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 20px rgba(2,6,23,0.08);
+        }
+        .action-pill:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+        .action-pill.primary { color:white; background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
+        .action-pill.warn { color:white; background: linear-gradient(180deg, var(--warning), #f97316); }
+        .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
+
+        /* grid layout */
+        .grid {
+          display:grid;
+          grid-template-columns: 1fr 360px;
+          gap:18px;
+          align-items:start;
+        }
+
+        /* left card (form) */
+        .card {
+          background: rgba(255,255,255,0.85);
+          border-radius: 12px;
+          padding: 16px;
+          border: 1px solid rgba(15,23,42,0.04);
+          box-shadow: 0 6px 20px rgba(12,18,35,0.06);
+        }
+
+        label.field-label {
+          display:block;
+          margin-bottom:6px;
+          font-weight:700;
+          color:#0f172a;
+          font-size:18px;
+          text-align: left;
+          width: 100%;
+        }
+        .asterisk {
+          color: var(--danger);
+          font-weight: 700;
+        }
+
+        .field { margin-bottom:12px; display:flex; flex-direction:column; align-items:flex-start; }
+
+        .row { 
+          display:flex; 
+          gap:8px; 
+          align-items:center; 
+          width:100%;
+          flex-wrap: wrap;
+        }
+        .input, .search {
+          flex:1;
+          min-width: 0;
+          padding:10px 12px;
+          border-radius:10px;
+          border: 1px solid rgba(15,23,42,0.06);
+          background: linear-gradient(180deg, #fff, #fbfdff);
+          font-size:18px;
+          color:#0f172a;
+          box-sizing:border-box;
+          transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
+          text-align: left;
+        }
+        .input:focus, .search:focus { 
+          outline:none; 
+          box-shadow: 0 8px 26px rgba(48,122,200,0.08); 
+          transform: translateY(-1px); 
+          border-color: rgba(48,122,200,0.25); 
+        }
+        .input:read-only {
+          background: #f8fafc;
+          color: var(--muted);
+          cursor: not-allowed;
+        }
+
+        .btn {
+          padding:10px 12px;
+          border-radius:10px;
+          border:1px solid rgba(12,18,35,0.06);
+          background: linear-gradient(180deg,#fff,#f8fafc);
+          cursor:pointer;
+          min-width:86px;
+          font-weight:600;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+        .btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(12,18,35,0.1);
+        }
+        .btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+
+        /* right side panel */
+        .side {
+          display:flex;
+          flex-direction:column;
+          gap:12px;
+        }
+        .stat {
+          background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(250,251,255,0.7));
+          border-radius: 12px;
+          padding:12px;
+          border: 1px solid rgba(12,18,35,0.04);
+        }
+        .muted { color: var(--muted); font-size:15px; }
+
+        /* message */
+        .message {
+          margin-top:8px;
+          padding:12px;
+          border-radius:10px;
+          font-weight:600;
+          font-size: 16px;
+        }
+        .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
+        .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
+        .message.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
+        /* submit row */
+        .submit-row { 
+          display:flex; 
+          gap:12px; 
+          margin-top:14px; 
+          align-items:center; 
+          flex-wrap:wrap; 
+          justify-content: flex-end;
+        }
+        .submit-primary {
+          padding:12px 16px;
+          background: linear-gradient(180deg,var(--accent),var(--accent-2));
+          color:white;
+          border-radius:10px;
+          border:none;
+          font-weight:700;
+          cursor:pointer;
+          min-width: 120px;
+          transition: all 0.2s;
+          font-size: 18px;
+        }
+        .submit-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(48,122,200,0.25);
+        }
+        .submit-primary:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+        .submit-clear {
+          padding:10px 12px;
+          background:#fff;
+          border:1px solid rgba(12,18,35,0.06);
+          border-radius:10px;
+          cursor:pointer;
+          transition: all 0.2s;
+          font-size: 18px;
+
+        }
+        .submit-clear:hover:not(:disabled) {
+          background: #f8fafc;
+          border-color: rgba(48,122,200,0.3);
+          transform: translateY(-1px);
+        }
+        
+        /* search container */
+        .search-container {
+          position: relative;
+          width: 100%;
+        }
+
+        .search-with-clear {
+          width: 100%;
+          padding: 12px 40px 12px 16px;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          font-size: 16px;
+          transition: all 0.2s;
+          background: #fff;
+        }
+
+        .search-with-clear:focus {
+          outline: none;
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px rgba(48, 122, 200, 0.1);
+        }
+
+        .clear-search-btn {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: transparent;
+          border: none;
+          padding: 4px;
+          cursor: pointer;
+          color: #6b7280;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .clear-search-btn:hover {
+          background: #f3f4f6;
+          color: #374151;
+        }
+
+        /* states table */
+        .states-table-container {
+          max-height: 400px;
+          overflow-y: auto;
+          border-radius: 8px;
+          border: 1px solid rgba(12,18,35,0.04);
+          margin-top: 12px;
+        }
+
+        .states-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 18px;
+        }
+
+        .states-table th {
+          position: sticky;
+          top: 0;
+          background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+          padding: 12px;
+          text-align: left;
+          font-weight: 700;
+          color: var(--accent);
+          border-bottom: 2px solid var(--accent);
+          font-size: 18px;
+          z-index: 1;
+        }
+
+        .states-table td {
+          padding: 12px;
+          border-bottom: 1px solid rgba(230, 244, 255, 0.8);
+          color: #3a4a5d;
+        }
+
+        .states-table tr:hover {
+          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
+          cursor: pointer;
+        }
+
+        .states-table tr.selected {
+          background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
+          box-shadow: inset 2px 0 0 var(--accent);
+        }
+
+        /* modal overlay (glass) */
+        .modal-overlay {
+          position:fixed; 
+          inset:0; 
+          display:flex; 
+          align-items:center; 
+          justify-content:center; 
+          background: rgba(2,6,23,0.46); 
+          z-index:1200; 
+          padding:20px;
+          backdrop-filter: blur(4px);
+        }
+        .modal {
+          width:100%; 
+          max-width:720px; 
+          max-height:80vh; 
+          overflow:auto; 
+          background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
+          border-radius:12px; 
+          padding:14px;
+          border:1px solid rgba(255,255,255,0.5);
+          box-shadow: 0 18px 50px rgba(2,6,23,0.36);
+          backdrop-filter: blur(8px);
+        }
+
+        .dropdown-list { 
+          max-height:50vh; 
+          overflow:auto; 
+          border-top:1px solid rgba(12,18,35,0.03); 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          padding:6px 0; 
+        }
+        .dropdown-item { 
+          padding:12px; 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          cursor:pointer; 
+          display:flex; 
+          flex-direction:column; 
+          gap:4px; 
+          text-align: left;
+          transition: all 0.2s;
+        }
+        .dropdown-item:hover { 
+          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
+          transform: translateX(6px); 
+        }
+
+        /* tips panel */
+        .tips-panel {
+          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
+          border-left: 3px solid var(--accent);
+        }
+
+        /* Responsive styles */
+        @media (max-width: 1024px) {
+          .grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+          .side {
+            order: 2;
+          }
+          .card {
+            order: 1;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .uc-root {
+            padding: 16px 12px;
+          }
+          .dashboard {
+            padding: 16px;
+          }
+          .top-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+          }
+          .actions {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .action-pill {
+            flex: 1;
+            justify-content: center;
+            min-width: 0;
+          }
+          .states-table-container {
+            max-height: 300px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .uc-root {
+            padding: 12px 8px;
+          }
+          .dashboard {
+            padding: 12px;
+            border-radius: 12px;
+          }
+          .title-block h2 {
+            font-size: 18px;
+          }
+          .action-pill {
+            padding: 8px 10px;
+            font-size: 12px;
+          }
+          .input, .search {
+            padding: 8px 10px;
+            font-size: 13px;
+          }
+          .btn {
+            padding: 8px 10px;
+            min-width: 70px;
+            font-size: 13px;
+          }
+          .submit-primary, .submit-clear {
+            flex: 1;
+            min-width: 0;
+          }
+          .states-table th,
+          .states-table td {
+            padding: 8px;
+            font-size: 12px;
+          }
+          .modal-overlay {
+            padding: 12px;
+          }
+          .modal {
+            padding: 12px;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .uc-root {
+            padding: 8px 6px;
+          }
+          .dashboard {
+            padding: 10px;
+          }
+          .title-block {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+          .actions {
+            gap: 6px;
+          }
+          .action-pill {
+            padding: 6px 8px;
+            font-size: 11px;
+          }
+          .card {
+            padding: 12px;
+          }
+          .stat {
+            padding: 10px;
+          }
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .loading {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+      `}</style>
+
+      <div className="dashboard" aria-labelledby="state-creation-title">
+        <div className="top-row">
+          <div className="title-block">
+            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div>
+              <h2 id="state-creation-title">State Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete states.</div>
             </div>
-
-            {/* Search Bar */}
-            <div style={styles.searchContainer}>
-              <input
-                type="text"
-                placeholder="Search states by code or name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={styles.searchInput}
-                onFocus={(e) => Object.assign(e.target.style, {
-                  boxShadow: '0 0 0 3px rgba(6,167,234,0.25)',
-                  border: '1px solid #06A7EA',
-                  outline: 'none',
-                  background: 'white',
-                })}
-                onBlur={(e) => {
-                  e.target.style.boxShadow = 'none';
-                  e.target.style.border = '2px solid #e1e8f0';
-                  e.target.style.background = '#fafcff';
-                  e.target.style.outline = 'none';
-                }}
-              />
-              <span style={styles.searchIcon}>
-                🔍
-              </span>
-            </div>
-
-            {/* States Table */}
-            <div style={styles.tableContainer}>
-              <div style={styles.tableHeader}>
-                <span>Code</span>
-                <span>State Name</span>
-              </div>
-
-              <div style={styles.tableContent}>
-                {filteredStates.map((state) => (
-                  <div
-                    key={state.id}
-                    style={styles.tableRow}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    <span style={{...styles.tableCell, color: '#475569', fontWeight: 500}}>
-                      {state.code}
-                    </span>
-                    <span style={{...styles.tableCell, color: '#0f172a', fontWeight: 500}}>
-                      {state.stateName}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {filteredStates.length === 0 && (
-              <div style={styles.noDataMessage}>
-                {states.length === 0 ? 'No states found' : 'No matching states found. Try a different search term.'}
-              </div>
-            )}
           </div>
 
-          {/* RIGHT PANEL - Sales Creation Form */}
-          <div style={styles.rightPanel}>
-            {error && <div style={styles.errorContainer}>Error: {error}</div>}
-            
-            <div style={styles.rightHeader}>
-              <div style={styles.rightTitleContainer}>
-                <h2 style={styles.rightTitle}>
-                  State Creation
-                </h2>
-                <p style={styles.rightSubtitle}>
-                  Create or modify state records
-                </p>
-              </div>
+          <div className="actions" role="toolbar" aria-label="actions">
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "delete"} />
+          </div>
+        </div>
 
-              {/* Action Buttons */}
-              <div style={styles.actionButtonsContainer}>
-                <div style={styles.actionButtonsGroup}>
-                  <button
-                    className={`action-pill ${mode === 'create' ? 'action-pill-add' : ''}`}
-                    onClick={() => {
-                      setMode('create');
-                      handleClear();
-                    }}
-                    onKeyDown={(e) => e.key === 'Enter' && setMode('create')}
-                    role="button"
-                    tabIndex={0}
-                    title="Create new state"
-                    style={{
-                      ...styles.actionPill,
-                      ...(mode === 'create' ? styles.actionPillAdd : {})
-                    }}
-                    onMouseEnter={(e) => {
-                      if (mode !== 'create') {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(2,6,23,0.08)';
-                        e.target.style.borderColor = 'rgba(48,122,200,0.2)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (mode !== 'create') {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(2,6,23,0.04)';
-                        e.target.style.borderColor = 'rgba(255,255,255,0.45)';
-                      }
-                    }}
-                  >
-                    ＋ Add
-                  </button>
-                  <button
-                    className={`action-pill ${mode === 'edit' ? 'action-pill-edit' : ''}`}
-                    onClick={openEditModal}
-                    onKeyDown={(e) => e.key === 'Enter' && openEditModal()}
-                    role="button"
-                    tabIndex={0}
-                    title="Edit existing state"
-                    style={{
-                      ...styles.actionPill,
-                      ...(mode === 'edit' ? styles.actionPillEdit : {})
-                    }}
-                    onMouseEnter={(e) => {
-                      if (mode !== 'edit') {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(2,6,23,0.08)';
-                        e.target.style.borderColor = 'rgba(245,158,11,0.2)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (mode !== 'edit') {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(2,6,23,0.04)';
-                        e.target.style.borderColor = 'rgba(255,255,255,0.45)';
-                      }
-                    }}
-                  >
-                    ✏️ Edit
-                  </button>
-                  <button
-                    className={`action-pill ${mode === 'delete' ? 'action-pill-delete' : ''}`}
-                    onClick={openDeleteModal}
-                    onKeyDown={(e) => e.key === 'Enter' && openDeleteModal()}
-                    role="button"
-                    tabIndex={0}
-                    title="Delete state"
-                    style={{
-                      ...styles.actionPill,
-                      ...(mode === 'delete' ? styles.actionPillDelete : {})
-                    }}
-                    onMouseEnter={(e) => {
-                      if (mode !== 'delete') {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(2,6,23,0.08)';
-                        e.target.style.borderColor = 'rgba(239,68,68,0.2)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (mode !== 'delete') {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(2,6,23,0.04)';
-                        e.target.style.borderColor = 'rgba(255,255,255,0.45)';
-                      }
-                    }}
-                  >
-                    🗑️ Delete
-                  </button>
-                </div>
+        <div className="grid" role="main">
+          <div className="card" aria-live="polite">
+            {/* State Code field */}
+            <div className="field">
+              <label className="field-label">
+                State Code <span className="asterisk">*</span>
+              </label>
+              <div className="row">
+                <input
+                  ref={stateCodeRef}
+                  className="input"
+                  value={form.fuCode}
+                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
+                  placeholder="State code (auto-generated)"
+                  onKeyDown={onStateCodeKeyDown}
+                  disabled={loading}
+                  aria-label="State Code"
+                  readOnly={actionType === "edit" || actionType === "delete"}
+                />
               </div>
             </div>
 
-            {/* Form */}
-            <div style={styles.formContainer}>
-              <form onSubmit={(e) => e.preventDefault()}>
-                {/* CODE Field */}
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>
-                    CODE <span style={{color: '#ef4444'}}>*</span>
-                  </label>
-                  <div style={styles.formInputContainer}>
-                    <input
-                      ref={codeRef}
-                      type="text"
-                      value={form.code}
-                      onChange={(e) => setForm((s) => ({ ...s, code: e.target.value }))}
-                      placeholder="Click to select or enter code"
-                      onKeyDown={onCodeKeyDown}
-                      onClick={openCodeModal}
-                      style={styles.codeInput}
-                      onFocus={(e) => Object.assign(e.target.style, {
-                        boxShadow: '0 0 0 3px rgba(6,167,234,0.25)',
-                        border: '1px solid #06A7EA',
-                        outline: 'none',
-                        background: 'white',
-                      })}
-                      onBlur={(e) => {
-                        e.target.style.boxShadow = 'none';
-                        e.target.style.border = '2px solid #e1e8f0';
-                        e.target.style.outline = 'none';
-                      }}
-                    />
-                    <span style={styles.codeIcon}>
-                      🔍
-                    </span>
+            {/* State Name field */}
+            <div className="field">
+              <label className="field-label">
+                State Name <span className="asterisk">*</span>
+              </label>
+              <div className="row">
+                <input 
+                  ref={stateNameRef} 
+                  className="input" 
+                  value={form.stateName} 
+                  onChange={(e) => setForm(s => ({ ...s, stateName: e.target.value }))} 
+                  placeholder="Enter state name" 
+                  onKeyDown={onStateNameKeyDown}
+                  disabled={loading}
+                  aria-label="State Name"
+                  readOnly={actionType === "delete"}
+                />
+              </div>
+            </div>
+
+            {/* Message display */}
+            {message && (
+              <div className={`message ${message.type}`} role="alert">
+                {message.text}
+              </div>
+            )}
+
+            {/* Submit controls */}
+            <div className="submit-row">
+              <button
+                className="submit-primary"
+                onClick={handleSubmit}
+                disabled={loading}
+                type="button"
+              >
+                {loading ? "Processing..." : actionType}
+              </button>
+              <button
+                className="submit-clear"
+                onClick={resetForm}
+                disabled={loading}
+                type="button"
+              >
+                Clear
+              </button>
+            </div>
+               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing States</div>
+              <div className="search-container" style={{ marginBottom: "10px" }}>
+                <input
+                  className="search-with-clear"
+                  placeholder="Search existing states..."
+                  value={existingQuery}
+                  onChange={(e) => setExistingQuery(e.target.value)}
+                  aria-label="Search existing states"
+                />
+                {existingQuery && (
+                  <button
+                    className="clear-search-btn"
+                    onClick={() => setExistingQuery("")}
+                    type="button"
+                    aria-label="Clear search"
+                  >
+                    <Icon.Close size={16} />
+                  </button>
+                )}
+              </div>
+              
+              <div className="states-table-container">
+                {loading ? (
+                  <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
+                    Loading states...
                   </div>
-                </div>
+                ) : filteredExisting.length === 0 ? (
+                  <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
+                    {states.length === 0 ? "No states found" : "No matching states"}
+                  </div>
+                ) : (
+                  <table className="states-table">
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>State Name</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredExisting.map((s) => (
+                        <tr 
+                          key={s.uCode}
+                          className={form.fuCode === s.uCode ? "selected" : ""}
+                          onClick={() => {
+                            setForm({ fuCode: s.uCode, stateName: s.stateName });
+                            setActionType("edit");
+                          }}
+                        >
+                          <td>{s.uCode}</td>
+                          <td>{s.stateName}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
 
-                {/* State Name Field */}
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>
-                    State Name <span style={{color: '#ef4444'}}>*</span>
-                  </label>
-                  <input
-                    ref={stateNameRef}
-                    type="text"
-                    value={form.stateName}
-                    onChange={(e) => setForm((s) => ({ ...s, stateName: e.target.value }))}
-                    placeholder="Enter state name"
-                    onKeyDown={onStateNameKeyDown}
-                    style={styles.formInput}
-                    onFocus={(e) => Object.assign(e.target.style, {
-                      boxShadow: '0 0 0 3px rgba(6,167,234,0.25)',
-                      border: '1px solid #06A7EA',
-                      outline: 'none',
-                      background: 'white',
-                    })}
-                    onBlur={(e) => {
-                      e.target.style.boxShadow = 'none';
-                      e.target.style.border = '2px solid #e1e8f0';
-                      e.target.style.outline = 'none';
-                    }}
-                  />
-                </div>
+          {/* Right side panel */}
+          <div className="side" aria-live="polite">
+            <div className="stat">
+              <div className="muted">Current Action</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit State" : "Delete State"}
+              </div>
+            </div>
 
-                {/* Form Action Buttons */}
-                <div style={styles.formActions}>
-                  <button
-                    type="button"
-                    onClick={handleClear}
-                    style={styles.clearButton}
-                    onMouseEnter={(e) => {
-                      e.target.style.borderColor = '#1B91DA';
-                      e.target.style.color = '#1B91DA';
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(48, 122, 200, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.borderColor = '#e1e8f0';
-                      e.target.style.color = '#475569';
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = 'none';
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.outline = 'none';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(6,167,234,0.25)';
-                      e.target.style.borderColor = '#06A7EA';
-                      e.target.style.transform = 'translateY(-2px)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.boxShadow = 'none';
-                      e.target.style.borderColor = '#e1e8f0';
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.outline = 'none';
-                    }}
-                  >
-                    Clear
-                  </button>
+            <div className="stat">
+              <div className="muted">State Code</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.fuCode || "Auto-generated"}
+              </div>
+            </div>
 
-                  <button
-                    type="button"
-                    onClick={handlePrimaryAction}
-                    disabled={loading}
-                    style={getPrimaryButtonStyle()}
-                    onMouseEnter={(e) => {
-                      if (!loading) {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(6, 167, 234, 0.4)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!loading) {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
-                      }
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.outline = 'none';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(6,167,234,0.25), 0 4px 12px rgba(6, 167, 234, 0.25)';
-                      e.target.style.transform = 'translateY(-2px)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.outline = 'none';
-                      e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
-                      e.target.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    {getPrimaryButtonText()}
-                  </button>
+            <div className="stat">
+              <div className="muted">State Name</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.stateName || "Not set"}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Existing States</div>
+              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
+                {states.length}
+              </div>
+            </div>
+
+            <div className="stat tips-panel">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <Icon.Info />
+                <div style={{ fontWeight: 700 }}>Quick Tips</div>
+              </div>
+              
+              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>State code is auto-generated for new states</span>
                 </div>
-              </form>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>For edit/delete, use search modals to find states</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Examples: Maharashtra, Karnataka, Tamil Nadu</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* PopupListSelector */}
+      {/* Edit Popup */}
       <PopupListSelector
-        open={popupOpen}
-        onClose={() => {
-          setPopupOpen(false);
-          setPopupType("");
-          setPopupData([]);
-        }}
-        onSelect={handlePopupSelect}
-        fetchItems={fetchItemsForPopup}
-        title={popupTitle}
-        displayFieldKeys={getPopupConfig().displayFieldKeys}
-        searchFields={getPopupConfig().searchFields}
-        headerNames={getPopupConfig().headerNames}
-        columnWidths={getPopupConfig().columnWidths}
-        searchPlaceholder={getPopupConfig().searchPlaceholder}
-        maxHeight="70vh"
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
+        fetchItems={fetchItemsForModal}
+        title="Select State to Edit"
+        displayFieldKeys={[ 'stateName', 'uCode' ]}
+        searchFields={[ 'stateName', 'uCode' ]}
+        headerNames={[ 'State Name', 'Code' ]}
+        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        maxHeight="60vh"
       />
 
-      {/* Delete Warning Modal */}
-      {showDeleteWarning && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: isMobile ? '10px' : '20px',
-          zIndex: 1000,
-          backdropFilter: 'blur(4px)',
-          overflowY: 'auto',
-          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: isMobile ? '14px' : '16px',
-            width: '100%',
-            maxWidth: isMobile ? '95%' : '600px',
-            overflow: 'hidden',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-            animation: 'modalSlideIn 0.3s ease-out',
-            maxHeight: isMobile ? '90vh' : 'auto',
-            overflowY: 'auto',
-          }}>
-            <div style={{
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-              color: 'white',
-              padding: isMobile ? '18px 22px' : '22px 28px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              position: 'sticky',
-              top: 0,
-              zIndex: 1,
-            }}>
-              <h3 style={{ 
-                margin: 0, 
-                fontSize: isMobile ? '18px' : '20px', 
-                fontWeight: 600,
-                fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                flex: 1,
-                letterSpacing: '-0.01em',
-              }}>
-                ⚠️ Delete Operation Failed
-              </h3>
-              <button
-                onClick={closeDeleteWarning}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  border: 'none',
-                  fontSize: isMobile ? '24px' : '28px',
-                  color: 'white',
-                  cursor: 'pointer',
-                  width: isMobile ? '32px' : '36px',
-                  height: isMobile ? '32px' : '36px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s',
-                  outline: 'none',
-                  fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                  flexShrink: 0,
-                  marginLeft: '12px',
-                }}
-                onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
-                onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
-                onFocus={(e) => e.target.style.outline = 'none'}
-              >
-                ×
-              </button>
-            </div>
-
-            <div style={{ 
-              padding: isMobile ? '22px 18px' : '32px 28px',
-              overflowY: 'auto',
-              maxHeight: isMobile ? 'calc(90vh - 70px)' : 'none',
-            }}>
-              <div style={{ 
-                fontSize: isMobile ? '15px' : '16px', 
-                color: '#1e293b',
-                lineHeight: 1.6,
-                margin: 0,
-                fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                fontWeight: 400,
-                whiteSpace: 'pre-line',
-              }}>
-                {deleteWarningMessage}
-              </div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: isMobile ? '12px' : '12px',
-                marginTop: isMobile ? '28px' : '32px',
-                width: '100%',
-              }}>
-                <button
-                  onClick={closeDeleteWarning}
-                  style={{
-                    padding: isMobile ? '14px 24px' : '16px 32px',
-                    background: 'linear-gradient(135deg, #06A7EA 0%, #1B91DA 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: isMobile ? '10px' : '10px',
-                    fontWeight: 600,
-                    fontSize: isMobile ? '15px' : '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s',
-                    boxShadow: '0 4px 12px rgba(6, 167, 234, 0.25)',
-                    minWidth: isMobile ? '100%' : '140px',
-                    outline: 'none',
-                    fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-                    boxSizing: 'border-box',
-                    letterSpacing: '0.01em',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 6px 20px rgba(6, 167, 234, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.outline = 'none';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(6,167,234,0.25), 0 4px 12px rgba(6, 167, 234, 0.25)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.outline = 'none';
-                    e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
-                  }}
-                >
-                  OK, I Understand
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Popup */}
+      <PopupListSelector
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
+        fetchItems={fetchItemsForModal}
+        title="Select State to Delete"
+        displayFieldKeys={[ 'stateName', 'uCode' ]}
+        searchFields={[ 'stateName', 'uCode' ]}
+        headerNames={[ 'State Name', 'Code' ]}
+        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        maxHeight="60vh"
+      />
     </div>
   );
 }
