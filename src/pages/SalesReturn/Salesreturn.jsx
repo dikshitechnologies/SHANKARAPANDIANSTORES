@@ -336,6 +336,7 @@ const Salesreturn = () => {
   // State for responsive design
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   // State for delete confirmation
@@ -376,6 +377,7 @@ const Salesreturn = () => {
     setWindowWidth(width);
     setIsMobile(width < 768);
     setIsTablet(width >= 768 && width < 1024);
+    setIsLargeScreen(width >= 1024);
   };
 
   // Handle window resize
@@ -693,7 +695,7 @@ const Salesreturn = () => {
     padding: '12px 4px',
     verticalAlign: 'middle',
     boxSizing: 'border-box',
-    backgroundColor: '#1976d2',
+    backgroundColor: '#1B91DA',
     color: 'white',
     fontWeight: 'bold',
     textAlign: 'center',
@@ -793,58 +795,65 @@ const Salesreturn = () => {
       flexDirection: 'column',
       overflow: 'hidden'
     },
-    // Form Header - Fixed position
+    // Form Header - Fixed position with smaller inputs
     formHeader: {
       backgroundColor: 'white',
-      padding: isMobile ? '10px 15px' : '15px 25px',
+      padding: isMobile ? '12px 15px' : '15px 25px',
       borderBottom: '3px solid #ddd',
       position: 'relative',
       zIndex: 5,
-      flexShrink: 0
+      flexShrink: 0,
+      margin: isMobile ? '10px' : '15px 20px 25px 20px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
     },
+    // Responsive form grid: 5 columns on mobile, 7 columns on large screens
     formGrid: {
       display: 'grid',
-      gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-      gap: isMobile ? '8px' : isTablet ? '10px' : '15px 20px',
+      gridTemplateColumns: isMobile ? 'repeat(5, 1fr)' : 'repeat(7, 1fr)',
+      gap: isMobile ? '8px 10px' : '10px 15px',
       alignItems: 'center'
     },
     formField: {
       display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      alignItems: isMobile ? 'flex-start' : 'center',
-      gap: isMobile ? '4px' : '8px'
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      gap: '4px',
+      minWidth: '0' // Prevents overflow
     },
     formLabel: {
       fontWeight: '600',
-      fontSize: isMobile ? '12px' : '17px',
+      fontSize: isMobile ? '11px' : '15px',
       whiteSpace: 'nowrap',
-      minWidth: isMobile ? 'auto' : '85px',
       color: '#333',
-      textAlign: isMobile ? 'left' : 'right',
-      width: isMobile ? '100%' : 'auto'
+      textAlign: 'left',
+      width: '100%',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
     },
     formInput: {
-      flex: 1,
-      padding: '8px 10px',
+      width: '100%',
+      padding: '6px 8px',
       border: "1px solid #ddd",
       borderRadius: '4px',
-      fontSize: isMobile ? '12px' : '14px',
+      fontSize: isMobile ? '12px' : '13px',
       outline: 'none',
-      minHeight: '35px',
+      minHeight: '32px',
       boxSizing: 'border-box',
-      width: '100%',
-      maxWidth: '100%'
+      maxWidth: '100%',
+      backgroundColor: '#fff'
     },
     // Table Container - Takes remaining space
     tableContainer: {
       flex: 1,
-      margin: isMobile ? '10px' : '20px',
+      margin: isMobile ? '10px' : '10px',
       backgroundColor: '#fff',
       border: '1px solid #ddd',
       borderRadius: '10px',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
+      boxShadow: '0 2px 8px rgba(223, 205, 205, 0.66)',
       minHeight: 0 // Important for flex child to scroll
     },
     // Scrollable table area
@@ -950,7 +959,7 @@ const Salesreturn = () => {
           <div style={styles.formGrid}>
             {/* Bill No Field */}
             <div style={styles.formField}>
-              <label style={styles.formLabel}>Bill No :</label>
+              <label style={styles.formLabel}>Bill No</label>
               <input
                 name="billNo"
                 type="text"
@@ -968,7 +977,7 @@ const Salesreturn = () => {
 
             {/* Bill Date Field */}
             <div style={styles.formField}>
-              <label style={styles.formLabel}>Bill Date:</label>
+              <label style={styles.formLabel}>Bill Date</label>
               <input
                 name="billDate"
                 type="date"
@@ -985,7 +994,7 @@ const Salesreturn = () => {
 
             {/* Mobile No Field */}
             <div style={styles.formField}>
-              <label style={styles.formLabel}>Mobile No:</label>
+              <label style={styles.formLabel}>Mobile No</label>
               <input
                 name="mobileNo"
                 type="text"
@@ -1003,7 +1012,7 @@ const Salesreturn = () => {
 
             {/* EMP Name Field */}
             <div style={styles.formField}>
-              <label style={styles.formLabel}>EMP Name:</label>
+              <label style={styles.formLabel}>EMP Name</label>
               <input
                 name="empName"
                 type="text"
@@ -1021,7 +1030,7 @@ const Salesreturn = () => {
 
             {/* Salesman Field */}
             <div style={styles.formField}>
-              <label style={styles.formLabel}>Salesman:</label>
+              <label style={styles.formLabel}>Salesman</label>
               <input
                 name="salesman"
                 type="text"
@@ -1039,7 +1048,7 @@ const Salesreturn = () => {
 
             {/* Customer Name Field */}
             <div style={styles.formField}>
-              <label style={styles.formLabel}>Customer:</label>
+              <label style={styles.formLabel}>Customer</label>
               <input
                 name="custName"
                 type="text"
@@ -1047,7 +1056,7 @@ const Salesreturn = () => {
                 value={formData.custName}
                 onChange={handleFormChange('custName')}
                 onKeyDown={(e) => handleFormKeyDown('custName', e)}
-                placeholder="Customer Name"
+                placeholder="Customer"
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
                 onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
@@ -1057,7 +1066,7 @@ const Salesreturn = () => {
 
             {/* Barcode Field */}
             <div style={styles.formField}>
-              <label style={styles.formLabel}>Barcode:</label>
+              <label style={styles.formLabel}>Barcode</label>
               <input
                 name="barcode"
                 type="text"
@@ -1242,7 +1251,7 @@ const Salesreturn = () => {
                         value={item.mrp || ''}
                         onChange={handleItemChange(item.id, 'mrp')}
                         onKeyDown={(e) => handleKeyDown(item.id, 'mrp', e)}
-                        placeholder="MIP"
+                        placeholder="MRP"
                       />
                     </td>
                     
@@ -1327,7 +1336,7 @@ const Salesreturn = () => {
                         value={item.sRate}
                         onChange={handleItemChange(item.id, 'sRate')}
                         onKeyDown={(e) => handleKeyDown(item.id, 'sRate', e)}
-                        placeholder="SRtate"
+                        placeholder="SRate"
                         step="0.01"
                       />
                     </td>

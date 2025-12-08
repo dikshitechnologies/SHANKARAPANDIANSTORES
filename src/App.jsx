@@ -17,7 +17,7 @@ import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
 import UnitCreation from './pages/UnitCreation/UnitCreation'
 import Billcollector  from './pages/billcollector/billcollectior'
-
+import ScrapProcurement from './pages/ScrapProcurement/Scrapprocurement'
 import Tender from './pages/Tender/Tender'
 import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 
@@ -49,6 +49,7 @@ function App() {
           <Route path="/transactions/bill-collector" element={<Billcollector />} />
           <Route path="/Transaction/Tender" element={<Tender />} />
           <Route path="/transactions/purchase-invoice" element={<PurchaseInvoice />} />
+           <Route path="/ScrapProcurement" element={<ScrapProcurement />} />
         </Routes>
       </main>
     </div>

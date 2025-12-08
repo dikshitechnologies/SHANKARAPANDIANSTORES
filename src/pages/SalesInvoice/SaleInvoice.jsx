@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Button } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 
-// Add this CSS for scrollbar styling at the top of your component file
-// Or better, move this to a separate CSS file
+// Add this CSS for scrollbar styling
 const scrollbarStyles = `
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
@@ -18,6 +17,46 @@ const scrollbarStyles = `
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #1565c0;
+  }
+  
+  /* Table alignment fixes */
+  .perfect-alignment-table {
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+  
+  .perfect-alignment-table th,
+  .perfect-alignment-table td {
+    border-right: 1px solid #e0e0e0 !important;
+    border-left: 1px solid #e0e0e0 !important;
+    box-sizing: border-box !important;
+  }
+  
+  .perfect-alignment-table th {
+    border-bottom: 2px solid #e0e0e0 !important;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .perfect-alignment-table td {
+    border-bottom: 1px solid #e0e0e0 !important;
+  }
+  
+  /* Ensure input alignment */
+  .perfect-alignment-table input {
+    width: 100% !important;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    box-sizing: border-box !important;
+    padding: 4px 2px !important;
+    margin: 0 !important;
+  }
+
+  /* Prevent body scrolling */
+  body.no-scroll {
+    overflow: hidden !important;
   }
 `;
 
@@ -241,7 +280,7 @@ const buttonStyles = {
 };
 
 /**
- * Sale Invoice Form Component with Fixed Layout
+ * Sale Invoice Component with Fixed Layout (No Window Scrolling)
  */
 const SaleInvoice = () => {
   // Add scrollbar styles to document head
@@ -250,25 +289,30 @@ const SaleInvoice = () => {
     styleElement.innerHTML = scrollbarStyles;
     document.head.appendChild(styleElement);
     
+    // Prevent body scrolling
+    document.body.classList.add('no-scroll');
+    
     return () => {
       document.head.removeChild(styleElement);
+      document.body.classList.remove('no-scroll');
     };
   }, []);
 
   // Initial state for form fields
   const [formData, setFormData] = useState({
     salesman: '',
-    type: 'Retail',
+    type: 'Retail', // Added Type field
     billNo: 'SE00001AA',
     billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
     custName: '',
-    barcode: '',
+    returnReason: '',
+    barcodeInput: '', 
     qty: '',
     items: ''
   });
 
-  // State for items table - Start with 1 empty row
+  // State for items table
   const [items, setItems] = useState([{
     id: 1,
     sNo: 1,
@@ -279,14 +323,14 @@ const SaleInvoice = () => {
     uom: '',
     hsn: '',
     tax: '',
-    state: '',
+    sRate: '',
     qty: '',
     amount: '0.00'
   }]);
 
   // State for button groups
-  const [topButtonActive, setTopButtonActive] = useState('add'); // 'add', 'edit', 'delete'
-  const [bottomButtonActive, setBottomButtonActive] = useState('save'); // 'clear', 'save', 'print'
+  const [topButtonActive, setTopButtonActive] = useState('add');
+  const [bottomButtonActive, setBottomButtonActive] = useState('save');
 
   // State for responsive design
   const [isMobile, setIsMobile] = useState(false);
@@ -297,26 +341,18 @@ const SaleInvoice = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // State for heights (for dynamic calculations)
-  const [formHeaderHeight, setFormHeaderHeight] = useState(0);
-  const [tableHeaderHeight, setTableHeaderHeight] = useState(0);
-  const [actionBarHeight, setActionBarHeight] = useState(0);
-  const [addItemButtonHeight, setAddItemButtonHeight] = useState(0);
-
-  // Refs for input fields and table container
+  // Refs
   const inputRefs = useRef({});
   const formHeaderRef = useRef(null);
-  const tableHeaderRef = useRef(null);
   const actionBarRef = useRef(null);
   const addItemButtonRef = useRef(null);
-  const tableBodyRef = useRef(null);
-  const tableHeaderInnerRef = useRef(null);
+  const tableContainerRef = useRef(null);
 
-  // Calculate amount based on state and qty
-  const calculateAmount = (state, qty) => {
-    const stateNum = parseFloat(state || 0);
+  // Calculate amount
+  const calculateAmount = (qty, sRate) => {
     const qtyNum = parseFloat(qty || 0);
-    return (stateNum * qtyNum).toFixed(2);
+    const sRateNum = parseFloat(sRate || 0);
+    return (qtyNum * sRateNum).toFixed(2);
   };
 
   // Calculate totals
@@ -339,46 +375,15 @@ const SaleInvoice = () => {
     setWindowWidth(width);
     setIsMobile(width < 768);
     setIsTablet(width >= 768 && width < 1024);
-    
-    // Calculate heights after resize
-    calculateHeights();
   };
 
-  // Calculate all heights
-  const calculateHeights = () => {
-    if (formHeaderRef.current) {
-      setFormHeaderHeight(formHeaderRef.current.offsetHeight);
-    }
-    if (tableHeaderRef.current) {
-      setTableHeaderHeight(tableHeaderRef.current.offsetHeight);
-    }
-    if (actionBarRef.current) {
-      setActionBarHeight(actionBarRef.current.offsetHeight);
-    }
-    if (addItemButtonRef.current) {
-      setAddItemButtonHeight(addItemButtonRef.current.offsetHeight);
-    }
-  };
-
-  // Handle window resize and calculate heights
+  // Handle window resize
   useEffect(() => {
     handleResize();
     window.addEventListener('resize', handleResize);
     
-    // Calculate initial heights
-    setTimeout(() => {
-      calculateHeights();
-    }, 100);
-    
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Update heights when mobile state changes
-  useEffect(() => {
-    setTimeout(() => {
-      calculateHeights();
-    }, 100);
-  }, [isMobile, isTablet]);
 
   // Focus on first barcode input on initial load
   useEffect(() => {
@@ -386,13 +391,6 @@ const SaleInvoice = () => {
       setTimeout(() => inputRefs.current['barcode-1'].focus(), 100);
     }
   }, []);
-
-  // Handle horizontal scroll synchronization
-  const handleTableBodyScroll = (e) => {
-    if (tableHeaderInnerRef.current) {
-      tableHeaderInnerRef.current.scrollLeft = e.target.scrollLeft;
-    }
-  };
 
   // Handle form field changes
   const handleFormChange = (field) => (event) => {
@@ -409,10 +407,10 @@ const SaleInvoice = () => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
         
-        if (field === 'state' || field === 'qty') {
-          const state = field === 'state' ? value : updatedItem.state;
+        if (field === 'qty' || field === 'sRate') {
           const qty = field === 'qty' ? value : updatedItem.qty;
-          updatedItem.amount = calculateAmount(state, qty);
+          const rate = field === 'sRate' ? value : updatedItem.sRate;
+          updatedItem.amount = calculateAmount(qty, rate);
         }
         
         return updatedItem;
@@ -437,14 +435,13 @@ const SaleInvoice = () => {
       uom: '',
       hsn: '',
       tax: '',
-      state: '',
+      sRate: '',
       qty: '',
       amount: '0.00'
     };
     
     setItems([...items, newItem]);
     
-    // Focus on the new row's barcode input
     setTimeout(() => {
       if (inputRefs.current[`barcode-${newId}`]) {
         inputRefs.current[`barcode-${newId}`].focus();
@@ -487,7 +484,7 @@ const SaleInvoice = () => {
         uom: '',
         hsn: '',
         tax: '',
-        state: '',
+        sRate: '',
         qty: '',
         amount: '0.00'
       };
@@ -527,7 +524,8 @@ const SaleInvoice = () => {
       billDate: new Date().toISOString().substring(0, 10),
       mobileNo: '',
       custName: '',
-      barcode: '',
+      returnReason: '',
+      barcodeInput: '',
       qty: '',
       items: ''
     });
@@ -543,7 +541,7 @@ const SaleInvoice = () => {
       uom: '',
       hsn: '',
       tax: '',
-      state: '',
+      sRate: '',
       qty: '',
       amount: '0.00'
     };
@@ -566,17 +564,13 @@ const SaleInvoice = () => {
       const currentIndex = formFields.indexOf(field);
       
       if (currentIndex < formFields.length - 1) {
-        // Focus on next form field
         const nextField = formFields[currentIndex + 1];
         const nextInput = document.querySelector(`input[name="${nextField}"], select[name="${nextField}"]`);
         if (nextInput) {
           nextInput.focus();
-          if (nextInput.tagName === 'INPUT') {
-            nextInput.select();
-          }
+          nextInput.select();
         }
       } else {
-        // Move to table's first input (barcode)
         if (inputRefs.current['barcode-1']) {
           inputRefs.current['barcode-1'].focus();
           inputRefs.current['barcode-1'].select();
@@ -590,8 +584,7 @@ const SaleInvoice = () => {
     if (event.key === 'Enter') {
       event.preventDefault();
       
-      // Updated fields to match the new column structure (removed waste)
-      const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'state', 'qty'];
+      const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'];
       const currentIndex = fields.indexOf(field);
       
       if (currentIndex < fields.length - 1) {
@@ -617,55 +610,100 @@ const SaleInvoice = () => {
     }
   };
 
-  // Calculate table body height for scrolling
-  const getTableBodyHeight = () => {
-    const viewportHeight = window.innerHeight;
-    const mainHeaderHeight = 60; // Fixed main header
-    
-    // Calculate available height for table body
+  // Responsive column widths for perfect alignment
+  const getColumnWidth = (column) => {
     if (isMobile) {
-      return `calc(${viewportHeight}px - ${mainHeaderHeight}px - ${formHeaderHeight}px - ${tableHeaderHeight}px - ${addItemButtonHeight}px - ${actionBarHeight}px - 30px)`;
+      const mobileWidths = {
+        sNo: '40px',
+        barcode: '90px',
+        itemName: '130px',
+        stock: '65px',
+        mrp: '65px',
+        uom: '45px',
+        hsn: '65px',
+        tax: '45px',
+        sRate: '65px',
+        qty: '45px',
+        amount: '85px',
+        action: '45px'
+      };
+      return mobileWidths[column] || 'auto';
     } else if (isTablet) {
-      return `calc(${viewportHeight}px - ${mainHeaderHeight}px - ${formHeaderHeight}px - ${tableHeaderHeight}px - ${addItemButtonHeight}px - ${actionBarHeight}px - 25px)`;
+      const tabletWidths = {
+        sNo: '50px',
+        barcode: '100px',
+        itemName: '190px',
+        stock: '80px',
+        mrp: '80px',
+        uom: '60px',
+        hsn: '80px',
+        tax: '60px',
+        sRate: '80px',
+        qty: '60px',
+        amount: '100px',
+        action: '60px'
+      };
+      return tabletWidths[column] || 'auto';
     }
-    return `calc(${viewportHeight}px - ${mainHeaderHeight}px - ${formHeaderHeight}px - ${tableHeaderHeight}px - ${addItemButtonHeight}px - ${actionBarHeight}px - 20px)`;
+    // Desktop widths
+    const desktopWidths = {
+      sNo: '60px',
+      barcode: '120px',
+      itemName: '220px',
+      stock: '90px',
+      mrp: '90px',
+      uom: '70px',
+      hsn: '90px',
+      tax: '70px',
+      sRate: '90px',
+      qty: '70px',
+      amount: '120px',
+      action: '70px'
+    };
+    return desktopWidths[column] || 'auto';
   };
 
-  // Style objects
-  const baseButtonStyle = {
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontSize: '14px',
-    justifyContent: 'center',
+  // Table cell border style - Consistent for all cells
+  const tableCellBorderStyle = {
+    borderRight: '1px solid #e0e0e0',
+    borderLeft: '1px solid #e0e0e0',
+    borderBottom: '1px solid #e0e0e0',
+    padding: '8px 4px',
+    verticalAlign: 'middle',
+    boxSizing: 'border-box',
+    height: '45px'
+  };
+
+  // Table header cell style
+  const tableHeaderCellStyle = {
+    borderRight: '1px solid #e0e0e0',
+    borderLeft: '1px solid #e0e0e0',
+    borderBottom: '2px solid #e0e0e0',
+    padding: '12px 4px',
+    verticalAlign: 'middle',
+    boxSizing: 'border-box',
+    backgroundColor: '#1976d2',
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
     whiteSpace: 'nowrap',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    fontWeight: '500',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    transform: 'translateY(0)',
-    position: 'relative',
-    overflow: 'hidden'
+    position: 'sticky',
+    top: 0,
+    zIndex: 10
   };
 
-  // Updated tableInputStyle
+  // Table input style with perfect alignment
   const tableInputStyle = {
-    width: '100%', 
-    padding: '8px 4px', 
+    width: '100%',
+    padding: '4px 2px',
     border: 'none',
-    fontSize: '14px', 
+    fontSize: '14px',
     background: 'transparent',
     textAlign: 'center',
     outline: 'none',
-    boxSizing: 'border-box'
-  };
-
-  // Table cell border style
-  const tableCellBorderStyle = {
-    border: '1px solid #e0e0e0'
+    boxSizing: 'border-box',
+    margin: 0,
+    height: '100%'
   };
 
   const brightTotalStyle = {
@@ -676,7 +714,23 @@ const SaleInvoice = () => {
     transition: 'all 0.3s ease'
   };
 
-  // Popup styles (matching PopupListSelector)
+  // Form select style
+  const formSelectStyle = {
+    flex: 1,
+    padding: '8px 10px',
+    border: "1px solid #ddd",
+    borderRadius: '4px',
+    fontSize: isMobile ? '12px' : '14px',
+    outline: 'none',
+    minHeight: '35px',
+    boxSizing: 'border-box',
+    width: '100%',
+    maxWidth: '100%',
+    backgroundColor: 'white',
+    cursor: 'pointer'
+  };
+
+  // Popup styles
   const popupStyles = {
     container: {
       display: 'flex',
@@ -722,7 +776,7 @@ const SaleInvoice = () => {
     }
   };
 
-  // Responsive styles - SINGLE SCROLL LAYOUT
+  // Main styles - FIXED LAYOUT (No window scrolling)
   const styles = {
     container: {
       backgroundColor: '#f5f5f5',
@@ -731,7 +785,11 @@ const SaleInvoice = () => {
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      position: 'relative'
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0
     },
     mainContent: {
       marginTop: '60px',
@@ -740,17 +798,14 @@ const SaleInvoice = () => {
       flexDirection: 'column',
       overflow: 'hidden'
     },
-    // Form Header - Fixed at top
+    // Form Header - Fixed position
     formHeader: {
-      position: 'fixed',
-      top: '60px',
-      left: 0,
-      right: 0,
       backgroundColor: 'white',
-      zIndex: 500,
-      boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
       padding: isMobile ? '10px 15px' : '15px 25px',
       borderBottom: '3px solid #ddd',
+      position: 'relative',
+      zIndex: 5,
+      flexShrink: 0
     },
     formGrid: {
       display: 'grid',
@@ -785,157 +840,50 @@ const SaleInvoice = () => {
       width: '100%',
       maxWidth: '100%'
     },
-    formSelect: {
+    formSelect: formSelectStyle,
+    // Table Container - Takes remaining space
+    tableContainer: {
       flex: 1,
-      padding: '8px 10px',
-      border: "1px solid #ddd",
-      borderRadius: '4px',
-      fontSize: isMobile ? '12px' : '14px',
-      outline: 'none',
-      minHeight: '35px',
-      boxSizing: 'border-box',
-      width: '100%',
-      maxWidth: '100%',
-      background: 'white'
-    },
-    // Main table container - SINGLE SCROLL (Fixed Header, Scrollable Body)
-    tableContainerWrapper: {
-      position: "fixed",
-      top: formHeaderHeight + 65,
-      left: isMobile ? 10 : 20,
-      right: isMobile ? 10 : 20,
-      bottom: actionBarHeight + 10,
-      backgroundColor: "#fff",
-      display: "flex",
-      flexDirection: "column",
-      border: "1px solid #ddd",
-      borderRadius: "10px 10px 0 0",
-      overflow: "hidden",
-    },
-    // Table header - Fixed with synchronized horizontal scroll
-    tableHeaderContainer: {
-      backgroundColor: '#1976d2af',
-      borderRadius: '12px 12px 0 0',
-      width: '100%',
+      margin: isMobile ? '10px' : '20px',
+      backgroundColor: '#fff',
+      border: '1px solid #ddd',
+      borderRadius: '10px',
       overflow: 'hidden',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      flexShrink: 0
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0 // Important for flex child to scroll
     },
-    tableHeaderInner: {
-      width: '100%',
-      overflowX: 'auto',
-      overflowY: 'hidden',
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none',
+    // Scrollable table area
+    scrollableTableArea: {
+      flex: 1,
+      overflow: 'auto',
+      position: 'relative'
     },
-    tableHeaderTable: {
+    // Single Table with fixed layout
+    singleTable: {
       width: '100%',
       borderCollapse: 'collapse',
-      fontSize: isMobile ? '11px' : '14px',
       tableLayout: 'fixed',
       minWidth: isMobile ? '1100px' : 'auto'
     },
-    // Table body container - Scrollable (ONLY ROWS) with smooth scrolling
-    tableBodyContainer: {
-      flex: 1,
-      overflowY: 'auto',
-      overflowX: 'auto',
-      height: getTableBodyHeight(),
-      backgroundColor: '#ffffff',
-      borderLeft: '1px solid #ddd',
-      borderRight: '1px solid #ddd',
-      WebkitOverflowScrolling: 'touch',
-      scrollBehavior: 'smooth',
-      msOverflowStyle: '-ms-autohiding-scrollbar',
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#1976d2 #f1f1f1',
-    },
-    tableBody: {
-      minWidth: isMobile ? '1100px' : '100%',
-      borderCollapse: 'collapse',
-      fontSize: isMobile ? '11px' : '14px',
-      tableLayout: 'fixed',
-      width: '100%'
-    },
-    // Add Item Button Container (FIXED below table rows)
+    // Add Item Button Container
     addItemButtonContainer: {
       padding: isMobile ? '12px 20px' : '15px 25px',
       textAlign: 'left',
       backgroundColor: '#ffffff',
-      borderLeft: '1px solid #ddd',
-      borderRight: '1px solid #ddd',
-      borderBottom: '1px solid #ddd',
       borderTop: '2px solid #f0f0f0',
       flexShrink: 0
     },
     // Action Bar - Fixed at bottom
     actionBar: {
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
       backgroundColor: 'white',
       padding: isMobile ? '8px 10px' : '12px 20px',
       borderTop: '2px solid #dee2e6',
       boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
-      zIndex: 500,
+      zIndex: 5,
       height: isMobile ? 'auto' : '70px',
-      display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row'
+      flexShrink: 0
     }
-  };
-
-  // Responsive column widths for table - UPDATED to match image structure (without Waste column)
-  const getColumnWidth = (column) => {
-    if (isMobile) {
-      const mobileWidths = {
-        sNo: '35px',
-        barcode: '80px',
-        itemName: '100px',
-        stock: '50px',
-        mrp: '50px',
-        uom: '40px',
-        hsn: '50px',
-        tax: '50px',
-        state: '50px',
-        qty: '40px',
-        amount: '70px',
-        action: '40px'
-      };
-      return mobileWidths[column] || 'auto';
-    } else if (isTablet) {
-      const tabletWidths = {
-        sNo: '45px',
-        barcode: '95px',
-        itemName: '150px',
-        stock: '65px',
-        mrp: '65px',
-        uom: '55px',
-        hsn: '65px',
-        tax: '65px',
-        state: '65px',
-        qty: '55px',
-        amount: '85px',
-        action: '55px'
-      };
-      return tabletWidths[column] || 'auto';
-    }
-    // Desktop widths - MATCHING THE IMAGE STRUCTURE (without Waste)
-    const desktopWidths = {
-      sNo: '50px',
-      barcode: '100px',
-      itemName: '180px',
-      stock: '70px',
-      mrp: '70px',
-      uom: '60px',
-      hsn: '70px',
-      tax: '70px',
-      state: '70px',
-      qty: '60px',
-      amount: '90px',
-      action: '60px'
-    };
-    return desktopWidths[column] || 'auto';
   };
 
   // Button styles for mobile
@@ -948,7 +896,7 @@ const SaleInvoice = () => {
 
   return (
     <div style={styles.container}>
-      {/* Delete Confirmation Modal - Updated to match PopupListSelector style */}
+      {/* Delete Confirmation Modal */}
       <Modal
         open={showDeleteConfirm}
         onCancel={handleDeleteCancel}
@@ -1003,12 +951,12 @@ const SaleInvoice = () => {
 
       {/* Main Content Area */}
       <div style={styles.mainContent}>
-        {/* Fixed Form Header */}
+        {/* Form Header */}
         <div ref={formHeaderRef} style={styles.formHeader}>
           <div style={styles.formGrid}>
             {/* Bill No Field */}
             <div style={styles.formField}>
-              <label style={styles.formLabel}>Bill No:</label>
+              <label style={styles.formLabel}>Bill No :</label>
               <input
                 name="billNo"
                 type="text"
@@ -1059,7 +1007,7 @@ const SaleInvoice = () => {
               />
             </div>
 
-            {/* Type Field (Replaced EMP Name) */}
+            {/* Type Field (Replaces EMP Name) */}
             <div style={styles.formField}>
               <label style={styles.formLabel}>Type:</label>
               <select
@@ -1134,59 +1082,101 @@ const SaleInvoice = () => {
           </div>
         </div>
 
-        {/* Table Area */}
-        <div style={styles.tableContainerWrapper}>
-          {/* Fixed Table Header with synchronized horizontal scroll - UPDATED TO MATCH IMAGE */}
-          <div ref={tableHeaderRef} style={styles.tableHeaderContainer}>
-            <div 
-              ref={tableHeaderInnerRef} 
-              style={styles.tableHeaderInner}
-            >
-              <table style={styles.tableHeaderTable}>
-                <thead>
-                  <tr>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('sNo'), borderTopLeftRadius: '12px' }}>S.No</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('barcode') }}>Barcode</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'left', whiteSpace: 'nowrap', width: getColumnWidth('itemName') }}>Item Name</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('stock') }}>Stock</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('mrp') }}>MRP</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('uom') }}>UOM</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('hsn') }}>HSN</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('tax') }}>TAX(%)</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('state') }}>SRate</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('qty') }}>Qty</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'right', whiteSpace: 'nowrap', width: getColumnWidth('amount') }}>Amount</th>
-                    <th style={{ ...tableCellBorderStyle, color: 'white', fontWeight: 'bold', padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', whiteSpace: 'nowrap', width: getColumnWidth('action'), borderTopRightRadius: '12px' }}>ACTION</th>
-                  </tr>
-                </thead>
-              </table>
-            </div>
-          </div>
-          
-          {/* Scrollable Table Body with Inputs (ONLY ROWS) */}
+        {/* Table Container - Single Scroll Container */}
+        <div style={styles.tableContainer}>
           <div 
-            ref={tableBodyRef} 
-            style={styles.tableBodyContainer}
+            ref={tableContainerRef}
+            style={styles.scrollableTableArea}
             className="custom-scrollbar"
-            onScroll={handleTableBodyScroll}
           >
-            <table style={styles.tableBody}>
+            <table 
+              style={styles.singleTable}
+              className="perfect-alignment-table"
+            >
+              {/* Table Header */}
+              <thead>
+                <tr>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('sNo'),
+                    borderTopLeftRadius: '10px'
+                  }}>SNo</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('barcode')
+                  }}>Barcode</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('itemName')
+                  }}>Item Name</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('stock')
+                  }}>Stock</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('mrp')
+                  }}>MRP</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('uom')
+                  }}>UOM</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('hsn')
+                  }}>HSN</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('tax')
+                  }}>TAX (%)</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('sRate')
+                  }}>SRate</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('qty')
+                  }}>Qty</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('amount')
+                  }}>Amount</th>
+                  <th style={{ 
+                    ...tableHeaderCellStyle, 
+                    width: getColumnWidth('action'),
+                    borderTopRightRadius: '10px'
+                  }}>ACTION</th>
+                </tr>
+              </thead>
+              
+              {/* Table Body */}
               <tbody>
-                {items.map((item) => (
-                  <tr key={item.id} style={{ backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                {items.map((item, index) => (
+                  <tr key={item.id} style={{ 
+                    backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff'
+                  }}>
                     {/* SNo */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', whiteSpace: 'nowrap', textAlign: 'center', width: getColumnWidth('sNo') }}>{item.sNo}</td>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('sNo'),
+                      textAlign: 'center',
+                      fontWeight: 'bold'
+                    }}>
+                      {item.sNo}
+                    </td>
                     
                     {/* Barcode */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('barcode') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('barcode')
+                    }}>
                       <input
                         ref={el => inputRefs.current[`barcode-${item.id}`] = el}
                         type="text"
                         style={{ 
-                          ...tableInputStyle, 
-                          fontWeight: '500', 
+                          ...tableInputStyle,
                           textAlign: 'center',
-                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.barcode}
@@ -1197,14 +1187,17 @@ const SaleInvoice = () => {
                     </td>
                     
                     {/* Item Name */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('itemName') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('itemName')
+                    }}>
                       <input
                         ref={el => inputRefs.current[`itemName-${item.id}`] = el}
                         type="text"
                         style={{ 
-                          ...tableInputStyle, 
+                          ...tableInputStyle,
                           textAlign: 'left',
-                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.itemName}
@@ -1215,13 +1208,17 @@ const SaleInvoice = () => {
                     </td>
                     
                     {/* Stock */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('stock') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('stock')
+                    }}>
                       <input
                         ref={el => inputRefs.current[`stock-${item.id}`] = el}
                         type="text"
                         style={{ 
                           ...tableInputStyle,
-                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          textAlign: 'center',
+                          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.stock || ''}
@@ -1232,13 +1229,17 @@ const SaleInvoice = () => {
                     </td>
                     
                     {/* MRP */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('mrp') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('mrp')
+                    }}>
                       <input
                         ref={el => inputRefs.current[`mrp-${item.id}`] = el}
                         type="text"
                         style={{ 
                           ...tableInputStyle,
-                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          textAlign: 'center',
+                          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.mrp || ''}
@@ -1249,13 +1250,17 @@ const SaleInvoice = () => {
                     </td>
                     
                     {/* UOM */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('uom') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('uom')
+                    }}>
                       <input
                         ref={el => inputRefs.current[`uom-${item.id}`] = el}
                         type="text"
                         style={{ 
                           ...tableInputStyle,
-                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          textAlign: 'center',
+                          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.uom}
@@ -1266,13 +1271,17 @@ const SaleInvoice = () => {
                     </td>
                     
                     {/* HSN */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('hsn') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('hsn')
+                    }}>
                       <input
                         ref={el => inputRefs.current[`hsn-${item.id}`] = el}
                         type="text"
                         style={{ 
                           ...tableInputStyle,
-                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          textAlign: 'center',
+                          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.hsn || ''}
@@ -1283,13 +1292,17 @@ const SaleInvoice = () => {
                     </td>
                     
                     {/* TAX */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('tax') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('tax')
+                    }}>
                       <input
                         ref={el => inputRefs.current[`tax-${item.id}`] = el}
                         type="number"
                         style={{ 
                           ...tableInputStyle,
-                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          textAlign: 'center',
+                          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.tax}
@@ -1300,33 +1313,41 @@ const SaleInvoice = () => {
                       />
                     </td>
                     
-                    {/* STATE */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('state') }}>
+                    {/* SRATE */}
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('sRate')
+                    }}>
                       <input
-                        ref={el => inputRefs.current[`state-${item.id}`] = el}
+                        ref={el => inputRefs.current[`sRate-${item.id}`] = el}
                         type="number"
                         style={{ 
                           ...tableInputStyle,
-                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          textAlign: 'center',
+                          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
-                        value={item.state}
-                        onChange={handleItemChange(item.id, 'state')}
-                        onKeyDown={(e) => handleKeyDown(item.id, 'state', e)}
+                        value={item.sRate}
+                        onChange={handleItemChange(item.id, 'sRate')}
+                        onKeyDown={(e) => handleKeyDown(item.id, 'sRate', e)}
                         placeholder="State"
                         step="0.01"
                       />
                     </td>
                     
                     {/* QTY */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('qty') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('qty')
+                    }}>
                       <input
                         ref={el => inputRefs.current[`qty-${item.id}`] = el}
                         type="number"
                         style={{ 
-                          ...tableInputStyle, 
+                          ...tableInputStyle,
+                          textAlign: 'center',
                           fontWeight: 'bold',
-                          backgroundColor: item.id % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
                         value={item.qty}
@@ -1338,14 +1359,17 @@ const SaleInvoice = () => {
                     </td>
                     
                     {/* AMOUNT */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', width: getColumnWidth('amount') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('amount')
+                    }}>
                       <input
                         type="text"
                         style={{ 
-                          ...tableInputStyle, 
-                          textAlign: 'right', 
-                          fontWeight: 'bold', 
-                          color: '#1565c0', 
+                          ...tableInputStyle,
+                          textAlign: 'right',
+                          fontWeight: 'bold',
+                          color: '#1565c0',
                           backgroundColor: '#f0f7ff',
                           fontSize: isMobile ? '11px' : '14px'
                         }}
@@ -1359,10 +1383,21 @@ const SaleInvoice = () => {
                     </td>
                     
                     {/* ACTION */}
-                    <td style={{ ...tableCellBorderStyle, padding: isMobile ? '6px 2px' : '12px 8px', textAlign: 'center', width: getColumnWidth('action') }}>
+                    <td style={{ 
+                      ...tableCellBorderStyle, 
+                      width: getColumnWidth('action'),
+                      textAlign: 'center'
+                    }}>
                       <button
                         onClick={() => confirmDelete(item.id)}
-                        style={{ background: 'none', border: 'none', color: '#d32f2f', cursor: 'pointer', padding: '2px' }}
+                        style={{ 
+                          background: 'none', 
+                          border: 'none', 
+                          color: '#d32f2f', 
+                          cursor: 'pointer', 
+                          padding: '4px',
+                          fontSize: isMobile ? '12px' : '14px'
+                        }}
                         onMouseEnter={(e) => e.currentTarget.style.color = '#b71c1c'}
                         onMouseLeave={(e) => e.currentTarget.style.color = '#d32f2f'}
                       >
@@ -1375,7 +1410,7 @@ const SaleInvoice = () => {
             </table>
           </div>
           
-          {/* Add Item Button (FIXED below table rows) */}
+          {/* Add Item Button */}
           <div ref={addItemButtonRef} style={styles.addItemButtonContainer}>
             <button 
               onClick={addItemRow} 
@@ -1394,7 +1429,7 @@ const SaleInvoice = () => {
         </div>
       </div>
 
-      {/* Fixed Action Bar at Bottom */}
+      {/* Action Bar */}
       <div ref={actionBarRef} style={styles.actionBar}>
         <div style={{ 
           display: 'flex', 
@@ -1518,3 +1553,5 @@ const SaleInvoice = () => {
 };
 
 export default SaleInvoice;
+
+
