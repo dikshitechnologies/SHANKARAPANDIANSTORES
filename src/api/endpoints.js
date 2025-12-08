@@ -68,10 +68,49 @@ UNITCREATION: {
     ADMIN_BATCH_INSERT: "Administartor/adminstration/InsertBatch",
     GET_PERMISSIONS_BY_USER: "Administartor/GetPermissionsByUserCode",
     DELETE_PERMISSIONS: "Administartor/administration/delete"
-  }
-    
+  },
+
+  DESIGNCREATION: {
+    NEXT_DESIGN_CODE: 'DesignCreation/getNextFcode',
+    GET_DESIGNS: 'DesignCreation/getDesignItem',
+    GETDESIGNCODE: (code) => `DesignCreation/getDesignItem/${code}`,
+    CREATE_DESIGN: 'DesignCreation/createDesign',
+    UPDATE_DESIGN: 'DesignCreation/updateDesign',
+    DELETE_DESIGN: (code) => `DesignCreation/deleteDesign/${code}`
+  },
+
+  SCRAPCREATION: {
+    GET_SCRAP_ITEMS: 'ScrapCreation/getScrapItem',
+    GET_NEXT_SCRAP_CODE: 'ScrapCreation/getNextScrapFcode',
+    CREATE_SCRAP: 'ScrapCreation/createScrap',
+    UPDATE_SCRAP: 'ScrapCreation/updateScrap',
+    DELETE_SCRAP: (code) => `ScrapCreation/deleteScrap/${code}`,
+  },
+
+  BRAND: {
+    GET_BRANDS: 'Brand',
+    CREATE_BRAND: 'Brand?selecttype=true',
+    UPDATE_BRAND: 'Brand?selecttype=false',
+    DELETE_BRAND: (code) => `Brand/${code}`,
+  },
+
+  // Update in your endpoints.js file:
+CATEGORY: {
+  GET_CATEGORIES: 'CATEGORY/GetAllCategory',
+  CREATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=true',
+  UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
+  DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
+  GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
+},
+
+PRODUCT: {
+  GET_PRODUCTS: 'Product',
+  CREATE_PRODUCT: 'Product?selecttype=true',
+  UPDATE_PRODUCT: 'Product?selecttype=false',
+  DELETE_PRODUCT: (code) => `Product/${code}`,
+  GET_NEXT_CODE: 'Product/getNextProductFcode'
+}
 
 };
 
-// Named convenience export for older imports that expect ADMINISTRATION directly
 export const ADMINISTRATION = API_ENDPOINTS.ADMINISTRATION;
