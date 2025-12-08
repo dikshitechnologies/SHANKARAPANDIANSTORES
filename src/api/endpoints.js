@@ -68,6 +68,11 @@ UNITCREATION: {
     ADMIN_BATCH_INSERT: "Administartor/adminstration/InsertBatch",
     GET_PERMISSIONS_BY_USER: "Administartor/GetPermissionsByUserCode",
     DELETE_PERMISSIONS: "Administartor/administration/delete"
+  },
+
+  PURCHASE_INVOICE: {
+    GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
+    CREATE_PURCHASE_INVOICE: "PurchaseInvoice/CreatePurchase",
   }
     
 
