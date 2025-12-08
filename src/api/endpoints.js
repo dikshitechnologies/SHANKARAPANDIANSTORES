@@ -68,7 +68,19 @@ UNITCREATION: {
     ADMIN_BATCH_INSERT: "Administartor/adminstration/InsertBatch",
     GET_PERMISSIONS_BY_USER: "Administartor/GetPermissionsByUserCode",
     DELETE_PERMISSIONS: "Administartor/administration/delete"
-  }
+  },
+scrap:{
+  getscrapitem:"ScrapCreation/getScrapItem",
+  getscrapcode:"ScrapCreation/getNextScrapFcode",
+  postcreatescrap:"ScrapCreation/createScrap",
+  putupdatedscrap:"Sction/deleteUserrapCreation/updateScrap",
+ delete: (fCode) => `ScrapCreation/deleteScrap/001/${fCode}`,
+ },
+ scrapratefix:
+ {
+  getscrapratefixing:"ScrapRateFixing/getFullScrapRateFixing",
+  putscrapratefixing:"ScrapRateFixing/updateFullScrapRateFixing",
+ }
     
 
 };
