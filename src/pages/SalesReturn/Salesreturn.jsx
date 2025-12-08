@@ -967,7 +967,7 @@ const Salesreturn = () => {
                 value={formData.billNo}
                 onChange={handleFormChange('billNo')}
                 onKeyDown={(e) => handleFormKeyDown('billNo', e)}
-                placeholder="Bill No"
+                placeholder="Bill N"
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
                 onFocus={(e) => e.currentTarget.style.borderColor = '#1976d2'}
