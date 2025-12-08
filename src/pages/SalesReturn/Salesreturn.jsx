@@ -128,25 +128,52 @@ const SalesReturn = () => {
   };
 
   const handleAddItem = () => {
-    if (!billDetails.barcodeInput) return alert("Please enter barcode");
+    if (!billDetails.barcodeInput) {
+      alert("Please enter barcode");
+      return;
+    }
     
-    const newItem = {
-      id: items.length + 1,
-      sNo: items.length + 1,
-      barcode: billDetails.barcodeInput,
-      itemName: 'Sample Item', // Mock data
-      stock: '100',
-      mrp: '500',
-      uom: 'PCS',
-      hsn: '123456',
-      tax: '18',
-      sRate: '400',
-      rate: '400',
-      qty: '1',
-      amount: '400.00'
-    };
+    // Check if barcode already exists in items
+    const existingItemIndex = items.findIndex(item => 
+      item.barcode === billDetails.barcodeInput && item.barcode !== ''
+    );
     
-    setItems([...items, newItem]);
+    if (existingItemIndex !== -1) {
+      // If barcode exists, increase quantity by 1
+      const updatedItems = [...items];
+      const existingItem = updatedItems[existingItemIndex];
+      const newQty = (parseFloat(existingItem.qty) || 0) + 1;
+      const newAmount = calculateAmount(newQty, existingItem.sRate || existingItem.rate);
+      
+      updatedItems[existingItemIndex] = {
+        ...existingItem,
+        qty: newQty.toString(),
+        amount: newAmount
+      };
+      
+      setItems(updatedItems);
+    } else {
+      // Add new item with the barcode
+      const newItem = {
+        id: items.length + 1,
+        sNo: items.length + 1,
+        barcode: billDetails.barcodeInput,
+        itemName: 'Sample Item', // Mock data - in real app, fetch from API
+        stock: '100',
+        mrp: '500',
+        uom: 'PCS',
+        hsn: '123456',
+        tax: '18',
+        sRate: '400',
+        rate: '400',
+        qty: '1',
+        amount: '400.00'
+      };
+      
+      setItems([...items, newItem]);
+    }
+    
+    // Clear barcode input and focus
     setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
     if (barcodeRef.current) barcodeRef.current.focus();
   };
@@ -229,78 +256,92 @@ const SalesReturn = () => {
   };
 
   const handleDelete = () => {
-    // Removes the last item for demo purposes
-    if(items.length > 0) {
-      setItems(items.slice(0, -1));
+    // Show confirmation for bulk delete
+    if (window.confirm('Are you sure you want to delete the last item?')) {
+      // Removes the last item for demo purposes
+      if (items.length > 0) {
+        setItems(items.slice(0, -1));
+      }
     }
   };
 
   const handleDeleteRow = (id) => {
-    if (items.length > 1) {
-      const filteredItems = items.filter(item => item.id !== id);
-      // Update serial numbers
-      const updatedItems = filteredItems.map((item, index) => ({
-        ...item,
-        sNo: index + 1
-      }));
-      setItems(updatedItems);
-    } else {
-      // Don't delete the last row, just clear it
-      const clearedItem = {
-        id: 1,
-        sNo: 1,
-        barcode: '',
-        itemName: '',
-        stock: '',
-        mrp: '',
-        uom: '',
-        hsn: '',
-        tax: '',
-        sRate: '',
-        rate: '',
-        qty: '',
-        amount: '0.00'
-      };
-      setItems([clearedItem]);
+    // Get the item to be deleted for the confirmation message
+    const itemToDelete = items.find(item => item.id === id);
+    const itemName = itemToDelete?.itemName || 'this item';
+    const barcode = itemToDelete?.barcode ? `(Barcode: ${itemToDelete.barcode})` : '';
+    
+    // Show confirmation dialog
+    if (window.confirm(`Are you sure you want to delete "${itemName}" ${barcode}?`)) {
+      if (items.length > 1) {
+        const filteredItems = items.filter(item => item.id !== id);
+        // Update serial numbers
+        const updatedItems = filteredItems.map((item, index) => ({
+          ...item,
+          sNo: index + 1
+        }));
+        setItems(updatedItems);
+      } else {
+        // Don't delete the last row, just clear it
+        const clearedItem = {
+          id: 1,
+          sNo: 1,
+          barcode: '',
+          itemName: '',
+          stock: '',
+          mrp: '',
+          uom: '',
+          hsn: '',
+          tax: '',
+          sRate: '',
+          rate: '',
+          qty: '',
+          amount: '0.00'
+        };
+        setItems([clearedItem]);
+      }
     }
   };
 
   const handleClear = () => {
-    // Reset form
-    setBillDetails({
-      billNo: 'SE00001AA',
-      billDate: new Date().toISOString().substring(0, 10),
-      mobileNo: '',
-      empName: '',
-      salesman: '',
-      custName: '',
-      returnReason: '',
-      barcodeInput: '',
-      partyCode: '',
-      gstno: '',
-      city: '',
-      type: 'Retail',
-      transType: 'SALES RETURN'
-    });
-    
-    // Keep a single empty row after clearing
-    setItems([
-      { 
-        id: 1, 
-        sNo: 1,
-        barcode: '', 
-        itemName: '', 
-        stock: '', 
-        mrp: '', 
-        uom: '', 
-        hsn: '', 
-        tax: '', 
-        sRate: '', 
-        rate: '', 
-        qty: '',
-        amount: '0.00'
-      }
-    ]);
+    // Show confirmation before clearing
+    if (window.confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+      // Reset form
+      setBillDetails({
+        billNo: 'SE00001AA',
+        billDate: new Date().toISOString().substring(0, 10),
+        mobileNo: '',
+        empName: '',
+        salesman: '',
+        custName: '',
+        returnReason: '',
+        barcodeInput: '',
+        partyCode: '',
+        gstno: '',
+        city: '',
+        type: 'Retail',
+        transType: 'SALES RETURN'
+      });
+      
+      // Keep a single empty row after clearing
+      setItems([
+        { 
+          id: 1, 
+          sNo: 1,
+          barcode: '', 
+          itemName: '', 
+          stock: '', 
+          mrp: '', 
+          uom: '', 
+          hsn: '', 
+          tax: '', 
+          sRate: '', 
+          rate: '', 
+          qty: '',
+          amount: '0.00'
+        }
+      ]);
+    }
   };
 
   const handleSave = () => {
@@ -734,7 +775,7 @@ const SalesReturn = () => {
               type="text"
               style={styles.inlineInput}
               value={billDetails.barcodeInput}
-              name="barcodeInput"
+              name="barcode"
               onChange={handleInputChange}
               ref={barcodeRef}
               onKeyDown={(e) => {
@@ -745,7 +786,7 @@ const SalesReturn = () => {
               }}
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
-              placeholder="Barcode"
+              placeholder="Scan or Enter Barcode"
             />
           </div>
         </div>
@@ -965,7 +1006,11 @@ const SalesReturn = () => {
               setActiveTopAction(type);
               if (type === 'add') handleAddRow();
               else if (type === 'edit') alert('Edit action: select a row to edit');
-              else if (type === 'delete') handleDelete();
+              else if (type === 'delete') {
+                if (window.confirm('Are you sure you want to delete the last item?')) {
+                  handleDelete();
+                }
+              }
             }}
           >
             <AddButton />
