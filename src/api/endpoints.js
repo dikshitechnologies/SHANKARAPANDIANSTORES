@@ -109,8 +109,27 @@ PRODUCT: {
   UPDATE_PRODUCT: 'Product?selecttype=false',
   DELETE_PRODUCT: (code) => `Product/${code}`,
   GET_NEXT_CODE: 'Product/getNextProductFcode'
-}
+},
 
+
+
+scrap:{
+  getscrapitem:"ScrapCreation/getScrapItem",
+  getscrapcode:"ScrapCreation/getNextScrapFcode",
+  postcreatescrap:"ScrapCreation/createScrap",
+  putupdatedscrap:"Sction/deleteUserrapCreation/updateScrap",
+ delete: (fCode) => `ScrapCreation/deleteScrap/001/${fCode}`,
+ },
+ scrapratefix:
+ {
+  getscrapratefixing:"ScrapRateFixing/getFullScrapRateFixing",
+  putscrapratefixing:"ScrapRateFixing/updateFullScrapRateFixing",
+ },
+
+  PURCHASE_INVOICE: {
+    GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
+    CREATE_PURCHASE_INVOICE: "PurchaseInvoice/CreatePurchase",
+  }
 };
 
 export const ADMINISTRATION = API_ENDPOINTS.ADMINISTRATION;

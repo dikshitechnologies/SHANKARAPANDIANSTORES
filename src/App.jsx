@@ -10,9 +10,9 @@ import LedgerGroupCreation from './pages/Ledgergroupcreation/Ledgergroupcreation
 import ItemGroupCreation from './pages/ItemGroupCreation/ItemGroupCreation'
 import Administration from './pages/Administration/Admistration'
 import SalesReturn from './pages/SalesReturn/Salesreturn'
-import UserCreation from './pages/UserCreation/usercreation'
+import UserCreation from './pages/UserCreation/UserCreation'
 import ScrapRateFix from './pages/RateFix/scrapratefix'  
-import Scrap from './pages/Scrap/Scrap'
+import Scrap from './pages/Scrap/scrap'
 import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
 import UnitCreation from './pages/UnitCreation/UnitCreation'
@@ -25,6 +25,10 @@ import BrandPage from './pages/Brand/Brand'
 import Category from './pages/category/category'
 import Product from './pages/Product/Product'
 
+import ScrapProcurement from './pages/ScrapProcurement/Scrapprocurement'
+import Tender from './pages/Tender/Tender'
+import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
+import Salecreation from './pages/statecreation/statecreation'
 function App() {
   return (
     <div className="app">
@@ -58,6 +62,8 @@ function App() {
           <Route path="/masters/brand-creation" element={<BrandPage />} />
           <Route path="/masters/category-creation" element={<Category />} />
           <Route path="/masters/product-creation" element={<Product />} />
+           <Route path="/ScrapProcurement" element={<ScrapProcurement />} />
+           <Route path="/masters/Salecreation" element={<Salecreation />} /> 
         </Routes>
       </main>
     </div>

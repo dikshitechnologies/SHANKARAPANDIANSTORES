@@ -3,16 +3,16 @@ import Select from "react-select";
 
 // Import your API service
 import { axiosInstance } from '../../api/apiService';
-import { ADMINISTRATION } from '../../api/endpoints';
+import { API_ENDPOINTS } from '../../api/endpoints';
 
 // Import PopupListSelector
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
 // Get endpoints from your configuration
-const USERS_URL = ADMINISTRATION.USER_LIST;
-const GET_PERMS_URL = ADMINISTRATION.GET_PERMISSIONS_BY_USER;
-const INSERT_BATCH_URL = ADMINISTRATION.ADMIN_BATCH_INSERT;
-const DELETE_URL = ADMINISTRATION.DELETE_PERMISSIONS;
+const USERS_URL =API_ENDPOINTS.ADMINISTRATION.USER_LIST;
+const GET_PERMS_URL = API_ENDPOINTS.ADMINISTRATION.GET_PERMISSIONS_BY_USER;
+const INSERT_BATCH_URL = API_ENDPOINTS.ADMINISTRATION.ADMIN_BATCH_INSERT;
+const DELETE_URL = API_ENDPOINTS.ADMINISTRATION.DELETE_PERMISSIONS;
 
 // Expanded item lists with more permissions
 const MASTER_ITEMS = [
@@ -135,6 +135,7 @@ const Administration = () => {
       setLoading(true);
       const response = await axiosInstance.get(USERS_URL);
       const data = response.data;
+      console.log("Loaded users:", data);
       
       const userList = Array.isArray(data) ? data.map((u, i) => ({
         id: String(u.id || i + 1),
@@ -1327,12 +1328,12 @@ const styles = {
   tableHeaderCell: {
     padding: '14px 16px',
    
-    backgroundColor:'#2171c7b6',
+    backgroundColor:'white',
     borderBottom: '2px solid #e5e7eb',
     textAlign: 'left',
     fontSize: '14px',
     fontWeight: '700',
-    color: 'white',
+    
     position: 'sticky',
     top: '0',
     zIndex: '10',

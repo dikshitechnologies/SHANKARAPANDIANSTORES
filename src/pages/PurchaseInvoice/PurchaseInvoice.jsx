@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import axiosInstance from '../../api/axiosInstance';
+import { API_ENDPOINTS } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
@@ -8,15 +12,15 @@ const PurchaseInvoice = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: '',   
+    billDate: '',
     mobileNo: '',
     customerName: '',
     type: 'Retail',
     barcodeInput: '',
     entryDate: '',
-    amount:'',
-    partyCode:'',
-    gstno:'',
+    amount: '',
+    partyCode: '',
+    gstno: '',
     purNo: '',
     invoiceNo: '',
     purDate: '',
@@ -28,7 +32,36 @@ const PurchaseInvoice = () => {
 
   // 2. Table Items State
   const [items, setItems] = useState([
-    { id: '', barcode: '', name: '', sub: '', stock: '', mrp: '', uom: '', hsn: '', tax: '', rate: 0, qty: '' }
+    { 
+      id: 1, 
+      barcode: '', 
+      name: '', 
+      sub: '', 
+      stock: '0', 
+      mrp: '0', 
+      uom: '', 
+      hsn: '', 
+      tax: '', 
+      rate: 0, 
+      qty: '1',
+      ovrwt: '',
+      avgwt: '',
+      prate: 0,
+      intax: '',
+      outtax: '',
+      acost: '',
+      sudo: '',
+      profitPercent: '',
+      preRT: '',
+      sRate: '',
+      asRate: '',
+      letProfPer: '',
+      ntCost: '',
+      wsPercent: '',
+      wsRate: '',
+      min: '',
+      max: ''
+    }
   ]);
 
   // 3. Totals State
@@ -37,7 +70,6 @@ const PurchaseInvoice = () => {
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const billNoRef = useRef(null);
   const dateRef = useRef(null);
-  const saleManRef = useRef(null);
   const mobileRef = useRef(null);
   const customerRef = useRef(null);
   const barcodeRef = useRef(null);
@@ -47,39 +79,68 @@ const PurchaseInvoice = () => {
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
 
-  // Popup state for advanced item fields
-  const [popupVisible, setPopupVisible] = useState(false);
-  const [popupIndex, setPopupIndex] = useState(null);
-  const [popupData, setPopupData] = useState({
-    rate: 0,
-    intax: '',
-    outtax: '',
-    acost: '',
-    sudo: '',
-    profitPercent: '',
-    preRT: '',
-    sRate: '',
-    asRate: ''
-  });
-  // --- EFFECTS ---
-
-  // Calculate Totals whenever items change
-  useEffect(() => {
-    const total = items.reduce((acc, item) => acc + (item.rate * item.qty), 0);
-    setNetTotal(total);
-  }, [items]);
-
-  // Purchase details modal state
-  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
-
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('all');
 
-  const openPurchaseModal = (e) => {
-    if (e) e.stopPropagation();
-    setPurchaseModalOpen(true);
-  };
-  const closePurchaseModal = () => setPurchaseModalOpen(false);
+  // Screen size state for responsive adjustments
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true
+  });
+
+  // Auth context for company code
+  const { userData } = useAuth() || {};
+
+  // Fetch next invoice number on mount
+  useEffect(() => {
+    const fetchNextInvNo = async () => {
+      try {
+        const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
+        const endpoint = API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_INVOICES(compCode);
+        const response = await axiosInstance.get(endpoint);
+        const nextCode = response?.data?.nextCode ?? response?.nextCode; // handle axios vs wrapped service
+        if (nextCode) {
+          setBillDetails((prev) => ({ ...prev, invNo: nextCode }));
+        }
+      } catch (err) {
+        // Silent failure; users can manually enter Inv No
+        console.warn('Failed to fetch next invoice number:', err);
+      }
+    };
+    fetchNextInvNo();
+  }, [userData]);
+
+  // Update screen size on resize
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isMobile = width < 640;
+      const isTablet = width >= 640 && width < 1024;
+      const isDesktop = width >= 1024;
+      
+      setScreenSize({
+        width,
+        height,
+        isMobile,
+        isTablet,
+        isDesktop
+      });
+    };
+
+    handleResize(); // Initial call
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate Totals whenever items change
+  useEffect(() => {
+    const total = items.reduce((acc, item) => acc + (parseFloat(item.rate) || 0) * (parseFloat(item.qty) || 0), 0);
+    setNetTotal(total);
+  }, [items]);
 
   // --- HANDLERS ---
 
@@ -117,7 +178,7 @@ const PurchaseInvoice = () => {
     
     setItems([...items, newItem]);
     setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
-    barcodeRef.current.focus();
+    if (barcodeRef.current) barcodeRef.current.focus();
   };
 
   const handleAddRow = () => {
@@ -133,6 +194,23 @@ const PurchaseInvoice = () => {
       tax: 0,
       rate: 0,
       qty: 1,
+      ovrwt: '',
+      avgwt: '',
+      prate: 0,
+      intax: '',
+      outtax: '',
+      acost: '',
+      sudo: '',
+      profitPercent: '',
+      preRT: '',
+      sRate: '',
+      asRate: '',
+      letProfPer: '',
+      ntCost: '',
+      wsPercent: '',
+      wsRate: '',
+      min: '',
+      max: ''
     };
     setItems([...items, newRow]);
   };
@@ -147,16 +225,11 @@ const PurchaseInvoice = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
 
-      // If Enter pressed on Qty open the popup for advanced fields
-      if (currentField === 'qty') {
-        openPopupForRow(currentRowIndex);
-        return;
-      }
-
-      // Fields in the visual order (excluding removed advanced columns)
+      // Fields in the visual order
       const fields = [
-        'barcode','name','uom','stock','hsn','qty','ovrwt','avgwt',
-        'mrp','letProfPer','ntCost','wsPercent','wsRate','min','max'
+        'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
+        'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 'sRate', 'asRate',
+        'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'min', 'max'
       ];
 
       const currentFieldIndex = fields.indexOf(currentField);
@@ -186,34 +259,6 @@ const PurchaseInvoice = () => {
     }
   };
 
-  const openPopupForRow = (index) => {
-    const it = items[index] || {};
-    setPopupData({
-      rate: it.rate || 0,
-      intax: it.intax || it.tax || '',
-      outtax: it.outtax || '',
-      acost: it.acost || '',
-      sudo: it.sudo || '',
-      profitPercent: it.profitPercent || '',
-      preRT: it.preRT || '',
-      sRate: it.sRate || '',
-      asRate: it.asRate || ''
-    });
-    setPopupIndex(index);
-    setPopupVisible(true);
-  };
-
-  const closePopup = () => {
-    setPopupVisible(false);
-    setPopupIndex(null);
-  };
-
-  const savePopup = () => {
-    if (popupIndex == null) return closePopup();
-    setItems(items.map((item, idx) => idx === popupIndex ? { ...item, ...popupData } : item));
-    closePopup();
-  };
-
   const handleDelete = () => {
     // Removes the last item for demo purposes
     if(items.length > 0) {
@@ -232,831 +277,1017 @@ const PurchaseInvoice = () => {
   const handleClear = () => {
     // Keep a single empty row after clearing
     setItems([
-      { id: 1, barcode: '', name: '', sub: '', stock: 0, mrp: 0, uom: '', hsn: '', tax: 0, rate: 0, qty: 0 }
+      { 
+        id: 1, 
+        barcode: '', 
+        name: '', 
+        sub: '', 
+        stock: 0, 
+        mrp: 0, 
+        uom: '', 
+        hsn: '', 
+        tax: 0, 
+        rate: 0, 
+        qty: 0,
+        ovrwt: '',
+        avgwt: '',
+        prate: 0,
+        intax: '',
+        outtax: '',
+        acost: '',
+        sudo: '',
+        profitPercent: '',
+        preRT: '',
+        sRate: '',
+        asRate: '',
+        letProfPer: '',
+        ntCost: '',
+        wsPercent: '',
+        wsRate: '',
+        min: '',
+        max: ''
+      }
     ]);
     setBillDetails({ ...billDetails, barcodeInput: '' });
   };
 
   const handleSave = () => {
-   
+    try {
+      const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
+      const username = (userData && userData.username) ? userData.username : '';
+
+      const toNumber = (v) => {
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n : 0;
+      };
+
+      const toISODate = (d) => {
+        try {
+          if (!d) return new Date().toISOString();
+          const date = new Date(d);
+          return date.toISOString();
+        } catch {
+          return new Date().toISOString();
+        }
+      };
+
+      const voucherNo = billDetails.invNo || '';
+      const voucherDateISO = toISODate(billDetails.billDate || billDetails.purDate);
+
+      const payload = {
+        bledger: {
+          customerCode: billDetails.partyCode || '',
+          voucherNo: voucherNo,
+          voucherDate: voucherDateISO,
+          billAmount: toNumber(netTotal),
+          balanceAmount: toNumber(netTotal),
+          refType: billDetails.transType || '',
+          refName: billDetails.customerName || '',
+          compCode: compCode,
+          taxMode: '',
+          user: username,
+          gstType: '',
+        },
+        iledger: {
+          vrNo: voucherNo,
+          less: 0,
+          subTotal: toNumber(netTotal),
+          total: toNumber(netTotal),
+          net: toNumber(netTotal),
+          add1: '',
+          add2: '',
+          cstsNo: '',
+          add3: '',
+          add4: '',
+        },
+        items: items.map((it) => ({
+          voucher: voucherNo,
+          itemCode: it.barcode || '',
+          qty: toNumber(it.qty),
+          rate: toNumber(it.rate),
+          amount: toNumber(it.qty) * toNumber(it.rate),
+          fTax: toNumber(it.tax),
+          wRate: toNumber(it.wsRate),
+          fid: String(it.id || ''),
+          fDate: voucherDateISO,
+          fUnit: it.uom || '',
+          fhsn: it.hsn || '',
+          ovrWt: toNumber(it.ovrwt),
+          avgWt: toNumber(it.avgwt),
+          inTax: toNumber(it.intax),
+          outTax: toNumber(it.outtax),
+          acost: toNumber(it.acost),
+          sudo: it.sudo || '',
+          profitPercent: toNumber(it.profitPercent),
+          preRate: toNumber(it.preRT),
+          sRate: toNumber(it.sRate),
+          asRate: toNumber(it.asRate),
+          mrp: toNumber(it.mrp),
+          letProfPer: toNumber(it.letProfPer),
+          ntCost: toNumber(it.ntCost),
+          wsPer: toNumber(it.wsPercent),
+        })).filter((it) => it.itemCode && it.qty > 0),
+      };
+
+      axiosInstance
+        .post(API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE, payload)
+        .then((res) => {
+          alert('Purchase saved successfully');
+        })
+        .catch((err) => {
+          console.warn('CreatePurchase failed:', err);
+          alert('Failed to save purchase');
+        });
+    } catch (e) {
+      console.warn('Save error:', e);
+      alert('Failed to save purchase');
+    }
   };
 
   const handlePrint = () => {
-   
+    // Print logic here
+    alert('Print functionality to be implemented');
   };
 
-  // helper to compute input style for top-section fields
-  const topInputStyle = (name, override = {}) => ({
-    ...styles.input,
-    paddingTop: '12px',
-    border: focusedField === name ? '1px solid #1B91DA' : styles.input.border,
-    boxShadow: focusedField === name ? '0 0 0 4px rgba(27,145,218,0.06)' : 'none',
-    ...override
-  });
+  // --- RESPONSIVE STYLES ---
+  const TYPOGRAPHY = {
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: {
+      xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      base: screenSize.isMobile ? '13px' : screenSize.isTablet ? '14px' : '16px',
+      lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
+    },
+    fontWeight: {
+      normal: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700
+    },
+    lineHeight: {
+      tight: 1.2,
+      normal: 1.5,
+      relaxed: 1.6
+    }
+  };
 
-  const topSelectStyle = (name, override = {}) => ({
-    ...styles.select,
-    paddingTop: '12px',
-    border: focusedField === name ? '1px solid #1B91DA' : '1px solid #ccc',
-    boxShadow: focusedField === name ? '0 0 0 4px rgba(27,145,218,0.06)' : 'none',
-    outline: 'none',
-    WebkitAppearance: 'none',
-    MozAppearance: 'none',
-    appearance: 'none',
-    ...override
-  });
-
-  // --- STYLES (Inline CSS) ---
   const styles = {
     container: {
-      fontFamily: 'Inter, Arial, sans-serif',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#f5f7fa',
-      minHeight: '100vh',
+      height: '100vh',
+      width: '100%',
       display: 'flex',
       flexDirection: 'column',
       margin: 0,
       padding: 0,
-      overflow: 'hidden'
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+      position: 'fixed',
     },
-    topSection: {
+    headerSection: {
+      flex: '0 0 auto',
       backgroundColor: 'white',
-      padding: '16px 16px',
-      color: 'white',
-      display: 'flex',
-      gap: '12px',
+      borderRadius: 0,
+      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
+      margin: 0,
+      marginBottom: 0,
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      flexWrap: 'wrap',
-      alignItems: 'flex-start',
-      flexShrink: 0,
-      border: 'none',
-      borderRadius: '0',
-      margin: '0'
+      overflowY: 'visible',
+      maxHeight: 'none',
     },
-    column: {
+    tableSection: {
+      flex: '1 1 auto',
       display: 'flex',
       flexDirection: 'column',
-      gap: '10px',
-      flex: 1,
-      minWidth: '200px'
+      minHeight: 0,
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
     },
-    row: {
+    formRow: {
       display: 'flex',
-      gap: '10px',
+      flexDirection: 'column',
+      gap: '12px',
+    },
+    formField: {
+      display: 'flex',
       alignItems: 'center',
-      flexWrap: 'wrap'
+      gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      flexWrap: 'wrap',
     },
-    half: {
-      flex: 1,
-      minWidth: '140px'
-    },
-    third: {
-      flex: 1,
-      minWidth: '110px'
-    },
-    inputGroup: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '6px',
-    },
-    floatingLabelWrapper: {
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '6px'
-    },
-    floatingLabel: {
-      position: 'absolute',
-      top: -6,
-      left: 10,
-      backgroundColor: 'white',
-      color: 'black',
-      padding: '0 8px',
-      fontSize: '13px',
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      borderRadius: 4,
-      lineHeight: '16px',
-      
-    },
-    label: {
-      fontWeight: '600',
-      fontSize: '13px',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-      color: 'white',
-      opacity: 0.95,
-    },
-    input: {
-      padding: '10px 8px',
-      borderRadius: '4px',
-      border: '1px solid #ccc',
-      outline: 'none',
-      fontSize: '14px',
-      fontWeight: '500',
+    inlineLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#333',
-      backgroundColor: 'white',
-      transition: 'all 0.2s ease',
+      minWidth: screenSize.isMobile ? '65px' : screenSize.isTablet ? '75px' : '85px',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+      paddingTop: '2px',
     },
-    select: {
-      padding: '10px 12px',
-      borderRadius: '4px',
-      border: 'none',
-      cursor: 'pointer',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      fontWeight: '600',
-      color: 'black',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    inlineInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
     },
-    actionButtons: {
-      display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap',
-    },
-    btnBlue: {
-      backgroundColor: 'white',
-      border: 'none',
-      color: '#1B91DA',
-      padding: '6px 10px',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      fontWeight: '600',
-      fontSize: '13px',
-      transition: 'all 0.2s ease',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+    gridRow: {
+      display: 'grid',
+      gap: '5px',
+      marginBottom: 5,
     },
     tableContainer: {
-      flex: '1 1 auto',
       backgroundColor: 'white',
-     
-      borderRadius: '8px',
-      overflow: 'auto',
+      borderRadius: 10,
+      overflowX: 'auto',
+      overflowY: 'auto',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       border: '1px solid #e0e0e0',
-      maxHeight: '760px',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginBottom: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      WebkitOverflowScrolling: 'touch',
+      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      boxSizing: 'border-box',
+      flex: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
+      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
     },
     table: {
-      width: '100%',
+      width: 'max-content',
+      minWidth: '100%',
       borderCollapse: 'collapse',
-      minWidth: '900px',
+      tableLayout: 'fixed',
     },
     th: {
-      backgroundColor: '#1B91DA',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      backgroundColor: '#1B91DA', 
       color: 'white',
-      padding: '10px 8px',
+      padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
       textAlign: 'center',
-      fontSize: '14px',
-      fontWeight: '700',
-      textTransform: 'uppercase',
       letterSpacing: '0.5px',
       position: 'sticky',
       top: 0,
       zIndex: 10,
       border: '1px solid white',
       borderBottom: '2px solid white',
-      width: '80px'
+      minWidth: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px',
+      whiteSpace: 'nowrap',
+      width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px',
+      maxWidth: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px',
     },
     td: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
       padding: 0,
       textAlign: 'center',
-      fontSize: '15px',
       border: '1px solid #ccc',
       color: '#333',
-      fontWeight: '500',
+      minWidth: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px',
+      width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px',
+      maxWidth: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px',
     },
     editableInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
       display: 'block',
       width: '100%',
       height: '100%',
-      minHeight: '36px',
-      padding: '6px 8px',
+      minHeight: screenSize.isMobile ? '26px' : screenSize.isTablet ? '30px' : '32px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
       boxSizing: 'border-box',
       border: 'none',
-      borderRadius: '4px',
-      fontSize: '13px',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
       textAlign: 'center',
       backgroundColor: 'transparent',
       outline: 'none',
       transition: 'border-color 0.2s ease',
     },
     itemNameContainer: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
       textAlign: 'left',
-      paddingLeft: '15px',
-      fontWeight: '600'
-    },
-    subText: {
-      fontSize: '12px',
-      color: '#888',
-      marginTop: '2px',
-      fontWeight: '400'
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '15px',
+      minWidth: screenSize.isMobile ? '100px' : screenSize.isTablet ? '150px' : '200px',
+      width: screenSize.isMobile ? '100px' : screenSize.isTablet ? '150px' : '200px',
+      maxWidth: screenSize.isMobile ? '100px' : screenSize.isTablet ? '150px' : '200px',
     },
     footerSection: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flex: '0 0 auto',
       display: 'flex',
+      flexDirection: screenSize.isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '10px 16px',
+      padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
       backgroundColor: 'white',
       borderTop: '2px solid #e0e0e0',
-      boxShadow: '0 -2px 8px rgba(0,0,0,0.05)',
-      gap: '12px',
+      boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
       flexWrap: 'wrap',
       flexShrink: 0,
-      minHeight: '60px'
+      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
+      width: '100%',
+      boxSizing: 'border-box',
+      zIndex: 100,
     },
     netBox: {
-      backgroundColor: '#1B91DA',
-      color: 'white',
-      padding: '12px 32px',
-      borderRadius: '6px',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.base : screenSize.isTablet ? TYPOGRAPHY.fontSize.lg : TYPOGRAPHY.fontSize.xl,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#1B91DA',
+      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '10px 20px' : '12px 32px',
       display: 'flex',
       alignItems: 'center',
-      gap: '32px',
-      fontSize: '22px',
-      fontWeight: '700',
-      boxShadow: '0 4px 12px rgba(27, 145, 218, 0.3)',
-      minWidth: 'max-content'
+      gap: screenSize.isMobile ? '12px' : screenSize.isTablet ? '20px' : '32px',
+      minWidth: 'max-content',
+      justifyContent: 'center',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      order: screenSize.isMobile ? 1 : 0,
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      backgroundColor: '#f0f8ff',
+    },
+    rightColumn: {
+      display: 'flex',
+      gap: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '12px',
+      flexWrap: 'wrap',
+      justifyContent: screenSize.isMobile ? 'center' : 'flex-start',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      order: screenSize.isMobile ? 2 : 0,
     },
     footerButtons: {
       display: 'flex',
-      gap: '12px',
+      gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '12px',
       flexWrap: 'wrap',
+      justifyContent: screenSize.isMobile ? 'center' : 'flex-end',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      order: screenSize.isMobile ? 3 : 0,
     },
-    btnClear: {
-      backgroundColor: '#1B91DA',
-      color: 'white',
-      border: 'none',
-      padding: '10px 24px',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontWeight: '600',
+    actionButtonsWrapper: {
       display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      fontSize: '13px',
-      transition: 'all 0.2s ease',
-      boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)'
-    },
-    btnSave: {
-      backgroundColor: '#1B91DA',
-      color: 'white',
-      border: 'none',
-      padding: '10px 24px',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontWeight: '600',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      fontSize: '13px',
-      transition: 'all 0.2s ease',
-      boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)'
+      gap: '8px',
+      justifyContent: screenSize.isMobile ? 'center' : 'flex-start',
+      marginTop: screenSize.isMobile ? '12px' : '0',
     },
     totalsRow: {
-      fontWeight: '700',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#e8f4fc',
       borderTop: '2px solid #1B91DA',
-    }
-    ,
-    popupOverlay: {
-      position: 'fixed',
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.3)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999
     },
-    popupContent: {
-      position: 'relative',
-      background: 'white',
-      borderRadius: 8,
-      padding: 16,
-      width: 480,
-      maxWidth: '95%',
-      boxSizing: 'border-box',
-      overflow: 'auto',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-    },
-    popupRow: {
-      display: 'flex',
-      gap: 8,
-      marginBottom: 8,
-      alignItems: 'center'
-    },
-    popupLabel: {
-      minWidth: 56,
-      fontSize: 12,
-      fontWeight: 700,
-      color: '#333'
-    },
-    popupInput: {
-      width: '100%',
-      boxSizing: 'border-box',
-      padding: '6px 8px',
-      borderRadius: 4,
-      border: '1px solid #ccc',
-      fontSize: 13  
-    }
-    ,
-    purchaseButton: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 8,
-      padding: '6px 10px',
-      width: 160,
-      background: '#1B91DA',
-      color: 'white',
-      border: 'none',
-      borderRadius: 20,
-      cursor: 'pointer',
-      fontWeight: 700,
-      fontSize: '14px',
-      fontFamily: 'Inter, Arial, sans-serif',
-      boxShadow: '0 6px 18px rgba(25,105,46,0.18)',
-      height: 38,
-    },
-    purchaseModalOverlay: {
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.35)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10000
-    },
-    purchaseModalContent: {
-      width: 520,
-      maxWidth: '95%',
-      background: 'white',
-      borderRadius: 8,
-      padding: 16,
-      boxSizing: 'border-box',
-      boxShadow: '0 12px 40px rgba(0,0,0,0.25)'
+  };
+
+  // Determine grid columns based on screen size
+  const getGridColumns = () => {
+    if (screenSize.isMobile) {
+      return 'repeat(2, 1fr)';
+    } else if (screenSize.isTablet) {
+      return 'repeat(4, 1fr)';
+    } else {
+      return 'repeat(6, 1fr)';
     }
   };
 
   return (
     <div style={styles.container}>
-      
-      {/* --- TOP INPUT SECTION --- */}
-      <div style={styles.topSection}>
-        <div style={styles.column}>
-          <div style={styles.row}>
-            <div style={styles.half}>
-              <div style={styles.floatingLabelWrapper}>
-                <span style={styles.floatingLabel}>Inv No</span>
-                <input
-                  style={topInputStyle('invNo')}
-                  value={billDetails.invNo}
-                  name="invNo"
-                  onChange={handleInputChange}
-                  ref={billNoRef}
-                  onKeyDown={(e) => handleKeyDown(e, dateRef)}
-                  onFocus={() => setFocusedField('invNo')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-            </div>
-
-            <div style={styles.half}>
-              <div style={styles.floatingLabelWrapper}>
-                <span style={styles.floatingLabel}>Bill Date</span>
-                <input
-                  style={topInputStyle('billDate')}
-                  value={billDetails.billDate}
-                  name="billDate"
-                  onChange={handleInputChange}
-                  ref={dateRef}
-                  onKeyDown={(e) => handleKeyDown(e, amountRef)}
-                  onFocus={() => setFocusedField('billDate')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-            </div>
+      {/* --- HEADER SECTION --- */}
+      <div style={styles.headerSection}>
+        {/* ROW 1 */}
+        <div style={{
+          ...styles.gridRow,
+          gridTemplateColumns: getGridColumns(),
+        }}>
+          {/* Inv No */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Inv No:</label>
+            <input 
+              type="text"
+              style={styles.inlineInput}
+              value={billDetails.invNo}
+              name="invNo"
+              onChange={handleInputChange}
+              ref={billNoRef}
+              onKeyDown={(e) => handleKeyDown(e, dateRef)}
+              onFocus={() => setFocusedField('invNo')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Bill No"
+            />
           </div>
 
-          <div style={styles.row}>
-            <div style={styles.half}>
-              <div style={styles.floatingLabelWrapper}>
-                <span style={styles.floatingLabel}>Amount</span>
-                <input
-                  style={topInputStyle('amount')}
-                  value={billDetails.amount}
-                  name="amount"
-                  onChange={handleInputChange}
-                  ref={amountRef}
-                  onKeyDown={(e) => handleKeyDown(e, customerRef)}
-                  onFocus={() => setFocusedField('amount')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-            </div>
+          {/* Bill Date */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Bill Date:</label>
+            <input
+              type="date"
+              style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
+              value={billDetails.billDate}
+              name="billDate"
+              onChange={handleInputChange}
+              ref={dateRef}
+              onKeyDown={(e) => handleKeyDown(e, amountRef)}
+              onFocus={() => setFocusedField('billDate')}
+              onBlur={() => setFocusedField('')}
+            />
+          </div>
 
-            <div style={{...styles.half,marginLeft:8}}>
-              <div style={styles.inputGroup}>
-                <label style={styles.label}></label>
-                <div>
-                  <label style={{display:'inline-flex', alignItems:'center', gap:8}}>
-                    <input
-                      type="checkbox"
-                      checked={billDetails.isLedger}
-                      onChange={(e) => setBillDetails(prev => ({...prev, isLedger: e.target.checked}))}
-                      style={{width: 18, height: 18, transform: 'scale(1.4)', transformOrigin: 'center', margin: 0}}
-                    />
-                    <span style={{fontSize:15,color: '#666', fontWeight:600}}>Is Ledger?</span>
-                  </label>
-                </div>
-              </div>
-            </div>
+          {/* Amount */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Amount:</label>
+            <input
+              type="text"
+              style={styles.inlineInput}
+              value={billDetails.amount}
+              name="amount"
+              onChange={handleInputChange}
+              ref={amountRef}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('amount')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Amount"
+            />
+          </div>
+
+          {/* Pur No */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Pur No:</label>
+            <input
+              type="text"
+              name="purNo"
+              style={styles.inlineInput}
+              value={billDetails.purNo}
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('purNo')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Pur No"
+            />
+          </div>
+
+          {/* Invoice No */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Invoice No:</label>
+            <input
+              type="text"
+              name="invoiceNo"
+              style={styles.inlineInput}
+              value={billDetails.invoiceNo}
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('invoiceNo')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Invoice No"
+            />
+          </div>
+
+          {/* Pur Date */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Pur Date:</label>
+            <input
+              type="date"
+              name="purDate"
+              style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
+              value={billDetails.purDate}
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('purDate')}
+              onBlur={() => setFocusedField('')}
+            />
           </div>
         </div>
 
-        <div style={styles.column}>
-          <div style={styles.row}>
-            <div style={styles.half}>
-              <div style={styles.floatingLabelWrapper}>
-                <span style={styles.floatingLabel}>Party Code</span>
-                <input
-                  style={topInputStyle('partyCode')}
-                  value={billDetails.partyCode}
-                  name="partyCode"
-                  onChange={handleInputChange}
-                  ref={customerRef}
-                  onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-                  onFocus={() => setFocusedField('partyCode')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-            </div>
+        {/* ROW 2 */}
+        <div style={{
+          ...styles.gridRow,
+          gridTemplateColumns: getGridColumns(),
+        }}>
+          {/* Party Code */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Party Code:</label>
+            <input
+              type="text"
+              style={styles.inlineInput}
+              value={billDetails.partyCode}
+              name="partyCode"
+              onChange={handleInputChange}
+              ref={customerRef}
+              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
+              onFocus={() => setFocusedField('partyCode')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Party Code"
+            />
+          </div>
 
-            <div style={styles.half}>
-              <div style={styles.floatingLabelWrapper}>
-                <span style={styles.floatingLabel}>Customer Name</span>
-                <input
-                  style={topInputStyle('customerName')}
-                  value={billDetails.customerName}
-                  name="customerName"
-                  onChange={handleInputChange}
-                  ref={null}
-                  onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-                  onFocus={() => setFocusedField('customerName')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-            </div>
+          {/* Customer Name */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Name:</label>
+            <input
+              type="text"
+              style={styles.inlineInput}
+              value={billDetails.customerName}
+              name="customerName"
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
+              onFocus={() => setFocusedField('customerName')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Customer Name"
+            />
+          </div>
+
+          {/* City */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>City:</label>
+            <input
+              type="text"
+              style={styles.inlineInput}
+              value={billDetails.city}
+              name="city"
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('city')}
+              onBlur={() => setFocusedField('')}
+              placeholder="City"
+            />
+          </div>
+
+          {/* Trans Type */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Trans Type:</label>
+            <select
+              name="transType"
+              style={styles.inlineInput}
+              value={billDetails.transType}
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('transType')}
+              onBlur={() => setFocusedField('')}
+            >
+              <option value="PURCHASE">PURCHASE</option>
+              <option value="SALE">SALE</option>
+              <option value="Cash">Cash</option>
+              <option value="Credit">Credit</option>
+            </select>
+          </div>
+
+          {/* Invoice Amt */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Invoice Amt:</label>
+            <input
+              type="text"
+              name="invoiceAmount"
+              style={styles.inlineInput}
+              value={billDetails.invoiceAmount}
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('invoiceAmount')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Invoice Amount"
+            />
+          </div>
+
          
-            <div style={styles.half}>
-              <div style={styles.floatingLabelWrapper}>
-                <span style={styles.floatingLabel}>City</span>
-                <input
-                  style={topInputStyle('city')}
-                  value={billDetails.city}
-                  name="city"
-                  onChange={handleInputChange}
-                  ref={mobileRef}
-                  onKeyDown={(e) => handleKeyDown(e, customerRef)}
-                  onFocus={() => setFocusedField('city')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-            </div>
-
-            <div style={{...styles.half, display: 'flex', gap: 8}}>
-              <div style={{...styles.floatingLabelWrapper, flex: 1}}>
-                <span style={styles.floatingLabel}>Mobile No</span>
-                <input
-                  style={topInputStyle('mobileNo')}
-                  value={billDetails.mobileNo}
-                  name="mobileNo"
-                  onChange={handleInputChange}
-                  ref={mobileRef}
-                  onKeyDown={(e) => handleKeyDown(e, customerRef)}
-                  onFocus={() => setFocusedField('mobileNo')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-
-              <div style={{...styles.floatingLabelWrapper, flex: 1}}>
-                <span style={styles.floatingLabel}>GST No</span>
-                <input
-                  style={topInputStyle('gstno')}
-                  value={billDetails.gstno}
-                  name="gstno"
-                  onChange={handleInputChange}
-                  ref={null}
-                  onKeyDown={(e) => handleKeyDown(e, customerRef)}
-                  onFocus={() => setFocusedField('gstno')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-            </div>
-          </div>
-
-          
         </div>
 
-        <div style={styles.column}>
-          <div style={{display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', justifyContent: 'center', height: '100%'}}>
-            <div style={{width: '100%', display: 'flex', justifyContent: 'flex-end'}}>
-              <ActionButtons activeButton={activeTopAction} onButtonClick={(type) => {
-                setActiveTopAction(type);
-                if (type === 'add') handleAddRow();
-                else if (type === 'edit') alert('Edit action: select a row to edit');
-                else if (type === 'delete') handleDelete();
-              }}>
-                <AddButton />
-                <EditButton />
-                <DeleteButton />
-                
-              </ActionButtons>
-            </div>
+        {/* ROW 3 */}
+        <div style={{
+          ...styles.gridRow,
+          gridTemplateColumns: getGridColumns(),
+          marginBottom: '0',
+        }}>
 
-            <div style={{width: '100%', display: 'flex', justifyContent: 'flex-end'}}>
-              <div style={styles.floatingLabelWrapper}>
-                <button type="button" style={styles.purchaseButton} onClick={openPurchaseModal} aria-haspopup="dialog" aria-expanded={purchaseModalOpen}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:'white'}}>
-                    <rect x="3" y="4" width="18" height="4" rx="1"></rect>
-                    <rect x="3" y="10" width="18" height="4" rx="1"></rect>
-                    <rect x="3" y="16" width="18" height="4" rx="1"></rect>
-                  </svg>
-                  <span>Purchase Details</span>
-                </button>
-              </div>
-            </div>
+           {/* Mobile No */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Mobile No:</label>
+            <input
+              type="text"
+              style={styles.inlineInput}
+              value={billDetails.mobileNo}
+              name="mobileNo"
+              onChange={handleInputChange}
+              ref={mobileRef}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('mobileNo')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Mobile No"
+            />
+          </div>
+          {/* GST No */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>GST No:</label>
+            <input
+              type="text"
+              style={styles.inlineInput}
+              value={billDetails.gstno}
+              name="gstno"
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('gstno')}
+              onBlur={() => setFocusedField('')}
+              placeholder="GST No"
+            />
+          </div>
+
+          {/* Is Ledger Checkbox */}
+          <div style={{
+            ...styles.formField,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            gap: '8px',
+            height: '40px',
+          }}>
+            <label style={{...styles.inlineLabel, marginBottom: 0}}>Is Ledger?</label>
+            <input
+              type="checkbox"
+              checked={billDetails.isLedger}
+              onChange={(e) => setBillDetails(prev => ({ ...prev, isLedger: e.target.checked }))}
+              style={{ width: 18, height: 18 }}
+              id="isLedger"
+            />
           </div>
         </div>
-
       </div>
 
       {/* --- TABLE SECTION --- */}
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>S.NO</th>
-              <th style={styles.th}>PCode</th>
-                  <th style={{...styles.th, textAlign:'left', paddingLeft:'15px',width:'400px'}}>Particulars</th>
-                  <th style={styles.th}>UOM</th>
-                  <th style={styles.th}>Stock</th>
-                  <th style={styles.th}>HSN</th>
-                  <th style={styles.th}>Qty</th>
-                  <th style={styles.th}>OvrWt</th>
-                  <th style={styles.th}>AvgWt</th>
-                  <th style={styles.th}>MRP</th>
-                  <th style={styles.th}>LetProfPer</th>
-                  <th style={styles.th}>NTCost</th>
-                  <th style={styles.th}>WS%</th>
-                  <th style={styles.th}>WSate</th>
-                  <th style={styles.th}>Min</th>
-                  <th style={styles.th}>Max</th>
-              <th style={styles.th}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, index) => (
-              <tr key={item.id} style={{backgroundColor: 'white'}}>
-                <td style={styles.td}>{index + 1}</td>
-                <td style={styles.td}>
-                  <input
-                    style={styles.editableInput}
+      <div style={styles.tableSection}>
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>S.NO</th>
+                <th style={styles.th}>PCode</th>
+                <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Particulars</th>
+                <th style={styles.th}>UOM</th>
+                <th style={styles.th}>Stock</th>
+                <th style={styles.th}>HSN</th>
+                <th style={styles.th}>Qty</th>
+                <th style={styles.th}>OvrWt</th>
+                <th style={styles.th}>AvgWt</th>
+                <th style={styles.th}>PRate</th>
+                <th style={styles.th}>InTax</th>
+                <th style={styles.th}>OutTax</th>
+                <th style={styles.th}>ACost</th>
+                <th style={styles.th}>Sudo</th>
+                <th style={styles.th}>Profit%</th>
+                <th style={styles.th}>PreRT</th>
+                <th style={styles.th}>SRate</th>
+                <th style={styles.th}>ASRate</th>
+                <th style={styles.th}>MRP</th>
+                <th style={styles.th}>PPer</th>
+                <th style={styles.th}>NTCost</th>
+                <th style={styles.th}>WS%</th>
+                <th style={styles.th}>WSate</th>
+                {/* <th style={styles.th}>Min</th>
+                <th style={styles.th}>Max</th> */}
+                <th style={styles.th}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <tr key={item.id} style={{ backgroundColor: 'white' }}>
+                  <td style={styles.td}>{index + 1}</td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
                       value={item.barcode}
                       data-row={index}
                       data-field="barcode"
                       onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
-                  />
-                </td>
-                <td style={{...styles.td, ...styles.itemNameContainer}}>
-                  <input
-                      style={{...styles.editableInput, textAlign: 'left'}}
+                    />
+                  </td>
+                  <td style={{ ...styles.td, ...styles.itemNameContainer }}>
+                    <input
+                      style={{ ...styles.editableInput, textAlign: 'left' }}
                       value={item.name}
                       placeholder="Particulars"
                       data-row={index}
                       data-field="name"
                       onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'name')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.uom}
                       data-row={index}
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
-                    style={styles.editableInput}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
                       value={item.stock}
                       data-row={index}
                       data-field="stock"
                       onChange={(e) => handleItemChange(item.id, 'stock', parseFloat(e.target.value) || 0)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.hsn}
                       data-row={index}
                       data-field="hsn"
                       onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <div style={{position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                    />
+                  </td>
+                  <td style={styles.td}>
                     <input
-                      style={{...styles.editableInput, paddingRight: '28px'}}
+                      style={styles.editableInput}
                       value={item.qty}
                       data-row={index}
                       data-field="qty"
                       onChange={(e) => handleItemChange(item.id, 'qty', parseFloat(e.target.value) || 0)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
                     />
-                    <button
-                      onClick={() => openPopupForRow(index)}
-                      title="Advanced"
-                      aria-label="Open advanced fields"
-                      style={{
-                        position: 'absolute',
-                        right: 6,
-                        background: 'transparent',
-                        border: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        color: '#1B91DA'
-                      }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B91DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09c.7 0 1.3-.4 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 0 1 6.59 2.6l.06.06c.45.45 1.1.64 1.7.47.5-.14 1-.09 1.51 0H11a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09c0 .6.33 1.15.86 1.42.6.27 1.25.08 1.7-.37l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06c-.45.45-.64 1.1-.47 1.7.14.5.09 1 .00 1.51V11c.62.02 1.12.51 1.14 1.14.01.5.06 1.01 0 1.51-.17.6-.3 1.25.15 1.7z"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-                <td style={styles.td}>
-                  <input
+                  </td>
+                  <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.ovrwt || ''}
                       data-row={index}
                       data-field="ovrwt"
                       onChange={(e) => handleItemChange(item.id, 'ovrwt', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'ovrwt')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.avgwt || ''}
                       data-row={index}
                       data-field="avgwt"
                       onChange={(e) => handleItemChange(item.id, 'avgwt', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'avgwt')}
-                  />
-                </td>
-                {/* removed duplicated MRP..Max block to match table header columns */}
-                <td style={styles.td}>
-                  <input
-                    style={styles.editableInput}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.prate || ''}
+                      data-row={index}
+                      data-field="prate"
+                      onChange={(e) => handleItemChange(item.id, 'prate', parseFloat(e.target.value) || 0)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'prate')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.intax || ''}
+                      data-row={index}
+                      data-field="intax"
+                      onChange={(e) => handleItemChange(item.id, 'intax', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'intax')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.outtax || ''}
+                      data-row={index}
+                      data-field="outtax"
+                      onChange={(e) => handleItemChange(item.id, 'outtax', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'outtax')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.acost || ''}
+                      data-row={index}
+                      data-field="acost"
+                      onChange={(e) => handleItemChange(item.id, 'acost', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'acost')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.sudo || ''}
+                      data-row={index}
+                      data-field="sudo"
+                      onChange={(e) => handleItemChange(item.id, 'sudo', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'sudo')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.profitPercent || ''}
+                      data-row={index}
+                      data-field="profitPercent"
+                      onChange={(e) => handleItemChange(item.id, 'profitPercent', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'profitPercent')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.preRT || ''}
+                      data-row={index}
+                      data-field="preRT"
+                      onChange={(e) => handleItemChange(item.id, 'preRT', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'preRT')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.sRate || ''}
+                      data-row={index}
+                      data-field="sRate"
+                      onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.asRate || ''}
+                      data-row={index}
+                      data-field="asRate"
+                      onChange={(e) => handleItemChange(item.id, 'asRate', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'asRate')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
                       value={item.mrp}
                       data-row={index}
                       data-field="mrp"
                       onChange={(e) => handleItemChange(item.id, 'mrp', parseFloat(e.target.value) || 0)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'mrp')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.letProfPer || ''}
                       data-row={index}
                       data-field="letProfPer"
                       onChange={(e) => handleItemChange(item.id, 'letProfPer', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'letProfPer')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.ntCost || ''}
                       data-row={index}
                       data-field="ntCost"
                       onChange={(e) => handleItemChange(item.id, 'ntCost', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'ntCost')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.wsPercent || ''}
                       data-row={index}
                       data-field="wsPercent"
                       onChange={(e) => handleItemChange(item.id, 'wsPercent', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsPercent')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.wsRate || ''}
                       data-row={index}
                       data-field="wsRate"
                       onChange={(e) => handleItemChange(item.id, 'wsRate', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
+                    />
+                  </td>
+                  {/* <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.min || ''}
                       data-row={index}
                       data-field="min"
                       onChange={(e) => handleItemChange(item.id, 'min', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'min')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <input
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
                       style={styles.editableInput}
                       value={item.max || ''}
                       data-row={index}
                       data-field="max"
                       onChange={(e) => handleItemChange(item.id, 'max', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'max')}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <button
-                    aria-label="Delete row"
-                    title="Delete row"
-                    style={{
-                      backgroundColor: 'transparent',
-                      color: '#dc3545',
-                      border: 'none',
-                      padding: 0,
-                      borderRadius: '2px',
-                      width: '100%',
-                      height: '100%',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'color 0.15s ease'
-                    }}
-                    onClick={() => handleDeleteRow(item.id)}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#dc3545"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                      focusable="false"
-                      style={{display: 'block', margin: 'auto'}}
+                    />
+                  </td> */}
+                  <td style={styles.td}>
+                    <button
+                      aria-label="Delete row"
+                      title="Delete row"
+                      style={{
+                        backgroundColor: 'transparent',
+                        color: '#dc3545',
+                        border: 'none',
+                        padding: 0,
+                        borderRadius: '2px',
+                        width: '100%',
+                        height: '100%',
+                        cursor: 'pointer',
+                        fontSize: screenSize.isMobile ? '12px' : '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'color 0.15s ease',
+                        minHeight: screenSize.isMobile ? '28px' : '32px',
+                      }}
+                      onClick={() => handleDeleteRow(item.id)}
                     >
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                      <path d="M10 11v6"></path>
-                      <path d="M14 11v6"></path>
-                      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-            ))}
-            
-            {/* Totals Row */}
-            
-          </tbody>
-        </table>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width={screenSize.isMobile ? "16" : "18"}
+                        height={screenSize.isMobile ? "16" : "18"}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#dc3545"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                        focusable="false"
+                        style={{ display: 'block', margin: 'auto' }}
+                      >
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                        <path d="M10 11v6"></path>
+                        <path d="M14 11v6"></path>
+                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
+        <div style={styles.rightColumn}>
+          <ActionButtons 
+            activeButton={activeTopAction} 
+            onButtonClick={(type) => {
+              setActiveTopAction(type);
+              if (type === 'add') handleAddRow();
+              else if (type === 'edit') alert('Edit action: select a row to edit');
+              else if (type === 'delete') handleDelete();
+            }}
+          >
+            <AddButton />
+            <EditButton />
+            <DeleteButton />
+          </ActionButtons>
+        </div>
         <div style={styles.netBox}>
           <span>Total Amount:</span>
-          <span>₹ {netTotal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+          <span>₹ {netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
-
         <div style={styles.footerButtons}>
           <ActionButtons1
             onClear={handleClear}
@@ -1067,122 +1298,6 @@ const PurchaseInvoice = () => {
           />
         </div>
       </div>
-
-      {/* Popup for advanced fields */}
-      {popupVisible && (
-        <div style={styles.popupOverlay} onClick={closePopup}>
-          <div style={styles.popupContent} onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={closePopup}
-              aria-label="Close"
-              style={{position:'absolute', right:12, top:12, background:'transparent', border:'none', fontSize:18, cursor:'pointer'}}
-            >
-              ✕
-            </button>
-            <div style={{marginBottom:8}}>
-              <strong>Advanced Item Fields</strong>
-            </div>
-
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8}}>
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>PRate</div>
-                <input style={styles.popupInput} value={popupData.rate} onChange={(e) => setPopupData({...popupData, rate: parseFloat(e.target.value) || 0})} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>InTax</div>
-                <input style={styles.popupInput} value={popupData.intax} onChange={(e) => setPopupData({...popupData, intax: e.target.value})} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>OutTax</div>
-                <input style={styles.popupInput} value={popupData.outtax} onChange={(e) => setPopupData({...popupData, outtax: e.target.value})} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>ACost</div>
-                <input style={styles.popupInput} value={popupData.acost} onChange={(e) => setPopupData({...popupData, acost: e.target.value})} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>Sudo</div>
-                <input style={styles.popupInput} value={popupData.sudo} onChange={(e) => setPopupData({...popupData, sudo: e.target.value})} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>Profit%</div>
-                <input style={styles.popupInput} value={popupData.profitPercent} onChange={(e) => setPopupData({...popupData, profitPercent: e.target.value})} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>PreRT</div>
-                <input style={styles.popupInput} value={popupData.preRT} onChange={(e) => setPopupData({...popupData, preRT: e.target.value})} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>SRate</div>
-                <input style={styles.popupInput} value={popupData.sRate} onChange={(e) => setPopupData({...popupData, sRate: e.target.value})} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>ASRate</div>
-                <input style={styles.popupInput} value={popupData.asRate} onChange={(e) => setPopupData({...popupData, asRate: e.target.value})} />
-              </div>
-            </div>
-
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:12}}>
-              <button onClick={closePopup} style={{padding:'6px 12px', borderRadius:4, border:'1px solid #ccc', background:'white'}}>Cancel</button>
-              <button onClick={savePopup} style={{padding:'6px 12px', borderRadius:4, border:'none', background:'#1B91DA', color:'white'}}>Apply</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Purchase Details Modal */}
-      {purchaseModalOpen && (
-        <div style={styles.purchaseModalOverlay} onClick={closePurchaseModal}>
-          <div style={styles.purchaseModalContent} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Purchase Details">
-            <button onClick={closePurchaseModal} aria-label="Close" style={{position:'absolute', right:12, top:12, background:'transparent', border:'none', fontSize:18, cursor:'pointer'}}>✕</button>
-            <div style={{marginBottom:8}}><strong>Purchase Details</strong></div>
-
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8}}>
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>Pur No</div>
-                <input name="purNo" style={styles.popupInput} value={billDetails.purNo} onChange={handleInputChange} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>Purdate</div>
-                <input name="purDate" style={styles.popupInput} value={billDetails.purDate} onChange={handleInputChange} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>Invoice No</div>
-                <input name="invoiceNo" style={styles.popupInput} value={billDetails.invoiceNo} onChange={handleInputChange} />
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>Trans Type</div>
-                <select name="transType" style={styles.popupInput} value={billDetails.transType} onChange={(e) => setBillDetails({...billDetails, transType: e.target.value})}>
-                  <option>PURCHASE</option>
-                  <option>SALES</option>
-                </select>
-              </div>
-
-              <div style={styles.popupRow}>
-                <div style={styles.popupLabel}>Invoice Amt</div>
-                <input name="invoiceAmount" style={styles.popupInput} value={billDetails.invoiceAmount || billDetails.amount} onChange={handleInputChange} />
-              </div>
-            </div>
-
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:12}}>
-              <button onClick={closePurchaseModal} style={{padding:'6px 12px', borderRadius:4, border:'1px solid #ccc', background:'white'}}>Cancel</button>
-              <button onClick={closePurchaseModal} style={{padding:'6px 12px', borderRadius:4, border:'none', background:'#1B91DA', color:'white'}}>Apply</button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

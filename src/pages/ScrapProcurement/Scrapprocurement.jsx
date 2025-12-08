@@ -2,24 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const SaleInvoice = () => {
+const Scrapprocurement = () => {
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('all');
   
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
-    billNo: 'SE00001AA',
+    billNo: 'SC00001AA',
     billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
-    type: 'Retail',
+    empName: '',
     salesman: '',
     custName: '',
     returnReason: '',
-    barcodeInput: '',
+    scrapProductInput: '',
     partyCode: '',
     gstno: '',
     city: '',
-    transType: 'SALES INVOICE'
+    type: 'Retail',
+    transType: 'SCRAP PROCUREMENT'
   });
 
   // 2. Table Items State
@@ -27,12 +28,9 @@ const SaleInvoice = () => {
     { 
       id: 1, 
       sNo: 1,
-      barcode: '', 
+      scrapProductName: '', 
       itemName: '', 
-      stock: '', 
-      mrp: '', 
       uom: '', 
-      hsn: '', 
       tax: '', 
       sRate: '', 
       qty: '',
@@ -48,11 +46,11 @@ const SaleInvoice = () => {
   const billNoRef = useRef(null);
   const billDateRef = useRef(null);
   const mobileRef = useRef(null);
-  const typeRef = useRef(null);
+  const empNameRef = useRef(null);
   const salesmanRef = useRef(null);
   const custNameRef = useRef(null);
   const returnReasonRef = useRef(null);
-  const barcodeRef = useRef(null);
+  const scrapProductRef = useRef(null);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -126,38 +124,59 @@ const SaleInvoice = () => {
   };
 
   const handleAddItem = () => {
-    if (!billDetails.barcodeInput) return alert("Please enter barcode");
+    if (!billDetails.scrapProductInput) {
+      alert("Please enter scrap product name");
+      return;
+    }
     
-    const newItem = {
-      id: items.length + 1,
-      sNo: items.length + 1,
-      barcode: billDetails.barcodeInput,
-      itemName: 'Sample Item', // Mock data
-      stock: '100',
-      mrp: '500',
-      uom: 'PCS',
-      hsn: '123456',
-      tax: '18',
-      sRate: '400',
-      qty: '1',
-      amount: '400.00'
-    };
+    // Check if scrap product already exists in items
+    const existingItemIndex = items.findIndex(item => 
+      item.scrapProductName === billDetails.scrapProductInput && item.scrapProductName !== ''
+    );
     
-    setItems([...items, newItem]);
-    setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
-    if (barcodeRef.current) barcodeRef.current.focus();
+    if (existingItemIndex !== -1) {
+      // If scrap product exists, increase quantity by 1
+      const updatedItems = [...items];
+      const existingItem = updatedItems[existingItemIndex];
+      const newQty = (parseFloat(existingItem.qty) || 0) + 1;
+      const newAmount = calculateAmount(newQty, existingItem.sRate);
+      
+      updatedItems[existingItemIndex] = {
+        ...existingItem,
+        qty: newQty.toString(),
+        amount: newAmount
+      };
+      
+      setItems(updatedItems);
+    } else {
+      // Add new item with the scrap product
+      const newItem = {
+        id: items.length + 1,
+        sNo: items.length + 1,
+        scrapProductName: billDetails.scrapProductInput,
+        itemName: 'Scrap Item', // Mock data
+        uom: 'KG',
+        tax: '5',
+        sRate: '50',
+        qty: '1',
+        amount: '50.00'
+      };
+      
+      setItems([...items, newItem]);
+    }
+    
+    // Clear scrap product input and focus
+    setBillDetails(prev => ({ ...prev, scrapProductInput: '' }));
+    if (scrapProductRef.current) scrapProductRef.current.focus();
   };
 
   const handleAddRow = () => {
     const newRow = {
       id: items.length + 1,
       sNo: items.length + 1,
-      barcode: '',
+      scrapProductName: '',
       itemName: '',
-      stock: '',
-      mrp: '',
       uom: '',
-      hsn: '',
       tax: '',
       sRate: '',
       qty: '',
@@ -188,9 +207,9 @@ const SaleInvoice = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
 
-      // Fields in the visual order (without WRate)
+      // Fields in the visual order (after removing stock, mrp, hsn, WRate)
       const fields = [
-        'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'
+        'scrapProductName', 'itemName', 'uom', 'tax', 'sRate', 'qty'
       ];
 
       const currentFieldIndex = fields.indexOf(currentField);
@@ -205,7 +224,7 @@ const SaleInvoice = () => {
       }
 
       if (currentRowIndex < items.length - 1) {
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
+        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="scrapProductName"]`);
         if (nextInput) {
           nextInput.focus();
           return;
@@ -214,87 +233,95 @@ const SaleInvoice = () => {
 
       handleAddRow();
       setTimeout(() => {
-        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
+        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
         if (newRowInput) newRowInput.focus();
       }, 60);
     }
   };
 
   const handleDelete = () => {
-    // Removes the last item for demo purposes
-    if(items.length > 0) {
-      setItems(items.slice(0, -1));
+    // Show confirmation for bulk delete
+    if (window.confirm('Are you sure you want to delete the last item?')) {
+      // Removes the last item for demo purposes
+      if (items.length > 0) {
+        setItems(items.slice(0, -1));
+      }
     }
   };
 
   const handleDeleteRow = (id) => {
-    if (items.length > 1) {
-      const filteredItems = items.filter(item => item.id !== id);
-      // Update serial numbers
-      const updatedItems = filteredItems.map((item, index) => ({
-        ...item,
-        sNo: index + 1
-      }));
-      setItems(updatedItems);
-    } else {
-      // Don't delete the last row, just clear it
-      const clearedItem = {
-        id: 1,
-        sNo: 1,
-        barcode: '',
-        itemName: '',
-        stock: '',
-        mrp: '',
-        uom: '',
-        hsn: '',
-        tax: '',
-        sRate: '',
-        qty: '',
-        amount: '0.00'
-      };
-      setItems([clearedItem]);
+    // Get the item to be deleted for the confirmation message
+    const itemToDelete = items.find(item => item.id === id);
+    const itemName = itemToDelete?.scrapProductName || 'this scrap product';
+    
+    // Show confirmation dialog
+    if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
+      if (items.length > 1) {
+        const filteredItems = items.filter(item => item.id !== id);
+        // Update serial numbers
+        const updatedItems = filteredItems.map((item, index) => ({
+          ...item,
+          sNo: index + 1
+        }));
+        setItems(updatedItems);
+      } else {
+        // Don't delete the last row, just clear it
+        const clearedItem = {
+          id: 1,
+          sNo: 1,
+          scrapProductName: '',
+          itemName: '',
+          uom: '',
+          tax: '',
+          sRate: '',
+          qty: '',
+          amount: '0.00'
+        };
+        setItems([clearedItem]);
+      }
     }
   };
 
   const handleClear = () => {
-    // Reset form
-    setBillDetails({
-      billNo: 'SE00001AA',
-      billDate: new Date().toISOString().substring(0, 10),
-      mobileNo: '',
-      type: 'Retail',
-      salesman: '',
-      custName: '',
-      returnReason: '',
-      barcodeInput: '',
-      partyCode: '',
-      gstno: '',
-      city: '',
-      transType: 'SALES INVOICE'
-    });
-    
-    // Keep a single empty row after clearing
-    setItems([
-      { 
-        id: 1, 
-        sNo: 1,
-        barcode: '', 
-        itemName: '', 
-        stock: '', 
-        mrp: '', 
-        uom: '', 
-        hsn: '', 
-        tax: '', 
-        sRate: '', 
-        qty: '',
-        amount: '0.00'
-      }
-    ]);
+    // Show confirmation before clearing
+    if (window.confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+      // Reset form
+      setBillDetails({
+        billNo: 'SC00001AA',
+        billDate: new Date().toISOString().substring(0, 10),
+        mobileNo: '',
+        empName: '',
+        salesman: '',
+        custName: '',
+        returnReason: '',
+        scrapProductInput: '',
+        partyCode: '',
+        gstno: '',
+        city: '',
+        type: 'Retail',
+        transType: 'SCRAP PROCUREMENT'
+      });
+      
+      // Keep a single empty row after clearing
+      setItems([
+        { 
+          id: 1, 
+          sNo: 1,
+          scrapProductName: '', 
+          itemName: '', 
+          uom: '', 
+          tax: '', 
+          sRate: '', 
+          qty: '',
+          amount: '0.00'
+        }
+      ]);
+    }
   };
 
   const handleSave = () => {
     // Save logic here
-    alert(`Sale Invoice data saved successfully!\n\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+    alert(`Scrap Procurement data saved successfully!\n\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
   };
 
   const handlePrint = () => {
@@ -399,24 +426,6 @@ const SaleInvoice = () => {
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
     },
-    formSelect: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
-      border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease',
-      outline: 'none',
-      width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
-      flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
-      backgroundColor: 'white',
-      cursor: 'pointer',
-    },
     gridRow: {
       display: 'grid',
       gap: '8px',
@@ -497,6 +506,16 @@ const SaleInvoice = () => {
       backgroundColor: 'transparent',
       outline: 'none',
       transition: 'border-color 0.2s ease',
+    },
+    scrapProductNameContainer: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      textAlign: 'left',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '15px',
+      minWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '220px',
+      width: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '220px',
+      maxWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '220px',
     },
     itemNameContainer: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -616,42 +635,6 @@ const SaleInvoice = () => {
     }
   };
 
-  // Helper function for form change handling
-  const handleFormChange = (fieldName) => (e) => {
-    const value = e.target.value;
-    setBillDetails(prev => ({ ...prev, [fieldName]: value }));
-  };
-
-  // Helper function for form key down handling
-  const handleFormKeyDown = (fieldName, e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      // Define the navigation order
-      const navigationOrder = ['billNo', 'billDate', 'mobileNo', 'type', 'salesman', 'custName', 'returnReason', 'barcodeInput'];
-      const currentIndex = navigationOrder.indexOf(fieldName);
-      
-      if (currentIndex < navigationOrder.length - 1) {
-        const nextField = navigationOrder[currentIndex + 1];
-        const nextRef = {
-          'billNo': billNoRef,
-          'billDate': billDateRef,
-          'mobileNo': mobileRef,
-          'type': typeRef,
-          'salesman': salesmanRef,
-          'custName': custNameRef,
-          'returnReason': returnReasonRef,
-          'barcodeInput': barcodeRef
-        }[nextField];
-        
-        if (nextRef && nextRef.current) {
-          nextRef.current.focus();
-        }
-      } else if (fieldName === 'barcodeInput') {
-        handleAddItem();
-      }
-    }
-  };
-
   return (
     <div style={styles.container}>
       {/* --- HEADER SECTION --- */}
@@ -704,13 +687,36 @@ const SaleInvoice = () => {
               name="mobileNo"
               onChange={handleInputChange}
               ref={mobileRef}
-              onKeyDown={(e) => handleKeyDown(e, typeRef)}
+              onKeyDown={(e) => handleKeyDown(e, empNameRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
               placeholder="Mobile No"
             />
           </div>
 
+          {/* EMP Name */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>EMP Name:</label>
+            <input
+              type="text"
+              style={styles.inlineInput}
+              value={billDetails.empName}
+              name="empName"
+              onChange={handleInputChange}
+              ref={empNameRef}
+              onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
+              onFocus={() => setFocusedField('empName')}
+              onBlur={() => setFocusedField('')}
+              placeholder="EMP Name"
+            />
+          </div>
+        </div>
+
+        {/* ROW 2 */}
+        <div style={{
+          ...styles.gridRow,
+          gridTemplateColumns: getGridColumns(),
+        }}>
           {/* Salesman */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Salesman:</label>
@@ -726,42 +732,6 @@ const SaleInvoice = () => {
               onBlur={() => setFocusedField('')}
               placeholder="Salesman"
             />
-          </div>
-
-          
-        </div>
-
-        {/* ROW 2 */}
-        <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
-        }}>
-          
-
-          {/* Type Field (Replaces EMP Name) */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}> Type: </label>
-            <select
-              name="type"
-              style={styles.formSelect}
-              value={billDetails.type}
-              onChange={handleFormChange('type')}
-              ref={typeRef}
-              onKeyDown={(e) => handleFormKeyDown('type', e)}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1976d2'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ddd'}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = '#1976d2';
-                setFocusedField('type');
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = '#ddd';
-                setFocusedField('');
-              }}
-            >
-              <option value="Retail">Retail</option>
-              <option value="Wholesale">Wholesale</option>
-            </select>
           </div>
 
           {/* Customer Name */}
@@ -781,31 +751,32 @@ const SaleInvoice = () => {
             />
           </div>
 
-          
-          {/* Barcode */}
+         
+
+          {/* Scrap Product Name */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Barcode:</label>
+            <label style={styles.inlineLabel}>Scrap Product:</label>
             <input
               type="text"
               style={styles.inlineInput}
-              value={billDetails.barcodeInput}
-              name="barcodeInput"
+              value={billDetails.scrapProductInput}
+              name="scrapProductInput"
               onChange={handleInputChange}
-              ref={barcodeRef}
+              ref={scrapProductRef}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   handleAddItem();
                 }
               }}
-              onFocus={() => setFocusedField('barcodeInput')}
+              onFocus={() => setFocusedField('scrapProductInput')}
               onBlur={() => setFocusedField('')}
-              placeholder="Barcode"
+              placeholder="Scrap Product Name"
             />
           </div>
         </div>
 
-       
+        
       </div>
 
       {/* --- TABLE SECTION --- */}
@@ -815,12 +786,9 @@ const SaleInvoice = () => {
             <thead>
               <tr>
                 <th style={styles.th}>S.No</th>
-                <th style={styles.th}>Barcode</th>
+                <th style={{ ...styles.th, ...styles.scrapProductNameContainer, textAlign: 'left' }}>Scrap Product Name</th>
                 <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Item Name</th>
-                <th style={styles.th}>Stock</th>
-                <th style={styles.th}>MRP</th>
                 <th style={styles.th}>UOM</th>
-                <th style={styles.th}>HSN</th>
                 <th style={styles.th}>TAX (%)</th>
                 <th style={styles.th}>SRate</th>
                 <th style={styles.th}>Qty</th>
@@ -832,14 +800,15 @@ const SaleInvoice = () => {
               {items.map((item, index) => (
                 <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
                   <td style={styles.td}>{item.sNo}</td>
-                  <td style={styles.td}>
+                  <td style={{ ...styles.td, ...styles.scrapProductNameContainer }}>
                     <input
-                      style={styles.editableInput}
-                      value={item.barcode}
+                      style={{ ...styles.editableInput, textAlign: 'left' }}
+                      value={item.scrapProductName}
+                      placeholder="Scrap Product Name"
                       data-row={index}
-                      data-field="barcode"
-                      onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
+                      data-field="scrapProductName"
+                      onChange={(e) => handleItemChange(item.id, 'scrapProductName', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'scrapProductName')}
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
@@ -856,41 +825,11 @@ const SaleInvoice = () => {
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
-                      value={item.stock}
-                      data-row={index}
-                      data-field="stock"
-                      onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
-                      value={item.mrp}
-                      data-row={index}
-                      data-field="mrp"
-                      onChange={(e) => handleItemChange(item.id, 'mrp', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'mrp')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
                       value={item.uom}
                       data-row={index}
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
-                      value={item.hsn}
-                      data-row={index}
-                      data-field="hsn"
-                      onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
                     />
                   </td>
                   <td style={styles.td}>
@@ -996,7 +935,11 @@ const SaleInvoice = () => {
               setActiveTopAction(type);
               if (type === 'add') handleAddRow();
               else if (type === 'edit') alert('Edit action: select a row to edit');
-              else if (type === 'delete') handleDelete();
+              else if (type === 'delete') {
+                if (window.confirm('Are you sure you want to delete the last item?')) {
+                  handleDelete();
+                }
+              }
             }}
           >
             <AddButton />
@@ -1030,4 +973,4 @@ const SaleInvoice = () => {
   );
 };
 
-export default SaleInvoice;
+export default Scrapprocurement;
