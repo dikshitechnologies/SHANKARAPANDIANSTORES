@@ -392,7 +392,7 @@ const SalesReturn = () => {
       padding: 0,
       overflowX: 'hidden',
       overflowY: 'hidden',
-      position: 'relative',
+      position: 'fixed',
     },
     headerSection: {
       flex: '0 0 auto',
