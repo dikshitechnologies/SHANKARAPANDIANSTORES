@@ -72,6 +72,3 @@ UNITCREATION: {
     
 
 };
-
-// Named convenience export for older imports that expect ADMINISTRATION directly
-export const ADMINISTRATION = API_ENDPOINTS.ADMINISTRATION;

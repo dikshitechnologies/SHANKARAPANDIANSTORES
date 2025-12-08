@@ -84,6 +84,8 @@ const Navbar = () => {
     // { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },   
     { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined /> },
      { name: 'Scrap', path: '/masters/Scrap', icon: <BuildOutlined /> },
+     { name: 'Salecreation', path: '/masters/Salecreation', icon: <BuildOutlined /> },
+     
    
      
   ];
