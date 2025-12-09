@@ -5,7 +5,6 @@ import Navbar from './components/Navbar/Navbar'
 import TestPage from './pages/TestPage/TestPage'
 import  Company  from './pages/company/Company'
 import LedgerCreation from './pages/Ledgercreation/Ledgercreation'
-import ItemCreation from './pages/ItemCreation/ItemCreation'
 import LedgerGroupCreation from './pages/Ledgergroupcreation/Ledgergroupcreation'
 import ItemGroupCreation from './pages/ItemGroupCreation/ItemGroupCreation'
 import Administration from './pages/Administration/Admistration'
@@ -26,11 +25,13 @@ import ScrapPage from './pages/scrappage/scrappage'
 import BrandPage from './pages/Brand/Brand'
 import Category from './pages/category/category'
 import Product from './pages/Product/Product'
-
+import ItemCreation from './pages/ItemCreation/ItemCreation'
 import ScrapProcurement from './pages/ScrapProcurement/Scrapprocurement'
+import Salecreation from './pages/statecreation/statecreation'
 import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 import Statecreation from './pages/statecreation/statecreation'
 import Purchasereturn from './pages/Purchasereturn/Purchasereturn'
+import SalesmanCreation from './pages/SalesmanCreation/SalesmanCreation'
 function App() {
   return (
     <div className="app">
@@ -43,7 +44,6 @@ function App() {
           <Route path="/masters/company-creation" element={<Company />} />
           <Route path="sales-invoice" element={<SalesInvoice />} />
           <Route path="/masters/ledger-creation" element={<LedgerCreation />} />
-          <Route path="/masters/item-creation" element={<ItemCreation />} />
           <Route path="/masters/ledger-group-creation" element={<LedgerGroupCreation />} />
           <Route path="/masters/User-creation" element={<UserCreation />} />
           <Route path="/masters/item-group-creation" element={<ItemGroupCreation />} />
@@ -67,6 +67,8 @@ function App() {
            <Route path="/ScrapProcurement" element={<ScrapProcurement />} />
            <Route path="/masters/Statecreation" element={<Statecreation />} /> 
           <Route path="/transactions/Purchasereturn" element={<Purchasereturn />} />
+          <Route path="/masters/ItemCreation" element={<ItemCreation />} /> 
+          <Route path="/masters/SalesmanCreation" element={<SalesmanCreation />} /> 
         </Routes>
       </main>
     </div>

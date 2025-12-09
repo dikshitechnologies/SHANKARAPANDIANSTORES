@@ -273,7 +273,7 @@ export default function ProductPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Product updated successfully." });
-      resetForm(true);
+      resetForm();
     } catch (err) {
       // Error message already set in updateProduct
     }
@@ -713,7 +713,7 @@ export default function ProductPage() {
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: rgba(245,158,11,0.3);
+          border-color: #307AC8;
           transform: translateY(-1px);
         }
         

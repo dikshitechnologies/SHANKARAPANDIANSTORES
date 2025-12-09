@@ -55,11 +55,11 @@ export default function ScrapCreation() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
-  const [form, setForm] = useState({ 
-    scrapCode: "", 
+  const [form, setForm] = useState({
+    scrapCode: "",
     scrapName: ""
   });
-  
+
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
@@ -128,16 +128,16 @@ export default function ScrapCreation() {
     try {
       setLoading(true);
       const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_ITEMS);
-      
+
       // Transform API response to match our expected format
-      const transformedData = Array.isArray(data) 
+      const transformedData = Array.isArray(data)
         ? data.map(item => ({
-            id: item.id || item.scrapCode,
-            scrapCode: item.scrapCode || item.fcode || item.code,
-            scrapName: item.scrapName || item.name || item.scrapName
-          }))
+          id: item.id || item.scrapCode,
+          scrapCode: item.scrapCode || item.fcode || item.code,
+          scrapName: item.scrapName || item.name || item.scrapName
+        }))
         : [];
-      
+
       setScraps(transformedData);
       setMessage(null);
     } catch (err) {
@@ -165,14 +165,14 @@ export default function ScrapCreation() {
   const createScrap = async (scrapData) => {
     try {
       setLoading(true);
-      
+
       // Prepare payload based on your API requirements
       const payload = {
         scrapCode: scrapData.scrapCode,
         scrapName: scrapData.scrapName.toUpperCase(),
         // Add other fields if required by your API
       };
-      
+
       const data = await apiService.post(API_ENDPOINTS.SCRAP_CREATION.CREATE_SCRAP, payload);
       return data;
     } catch (err) {
@@ -187,14 +187,14 @@ export default function ScrapCreation() {
   const updateScrap = async (scrapData) => {
     try {
       setLoading(true);
-      
+
       // Prepare payload based on your API requirements
       const payload = {
         scrapCode: scrapData.scrapCode,
         scrapName: scrapData.scrapName.toUpperCase(),
         // Add other fields if required by your API
       };
-      
+
       const data = await apiService.put(API_ENDPOINTS.SCRAP_CREATION.UPDATE_SCRAP, payload);
       return data;
     } catch (err) {
@@ -228,7 +228,7 @@ export default function ScrapCreation() {
       setScreenWidth(width);
       setIsMobile(width <= 768);
     };
-    
+
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -255,7 +255,7 @@ export default function ScrapCreation() {
       const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
       await updateScrap(scrapData);
       await loadInitial();
-      
+
       setMessage({ type: "success", text: "Scrap updated successfully." });
       resetForm(true);
     } catch (err) {
@@ -274,15 +274,15 @@ export default function ScrapCreation() {
     try {
       await deleteScrap(form.scrapCode);
       await loadInitial();
-      
+
       setMessage({ type: "success", text: "Scrap deleted successfully." });
       resetForm();
     } catch (err) {
       // Special handling for referenced scraps
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        setMessage({ 
-          type: "error", 
-          text: `Cannot delete scrap "${form.scrapName}". It is referenced in other tables and cannot be removed.` 
+        setMessage({
+          type: "error",
+          text: `Cannot delete scrap "${form.scrapName}". It is referenced in other tables and cannot be removed.`
         });
       }
     }
@@ -307,7 +307,7 @@ export default function ScrapCreation() {
       const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
       await createScrap(scrapData);
       await loadInitial();
-      
+
       setMessage({ type: "success", text: "Scrap created successfully." });
       resetForm(true);
     } catch (err) {
@@ -417,8 +417,8 @@ export default function ScrapCreation() {
     const q = existingQuery.trim().toLowerCase();
     if (!q) return scraps;
     return scraps.filter(
-      (s) => 
-        (s.scrapCode || "").toLowerCase().includes(q) || 
+      (s) =>
+        (s.scrapCode || "").toLowerCase().includes(q) ||
         (s.scrapName || "").toLowerCase().includes(q)
     );
   }, [existingQuery, scraps]);
@@ -1001,12 +1001,12 @@ export default function ScrapCreation() {
                 Scrap Name <span className="asterisk">*</span>
               </label>
               <div className="row">
-                <input 
-                  ref={scrapNameRef} 
-                  className="input" 
-                  value={form.scrapName} 
-                  onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))} 
-                  placeholder="Enter scrap name" 
+                <input
+                  ref={scrapNameRef}
+                  className="input"
+                  value={form.scrapName}
+                  onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))}
+                  placeholder="Enter scrap name"
                   onKeyDown={onScrapNameKeyDown}
                   disabled={loading}
                   aria-label="Scrap Name"
@@ -1041,7 +1041,7 @@ export default function ScrapCreation() {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
               <div className="muted" style={{ marginBottom: "10px" }}>Existing Scraps</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
@@ -1062,7 +1062,7 @@ export default function ScrapCreation() {
                   </button>
                 )}
               </div>
-              
+
               <div className="scraps-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
@@ -1082,7 +1082,7 @@ export default function ScrapCreation() {
                     </thead>
                     <tbody>
                       {filteredExisting.map((s) => (
-                        <tr 
+                        <tr
                           key={s.scrapCode}
                           className={form.scrapCode === s.scrapCode ? "selected" : ""}
                           onClick={() => {
@@ -1136,7 +1136,7 @@ export default function ScrapCreation() {
                 <Icon.Info />
                 <div style={{ fontWeight: 700 }}>Quick Tips</div>
               </div>
-              
+
               <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
@@ -1162,9 +1162,9 @@ export default function ScrapCreation() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Scrap to Edit"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
+        displayFieldKeys={['scrapName', 'scrapCode']}
+        searchFields={['scrapName', 'scrapCode']}
+        headerNames={['Scrap Name', 'Code']}
         columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
         maxHeight="60vh"
       />
@@ -1175,9 +1175,9 @@ export default function ScrapCreation() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Scrap to Delete"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
+        displayFieldKeys={['scrapName', 'scrapCode']}
+        searchFields={['scrapName', 'scrapCode']}
+        headerNames={['Scrap Name', 'Code']}
         columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
         maxHeight="60vh"
       />

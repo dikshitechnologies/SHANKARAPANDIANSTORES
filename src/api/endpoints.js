@@ -101,7 +101,25 @@ user_creation: {
     GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
 
-
+// ITEM_CREATION: {
+//     POST: `ItemCreation/ItemCreationPost`,
+//     PUT: `ItemCreation/ItemCreationUpdate`,
+//     DELETE: `ItemCreation/ItemCreationDelete`,
+//     GET_DROPDOWNS: `ItemCreation/GetItemCreationdropdowslist`,
+//     GET_MAX_PREFIX: `ItemCreation/GetMaxPrefix`,
+//     GET_ALL_ITEMS: `ItemCreation/GetAllItems`,
+//     GET_TREE_DATA: `ItemCreation/GetTreeData`,
+//   }
+  
+//   // Other endpoints
+//   BRANDS: `${BASE_URL}Brand/GetAllBrands`,
+//   CATEGORIES: `${BASE_URL}Category/GetAllCategories`,
+//   PRODUCTS: `${BASE_URL}Product/GetAllProducts`,
+//   MODELS: `${BASE_URL}Model/GetAllModels`,
+//   SIZES: `${BASE_URL}Size/GetAllSizes`,
+//   UNITS: `${BASE_URL}Unit/GetAllUnits`,
+// }
+ 
 
 
 
