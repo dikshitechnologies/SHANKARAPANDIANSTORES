@@ -9,22 +9,22 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
 // Get endpoints from your configuration
-const USERS_URL =API_ENDPOINTS.ADMINISTRATION.USER_LIST;
+const USERS_URL = API_ENDPOINTS.ADMINISTRATION.USER_LIST;
 const GET_PERMS_URL = API_ENDPOINTS.ADMINISTRATION.GET_PERMISSIONS_BY_USER;
 const INSERT_BATCH_URL = API_ENDPOINTS.ADMINISTRATION.ADMIN_BATCH_INSERT;
 const DELETE_URL = API_ENDPOINTS.ADMINISTRATION.DELETE_PERMISSIONS;
 
 // Expanded item lists with more permissions
 const MASTER_ITEMS = [
-  "Ledger Group Creation", 
-  "Item Group Creation", 
-  "Ledger Creation", 
-  "Item Creation", 
-  "User Creation", 
-  "Administration", 
-  "Company", 
-  "Transport Creation", 
-  "Place Of Supply", 
+  "Ledger Group Creation",
+  "Item Group Creation",
+  "Ledger Creation",
+  "Item Creation",
+  "User Creation",
+  "Administration",
+  "Company",
+  "Transport Creation",
+  "Place Of Supply",
   "Route Creation",
   "Unit Creation",
   "Tax Creation",
@@ -36,11 +36,11 @@ const MASTER_ITEMS = [
 ];
 
 const TRANSACTION_ITEMS = [
-  "Sales Invoice", 
-  "Sales Return", 
-  "Purchase Invoice", 
-  "Purchase Return", 
-  "Outward", 
+  "Sales Invoice",
+  "Sales Return",
+  "Purchase Invoice",
+  "Purchase Return",
+  "Outward",
   "Inward",
   "Payment Voucher",
   "Receipt Voucher",
@@ -53,8 +53,8 @@ const TRANSACTION_ITEMS = [
 ];
 
 const REPORT_ITEMS = [
-  "Sales Report", 
-  "Stock Report", 
+  "Sales Report",
+  "Stock Report",
   "Purchase Report",
   "Ledger Report",
   "Trial Balance",
@@ -136,13 +136,13 @@ const Administration = () => {
       const response = await axiosInstance.get(USERS_URL);
       const data = response.data;
       console.log("Loaded users:", data);
-      
+
       const userList = Array.isArray(data) ? data.map((u, i) => ({
         id: String(u.id || i + 1),
         code: u.userCode || u.code || String(u.id || i + 1),
         name: u.userName || u.name || u.fullName || `User ${i + 1}`
       })) : [];
-      
+
       setUsers([{ id: "0", code: "0", name: "Select User" }, ...userList]);
     } catch (error) {
       console.error("Error loading users:", error);
@@ -155,11 +155,11 @@ const Administration = () => {
 
   async function fetchPermissionsForCode(code) {
     if (!code) return null;
-    
+
     try {
       // Try different parameter formats
       let response;
-      
+
       // Try with fUcode parameter
       try {
         response = await axiosInstance.get(GET_PERMS_URL, {
@@ -203,7 +203,7 @@ const Administration = () => {
       setLoading(true);
       const dataRaw = await fetchPermissionsForCode(userCode);
       if (!dataRaw) return null;
-      
+
       let data = dataRaw;
       if (!Array.isArray(data) && typeof data === "object") data = Object.values(data);
       if (!Array.isArray(data)) return null;
@@ -250,7 +250,7 @@ const Administration = () => {
     try {
       // Try different delete methods
       let response;
-      
+
       // Try DELETE with code in URL
       try {
         response = await axiosInstance.delete(`${DELETE_URL}/${code}`);
@@ -291,7 +291,7 @@ const Administration = () => {
   async function insertBatchForUser(code) {
     const o = perms[selectedUserId];
     if (!o) return { ok: false };
-    
+
     const payload = Object.values(o).map(p => ({
       userCode: code,
       modelShort: p.modelShort,
@@ -302,10 +302,10 @@ const Administration = () => {
       deletePermission: p.del ? "1" : "0",
       printPermission: p.print ? "1" : "0"
     }));
-    
+
     try {
       const response = await axiosInstance.post(INSERT_BATCH_URL, payload);
-      
+
       if (response.status === 200 || response.status === 201) {
         try {
           localStorage.setItem(LS_PERMS_PREFIX + code, JSON.stringify(o));
@@ -327,11 +327,11 @@ const Administration = () => {
   const handleUserSelect = async (user) => {
     setShowUserPopup(false);
     setUserSearchTerm("");
-    
+
     const id = user.id;
     setSelectedUserId(id);
     localStorage.setItem(LS_LAST_USER, id);
-    
+
     try {
       const cached = localStorage.getItem(LS_PERMS_PREFIX + user.code);
       if (cached) {
@@ -343,7 +343,7 @@ const Administration = () => {
         });
       }
     } catch { }
-    
+
     await fetchAndMapPermissions(user.code, id);
   };
 
@@ -365,7 +365,7 @@ const Administration = () => {
   const handleClear = () => {
     setSelectedUserId("0");
     localStorage.setItem(LS_LAST_USER, "0");
-    
+
     setPerms(p => {
       const c = JSON.parse(JSON.stringify(p || {}));
       Object.keys(c).forEach(userId => {
@@ -382,26 +382,26 @@ const Administration = () => {
     if (selectedUserId === "0") return alert("Please select a user");
     const u = users.find(x => x.id === selectedUserId);
     if (!u) return alert("User not found");
-    
+
     const code = u.code;
-    
+
     // Show confirmation
     if (!window.confirm(`Are you sure you want to update permissions for ${u.name}?`)) {
       return;
     }
-    
+
     try {
       setLoading(true);
       // First delete existing permissions
       const delResult = await deletePermissionsForCode(code);
-      
+
       if (!delResult.ok) {
         console.warn("Delete operation may have failed, but continuing with insert...");
       }
-      
+
       // Insert new permissions
       const ins = await insertBatchForUser(code);
-      
+
       if (ins.ok) {
         alert("Permissions updated successfully!");
         // Refresh permissions from server
@@ -426,22 +426,22 @@ const Administration = () => {
     try {
       const response = await axiosInstance.get(USERS_URL);
       const data = response.data;
-      
+
       let userList = Array.isArray(data) ? data.map((u, i) => ({
         id: String(u.id || i + 1),
         code: u.userCode || u.code || String(u.id || i + 1),
         name: u.userName || u.name || u.fullName || `User ${i + 1}`
       })) : [];
-      
+
       // Filter by search term if provided
       if (search && search.trim()) {
         const searchTerm = search.toLowerCase();
-        userList = userList.filter(user => 
+        userList = userList.filter(user =>
           user.name.toLowerCase().includes(searchTerm) ||
           user.code.toLowerCase().includes(searchTerm)
         );
       }
-      
+
       return userList;
     } catch (error) {
       console.error("Error fetching users for popup:", error);
@@ -453,7 +453,7 @@ const Administration = () => {
     let list = MASTER_ITEMS;
     if (activeTab === "transaction") list = TRANSACTION_ITEMS;
     if (activeTab === "report") list = REPORT_ITEMS;
-    
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       return list
@@ -463,7 +463,7 @@ const Administration = () => {
           return selectedUserPerms[c] || { formCode: c, label: l };
         });
     }
-    
+
     return list.map(l => {
       const c = l.replace(/\s+/g, "_").toUpperCase();
       return selectedUserPerms[c] || { formCode: c, label: l };
@@ -693,7 +693,7 @@ const Administration = () => {
       )}
 
       <div style={styles.contentWrapper}>
-        
+
 
         <div style={styles.mainContent} className="main-content">
           <div style={styles.leftColumn} className="left-column">
@@ -735,7 +735,7 @@ const Administration = () => {
 
                 {/* Custom Select User Button (opens popup) */}
                 <div style={styles.selectContainer}>
-                  <button 
+                  <button
                     style={styles.customSelectButton}
                     onClick={handleUserPopupOpen}
                   >
@@ -754,7 +754,7 @@ const Administration = () => {
               <div style={styles.masterHeader}>
                 {/* Left: MASTER Title */}
                 <h2 style={styles.masterTitle}>{activeTab.toUpperCase()}</h2>
-                
+
                 {/* Middle: Search Bar */}
                 <div style={styles.searchContainer}>
                   <div style={styles.searchInputWrapper}>
@@ -773,17 +773,17 @@ const Administration = () => {
                     )}
                   </div>
                 </div>
-                
+
                 {/* Right: Clear and Submit Buttons */}
                 <div style={styles.actionButtons}>
                   <button style={styles.clearButton} onClick={handleClear}>
                     Clear
                   </button>
-                  <button 
+                  <button
                     style={{
                       ...styles.submitButton,
                       ...(selectedUserId === "0" ? styles.disabledButton : {})
-                    }} 
+                    }}
                     onClick={handleSubmit}
                     disabled={selectedUserId === "0" || loading}
                   >
@@ -799,11 +799,11 @@ const Administration = () => {
                     <tr>
                       <th style={styles.tableHeaderCell}>No</th>
                       <th style={styles.tableHeaderCell}>Particulars</th>
-                      <th style={{...styles.tableHeaderCell, ...styles.centerCell}}>Permission</th>
-                      <th style={{...styles.tableHeaderCell, ...styles.centerCell}}>Add</th>
-                      <th style={{...styles.tableHeaderCell, ...styles.centerCell}}>Edit</th>
-                      <th style={{...styles.tableHeaderCell, ...styles.centerCell}}>Delete</th>
-                      <th style={{...styles.tableHeaderCell, ...styles.centerCell}}>Print</th>
+                      <th style={{ ...styles.tableHeaderCell, ...styles.centerCell }}>Permission</th>
+                      <th style={{ ...styles.tableHeaderCell, ...styles.centerCell }}>Add</th>
+                      <th style={{ ...styles.tableHeaderCell, ...styles.centerCell }}>Edit</th>
+                      <th style={{ ...styles.tableHeaderCell, ...styles.centerCell }}>Delete</th>
+                      <th style={{ ...styles.tableHeaderCell, ...styles.centerCell }}>Print</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -818,8 +818,8 @@ const Administration = () => {
                                 {it.label}
                               </span>
                             </td>
-                            
-                            <td style={{...styles.tableCell, ...styles.centerCell}}>
+
+                            <td style={{ ...styles.tableCell, ...styles.centerCell }}>
                               <label className="switch">
                                 <input
                                   type="checkbox"
@@ -829,8 +829,8 @@ const Administration = () => {
                                 <span className="slider"></span>
                               </label>
                             </td>
-                            
-                            <td style={{...styles.tableCell, ...styles.centerCell}}>
+
+                            <td style={{ ...styles.tableCell, ...styles.centerCell }}>
                               <label className="switch">
                                 <input
                                   type="checkbox"
@@ -841,8 +841,8 @@ const Administration = () => {
                                 <span className="slider"></span>
                               </label>
                             </td>
-                            
-                            <td style={{...styles.tableCell, ...styles.centerCell}}>
+
+                            <td style={{ ...styles.tableCell, ...styles.centerCell }}>
                               <label className="switch">
                                 <input
                                   type="checkbox"
@@ -853,8 +853,8 @@ const Administration = () => {
                                 <span className="slider"></span>
                               </label>
                             </td>
-                            
-                            <td style={{...styles.tableCell, ...styles.centerCell}}>
+
+                            <td style={{ ...styles.tableCell, ...styles.centerCell }}>
                               <label className="switch">
                                 <input
                                   type="checkbox"
@@ -865,8 +865,8 @@ const Administration = () => {
                                 <span className="slider"></span>
                               </label>
                             </td>
-                            
-                            <td style={{...styles.tableCell, ...styles.centerCell}}>
+
+                            <td style={{ ...styles.tableCell, ...styles.centerCell }}>
                               <label className="switch">
                                 <input
                                   type="checkbox"
@@ -882,11 +882,11 @@ const Administration = () => {
                       })
                     ) : (
                       <tr>
-                        <td colSpan="7" style={{...styles.tableCell, textAlign: 'center', padding: '40px'}}>
+                        <td colSpan="7" style={{ ...styles.tableCell, textAlign: 'center', padding: '40px' }}>
                           <div style={styles.noResults}>
-                            <i className="bi bi-search" style={{fontSize: '48px', color: '#d1d5db', marginBottom: '16px'}}></i>
-                            <p style={{color: '#6b7280', marginBottom: '8px'}}>No results found for "{searchQuery}"</p>
-                            <p style={{color: '#9ca3af', fontSize: '14px'}}>Try different search terms</p>
+                            <i className="bi bi-search" style={{ fontSize: '48px', color: '#d1d5db', marginBottom: '16px' }}></i>
+                            <p style={{ color: '#6b7280', marginBottom: '8px' }}>No results found for "{searchQuery}"</p>
+                            <p style={{ color: '#9ca3af', fontSize: '14px' }}>Try different search terms</p>
                           </div>
                         </td>
                       </tr>
@@ -901,14 +901,14 @@ const Administration = () => {
           <div style={styles.rightColumn} className="right-column">
             <div style={styles.card}>
               <h3 style={styles.summaryTitle}>Permission Summary</h3>
-              
+
               <div style={styles.userInfo}>
                 <i className="bi bi-person-circle" style={styles.userIcon}></i>
                 <div style={styles.userName}>
                   {selectedUserName}
                 </div>
               </div>
-              
+
               <div style={styles.totalsSection}>
                 <div style={styles.totalItem}>
                   <span style={styles.totalLabel}>Total</span>
@@ -919,82 +919,82 @@ const Administration = () => {
                   <span style={styles.totalValue}>{summary.granted}/{summary.total}</span>
                 </div>
               </div>
-              
+
               <hr style={styles.divider} />
-              
+
               <div style={styles.categorySection}>
                 <h4 style={styles.categoryTitle}>Master</h4>
                 <div style={styles.statsGrid}>
                   <div style={styles.statItem}>
-                    <i className="bi bi-check-circle-fill" style={{...styles.statIcon, color: '#307AC8'}}></i>
+                    <i className="bi bi-check-circle-fill" style={{ ...styles.statIcon, color: '#307AC8' }}></i>
                     <span style={styles.statValue}>{summary.master.permission}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-plus-circle-fill" style={{...styles.statIcon, color: '#28a745'}}></i>
+                    <i className="bi bi-plus-circle-fill" style={{ ...styles.statIcon, color: '#28a745' }}></i>
                     <span style={styles.statValue}>{summary.master.add}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-pencil-square" style={{...styles.statIcon, color: '#ff9800'}}></i>
+                    <i className="bi bi-pencil-square" style={{ ...styles.statIcon, color: '#ff9800' }}></i>
                     <span style={styles.statValue}>{summary.master.edit}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-trash3-fill" style={{...styles.statIcon, color: '#dc3545'}}></i>
+                    <i className="bi bi-trash3-fill" style={{ ...styles.statIcon, color: '#dc3545' }}></i>
                     <span style={styles.statValue}>{summary.master.del}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-printer-fill" style={{...styles.statIcon, color: '#6a1b9a'}}></i>
+                    <i className="bi bi-printer-fill" style={{ ...styles.statIcon, color: '#6a1b9a' }}></i>
                     <span style={styles.statValue}>{summary.master.print}</span>
                   </div>
                 </div>
               </div>
-              
+
               <div style={styles.categorySection}>
                 <h4 style={styles.categoryTitle}>Transaction</h4>
                 <div style={styles.statsGrid}>
                   <div style={styles.statItem}>
-                    <i className="bi bi-check-circle-fill" style={{...styles.statIcon, color: '#307AC8'}}></i>
+                    <i className="bi bi-check-circle-fill" style={{ ...styles.statIcon, color: '#307AC8' }}></i>
                     <span style={styles.statValue}>{summary.transaction.permission}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-plus-circle-fill" style={{...styles.statIcon, color: '#28a745'}}></i>
+                    <i className="bi bi-plus-circle-fill" style={{ ...styles.statIcon, color: '#28a745' }}></i>
                     <span style={styles.statValue}>{summary.transaction.add}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-pencil-square" style={{...styles.statIcon, color: '#ff9800'}}></i>
+                    <i className="bi bi-pencil-square" style={{ ...styles.statIcon, color: '#ff9800' }}></i>
                     <span style={styles.statValue}>{summary.transaction.edit}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-trash3-fill" style={{...styles.statIcon, color: '#dc3545'}}></i>
+                    <i className="bi bi-trash3-fill" style={{ ...styles.statIcon, color: '#dc3545' }}></i>
                     <span style={styles.statValue}>{summary.transaction.del}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-printer-fill" style={{...styles.statIcon, color: '#6a1b9a'}}></i>
+                    <i className="bi bi-printer-fill" style={{ ...styles.statIcon, color: '#6a1b9a' }}></i>
                     <span style={styles.statValue}>{summary.transaction.print}</span>
                   </div>
                 </div>
               </div>
-              
+
               <div style={styles.categorySection}>
                 <h4 style={styles.categoryTitle}>Report</h4>
                 <div style={styles.statsGrid}>
                   <div style={styles.statItem}>
-                    <i className="bi bi-check-circle-fill" style={{...styles.statIcon, color: '#307AC8'}}></i>
+                    <i className="bi bi-check-circle-fill" style={{ ...styles.statIcon, color: '#307AC8' }}></i>
                     <span style={styles.statValue}>{summary.report.permission}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-plus-circle-fill" style={{...styles.statIcon, color: '#28a745'}}></i>
+                    <i className="bi bi-plus-circle-fill" style={{ ...styles.statIcon, color: '#28a745' }}></i>
                     <span style={styles.statValue}>{summary.report.add}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-pencil-square" style={{...styles.statIcon, color: '#ff9800'}}></i>
+                    <i className="bi bi-pencil-square" style={{ ...styles.statIcon, color: '#ff9800' }}></i>
                     <span style={styles.statValue}>{summary.report.edit}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-trash3-fill" style={{...styles.statIcon, color: '#dc3545'}}></i>
+                    <i className="bi bi-trash3-fill" style={{ ...styles.statIcon, color: '#dc3545' }}></i>
                     <span style={styles.statValue}>{summary.report.del}</span>
                   </div>
                   <div style={styles.statItem}>
-                    <i className="bi bi-printer-fill" style={{...styles.statIcon, color: '#6a1b9a'}}></i>
+                    <i className="bi bi-printer-fill" style={{ ...styles.statIcon, color: '#6a1b9a' }}></i>
                     <span style={styles.statValue}>{summary.report.print}</span>
                   </div>
                 </div>
@@ -1033,7 +1033,7 @@ const styles = {
     minHeight: '100vh',
     backgroundColor: '#f5f7fa',
     padding: '20',
-     paddingTop: '90px',
+    paddingTop: '90px',
     margin: '0',
     position: 'relative',
   },
@@ -1136,7 +1136,7 @@ const styles = {
   tabsContainer: {
     display: 'flex',
     gap: '8px',
-    
+
     flex: '1',
     minWidth: '300px',
   },
@@ -1321,19 +1321,19 @@ const styles = {
   },
   table: {
     width: '100%',
-    
+
     borderCollapse: 'collapse',
     minWidth: '800px',
   },
   tableHeaderCell: {
     padding: '14px 16px',
-   
-    backgroundColor:'white',
+
+    backgroundColor: 'white',
     borderBottom: '2px solid #e5e7eb',
     textAlign: 'left',
     fontSize: '14px',
     fontWeight: '700',
-    
+
     position: 'sticky',
     top: '0',
     zIndex: '10',

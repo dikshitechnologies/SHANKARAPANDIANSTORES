@@ -48,7 +48,7 @@ const Icon = {
   ),
   Category: ({ size = 38 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <rect width="24" height="24" rx="6" fill="#e0f2fe" />
+      <rect width="24" height="24" rx="6" fill="#ffffffff" />
       <path d="M12 2l-5.5 9h11L12 2zm0 3.84L14.93 9H9.07L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 7a2.5 2.5 0 010-5 2.5 2.5 0 010 5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z" fill="#307AC8" />
     </svg>
   ),
@@ -286,7 +286,7 @@ export default function CategoryPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Category updated successfully." });
-      resetForm(true);
+      resetForm();
     } catch (err) {
       // Error message already set in updateCategory
     }
@@ -726,7 +726,7 @@ export default function CategoryPage() {
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: rgba(16,185,129,0.3);
+          border-color: #307AC8;
           transform: translateY(-1px);
         }
         
@@ -813,7 +813,7 @@ export default function CategoryPage() {
         }
 
         .categories-table tr.selected {
-          background: linear-gradient(90deg, rgba(16,185,129,0.1), rgba(16,185,129,0.05));
+          background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
 

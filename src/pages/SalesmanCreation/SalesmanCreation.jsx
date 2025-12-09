@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import apiService from '../../api/apiService';
-import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
-// --- Inline SVG icons (matching DesignCreation style) ---
+// --- Inline SVG icons ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -31,11 +29,6 @@ const Icon = {
       <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 16.88 16.88z" />
     </svg>
   ),
-  Refresh: ({ size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M17.65 6.35A8 8 0 103.95 15.5H6a6 6 0 118.9-5.31l-1.9-1.9h6v6l-2.35-2.35z" />
-    </svg>
-  ),
   Check: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
       <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
@@ -48,28 +41,24 @@ const Icon = {
   ),
 };
 
-// Update your API endpoints file with these scrap endpoints
-// Add these to your API_ENDPOINTS in endpoints.js:
-/*
-  SCRAPCREATION: {
-    GET_SCRAP_ITEMS: 'ScrapCreation/getScrapItem',
-    GET_NEXT_SCRAP_CODE: 'ScrapCreation/getNextScrapFcode',
-    CREATE_SCRAP: 'ScrapCreation/createScrap',
-    UPDATE_SCRAP: 'ScrapCreation/updateScrap',
-    DELETE_SCRAP: (code) => `ScrapCreation/deleteScrap/${code}`,
-  }
-*/
+// Sample initial salesmen data
+const initialSalesmen = [
+  { id: 1, salesmanCode: "001", salesmanName: "John Smith" },
+  { id: 2, salesmanCode: "002", salesmanName: "Jane Doe" },
+  { id: 3, salesmanCode: "003", salesmanName: "Robert Johnson" },
+  { id: 4, salesmanCode: "004", salesmanName: "Emily Davis" },
+  { id: 5, salesmanCode: "005", salesmanName: "Michael Wilson" },
+];
 
-export default function ScrapPage() {
+export default function SalesmanCreation() {
   // ---------- state ----------
-  const [scrapItems, setScrapItems] = useState([]);
+  const [salesmen, setSalesmen] = useState(initialSalesmen);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    scrapCode: "", 
-    scrapName: ""
+    salesmanCode: "", 
+    salesmanName: ""
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -86,117 +75,25 @@ export default function ScrapPage() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const scrapCodeRef = useRef(null);
-  const scrapNameRef = useRef(null);
+  const salesmanCodeRef = useRef(null);
+  const salesmanNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // ---------- API functions ----------
-  const fetchNextScrapCode = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAPCREATION.GET_NEXT_SCRAP_CODE);
-      // Since your API returns a string "003", we handle it directly
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, scrapCode: data.trim() }));
-      } else if (data && (data.nextScrapNo || data.scrapCode || data.fcode)) {
-        setForm(prev => ({ ...prev, scrapCode: data.nextScrapNo || data.scrapCode || data.fcode }));
-      } else if (data && data.nextCode) {
-        setForm(prev => ({ ...prev, scrapCode: data.nextCode }));
-      }
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next scrap code" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchScrapItems = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_ITEMS);
-      setScrapItems(data || []);
-      setMessage(null);
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load scrap items" });
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getScrapByCode = async (code) => {
-    try {
-      setLoading(true);
-      // If your API has a specific endpoint for fetching by code, use it
-      // Otherwise, filter from existing items
-      const data = await apiService.get(API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_BY_CODE?.(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch scrap item" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createScrap = async (scrapData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.SCRAPCREATION.CREATE_SCRAP, scrapData);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to create scrap item" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateScrap = async (scrapData) => {
-    try {
-      setLoading(true);
-      console.log("Sending update data:", scrapData);
-      const response = await apiService.put(API_ENDPOINTS.SCRAPCREATION.UPDATE_SCRAP, scrapData);
-      console.log("Update response:", response);
-      
-      if (typeof response === 'string' && response.includes("successfully")) {
-        return { success: true, message: response };
-      }
-      return response;
-    } catch (err) {
-      console.error("Update error details:", err.response || err);
-      setMessage({ type: "error", text: err.message || "Failed to update scrap item" });
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteScrap = async (scrapCode) => {
-    try {
-      setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.SCRAPCREATION.DELETE_SCRAP(scrapCode));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete scrap item" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+  // Generate next salesman code
+  const generateNextSalesmanCode = () => {
+    if (salesmen.length === 0) return "001";
+    
+    // Get highest numeric code and increment
+    const maxCode = Math.max(...salesmen.map(s => parseInt(s.salesmanCode) || 0));
+    const nextCode = (maxCode + 1).toString().padStart(3, '0');
+    return nextCode;
   };
 
   // ---------- effects ----------
   useEffect(() => {
-    loadInitial();
     const handleResize = () => {
       const width = window.innerWidth;
       setScreenWidth(width);
@@ -209,82 +106,88 @@ export default function ScrapPage() {
   }, []);
 
   useEffect(() => {
-    if (scrapCodeRef.current) scrapCodeRef.current.focus();
+    if (salesmanCodeRef.current) salesmanCodeRef.current.focus();
+    // Set initial salesman code
+    const nextCode = generateNextSalesmanCode();
+    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
   }, []);
 
   // ---------- handlers ----------
-  const loadInitial = async () => {
-    await Promise.all([fetchScrapItems(), fetchNextScrapCode()]);
+  const loadInitial = () => {
+    const nextCode = generateNextSalesmanCode();
+    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
   };
 
   const handleEdit = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    if (!form.salesmanCode || !form.salesmanName) {
+      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update scrap item "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to update salesman "${form.salesmanName}"?`)) return;
 
     try {
-      const scrapData = { 
-        scrapCode: form.scrapCode, 
-        scrapName: form.scrapName
-      };
-      await updateScrap(scrapData);
-      await loadInitial();
+      setSalesmen(prev => 
+        prev.map(salesman => 
+          salesman.salesmanCode === form.salesmanCode 
+            ? { ...salesman, salesmanName: form.salesmanName }
+            : salesman
+        )
+      );
       
-      setMessage({ type: "success", text: "Scrap item updated successfully." });
-      resetForm();
+      setMessage({ type: "success", text: "Salesman updated successfully." });
+      resetForm(true);
     } catch (err) {
-      // Error message already set in updateScrap
+      setMessage({ type: "error", text: "Failed to update salesman." });
     }
   };
 
   const handleDelete = async () => {
-    if (!form.scrapCode) {
-      setMessage({ type: "error", text: "Please select a scrap item to delete." });
+    if (!form.salesmanCode) {
+      setMessage({ type: "error", text: "Please select a salesman to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete scrap item "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to delete salesman "${form.salesmanName}"?`)) return;
 
     try {
-      await deleteScrap(form.scrapCode);
-      await loadInitial();
+      setSalesmen(prev => prev.filter(salesman => salesman.salesmanCode !== form.salesmanCode));
       
-      setMessage({ type: "success", text: "Scrap item deleted successfully." });
+      setMessage({ type: "success", text: "Salesman deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced scrap items
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        setMessage({ 
-          type: "error", 
-          text: `Cannot delete scrap item "${form.scrapName}". It is referenced in other tables and cannot be removed.` 
-        });
-      }
+      setMessage({ type: "error", text: "Failed to delete salesman." });
     }
   };
 
   const handleAdd = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    if (!form.salesmanCode || !form.salesmanName) {
+      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to create scrap item "${form.scrapName}"?`)) return;
+    // Check if salesman code already exists
+    const exists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
+    if (exists) {
+      setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to create salesman "${form.salesmanName}"?`)) return;
 
     try {
-      const scrapData = { 
-        scrapCode: form.scrapCode, 
-        scrapName: form.scrapName
+      const newSalesman = {
+        id: salesmen.length + 1,
+        salesmanCode: form.salesmanCode,
+        salesmanName: form.salesmanName
       };
-      await createScrap(scrapData);
-      await loadInitial();
       
-      setMessage({ type: "success", text: "Scrap item created successfully." });
+      setSalesmen(prev => [...prev, newSalesman]);
+      
+      setMessage({ type: "success", text: "Salesman created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createScrap
+      setMessage({ type: "error", text: "Failed to create salesman." });
     }
   };
 
@@ -295,8 +198,8 @@ export default function ScrapPage() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextScrapCode();
-    setForm(prev => ({ ...prev, scrapName: "" }));
+    const nextCode = generateNextSalesmanCode();
+    setForm({ salesmanCode: nextCode, salesmanName: "" });
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -304,7 +207,7 @@ export default function ScrapPage() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -313,11 +216,11 @@ export default function ScrapPage() {
   };
 
   const handleEditRowClick = (s) => {
-    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+    setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
     setActionType("edit");
-    setEditingId(s.scrapCode);
+    setEditingId(s.salesmanCode);
     setEditModalOpen(false);
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -330,84 +233,77 @@ export default function ScrapPage() {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? scrapItems.filter(s => 
-          (s.scrapCode || '').toLowerCase().includes(q) || 
-          (s.scrapName || '').toLowerCase().includes(q)
+      ? salesmen.filter(s => 
+          (s.salesmanCode || '').toLowerCase().includes(q) || 
+          (s.salesmanName || '').toLowerCase().includes(q)
         )
-      : scrapItems;
+      : salesmen;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [scrapItems]);
+  }, [salesmen]);
 
   const handleDeleteRowClick = (s) => {
-    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+    setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
     setActionType("delete");
-    setDeleteTargetId(s.scrapCode);
+    setDeleteTargetId(s.salesmanCode);
     setDeleteModalOpen(false);
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
-  const onScrapCodeKeyDown = (e) => {
+  const onSalesmanCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      scrapNameRef.current?.focus();
+      salesmanNameRef.current?.focus();
     }
   };
 
-  const onScrapNameKeyDown = (e) => {
+  const onSalesmanNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
     }
   };
 
-  const stopEnterPropagation = (e) => {
-    if (e.key === "Enter") {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  };
-
   // ---------- filters ----------
-  const filteredEditScrapItems = useMemo(() => {
+  const filteredEditSalesmen = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return scrapItems;
-    return scrapItems.filter(
+    if (!q) return salesmen;
+    return salesmen.filter(
       (s) =>
-        (s.scrapCode || "").toLowerCase().includes(q) ||
-        (s.scrapName || "").toLowerCase().includes(q)
+        (s.salesmanCode || "").toLowerCase().includes(q) ||
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, scrapItems]);
+  }, [editQuery, salesmen]);
 
-  const filteredDeleteScrapItems = useMemo(() => {
+  const filteredDeleteSalesmen = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return scrapItems;
-    return scrapItems.filter(
+    if (!q) return salesmen;
+    return salesmen.filter(
       (s) =>
-        (s.scrapCode || "").toLowerCase().includes(q) ||
-        (s.scrapName || "").toLowerCase().includes(q)
+        (s.salesmanCode || "").toLowerCase().includes(q) ||
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, scrapItems]);
+  }, [deleteQuery, salesmen]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return scrapItems;
-    return scrapItems.filter(
+    if (!q) return salesmen;
+    return salesmen.filter(
       (s) => 
-        (s.scrapCode || "").toLowerCase().includes(q) || 
-        (s.scrapName || "").toLowerCase().includes(q)
+        (s.salesmanCode || "").toLowerCase().includes(q) || 
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, scrapItems]);
+  }, [existingQuery, salesmen]);
 
   // ---------- render ----------
   return (
-    <div className="scrap-root" role="region" aria-labelledby="scrap-creation-title">
+    <div className="uc-root" role="region" aria-labelledby="salesman-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
-         :root{
-          /* blue theme (matching ItemGroupCreation) */
+        :root{
+          /* blue theme */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
@@ -424,7 +320,7 @@ export default function ScrapPage() {
         }
 
         /* Page layout */
-        .scrap-root {
+        .uc-root {
           min-height: 100vh;
           display: flex;
           align-items: center;
@@ -432,7 +328,7 @@ export default function ScrapPage() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 18px;
+          font-size: 14px;
           box-sizing: border-box;
         }
 
@@ -442,7 +338,7 @@ export default function ScrapPage() {
           max-width: 1100px;
           border-radius: 16px;
           padding: 20px;
-          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,253,250,0.65));
+          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
@@ -468,13 +364,13 @@ export default function ScrapPage() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px;
+          font-size: 18px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
         .subtitle {
           color: var(--muted);
-          font-size: 16px;
+          font-size: 14px;
         }
 
         /* action pills */
@@ -495,7 +391,7 @@ export default function ScrapPage() {
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
-          font-size: 18px;
+          font-size: 14px;
           transition: all 0.2s;
           white-space: nowrap;
         }
@@ -534,7 +430,7 @@ export default function ScrapPage() {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:18px;
+          font-size:14px;
           text-align: left;
           width: 100%;
         }
@@ -559,18 +455,17 @@ export default function ScrapPage() {
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
-          font-size:18px;
+          font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
-          font-family: inherit;
         }
         .input:focus, .search:focus { 
           outline:none; 
-          box-shadow: 0 8px 26px rgba(16,185,129,0.08); 
+          box-shadow: 0 8px 26px rgba(48,122,200,0.08); 
           transform: translateY(-1px); 
-          border-color: var(--accent); 
+          border-color: rgba(48,122,200,0.25); 
         }
         .input:read-only {
           background: #f8fafc;
@@ -612,7 +507,7 @@ export default function ScrapPage() {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:15px; }
+        .muted { color: var(--muted); font-size:13px; }
 
         /* message */
         .message {
@@ -620,7 +515,7 @@ export default function ScrapPage() {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 16px;
+          font-size: 14px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -645,11 +540,11 @@ export default function ScrapPage() {
           cursor:pointer;
           min-width: 120px;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(16,185,129,0.25);
+          box-shadow: 0 8px 24px rgba(48,122,200,0.25);
         }
         .submit-primary:disabled {
           opacity: 0.7;
@@ -663,11 +558,11 @@ export default function ScrapPage() {
           border-radius:10px;
           cursor:pointer;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: #307AC8;
+          border-color: rgba(48,122,200,0.3);
           transform: translateY(-1px);
         }
         
@@ -682,7 +577,7 @@ export default function ScrapPage() {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 16px;
+          font-size: 12px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -690,7 +585,7 @@ export default function ScrapPage() {
         .search-with-clear:focus {
           outline: none;
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+          box-shadow: 0 0 0 3px rgba(48, 122, 200, 0.1);
         }
 
         .clear-search-btn {
@@ -714,8 +609,8 @@ export default function ScrapPage() {
           color: #374151;
         }
 
-        /* scrap items table */
-        .scrap-table-container {
+        /* salesmen table */
+        .salesmen-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -723,13 +618,13 @@ export default function ScrapPage() {
           margin-top: 12px;
         }
 
-        .scrap-table {
+        .salesmen-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 18px;
+          font-size: 14px;
         }
 
-        .scrap-table th {
+        .salesmen-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -738,23 +633,23 @@ export default function ScrapPage() {
           font-weight: 700;
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
-          font-size: 18px;
+          font-size: 14px;
           z-index: 1;
         }
 
-        .scrap-table td {
+        .salesmen-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .scrap-table tr:hover {
-          background: linear-gradient(90deg, rgba(16,185,129,0.04), rgba(16,185,129,0.01));
+        .salesmen-table tr:hover {
+          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
           cursor: pointer;
         }
 
-        .scrap-table tr.selected {
-          background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
+        .salesmen-table tr.selected {
+          background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
@@ -801,13 +696,13 @@ export default function ScrapPage() {
           transition: all 0.2s;
         }
         .dropdown-item:hover { 
-          background: linear-gradient(90deg, rgba(16,185,129,0.04), rgba(16,185,129,0.01)); 
+          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
           transform: translateX(6px); 
         }
 
         /* tips panel */
         .tips-panel {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,253,250,0.8));
+          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
           border-left: 3px solid var(--accent);
         }
 
@@ -826,7 +721,7 @@ export default function ScrapPage() {
         }
 
         @media (max-width: 768px) {
-          .scrap-root {
+          .uc-root {
             padding: 16px 12px;
           }
           .dashboard {
@@ -846,13 +741,13 @@ export default function ScrapPage() {
             justify-content: center;
             min-width: 0;
           }
-          .scrap-table-container {
+          .salesmen-table-container {
             max-height: 300px;
           }
         }
 
         @media (max-width: 480px) {
-          .scrap-root {
+          .uc-root {
             padding: 12px 8px;
           }
           .dashboard {
@@ -860,27 +755,27 @@ export default function ScrapPage() {
             border-radius: 12px;
           }
           .title-block h2 {
-            font-size: 18px;
+            font-size: 14px;
           }
           .action-pill {
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 10px;
           }
           .input, .search {
             padding: 8px 10px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .btn {
             padding: 8px 10px;
             min-width: 70px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
             min-width: 0;
           }
-          .scrap-table th,
-          .scrap-table td {
+          .salesmen-table th,
+          .salesmen-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -893,7 +788,7 @@ export default function ScrapPage() {
         }
 
         @media (max-width: 360px) {
-          .scrap-root {
+          .uc-root {
             padding: 8px 6px;
           }
           .dashboard {
@@ -929,16 +824,17 @@ export default function ScrapPage() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="scrap-creation-title">
+      <div className="dashboard" aria-labelledby="salesman-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#ffffffff" />
-              <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 8h8v2H8V8zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" fill="#307AC8" />
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M18 16v-2a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v2" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
+              <circle cx="12" cy="7" r="4" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
             </svg>
             <div>
-              <h2 id="scrap-creation-title">Scrap Management</h2>
-              <div className="subtitle muted">Create, edit, or delete scrap items.</div>
+              <h2 id="salesman-creation-title">Salesman Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete salesmen.</div>
             </div>
           </div>
 
@@ -951,40 +847,40 @@ export default function ScrapPage() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Scrap Code field */}
+            {/* Salesman Code field */}
             <div className="field">
               <label className="field-label">
-                Scrap Code <span className="asterisk">*</span>
+                Salesman Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={scrapCodeRef}
+                  ref={salesmanCodeRef}
                   className="input"
-                  value={form.scrapCode}
-                  onChange={(e) => setForm(s => ({ ...s, scrapCode: e.target.value }))}
-                  onKeyDown={onScrapCodeKeyDown}
+                  value={form.salesmanCode}
+                  onChange={(e) => setForm(s => ({ ...s, salesmanCode: e.target.value }))}
+                  placeholder="Salesman code (auto-generated)"
+                  onKeyDown={onSalesmanCodeKeyDown}
                   disabled={loading}
-                  aria-label="Scrap Code"
+                  aria-label="Salesman Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
               </div>
             </div>
 
-            {/* Scrap Name field */}
+            {/* Salesman Name field */}
             <div className="field">
               <label className="field-label">
-                Scrap Name <span className="asterisk">*</span>
+                Salesman Name <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
-                  ref={scrapNameRef} 
+                  ref={salesmanNameRef} 
                   className="input" 
-                  value={form.scrapName} 
-                  onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))} 
-                  placeholder="Enter scrap name" 
-                  onKeyDown={onScrapNameKeyDown}
+                  value={form.salesmanName} 
+                  onChange={(e) => setForm(s => ({ ...s, salesmanName: e.target.value }))} 
+                  onKeyDown={onSalesmanNameKeyDown}
                   disabled={loading}
-                  aria-label="Scrap Name"
+                  aria-label="Salesman Name"
                   readOnly={actionType === "delete"}
                 />
               </div>
@@ -1016,16 +912,15 @@ export default function ScrapPage() {
                 Clear
               </button>
             </div>
-            
-            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Scrap Items</div>
+               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Salesmen</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search scrap items..."
+                  placeholder="Search existing salesmen..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search scrap items"
+                  aria-label="Search existing salesmen"
                 />
                 {existingQuery && (
                   <button
@@ -1034,43 +929,40 @@ export default function ScrapPage() {
                     type="button"
                     aria-label="Clear search"
                   >
-                    <Icon.Close size={16} />
+                    <Icon.Close size={14} />
                   </button>
                 )}
               </div>
               
-              <div className="scrap-table-container">
+              <div className="salesmen-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading scrap items...
+                    Loading salesmen...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {scrapItems.length === 0 ? "No scrap items found" : "No matching scrap items"}
+                    {salesmen.length === 0 ? "No salesmen found" : "No matching salesmen"}
                   </div>
                 ) : (
-                  <table className="scrap-table">
+                  <table className="salesmen-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Scrap Name</th>
+                        <th>Salesman Name</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredExisting.map((s) => (
                         <tr 
-                          key={s.scrapCode}
-                          className={form.scrapCode === s.scrapCode ? "selected" : ""}
+                          key={s.salesmanCode}
+                          className={form.salesmanCode === s.salesmanCode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ 
-                              scrapCode: s.scrapCode, 
-                              scrapName: s.scrapName
-                            });
+                            setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
                             setActionType("edit");
                           }}
                         >
-                          <td>{s.scrapCode}</td>
-                          <td>{s.scrapName}</td>
+                          <td>{s.salesmanCode}</td>
+                          <td>{s.salesmanName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1084,29 +976,29 @@ export default function ScrapPage() {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Scrap" : "Delete Scrap"}
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Salesman" : "Delete Salesman"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Scrap Code</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.scrapCode || "Auto-generated"}
+              <div className="muted">Salesman Code</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.salesmanCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Scrap Name</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.scrapName || "Not set"}
+              <div className="muted">Salesman Name</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.salesmanName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing Scrap Items</div>
-              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
-                {scrapItems.length}
+              <div className="muted">Existing Salesmen</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
+                {salesmen.length}
               </div>
             </div>
 
@@ -1116,22 +1008,18 @@ export default function ScrapPage() {
                 <div style={{ fontWeight: 700 }}>Quick Tips</div>
               </div>
               
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
+              <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Scrap code is auto-generated for new items</span>
+                  <span>Salesman code is auto-generated for new salesmen</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find items</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Use Tab/Enter to navigate between fields</span>
+                  <span>For edit/delete, use search modals to find salesmen</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Click on any item in the table to edit it</span>
+                  <span>Salesmen manage customer relationships and sales</span>
                 </div>
               </div>
             </div>
@@ -1144,11 +1032,11 @@ export default function ScrapPage() {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap Item to Edit"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        title="Select Salesman to Edit"
+        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
+        searchFields={[ 'salesmanName', 'salesmanCode' ]}
+        headerNames={[ 'Salesman Name', 'Code' ]}
+        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1157,11 +1045,11 @@ export default function ScrapPage() {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap Item to Delete"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        title="Select Salesman to Delete"
+        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
+        searchFields={[ 'salesmanName', 'salesmanCode' ]}
+        headerNames={[ 'Salesman Name', 'Code' ]}
+        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

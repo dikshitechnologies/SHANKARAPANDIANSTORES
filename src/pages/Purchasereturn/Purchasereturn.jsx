@@ -5,7 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const PurchaseReturn = () => {
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('all');
-  
+
   // 1. Header Details State
   const [returnDetails, setReturnDetails] = useState({
     returnNo: '',
@@ -29,17 +29,17 @@ const PurchaseReturn = () => {
 
   // 2. Table Items State
   const [items, setItems] = useState([
-    { 
-      id: 1, 
-      barcode: '', 
-      name: '', 
-      sub: '', 
-      stock: '0', 
-      mrp: '0', 
-      uom: '', 
-      hsn: '', 
-      tax: '', 
-      rate: 0, 
+    {
+      id: 1,
+      barcode: '',
+      name: '',
+      sub: '',
+      stock: '0',
+      mrp: '0',
+      uom: '',
+      hsn: '',
+      tax: '',
+      rate: 0,
       qty: '1',
       ovrwt: '',
       avgwt: '',
@@ -97,7 +97,7 @@ const PurchaseReturn = () => {
       const isMobile = width < 640;
       const isTablet = width >= 640 && width < 1024;
       const isDesktop = width >= 1024;
-      
+
       setScreenSize({
         width,
         height,
@@ -137,7 +137,7 @@ const PurchaseReturn = () => {
 
   const handleAddItem = () => {
     if (!returnDetails.barcodeInput) return alert("Please enter barcode");
-    
+
     const newItem = {
       id: items.length + 1,
       barcode: returnDetails.barcodeInput,
@@ -152,7 +152,7 @@ const PurchaseReturn = () => {
       qty: 1,
       returnReason: 'Damaged'
     };
-    
+
     setItems([...items, newItem]);
     setReturnDetails(prev => ({ ...prev, barcodeInput: '' }));
     if (barcodeRef.current) barcodeRef.current.focus();
@@ -194,7 +194,7 @@ const PurchaseReturn = () => {
   };
 
   const handleItemChange = (id, field, value) => {
-    setItems(items.map(item => 
+    setItems(items.map(item =>
       item.id === id ? { ...item, [field]: value } : item
     ));
   };
@@ -239,7 +239,7 @@ const PurchaseReturn = () => {
 
   const handleDelete = () => {
     // Removes the last item for demo purposes
-    if(items.length > 0) {
+    if (items.length > 0) {
       setItems(items.slice(0, -1));
     }
   };
@@ -255,17 +255,17 @@ const PurchaseReturn = () => {
   const handleClear = () => {
     // Keep a single empty row after clearing
     setItems([
-      { 
-        id: 1, 
-        barcode: '', 
-        name: '', 
-        sub: '', 
-        stock: 0, 
-        mrp: 0, 
-        uom: '', 
-        hsn: '', 
-        tax: 0, 
-        rate: 0, 
+      {
+        id: 1,
+        barcode: '',
+        name: '',
+        sub: '',
+        stock: 0,
+        mrp: 0,
+        uom: '',
+        hsn: '',
+        tax: 0,
+        rate: 0,
         qty: 0,
         ovrwt: '',
         avgwt: '',
@@ -315,11 +315,11 @@ const PurchaseReturn = () => {
 
       console.log('Return Data:', returnData);
       alert('Purchase Return saved successfully!');
-      
+
       // In a real application, you would send this data to your API
       // Example:
       // await axios.post('/api/purchase-returns', returnData);
-      
+
     } catch (error) {
       console.error('Error saving purchase return:', error);
       alert('Failed to save purchase return');
@@ -391,7 +391,7 @@ const PurchaseReturn = () => {
         </body>
       </html>
     `;
-    
+
     const printWindow = window.open('', '_blank');
     printWindow.document.write(printContent);
     printWindow.document.close();
@@ -681,7 +681,7 @@ const PurchaseReturn = () => {
           {/* Return No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Inv No:</label>
-            <input 
+            <input
               type="text"
               style={styles.inlineInput}
               value={returnDetails.returnNo}
@@ -700,7 +700,7 @@ const PurchaseReturn = () => {
             <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
-              style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
+              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
               value={returnDetails.returnDate}
               name="returnDate"
               onChange={handleInputChange}
@@ -750,7 +750,7 @@ const PurchaseReturn = () => {
             <input
               type="date"
               name="originalInvoiceDate"
-              style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
+              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
               value={returnDetails.originalInvoiceDate}
               onChange={handleInputChange}
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
@@ -919,7 +919,7 @@ const PurchaseReturn = () => {
             gap: '8px',
             height: '40px',
           }}>
-            <label style={{...styles.inlineLabel, marginBottom: 0}}>Is Ledger?</label>
+            <label style={{ ...styles.inlineLabel, marginBottom: 0 }}>Is Ledger?</label>
             <input
               type="checkbox"
               checked={returnDetails.isLedger}
@@ -1282,8 +1282,8 @@ const PurchaseReturn = () => {
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
-          <ActionButtons 
-            activeButton={activeTopAction} 
+          <ActionButtons
+            activeButton={activeTopAction}
             onButtonClick={(type) => {
               setActiveTopAction(type);
               if (type === 'add') handleAddRow();
