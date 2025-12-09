@@ -452,7 +452,7 @@ const ItemCreation = ({ onCreated }) => {
     try {
       // Mock API call - using static data
       await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
-      
+
       setTreeData(MOCK_TREE_DATA);
       setExpandedKeys(new Set(MOCK_TREE_DATA.map(item => item.key)));
     } catch (error) {
@@ -598,7 +598,7 @@ const ItemCreation = ({ onCreated }) => {
       if (actionType === 'create') {
         try {
           await new Promise(resolve => setTimeout(resolve, 200)); // Simulate network delay
-          const isDuplicate = MOCK_ITEMS_DATA.some(item => 
+          const isDuplicate = MOCK_ITEMS_DATA.some(item =>
             item.fItemName?.toLowerCase() === formData.itemName.toLowerCase()
           );
           if (isDuplicate) {
@@ -627,7 +627,7 @@ const ItemCreation = ({ onCreated }) => {
         max: formData.max || '',
         min: formData.min || '',
         prefix: formData.prefix || '',
-        gstNumber: formData.gstin || '', 
+        gstNumber: formData.gstin || '',
         gst: formData.gst || 'N',
         manualprefix: formData.manualprefix || 'N',
         fHSN: formData.hsnCode || '',
@@ -671,7 +671,7 @@ const ItemCreation = ({ onCreated }) => {
       // Simulate success response
       handleClear();
       await fetchTreeData();
-      
+
     } catch (error) {
       console.error('Submit error:', error);
       if (error.response) {
@@ -698,18 +698,18 @@ const ItemCreation = ({ onCreated }) => {
     try {
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       let items = [...MOCK_ITEMS_DATA];
-      
+
       // Filter by search text if provided
       if (search.trim()) {
         const searchLower = search.toLowerCase();
-        items = items.filter(item => 
+        items = items.filter(item =>
           item.fItemName?.toLowerCase().includes(searchLower) ||
           item.fParent?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       return items.map((it) => ({
         ...it,
         // normalized fields for consumers
@@ -740,16 +740,16 @@ const ItemCreation = ({ onCreated }) => {
   const fetchBrands = useCallback(async (page = 1, search = '') => {
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       let items = [...MOCK_BRANDS_DATA];
-      
+
       if (search.trim()) {
         const searchLower = search.toLowerCase();
-        items = items.filter(item => 
+        items = items.filter(item =>
           item.fname?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       return items.map((item) => ({
         ...item,
         fname: item.fname || '',
@@ -764,16 +764,16 @@ const ItemCreation = ({ onCreated }) => {
   const fetchCategories = useCallback(async (page = 1, search = '') => {
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       let items = [...MOCK_CATEGORIES_DATA];
-      
+
       if (search.trim()) {
         const searchLower = search.toLowerCase();
-        items = items.filter(item => 
+        items = items.filter(item =>
           item.fname?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       return items.map((item) => ({
         ...item,
         fname: item.fname || '',
@@ -788,16 +788,16 @@ const ItemCreation = ({ onCreated }) => {
   const fetchProducts = useCallback(async (page = 1, search = '') => {
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       let items = [...MOCK_PRODUCTS_DATA];
-      
+
       if (search.trim()) {
         const searchLower = search.toLowerCase();
-        items = items.filter(item => 
+        items = items.filter(item =>
           item.fname?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       return items.map((item) => ({
         ...item,
         fname: item.fname || '',
@@ -812,16 +812,16 @@ const ItemCreation = ({ onCreated }) => {
   const fetchModels = useCallback(async (page = 1, search = '') => {
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       let items = [...MOCK_MODELS_DATA];
-      
+
       if (search.trim()) {
         const searchLower = search.toLowerCase();
-        items = items.filter(item => 
+        items = items.filter(item =>
           item.fname?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       return items.map((item) => ({
         ...item,
         fname: item.fname || '',
@@ -836,16 +836,16 @@ const ItemCreation = ({ onCreated }) => {
   const fetchSizes = useCallback(async (page = 1, search = '') => {
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       let items = [...MOCK_SIZES_DATA];
-      
+
       if (search.trim()) {
         const searchLower = search.toLowerCase();
-        items = items.filter(item => 
+        items = items.filter(item =>
           item.fname?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       return items.map((item) => ({
         ...item,
         fname: item.fname || '',
@@ -860,17 +860,17 @@ const ItemCreation = ({ onCreated }) => {
   const fetchUnits = useCallback(async (page = 1, search = '') => {
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       let items = [...MOCK_UNITS_DATA];
-      
+
       if (search.trim()) {
         const searchLower = search.toLowerCase();
-        items = items.filter(item => 
+        items = items.filter(item =>
           item.fname?.toLowerCase().includes(searchLower) ||
           item.fcode?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       return items.map((item) => ({
         ...item,
         fname: item.fname || '',
@@ -923,7 +923,7 @@ const ItemCreation = ({ onCreated }) => {
       resetForm(true);
     }
     setIsTreeOpen(true);
-    
+
     if (type === 'edit' || type === 'delete') {
       // No need to fetch data here - PopupListSelector will handle it
     }
@@ -1753,20 +1753,20 @@ const ItemCreation = ({ onCreated }) => {
                     <div className="tree-scroll" role="tree" aria-label="Group list">
                       {loading ? (
                         <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-                        ) : filteredTree.length === 0 ? (
-                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-                        ) : (
-                          filteredTree.map((node) => (
-                            <TreeNode
-                              key={node.key}
-                              node={node}
-                              onSelect={handleSelectNode}
-                              expandedKeys={expandedKeys}
-                              toggleExpand={toggleExpand}
-                              selectedKey={selectedNode?.key}
-                            />
-                          ))
-                        )}
+                      ) : filteredTree.length === 0 ? (
+                        <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+                      ) : (
+                        filteredTree.map((node) => (
+                          <TreeNode
+                            key={node.key}
+                            node={node}
+                            onSelect={handleSelectNode}
+                            expandedKeys={expandedKeys}
+                            toggleExpand={toggleExpand}
+                            selectedKey={selectedNode?.key}
+                          />
+                        ))
+                      )}
                     </div>
                   </div>
                 )
@@ -2023,7 +2023,7 @@ const ItemCreation = ({ onCreated }) => {
               {/* Piece Rate Checkbox */}
               <div className="field">
                 <div className="checkbox-group">
-                  <div 
+                  <div
                     className={`checkbox ${pieceRateChecked ? 'checked' : ''}`}
                     onClick={handlePieceRateToggle}
                   />
@@ -2061,7 +2061,7 @@ const ItemCreation = ({ onCreated }) => {
               {/* GST Checkbox */}
               <div className="field">
                 <div className="checkbox-group">
-                  <div 
+                  <div
                     className={`checkbox ${gstChecked ? 'checked' : ''}`}
                     onClick={handleGstToggle}
                   />
@@ -2090,7 +2090,7 @@ const ItemCreation = ({ onCreated }) => {
               {/* Manual Prefix Checkbox */}
               <div className="field">
                 <div className="checkbox-group">
-                  <div 
+                  <div
                     className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
                     onClick={handleManualPrefixToggle}
                   />
@@ -2181,19 +2181,19 @@ const ItemCreation = ({ onCreated }) => {
                     return;
                   }
 
-                  const confirmationMessage = 
+                  const confirmationMessage =
                     actionType === 'create' ? 'Do You Want Save?' :
-                    actionType === 'edit' ? 'Do You Want Modify?' :
-                    'Do You Want Delete?';
+                      actionType === 'edit' ? 'Do You Want Modify?' :
+                        'Do You Want Delete?';
 
                   showConfirmation(confirmationMessage, handleSubmit);
                 }}
                 disabled={isSubmitting}
                 type="button"
               >
-                {isSubmitting ? "Processing..." : 
-                 actionType === 'create' ? 'Save' : 
-                 actionType === 'edit' ? 'Update' : 'Delete'}
+                {isSubmitting ? "Processing..." :
+                  actionType === 'create' ? 'Save' :
+                    actionType === 'edit' ? 'Update' : 'Delete'}
               </button>
               <button
                 className="submit-clear"
@@ -2211,8 +2211,8 @@ const ItemCreation = ({ onCreated }) => {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>
-                {actionType === 'create' ? 'Create New Item' : 
-                 actionType === 'edit' ? 'Edit Item' : 'Delete Item'}
+                {actionType === 'create' ? 'Create New Item' :
+                  actionType === 'edit' ? 'Edit Item' : 'Delete Item'}
               </div>
             </div>
 
@@ -2345,11 +2345,11 @@ const ItemCreation = ({ onCreated }) => {
             <div className="stat tips-panel">
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--accent)"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--accent)" />
                 </svg>
                 <div style={{ fontWeight: 700 }}>Quick Tips</div>
               </div>
-              
+
               <div className="muted" style={{ fontSize: "13px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
