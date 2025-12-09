@@ -54,10 +54,17 @@ export default function StateCreation() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    pageSize: 10,
+    totalPages: 1,
+    totalRecords: 0
+  });
 
   const [form, setForm] = useState({ 
     fuCode: "", 
-    stateName: ""
+    stateName: "",
+    originalStateName: "" // Track original name when editing
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -81,50 +88,112 @@ export default function StateCreation() {
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Debug: Check apiService methods
+  useEffect(() => {
+    console.log("apiService methods:", Object.keys(apiService));
+    console.log("apiService.delete exists:", typeof apiService.delete);
+    console.log("apiService.del exists:", typeof apiService.del);
+    console.log("apiService.remove exists:", typeof apiService.remove);
+  }, []);
+
   // ---------- API functions ----------
   const fetchNextStateCode = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
+      const response = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
+      
+      console.log("Next State Code Response:", response);
+      
+      // Handle different response formats
+      if (typeof response === 'string' && response.trim()) {
+        setForm(prev => ({ ...prev, fuCode: response.trim() }));
+      } else if (response && typeof response === 'object') {
+        // Check for various possible field names in the response
+        if (response.fuCode) {
+          setForm(prev => ({ ...prev, fuCode: response.fuCode }));
+        } else if (response.fcode) {
+          setForm(prev => ({ ...prev, fuCode: response.fcode }));
+        } else if (response.nextStateCode) {
+          setForm(prev => ({ ...prev, fuCode: response.nextStateCode }));
+        } else if (response.nextCode) {
+          setForm(prev => ({ ...prev, fuCode: response.nextCode }));
+        } else if (response.code) {
+          setForm(prev => ({ ...prev, fuCode: response.code }));
+        } else if (response.data) {
+          // If response has data property
+          if (typeof response.data === 'string') {
+            setForm(prev => ({ ...prev, fuCode: response.data }));
+          } else if (response.data.fuCode || response.data.fcode || response.data.nextStateCode) {
+            setForm(prev => ({ 
+              ...prev, 
+              fuCode: response.data.fuCode || response.data.fcode || response.data.nextStateCode 
+            }));
+          }
+        }
       }
-      return data;
+      return response;
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load next state code" });
-      console.error("API Error:", err);
+      console.error("API Error in fetchNextStateCode:", err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchStates = async () => {
+  const fetchStates = async (page = 1, pageSize = 10) => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS);
-      setStates(data || []);
+      const response = await apiService.get(
+        API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS(page, pageSize)
+      );
+      
+      console.log("Fetch States Response:", response);
+      
+      let statesData = [];
+      let totalRecords = 0;
+      
+      // Handle different API response formats
+      if (response && Array.isArray(response)) {
+        // If API returns direct array
+        statesData = response || [];
+        totalRecords = response.length;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // If API returns {data: [...]}
+        statesData = response.data || [];
+        totalRecords = response.data.length;
+      } else if (response && response.items && Array.isArray(response.items)) {
+        // If API returns paginated response
+        statesData = response.items || [];
+        totalRecords = response.totalRecords || response.items.length;
+      } else if (response && response.states && Array.isArray(response.states)) {
+        // If API returns {states: [...]}
+        statesData = response.states || [];
+        totalRecords = response.states.length;
+      }
+      
+      // Map server fields (fcode, fname) to UI fields (fuCode, stateName)
+      const mappedStates = statesData.map(state => ({
+        ...state,
+        fuCode: state.fcode || state.uCode || state.FCode || state.fuCode || state.code || '',
+        stateName: state.fname || state.stateName || state.StateName || state.name || '',
+        originalStateName: state.fname || state.stateName || state.StateName || state.name || ''
+      }));
+      
+      console.log("Mapped states for UI:", mappedStates);
+      
+      setStates(mappedStates);
+      setPagination({
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil(totalRecords / pageSize),
+        totalRecords: totalRecords
+      });
+      
       setMessage(null);
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load states" });
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStateByCode = async (code) => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GETSTATECODE(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch state" });
-      console.error("API Error:", err);
-      throw err;
+      console.error("API Error in fetchStates:", err);
     } finally {
       setLoading(false);
     }
@@ -133,25 +202,141 @@ export default function StateCreation() {
   const createState = async (stateData) => {
     try {
       setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.STATECREATION.CREATE_STATE, stateData);
-      return data;
+      console.log("Creating state with data:", stateData);
+      
+      // Server expects fcode and fname (based on the logs)
+      const requestData = { 
+        fcode: stateData.fuCode, 
+        fname: stateData.stateName 
+      };
+      
+      console.log("Sending to server:", requestData);
+      
+      const response = await apiService.post(
+        API_ENDPOINTS.STATECREATION.CREATE_STATE, 
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log("Create State Response:", response);
+      return response;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to create state" });
-      console.error("API Error:", err);
+      console.error("API Error in createState:", err);
+      console.error("Error response data:", err.response?.data);
+      
+      // Handle duplicate name error
+      if (err.response?.status === 409) {
+        const errorMsg = err.response?.data?.message || "State name already exists. Please choose a different name.";
+        setMessage({ type: "error", text: errorMsg });
+      }
+      // Log validation errors in detail
+      else if (err.response?.data?.errors) {
+        const validationErrors = err.response.data.errors;
+        console.log("Validation errors details:", validationErrors);
+        
+        const errorMessages = [];
+        for (const [field, messages] of Object.entries(validationErrors)) {
+          if (Array.isArray(messages)) {
+            errorMessages.push(...messages.map(msg => `${field}: ${msg}`));
+          } else {
+            errorMessages.push(`${field}: ${messages}`);
+          }
+        }
+        
+        if (errorMessages.length > 0) {
+          setMessage({ 
+            type: "error", 
+            text: `Validation errors: ${errorMessages.join(', ')}` 
+          });
+        }
+      }
+      else {
+        const errorMsg = err.response?.data?.title || 
+                        err.response?.data?.message || 
+                        err.message || 
+                        "Failed to create state";
+        setMessage({ type: "error", text: errorMsg });
+      }
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const updateState = async (stateData) => {
+  const updateState = async (stateData, originalStateName = "") => {
     try {
       setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), stateData);
-      return data;
+      console.log("Updating state with data:", stateData);
+      console.log("Original state name:", originalStateName);
+      
+      // Check if name is actually being changed
+      if (originalStateName && stateData.stateName === originalStateName) {
+        console.log("State name unchanged, no need to update");
+        setMessage({ type: "info", text: "State name unchanged. No update needed." });
+        return { status: "unchanged" };
+      }
+      
+      // Server expects fcode and fname (based on the logs)
+      const requestData = { 
+        fcode: stateData.fuCode, 
+        fname: stateData.stateName 
+      };
+      
+      console.log("Update request data:", requestData);
+      
+      const response = await apiService.put(
+        API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), 
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log("Update State Response:", response);
+      return response;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update state" });
-      console.error("API Error:", err);
+      console.error("API Error in updateState:", err);
+      console.error("Error status:", err.response?.status);
+      console.error("Error response data:", err.response?.data);
+      
+      // Handle 409 Conflict - duplicate state name
+      if (err.response?.status === 409) {
+        const errorMsg = err.response?.data?.message || "State name already exists. Please choose a different name.";
+        setMessage({ type: "error", text: errorMsg });
+      }
+      else if (err.response?.data?.errors) {
+        const validationErrors = err.response.data.errors;
+        console.log("Update validation errors:", validationErrors);
+        
+        const errorMessages = [];
+        for (const [field, messages] of Object.entries(validationErrors)) {
+          if (Array.isArray(messages)) {
+            errorMessages.push(...messages.map(msg => `${field}: ${msg}`));
+          } else {
+            errorMessages.push(`${field}: ${messages}`);
+          }
+        }
+        
+        if (errorMessages.length > 0) {
+          setMessage({ 
+            type: "error", 
+            text: `Validation errors: ${errorMessages.join(', ')}` 
+          });
+        }
+      }
+      else {
+        const errorMsg = err.response?.data?.title || 
+                        err.response?.data?.message || 
+                        err.message || 
+                        "Failed to update state";
+        setMessage({ type: "error", text: errorMsg });
+      }
       throw err;
     } finally {
       setLoading(false);
@@ -161,11 +346,55 @@ export default function StateCreation() {
   const deleteState = async (stateCode) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
-      return data;
+      console.log("Deleting state with code:", stateCode);
+      
+      // Debug: Check what delete methods are available
+      console.log("Checking delete methods...");
+      console.log("apiService.delete:", typeof apiService.delete);
+      console.log("apiService.del:", typeof apiService.del);
+      console.log("apiService.remove:", typeof apiService.remove);
+      
+      let response;
+      
+      // Try different method names based on what's available
+      if (typeof apiService.delete === 'function') {
+        console.log("Using apiService.delete()");
+        response = await apiService.delete(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
+      } else if (typeof apiService.del === 'function') {
+        console.log("Using apiService.del()");
+        response = await apiService.del(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
+      } else if (typeof apiService.remove === 'function') {
+        console.log("Using apiService.remove()");
+        response = await apiService.remove(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
+      } else {
+        // If none of the above, try using request method with DELETE
+        console.log("Using apiService.request() with DELETE method");
+        response = await apiService.request({
+          method: 'DELETE',
+          url: API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode)
+        });
+      }
+      
+      console.log("Delete State Response:", response);
+      return response;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete state" });
-      console.error("API Error:", err);
+      console.error("API Error in deleteState:", err);
+      console.error("Error response data:", err.response?.data);
+      
+      // Handle specific error cases
+      if (err.response?.status === 409) {
+        const errorMsg = err.response?.data?.message || "Cannot delete state. It is being used in other records.";
+        setMessage({ type: "error", text: errorMsg });
+      } else if (err.response?.status === 404) {
+        setMessage({ type: "error", text: "State not found. It may have already been deleted." });
+      } else {
+        const errorMsg = err.response?.data?.title || 
+                        err.response?.data?.message || 
+                        err.response?.data?.error || 
+                        err.message || 
+                        "Failed to delete state";
+        setMessage({ type: "error", text: errorMsg });
+      }
       throw err;
     } finally {
       setLoading(false);
@@ -192,7 +421,10 @@ export default function StateCreation() {
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchStates(), fetchNextStateCode()]);
+    await Promise.all([
+      fetchStates(pagination.currentPage, pagination.pageSize), 
+      fetchNextStateCode()
+    ]);
   };
 
   const handleEdit = async () => {
@@ -201,16 +433,29 @@ export default function StateCreation() {
       return;
     }
 
-    if (!window.confirm(`Do you want to update state "${form.stateName}"?`)) return;
+    // Check if name is actually being changed
+    if (form.stateName === form.originalStateName) {
+      setMessage({ type: "info", text: "No changes made. State name is unchanged." });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to update state "${form.originalStateName}" to "${form.stateName}"?`)) return;
 
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
-      await updateState(stateData);
-      await loadInitial();
+      const stateData = { 
+        fuCode: form.fuCode, 
+        stateName: form.stateName 
+      };
+      const response = await updateState(stateData, form.originalStateName);
       
-      setMessage({ type: "success", text: "State updated successfully." });
+      // Only reload if there was an actual update (not unchanged)
+      if (response?.status !== "unchanged") {
+        await loadInitial();
+        setMessage({ type: "success", text: "State updated successfully." });
+      }
       resetForm(true);
     } catch (err) {
+      console.error("Edit error:", err);
       // Error message already set in updateState
     }
   };
@@ -221,7 +466,7 @@ export default function StateCreation() {
       return;
     }
 
-    if (!window.confirm(`Do you want to delete state "${form.stateName}"?`)) return;
+    if (!window.confirm(`Do you want to permanently delete state "${form.stateName}" (Code: ${form.fuCode})? This action cannot be undone.`)) return;
 
     try {
       await deleteState(form.fuCode);
@@ -230,13 +475,8 @@ export default function StateCreation() {
       setMessage({ type: "success", text: "State deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced states
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        setMessage({ 
-          type: "error", 
-          text: `Cannot delete state "${form.stateName}". It is referenced in other tables and cannot be removed.` 
-        });
-      }
+      console.error("Delete error:", err);
+      // Error message already set in deleteState
     }
   };
 
@@ -246,16 +486,21 @@ export default function StateCreation() {
       return;
     }
 
-    if (!window.confirm(`Do you want to create state "${form.stateName}"?`)) return;
+    if (!window.confirm(`Do you want to create new state "${form.stateName}" with code ${form.fuCode}?`)) return;
 
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
+      const stateData = { 
+        fuCode: form.fuCode, 
+        stateName: form.stateName 
+      };
       await createState(stateData);
       await loadInitial();
       
       setMessage({ type: "success", text: "State created successfully." });
       resetForm(true);
     } catch (err) {
+      console.error("Add error:", err);
+      console.error("Add error response:", err.response?.data);
       // Error message already set in createState
     }
   };
@@ -268,7 +513,7 @@ export default function StateCreation() {
 
   const resetForm = (keepAction = false) => {
     fetchNextStateCode();
-    setForm(prev => ({ ...prev, stateName: "" }));
+    setForm(prev => ({ ...prev, stateName: "", originalStateName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -285,11 +530,18 @@ export default function StateCreation() {
   };
 
   const handleEditRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+    setForm({ 
+      fuCode: s.fuCode || s.fcode || s.uCode || s.FCode, 
+      stateName: s.stateName || s.fname || s.StateName,
+      originalStateName: s.stateName || s.fname || s.StateName
+    });
     setActionType("edit");
-    setEditingId(s.uCode);
+    setEditingId(s.fuCode || s.fcode || s.uCode || s.FCode);
     setEditModalOpen(false);
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => {
+      stateNameRef.current?.focus();
+      stateNameRef.current?.select();
+    }, 60);
   };
 
   const openDeleteModal = () => {
@@ -302,16 +554,23 @@ export default function StateCreation() {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? states.filter(s => (s.uCode || '').toLowerCase().includes(q) || (s.stateName || '').toLowerCase().includes(q))
+      ? states.filter(s => 
+          (s.fuCode || s.fcode || '').toString().toLowerCase().includes(q) || 
+          (s.stateName || s.fname || '').toString().toLowerCase().includes(q)
+        )
       : states;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
   }, [states]);
 
   const handleDeleteRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+    setForm({ 
+      fuCode: s.fuCode || s.fcode || s.uCode || s.FCode, 
+      stateName: s.stateName || s.fname || s.StateName,
+      originalStateName: s.stateName || s.fname || s.StateName
+    });
     setActionType("delete");
-    setDeleteTargetId(s.uCode);
+    setDeleteTargetId(s.fuCode || s.fcode || s.uCode || s.FCode);
     setDeleteModalOpen(false);
     setTimeout(() => stateNameRef.current?.focus(), 60);
   };
@@ -337,14 +596,27 @@ export default function StateCreation() {
     }
   };
 
+  // Pagination handlers
+  const handlePageChange = (newPage) => {
+    fetchStates(newPage, pagination.pageSize);
+  };
+
+  // Check if state name already exists (for validation)
+  const isStateNameDuplicate = useCallback((name, excludeCode = null) => {
+    return states.some(state => 
+      (state.fuCode || state.fcode) !== excludeCode && 
+      (state.stateName || state.fname).toLowerCase() === name.toLowerCase()
+    );
+  }, [states]);
+
   // ---------- filters ----------
   const filteredEditStates = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
     if (!q) return states;
     return states.filter(
       (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.fuCode || s.fcode || "").toString().toLowerCase().includes(q) ||
+        (s.stateName || s.fname || "").toString().toLowerCase().includes(q)
     );
   }, [editQuery, states]);
 
@@ -353,8 +625,8 @@ export default function StateCreation() {
     if (!q) return states;
     return states.filter(
       (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.fuCode || s.fcode || "").toString().toLowerCase().includes(q) ||
+        (s.stateName || s.fname || "").toString().toLowerCase().includes(q)
     );
   }, [deleteQuery, states]);
 
@@ -363,10 +635,27 @@ export default function StateCreation() {
     if (!q) return states;
     return states.filter(
       (s) => 
-        (s.uCode || "").toLowerCase().includes(q) || 
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.fuCode || s.fcode || "").toString().toLowerCase().includes(q) || 
+        (s.stateName || s.fname || "").toString().toLowerCase().includes(q)
     );
   }, [existingQuery, states]);
+
+  // Generate a unique key for each state item
+  const getStateKey = (s, index) => {
+    const code = s.fuCode || s.fcode || s.uCode || s.FCode;
+    if (code) return code.toString();
+    return `state-${index}`;
+  };
+
+  // Check if current state name is duplicate when editing
+  const isCurrentNameDuplicate = useMemo(() => {
+    if (actionType !== "edit" || !form.stateName || !form.originalStateName) return false;
+    
+    // Only check if name has changed
+    if (form.stateName === form.originalStateName) return false;
+    
+    return isStateNameDuplicate(form.stateName, form.fuCode);
+  }, [form.stateName, form.originalStateName, form.fuCode, actionType, isStateNameDuplicate]);
 
   // ---------- render ----------
   return (
@@ -545,6 +834,10 @@ export default function StateCreation() {
           color: var(--muted);
           cursor: not-allowed;
         }
+        .input.warning { 
+          border-color: var(--warning);
+          box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.1); 
+        }
 
         .btn {
           padding:10px 12px;
@@ -593,6 +886,7 @@ export default function StateCreation() {
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
         .message.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .message.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
 
         /* submit row */
         .submit-row { 
@@ -780,6 +1074,58 @@ export default function StateCreation() {
           border-left: 3px solid var(--accent);
         }
 
+        /* Pagination styles */
+        .pagination {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 8px;
+          margin-top: 16px;
+          padding: 12px;
+        }
+        
+        .page-btn {
+          padding: 8px 12px;
+          border: 1px solid rgba(12,18,35,0.06);
+          background: white;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+          background: #f8fafc;
+          border-color: var(--accent);
+        }
+        
+        .page-btn.active {
+          background: var(--accent);
+          color: white;
+          border-color: var(--accent);
+        }
+        
+        .page-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .page-info {
+          color: var(--muted);
+          font-size: 14px;
+          margin: 0 12px;
+        }
+
+        /* Validation warning */
+        .validation-warning {
+          color: var(--warning);
+          font-size: 14px;
+          margin-top: 4px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
         /* Responsive styles */
         @media (max-width: 1024px) {
           .grid {
@@ -933,10 +1279,18 @@ export default function StateCreation() {
                   onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
                   placeholder="State code (auto-generated)"
                   onKeyDown={onStateCodeKeyDown}
-                  disabled={loading}
+                  disabled={loading || actionType === "edit" || actionType === "delete"}
                   aria-label="State Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
+                <button 
+                  className="btn" 
+                  onClick={fetchNextStateCode}
+                  disabled={loading}
+                  title="Refresh state code"
+                >
+                  <Icon.Refresh />
+                </button>
               </div>
             </div>
 
@@ -944,11 +1298,17 @@ export default function StateCreation() {
             <div className="field">
               <label className="field-label">
                 State Name <span className="asterisk">*</span>
+                {isCurrentNameDuplicate && actionType === "edit" && (
+                  <span className="validation-warning">
+                    <Icon.Info size={14} />
+                    This name already exists for another state!
+                  </span>
+                )}
               </label>
               <div className="row">
                 <input 
                   ref={stateNameRef} 
-                  className="input" 
+                  className={`input ${isCurrentNameDuplicate ? 'warning' : ''}`}
                   value={form.stateName} 
                   onChange={(e) => setForm(s => ({ ...s, stateName: e.target.value }))} 
                   placeholder="Enter state name" 
@@ -958,6 +1318,11 @@ export default function StateCreation() {
                   readOnly={actionType === "delete"}
                 />
               </div>
+              {actionType === "edit" && form.originalStateName && (
+                <div className="muted" style={{ fontSize: "14px", marginTop: "4px" }}>
+                  Original name: <strong>{form.originalStateName}</strong>
+                </div>
+              )}
             </div>
 
             {/* Message display */}
@@ -972,10 +1337,12 @@ export default function StateCreation() {
               <button
                 className="submit-primary"
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || (actionType === "edit" && isCurrentNameDuplicate)}
                 type="button"
               >
-                {loading ? "Processing..." : actionType}
+                {loading ? "Processing..." : 
+                  actionType === "Add" ? "Create" : 
+                  actionType === "edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"
@@ -986,8 +1353,16 @@ export default function StateCreation() {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing States</div>
+
+            {/* Existing States List */}
+            <div className="stat" style={{ flex: 1, minHeight: "200px", marginTop: "20px" }}>
+              <div className="row" style={{ justifyContent: "space-between", marginBottom: "10px" }}>
+                <div className="muted">Existing States</div>
+                <div className="muted" style={{ fontSize: "14px" }}>
+                  Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalRecords} total
+                </div>
+              </div>
+              
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
@@ -1018,29 +1393,61 @@ export default function StateCreation() {
                     {states.length === 0 ? "No states found" : "No matching states"}
                   </div>
                 ) : (
-                  <table className="states-table">
-                    <thead>
-                      <tr>
-                        <th>Code</th>
-                        <th>State Name</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredExisting.map((s) => (
-                        <tr 
-                          key={s.uCode}
-                          className={form.fuCode === s.uCode ? "selected" : ""}
-                          onClick={() => {
-                            setForm({ fuCode: s.uCode, stateName: s.stateName });
-                            setActionType("edit");
-                          }}
-                        >
-                          <td>{s.uCode}</td>
-                          <td>{s.stateName}</td>
+                  <>
+                    <table className="states-table">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>State Name</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {filteredExisting.map((s, index) => (
+                          <tr 
+                            key={getStateKey(s, index)}
+                            className={form.fuCode === (s.fuCode || s.fcode) ? "selected" : ""}
+                            onClick={() => {
+                              setForm({ 
+                                fuCode: s.fuCode || s.fcode, 
+                                stateName: s.stateName || s.fname,
+                                originalStateName: s.stateName || s.fname
+                              });
+                              setActionType("edit");
+                            }}
+                            style={{ cursor: "pointer" }}
+                          >
+                            <td>{s.fuCode || s.fcode}</td>
+                            <td>{s.stateName || s.fname}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    
+                    {/* Pagination Controls */}
+                    {pagination.totalPages > 1 && (
+                      <div className="pagination">
+                        <button
+                          className="page-btn"
+                          onClick={() => handlePageChange(pagination.currentPage - 1)}
+                          disabled={pagination.currentPage <= 1 || loading}
+                        >
+                          Previous
+                        </button>
+                        
+                        <span className="page-info">
+                          Page {pagination.currentPage} of {pagination.totalPages}
+                        </span>
+                        
+                        <button
+                          className="page-btn"
+                          onClick={() => handlePageChange(pagination.currentPage + 1)}
+                          disabled={pagination.currentPage >= pagination.totalPages || loading}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -1051,7 +1458,8 @@ export default function StateCreation() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit State" : "Delete State"}
+                {actionType === "Add" ? "Create New State" : 
+                 actionType === "edit" ? "Edit Existing State" : "Delete State"}
               </div>
             </div>
 
@@ -1067,12 +1475,17 @@ export default function StateCreation() {
               <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
                 {form.stateName || "Not set"}
               </div>
+              {form.originalStateName && actionType === "edit" && (
+                <div className="muted" style={{ fontSize: "14px", marginTop: "4px" }}>
+                  Original: {form.originalStateName}
+                </div>
+              )}
             </div>
 
             <div className="stat">
               <div className="muted">Existing States</div>
               <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
-                {states.length}
+                {pagination.totalRecords}
               </div>
             </div>
 
@@ -1095,6 +1508,12 @@ export default function StateCreation() {
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
                   <span>Examples: Maharashtra, Karnataka, Tamil Nadu</span>
                 </div>
+                {actionType === "edit" && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
+                    <span style={{ color: "var(--warning)", fontWeight: "bold" }}>⚠</span>
+                    <span style={{ color: "var(--warning)" }}>State names must be unique</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1105,13 +1524,16 @@ export default function StateCreation() {
       <PopupListSelector
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
+        onSelect={(item) => { 
+          handleEditRowClick(item); 
+          setEditModalOpen(false); 
+        }}
         fetchItems={fetchItemsForModal}
         title="Select State to Edit"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        displayFieldKeys={['stateName', 'fuCode']}
+        searchFields={['stateName', 'fuCode']}
+        headerNames={['State Name', 'Code']}
+        columnWidths={{ stateName: '70%', fuCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1119,14 +1541,18 @@ export default function StateCreation() {
       <PopupListSelector
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
+        onSelect={(item) => { 
+          handleDeleteRowClick(item); 
+          setDeleteModalOpen(false); 
+        }}
         fetchItems={fetchItemsForModal}
         title="Select State to Delete"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        displayFieldKeys={['stateName', 'fuCode']}
+        searchFields={['stateName', 'fuCode']}
+        headerNames={['State Name', 'Code']}
+        columnWidths={{ stateName: '70%', fuCode: '30%' }}
         maxHeight="60vh"
+        warningText="Deleting a state cannot be undone. Make sure the state is not referenced elsewhere."
       />
     </div>
   );
