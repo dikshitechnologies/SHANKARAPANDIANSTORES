@@ -46,20 +46,25 @@ const Icon = {
       <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
     </svg>
   ),
+  ChevronDown: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+    </svg>
+  ),
 };
 
 export default function StateCreation() {
   // ---------- state ----------
   const [states, setStates] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    pageSize: 10,
-    totalPages: 1,
-    totalRecords: 0
-  });
+  
+  // Infinite scroll states
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [pageSize] = useState(20); // Fixed page size for infinite scroll
 
   const [form, setForm] = useState({ 
     fuCode: "", 
@@ -83,26 +88,17 @@ export default function StateCreation() {
   // refs for step-by-step Enter navigation
   const stateCodeRef = useRef(null);
   const stateNameRef = useRef(null);
+  const tableContainerRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
-
-  // Debug: Check apiService methods
-  useEffect(() => {
-    console.log("apiService methods:", Object.keys(apiService));
-    console.log("apiService.delete exists:", typeof apiService.delete);
-    console.log("apiService.del exists:", typeof apiService.del);
-    console.log("apiService.remove exists:", typeof apiService.remove);
-  }, []);
 
   // ---------- API functions ----------
   const fetchNextStateCode = async () => {
     try {
       setLoading(true);
       const response = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
-      
-      console.log("Next State Code Response:", response);
       
       // Handle different response formats
       if (typeof response === 'string' && response.trim()) {
@@ -134,21 +130,24 @@ export default function StateCreation() {
       return response;
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load next state code" });
-      console.error("API Error in fetchNextStateCode:", err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchStates = async (page = 1, pageSize = 10) => {
+  // UPDATED: Fetch states with infinite scroll support
+  const fetchStates = async (pageNum = 1, append = false) => {
     try {
-      setLoading(true);
-      const response = await apiService.get(
-        API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS(page, pageSize)
-      );
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
       
-      console.log("Fetch States Response:", response);
+      const response = await apiService.get(
+        API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS(pageNum, pageSize)
+      );
       
       let statesData = [];
       let totalRecords = 0;
@@ -180,37 +179,45 @@ export default function StateCreation() {
         originalStateName: state.fname || state.stateName || state.StateName || state.name || ''
       }));
       
-      console.log("Mapped states for UI:", mappedStates);
+      // Append or replace states based on append flag
+      if (append) {
+        setStates(prev => [...prev, ...mappedStates]);
+      } else {
+        setStates(mappedStates);
+      }
       
-      setStates(mappedStates);
-      setPagination({
-        currentPage: page,
-        pageSize: pageSize,
-        totalPages: Math.ceil(totalRecords / pageSize),
-        totalRecords: totalRecords
-      });
+      // Check if there are more records to load
+      const hasMoreData = statesData.length === pageSize;
+      setHasMore(hasMoreData);
+      
+      // Update page number
+      if (!append) {
+        setPage(1);
+      } else {
+        setPage(prev => prev + 1);
+      }
       
       setMessage(null);
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load states" });
-      console.error("API Error in fetchStates:", err);
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
   const createState = async (stateData) => {
     try {
       setLoading(true);
-      console.log("Creating state with data:", stateData);
       
       // Server expects fcode and fname (based on the logs)
       const requestData = { 
         fcode: stateData.fuCode, 
         fname: stateData.stateName 
       };
-      
-      console.log("Sending to server:", requestData);
       
       const response = await apiService.post(
         API_ENDPOINTS.STATECREATION.CREATE_STATE, 
@@ -222,12 +229,8 @@ export default function StateCreation() {
         }
       );
       
-      console.log("Create State Response:", response);
       return response;
     } catch (err) {
-      console.error("API Error in createState:", err);
-      console.error("Error response data:", err.response?.data);
-      
       // Handle duplicate name error
       if (err.response?.status === 409) {
         const errorMsg = err.response?.data?.message || "State name already exists. Please choose a different name.";
@@ -236,7 +239,6 @@ export default function StateCreation() {
       // Log validation errors in detail
       else if (err.response?.data?.errors) {
         const validationErrors = err.response.data.errors;
-        console.log("Validation errors details:", validationErrors);
         
         const errorMessages = [];
         for (const [field, messages] of Object.entries(validationErrors)) {
@@ -270,12 +272,9 @@ export default function StateCreation() {
   const updateState = async (stateData, originalStateName = "") => {
     try {
       setLoading(true);
-      console.log("Updating state with data:", stateData);
-      console.log("Original state name:", originalStateName);
       
       // Check if name is actually being changed
       if (originalStateName && stateData.stateName === originalStateName) {
-        console.log("State name unchanged, no need to update");
         setMessage({ type: "info", text: "State name unchanged. No update needed." });
         return { status: "unchanged" };
       }
@@ -285,8 +284,6 @@ export default function StateCreation() {
         fcode: stateData.fuCode, 
         fname: stateData.stateName 
       };
-      
-      console.log("Update request data:", requestData);
       
       const response = await apiService.put(
         API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), 
@@ -298,13 +295,8 @@ export default function StateCreation() {
         }
       );
       
-      console.log("Update State Response:", response);
       return response;
     } catch (err) {
-      console.error("API Error in updateState:", err);
-      console.error("Error status:", err.response?.status);
-      console.error("Error response data:", err.response?.data);
-      
       // Handle 409 Conflict - duplicate state name
       if (err.response?.status === 409) {
         const errorMsg = err.response?.data?.message || "State name already exists. Please choose a different name.";
@@ -312,7 +304,6 @@ export default function StateCreation() {
       }
       else if (err.response?.data?.errors) {
         const validationErrors = err.response.data.errors;
-        console.log("Update validation errors:", validationErrors);
         
         const errorMessages = [];
         for (const [field, messages] of Object.entries(validationErrors)) {
@@ -346,54 +337,16 @@ export default function StateCreation() {
   const deleteState = async (stateCode) => {
     try {
       setLoading(true);
-      console.log("Deleting state with code:", stateCode);
-      
-      // Debug: Check what delete methods are available
-      console.log("Checking delete methods...");
-      console.log("apiService.delete:", typeof apiService.delete);
-      console.log("apiService.del:", typeof apiService.del);
-      console.log("apiService.remove:", typeof apiService.remove);
-      
-      let response;
-      
-      // Try different method names based on what's available
-      if (typeof apiService.delete === 'function') {
-        console.log("Using apiService.delete()");
-        response = await apiService.delete(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
-      } else if (typeof apiService.del === 'function') {
-        console.log("Using apiService.del()");
-        response = await apiService.del(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
-      } else if (typeof apiService.remove === 'function') {
-        console.log("Using apiService.remove()");
-        response = await apiService.remove(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
-      } else {
-        // If none of the above, try using request method with DELETE
-        console.log("Using apiService.request() with DELETE method");
-        response = await apiService.request({
-          method: 'DELETE',
-          url: API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode)
-        });
-      }
-      
-      console.log("Delete State Response:", response);
+      const url = API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode);
+      const response = await apiService.del(url);
       return response;
     } catch (err) {
-      console.error("API Error in deleteState:", err);
-      console.error("Error response data:", err.response?.data);
-      
-      // Handle specific error cases
       if (err.response?.status === 409) {
-        const errorMsg = err.response?.data?.message || "Cannot delete state. It is being used in other records.";
-        setMessage({ type: "error", text: errorMsg });
+        setMessage({ type: "error", text: "Cannot delete state. It is used elsewhere." });
       } else if (err.response?.status === 404) {
-        setMessage({ type: "error", text: "State not found. It may have already been deleted." });
+        setMessage({ type: "error", text: "State not found or already deleted." });
       } else {
-        const errorMsg = err.response?.data?.title || 
-                        err.response?.data?.message || 
-                        err.response?.data?.error || 
-                        err.message || 
-                        "Failed to delete state";
-        setMessage({ type: "error", text: errorMsg });
+        setMessage({ type: "error", text: "Delete failed." });
       }
       throw err;
     } finally {
@@ -419,12 +372,40 @@ export default function StateCreation() {
     if (stateCodeRef.current) stateCodeRef.current.focus();
   }, []);
 
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    const container = tableContainerRef.current;
+    if (!container) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isBottom = scrollHeight - scrollTop <= clientHeight + 50; // 50px buffer
+    
+    if (isBottom && hasMore && !loadingMore && !loading) {
+      fetchStates(page + 1, true);
+    }
+  }, [hasMore, loadingMore, loading, page]);
+
+  // Attach scroll event listener
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
+
   // ---------- handlers ----------
   const loadInitial = async () => {
     await Promise.all([
-      fetchStates(pagination.currentPage, pagination.pageSize), 
+      fetchStates(1, false), 
       fetchNextStateCode()
     ]);
+  };
+
+  const loadMore = () => {
+    if (hasMore && !loadingMore && !loading) {
+      fetchStates(page + 1, true);
+    }
   };
 
   const handleEdit = async () => {
@@ -433,7 +414,6 @@ export default function StateCreation() {
       return;
     }
 
-    // Check if name is actually being changed
     if (form.stateName === form.originalStateName) {
       setMessage({ type: "info", text: "No changes made. State name is unchanged." });
       return;
@@ -448,14 +428,12 @@ export default function StateCreation() {
       };
       const response = await updateState(stateData, form.originalStateName);
       
-      // Only reload if there was an actual update (not unchanged)
       if (response?.status !== "unchanged") {
         await loadInitial();
         setMessage({ type: "success", text: "State updated successfully." });
       }
       resetForm(true);
     } catch (err) {
-      console.error("Edit error:", err);
       // Error message already set in updateState
     }
   };
@@ -471,11 +449,9 @@ export default function StateCreation() {
     try {
       await deleteState(form.fuCode);
       await loadInitial();
-      
       setMessage({ type: "success", text: "State deleted successfully." });
       resetForm();
     } catch (err) {
-      console.error("Delete error:", err);
       // Error message already set in deleteState
     }
   };
@@ -495,12 +471,9 @@ export default function StateCreation() {
       };
       await createState(stateData);
       await loadInitial();
-      
       setMessage({ type: "success", text: "State created successfully." });
       resetForm(true);
     } catch (err) {
-      console.error("Add error:", err);
-      console.error("Add error response:", err.response?.data);
       // Error message already set in createState
     }
   };
@@ -549,9 +522,8 @@ export default function StateCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
-    const pageSize = 20;
+    const modalPageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
       ? states.filter(s => 
@@ -559,8 +531,8 @@ export default function StateCreation() {
           (s.stateName || s.fname || '').toString().toLowerCase().includes(q)
         )
       : states;
-    const start = (page - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
+    const start = (page - 1) * modalPageSize;
+    return filtered.slice(start, start + modalPageSize);
   }, [states]);
 
   const handleDeleteRowClick = (s) => {
@@ -596,12 +568,6 @@ export default function StateCreation() {
     }
   };
 
-  // Pagination handlers
-  const handlePageChange = (newPage) => {
-    fetchStates(newPage, pagination.pageSize);
-  };
-
-  // Check if state name already exists (for validation)
   const isStateNameDuplicate = useCallback((name, excludeCode = null) => {
     return states.some(state => 
       (state.fuCode || state.fcode) !== excludeCode && 
@@ -640,39 +606,40 @@ export default function StateCreation() {
     );
   }, [existingQuery, states]);
 
-  // Generate a unique key for each state item
+  // FIXED: Generate unique key that includes both code and name
   const getStateKey = (s, index) => {
-    const code = s.fuCode || s.fcode || s.uCode || s.FCode;
-    if (code) return code.toString();
-    return `state-${index}`;
+    const code = s.fuCode || s.fcode || s.uCode || s.FCode || '';
+    const name = s.stateName || s.fname || s.StateName || s.name || '';
+    // Combine code and name to create a unique key
+    const uniqueKey = `${code}-${name}`.replace(/\s+/g, '-').toLowerCase();
+    
+    // If both code and name are empty, use index as fallback
+    if (!code && !name) return `state-${index}`;
+    
+    // Add index to ensure uniqueness even if code+name combo is duplicated
+    return `${uniqueKey}-${index}`;
   };
 
-  // Check if current state name is duplicate when editing
   const isCurrentNameDuplicate = useMemo(() => {
     if (actionType !== "edit" || !form.stateName || !form.originalStateName) return false;
-    
-    // Only check if name has changed
     if (form.stateName === form.originalStateName) return false;
-    
     return isStateNameDuplicate(form.stateName, form.fuCode);
   }, [form.stateName, form.originalStateName, form.fuCode, actionType, isStateNameDuplicate]);
 
   // ---------- render ----------
   return (
     <div className="uc-root" role="region" aria-labelledby="state-creation-title">
-      {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* blue theme (matching ItemGroupCreation style) */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
           --glass-2: rgba(255,255,255,0.35);
-          --accent: #307AC8; /* primary */
-          --accent-2: #1B91DA; /* secondary */
-          --accent-3: #06A7EA; /* tertiary */
+          --accent: #307AC8;
+          --accent-2: #1B91DA;
+          --accent-3: #06A7EA;
           --success: #06A7EA;
           --danger: #ef4444;
           --warning: #f59e0b;
@@ -681,7 +648,6 @@ export default function StateCreation() {
           --glass-border: rgba(255,255,255,0.45);
         }
 
-        /* Page layout */
         .uc-root {
           min-height: 100vh;
           display: flex;
@@ -690,11 +656,10 @@ export default function StateCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 18px; /* increased base font size */
+          font-size: 18px;
           box-sizing: border-box;
         }
 
-        /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
           max-width: 1100px;
@@ -709,7 +674,6 @@ export default function StateCreation() {
         }
         .dashboard:hover { transform: translateY(-6px); }
 
-        /* header */
         .top-row {
           display:flex;
           align-items:center;
@@ -726,7 +690,7 @@ export default function StateCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px; /* slightly larger title */
+          font-size: 24px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
@@ -735,7 +699,6 @@ export default function StateCreation() {
           font-size: 16px;
         }
 
-        /* action pills */
         .actions {
           display:flex;
           gap:10px;
@@ -770,7 +733,6 @@ export default function StateCreation() {
         .action-pill.warn { color:white; background: linear-gradient(180deg, var(--warning), #f97316); }
         .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
 
-        /* grid layout */
         .grid {
           display:grid;
           grid-template-columns: 1fr 360px;
@@ -778,7 +740,6 @@ export default function StateCreation() {
           align-items:start;
         }
 
-        /* left card (form) */
         .card {
           background: rgba(255,255,255,0.85);
           border-radius: 12px;
@@ -861,7 +822,6 @@ export default function StateCreation() {
 
         .controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
 
-        /* right side panel */
         .side {
           display:flex;
           flex-direction:column;
@@ -875,7 +835,6 @@ export default function StateCreation() {
         }
         .muted { color: var(--muted); font-size:15px; }
 
-        /* message */
         .message {
           margin-top:8px;
           padding:12px;
@@ -888,7 +847,6 @@ export default function StateCreation() {
         .message.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
         .message.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
 
-        /* submit row */
         .submit-row { 
           display:flex; 
           gap:12px; 
@@ -934,7 +892,6 @@ export default function StateCreation() {
           transform: translateY(-1px);
         }
         
-        /* search container */
         .search-container {
           position: relative;
           width: 100%;
@@ -977,7 +934,6 @@ export default function StateCreation() {
           color: #374151;
         }
 
-        /* states table */
         .states-table-container {
           max-height: 400px;
           overflow-y: auto;
@@ -1021,109 +977,56 @@ export default function StateCreation() {
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
-        /* modal overlay (glass) */
-        .modal-overlay {
-          position:fixed; 
-          inset:0; 
-          display:flex; 
-          align-items:center; 
-          justify-content:center; 
-          background: rgba(2,6,23,0.46); 
-          z-index:1200; 
-          padding:20px;
-          backdrop-filter: blur(4px);
-        }
-        .modal {
-          width:100%; 
-          max-width:720px; 
-          max-height:80vh; 
-          overflow:auto; 
-          background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
-          border-radius:12px; 
-          padding:14px;
-          border:1px solid rgba(255,255,255,0.5);
-          box-shadow: 0 18px 50px rgba(2,6,23,0.36);
-          backdrop-filter: blur(8px);
-        }
-
-        .dropdown-list { 
-          max-height:50vh; 
-          overflow:auto; 
-          border-top:1px solid rgba(12,18,35,0.03); 
-          border-bottom:1px solid rgba(12,18,35,0.03); 
-          padding:6px 0; 
-        }
-        .dropdown-item { 
-          padding:12px; 
-          border-bottom:1px solid rgba(12,18,35,0.03); 
-          cursor:pointer; 
-          display:flex; 
-          flex-direction:column; 
-          gap:4px; 
-          text-align: left;
-          transition: all 0.2s;
-        }
-        .dropdown-item:hover { 
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
-          transform: translateX(6px); 
-        }
-
-        /* tips panel */
-        .tips-panel {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
-          border-left: 3px solid var(--accent);
-        }
-
-        /* Pagination styles */
-        .pagination {
+        /* Infinite scroll loader */
+        .infinite-scroll-loader {
+          padding: 16px;
+          text-align: center;
+          color: var(--muted);
           display: flex;
-          justify-content: center;
+          flex-direction: column;
           align-items: center;
           gap: 8px;
-          margin-top: 16px;
-          padding: 12px;
-        }
-        
-        .page-btn {
-          padding: 8px 12px;
-          border: 1px solid rgba(12,18,35,0.06);
-          background: white;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
-          transition: all 0.2s;
-        }
-        
-        .page-btn:hover:not(:disabled) {
-          background: #f8fafc;
-          border-color: var(--accent);
-        }
-        
-        .page-btn.active {
-          background: var(--accent);
-          color: white;
-          border-color: var(--accent);
-        }
-        
-        .page-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        
-        .page-info {
-          color: var(--muted);
-          font-size: 14px;
-          margin: 0 12px;
         }
 
-        /* Validation warning */
-        .validation-warning {
-          color: var(--warning);
-          font-size: 14px;
-          margin-top: 4px;
+        .load-more-btn {
+          padding: 8px 16px;
+          background: linear-gradient(180deg, var(--accent), var(--accent-2));
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.2s;
           display: flex;
           align-items: center;
           gap: 6px;
+        }
+
+        .load-more-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(48,122,200,0.2);
+        }
+
+        .load-more-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .loading {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .spinner {
+          animation: spin 1s linear infinite;
         }
 
         /* Responsive styles */
@@ -1199,48 +1102,6 @@ export default function StateCreation() {
             padding: 8px;
             font-size: 12px;
           }
-          .modal-overlay {
-            padding: 12px;
-          }
-          .modal {
-            padding: 12px;
-          }
-        }
-
-        @media (max-width: 360px) {
-          .uc-root {
-            padding: 8px 6px;
-          }
-          .dashboard {
-            padding: 10px;
-          }
-          .title-block {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-          }
-          .actions {
-            gap: 6px;
-          }
-          .action-pill {
-            padding: 6px 8px;
-            font-size: 11px;
-          }
-          .card {
-            padding: 12px;
-          }
-          .stat {
-            padding: 10px;
-          }
-        }
-
-        /* Loading animation */
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        .loading {
-          animation: pulse 1.5s ease-in-out infinite;
         }
       `}</style>
 
@@ -1283,14 +1144,7 @@ export default function StateCreation() {
                   aria-label="State Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
-                <button 
-                  className="btn" 
-                  onClick={fetchNextStateCode}
-                  disabled={loading}
-                  title="Refresh state code"
-                >
-                  <Icon.Refresh />
-                </button>
+                
               </div>
             </div>
 
@@ -1359,7 +1213,7 @@ export default function StateCreation() {
               <div className="row" style={{ justifyContent: "space-between", marginBottom: "10px" }}>
                 <div className="muted">Existing States</div>
                 <div className="muted" style={{ fontSize: "14px" }}>
-                  Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalRecords} total
+                  {states.length} states loaded • {hasMore ? "Scroll for more" : "All states loaded"}
                 </div>
               </div>
               
@@ -1383,8 +1237,12 @@ export default function StateCreation() {
                 )}
               </div>
               
-              <div className="states-table-container">
-                {loading ? (
+              <div 
+                className="states-table-container" 
+                ref={tableContainerRef}
+                style={{ maxHeight: "400px", overflowY: "auto" }}
+              >
+                {loading && !loadingMore ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
                     Loading states...
                   </div>
@@ -1423,30 +1281,31 @@ export default function StateCreation() {
                       </tbody>
                     </table>
                     
-                    {/* Pagination Controls */}
-                    {pagination.totalPages > 1 && (
-                      <div className="pagination">
-                        <button
-                          className="page-btn"
-                          onClick={() => handlePageChange(pagination.currentPage - 1)}
-                          disabled={pagination.currentPage <= 1 || loading}
-                        >
-                          Previous
-                        </button>
-                        
-                        <span className="page-info">
-                          Page {pagination.currentPage} of {pagination.totalPages}
-                        </span>
-                        
-                        <button
-                          className="page-btn"
-                          onClick={() => handlePageChange(pagination.currentPage + 1)}
-                          disabled={pagination.currentPage >= pagination.totalPages || loading}
-                        >
-                          Next
-                        </button>
-                      </div>
-                    )}
+                    {/* Infinite Scroll Loader */}
+                    <div className="infinite-scroll-loader">
+                      {loadingMore ? (
+                        <>
+                          <svg className="spinner" width="24" height="24" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="var(--accent)" strokeWidth="4" fill="none" strokeDasharray="80" strokeDashoffset="60" />
+                          </svg>
+                          <div>Loading more states...</div>
+                        </>
+                      ) : hasMore ? (
+                        <>
+                          <div>Scroll down to load more states</div>
+                          <button 
+                            className="load-more-btn" 
+                            onClick={loadMore}
+                            disabled={loading || loadingMore}
+                          >
+                            <Icon.ChevronDown />
+                            Load More
+                          </button>
+                        </>
+                      ) : (
+                        <div>All states loaded ✓</div>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
@@ -1483,9 +1342,9 @@ export default function StateCreation() {
             </div>
 
             <div className="stat">
-              <div className="muted">Existing States</div>
+              <div className="muted">Loaded States</div>
               <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
-                {pagination.totalRecords}
+                {states.length}
               </div>
             </div>
 
@@ -1502,7 +1361,7 @@ export default function StateCreation() {
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find states</span>
+                  <span>Scroll down to load more states automatically</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>

@@ -100,7 +100,7 @@ user_creation: {
     GETSTATECODE: (code) => `/StateCreation/getStateFcode?code=${code}`,
     CREATE_STATE: '/StateCreation/createStates',
     UPDATE_STATE: (code) => `/StateCreation/updateModel`,
-    DELETE_STATE: (code) => `/StateCreation/deleteState?fuCode=${code}`,
+    DELETE_STATE: (code) => `/StateCreation/deleteState/${code}`,
   },
 
   SCRAP_CREATION: {
@@ -120,8 +120,11 @@ user_creation: {
 
   PURCHASE_INVOICE: {
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
-    CREATE_PURCHASE_INVOICE: "PurchaseInvoice/CreatePurchase",
+    CREATE_PURCHASE_INVOICE: (purchaseType) => `PurchaseInvoice/CreatePurchase/${purchaseType}`,
+    SUPPLIER_LIST: (search = '', page = 1, pageSize = 20) =>
+      `PurchaseInvoice/SupplierList?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
   },
+    
 
 
   DESIGNCREATION: {
