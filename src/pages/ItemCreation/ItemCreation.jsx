@@ -3,6 +3,7 @@ import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import axios from 'axios';
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
+import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 
 const FCompCode = "001";
 
@@ -1547,35 +1548,23 @@ const getMaxPrefixFromAPI = async () => {
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <button
-              className={`action-pill ${actionType === 'create' ? 'primary' : ''}`}
+            <AddButton
               onClick={() => changeActionType('create')}
               disabled={isSubmitting || !formPermissions.add}
-              type="button"
-              title={!formPermissions.add ? "You don't have permission to create" : "Create new item"}
-            >
-              <Icon.Plus /> Create
-            </button>
+              isActive={actionType === 'create'}
+            />
 
-            <button
-              className={`action-pill ${actionType === 'edit' ? 'warn' : ''}`}
+            <EditButton
               onClick={() => { changeActionType('edit'); setIsPopupOpen(true); }}
               disabled={isSubmitting || !formPermissions.edit}
-              type="button"
-              title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing item"}
-            >
-              <Icon.Edit /> Edit
-            </button>
+              isActive={actionType === 'edit'}
+            />
 
-            <button
-              className={`action-pill ${actionType === 'delete' ? 'danger' : ''}`}
+            <DeleteButton
               onClick={() => { changeActionType('delete'); setIsPopupOpen(true); }}
               disabled={isSubmitting || !formPermissions.delete}
-              type="button"
-              title={!formPermissions.delete ? "You don't have permission to delete" : "Delete item"}
-            >
-              <Icon.Trash /> Delete
-            </button>
+              isActive={actionType === 'delete'}
+            />
           </div>
         </div>
 
