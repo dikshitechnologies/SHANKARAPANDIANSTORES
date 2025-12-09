@@ -145,8 +145,8 @@ user_creation: {
 
   BRAND: {
     GET_BRANDS: 'Brand',
-    CREATE_BRAND: 'Brand?selecttype=true',
-    UPDATE_BRAND: 'Brand?selecttype=false',
+    POST_BRAND: 'Brand',
+    GET_NEXT_BRAND_CODE: 'Brand/getNextBrandFcode',
     DELETE_BRAND: (code) => `Brand/${code}`,
   },
 

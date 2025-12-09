@@ -3,6 +3,7 @@ import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import axios from 'axios';
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
+import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 
 const FCompCode = "001";
 
@@ -126,8 +127,6 @@ const TYPE_OPTIONS = [
   { value: "Accessory", label: "Accessory" },
 ];
 
-// Mock data for fallback
-
 const ItemCreation = ({ onCreated }) => {
   // State management
   const [treeData, setTreeData] = useState([]);
@@ -171,6 +170,16 @@ const ItemCreation = ({ onCreated }) => {
     sellingPrice: '',
     costPrice: '',
     unit: '',
+    unitCode: ''
+  });
+
+  // Store codes separately (for backend) and names for display
+  const [fieldCodes, setFieldCodes] = useState({
+    brandCode: '',
+    categoryCode: '',
+    productCode: '',
+    modelCode: '',
+    sizeCode: '',
     unitCode: ''
   });
 
@@ -228,6 +237,8 @@ const ItemCreation = ({ onCreated }) => {
   const loadInitial = async () => {
     setLoading(true);
     try {
+      console.log('Starting loadInitial...');
+      console.log('Using endpoint:', API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
       await fetchTreeData();
     } catch (err) {
       console.error('Failed to load initial data:', err);
@@ -239,33 +250,42 @@ const ItemCreation = ({ onCreated }) => {
 
  const fetchTreeData = async () => {
   try {
-    // Change from axios.get(API_ENDPOINTS.ITEM_CREATION.getTree)
     const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
     
-    if (response.data && Array.isArray(response.data)) {
-      // Transform API response
+    // Log response for debugging
+    console.log('Tree API Response:', response);
+    
+    // Handle both direct array and data property
+    const data = Array.isArray(response) ? response : (response?.data || response);
+    
+    if (Array.isArray(data) && data.length > 0) {
+      // Transform API response to match tree structure
       const transformTreeData = (nodes) => {
         return nodes.map(node => ({
-          key: node.fgroupCode || node.id || Math.random().toString(),
-          displayName: node.fgroupName || node.name || '',
-          id: node.fgroupCode || node.id || '',
-          children: node.children ? transformTreeData(node.children) : []
+          key: node.fgroupCode || node.fitemcode || node.fCode || node.id || Math.random().toString(),
+          displayName: node.fgroupName || node.fitemname || node.fBrand || node.label || node.name || '',
+          id: node.fgroupCode || node.fitemcode || node.fCode || node.id || '',
+          fitemcode: node.fgroupCode || node.fitemcode || node.fCode || '',
+          fitemname: node.fgroupName || node.fitemname || node.fBrand || '',
+          fparent: node.fparent || node.fParent || '',
+          fAclevel: node.fAclevel || 0,
+          children: node.children && Array.isArray(node.children) ? transformTreeData(node.children) : []
         }));
       };
       
-      const treeData = transformTreeData(response.data);
+      const treeData = transformTreeData(data);
       setTreeData(treeData);
       setExpandedKeys(new Set(treeData.map(item => item.key)));
+      console.log('Transformed tree data:', treeData);
     } else {
-      // Remove the fallback to MOCK_TREE_DATA
-      console.warn('Unexpected API response format');
+      console.warn('Unexpected API response format or empty data:', data);
       setTreeData([]);
-      setMessage({ type: "error", text: 'Failed to fetch tree data.' });
+      setMessage({ type: "error", text: 'No item groups found. Please create item groups first.' });
     }
   } catch (error) {
     console.error('Tree data fetch error:', error);
-    setMessage({ type: "error", text: 'Failed to fetch tree data.' });
-    setTreeData([]); // Set empty array instead of mock data
+    setMessage({ type: "error", text: `Failed to fetch tree data: ${error.message}` });
+    setTreeData([]);
   }
 };
 
@@ -411,31 +431,29 @@ const getMaxPrefixFromAPI = async () => {
     setMessage(null);
     
     try {
-      // Prepare request data
+      // Prepare request data matching API expected field names
       const requestData = {
-        fCompCode: FCompCode,
-        fItemCode: formData.fitemCode || '',
-        fItemName: formData.itemName || '',
-        fParent: mainGroup || '',
-        fShort: formData.shortName || '',
-        fBrand: formData.brand || '',
-        fCategory: formData.category || '',
-        fProduct: formData.product || '',
-        fModel: formData.model || '',
-        fSize: formData.size || '',
-        fMax: formData.max || '',
-        fMin: formData.min || '',
-        fPrefix: formData.prefix || '',
-        ftax: formData.gstin || '',
-        gstcheckbox: formData.gst || 'N',
-        manualprefix: formData.manualprefix || 'N',
-        fHSN: formData.hsnCode || '',
-        fPieceRate: formData.pieceRate || 'N',
-        fType: formData.type || '',
-        fSellingPrice: formData.sellingPrice || '',
+        fitemCode: formData.fitemCode || '',
+        fitemName: formData.itemName || '',
+        groupName: mainGroup || '',
+        shortName: formData.shortName || '',
+        fbrand: fieldCodes.brandCode || '',
+        fcategory: fieldCodes.categoryCode || '',
+        fproduct: fieldCodes.productCode || '',
+        fmodel: fieldCodes.modelCode || '',
+        fsize: fieldCodes.sizeCode || '',
+        fmax: formData.max || '',
+        fmin: formData.min || '',
+        prefix: formData.prefix || '',
+        gstNumber: formData.gstin || '',
+        gst: formData.gst === 'Y' ? 'Y' : 'N',
+        manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
+        hsnCode: formData.hsnCode || '',
+        pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
+        ftype: 'sc',
+        fSellPrice: formData.sellingPrice || '',
         fCostPrice: formData.costPrice || '',
-        fUnit: formData.unit || '',
-        fUnitCode: formData.unitCode || '',
+        fUnits:  '',
       };
 
       console.log('Submitting data:', requestData);
@@ -558,124 +576,141 @@ const getMaxPrefixFromAPI = async () => {
   }
 }, []);
 
-  // Fetch functions for popups
+  // Fetch functions for popups (Brand, Category, Product, Model, Size, Unit)
   const fetchBrands = useCallback(async (page = 1, search = '') => {
     try {
-      const response = await axios.get(
-        `${API_ENDPOINTS.BRANDS.get}?page=${page}&search=${encodeURIComponent(search)}`
-      );
-      
-      if (response.data && Array.isArray(response.data)) {
-        return response.data.map((item) => ({
-          fname: item.fbrandName || item.name || '',
-          fcode: item.fbrandCode || item.code || ''
+      const response = await apiService.get(API_ENDPOINTS.BRAND.GET_BRANDS, { page, search });
+      const data = Array.isArray(response) ? response : (response?.data || response);
+      console.debug('fetchBrands response:', data);
+
+      if (Array.isArray(data)) {
+        return data.map((item) => ({
+          fname: item.fBrand || item.fbrand || item.fBrandName || item.fName || item.name || item.label || '',
+          fcode: item.fCode || item.fcode || item.code || ''
         }));
       }
-      
-      return MOCK_BRANDS_DATA;
+
+      return [];
     } catch (err) {
       console.error('fetchBrands error', err);
-      return MOCK_BRANDS_DATA;
+      return [];
     }
   }, []);
 
   const fetchCategories = useCallback(async (page = 1, search = '') => {
     try {
-      const response = await axios.get(
-        `${API_ENDPOINTS.CATEGORIES.get}?page=${page}&search=${encodeURIComponent(search)}`
-      );
-      
-      if (response.data && Array.isArray(response.data)) {
-        return response.data.map((item) => ({
-          fname: item.fcategoryName || item.name || '',
-          fcode: item.fcategoryCode || item.code || ''
+      const response = await apiService.get(API_ENDPOINTS.CATEGORY.GET_CATEGORIES, { page, search });
+      let data = Array.isArray(response) ? response : (response?.data || response);
+      console.debug('fetchCategories raw response:', response);
+
+      // Normalize some common wrapped shapes
+      if (!data) data = [];
+      if (!Array.isArray(data)) {
+        // handle { data: [...] } (already attempted), or { Result: [...] }, or { items: [...] }
+        data = response?.Result || response?.result || response?.items || response?.Items || response?.data || data;
+      }
+
+      // If still not array but is object with keys mapping to categories, convert to array
+      if (!Array.isArray(data) && typeof data === 'object') {
+        data = Object.values(data);
+      }
+
+      // If API returns array of strings, convert to objects
+      if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+        return data.map((name) => ({ fname: name, fcode: '' }));
+      }
+
+      if (Array.isArray(data)) {
+        return data.map((item) => ({
+          fname: item.catName || item.catname || item.fCategoryName || item.fcategoryName || item.fCategory || item.categoryName || item.name || item.label || item.fName || '',
+          fcode: item.catCode || item.catcode || item.fCategoryCode || item.fcategoryCode || item.fCode || item.code || item.fId || item.id || ''
         }));
       }
-      
-      return MOCK_CATEGORIES_DATA;
+
+      return [];
     } catch (err) {
       console.error('fetchCategories error', err);
-      return MOCK_CATEGORIES_DATA;
+      return [];
     }
   }, []);
 
   const fetchProducts = useCallback(async (page = 1, search = '') => {
     try {
-      const response = await axios.get(
-        `${API_ENDPOINTS.PRODUCTS.get}?page=${page}&search=${encodeURIComponent(search)}`
-      );
-      
-      if (response.data && Array.isArray(response.data)) {
-        return response.data.map((item) => ({
-          fname: item.fproductName || item.name || '',
-          fcode: item.fproductCode || item.code || ''
+      const response = await apiService.get(API_ENDPOINTS.PRODUCT.GET_PRODUCTS, { page, search });
+      const data = Array.isArray(response) ? response : (response?.data || response);
+      console.debug('fetchProducts response:', data);
+
+      if (Array.isArray(data)) {
+        return data.map((item) => ({
+          fname: item.fproductname || item.fProductName || item.fproductName || item.fProduct || item.fproduct || item.name || item.label || '',
+          fcode: item.fproductcode || item.fProductCode || item.fproductCode || item.fCode || item.code || ''
         }));
       }
-      
-      return MOCK_PRODUCTS_DATA;
+
+      return [];
     } catch (err) {
       console.error('fetchProducts error', err);
-      return MOCK_PRODUCTS_DATA;
+      return [];
     }
   }, []);
 
   const fetchModels = useCallback(async (page = 1, search = '') => {
     try {
-      const response = await axios.get(
-        `${API_ENDPOINTS.MODELS.get}?page=${page}&search=${encodeURIComponent(search)}`
-      );
-      
-      if (response.data && Array.isArray(response.data)) {
-        return response.data.map((item) => ({
-          fname: item.fmodelName || item.name || '',
-          fcode: item.fmodelCode || item.code || ''
+      const response = await apiService.get(API_ENDPOINTS.MODELCREATION.GET_MODEL_ITEMS, { page, search });
+      const data = Array.isArray(response) ? response : (response?.data || response);
+      console.debug('fetchModels response:', data);
+
+      if (Array.isArray(data)) {
+        return data.map((item) => ({
+          fname: item.fname || item.fName || item.fmodelName || item.fModel || item.name || item.label || '',
+          fcode: item.fcode || item.fCode || item.fmodelCode || item.fModelCode || item.code || ''
         }));
       }
-      
-      return MOCK_MODELS_DATA;
+
+      return [];
     } catch (err) {
       console.error('fetchModels error', err);
-      return MOCK_MODELS_DATA;
+      return [];
     }
   }, []);
 
   const fetchSizes = useCallback(async (page = 1, search = '') => {
     try {
-      const response = await axios.get(
-        `${API_ENDPOINTS.SIZES.get}?page=${page}&search=${encodeURIComponent(search)}`
-      );
-      
-      if (response.data && Array.isArray(response.data)) {
-        return response.data.map((item) => ({
-          fname: item.fsizeName || item.name || '',
-          fcode: item.fsizeCode || item.code || ''
+      const response = await apiService.get(API_ENDPOINTS.SIZECREATION.GET_SIZE_ITEMS, { page, search });
+      const data = Array.isArray(response) ? response : (response?.data || response);
+      console.debug('fetchSizes response:', data);
+
+      if (Array.isArray(data)) {
+        return data.map((item) => ({
+          fname: item.fsize || item.fSize || item.fsizeName || item.size || item.name || item.label || '',
+          fcode: item.fcode || item.fCode || item.fsizeCode || item.fSizeCode || item.fCode || item.code || ''
         }));
       }
-      
-      return MOCK_SIZES_DATA;
+
+      return [];
     } catch (err) {
       console.error('fetchSizes error', err);
-      return MOCK_SIZES_DATA;
+      return [];
     }
   }, []);
 
   const fetchUnits = useCallback(async (page = 1, search = '') => {
     try {
-      const response = await axios.get(
-        `${API_ENDPOINTS.UNITS.get}?page=${page}&search=${encodeURIComponent(search)}`
-      );
-      
-      if (response.data && Array.isArray(response.data)) {
-        return response.data.map((item) => ({
-          fname: item.funitName || item.name || '',
-          fcode: item.funitCode || item.code || ''
+      const response = await apiService.get(API_ENDPOINTS.UNITCREATION.GET_SIZE_ITEMS, { page, search });
+      const data = Array.isArray(response) ? response : (response?.data || response);
+      console.debug('fetchUnits response:', data);
+
+      if (Array.isArray(data)) {
+        return data.map((item) => ({
+          fname: item.unitName || item.unitname || item.funitName || item.fUnit || item.unit || item.name || item.label || '',
+          fcode: item.uCode || item.UCode || item.ucode || item.funitCode || item.fUnitCode || item.fCode || item.code || ''
         }));
       }
-      
-      return MOCK_UNITS_DATA;
+
+      return [];
     } catch (err) {
       console.error('fetchUnits error', err);
-      return MOCK_UNITS_DATA;
+      return [];
     }
   }, []);
 
@@ -1513,35 +1548,23 @@ const getMaxPrefixFromAPI = async () => {
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <button
-              className={`action-pill ${actionType === 'create' ? 'primary' : ''}`}
+            <AddButton
               onClick={() => changeActionType('create')}
               disabled={isSubmitting || !formPermissions.add}
-              type="button"
-              title={!formPermissions.add ? "You don't have permission to create" : "Create new item"}
-            >
-              <Icon.Plus /> Create
-            </button>
+              isActive={actionType === 'create'}
+            />
 
-            <button
-              className={`action-pill ${actionType === 'edit' ? 'warn' : ''}`}
+            <EditButton
               onClick={() => { changeActionType('edit'); setIsPopupOpen(true); }}
               disabled={isSubmitting || !formPermissions.edit}
-              type="button"
-              title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing item"}
-            >
-              <Icon.Edit /> Edit
-            </button>
+              isActive={actionType === 'edit'}
+            />
 
-            <button
-              className={`action-pill ${actionType === 'delete' ? 'danger' : ''}`}
+            <DeleteButton
               onClick={() => { changeActionType('delete'); setIsPopupOpen(true); }}
               disabled={isSubmitting || !formPermissions.delete}
-              type="button"
-              title={!formPermissions.delete ? "You don't have permission to delete" : "Delete item"}
-            >
-              <Icon.Trash /> Delete
-            </button>
+              isActive={actionType === 'delete'}
+            />
           </div>
         </div>
 
@@ -2286,14 +2309,15 @@ const getMaxPrefixFromAPI = async () => {
         onClose={() => setIsBrandPopupOpen(false)}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, brand: item.fname || '' }));
+          setFieldCodes(prev => ({ ...prev, brandCode: item.fcode || '' }));
           setIsBrandPopupOpen(false);
         }}
         fetchItems={fetchBrands}
         title="Select Brand"
-        displayFieldKeys={['fname']}
-        searchFields={['fname']}
-        headerNames={['Brand Name']}
-        columnWidths={{ fname: '100%' }}
+        displayFieldKeys={['fcode', 'fname']}
+        searchFields={['fcode', 'fname']}
+        headerNames={['Code', 'Brand Name']}
+        columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
@@ -2304,14 +2328,15 @@ const getMaxPrefixFromAPI = async () => {
         onClose={() => setIsCategoryPopupOpen(false)}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, category: item.fname || '' }));
+          setFieldCodes(prev => ({ ...prev, categoryCode: item.fcode || '' }));
           setIsCategoryPopupOpen(false);
         }}
         fetchItems={fetchCategories}
         title="Select Category"
-        displayFieldKeys={['fname']}
-        searchFields={['fname']}
-        headerNames={['Category Name']}
-        columnWidths={{ fname: '100%' }}
+        displayFieldKeys={['fcode', 'fname']}
+        searchFields={['fcode', 'fname']}
+        headerNames={['Code', 'Category Name']}
+        columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
@@ -2322,14 +2347,15 @@ const getMaxPrefixFromAPI = async () => {
         onClose={() => setIsProductPopupOpen(false)}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, product: item.fname || '' }));
+          setFieldCodes(prev => ({ ...prev, productCode: item.fcode || '' }));
           setIsProductPopupOpen(false);
         }}
         fetchItems={fetchProducts}
         title="Select Product"
-        displayFieldKeys={['fname']}
-        searchFields={['fname']}
-        headerNames={['Product Name']}
-        columnWidths={{ fname: '100%' }}
+        displayFieldKeys={['fcode', 'fname']}
+        searchFields={['fcode', 'fname']}
+        headerNames={['Code', 'Product Name']}
+        columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
@@ -2340,14 +2366,15 @@ const getMaxPrefixFromAPI = async () => {
         onClose={() => setIsModelPopupOpen(false)}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, model: item.fname || '' }));
+          setFieldCodes(prev => ({ ...prev, modelCode: item.fcode || '' }));
           setIsModelPopupOpen(false);
         }}
         fetchItems={fetchModels}
         title="Select Model"
-        displayFieldKeys={['fname']}
-        searchFields={['fname']}
-        headerNames={['Model Name']}
-        columnWidths={{ fname: '100%' }}
+        displayFieldKeys={['fcode', 'fname']}
+        searchFields={['fcode', 'fname']}
+        headerNames={['Code', 'Model Name']}
+        columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
@@ -2358,14 +2385,15 @@ const getMaxPrefixFromAPI = async () => {
         onClose={() => setIsSizePopupOpen(false)}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, size: item.fname || '' }));
+          setFieldCodes(prev => ({ ...prev, sizeCode: item.fcode || '' }));
           setIsSizePopupOpen(false);
         }}
         fetchItems={fetchSizes}
         title="Select Size"
-        displayFieldKeys={['fname']}
-        searchFields={['fname']}
-        headerNames={['Size']}
-        columnWidths={{ fname: '100%' }}
+        displayFieldKeys={['fcode', 'fname']}
+        searchFields={['fcode', 'fname']}
+        headerNames={['Code', 'Size Name']}
+        columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
