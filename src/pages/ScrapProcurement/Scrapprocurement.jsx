@@ -5,7 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const Scrapprocurement = () => {
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('all');
-  
+
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: 'SC00001AA',
@@ -25,14 +25,14 @@ const Scrapprocurement = () => {
 
   // 2. Table Items State
   const [items, setItems] = useState([
-    { 
-      id: 1, 
+    {
+      id: 1,
       sNo: 1,
-      scrapProductName: '', 
-      itemName: '', 
-      uom: '', 
-      tax: '', 
-      sRate: '', 
+      scrapProductName: '',
+      itemName: '',
+      uom: '',
+      tax: '',
+      sRate: '',
       qty: '',
       amount: '0.00'
     }
@@ -75,7 +75,7 @@ const Scrapprocurement = () => {
       const isMobile = width < 640;
       const isTablet = width >= 640 && width < 1024;
       const isDesktop = width >= 1024;
-      
+
       setScreenSize({
         width,
         height,
@@ -94,7 +94,7 @@ const Scrapprocurement = () => {
   useEffect(() => {
     const qtyTotal = items.reduce((acc, item) => acc + (parseFloat(item.qty) || 0), 0);
     const amountTotal = items.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
-    
+
     setTotalQty(qtyTotal);
     setTotalAmount(amountTotal);
   }, [items]);
@@ -128,25 +128,25 @@ const Scrapprocurement = () => {
       alert("Please enter scrap product name");
       return;
     }
-    
+
     // Check if scrap product already exists in items
-    const existingItemIndex = items.findIndex(item => 
+    const existingItemIndex = items.findIndex(item =>
       item.scrapProductName === billDetails.scrapProductInput && item.scrapProductName !== ''
     );
-    
+
     if (existingItemIndex !== -1) {
       // If scrap product exists, increase quantity by 1
       const updatedItems = [...items];
       const existingItem = updatedItems[existingItemIndex];
       const newQty = (parseFloat(existingItem.qty) || 0) + 1;
       const newAmount = calculateAmount(newQty, existingItem.sRate);
-      
+
       updatedItems[existingItemIndex] = {
         ...existingItem,
         qty: newQty.toString(),
         amount: newAmount
       };
-      
+
       setItems(updatedItems);
     } else {
       // Add new item with the scrap product
@@ -161,10 +161,10 @@ const Scrapprocurement = () => {
         qty: '1',
         amount: '50.00'
       };
-      
+
       setItems([...items, newItem]);
     }
-    
+
     // Clear scrap product input and focus
     setBillDetails(prev => ({ ...prev, scrapProductInput: '' }));
     if (scrapProductRef.current) scrapProductRef.current.focus();
@@ -189,14 +189,14 @@ const Scrapprocurement = () => {
     setItems(items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
-        
+
         // Recalculate amount if qty or sRate changes
         if (field === 'qty' || field === 'sRate') {
           const qty = field === 'qty' ? value : updatedItem.qty;
           const sRate = field === 'sRate' ? value : updatedItem.sRate;
           updatedItem.amount = calculateAmount(qty, sRate);
         }
-        
+
         return updatedItem;
       }
       return item;
@@ -253,7 +253,7 @@ const Scrapprocurement = () => {
     // Get the item to be deleted for the confirmation message
     const itemToDelete = items.find(item => item.id === id);
     const itemName = itemToDelete?.scrapProductName || 'this scrap product';
-    
+
     // Show confirmation dialog
     if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
       if (items.length > 1) {
@@ -301,17 +301,17 @@ const Scrapprocurement = () => {
         type: 'Retail',
         transType: 'SCRAP PROCUREMENT'
       });
-      
+
       // Keep a single empty row after clearing
       setItems([
-        { 
-          id: 1, 
+        {
+          id: 1,
           sNo: 1,
-          scrapProductName: '', 
-          itemName: '', 
-          uom: '', 
-          tax: '', 
-          sRate: '', 
+          scrapProductName: '',
+          itemName: '',
+          uom: '',
+          tax: '',
+          sRate: '',
           qty: '',
           amount: '0.00'
         }
@@ -461,7 +461,7 @@ const Scrapprocurement = () => {
       fontSize: TYPOGRAPHY.fontSize.xs,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
-      backgroundColor: '#1B91DA', 
+      backgroundColor: '#1B91DA',
       color: 'white',
       padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
       textAlign: 'center',
@@ -647,7 +647,7 @@ const Scrapprocurement = () => {
           {/* Bill No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Bill No:</label>
-            <input 
+            <input
               type="text"
               style={styles.inlineInput}
               value={billDetails.billNo}
@@ -666,7 +666,7 @@ const Scrapprocurement = () => {
             <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
-              style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
+              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
               value={billDetails.billDate}
               name="billDate"
               onChange={handleInputChange}
@@ -751,7 +751,7 @@ const Scrapprocurement = () => {
             />
           </div>
 
-         
+
 
           {/* Scrap Product Name */}
           <div style={styles.formField}>
@@ -776,7 +776,7 @@ const Scrapprocurement = () => {
           </div>
         </div>
 
-        
+
       </div>
 
       {/* --- TABLE SECTION --- */}
@@ -856,7 +856,7 @@ const Scrapprocurement = () => {
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={{...styles.editableInput, fontWeight: 'bold'}}
+                      style={{ ...styles.editableInput, fontWeight: 'bold' }}
                       value={item.qty}
                       data-row={index}
                       data-field="qty"
@@ -867,7 +867,7 @@ const Scrapprocurement = () => {
                   </td>
                   <td style={{ ...styles.td, ...styles.amountContainer }}>
                     <input
-                      style={{...styles.editableInput, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff'}}
+                      style={{ ...styles.editableInput, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff' }}
                       value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
@@ -929,8 +929,8 @@ const Scrapprocurement = () => {
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
-          <ActionButtons 
-            activeButton={activeTopAction} 
+          <ActionButtons
+            activeButton={activeTopAction}
             onButtonClick={(type) => {
               setActiveTopAction(type);
               if (type === 'add') handleAddRow();

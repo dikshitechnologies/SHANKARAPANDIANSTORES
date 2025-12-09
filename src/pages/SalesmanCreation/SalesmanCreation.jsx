@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import apiService from '../../api/apiService';
-import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
-// Inline SVG icons (matching ItemGroupCreation style)
+// --- Inline SVG icons ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -31,11 +29,6 @@ const Icon = {
       <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 16.88 16.88z" />
     </svg>
   ),
-  Refresh: ({ size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M17.65 6.35A8 8 0 103.95 15.5H6a6 6 0 118.9-5.31l-1.9-1.9h6v6l-2.35-2.35z" />
-    </svg>
-  ),
   Check: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
       <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
@@ -48,18 +41,26 @@ const Icon = {
   ),
 };
 
-export default function ScrapCreation() {
+// Sample initial salesmen data
+const initialSalesmen = [
+  { id: 1, salesmanCode: "001", salesmanName: "John Smith" },
+  { id: 2, salesmanCode: "002", salesmanName: "Jane Doe" },
+  { id: 3, salesmanCode: "003", salesmanName: "Robert Johnson" },
+  { id: 4, salesmanCode: "004", salesmanName: "Emily Davis" },
+  { id: 5, salesmanCode: "005", salesmanName: "Michael Wilson" },
+];
+
+export default function SalesmanCreation() {
   // ---------- state ----------
-  const [scraps, setScraps] = useState([]);
+  const [salesmen, setSalesmen] = useState(initialSalesmen);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
-  const [form, setForm] = useState({
-    scrapCode: "",
-    scrapName: ""
+  const [form, setForm] = useState({ 
+    salesmanCode: "", 
+    salesmanName: ""
   });
-
+  
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
@@ -74,244 +75,119 @@ export default function ScrapCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const scrapCodeRef = useRef(null);
-  const scrapNameRef = useRef(null);
+  const salesmanCodeRef = useRef(null);
+  const salesmanNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Base URL for API
-  const BASE_URL = "http://dikshiserver/spstorewebapi/api";
-
-  // ---------- API functions ----------
-  const fetchNextScrapCode = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_NEXT_SCRAP_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, scrapCode: data.trim() }));
-      } else if (data && (data.nextScrapCode || data.scrapCode || data.fcode)) {
-        setForm(prev => ({ ...prev, scrapCode: data.nextScrapCode || data.scrapCode || data.fcode }));
-      } else if (data && data.nextCode) {
-        setForm(prev => ({ ...prev, scrapCode: data.nextCode }));
-      } else {
-        // Fallback: if API doesn't return a code, generate locally
-        generateLocalNextCode();
-      }
-      return data;
-    } catch (err) {
-      console.error("API Error fetching next scrap code:", err);
-      // Fallback: generate local code if API fails
-      generateLocalNextCode();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateLocalNextCode = () => {
-    if (scraps.length === 0) {
-      setForm(prev => ({ ...prev, scrapCode: "001" }));
-    } else {
-      // Get highest numeric code and increment
-      const maxCode = Math.max(...scraps.map(s => {
-        const code = s.scrapCode || s.fcode || s.scrapCode;
-        return parseInt(code) || 0;
-      }));
-      const nextCode = (maxCode + 1).toString().padStart(3, '0');
-      setForm(prev => ({ ...prev, scrapCode: nextCode }));
-    }
-  };
-
-  const fetchScraps = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_ITEMS);
-
-      // Transform API response to match our expected format
-      const transformedData = Array.isArray(data)
-        ? data.map(item => ({
-          id: item.id || item.scrapCode,
-          scrapCode: item.scrapCode || item.fcode || item.code,
-          scrapName: item.scrapName || item.name || item.scrapName
-        }))
-        : [];
-
-      setScraps(transformedData);
-      setMessage(null);
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load scrap items" });
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getScrapByCode = async (code) => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_BY_CODE(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch scrap" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createScrap = async (scrapData) => {
-    try {
-      setLoading(true);
-
-      // Prepare payload based on your API requirements
-      const payload = {
-        scrapCode: scrapData.scrapCode,
-        scrapName: scrapData.scrapName.toUpperCase(),
-        // Add other fields if required by your API
-      };
-
-      const data = await apiService.post(API_ENDPOINTS.SCRAP_CREATION.CREATE_SCRAP, payload);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to create scrap" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateScrap = async (scrapData) => {
-    try {
-      setLoading(true);
-
-      // Prepare payload based on your API requirements
-      const payload = {
-        scrapCode: scrapData.scrapCode,
-        scrapName: scrapData.scrapName.toUpperCase(),
-        // Add other fields if required by your API
-      };
-
-      const data = await apiService.put(API_ENDPOINTS.SCRAP_CREATION.UPDATE_SCRAP, payload);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to update scrap" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteScrap = async (scrapCode) => {
-    try {
-      setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.SCRAP_CREATION.DELETE_SCRAP(scrapCode));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete scrap" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+  // Generate next salesman code
+  const generateNextSalesmanCode = () => {
+    if (salesmen.length === 0) return "001";
+    
+    // Get highest numeric code and increment
+    const maxCode = Math.max(...salesmen.map(s => parseInt(s.salesmanCode) || 0));
+    const nextCode = (maxCode + 1).toString().padStart(3, '0');
+    return nextCode;
   };
 
   // ---------- effects ----------
   useEffect(() => {
-    loadInitial();
     const handleResize = () => {
       const width = window.innerWidth;
       setScreenWidth(width);
       setIsMobile(width <= 768);
     };
-
+    
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
-    if (scrapCodeRef.current) scrapCodeRef.current.focus();
+    if (salesmanCodeRef.current) salesmanCodeRef.current.focus();
+    // Set initial salesman code
+    const nextCode = generateNextSalesmanCode();
+    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
   }, []);
 
   // ---------- handlers ----------
-  const loadInitial = async () => {
-    await Promise.all([fetchScraps(), fetchNextScrapCode()]);
+  const loadInitial = () => {
+    const nextCode = generateNextSalesmanCode();
+    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
   };
 
   const handleEdit = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    if (!form.salesmanCode || !form.salesmanName) {
+      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to update salesman "${form.salesmanName}"?`)) return;
 
     try {
-      const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
-      await updateScrap(scrapData);
-      await loadInitial();
-
-      setMessage({ type: "success", text: "Scrap updated successfully." });
+      setSalesmen(prev => 
+        prev.map(salesman => 
+          salesman.salesmanCode === form.salesmanCode 
+            ? { ...salesman, salesmanName: form.salesmanName }
+            : salesman
+        )
+      );
+      
+      setMessage({ type: "success", text: "Salesman updated successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in updateScrap
+      setMessage({ type: "error", text: "Failed to update salesman." });
     }
   };
 
   const handleDelete = async () => {
-    if (!form.scrapCode) {
-      setMessage({ type: "error", text: "Please select a scrap to delete." });
+    if (!form.salesmanCode) {
+      setMessage({ type: "error", text: "Please select a salesman to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to delete salesman "${form.salesmanName}"?`)) return;
 
     try {
-      await deleteScrap(form.scrapCode);
-      await loadInitial();
-
-      setMessage({ type: "success", text: "Scrap deleted successfully." });
+      setSalesmen(prev => prev.filter(salesman => salesman.salesmanCode !== form.salesmanCode));
+      
+      setMessage({ type: "success", text: "Salesman deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced scraps
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        setMessage({
-          type: "error",
-          text: `Cannot delete scrap "${form.scrapName}". It is referenced in other tables and cannot be removed.`
-        });
-      }
+      setMessage({ type: "error", text: "Failed to delete salesman." });
     }
   };
 
   const handleAdd = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    if (!form.salesmanCode || !form.salesmanName) {
+      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
 
-    // Check if scrap code already exists
-    const exists = scraps.some(s => s.scrapCode === form.scrapCode);
+    // Check if salesman code already exists
+    const exists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
     if (exists) {
-      setMessage({ type: "error", text: `Scrap code ${form.scrapCode} already exists.` });
+      setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
       return;
     }
 
-    if (!window.confirm(`Do you want to create scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to create salesman "${form.salesmanName}"?`)) return;
 
     try {
-      const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
-      await createScrap(scrapData);
-      await loadInitial();
-
-      setMessage({ type: "success", text: "Scrap created successfully." });
+      const newSalesman = {
+        id: salesmen.length + 1,
+        salesmanCode: form.salesmanCode,
+        salesmanName: form.salesmanName
+      };
+      
+      setSalesmen(prev => [...prev, newSalesman]);
+      
+      setMessage({ type: "success", text: "Salesman created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createScrap
+      setMessage({ type: "error", text: "Failed to create salesman." });
     }
   };
 
@@ -322,8 +198,8 @@ export default function ScrapCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextScrapCode();
-    setForm(prev => ({ ...prev, scrapName: "" }));
+    const nextCode = generateNextSalesmanCode();
+    setForm({ salesmanCode: nextCode, salesmanName: "" });
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -331,7 +207,7 @@ export default function ScrapCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -340,11 +216,11 @@ export default function ScrapCreation() {
   };
 
   const handleEditRowClick = (s) => {
-    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+    setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
     setActionType("edit");
-    setEditingId(s.scrapCode);
+    setEditingId(s.salesmanCode);
     setEditModalOpen(false);
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -352,86 +228,82 @@ export default function ScrapCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? scraps.filter(s => (s.scrapCode || '').toLowerCase().includes(q) || (s.scrapName || '').toLowerCase().includes(q))
-      : scraps;
+      ? salesmen.filter(s => 
+          (s.salesmanCode || '').toLowerCase().includes(q) || 
+          (s.salesmanName || '').toLowerCase().includes(q)
+        )
+      : salesmen;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [scraps]);
+  }, [salesmen]);
 
   const handleDeleteRowClick = (s) => {
-    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+    setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
     setActionType("delete");
-    setDeleteTargetId(s.scrapCode);
+    setDeleteTargetId(s.salesmanCode);
     setDeleteModalOpen(false);
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
-  const onScrapCodeKeyDown = (e) => {
+  const onSalesmanCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      scrapNameRef.current?.focus();
+      salesmanNameRef.current?.focus();
     }
   };
 
-  const onScrapNameKeyDown = (e) => {
+  const onSalesmanNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
     }
   };
 
-  const stopEnterPropagation = (e) => {
-    if (e.key === "Enter") {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  };
-
   // ---------- filters ----------
-  const filteredEditScraps = useMemo(() => {
+  const filteredEditSalesmen = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return scraps;
-    return scraps.filter(
+    if (!q) return salesmen;
+    return salesmen.filter(
       (s) =>
-        (s.scrapCode || "").toLowerCase().includes(q) ||
-        (s.scrapName || "").toLowerCase().includes(q)
+        (s.salesmanCode || "").toLowerCase().includes(q) ||
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, scraps]);
+  }, [editQuery, salesmen]);
 
-  const filteredDeleteScraps = useMemo(() => {
+  const filteredDeleteSalesmen = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return scraps;
-    return scraps.filter(
+    if (!q) return salesmen;
+    return salesmen.filter(
       (s) =>
-        (s.scrapCode || "").toLowerCase().includes(q) ||
-        (s.scrapName || "").toLowerCase().includes(q)
+        (s.salesmanCode || "").toLowerCase().includes(q) ||
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, scraps]);
+  }, [deleteQuery, salesmen]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return scraps;
-    return scraps.filter(
-      (s) =>
-        (s.scrapCode || "").toLowerCase().includes(q) ||
-        (s.scrapName || "").toLowerCase().includes(q)
+    if (!q) return salesmen;
+    return salesmen.filter(
+      (s) => 
+        (s.salesmanCode || "").toLowerCase().includes(q) || 
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, scraps]);
+  }, [existingQuery, salesmen]);
 
   // ---------- render ----------
   return (
-    <div className="uc-root" role="region" aria-labelledby="scrap-creation-title">
+    <div className="uc-root" role="region" aria-labelledby="salesman-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* blue theme (matching ItemGroupCreation style) */
+          /* blue theme */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
@@ -456,7 +328,7 @@ export default function ScrapCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 18px; /* increased base font size */
+          font-size: 14px;
           box-sizing: border-box;
         }
 
@@ -492,13 +364,13 @@ export default function ScrapCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px; /* slightly larger title */
+          font-size: 18px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
         .subtitle {
           color: var(--muted);
-          font-size: 16px;
+          font-size: 14px;
         }
 
         /* action pills */
@@ -519,7 +391,7 @@ export default function ScrapCreation() {
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
-          font-size: 18px;
+          font-size: 14px;
           transition: all 0.2s;
           white-space: nowrap;
         }
@@ -558,7 +430,7 @@ export default function ScrapCreation() {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:18px;
+          font-size:14px;
           text-align: left;
           width: 100%;
         }
@@ -583,7 +455,7 @@ export default function ScrapCreation() {
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
-          font-size:18px;
+          font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
@@ -635,7 +507,7 @@ export default function ScrapCreation() {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:15px; }
+        .muted { color: var(--muted); font-size:13px; }
 
         /* message */
         .message {
@@ -643,7 +515,7 @@ export default function ScrapCreation() {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 16px;
+          font-size: 14px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -668,7 +540,7 @@ export default function ScrapCreation() {
           cursor:pointer;
           min-width: 120px;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
@@ -686,8 +558,7 @@ export default function ScrapCreation() {
           border-radius:10px;
           cursor:pointer;
           transition: all 0.2s;
-          font-size: 18px;
-
+          font-size: 14px;
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
@@ -706,7 +577,7 @@ export default function ScrapCreation() {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 16px;
+          font-size: 12px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -738,8 +609,8 @@ export default function ScrapCreation() {
           color: #374151;
         }
 
-        /* scraps table */
-        .scraps-table-container {
+        /* salesmen table */
+        .salesmen-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -747,13 +618,13 @@ export default function ScrapCreation() {
           margin-top: 12px;
         }
 
-        .scraps-table {
+        .salesmen-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 18px;
+          font-size: 14px;
         }
 
-        .scraps-table th {
+        .salesmen-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -762,22 +633,22 @@ export default function ScrapCreation() {
           font-weight: 700;
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
-          font-size: 18px;
+          font-size: 14px;
           z-index: 1;
         }
 
-        .scraps-table td {
+        .salesmen-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .scraps-table tr:hover {
+        .salesmen-table tr:hover {
           background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
           cursor: pointer;
         }
 
-        .scraps-table tr.selected {
+        .salesmen-table tr.selected {
           background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
@@ -870,7 +741,7 @@ export default function ScrapCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .scraps-table-container {
+          .salesmen-table-container {
             max-height: 300px;
           }
         }
@@ -884,27 +755,27 @@ export default function ScrapCreation() {
             border-radius: 12px;
           }
           .title-block h2 {
-            font-size: 18px;
+            font-size: 14px;
           }
           .action-pill {
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 10px;
           }
           .input, .search {
             padding: 8px 10px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .btn {
             padding: 8px 10px;
             min-width: 70px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
             min-width: 0;
           }
-          .scraps-table th,
-          .scraps-table td {
+          .salesmen-table th,
+          .salesmen-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -953,16 +824,17 @@ export default function ScrapCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="scrap-creation-title">
+      <div className="dashboard" aria-labelledby="salesman-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
-              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M18 16v-2a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v2" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
+              <circle cx="12" cy="7" r="4" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
             </svg>
             <div>
-              <h2 id="scrap-creation-title">Scrap Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete scrap items.</div>
+              <h2 id="salesman-creation-title">Salesman Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete salesmen.</div>
             </div>
           </div>
 
@@ -975,41 +847,40 @@ export default function ScrapCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Scrap Code field */}
+            {/* Salesman Code field */}
             <div className="field">
               <label className="field-label">
-                Scrap Code <span className="asterisk">*</span>
+                Salesman Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={scrapCodeRef}
+                  ref={salesmanCodeRef}
                   className="input"
-                  value={form.scrapCode}
-                  onChange={(e) => setForm(s => ({ ...s, scrapCode: e.target.value }))}
-                  placeholder="Scrap code (auto-generated)"
-                  onKeyDown={onScrapCodeKeyDown}
+                  value={form.salesmanCode}
+                  onChange={(e) => setForm(s => ({ ...s, salesmanCode: e.target.value }))}
+                  placeholder="Salesman code (auto-generated)"
+                  onKeyDown={onSalesmanCodeKeyDown}
                   disabled={loading}
-                  aria-label="Scrap Code"
+                  aria-label="Salesman Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
               </div>
             </div>
 
-            {/* Scrap Name field */}
+            {/* Salesman Name field */}
             <div className="field">
               <label className="field-label">
-                Scrap Name <span className="asterisk">*</span>
+                Salesman Name <span className="asterisk">*</span>
               </label>
               <div className="row">
-                <input
-                  ref={scrapNameRef}
-                  className="input"
-                  value={form.scrapName}
-                  onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))}
-                  placeholder="Enter scrap name"
-                  onKeyDown={onScrapNameKeyDown}
+                <input 
+                  ref={salesmanNameRef} 
+                  className="input" 
+                  value={form.salesmanName} 
+                  onChange={(e) => setForm(s => ({ ...s, salesmanName: e.target.value }))} 
+                  onKeyDown={onSalesmanNameKeyDown}
                   disabled={loading}
-                  aria-label="Scrap Name"
+                  aria-label="Salesman Name"
                   readOnly={actionType === "delete"}
                 />
               </div>
@@ -1041,15 +912,15 @@ export default function ScrapCreation() {
                 Clear
               </button>
             </div>
-            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Scraps</div>
+               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Salesmen</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing scraps..."
+                  placeholder="Search existing salesmen..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing scraps"
+                  aria-label="Search existing salesmen"
                 />
                 {existingQuery && (
                   <button
@@ -1058,40 +929,40 @@ export default function ScrapCreation() {
                     type="button"
                     aria-label="Clear search"
                   >
-                    <Icon.Close size={16} />
+                    <Icon.Close size={14} />
                   </button>
                 )}
               </div>
-
-              <div className="scraps-table-container">
+              
+              <div className="salesmen-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading scraps...
+                    Loading salesmen...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {scraps.length === 0 ? "No scraps found" : "No matching scraps"}
+                    {salesmen.length === 0 ? "No salesmen found" : "No matching salesmen"}
                   </div>
                 ) : (
-                  <table className="scraps-table">
+                  <table className="salesmen-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Scrap Name</th>
+                        <th>Salesman Name</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredExisting.map((s) => (
-                        <tr
-                          key={s.scrapCode}
-                          className={form.scrapCode === s.scrapCode ? "selected" : ""}
+                        <tr 
+                          key={s.salesmanCode}
+                          className={form.salesmanCode === s.salesmanCode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+                            setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
                             setActionType("edit");
                           }}
                         >
-                          <td>{s.scrapCode}</td>
-                          <td>{s.scrapName}</td>
+                          <td>{s.salesmanCode}</td>
+                          <td>{s.salesmanName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1105,29 +976,29 @@ export default function ScrapCreation() {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Scrap" : "Delete Scrap"}
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Salesman" : "Delete Salesman"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Scrap Code</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.scrapCode || "Auto-generated"}
+              <div className="muted">Salesman Code</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.salesmanCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Scrap Name</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.scrapName || "Not set"}
+              <div className="muted">Salesman Name</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.salesmanName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing Scraps</div>
-              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
-                {scraps.length}
+              <div className="muted">Existing Salesmen</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
+                {salesmen.length}
               </div>
             </div>
 
@@ -1136,19 +1007,19 @@ export default function ScrapCreation() {
                 <Icon.Info />
                 <div style={{ fontWeight: 700 }}>Quick Tips</div>
               </div>
-
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
+              
+              <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Scrap code is auto-generated for new scraps</span>
+                  <span>Salesman code is auto-generated for new salesmen</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find scraps</span>
+                  <span>For edit/delete, use search modals to find salesmen</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common scraps: METAL, PLASTIC, PAPER, GLASS, RUBBER</span>
+                  <span>Salesmen manage customer relationships and sales</span>
                 </div>
               </div>
             </div>
@@ -1161,11 +1032,11 @@ export default function ScrapCreation() {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap to Edit"
-        displayFieldKeys={['scrapName', 'scrapCode']}
-        searchFields={['scrapName', 'scrapCode']}
-        headerNames={['Scrap Name', 'Code']}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        title="Select Salesman to Edit"
+        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
+        searchFields={[ 'salesmanName', 'salesmanCode' ]}
+        headerNames={[ 'Salesman Name', 'Code' ]}
+        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1174,11 +1045,11 @@ export default function ScrapCreation() {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap to Delete"
-        displayFieldKeys={['scrapName', 'scrapCode']}
-        searchFields={['scrapName', 'scrapCode']}
-        headerNames={['Scrap Name', 'Code']}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        title="Select Salesman to Delete"
+        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
+        searchFields={[ 'salesmanName', 'salesmanCode' ]}
+        headerNames={[ 'Salesman Name', 'Code' ]}
+        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

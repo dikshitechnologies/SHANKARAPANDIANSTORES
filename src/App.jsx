@@ -30,6 +30,7 @@ import ScrapProcurement from './pages/ScrapProcurement/Scrapprocurement'
 import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 import Statecreation from './pages/statecreation/statecreation'
 import Purchasereturn from './pages/Purchasereturn/Purchasereturn'
+import SalesmanCreation from './pages/SalesmanCreation/SalesmanCreation'
 function App() {
   return (
     <div className="app">
@@ -66,6 +67,7 @@ function App() {
            <Route path="/masters/Statecreation" element={<Statecreation />} /> 
           <Route path="/transactions/Purchasereturn" element={<Purchasereturn />} />
           <Route path="/masters/ItemCreation" element={<ItemCreation />} /> 
+          <Route path="/masters/SalesmanCreation" element={<SalesmanCreation />} /> 
         </Routes>
       </main>
     </div>
