@@ -6,6 +6,17 @@ import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 
+// // Calculation helpers
+// const calculateTotals = (items = []) => {
+//   const subTotal = items.reduce((acc, it) => {
+//     const qty = parseFloat(it?.qty) || 0;
+//     const rate = parseFloat(it?.rate) || 0;
+//     return acc + qty * rate;
+//   }, 0);
+//   const total = subTotal; // extend here if you add discounts/charges
+//   const net = total;      // extend here if you add tax/rounding
+//   return { subTotal, total, net };
+// };
 // Calculation helpers
 const calculateTotals = (items = []) => {
   const subTotal = items.reduce((acc, it) => {
@@ -13,10 +24,23 @@ const calculateTotals = (items = []) => {
     const rate = parseFloat(it?.rate) || 0;
     return acc + qty * rate;
   }, 0);
-  const total = subTotal; // extend here if you add discounts/charges
-  const net = total;      // extend here if you add tax/rounding
-  return { subTotal, total, net };
+  
+  // NEW: Calculate sum of amt column
+  const amtTotal = items.reduce((acc, it) => {
+    const amt = parseFloat(it?.amt) || 0;
+    return acc + amt;
+  }, 0);
+  
+  const total = subTotal;
+  const net = amtTotal || subTotal; // Prefer amt total if available
+  return { subTotal, total, net, amtTotal };
 };
+
+// // Then in your component:
+// useEffect(() => {
+//   const { net } = calculateTotals(items);
+//   setNetTotal(net); // This will now use amt total
+// }, [items]);
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
@@ -73,6 +97,7 @@ const PurchaseInvoice = () => {
       ntCost: '',
       wsPercent: '',
       wsRate: '',
+      amt: '',
       min: '',
       max: ''
     }
@@ -80,6 +105,7 @@ const PurchaseInvoice = () => {
 
   // 3. Totals State
   const [netTotal, setNetTotal] = useState(0);
+
 
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const billNoRef = useRef(null);
@@ -129,6 +155,12 @@ const PurchaseInvoice = () => {
   useEffect(() => {
     fetchNextInvNo();
   }, [userData]);
+
+  useEffect(() => {
+      const { net } = calculateTotals(items);
+      setNetTotal(net); // This will now use amt total
+    }, [items]);
+
 
   // Update screen size on resize
   useEffect(() => {
@@ -233,6 +265,7 @@ const PurchaseInvoice = () => {
       ntCost: '',
       wsPercent: '',
       wsRate: '',
+      amt: '',
       min: '',
       max: ''
     };
@@ -284,6 +317,8 @@ const handleItemChange = (id, field, value) => {
       // After acost is calculated, also update profitPercent and asRate
       const acost = parseFloat(updatedItem.acost) || 0;
       if (acost > 0) {
+        // Update ntCost to be same as acost
+        updatedItem.ntCost = updatedItem.acost;
         // Calculate 5% of acost as profitPercent
         updatedItem.profitPercent = (acost * 0.05).toFixed(2);
         // Calculate asRate = acost + profitPercent
@@ -291,6 +326,7 @@ const handleItemChange = (id, field, value) => {
       } else {
         updatedItem.profitPercent = '';
         updatedItem.asRate = '';
+        updatedItem.ntCost = '';
       }
     }
     
@@ -302,9 +338,11 @@ const handleItemChange = (id, field, value) => {
         updatedItem.profitPercent = (acost * 0.05).toFixed(2);
         // Calculate asRate = acost + profitPercent
         updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
+        updatedItem.ntCost = acost.toFixed(2);
       } else {
         updatedItem.profitPercent = '';
         updatedItem.asRate = '';
+        updatedItem.ntCost = '';
       }
     }
     
@@ -320,7 +358,34 @@ const handleItemChange = (id, field, value) => {
         updatedItem.asRate = '';
       }
     }
-    
+    if(field === 'acost'|| field === 'sRate') {
+      const acost = parseFloat(updatedItem.acost) || 0;
+      const sRate = parseFloat(updatedItem.sRate) || 0;
+      if(acost > 0) {
+        updatedItem.letProfPer = ((acost / sRate) * 100).toFixed(2);
+      } else {
+        updatedItem.letProfPer = '';
+      }
+    }
+    if(field === 'wsPercent' || field === 'ntCost') {
+      const wsPercent = parseFloat(updatedItem.wsPercent) || 0;
+      const ntCost = parseFloat(updatedItem.ntCost) || 0;
+      if(ntCost > 0) {
+        updatedItem.wsRate = ((ntCost * wsPercent) / 100).toFixed(2);
+      } else {
+        updatedItem.wsRate = '';
+      }
+    }
+    if(field === 'qty' || field === 'prate' || field === 'intax') {
+      const qty = parseFloat(updatedItem.qty) || 0;
+      const prate = parseFloat(updatedItem.prate) || 0;
+      const intax = parseFloat(updatedItem.intax) || 0;
+      if(qty > 0 && prate > 0) {
+        updatedItem.amt = ((qty * prate) + intax).toFixed(2);
+      } else {
+        updatedItem.amt = '';
+      }
+    }
     return updatedItem;
   });
   
@@ -335,7 +400,7 @@ const handleItemChange = (id, field, value) => {
       const fields = [
         'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
         'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 'sRate', 'asRate',
-        'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'min', 'max'
+        'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate','amt', 'min', 'max'
       ];
 
       const currentFieldIndex = fields.indexOf(currentField);
@@ -410,6 +475,7 @@ const handleItemChange = (id, field, value) => {
         ntCost: '',
         wsPercent: '',
         wsRate: '',
+        amt: '',
         min: '',
         max: ''
       }
@@ -493,6 +559,7 @@ const handleItemChange = (id, field, value) => {
           letProfPer: toNumber(it.letProfPer),
           ntCost: toNumber(it.ntCost),
           wsPer: toNumber(it.wsPercent),
+          amt: toNumber(it.amt),
         })),
       };
 
@@ -549,6 +616,7 @@ const handleItemChange = (id, field, value) => {
               ntCost: '',
               wsPercent: '',
               wsRate: '',
+              amt: '',
               min: '',
               max: ''
             }
@@ -1298,8 +1366,24 @@ const handleItemChange = (id, field, value) => {
                       value={item.intax || ''}
                       data-row={index}
                       data-field="intax"
-                      onChange={(e) => handleItemChange(item.id, 'intax', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Only allow numbers and empty string
+                        if (value === '' || /^[0-9]*$/.test(value)) {
+                          handleItemChange(item.id, 'intax', value);
+                        }
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'intax')}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        const validTaxValues = ['3', '5', '12', '18', '40'];
+                        if (value !== '' && !validTaxValues.includes(value)) {
+                          alert('Invalid tax value. Please enter 3, 5, 12, 18, or 40');
+                          // Reset to empty or previous valid value
+                          handleItemChange(item.id, 'intax', '');
+                        }
+                      }}
+                      // placeholder="3,5,12,18,40"
                     />
                   </td>
                   <td style={styles.td}>
@@ -1411,7 +1495,7 @@ const handleItemChange = (id, field, value) => {
                       onChange={(e) => handleItemChange(item.id, 'wsPercent', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsPercent')}
                     />
-                  </td>
+                  </td>                  
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
@@ -1425,11 +1509,11 @@ const handleItemChange = (id, field, value) => {
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
-                      value={item.wsRate || ''}
+                      value={item.amt || ''}
                       data-row={index}
-                      data-field="wsRate"
-                      onChange={(e) => handleItemChange(item.id, 'wsRate', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
+                      data-field="amt"
+                      onChange={(e) => handleItemChange(item.id, 'amt', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'amt')}
                     />
                   </td>
                   {/* <td style={styles.td}>
@@ -1544,7 +1628,10 @@ const handleItemChange = (id, field, value) => {
         </div>
         <div style={styles.netBox}>
           <span>Total Amount:</span>
-          <span>₹ {netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span>
+            {/* ₹ {netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} */}
+            ₹ {netTotal.toFixed(2)}
+            </span>
         </div>
         <div style={styles.footerButtons}>
           <ActionButtons1
