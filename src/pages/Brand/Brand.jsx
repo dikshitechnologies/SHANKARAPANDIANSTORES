@@ -253,7 +253,7 @@ export default function BrandPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Brand updated successfully." });
-      resetForm(true);
+      resetForm();
     } catch (err) {
       // Error message already set in updateBrand
     }
@@ -694,7 +694,7 @@ export default function BrandPage() {
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: rgba(139,92,246,0.3);
+          border-color: #307AC8;
           transform: translateY(-1px);
         }
         
@@ -781,7 +781,7 @@ export default function BrandPage() {
         }
 
         .brands-table tr.selected {
-          background: linear-gradient(90deg, rgba(139,92,246,0.1), rgba(139,92,246,0.05));
+          background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
@@ -960,7 +960,7 @@ export default function BrandPage() {
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#ede9fe" />
+              <rect width="24" height="24" rx="6" fill="#ffffffff" />
               <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 8h8v2H8V8zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" fill="#307AC8" />
             </svg>
             <div>

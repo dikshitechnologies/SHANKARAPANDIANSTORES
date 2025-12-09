@@ -87,10 +87,9 @@ const Navbar = () => {
     { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined /> },
     { name: 'Brand Creation', path: '/masters/brand-creation', icon: <BuildOutlined /> },
     { name: 'Category Creation', path: '/masters/category-creation', icon: <BuildOutlined /> },
-    { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined /> }
-
-     { name: 'Scrap', path: '/masters/Scrap', icon: <BuildOutlined /> },
-     { name: 'Salecreation', path: '/masters/Salecreation', icon: <BuildOutlined /> },
+    { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined /> },
+    { name: 'Scrap', path: '/masters/Scrap', icon: <BuildOutlined /> },
+    { name: 'Salecreation', path: '/masters/Salecreation', icon: <BuildOutlined /> },
      
    
      
@@ -103,7 +102,7 @@ const Navbar = () => {
     { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> },
     { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined  /> },
      { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined /> },
-    { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
+    { name: 'Tender', path: '/transactions/Tender', icon: <DollarOutlined /> },
   {name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> },
    {name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined /> }
     

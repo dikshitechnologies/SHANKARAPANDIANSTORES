@@ -26,8 +26,6 @@ import Category from './pages/category/category'
 import Product from './pages/Product/Product'
 
 import ScrapProcurement from './pages/ScrapProcurement/Scrapprocurement'
-import Tender from './pages/Tender/Tender'
-import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 import Salecreation from './pages/statecreation/statecreation'
 function App() {
   return (
