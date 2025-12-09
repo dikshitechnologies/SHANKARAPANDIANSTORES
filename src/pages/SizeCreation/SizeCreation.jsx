@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+
 // --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
@@ -47,16 +48,16 @@ const Icon = {
   ),
 };
 
-export default function UnitCreation() {
+export default function SizeCreation() {
   // ---------- state ----------
-  const [units, setUnits] = useState([]);
+  const [sizes, setSizes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
     fuCode: "", 
-    unitName: ""
+    sizeName: ""  // Changed from unitName to sizeName
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -73,29 +74,27 @@ export default function UnitCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const unitCodeRef = useRef(null);
-  const unitNameRef = useRef(null);
+  const sizeCodeRef = useRef(null);
+  const sizeNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Base URL for API
-
   // ---------- API functions ----------
-  const fetchNextUnitCode = async () => {
+  const fetchNextSizeCode = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.NEXT_SIZE_CODE);
+      const data = await apiService.get(API_ENDPOINTS.SIZECREATION.NEXT_SIZE_CODE);
       // Support both string and object responses
       if (typeof data === 'string' && data.trim()) {
         setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
+      } else if (data && (data.nextBillNo || data.code || data.fuCode)) {
+        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.code || data.fuCode }));
       }
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next unit code" });
+      setMessage({ type: "error", text: "Failed to load next size code" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -103,41 +102,32 @@ export default function UnitCreation() {
     }
   };
 
-  const fetchUnits = async () => {
+  const fetchSizes = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GET_SIZE_ITEMS);
-      setUnits(data || []);
+      const data = await apiService.get(API_ENDPOINTS.SIZECREATION.GET_SIZE_ITEMS);
+      setSizes(data || []);
       setMessage(null);
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load units" });
+      setMessage({ type: "error", text: "Failed to load sizes" });
       console.error("API Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getUnitByCode = async (code) => {
+  const createSize = async (sizeData) => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GETUNITCODE(code));
+      // API expects fCode and fsize, not sizeName
+      const apiData = { 
+        fCode: sizeData.fCode, 
+        fsize: sizeData.sizeName 
+      };
+      const data = await apiService.post(API_ENDPOINTS.SIZECREATION.CREATE_SIZE, apiData);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch unit" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createUnit = async (unitData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.UNITCREATION.CREATE_SIZE, unitData);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to create unit" });
+      setMessage({ type: "error", text: "Failed to create size" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -145,13 +135,18 @@ export default function UnitCreation() {
     }
   };
 
-  const updateUnit = async (unitData) => {
+  const updateSize = async (sizeData) => {
     try {
       setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.UNITCREATION.UPDATE_SIZE(unitData.fuCode), unitData);
+      // API expects fCode and fsize
+      const apiData = { 
+        fCode: sizeData.fCode, 
+        fsize: sizeData.sizeName 
+      };
+      const data = await apiService.put(API_ENDPOINTS.SIZECREATION.UPDATE_SIZE, apiData);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update unit" });
+      setMessage({ type: "error", text: "Failed to update size" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -159,13 +154,13 @@ export default function UnitCreation() {
     }
   };
 
-  const deleteUnit = async (unitCode) => {
+  const deleteSize = async (sizeCode) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.UNITCREATION.DELETE_SIZE(unitCode));
+      const data = await apiService.del(API_ENDPOINTS.SIZECREATION.DELETE_SIZE(sizeCode));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete unit" });
+      setMessage({ type: "error", text: err.message || "Failed to delete size" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -188,76 +183,75 @@ export default function UnitCreation() {
   }, []);
 
   useEffect(() => {
-    if (unitCodeRef.current) unitCodeRef.current.focus();
+    if (sizeCodeRef.current) sizeCodeRef.current.focus();
   }, []);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchUnits(), fetchNextUnitCode()]);
+    await Promise.all([fetchSizes(), fetchNextSizeCode()]);
   };
 
   const handleEdit = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.fuCode || !form.sizeName) {
+      setMessage({ type: "error", text: "Please fill Size Code and Size Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to update size "${form.sizeName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await updateUnit(unitData);
+      const sizeData = { fCode: form.fuCode, sizeName: form.sizeName };
+      await updateSize(sizeData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit updated successfully." });
+      setMessage({ type: "success", text: "Size updated successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in updateUnit
+      // Error message already set in updateSize
     }
   };
 
   const handleDelete = async () => {
     if (!form.fuCode) {
-      setMessage({ type: "error", text: "Please select a unit to delete." });
+      setMessage({ type: "error", text: "Please select a size to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete unit "${form.unitName}"?`)) return;
-
+    if (!window.confirm(`Do you want to delete size "${form.sizeName}"?`)) return;
     try {
-      await deleteUnit(form.fuCode);
+      await deleteSize(form.fuCode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit deleted successfully." });
+      setMessage({ type: "success", text: "Size deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced units
+      // Special handling for referenced sizes
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete unit "${form.unitName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete size "${form.sizeName}". It is referenced in other tables and cannot be removed.` 
         });
       }
     }
   };
 
   const handleAdd = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.fuCode || !form.sizeName) {
+      setMessage({ type: "error", text: "Please fill Size Code and Size Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to create unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to create size "${form.sizeName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await createUnit(unitData);
+      const sizeData = { fCode: form.fuCode, sizeName: form.sizeName };
+      await createSize(sizeData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit created successfully." });
+      setMessage({ type: "success", text: "Size created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createUnit
+      // Error message already set in createSize
     }
   };
 
@@ -268,8 +262,8 @@ export default function UnitCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextUnitCode();
-    setForm(prev => ({ ...prev, unitName: "" }));
+    fetchNextSizeCode();
+    setForm(prev => ({ ...prev, sizeName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -277,7 +271,7 @@ export default function UnitCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => sizeNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -285,12 +279,16 @@ export default function UnitCreation() {
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleEditRowClick = (size) => {
+    // Map fsize to sizeName for the form
+    setForm({ 
+      fuCode: size.fcode || size.fCode, 
+      sizeName: size.fsize || size.sizeName 
+    });
     setActionType("edit");
-    setEditingId(u.uCode);
+    setEditingId(size.fcode || size.fCode);
     setEditModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => sizeNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -298,33 +296,40 @@ export default function UnitCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? units.filter(u => (u.uCode || '').toLowerCase().includes(q) || (u.unitName || '').toLowerCase().includes(q))
-      : units;
+      ? sizes.filter(s => 
+          (s.fcode || s.fCode || s.fuCode || '').toString().toLowerCase().includes(q) || 
+          (s.fsize || s.sizeName || '').toString().toLowerCase().includes(q)
+        )
+      : sizes;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [units]);
+  }, [sizes]);
 
-  const handleDeleteRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleDeleteRowClick = (size) => {
+    // Map fsize to sizeName for the form
+    setForm({ 
+      fuCode: size.fcode || size.fCode, 
+      sizeName: size.fsize || size.sizeName 
+    });
     setActionType("delete");
-    setDeleteTargetId(u.uCode);
+    setDeleteTargetId(size.fcode || size.fCode);
     setDeleteModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => sizeNameRef.current?.focus(), 60);
   };
 
-  const onUnitCodeKeyDown = (e) => {
+  const onSizeCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      unitNameRef.current?.focus();
+      sizeNameRef.current?.focus();
     }
   };
 
-  const onUnitNameKeyDown = (e) => {
+  const onSizeNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -339,39 +344,44 @@ export default function UnitCreation() {
   };
 
   // ---------- filters ----------
-  const filteredEditUnits = useMemo(() => {
+  const filteredEditSizes = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return sizes;
+    return sizes.filter(
+      (s) =>
+        (s.fcode || s.fCode || "").toLowerCase().includes(q) ||
+        (s.fsize || s.sizeName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, units]);
+  }, [editQuery, sizes]);
 
-  const filteredDeleteUnits = useMemo(() => {
+  const filteredDeleteSizes = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return sizes;
+    return sizes.filter(
+      (s) =>
+        (s.fcode || s.fCode || "").toLowerCase().includes(q) ||
+        (s.fsize || s.sizeName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, units]);
+  }, [deleteQuery, sizes]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) => 
-        (u.uCode || "").toLowerCase().includes(q) || 
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return sizes;
+    return sizes.filter(
+      (s) => 
+        (s.fcode || s.fCode || "").toLowerCase().includes(q) || 
+        (s.fsize || s.sizeName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, units]);
+  }, [existingQuery, sizes]);
 
-  // ---------- render ----------
+  // Helper to safely get size code
+  const getSizeCode = (size) => size.fcode || size.fCode || size.fuCode || '';
+  
+  // Helper to safely get size name
+  const getSizeName = (size) => size.fsize || size.sizeName || '';
+
   return (
-    <div className="uc-root" role="region" aria-labelledby="unit-creation-title">
+    <div className="uc-root" role="region" aria-labelledby="size-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
@@ -402,7 +412,7 @@ export default function UnitCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 14px; /* increased base font size */
+          font-size: 12px; /* increased base font size */
           box-sizing: border-box;
         }
 
@@ -438,7 +448,7 @@ export default function UnitCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 18px; /* slightly larger title */
+          font-size: 20px; /* slightly larger title */
           color: #0f172a;
           letter-spacing: -0.2px;
         }
@@ -497,6 +507,9 @@ export default function UnitCreation() {
           padding: 16px;
           border: 1px solid rgba(15,23,42,0.04);
           box-shadow: 0 6px 20px rgba(12,18,35,0.06);
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
         }
 
         label.field-label {
@@ -581,7 +594,7 @@ export default function UnitCreation() {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { color: var(--muted); font-size:15px; }
 
         /* message */
         .message {
@@ -589,7 +602,7 @@ export default function UnitCreation() {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 14px;
+          font-size: 12px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -684,8 +697,8 @@ export default function UnitCreation() {
           color: #374151;
         }
 
-        /* units table */
-        .units-table-container {
+        /* sizes table */
+        .sizes-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -693,13 +706,13 @@ export default function UnitCreation() {
           margin-top: 12px;
         }
 
-        .units-table {
+        .sizes-table {
           width: 100%;
           border-collapse: collapse;
           font-size: 14px;
         }
 
-        .units-table th {
+        .sizes-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -709,21 +722,20 @@ export default function UnitCreation() {
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
           font-size: 14px;
-          z-index: 1;
         }
 
-        .units-table td {
+        .sizes-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .units-table tr:hover {
+        .sizes-table tr:hover {
           background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
           cursor: pointer;
         }
 
-        .units-table tr.selected {
+        .sizes-table tr.selected {
           background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
@@ -816,7 +828,7 @@ export default function UnitCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .units-table-container {
+          .sizes-table-container {
             max-height: 300px;
           }
         }
@@ -849,10 +861,10 @@ export default function UnitCreation() {
             flex: 1;
             min-width: 0;
           }
-          .units-table th,
-          .units-table td {
+          .sizes-table th,
+          .sizes-table td {
             padding: 8px;
-            font-size: 12px;
+            font-size: 10px;
           }
           .modal-overlay {
             padding: 12px;
@@ -869,7 +881,7 @@ export default function UnitCreation() {
           .dashboard {
             padding: 10px;
           }
-          .title-block {
+          .title-block { 
             flex-direction: column;
             align-items: flex-start;
             gap: 8px;
@@ -879,7 +891,7 @@ export default function UnitCreation() {
           }
           .action-pill {
             padding: 6px 8px;
-            font-size: 11px;
+            font-size: 10px;
           }
           .card {
             padding: 12px;
@@ -899,7 +911,7 @@ export default function UnitCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="unit-creation-title">
+      <div className="dashboard" aria-labelledby="size-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -907,8 +919,8 @@ export default function UnitCreation() {
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
-              <h2 id="unit-creation-title">Unit Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete measurement units.</div>
+              <h2 id="size-creation-title">Size Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete measurement sizes.</div>
             </div>
           </div>
 
@@ -921,91 +933,84 @@ export default function UnitCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Unit Code field */}
-            <div className="field">
-              <label className="field-label">
-                Unit Code <span className="asterisk">*</span>
-              </label>
-              <div className="row">
-                <input
-                  ref={unitCodeRef}
-                  className="input"
-                  value={form.fuCode}
-                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                  placeholder="Unit code (auto-generated)"
-                  onKeyDown={onUnitCodeKeyDown}
+            {/* Form section */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Size Code field */}
+              <div className="field">
+                <label className="field-label">
+                  Size Code <span className="asterisk">*</span>
+                </label>
+                <div className="row">
+                  <input
+                    ref={sizeCodeRef}
+                    className="input"
+                    value={form.fuCode}
+                    onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
+                    onKeyDown={onSizeCodeKeyDown} /* FIXED: was onUnitCodeKeyDown */
+                    disabled={loading}
+                    aria-label="Size Code"
+                    readOnly={actionType === "edit" || actionType === "delete"}
+                  />
+                </div>
+              </div>
+
+              {/* Size Name field */}
+              <div className="field">
+                <label className="field-label">
+                  Size Name <span className="asterisk">*</span>
+                </label>
+                <div className="row">
+                  <input 
+                    ref={sizeNameRef} 
+                    className="input" 
+                    value={form.sizeName} 
+                    onChange={(e) => setForm(s => ({ ...s, sizeName: e.target.value }))} 
+                    onKeyDown={onSizeNameKeyDown}
+                    disabled={loading}
+                    aria-label="Size Name"
+                    readOnly={actionType === "delete"}
+                  />
+                </div>
+              </div>
+
+              {/* Message display */}
+              {message && (
+                <div className={`message ${message.type}`} role="alert">
+                  {message.text}
+                </div>
+              )}
+
+              {/* Submit controls */}
+              <div className="submit-row">
+                <button
+                  className="submit-primary"
+                  onClick={handleSubmit}
                   disabled={loading}
-                  aria-label="Unit Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
-                />
-                  {/* <button
-                    className="btn"
-                    onClick={fetchNextUnitCode}
-                    disabled={loading || actionType === "edit" || actionType === "delete"}
-                    type="button"
-                    aria-label="Refresh unit code"
-                    title="Get next unit code"
-                  >
-                    <Icon.Refresh />
-                  </button> */}
-              </div>
-            </div>
-
-            {/* Unit Name field */}
-            <div className="field">
-              <label className="field-label">
-                Unit Name <span className="asterisk">*</span>
-              </label>
-              <div className="row">
-                <input 
-                  ref={unitNameRef} 
-                  className="input" 
-                  value={form.unitName} 
-                  onChange={(e) => setForm(s => ({ ...s, unitName: e.target.value }))} 
-                  // placeholder="Enter unit name (e.g., M.T, KGS, PCS)" 
-                  onKeyDown={onUnitNameKeyDown}
+                  type="button"
+                >
+                  {loading ? "Processing..." : actionType === "Add" ? "Create" : actionType}
+                </button>
+                <button
+                  className="submit-clear"
+                  onClick={resetForm}
                   disabled={loading}
-                  aria-label="Unit Name"
-                  readOnly={actionType === "delete"}
-                />
+                  type="button"
+                >
+                  Clear
+                </button>
               </div>
             </div>
 
-            {/* Message display */}
-            {message && (
-              <div className={`message ${message.type}`} role="alert">
-                {message.text}
-              </div>
-            )}
-
-            {/* Submit controls */}
-            <div className="submit-row">
-              <button
-                className="submit-primary"
-                onClick={handleSubmit}
-                disabled={loading}
-                type="button"
-              >
-                {loading ? "Processing..." : actionType}
-              </button>
-              <button
-                className="submit-clear"
-                onClick={resetForm}
-                disabled={loading}
-                type="button"
-              >
-                Clear
-              </button>
-            </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Units</div>
+            {/* Existing Sizes Table */}
+            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Sizes</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing units..."
+                  placeholder="Search existing sizes..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing units"
+                  aria-label="Search existing sizes"
                 />
                 {existingQuery && (
                   <button
@@ -1014,40 +1019,43 @@ export default function UnitCreation() {
                     type="button"
                     aria-label="Clear search"
                   >
-                    <Icon.Close size={14} />
+                    <Icon.Close size={16} />
                   </button>
                 )}
               </div>
               
-              <div className="units-table-container">
+              <div className="sizes-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading units...
+                    Loading Sizes...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {units.length === 0 ? "No units found" : "No matching units"}
+                    {sizes.length === 0 ? "No sizes found" : "No matching sizes"}
                   </div>
                 ) : (
-                  <table className="units-table">
+                  <table className="sizes-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Unit Name</th>
+                        <th>Size Name</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExisting.map((u) => (
+                      {filteredExisting.map((s) => (
                         <tr 
-                          key={u.uCode}
-                          className={form.fuCode === u.uCode ? "selected" : ""}
+                          key={getSizeCode(s)}
+                          className={form.fuCode === getSizeCode(s) ? "selected" : ""}
                           onClick={() => {
-                            setForm({ fuCode: u.uCode, unitName: u.unitName });
+                            setForm({ 
+                              fuCode: getSizeCode(s), 
+                              sizeName: getSizeName(s) 
+                            });
                             setActionType("edit");
                           }}
                         >
-                          <td>{u.uCode}</td>
-                          <td>{u.unitName}</td>
+                          <td>{getSizeCode(s)}</td>
+                          <td>{getSizeName(s)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1062,28 +1070,28 @@ export default function UnitCreation() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Unit" : "Delete Unit"}
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Size" : "Delete Size"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Code</div>
+              <div className="muted">Size Code</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.fuCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Name</div>
+              <div className="muted">Size Name</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.unitName || "Not set"}
+                {form.sizeName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing Units</div>
+              <div className="muted">Existing Sizes</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {units.length}
+                {sizes.length}
               </div>
             </div>
 
@@ -1096,21 +1104,18 @@ export default function UnitCreation() {
               <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Unit code is auto-generated for new units</span>
+                  <span>Size code is auto-generated for new sizes</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find units</span>
+                  <span>For edit/delete, use search modals to find sizes</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common units: KG, M.T, PCS, LTR, MTR</span>
+                  <span>Common sizes: Large, Medium, Small, etc.</span>
                 </div>
               </div>
             </div>
-
-            {/* Existing Units Table */}
-         
           </div>
         </div>
       </div>
@@ -1120,11 +1125,11 @@ export default function UnitCreation() {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Edit"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Size to Edit"
+        displayFieldKeys={['fcode', 'fsize']}
+        searchFields={['fcode', 'fsize']}
+        headerNames={['Code', 'Size']}
+        columnWidths={{ sizeName: '70%', fCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1133,11 +1138,11 @@ export default function UnitCreation() {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Delete"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Size to Delete"
+        displayFieldKeys={['fcode', 'fsize']}
+        searchFields={['fcode', 'fsize']}
+        headerNames={['Code', 'Size']}
+        columnWidths={{ sizeName: '70%', fCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

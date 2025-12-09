@@ -50,18 +50,40 @@ user_creation: {
     GET_COMPANY_LIST: "CompanyCreation/GetCompanyList",
     GET_COMPANY_DETAILS: (compCode) => `CompanyCreation/GetCompany/${compCode}`,
     DELETE_COMPANY: (fcompcode) => `CompanyCreation/DeleteCompany/${fcompcode}`,
-  
-    
-    
   },
-UNITCREATION: {
+  UNITCREATION: {
     NEXT_SIZE_CODE : "UnitCreation/NextBillNo", 
     GET_SIZE_ITEMS : "UnitCreation/GetUnits",
     GETUNITCODE : (code) => `UnitCreation/GetUnit/${code}`, 
-    CREATE_SIZE: "UnitCreation/CreationUnit",
+    CREATE_SIZE: "UnitCreation/CreateUnit",
     UPDATE_SIZE: (code) => `UnitCreation/UpdateUnit/${code}`,
     DELETE_SIZE: (code) => `UnitCreation/DeleteUnit/${code}`,
-  },    
+  },  
+  
+  COLORCREATION: {
+    NEXT_COLOR_CODE : "Colour_Creation/getNextColurFcode", 
+    GET_COLOR_ITEMS : "Colour_Creation/getColourItem",
+    // GETCOLORCODE : (code) => `ColorCreation/GetColor/${code}`, 
+    CREATE_COLOR: "Colour_Creation/createColour",
+    UPDATE_COLOR: "Colour_Creation/updateColour",
+    DELETE_COLOR: (code) => `Colour_Creation/deleteColour/${code}`,
+  },
+  SIZECREATION: {
+    NEXT_SIZE_CODE : "SizeCreation/SizeNextFcode", 
+    GET_SIZE_ITEMS : "SizeCreation/getSizeItem",
+    // GETUNITCODE : (code) => `SizeCreation/GetSize/${code}`, 
+    CREATE_SIZE: "SizeCreation/createSize",
+    UPDATE_SIZE: "SizeCreation/UpdateSize",
+    DELETE_SIZE: (code) => `SizeCreation/DeleteSize/${code}`,
+  },
+  MODELCREATION: {
+    NEXT_MODEL_CODE : "ModelCreation/getNextModelFcode", 
+    GET_MODEL_ITEMS : "ModelCreation/getModelItem",
+    // GETUNITCODE : (code) => `SizeCreation/GetSize/${code}`, 
+    CREATE_MODEL: "ModelCreation/createModel",
+    UPDATE_MODEL: "ModelCreation/updateModel",
+    DELETE_MODEL: (code) => `ModelCreation/deleteColour/${code}`,
+  },
 
     ADMINISTRATION: {
     USER_LIST: "Administartor/UserNameList",

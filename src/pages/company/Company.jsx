@@ -4,8 +4,7 @@ import apiService from "../../api/apiService";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 
-
-// --- SVG Icons ---
+// --- SVG Icons (keep the same) ---
 const CreateIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -56,7 +55,6 @@ const SearchIcon = () => (
   </svg>
 );
 
-// Mock permissions hook (replace with your actual implementation)
 const useFormPermissions = (formType) => {
   return {
     canCreate: true,
@@ -76,7 +74,7 @@ const Company = () => {
     state: "",
     phone1: "",
     phone2: "",
-    statecode : "",
+    statecode: "",
     phone3: "",
     phone4: "",
     fcompadd1: "",
@@ -95,10 +93,10 @@ const Company = () => {
     note3: "",
     note4: "",
     note5: "",
-    bankname: "", 
-    branch:"",
-    ifscode:"",
-    accno:"",
+    bankname: "",
+    branch: "",
+    ifscode: "",
+    accno: "",
     printing: "",
     gstmode: "",
     salesrate: "",
@@ -120,7 +118,7 @@ const Company = () => {
     backuppath: "",
     cpcode: "",
     backupdbi: "",
-    desc1: "", 
+    desc1: "",
   });
   const [narrationToggle, setNarrationToggle] = useState("N");
   const [companycolor, setCompanyColor] = useState("#ff0000");
@@ -128,11 +126,10 @@ const Company = () => {
   const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupTitle, setPopupTitle] = useState("");
-  const [popupMode, setPopupMode] = useState(""); // 'edit' or 'delete'
-  
-  // Form permissions hook
+  const [popupMode, setPopupMode] = useState("");
+
   const { canCreate, canEdit, canDelete } = useFormPermissions("COMPANY");
-  
+
   // Refs for keyboard navigation
   const companyNameRef = useRef(null);
   const gstinRef = useRef(null);
@@ -202,6 +199,7 @@ const Company = () => {
     cpInSalesRef, backupPathRef, cpCodeRef, backupDbiRef, desc1Ref
   ];
 
+
   // ✅ Fetch next code
   const fetchNextCode = async () => {
     try {
@@ -213,7 +211,7 @@ const Company = () => {
     }
   };
 
-  // ✅ Fetch company list for the popup
+  // ✅ Fetch company list
   const fetchCompanyList = async () => {
     try {
       const res = await apiService.get(API_ENDPOINTS.COMPANY_ENDPOINTS.GET_COMPANY_LIST);
@@ -228,24 +226,18 @@ const Company = () => {
     }
   };
 
-  // Function to fetch data for the popup (compatible with PopupListSelector)
   const fetchCompaniesForPopup = async (pageNum, searchText) => {
     try {
-      // For simplicity, we'll fetch all and filter locally
-      // In a real app, you might want to implement pagination on the backend
       const res = await apiService.get(API_ENDPOINTS.COMPANY_ENDPOINTS.GET_COMPANY_LIST);
-      
-      // Format data for the popup
       const formatted = res.map((item) => ({
         code: item.fcompcode || '',
         name: item.fcompname || ''
       }));
       
-      // Filter by search text if provided
       if (searchText) {
         return formatted.filter(item =>
           item.code.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.name.toLowerCase().includes(searchText.toLowerCase()) 
+          item.name.toLowerCase().includes(searchText.toLowerCase())
         );
       }
       
@@ -261,9 +253,7 @@ const Company = () => {
     try {
       console.log("Fetching details for company code:", compCode);
       const res = await apiService.get(API_ENDPOINTS.COMPANY_ENDPOINTS.GET_COMPANY_DETAILS(compCode));
-      console.log("Response from API:", res);
-
-      // Normalize response to a single company object. API may return { success, data }, an array, or the object directly.
+      
       let company = null;
       if (!res) return;
       if (res.data && !Array.isArray(res.data) && typeof res.data === 'object') {
@@ -273,7 +263,6 @@ const Company = () => {
       } else if (Array.isArray(res.data) && res.data.length > 0) {
         company = res.data[0];
       } else if (typeof res === 'object') {
-        // fallback: response itself looks like the data object
         company = res;
       }
 
@@ -281,8 +270,6 @@ const Company = () => {
         console.warn('No company details found for', compCode, res);
         return;
       }
-
-      console.log("Company details fetched:", JSON.stringify(company, null, 2));
 
       setFormData({
         fcompcode: company.compCode || company.compcode || "",
@@ -336,10 +323,8 @@ const Company = () => {
         cpcode: company.cpCode || "",
         backupdbi: company.backupDBI || "",
         desc1: company.desc1 || "",
-        narrationToggle: company.narration != null ? company.narration : "N"
       });
 
-      // Update color pickers if provided
       setCompanyColor(company.companyPrintColor || company.companyprintcolor || "#ff0000");
       setAddressColor(company.printAddressColor || company.printaddresscolor || "#00ff00");
     } catch (err) {
@@ -347,21 +332,17 @@ const Company = () => {
     }
   };
 
-  // ✅ Fetch data on component mount
   useEffect(() => {
     fetchNextCode();
     fetchCompanyList();
-    
   }, []);
 
-  // Auto-focus first field
   useEffect(() => {
     if (companyNameRef.current && selectedAction !== "delete") {
       companyNameRef.current.focus();
     }
   }, [selectedAction]);
 
-  // Update clearForm to focus first field after clear
   const clearForm = () => {
     setFormData({
       fcompcode: "",
@@ -370,7 +351,7 @@ const Company = () => {
       state: "",
       phone1: "",
       phone2: "",
-      statecode : "",
+      statecode: "",
       phone3: "",
       phone4: "",
       fcompadd1: "",
@@ -389,10 +370,10 @@ const Company = () => {
       note3: "",
       note4: "",
       note5: "",
-      bankname: "", 
-      branch:"",
-      ifscode:"",
-      accno:"",
+      bankname: "",
+      branch: "",
+      ifscode: "",
+      accno: "",
       printing: "",
       gstmode: "",
       salesrate: "",
@@ -415,14 +396,12 @@ const Company = () => {
       cpcode: "",
       backupdbi: "",
       desc1: "",
-      narrationToggle: "N",
-      senderID: ""
     });
     setCompanyColor("#ff0000");
     setAddressColor("#00ff00");
     fetchNextCode();
     setSelectedAction("create");
-    // Focus first field after clear
+    
     setTimeout(() => {
       if (companyNameRef.current) {
         companyNameRef.current.focus();
@@ -430,18 +409,14 @@ const Company = () => {
     }, 100);
   };
 
-  // Handle table row click
   const handleTableRowClick = (item) => {
     fetchCompanyDetails(item.code);
     setSelectedAction("edit");
   };
 
-  // Handle Enter key press to move to next field
   const handleKeyDown = (e, currentIndex) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      
-      // Find next enabled input
       let nextIndex = currentIndex + 1;
       while (nextIndex < inputRefs.length) {
         const nextRef = inputRefs[nextIndex];
@@ -454,8 +429,6 @@ const Company = () => {
     }
   };
 
-  
-  // Handle form input changes
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -463,7 +436,6 @@ const Company = () => {
     }));
   };
 
-  /// Handle action button clicks
   const handleActionClick = (action) => {
     setSelectedAction(action);
     
@@ -476,33 +448,29 @@ const Company = () => {
       fetchNextCode();
     }
   };
-  
-  // Handle selection from popup
+
   const handlePopupSelect = (item) => {
     console.log("Selected company from popup:", item);
-    // The item from popup should have the 'code' field
     fetchCompanyDetails(item.code);
     setShowPopup(false);
   };
 
-  // Handle popup close
   const handlePopupClose = () => {
     setShowPopup(false);
-    // Reset popup mode if needed
   };
 
-  // Validate form
   const validateForm = () => {
     if (!formData.fcompname.trim()) {
       alert("Please enter Company Name");
       return false;
     }
-    if (!formData.fpassword.trim()) {
-      alert("Please enter Password");
-      return false;
-    }
+    
     if (!formData.fusername.trim()) {
       alert("Please enter UserName");
+      return false;
+    }
+    if (!formData.fpassword.trim()) {
+      alert("Please enter Password");
       return false;
     }
     if (formData.fpassword !== formData.fconfirmpass) {
@@ -512,7 +480,6 @@ const Company = () => {
     return true;
   };
 
-  // ✅ Create / Update / Delete methods
   const saveData = async () => {
     if (!validateForm()) return;
     
@@ -525,7 +492,7 @@ const Company = () => {
         phonE1: formData.phone1 || "",
         state: formData.state || "",
         phonE2: formData.phone2 || "",
-        stateCode : formData.statecode || "",
+        stateCode: formData.statecode || "",
         phonE3: formData.phone3 || "",
         phonE4: formData.phone4 || "",
         shopNo: formData.shopno || "",
@@ -535,7 +502,7 @@ const Company = () => {
         printName: formData.fprintname || "",
         userName: formData.fusername || "",
         description: formData.fdescription || "",
-        printGAP: formData.fprintgap || "",  
+        printGAP: formData.fprintgap || "",
         password: formData.fpassword || "",
         prefix: formData.fprefix || "",
         defultMode: formData.fdefaultmode || "",
@@ -559,7 +526,7 @@ const Company = () => {
         message: formData.message || "",
         jewellSales: formData.jewellerysales || "N",
         senderID: formData.senderid || "",
-        flessqty: "1",//formData.lessqty || 
+        flessqty: "1",
         qtyFormat: formData.qtyformat || "",
         barcode: formData.barcode || "N",
         balInSales: formData.balinsales || "N",
@@ -573,32 +540,28 @@ const Company = () => {
         narration: formData.narrationToggle || "N",
         companyPrintColor: companycolor || "#ff0000",
         printAddressColor: addresscolor || "#00ff00",
-        c:""
+        c: ""
       };
-       console.log("Save response:", JSON.stringify(payload));
+
+      console.log("Save response:", JSON.stringify(payload));
       const response = await apiService.post(
         API_ENDPOINTS.COMPANY_ENDPOINTS.CREATE_COMPANY,
         payload
       );
-     
-     
-      
 
-      const successMessage = typeof response === 'object' 
-        ? '✅ Company created successfully!' 
+      const successMessage = typeof response === 'object'
+        ? '✅ Company created successfully!'
         : response || '✅ Company created successfully!';
-      
+
       alert(successMessage);
       fetchCompanyList();
       clearForm();
     } catch (err) {
       console.error("Failed to save company:", err);
-      
-      const errorMessage = err.response?.data?.message 
-        || err.response?.data 
-        || err.message 
+      const errorMessage = err.response?.data?.message
+        || err.response?.data
+        || err.message
         || '❌ Failed to save company';
-      
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -607,7 +570,7 @@ const Company = () => {
 
   const updateData = async () => {
     if (!validateForm()) return;
-    
+
     setLoading(true);
     try {
       const payload = {
@@ -617,7 +580,7 @@ const Company = () => {
         phonE1: formData.phone1 || "",
         state: formData.state || "",
         phonE2: formData.phone2 || "",
-        stateCode : formData.statecode || "",
+        stateCode: formData.statecode || "",
         phonE3: formData.phone3 || "",
         phonE4: formData.phone4 || "",
         shopNo: formData.shopno || "",
@@ -627,7 +590,7 @@ const Company = () => {
         printName: formData.fprintname || "",
         userName: formData.fusername || "",
         description: formData.fdescription || "",
-        printGAP: formData.fprintgap || "",  
+        printGAP: formData.fprintgap || "",
         password: formData.fpassword || "",
         prefix: formData.fprefix || "",
         defultMode: formData.fdefaultmode || "",
@@ -651,7 +614,7 @@ const Company = () => {
         message: formData.message || "",
         jewellSales: formData.jewellerysales || "N",
         senderID: formData.senderid || "",
-        flessqty: "1",//formData.lessqty || 
+        flessqty: "1",
         qtyFormat: formData.qtyformat || "",
         barcode: formData.barcode || "N",
         balInSales: formData.balinsales || "N",
@@ -665,29 +628,28 @@ const Company = () => {
         narration: formData.narrationToggle || "N",
         companyPrintColor: companycolor || "#ff0000",
         printAddressColor: addresscolor || "#00ff00",
-        c:""
+        c: ""
       };
-       console.log("Save response:", JSON.stringify(payload));      
+
+      console.log("Save response:", JSON.stringify(payload));
       const response = await apiService.post(
         API_ENDPOINTS.COMPANY_ENDPOINTS.UPDATE_COMPANY,
         payload
       );
-      
-      const successMessage = typeof response === 'object' 
-        ? '✅ Company updated successfully!' 
+
+      const successMessage = typeof response === 'object'
+        ? '✅ Company updated successfully!'
         : response || '✅ Company updated successfully!';
-      
+
       alert(successMessage);
       fetchCompanyList();
       clearForm();
     } catch (err) {
       console.error("Failed to update company:", err);
-      
-      const errorMessage = err.response?.data?.message 
-        || err.response?.data 
-        || err.message 
+      const errorMessage = err.response?.data?.message
+        || err.response?.data
+        || err.message
         || '❌ Failed to update company';
-      
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -697,28 +659,26 @@ const Company = () => {
   const deleteData = async () => {
     if (!formData.fcompcode) return alert("Select a company first");
     if (!window.confirm("Are you sure you want to delete this company?")) return;
-    
+
     setLoading(true);
     try {
       const response = await apiService.del(
         API_ENDPOINTS.COMPANY_ENDPOINTS.DELETE_COMPANY(formData.fcompcode)
       );
-      
-      const successMessage = typeof response === 'object' 
-        ? '✅ Company deleted successfully!' 
+
+      const successMessage = typeof response === 'object'
+        ? '✅ Company deleted successfully!'
         : response || '✅ Company deleted successfully!';
-      
+
       alert(successMessage);
       fetchCompanyList();
       clearForm();
     } catch (err) {
       console.error("Failed to delete company:", err);
-      
-      const errorMessage = err.response?.data?.message 
-        || err.response?.data 
-        || err.message 
+      const errorMessage = err.response?.data?.message
+        || err.response?.data
+        || err.message
         || '❌ Failed to delete company';
-      
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -736,85 +696,223 @@ const Company = () => {
       item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  // Get current form class for delete mode
+
   const getFormClass = () => {
     return selectedAction === "delete" ? "delete-mode" : "";
-  };
-
-  
-
-  // Render the form inputs with proper keyboard navigation
-  const renderInput = (field, label, type = "text", isRequired = false, ref, index, placeholder = "", maxLength = null) => {
-    return (
-      <div className={`input-group ${isRequired ? 'required-field' : ''}`}>
-        <label>{label}</label>
-        <input
-          ref={ref}
-          type={type}
-          maxLength={maxLength}
-          placeholder={placeholder}
-          value={formData[field]}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          onKeyDown={(e) => handleKeyDown(e, index)}
-          disabled={ selectedAction === "delete"  }
-          readOnly={field === 'fcompcode'}
-        />
-      </div>
-    );
   };
 
   return (
     <>
       <div className="page-wrapper">
-        <div className="main-layout">       
-          {/* Left Column - Form */}
+        <div className="main-layout">
+          {/* Left Column - Split into two columns */}
           <div className="left-column">
             <div className={`card form-card ${getFormClass()}`}>
               <div className="action-buttons">
                 <button
-                  className={`action-btn create ${
-                    selectedAction === "create" ? "active" : ""
-                  }`}
+                  className={`action-btn create ${selectedAction === "create" ? "active" : ""}`}
                   onClick={() => handleActionClick("create")}
                 >
                   <CreateIcon /> Create
                 </button>
                 <button
-                  className={`action-btn edit ${
-                    selectedAction === "edit" ? "active" : ""
-                  }`}
+                  className={`action-btn edit ${selectedAction === "edit" ? "active" : ""}`}
                   onClick={() => handleActionClick("edit")}
                 >
                   <EditIcon /> Edit
                 </button>
                 <button
-                  className={`action-btn delete ${
-                    selectedAction === "delete" ? "active" : ""
-                  }`}
+                  className={`action-btn delete ${selectedAction === "delete" ? "active" : ""}`}
                   onClick={() => handleActionClick("delete")}
                 >
                   <DeleteIcon /> Delete
                 </button>
               </div>
 
-              {/* Form Grid - 3 Columns */}
-              <div className="form-grid">
-                {renderInput('fcompcode', 'Code', 'text', false, companyNameRef, -1)}
-                {renderInput('fcompname', 'Company Name', 'text', true, companyNameRef, 0, 'Enter Company Name')}
-                {renderInput('tngst', 'GSTIN', 'text', false, gstinRef, 1, 'Enter GSTIN')}
-                {renderInput('phone1', 'Phone 1', 'text', false, phone1Ref, 2, 'Enter Phone1',15)}
-                {renderInput('state', 'State', 'text', false, stateRef, 3, 'Enter State')}
-                {renderInput('phone2', 'Phone 2', 'text', false, phone2Ref, 4, 'Enter Phone2',15)}
-                {renderInput('statecode', 'State Code', 'text', false, statecodeRef, 5, 'Enter State Code')}
-                {renderInput('phone3', 'Phone 3', 'text', false, phone3Ref, 6, 'Enter Phone3',15)}
-                {renderInput('phone4', 'Phone 4', 'text', false, phone4Ref, 7, 'Enter Phone4',15)}
-                {renderInput('fcompadd1', 'Shop No', 'text', false, shopNoRef, 8, 'Enter Shop No')}
-                {renderInput('fcompadd2', 'Address', 'text', false, addressRef, 9, 'Enter Address')}
-                {renderInput('fcompadd3', 'Address1', 'text', false, address1Ref, 10, 'Enter Address1')}
-                {renderInput('fax', 'Address2', 'text', false, address2Ref, 11, 'Enter Address2')}
-                {renderInput('fprintname', 'Printer Name', 'text', false, printerNameRef, 12, 'Enter Printer Name')}
-                {renderInput('fusername', 'UserName', 'text', true, usernameRef, 13, 'Enter UserName')}
-                <div className="input-group">
+              {/* Two-column form layout */}
+              <div className="two-column-form">
+                {/* Left side form */}
+                <div className="form-column left-form">
+                  <h3 >Company Details</h3>
+                  <div className="form">
+                    <div className="row1">
+                  <div className="input-group">
+                    <label>Company Code</label>
+                    <input
+                      type="text"
+                      value={formData.fcompcode}
+                      onChange={(e) => handleInputChange('fcompcode', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      readOnly={true}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Company Name *</label>
+                    <input
+                      type="text"
+                      ref={companyNameRef}
+                      value={formData.fcompname}
+                      onChange={(e) => handleInputChange('fcompname', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 0)}
+                    />
+                  </div>
+                  </div>
+                  <div className="row2">
+                  <div className="input-group">
+                    <label>GSTIN</label>
+                    <input
+                      type="text"
+                      ref={gstinRef}
+                      value={formData.tngst}
+                      onChange={(e) => handleInputChange('tngst', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 1)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>State </label>
+                    <input
+                      type="text"
+                      ref={stateRef}
+                      value={formData.state}
+                      onChange={(e) => handleInputChange('state', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 2)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>State Code </label>
+                    <input
+                      type="text"
+                      ref={statecodeRef}
+                      value={formData.statecode}
+                      onChange={(e) => handleInputChange('statecode', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 3)}
+                    />
+                  </div>
+                  </div>
+                  <div className="row2">
+                  <div className="input-group">
+                    <label>Phone 1</label>
+                    <input
+                      type="text"
+                      ref={phone1Ref}
+                      value={formData.phone1}
+                      onChange={(e) => handleInputChange('phone1', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 4)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Phone 2</label>
+                    <input
+                      type="text"
+                      ref={phone2Ref}
+                      value={formData.phone2}
+                      onChange={(e) => handleInputChange('phone2', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 5)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Phone 3</label>
+                    <input
+                      type="text"
+                      ref={phone3Ref}
+                      value={formData.phone3}
+                      onChange={(e) => handleInputChange('phone3', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 6)}
+                    />
+                  </div>
+                  </div>
+                  <div className="row4">
+                  <div className="input-group">
+                    <label>Address 1</label>
+                    <input
+                      type="text"
+                      ref={addressRef}
+                      value={formData.fcompadd1}
+                      onChange={(e) => handleInputChange('fcompadd1', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 8)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Address 2</label>
+                    <input
+                      type="text"
+                      ref={address1Ref}
+                      value={formData.fcompadd2}
+                      onChange={(e) => handleInputChange('fcompadd2', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 9)}
+                    />
+                  </div>
+                  </div>
+                  <div className="row4">
+                  <div className="input-group">
+                    <label>Address 3</label>
+                    <input
+                      type="text"
+                      ref={address2Ref}
+                      value={formData.fcompadd3}
+                      onChange={(e) => handleInputChange('fcompadd3', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 10)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Print Name</label>
+                    <input
+                      type="text"
+                      ref={printerNameRef}
+                      value={formData.fprintname}
+                      onChange={(e) => handleInputChange('fprintname', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 11)}
+                    />
+                  </div>
+                  </div>
+                  <div className="row2">
+                  <div className="input-group">
+                    <label>User Name *</label>
+                    <input
+                      type="text"
+                      ref={usernameRef}
+                      value={formData.fusername}
+                      onChange={(e) => handleInputChange('fusername', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 12)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Password *</label>
+                    <input    
+                      type="password"
+                      ref={passwordRef}
+                      value={formData.fpassword}
+                      onChange={(e) => handleInputChange('fpassword', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 13)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Confirm Password *</label>
+                    <input  
+                      type="password"
+                      ref={confirmPasswordRef}
+                      value={formData.fconfirmpass}
+                      onChange={(e) => handleInputChange('fconfirmpass', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 14)}
+                    />
+                  </div>
+                  </div>
+                  <div className="row4">
+                    <div className="input-group">
                   <label>Description</label>
                   <input
                     ref={descriptionRef} type ="text"
@@ -850,21 +948,155 @@ const Company = () => {
                     style={{ textAlign: "center" }}
                   />
                 </div>
-                {renderInput('fpassword', 'Password', 'password', true, passwordRef, 16, 'Password')}
-                {renderInput('fconfirmpass', 'Confirm Password', 'password', true, confirmPasswordRef, 17, 'Repeat Password')}
-                {renderInput('fprefix', 'Prefix', 'text', false, prefixRef, 18, 'Enter Prefix',2)}
-                {renderInput('fdefaultmode', 'Default Mode', 'text', false, defaultModeRef, 19, 'Enter Default Mode',1)}
-                {renderInput('note1', 'Note 1', 'text', false, note1Ref, 20, 'Enter Note 1')}
-                {renderInput('note2', 'Note 2', 'text', false, note2Ref, 21, 'Enter Note 2')}
-                {renderInput('note3', 'Note 3', 'text', false, note3Ref, 22, 'Enter Note 3')}
-                {renderInput('note4', 'Note 4', 'text', false, note4Ref, 23, 'Enter Note 4')}
-                {renderInput('note5', 'Note 5', 'text', false, note5Ref, 24, 'Enter Note 5')}
-                {renderInput('bankname', 'Bank Name', 'text', false, bankNameRef, 25, 'Enter Bank Name')}
-                {renderInput('branch', 'Branch', 'text', false, branchRef, 26, 'Enter Branch')}
-                {renderInput('ifscode', 'IFS Code', 'text', false, ifsCodeRef, 27, 'Enter IFSC Code')}
-                {renderInput('accno', 'A/C No', 'text', false, accountNumberRef, 28, 'Enter A/C No')}
-                {renderInput('printing', 'Printing', 'text', false, printingRef, 29, 'Enter Printing')}
-                 <div className="input-group">
+                </div>
+                <div className="row4">
+                  <div className="input-group">
+                  <label>Prefix</label>
+                  <input
+                    type="text"
+                    ref={prefixRef}
+                    maxLength={2}
+                    value={formData.fprefix}
+                    onChange={(e) => handleInputChange('fprefix', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 15)}
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Default Mode</label>
+                  <input    
+                    type="text"
+                    ref={defaultModeRef}
+                    maxLength={1}
+                    value={formData.fdefaultmode}
+                    onChange={(e) => handleInputChange('fdefaultmode', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 16)}
+                  />
+                </div>
+                </div>
+                <div className="row">
+                  <div className="input-group">
+                  <label>Note 1</label>
+                  <input  
+                    type="text"
+                    ref={note1Ref}
+                    value={formData.note1}
+                    onChange={(e) => handleInputChange('note1', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 17)}
+                  />  
+                </div>
+                </div>
+                <div className="row">
+                <div className="input-group">
+                  <label>Note 2</label> 
+                  <input
+                    type="text"
+                    ref={note2Ref}
+                    value={formData.note2}
+                    onChange={(e) => handleInputChange('note2', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 18)}
+                  />
+                  </div>
+                  </div>
+                  <div className="row">
+                  <div className="input-group">
+                  <label>Note 3</label>
+                  <input
+                    type="text"
+                    ref={note3Ref}
+                    value={formData.note3}
+                    onChange={(e) => handleInputChange('note3', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 19)}
+                  />
+                  </div>
+                  </div>
+                  <div className="row">
+                  <div className="input-group">
+                  <label>Note 4</label> 
+                  <input
+                    type="text"
+                    ref={note4Ref}
+                    value={formData.note4}
+                    onChange={(e) => handleInputChange('note4', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 20)}
+                  />
+                  </div>
+                  </div>
+                  <div className="row">
+                  <div className="input-group">
+                  <label>Note 5</label> 
+                  <input
+                    type="text"
+                    ref={note5Ref}
+                    value={formData.note5}
+                    onChange={(e) => handleInputChange('note5', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 21)}
+                  />
+                  </div>
+                  </div>
+                </div>
+                </div>
+
+                {/* Right side form */}
+                <div className="form-column right-form">
+                  <h3 style={{textAlign:'center', marginBottom: '0'}}>Bank Details</h3>
+                  <div className="form">
+                    <div className="row4">
+                  <div className="input-group">
+                    <label>Bank Name</label>
+                    <input
+                      type="text"
+                      ref={bankNameRef}
+                      value={formData.bankname}
+                      onChange={(e) => handleInputChange('bankname', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 7)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Branch</label>
+                    <input
+                      type="text"
+                      ref={branchRef}
+                      value={formData.branch}
+                      onChange={(e) => handleInputChange('branch', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 8)}
+                    />
+                  </div>
+                  </div>
+                  <div className="row4">
+                  <div className="input-group">
+                    <label>IFSC Code</label>  
+                    <input
+                      type="text"
+                      ref={ifsCodeRef}
+                      value={formData.ifscode}
+                      onChange={(e) => handleInputChange('ifscode', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 9)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Account Number</label>
+                    <input
+                      type="text"
+                      ref={accountNumberRef}
+                      value={formData.accno}
+                      onChange={(e) => handleInputChange('accno', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 10)}
+                    />
+                  </div> 
+                  </div> 
+                  <div className="row2">                  
+                    <div className="input-group">
                   <label>GST Mode</label>
                   <input
                     ref={gstModeRef} type ="text"
@@ -882,7 +1114,7 @@ const Company = () => {
                     style={{ textAlign: "center" }}
                   />
                 </div>
-                 <div className="input-group">
+                <div className="input-group">
                   <label>Sales Rate</label>
                   <input
                     ref={salesRateRef} type ="text"
@@ -900,52 +1132,112 @@ const Company = () => {
                     style={{ textAlign: "center" }}
                   />
                 </div>
-                 <div className="input-group">
-  <label>Sales Type</label>
-  <input
-    ref={salesTypeRef}
-    type="text"
-    value={formData.salestype}
-    onChange={(e) => {
-      const v = e.target.value.toUpperCase();
-      if (v === "W" || v === "R" || v === "A") handleInputChange('salestype', v);
-    }}
-    onKeyDown={(e) => {
-      if (e.key === " ") {
-        const current = formData.salestype;
-        if (current === "W") handleInputChange('salestype', "R");
-        else if (current === "R") handleInputChange('salestype', "A");
-        else if (current === "A") handleInputChange('salestype', "W");
-        else handleInputChange('salestype', "W"); // default
-      }
-    }}
-    placeholder="W, R, or A"
-    style={{ textAlign: "center" }}
-  />
-</div>
-                {renderInput('tagprint', 'Tag Print', 'text', false, tagPrintRef, 33, 'Enter Tag Print',15)}
-                 <div className="input-group">
-                  <label>Bill Prefix</label>
-                  <input
-                    ref={billPrefixRef} type ="text"
-                    value={formData.billprefix}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('billprefix', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('billprefix', formData.billprefix === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                {renderInput('template', 'Template', 'text', false, templateRef, 35, 'Enter Template')}
-                {renderInput('noofprint', 'No Of Print', "text", false, numberOfPrintRef, 36, 'Enter No Of Print')}
-                {renderInput('message', 'Message', 'text', false, messageRef, 37, 'Enter Message')}
                 <div className="input-group">
+                      <label>Sales Type</label>
+                      <input
+                        ref={salesTypeRef}
+                        type="text"
+                        value={formData.salestype}
+                        onChange={(e) => {
+                          const v = e.target.value.toUpperCase();
+                          if (v === "W" || v === "R" || v === "A") handleInputChange('salestype', v);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === " ") {
+                            const current = formData.salestype;
+                            if (current === "W") handleInputChange('salestype', "R");
+                            else if (current === "R") handleInputChange('salestype', "A");
+                            else if (current === "A") handleInputChange('salestype', "W");
+                            else handleInputChange('salestype', "W"); // default
+                          }
+                        }}
+                        placeholder="W, R, or A"
+                        style={{ textAlign: "center" }}
+                      />
+                    </div>
+                  </div>
+                  <div className="row4">                    
+                    <div className="input-group">
+                    <label>Printing</label>
+                    <input
+                      type="text"
+                      ref={printingRef}
+                      value={formData.printing}
+                      onChange={(e) => handleInputChange('printing', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 11)}
+                    />
+                    </div>
+                    <div className="input-group">
+                      <label>Tag Print</label>
+                      <input  
+                        type="text"
+                        ref={tagPrintRef}
+                        value={formData.tagprint}
+                        onChange={(e) => handleInputChange('tagprint', e.target.value)}
+                        disabled={selectedAction === "delete"}
+                        onKeyDown={(e) => handleKeyDown(e, 12)}
+                      />
+                    </div>
+                    </div>
+                    <div className="row1">
+                    <div className="input-group">
+                      <label>Bill Prefix</label>
+                      <input
+                        ref={billPrefixRef} type ="text"
+                        value={formData.billprefix}
+                        onChange={(e) => {
+                          const v = e.target.value.toUpperCase();
+                          if(v === "Y" || v === "N") handleInputChange('billprefix', v);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === " ") {
+                            handleInputChange('billprefix', formData.billprefix === "N" ? "Y" : "N");
+                          }
+                        }}
+                        placeholder="Y or N"
+                        style={{ textAlign: "center" }}
+                      />
+                    </div>                  
+                  
+                  <div className="input-group">
+                    <label>Template</label>
+                    <input  
+                      type="text"
+                      ref={templateRef}
+                      value={formData.template}
+                      onChange={(e) => handleInputChange('template', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 13)}
+                    />  
+                  </div>
+                  </div>
+                  <div className="row1">
+                  <div className="input-group">
+                    <label>No of Print</label>
+                    <input  
+                      type="text"
+                      ref={numberOfPrintRef}
+                      value={formData.noofprint}
+                      onChange={(e) => handleInputChange('noofprint', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 14)}
+                    />  
+                  </div>
+                  <div className="input-group">
+                    <label>Message</label>
+                    <input  
+                      type="text"
+                      ref={messageRef}
+                      value={formData.message}
+                      onChange={(e) => handleInputChange('message', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 15)}
+                    />
+                  </div>
+                  </div>
+                  <div className="row2">
+                    <div className="input-group">
                   <label>Jewellery Sales</label>
                   <input
                     ref={jewellerySalesRef} type ="text"
@@ -981,7 +1273,6 @@ const Company = () => {
                     style={{ textAlign: "center" }}
                   />
                 </div> 
-                {renderInput('senderID', 'Sender ID', 'text', false, senderIdRef, 41, 'Enter Sender ID',10)} 
                 <div className="input-group">
                   <label>Less Qty</label>
                   <input
@@ -1000,8 +1291,33 @@ const Company = () => {
                     style={{ textAlign: "center" }}
                   />
                 </div>
-                {renderInput('qtyformat', 'Qty Format', 'text', false, quantityFormatRef, 42, 'Enter Qty Format',6)}
-                <div className="input-group">
+                </div>
+                <div className="row4">
+                  <div className="input-group">
+                  <label>Sender ID</label>
+                  <input
+                    type="text"
+                    ref={senderIdRef}
+                    value={formData.senderid}
+                    onChange={(e) => handleInputChange('senderid', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 16)}
+                  />
+                  </div>
+                  <div className="input-group">
+                    <label>Qty Format</label>
+                    <input
+                      type="text"
+                      ref={quantityFormatRef}
+                      value={formData.qtyformat}
+                      onChange={(e) => handleInputChange('qtyformat', e.target.value)}
+                      disabled={selectedAction === "delete"}
+                      onKeyDown={(e) => handleKeyDown(e, 17)}
+                    />
+                    </div>
+                  </div>
+                  <div className="row2">
+                    <div className="input-group">
                   <label>Bar Code</label>
                   <input
                     ref={barcodeRef} type ="text"
@@ -1037,7 +1353,7 @@ const Company = () => {
                     style={{ textAlign: "center" }}
                   />
                 </div>
-                 <div className="input-group">
+                <div className="input-group">
                   <label>Calculation</label>
                   <input
                     ref={calculationRef} type ="text"
@@ -1055,6 +1371,8 @@ const Company = () => {
                     style={{ textAlign: "center" }}
                   />
                 </div>
+                </div>
+                <div className="row4">
                 <div className="input-group">
                   <label>Show Stock</label>
                   <input
@@ -1091,10 +1409,44 @@ const Company = () => {
                     style={{ textAlign: "center" }}
                   />
                 </div>
-                {renderInput('backuppath', 'Backup Path', 'text', false, backupPathRef, 48, 'Enter Backup Path')}
-                {renderInput('cpcode', 'CP Code', 'text', false, cpCodeRef, 49, 'Enter CP Code',10)}
-                {renderInput('backupdbi', 'Backup DBI', 'text', false, backupDbiRef, 50, 'Enter Backup DBI')}
+                </div>
+                <div className="row4">
+                  <div className="input-group">
+                  <label>DBI Path</label>
+                  <input
+                    type="text"
+                    ref={backupPathRef}
+                    value={formData.dbipath}
+                    onChange={(e) => handleInputChange('dbipath', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 21)}
+                  />
+                  </div>
                 <div className="input-group">
+                  <label>Backup DBI</label>
+                  <input
+                    type="text"
+                    ref={backupDbiRef}
+                    value={formData.backupdbi}
+                    onChange={(e) => handleInputChange('backupdbi', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 22)}
+                  />
+                  </div>
+                  </div>
+                  <div className="row4">
+                  <div className="input-group">
+                  <label>CP Code</label>
+                  <input
+                    type="text"
+                    ref = {cpCodeRef}
+                    value={formData.cpcode}
+                    onChange={(e) => handleInputChange('cpcode', e.target.value)}
+                    disabled={selectedAction === "delete"}
+                    onKeyDown={(e) => handleKeyDown(e, 23)}
+                  />
+                  </div>
+                  <div className="input-group">
                   <label>Desc 1</label>
                   <input
                     ref={desc1Ref} type ="text"
@@ -1112,9 +1464,9 @@ const Company = () => {
                     style={{ textAlign: "center" }}
                   />
                 </div>
-
-                {/* Color inputs */}
-                <div className="input-group">
+                </div>
+                <div className="row4">
+                  <div className="input-group">
                   <label>CompanyPrint Color</label>
                   <input
                     type="color"
@@ -1123,7 +1475,6 @@ const Company = () => {
                     disabled={selectedAction === "delete"}
                   />
                 </div>
-
                 <div className="input-group">
                   <label>Print Address Color</label>
                   <input
@@ -1134,6 +1485,9 @@ const Company = () => {
                   />
                 </div>
               </div>
+                </div>
+                </div>
+              </div>
 
               <div className="button-row">
                 <button
@@ -1142,26 +1496,38 @@ const Company = () => {
                   disabled={loading || (selectedAction === "create" ? !canCreate : selectedAction === "edit" ? !canEdit : !canDelete)}
                   title={selectedAction === "create" ? (!canCreate ? "You don't have permission to create" : "") : selectedAction === "edit" ? (!canEdit ? "You don't have permission to edit" : "") : (!canDelete ? "You don't have permission to delete" : "")}
                 >
-                  {loading ? "Processing..." : 
+                  {loading ? "Processing..." :
                     selectedAction === "create" ? "Create Company" :
-                    selectedAction === "edit" ? "Update Company" :
-                    "Delete Company"}
+                      selectedAction === "edit" ? "Update Company" :
+                        "Delete Company"}
                 </button>
                 <button className="clear-btn" onClick={clearForm}>
                   Clear
                 </button>
               </div>
             </div>
-
           </div>
-          
-          {/* Right Column - Table */}
+
+          {/* Right Column - Compact Table */}
           <div className="right-column">
             <div className="card table-card">
-              <h3 style={{ color: "#06A7EA", marginBottom: "10px", textAlign: "center" }}>
-                Company List
-              </h3>
-              <p
+              <div className="table-header">
+                <h3>Company List</h3>
+                
+                <div className="search-bar">
+                  <span className="search-icon">
+                    <SearchIcon />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div>
+                <p
                 style={{
                   fontSize: "13px",
                   color: "#666",
@@ -1173,30 +1539,13 @@ const Company = () => {
                 💡 Click a row to load company details for editing.
                 {tableData.length > 0 && ` Total: ${tableData.length} companies`}
               </p>
-
-              <div className="search-bar">
-                <span className="search-icon">
-                  <SearchIcon />
-                </span>
-                <input
-                  type="text"
-                  placeholder="Search by code or name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                    }
-                  }}
-                />
               </div>
-
-              <div className="table-wrapper">
+              <div className="table-wrapper compact-table">
                 <table className="table">
                   <thead>
                     <tr>
-                      <th style={{ width: "30%" }}>Code</th>
-                      <th style={{ width: "70%" }}>Company Name</th>
+                      <th>Code</th>
+                      <th>Company Name</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1204,21 +1553,16 @@ const Company = () => {
                       filteredData.map((item) => (
                         <tr
                           key={item.code}
-                          className={
-                            formData.fcompcode === item.code ? "selected-row" : ""
-                          }
+                          className={formData.fcompcode === item.code ? "selected-row" : ""}
                           onClick={() => handleTableRowClick(item)}
                         >
-                          <td>{item.code}</td>
-                          <td>{item.name}</td>
+                          <td className="code-cell">{item.code}</td>
+                          <td className="name-cell">{item.name}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td
-                          colSpan="2"
-                          style={{ textAlign: "center", color: "#888", padding: "2rem" }}
-                        >
+                        <td colSpan="2" className="no-data">
                           {searchQuery ? "No companies match your search" : "No companies found"}
                         </td>
                       </tr>
@@ -1231,7 +1575,6 @@ const Company = () => {
         </div>
       </div>
 
-      {/* Company Selection Popup using external component */}
       <PopupListSelector
         open={showPopup}
         onClose={handlePopupClose}
@@ -1247,4 +1590,5 @@ const Company = () => {
     </>
   );
 };
+
 export default Company;
