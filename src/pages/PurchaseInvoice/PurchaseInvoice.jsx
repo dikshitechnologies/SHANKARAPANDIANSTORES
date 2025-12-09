@@ -215,11 +215,93 @@ const PurchaseInvoice = () => {
     setItems([...items, newRow]);
   };
 
-  const handleItemChange = (id, field, value) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ));
-  };
+  // const handleItemChange = (id, field, value) => {
+  //   setItems(items.map(item => 
+  //     item.id === id ? { ...item, [field]: value } : item
+  //   ));
+  // };
+const handleItemChange = (id, field, value) => {
+  const updatedItems = items.map(item => {
+    if (item.id !== id) return item;
+    
+    const updatedItem = { ...item, [field]: value };
+    
+    // Calculate avgwt when ovrwt or qty changes
+    if (field === 'ovrwt' || field === 'qty') {
+      const ovrwt = parseFloat(updatedItem.ovrwt) || 0;
+      const qty = parseFloat(updatedItem.qty) || 1;
+      
+      if (qty > 0) {
+        updatedItem.avgwt = (ovrwt / qty).toFixed(2);
+      } else {
+        updatedItem.avgwt = '';
+      }
+    }
+    
+    // Calculate acost based on uom, prate, qty, and avgwt
+    // Trigger calculation when uom, prate, qty, or avgwt changes
+    if (field === 'uom' || field === 'prate' || field === 'qty' || field === 'avgwt') {
+      const uom = updatedItem.uom?.toUpperCase() || '';
+      const prate = parseFloat(updatedItem.prate) || 0;
+      const qty = parseFloat(updatedItem.qty) || 0;
+      const avgwt = parseFloat(updatedItem.avgwt) || 0;
+      
+      if (uom === 'PCS') {
+        // For PCS: acost = qty * prate
+        updatedItem.acost = (qty * prate).toFixed(2);
+      } else if (uom === 'KG') {
+        // For KG: acost = avgwt * prate
+        updatedItem.acost = (avgwt * prate).toFixed(2);
+      } else {
+        // Default calculation or keep existing
+        updatedItem.acost = updatedItem.acost || '';
+      }
+      
+      // After acost is calculated, also update profitPercent and asRate
+      const acost = parseFloat(updatedItem.acost) || 0;
+      if (acost > 0) {
+        // Calculate 5% of acost as profitPercent
+        updatedItem.profitPercent = (acost * 0.05).toFixed(2);
+        // Calculate asRate = acost + profitPercent
+        updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
+      } else {
+        updatedItem.profitPercent = '';
+        updatedItem.asRate = '';
+      }
+    }
+    
+    // When acost is directly changed, update profitPercent and asRate
+    if (field === 'acost') {
+      const acost = parseFloat(value) || 0;
+      if (acost > 0) {
+        // Calculate 5% of acost as profitPercent
+        updatedItem.profitPercent = (acost * 0.05).toFixed(2);
+        // Calculate asRate = acost + profitPercent
+        updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
+      } else {
+        updatedItem.profitPercent = '';
+        updatedItem.asRate = '';
+      }
+    }
+    
+    // When profitPercent is changed manually, update asRate
+    if (field === 'profitPercent') {
+      const acost = parseFloat(updatedItem.acost) || 0;
+      const profitPercent = parseFloat(value) || 0;
+      
+      if (acost > 0) {
+        // Calculate asRate = acost + profitPercent
+        updatedItem.asRate = (acost + profitPercent).toFixed(2);
+      } else {
+        updatedItem.asRate = '';
+      }
+    }
+    
+    return updatedItem;
+  });
+  
+  setItems(updatedItems);
+};
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if (e.key === 'Enter') {
@@ -965,7 +1047,8 @@ const PurchaseInvoice = () => {
                 <th style={styles.th}>PPer</th>
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
-                <th style={styles.th}>WSate</th>
+                <th style={styles.th}>WRate</th>
+                <th style={styles.th}>Amt</th>
                 {/* <th style={styles.th}>Min</th>
                 <th style={styles.th}>Max</th> */}
                 <th style={styles.th}>Action</th>
@@ -996,14 +1079,34 @@ const PurchaseInvoice = () => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'name')}
                     />
                   </td>
+                  {/* onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('fprintgap', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('fprintgap', formData.fprintgap === "N" ? "Y" : "N");
+                      }
+                    }} */}
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
                       value={item.uom}
                       data-row={index}
                       data-field="uom"
-                      onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
+                      onChange ={(e) => {
+                        const v = e.target.value.toUpperCase();
+                        if(v === "PCS" || v === "KG" ) handleItemChange(item.id, 'uom', v);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === " ") {
+                          const currentUom = item.uom.toUpperCase();
+                          const newUom = currentUom === "PCS" ? "KG" : "PCS";
+                          handleItemChange(item.id, 'uom', newUom);
+                      }
+                    }}
+                      // onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
+                      // onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
                     />
                   </td>
                   <td style={styles.td}>
@@ -1184,6 +1287,16 @@ const PurchaseInvoice = () => {
                       data-field="wsPercent"
                       onChange={(e) => handleItemChange(item.id, 'wsPercent', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsPercent')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.wsRate || ''}
+                      data-row={index}
+                      data-field="wsRate"
+                      onChange={(e) => handleItemChange(item.id, 'wsRate', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
                     />
                   </td>
                   <td style={styles.td}>
