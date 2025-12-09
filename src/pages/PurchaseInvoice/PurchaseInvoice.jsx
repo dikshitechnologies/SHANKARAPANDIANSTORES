@@ -1,9 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
+
+// Calculation helpers
+const calculateTotals = (items = []) => {
+  const subTotal = items.reduce((acc, it) => {
+    const qty = parseFloat(it?.qty) || 0;
+    const rate = parseFloat(it?.rate) || 0;
+    return acc + qty * rate;
+  }, 0);
+  const total = subTotal; // extend here if you add discounts/charges
+  const net = total;      // extend here if you add tax/rounding
+  return { subTotal, total, net };
+};
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
@@ -21,6 +34,7 @@ const PurchaseInvoice = () => {
     amount: '',
     partyCode: '',
     gstno: '',
+    gstType: 'CGST',
     purNo: '',
     invoiceNo: '',
     purDate: '',
@@ -78,6 +92,8 @@ const PurchaseInvoice = () => {
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
+  const [showSupplierPopup, setShowSupplierPopup] = useState(false);
+  
 
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('all');
@@ -94,22 +110,23 @@ const PurchaseInvoice = () => {
   // Auth context for company code
   const { userData } = useAuth() || {};
 
+  // Helper: Fetch next invoice number
+  const fetchNextInvNo = async () => {
+    try {
+      const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
+      const endpoint = API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_INVOICES(compCode);
+      const response = await axiosInstance.get(endpoint);
+      const nextCode = response?.data?.nextCode ?? response?.nextCode;
+      if (nextCode) {
+        setBillDetails((prev) => ({ ...prev, invNo: nextCode }));
+      }
+    } catch (err) {
+      console.warn('Failed to fetch next invoice number:', err);
+    }
+  };
+
   // Fetch next invoice number on mount
   useEffect(() => {
-    const fetchNextInvNo = async () => {
-      try {
-        const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
-        const endpoint = API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_INVOICES(compCode);
-        const response = await axiosInstance.get(endpoint);
-        const nextCode = response?.data?.nextCode ?? response?.nextCode; // handle axios vs wrapped service
-        if (nextCode) {
-          setBillDetails((prev) => ({ ...prev, invNo: nextCode }));
-        }
-      } catch (err) {
-        // Silent failure; users can manually enter Inv No
-        console.warn('Failed to fetch next invoice number:', err);
-      }
-    };
     fetchNextInvNo();
   }, [userData]);
 
@@ -138,8 +155,8 @@ const PurchaseInvoice = () => {
 
   // Calculate Totals whenever items change
   useEffect(() => {
-    const total = items.reduce((acc, item) => acc + (parseFloat(item.rate) || 0) * (parseFloat(item.qty) || 0), 0);
-    setNetTotal(total);
+    const { net } = calculateTotals(items);
+    setNetTotal(net);
   }, [items]);
 
   // --- HANDLERS ---
@@ -147,6 +164,13 @@ const PurchaseInvoice = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setBillDetails(prev => ({ ...prev, [name]: value }));
+  };
+
+  const fetchSupplierItems = async (pageNum = 1, search = '') => {
+    const url = API_ENDPOINTS.PURCHASE_INVOICE.SUPPLIER_LIST(search || '', pageNum, 20);
+    const res = await axiosInstance.get(url);
+    const data = res?.data || [];
+    return Array.isArray(data) ? data : [];
   };
 
   // Handle Enter Key Navigation
@@ -215,11 +239,93 @@ const PurchaseInvoice = () => {
     setItems([...items, newRow]);
   };
 
-  const handleItemChange = (id, field, value) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ));
-  };
+  // const handleItemChange = (id, field, value) => {
+  //   setItems(items.map(item => 
+  //     item.id === id ? { ...item, [field]: value } : item
+  //   ));
+  // };
+const handleItemChange = (id, field, value) => {
+  const updatedItems = items.map(item => {
+    if (item.id !== id) return item;
+    
+    const updatedItem = { ...item, [field]: value };
+    
+    // Calculate avgwt when ovrwt or qty changes
+    if (field === 'ovrwt' || field === 'qty') {
+      const ovrwt = parseFloat(updatedItem.ovrwt) || 0;
+      const qty = parseFloat(updatedItem.qty) || 1;
+      
+      if (qty > 0) {
+        updatedItem.avgwt = (ovrwt / qty).toFixed(2);
+      } else {
+        updatedItem.avgwt = '';
+      }
+    }
+    
+    // Calculate acost based on uom, prate, qty, and avgwt
+    // Trigger calculation when uom, prate, qty, or avgwt changes
+    if (field === 'uom' || field === 'prate' || field === 'qty' || field === 'avgwt') {
+      const uom = updatedItem.uom?.toUpperCase() || '';
+      const prate = parseFloat(updatedItem.prate) || 0;
+      const qty = parseFloat(updatedItem.qty) || 0;
+      const avgwt = parseFloat(updatedItem.avgwt) || 0;
+      
+      if (uom === 'PCS') {
+        // For PCS: acost = qty * prate
+        updatedItem.acost = (qty * prate).toFixed(2);
+      } else if (uom === 'KG') {
+        // For KG: acost = avgwt * prate
+        updatedItem.acost = (avgwt * prate).toFixed(2);
+      } else {
+        // Default calculation or keep existing
+        updatedItem.acost = updatedItem.acost || '';
+      }
+      
+      // After acost is calculated, also update profitPercent and asRate
+      const acost = parseFloat(updatedItem.acost) || 0;
+      if (acost > 0) {
+        // Calculate 5% of acost as profitPercent
+        updatedItem.profitPercent = (acost * 0.05).toFixed(2);
+        // Calculate asRate = acost + profitPercent
+        updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
+      } else {
+        updatedItem.profitPercent = '';
+        updatedItem.asRate = '';
+      }
+    }
+    
+    // When acost is directly changed, update profitPercent and asRate
+    if (field === 'acost') {
+      const acost = parseFloat(value) || 0;
+      if (acost > 0) {
+        // Calculate 5% of acost as profitPercent
+        updatedItem.profitPercent = (acost * 0.05).toFixed(2);
+        // Calculate asRate = acost + profitPercent
+        updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
+      } else {
+        updatedItem.profitPercent = '';
+        updatedItem.asRate = '';
+      }
+    }
+    
+    // When profitPercent is changed manually, update asRate
+    if (field === 'profitPercent') {
+      const acost = parseFloat(updatedItem.acost) || 0;
+      const profitPercent = parseFloat(value) || 0;
+      
+      if (acost > 0) {
+        // Calculate asRate = acost + profitPercent
+        updatedItem.asRate = (acost + profitPercent).toFixed(2);
+      } else {
+        updatedItem.asRate = '';
+      }
+    }
+    
+    return updatedItem;
+  });
+  
+  setItems(updatedItems);
+};
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if (e.key === 'Enter') {
@@ -334,26 +440,27 @@ const PurchaseInvoice = () => {
       const voucherNo = billDetails.invNo || '';
       const voucherDateISO = toISODate(billDetails.billDate || billDetails.purDate);
 
+      const totals = calculateTotals(items);
+
       const payload = {
         bledger: {
           customerCode: billDetails.partyCode || '',
           voucherNo: voucherNo,
           voucherDate: voucherDateISO,
-          billAmount: toNumber(netTotal),
-          balanceAmount: toNumber(netTotal),
-          refType: billDetails.transType || '',
+          billAmount: totals.net,
+          balanceAmount: totals.net,
+          refType: 'pe',
           refName: billDetails.customerName || '',
-          compCode: compCode,
-          taxMode: '',
-          user: username,
-          gstType: '',
+          compCode: '001',
+          user: '001',
+          gstType: billDetails.gstType || 'CGST',
         },
         iledger: {
           vrNo: voucherNo,
-          less: 0,
-          subTotal: toNumber(netTotal),
-          total: toNumber(netTotal),
-          net: toNumber(netTotal),
+          less: 0 ,
+          subTotal: totals.subTotal,
+          total: totals.total,
+          net: totals.net,
           add1: '',
           add2: '',
           cstsNo: '',
@@ -386,17 +493,75 @@ const PurchaseInvoice = () => {
           letProfPer: toNumber(it.letProfPer),
           ntCost: toNumber(it.ntCost),
           wsPer: toNumber(it.wsPercent),
-        })).filter((it) => it.itemCode && it.qty > 0),
+        })),
       };
 
+      const purchaseType = billDetails.isLedger ? 'true' : 'false';
       axiosInstance
-        .post(API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE, payload)
+        .post(API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE(purchaseType), payload)
         .then((res) => {
           alert('Purchase saved successfully');
+          setBillDetails({
+            invNo: '',
+            billDate: '',
+            mobileNo: '',
+            customerName: '',
+            type: 'Retail',
+            barcodeInput: '',
+            entryDate: '',
+            amount: '',
+            partyCode: '',
+            gstno: '',
+            gstType: 'CGST',
+            purNo: '',
+            invoiceNo: '',
+            purDate: '',
+            invoiceAmount: '',
+            transType: 'PURCHASE',
+            city: '',
+            isLedger: false,
+          });
+          setItems([
+            {
+              id: 1,
+              barcode: '',
+              name: '',
+              sub: '',
+              stock: 0,
+              mrp: 0,
+              uom: '',
+              hsn: '',
+              tax: 0,
+              rate: 0,
+              qty: 0,
+              ovrwt: '',
+              avgwt: '',
+              prate: 0,
+              intax: '',
+              outtax: '',
+              acost: '',
+              sudo: '',
+              profitPercent: '',
+              preRT: '',
+              sRate: '',
+              asRate: '',
+              letProfPer: '',
+              ntCost: '',
+              wsPercent: '',
+              wsRate: '',
+              min: '',
+              max: ''
+            }
+          ]);
+          // Get next invoice number for the next entry
+          fetchNextInvNo();
         })
         .catch((err) => {
-          console.warn('CreatePurchase failed:', err);
-          alert('Failed to save purchase');
+          const status = err?.response?.status;
+          const data = err?.response?.data;
+          const message = typeof data === 'string' ? data : data?.message || data?.error || err?.message;
+          console.warn('CreatePurchase failed:', { status, data, err });
+          alert(`Failed to save purchase${message ? `: ${message}` : ''}`);
         });
     } catch (e) {
       console.warn('Save error:', e);
@@ -810,17 +975,36 @@ const PurchaseInvoice = () => {
           {/* Customer Name */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Name:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.customerName}
-              name="customerName"
-              onChange={handleInputChange}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-              onFocus={() => setFocusedField('customerName')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Customer Name"
-            />
+            <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
+              <input
+                type="text"
+                style={{...styles.inlineInput, flex: 1}}
+                value={billDetails.customerName}
+                name="customerName"
+                onChange={handleInputChange}
+                onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
+                onFocus={() => setFocusedField('customerName')}
+                onBlur={() => setFocusedField('')}
+                placeholder="Customer Name"
+              />
+              <button
+                type="button"
+                aria-label="Search supplier"
+                title="Search supplier"
+                onClick={() => setShowSupplierPopup(true)}
+                style={{
+                  height: screenSize.isMobile ? '32px' : '40px',
+                  minWidth: '40px',
+                  border: '1px solid #1B91DA',
+                  background: '#e8f4fc',
+                  color: '#1B91DA',
+                  borderRadius: screenSize.isMobile ? '3px' : '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                🔎
+              </button>
+            </div>
           </div>
 
           {/* City */}
@@ -837,6 +1021,25 @@ const PurchaseInvoice = () => {
               onBlur={() => setFocusedField('')}
               placeholder="City"
             />
+          </div>
+
+                    {/* GST Type */}
+
+
+           <div style={styles.formField}>
+            <label style={styles.inlineLabel}>GST Type:</label>
+            <select
+              name="gstType"
+              style={styles.inlineInput}
+              value={billDetails.gstType}
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('gstType')}
+              onBlur={() => setFocusedField('')}
+            >
+              <option value="CGST">CGST</option>
+              <option value="IGST">IGST</option>
+            </select>
           </div>
 
           {/* Trans Type */}
@@ -857,6 +1060,8 @@ const PurchaseInvoice = () => {
               <option value="Credit">Credit</option>
             </select>
           </div>
+
+         
 
           {/* Invoice Amt */}
           <div style={styles.formField}>
@@ -965,7 +1170,8 @@ const PurchaseInvoice = () => {
                 <th style={styles.th}>PPer</th>
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
-                <th style={styles.th}>WSate</th>
+                <th style={styles.th}>WRate</th>
+                <th style={styles.th}>Amt</th>
                 {/* <th style={styles.th}>Min</th>
                 <th style={styles.th}>Max</th> */}
                 <th style={styles.th}>Action</th>
@@ -996,14 +1202,34 @@ const PurchaseInvoice = () => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'name')}
                     />
                   </td>
+                  {/* onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "Y" || v === "N") handleInputChange('fprintgap', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('fprintgap', formData.fprintgap === "N" ? "Y" : "N");
+                      }
+                    }} */}
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
                       value={item.uom}
                       data-row={index}
                       data-field="uom"
-                      onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
+                      onChange ={(e) => {
+                        const v = e.target.value.toUpperCase();
+                        if(v === "PCS" || v === "KG" ) handleItemChange(item.id, 'uom', v);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === " ") {
+                          const currentUom = item.uom.toUpperCase();
+                          const newUom = currentUom === "PCS" ? "KG" : "PCS";
+                          handleItemChange(item.id, 'uom', newUom);
+                      }
+                    }}
+                      // onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
+                      // onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
                     />
                   </td>
                   <td style={styles.td}>
@@ -1196,6 +1422,16 @@ const PurchaseInvoice = () => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
                     />
                   </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
+                      value={item.wsRate || ''}
+                      data-row={index}
+                      data-field="wsRate"
+                      onChange={(e) => handleItemChange(item.id, 'wsRate', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
+                    />
+                  </td>
                   {/* <td style={styles.td}>
                     <input
                       style={styles.editableInput}
@@ -1266,6 +1502,28 @@ const PurchaseInvoice = () => {
           </table>
         </div>
       </div>
+
+      <PopupListSelector
+        open={showSupplierPopup}
+        onClose={() => setShowSupplierPopup(false)}
+        title="Select Supplier"
+        fetchItems={fetchSupplierItems}
+        displayFieldKeys={['code','name','city','gstType']}
+        headerNames={['Code','Name','City','GST Type']}
+        searchFields={['code','name','city','gstType']}
+        columnWidths={{ code: '20%', name: '40%', city: '20%', gstType: '20%' }}
+        searchPlaceholder="Search supplier..."
+        onSelect={(s) => {
+          setBillDetails(prev => ({
+            ...prev,
+            partyCode: s.code || '',
+            customerName: s.name || '',
+            city: s.city || '',
+            gstno: s.gstType || '',
+            gstType: s.gstType || prev.gstType || 'CGST'
+          }));
+        }}
+      />
 
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>

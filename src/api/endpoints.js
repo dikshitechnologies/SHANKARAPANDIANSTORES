@@ -120,8 +120,11 @@ user_creation: {
 
   PURCHASE_INVOICE: {
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
-    CREATE_PURCHASE_INVOICE: "PurchaseInvoice/CreatePurchase",
+    CREATE_PURCHASE_INVOICE: (purchaseType) => `PurchaseInvoice/CreatePurchase/${purchaseType}`,
+    SUPPLIER_LIST: (search = '', page = 1, pageSize = 20) =>
+      `PurchaseInvoice/SupplierList?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
   },
+    
 
 
   DESIGNCREATION: {

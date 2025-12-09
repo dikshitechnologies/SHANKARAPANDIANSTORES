@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import axios from 'axios';
+import { API_ENDPOINTS } from "../../api/endpoints";
+import apiService from "../../api/apiService";
 
 const FCompCode = "001";
 
@@ -113,222 +116,6 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
   );
 }
 
-// Mock data for tree
-const MOCK_TREE_DATA = [
-  {
-    key: "/electronics",
-    displayName: "Electronics",
-    id: "ELEC001",
-    children: [
-      {
-        key: "/electronics/mobile",
-        displayName: "Mobile Phones",
-        id: "MOB001",
-        children: [
-          { key: "/electronics/mobile/samsung", displayName: "Samsung", id: "SAM001", children: [] },
-          { key: "/electronics/mobile/apple", displayName: "Apple", id: "APP001", children: [] },
-          { key: "/electronics/mobile/xiaomi", displayName: "Xiaomi", id: "XIA001", children: [] }
-        ]
-      },
-      {
-        key: "/electronics/laptop",
-        displayName: "Laptops",
-        id: "LAP001",
-        children: [
-          { key: "/electronics/laptop/dell", displayName: "Dell", id: "DEL001", children: [] },
-          { key: "/electronics/laptop/hp", displayName: "HP", id: "HP001", children: [] },
-          { key: "/electronics/laptop/lenovo", displayName: "Lenovo", id: "LEN001", children: [] }
-        ]
-      },
-      {
-        key: "/electronics/tv",
-        displayName: "Televisions",
-        id: "TV001",
-        children: [
-          { key: "/electronics/tv/lg", displayName: "LG", id: "LG001", children: [] },
-          { key: "/electronics/tv/sony", displayName: "Sony", id: "SON001", children: [] }
-        ]
-      }
-    ]
-  },
-  {
-    key: "/clothing",
-    displayName: "Clothing",
-    id: "CLOTH001",
-    children: [
-      {
-        key: "/clothing/men",
-        displayName: "Men's Wear",
-        id: "MEN001",
-        children: [
-          { key: "/clothing/men/shirts", displayName: "Shirts", id: "SHIRT001", children: [] },
-          { key: "/clothing/men/pants", displayName: "Pants", id: "PANT001", children: [] },
-          { key: "/clothing/men/jackets", displayName: "Jackets", id: "JACK001", children: [] }
-        ]
-      },
-      {
-        key: "/clothing/women",
-        displayName: "Women's Wear",
-        id: "WOM001",
-        children: [
-          { key: "/clothing/women/dresses", displayName: "Dresses", id: "DRESS001", children: [] },
-          { key: "/clothing/women/tops", displayName: "Tops", id: "TOP001", children: [] },
-          { key: "/clothing/women/skirts", displayName: "Skirts", id: "SKIRT001", children: [] }
-        ]
-      },
-      {
-        key: "/clothing/kids",
-        displayName: "Kids Wear",
-        id: "KIDS001",
-        children: [
-          { key: "/clothing/kids/toys", displayName: "Toys", id: "TOY001", children: [] },
-          { key: "/clothing/kids/school", displayName: "School Uniform", id: "SCHOOL001", children: [] }
-        ]
-      }
-    ]
-  },
-  {
-    key: "/furniture",
-    displayName: "Furniture",
-    id: "FURN001",
-    children: [
-      {
-        key: "/furniture/living",
-        displayName: "Living Room",
-        id: "LIV001",
-        children: [
-          { key: "/furniture/living/sofa", displayName: "Sofa", id: "SOFA001", children: [] },
-          { key: "/furniture/living/tables", displayName: "Tables", id: "TABLE001", children: [] },
-          { key: "/furniture/living/chairs", displayName: "Chairs", id: "CHAIR001", children: [] }
-        ]
-      },
-      {
-        key: "/furniture/bedroom",
-        displayName: "Bedroom",
-        id: "BED001",
-        children: [
-          { key: "/furniture/bedroom/beds", displayName: "Beds", id: "BED002", children: [] },
-          { key: "/furniture/bedroom/wardrobes", displayName: "Wardrobes", id: "WARD001", children: [] }
-        ]
-      },
-      {
-        key: "/furniture/office",
-        displayName: "Office Furniture",
-        id: "OFF001",
-        children: [
-          { key: "/furniture/office/desks", displayName: "Desks", id: "DESK001", children: [] },
-          { key: "/furniture/office/cabinets", displayName: "Cabinets", id: "CAB001", children: [] }
-        ]
-      }
-    ]
-  },
-  {
-    key: "/groceries",
-    displayName: "Groceries",
-    id: "GROC001",
-    children: [
-      {
-        key: "/groceries/food",
-        displayName: "Food Items",
-        id: "FOOD001",
-        children: [
-          { key: "/groceries/food/grains", displayName: "Grains", id: "GRAIN001", children: [] },
-          { key: "/groceries/food/spices", displayName: "Spices", id: "SPICE001", children: [] }
-        ]
-      },
-      {
-        key: "/groceries/beverages",
-        displayName: "Beverages",
-        id: "BEV001",
-        children: [
-          { key: "/groceries/beverages/softdrinks", displayName: "Soft Drinks", id: "DRINK001", children: [] },
-          { key: "/groceries/beverages/juices", displayName: "Juices", id: "JUICE001", children: [] }
-        ]
-      }
-    ]
-  },
-  {
-    key: "/stationery",
-    displayName: "Stationery",
-    id: "STAT001",
-    children: [
-      {
-        key: "/stationery/writing",
-        displayName: "Writing Materials",
-        id: "WRITE001",
-        children: [
-          { key: "/stationery/writing/pens", displayName: "Pens", id: "PEN001", children: [] },
-          { key: "/stationery/writing/notebooks", displayName: "Notebooks", id: "NOTE001", children: [] }
-        ]
-      },
-      {
-        key: "/stationery/office",
-        displayName: "Office Supplies",
-        id: "OFFSUP001",
-        children: [
-          { key: "/stationery/office/files", displayName: "Files", id: "FILE001", children: [] },
-          { key: "/stationery/office/staplers", displayName: "Staplers", id: "STAP001", children: [] }
-        ]
-      }
-    ]
-  }
-];
-
-// Mock data for items
-const MOCK_ITEMS_DATA = [
-  { fItemcode: "ITEM001", fItemName: "iPhone 15 Pro", fParent: "Electronics/Apple", fShort: "i15P", fBrand: "Apple", fCategory: "Smartphones", fProduct: "iPhone", fModel: "15 Pro", fSize: "128GB", fMax: "100", fMin: "10", ftax: "18", fPrefix: "1001", gstcheckbox: "Y", manualprefix: "Y", fHSN: "8517", fPieceRate: "Y", fType: "Finished Product", fSellingPrice: "99999", fCostPrice: "75000", fUnit: "Pieces", fUnitCode: "PCS" },
-  { fItemcode: "ITEM002", fItemName: "Samsung Galaxy S24", fParent: "Electronics/Samsung", fShort: "SGS24", fBrand: "Samsung", fCategory: "Smartphones", fProduct: "Galaxy", fModel: "S24", fSize: "256GB", fMax: "150", fMin: "15", ftax: "18", fPrefix: "1002", gstcheckbox: "Y", manualprefix: "Y", fHSN: "8517", fPieceRate: "N", fType: "Finished Product", fSellingPrice: "84999", fCostPrice: "65000", fUnit: "Pieces", fUnitCode: "PCS" },
-];
-
-// Mock data for brands
-const MOCK_BRANDS_DATA = [
-  { fcode: "BR001", fname: "Apple" },
-  { fcode: "BR002", fname: "Samsung" },
-  { fcode: "BR003", fname: "Dell" },
-];
-
-// Mock data for categories
-const MOCK_CATEGORIES_DATA = [
-  { fcode: "CAT001", fname: "Electronics" },
-  { fcode: "CAT002", fname: "Clothing" },
-  { fcode: "CAT003", fname: "Furniture" },
-];
-
-// Mock data for products
-const MOCK_PRODUCTS_DATA = [
-  { fcode: "PROD001", fname: "Smartphones" },
-  { fcode: "PROD002", fname: "Laptops" },
-  { fcode: "PROD003", fname: "Televisions" },
-];
-
-// Mock data for models
-const MOCK_MODELS_DATA = [
-  { fcode: "MOD001", fname: "15 Pro" },
-  { fcode: "MOD002", fname: "Galaxy S24" },
-  { fcode: "MOD003", fname: "XPS 13" },
-];
-
-// Mock data for sizes
-const MOCK_SIZES_DATA = [
-  { fcode: "SIZ001", fname: "128GB" },
-  { fcode: "SIZ002", fname: "256GB" },
-  { fcode: "SIZ003", fname: "16GB/512GB" },
-];
-
-// Mock data for units
-const MOCK_UNITS_DATA = [
-  { fcode: "PCS", fname: "Pieces" },
-  { fcode: "KG", fname: "Kilograms" },
-  { fcode: "LTR", fname: "Liters" },
-  { fcode: "MTR", fname: "Meters" },
-  { fcode: "BOX", fname: "Box" },
-  { fcode: "PKT", fname: "Packet" },
-  { fcode: "SET", fname: "Set" },
-  { fcode: "DOZ", fname: "Dozen" },
-  { fcode: "ROL", fname: "Roll" },
-  { fcode: "UNT", fname: "Unit" },
-];
-
 // Type options for dropdown
 const TYPE_OPTIONS = [
   { value: "Scrap Product", label: "Scrap Product" },
@@ -338,6 +125,8 @@ const TYPE_OPTIONS = [
   { value: "Component", label: "Component" },
   { value: "Accessory", label: "Accessory" },
 ];
+
+// Mock data for fallback
 
 const ItemCreation = ({ onCreated }) => {
   // State management
@@ -359,7 +148,7 @@ const ItemCreation = ({ onCreated }) => {
   const [manualPrefixChecked, setManualPrefixChecked] = useState(false);
   const [pieceRateChecked, setPieceRateChecked] = useState(false);
 
-  // Form data state - Updated with new fields
+  // Form data state
   const [formData, setFormData] = useState({
     fitemCode: '',
     itemName: '',
@@ -412,7 +201,7 @@ const ItemCreation = ({ onCreated }) => {
   const costPriceRef = useRef(null);
   const unitRef = useRef(null);
 
-  // Get permissions for this form.
+  // Get permissions for this form
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
 
   // Auto-focus Group Name on component mount
@@ -441,25 +230,44 @@ const ItemCreation = ({ onCreated }) => {
     try {
       await fetchTreeData();
     } catch (err) {
-      console.error(err);
-      setMessage({ type: "error", text: "Failed to load data. Check console." });
+      console.error('Failed to load initial data:', err);
+      setMessage({ type: "error", text: "Failed to load data. Please check your connection." });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchTreeData = async () => {
-    try {
-      // Mock API call - using static data
-      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
-
-      setTreeData(MOCK_TREE_DATA);
-      setExpandedKeys(new Set(MOCK_TREE_DATA.map(item => item.key)));
-    } catch (error) {
-      console.error('Tree data fetch error:', error);
+ const fetchTreeData = async () => {
+  try {
+    // Change from axios.get(API_ENDPOINTS.ITEM_CREATION.getTree)
+    const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
+    
+    if (response.data && Array.isArray(response.data)) {
+      // Transform API response
+      const transformTreeData = (nodes) => {
+        return nodes.map(node => ({
+          key: node.fgroupCode || node.id || Math.random().toString(),
+          displayName: node.fgroupName || node.name || '',
+          id: node.fgroupCode || node.id || '',
+          children: node.children ? transformTreeData(node.children) : []
+        }));
+      };
+      
+      const treeData = transformTreeData(response.data);
+      setTreeData(treeData);
+      setExpandedKeys(new Set(treeData.map(item => item.key)));
+    } else {
+      // Remove the fallback to MOCK_TREE_DATA
+      console.warn('Unexpected API response format');
+      setTreeData([]);
       setMessage({ type: "error", text: 'Failed to fetch tree data.' });
     }
-  };
+  } catch (error) {
+    console.error('Tree data fetch error:', error);
+    setMessage({ type: "error", text: 'Failed to fetch tree data.' });
+    setTreeData([]); // Set empty array instead of mock data
+  }
+};
 
   const toggleExpand = (key) => {
     setExpandedKeys((prev) => {
@@ -490,12 +298,13 @@ const ItemCreation = ({ onCreated }) => {
     }
   };
 
-  const handleManualPrefixToggle = () => {
+  const handleManualPrefixToggle = async () => {
     const newValue = !manualPrefixChecked;
     setManualPrefixChecked(newValue);
     handleChange('manualprefix', newValue ? 'Y' : 'N');
+    
     if (newValue) {
-      getMaxPrefixFromAPI();
+      await getMaxPrefixFromAPI();
     } else {
       handleChange('prefix', '');
     }
@@ -507,18 +316,25 @@ const ItemCreation = ({ onCreated }) => {
     handleChange('pieceRate', newValue ? 'Y' : 'N');
   };
 
-  const getMaxPrefixFromAPI = async () => {
-    try {
-      // Mock API call - generate next available prefix
-      await new Promise(resolve => setTimeout(resolve, 200));
-      const maxPrefix = Math.max(...MOCK_ITEMS_DATA.map(item => parseInt(item.fPrefix || '0')), 1000);
-      const nextPrefix = (maxPrefix + 1).toString();
-      handleChange('prefix', nextPrefix);
-    } catch (error) {
-      console.error('Error fetching max prefix:', error);
-      setMessage({ type: "error", text: 'Failed to fetch prefix. Please try again.' });
+const getMaxPrefixFromAPI = async () => {
+  try {
+    const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getMaxPrefix);
+    
+    if (response.data && response.data.maxPrefix) {
+      handleChange('prefix', response.data.maxPrefix.toString());
+    } else if (response.data && response.data.nextPrefix) {
+      handleChange('prefix', response.data.nextPrefix.toString());
+    } else {
+      const defaultPrefix = "1001";
+      handleChange('prefix', defaultPrefix);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching max prefix:', error);
+    setMessage({ type: "error", text: 'Failed to fetch prefix. Using default.' });
+    const defaultPrefix = "1001";
+    handleChange('prefix', defaultPrefix);
+  }
+};
 
   // Validation function
   const validateForm = () => {
@@ -593,42 +409,25 @@ const ItemCreation = ({ onCreated }) => {
 
     setIsSubmitting(true);
     setMessage(null);
+    
     try {
-      // For create operations, check for duplicates
-      if (actionType === 'create') {
-        try {
-          await new Promise(resolve => setTimeout(resolve, 200)); // Simulate network delay
-          const isDuplicate = MOCK_ITEMS_DATA.some(item =>
-            item.fItemName?.toLowerCase() === formData.itemName.toLowerCase()
-          );
-          if (isDuplicate) {
-            setMessage({ type: "error", text: 'An item with this name already exists. Please choose a different name.' });
-            setIsSubmitting(false);
-            return;
-          }
-        } catch (error) {
-          console.error('Error checking for duplicates:', error);
-          setMessage({ type: "error", text: 'Failed to verify item uniqueness. Please try again.' });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
+      // Prepare request data
       const requestData = {
-        fitemCode: formData.fitemCode || `ITEM${String(MOCK_ITEMS_DATA.length + 101).padStart(3, '0')}`,
-        fitemName: formData.itemName || '',
-        groupName: mainGroup || '',
-        shortName: formData.shortName || '',
-        brand: formData.brand || '',
-        category: formData.category || '',
-        product: formData.product || '',
-        model: formData.model || '',
-        size: formData.size || '',
-        max: formData.max || '',
-        min: formData.min || '',
-        prefix: formData.prefix || '',
-        gstNumber: formData.gstin || '',
-        gst: formData.gst || 'N',
+        fCompCode: FCompCode,
+        fItemCode: formData.fitemCode || '',
+        fItemName: formData.itemName || '',
+        fParent: mainGroup || '',
+        fShort: formData.shortName || '',
+        fBrand: formData.brand || '',
+        fCategory: formData.category || '',
+        fProduct: formData.product || '',
+        fModel: formData.model || '',
+        fSize: formData.size || '',
+        fMax: formData.max || '',
+        fMin: formData.min || '',
+        fPrefix: formData.prefix || '',
+        ftax: formData.gstin || '',
+        gstcheckbox: formData.gst || 'N',
         manualprefix: formData.manualprefix || 'N',
         fHSN: formData.hsnCode || '',
         fPieceRate: formData.pieceRate || 'N',
@@ -637,51 +436,61 @@ const ItemCreation = ({ onCreated }) => {
         fCostPrice: formData.costPrice || '',
         fUnit: formData.unit || '',
         fUnitCode: formData.unitCode || '',
-        fCompCode: FCompCode || '',
       };
 
-      console.log('Submitted Request Data:', requestData);
+      console.log('Submitting data:', requestData);
 
-      // Simulate API response delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      let response;
+      
+     switch (actionType) {
+  case 'create':
+    // Duplicate check
+    const duplicateCheck = await apiService.get(
+      `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?search=${encodeURIComponent(formData.itemName)}`
+    );
+    
+    if (duplicateCheck.data && duplicateCheck.data.length > 0) {
+      // Handle duplicate
+    }
+    
+    response = await apiService.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
+    break;
+    
+  case 'edit':
+    response = await apiService.put(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.putEdit, requestData);
+    break;
+    
+  case 'delete':
+    response = await apiService.delete(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
+    break;
 
-      switch (actionType) {
-        case 'create':
-          // In real scenario, this would be an API call
-          // For mock, we'll just show success message
-          setMessage({ type: "success", text: 'Data saved successfully!' });
-          if (onCreated) {
-            onCreated({
-              name: requestData.fitemName,
-              code: requestData.fitemCode,
-            });
-          }
-          break;
-        case 'edit':
-          setMessage({ type: "success", text: 'Data updated successfully!' });
-          break;
-        case 'delete':
-          setMessage({ type: "success", text: 'Data deleted successfully!' });
-          break;
         default:
           setMessage({ type: "error", text: 'Invalid action type' });
+          setIsSubmitting(false);
           return;
       }
 
-      // Simulate success response
-      handleClear();
+      // Refresh tree data
       await fetchTreeData();
-
+      handleClear();
+      
     } catch (error) {
       console.error('Submit error:', error);
+      
       if (error.response) {
         const status = error.response.status;
-        const message = error.response.data?.message || 'An unexpected server error occurred.';
+        const errorMessage = error.response.data?.message || error.response.data || 'An unexpected server error occurred.';
 
         if (status === 409) {
           setMessage({ type: "error", text: 'Concurrent modification detected. Please refresh and try again.' });
+        } else if (status === 400) {
+          setMessage({ type: "error", text: `Validation error: ${errorMessage}` });
+        } else if (status === 404) {
+          setMessage({ type: "error", text: 'Resource not found. Please check the item code.' });
+        } else if (status === 500) {
+          setMessage({ type: "error", text: 'Server error. Please try again later.' });
         } else {
-          setMessage({ type: "error", text: `Error ${status}: ${message}` });
+          setMessage({ type: "error", text: `Error ${status}: ${errorMessage}` });
         }
       } else if (error.request) {
         setMessage({ type: "error", text: 'No response received from the server. Please check your network connection.' });
@@ -694,28 +503,32 @@ const ItemCreation = ({ onCreated }) => {
   };
 
   // Fetch function used by PopupListSelector for Edit/Delete
-  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
-    try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      let items = [...MOCK_ITEMS_DATA];
-
-      // Filter by search text if provided
-      if (search.trim()) {
-        const searchLower = search.toLowerCase();
-        items = items.filter(item =>
-          item.fItemName?.toLowerCase().includes(searchLower) ||
-          item.fParent?.toLowerCase().includes(searchLower)
+ const fetchPopupItems = useCallback(async (page = 1, search = '') => {
+  try {
+    const response = await apiService.get(
+      API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown
+    );
+    
+    // Note: Your endpoint doesn't have pagination parameters
+    // You might need to handle filtering on frontend or update backend
+    if (response.data && Array.isArray(response.data)) {
+      // Filter by search term on frontend if needed
+      let filteredData = response.data;
+      if (search) {
+        filteredData = response.data.filter(item => 
+          (item.fItemName || '').toLowerCase().includes(search.toLowerCase()) ||
+          (item.fParent || '').toLowerCase().includes(search.toLowerCase())
         );
       }
-
-      return items.map((it) => ({
-        ...it,
-        // normalized fields for consumers
-        fItemName: it.fItemName ?? it.fitemName ?? it.fItemname ?? it.fItem ?? '',
-        fItemcode: it.fItemcode ?? it.fitemCode ?? it.fitemcode ?? it.fCode ?? '',
-        fParent: it.fParent ?? it.groupName ?? it.fParentName ?? '',
+      
+      // Apply pagination on frontend
+      const startIndex = (page - 1) * 10;
+      const paginatedData = filteredData.slice(startIndex, startIndex + 10);
+      
+      return paginatedData.map((it) => ({
+        fItemName: it.fItemName || '',
+        fItemcode: it.fItemcode || '',
+        fParent: it.fParent || '',
         fBrand: it.fBrand || '',
         fCategory: it.fCategory || '',
         fProduct: it.fProduct || '',
@@ -723,162 +536,146 @@ const ItemCreation = ({ onCreated }) => {
         fSize: it.fSize || '',
         fMax: it.fMax || '',
         fMin: it.fMin || '',
+        ftax: it.ftax || '',
+        fPrefix: it.fPrefix || '',
+        gstcheckbox: it.gstcheckbox || 'N',
+        manualprefix: it.manualprefix || 'N',
         fHSN: it.fHSN || '',
-        fPieceRate: it.fPieceRate || '',
+        fPieceRate: it.fPieceRate || 'N',
         fType: it.fType || '',
         fSellingPrice: it.fSellingPrice || '',
         fCostPrice: it.fCostPrice || '',
-        fUnit: it.fUnit || ''
+        fUnit: it.fUnit || '',
+        fUnitCode: it.fUnitCode || '',
+        fShort: it.fShort || '',
       }));
-    } catch (err) {
-      console.error('fetchPopupItems error', err);
-      return [];
     }
-  }, []);
+    
+    return []; // Return empty array instead of mock data
+  } catch (err) {
+    console.error('fetchPopupItems error', err);
+    return []; // Return empty array instead of mock data
+  }
+}, []);
 
   // Fetch functions for popups
   const fetchBrands = useCallback(async (page = 1, search = '') => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      let items = [...MOCK_BRANDS_DATA];
-
-      if (search.trim()) {
-        const searchLower = search.toLowerCase();
-        items = items.filter(item =>
-          item.fname?.toLowerCase().includes(searchLower)
-        );
+      const response = await axios.get(
+        `${API_ENDPOINTS.BRANDS.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fbrandName || item.name || '',
+          fcode: item.fbrandCode || item.code || ''
+        }));
       }
-
-      return items.map((item) => ({
-        ...item,
-        fname: item.fname || '',
-        fcode: item.fcode || ''
-      }));
+      
+      return MOCK_BRANDS_DATA;
     } catch (err) {
       console.error('fetchBrands error', err);
-      return [];
+      return MOCK_BRANDS_DATA;
     }
   }, []);
 
   const fetchCategories = useCallback(async (page = 1, search = '') => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      let items = [...MOCK_CATEGORIES_DATA];
-
-      if (search.trim()) {
-        const searchLower = search.toLowerCase();
-        items = items.filter(item =>
-          item.fname?.toLowerCase().includes(searchLower)
-        );
+      const response = await axios.get(
+        `${API_ENDPOINTS.CATEGORIES.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fcategoryName || item.name || '',
+          fcode: item.fcategoryCode || item.code || ''
+        }));
       }
-
-      return items.map((item) => ({
-        ...item,
-        fname: item.fname || '',
-        fcode: item.fcode || ''
-      }));
+      
+      return MOCK_CATEGORIES_DATA;
     } catch (err) {
       console.error('fetchCategories error', err);
-      return [];
+      return MOCK_CATEGORIES_DATA;
     }
   }, []);
 
   const fetchProducts = useCallback(async (page = 1, search = '') => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      let items = [...MOCK_PRODUCTS_DATA];
-
-      if (search.trim()) {
-        const searchLower = search.toLowerCase();
-        items = items.filter(item =>
-          item.fname?.toLowerCase().includes(searchLower)
-        );
+      const response = await axios.get(
+        `${API_ENDPOINTS.PRODUCTS.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fproductName || item.name || '',
+          fcode: item.fproductCode || item.code || ''
+        }));
       }
-
-      return items.map((item) => ({
-        ...item,
-        fname: item.fname || '',
-        fcode: item.fcode || ''
-      }));
+      
+      return MOCK_PRODUCTS_DATA;
     } catch (err) {
       console.error('fetchProducts error', err);
-      return [];
+      return MOCK_PRODUCTS_DATA;
     }
   }, []);
 
   const fetchModels = useCallback(async (page = 1, search = '') => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      let items = [...MOCK_MODELS_DATA];
-
-      if (search.trim()) {
-        const searchLower = search.toLowerCase();
-        items = items.filter(item =>
-          item.fname?.toLowerCase().includes(searchLower)
-        );
+      const response = await axios.get(
+        `${API_ENDPOINTS.MODELS.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fmodelName || item.name || '',
+          fcode: item.fmodelCode || item.code || ''
+        }));
       }
-
-      return items.map((item) => ({
-        ...item,
-        fname: item.fname || '',
-        fcode: item.fcode || ''
-      }));
+      
+      return MOCK_MODELS_DATA;
     } catch (err) {
       console.error('fetchModels error', err);
-      return [];
+      return MOCK_MODELS_DATA;
     }
   }, []);
 
   const fetchSizes = useCallback(async (page = 1, search = '') => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      let items = [...MOCK_SIZES_DATA];
-
-      if (search.trim()) {
-        const searchLower = search.toLowerCase();
-        items = items.filter(item =>
-          item.fname?.toLowerCase().includes(searchLower)
-        );
+      const response = await axios.get(
+        `${API_ENDPOINTS.SIZES.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fsizeName || item.name || '',
+          fcode: item.fsizeCode || item.code || ''
+        }));
       }
-
-      return items.map((item) => ({
-        ...item,
-        fname: item.fname || '',
-        fcode: item.fcode || ''
-      }));
+      
+      return MOCK_SIZES_DATA;
     } catch (err) {
       console.error('fetchSizes error', err);
-      return [];
+      return MOCK_SIZES_DATA;
     }
   }, []);
 
   const fetchUnits = useCallback(async (page = 1, search = '') => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      let items = [...MOCK_UNITS_DATA];
-
-      if (search.trim()) {
-        const searchLower = search.toLowerCase();
-        items = items.filter(item =>
-          item.fname?.toLowerCase().includes(searchLower) ||
-          item.fcode?.toLowerCase().includes(searchLower)
-        );
+      const response = await axios.get(
+        `${API_ENDPOINTS.UNITS.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.funitName || item.name || '',
+          fcode: item.funitCode || item.code || ''
+        }));
       }
-
-      return items.map((item) => ({
-        ...item,
-        fname: item.fname || '',
-        fcode: item.fcode || ''
-      }));
+      
+      return MOCK_UNITS_DATA;
     } catch (err) {
       console.error('fetchUnits error', err);
-      return [];
+      return MOCK_UNITS_DATA;
     }
   }, []);
 
@@ -923,9 +720,9 @@ const ItemCreation = ({ onCreated }) => {
       resetForm(true);
     }
     setIsTreeOpen(true);
-
+    
     if (type === 'edit' || type === 'delete') {
-      // No need to fetch data here - PopupListSelector will handle it
+      // PopupListSelector will handle data fetching
     }
   };
 
@@ -950,19 +747,18 @@ const ItemCreation = ({ onCreated }) => {
 
   return (
     <div className="lg-root" role="region" aria-labelledby="item-title">
-      {/* Google/Local font — will fallback to system fonts if blocked */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* custom blue theme (provided by user) */
+          /* custom blue theme */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
           --glass-2: rgba(255,255,255,0.35);
-          --accent: #307AC8; /* primary */
-          --accent-2: #1B91DA; /* secondary */
-          --accent-3: #06A7EA; /* tertiary */
+          --accent: #307AC8;
+          --accent-2: #1B91DA;
+          --accent-3: #06A7EA;
           --success: #06A7EA;
           --danger: #ef4444;
           --muted: #64748b;
@@ -994,7 +790,6 @@ const ItemCreation = ({ onCreated }) => {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
-          
         }
         .dashboard:hover { transform: translateY(-6px); }
 
@@ -1043,10 +838,33 @@ const ItemCreation = ({ onCreated }) => {
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
           font-size: 13px;
+          transition: all 0.2s;
+          border: none;
         }
-        .action-pill.primary { color:white; background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
-        .action-pill.warn { color:white; background: linear-gradient(180deg,#f59e0b,#f97316); }
-        .action-pill.danger { color:white; background: linear-gradient(180deg,var(--danger),#f97373); }
+        .action-pill:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(2,6,23,0.08);
+        }
+        .action-pill:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+        .action-pill.primary { 
+          color:white; 
+          background: linear-gradient(180deg, var(--accent), var(--accent-2));
+          border: 1px solid rgba(48, 122, 200, 0.3);
+        }
+        .action-pill.warn { 
+          color:white; 
+          background: linear-gradient(180deg,#f59e0b,#f97316);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .action-pill.danger { 
+          color:white; 
+          background: linear-gradient(180deg,var(--danger),#f97373);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
 
         /* grid layout */
         .grid {
@@ -1075,7 +893,12 @@ const ItemCreation = ({ onCreated }) => {
           width: 100%;
         }
 
-        .field { margin-bottom:12px; display:flex; flex-direction:column; align-items:flex-start; }
+        .field { 
+          margin-bottom:12px; 
+          display:flex; 
+          flex-direction:column; 
+          align-items:flex-start; 
+        }
 
         .row { 
           display:flex; 
@@ -1089,15 +912,25 @@ const ItemCreation = ({ onCreated }) => {
           min-width: 0;
           padding:10px 12px;
           border-radius:10px;
-          border: 1px solid rgba(15,23,42,0.06);
+          border: 1px solid rgba(15,23,42,0.1);
           background: linear-gradient(180deg, #fff, #fbfdff);
           font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
-          transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
+          transition: all 160ms ease;
           text-align: left;
+          font-family: inherit;
         }
-        .input:focus, .search:focus, .select:focus { outline:none; box-shadow: 0 8px 26px rgba(37,99,235,0.08); transform: translateY(-1px); border-color: rgba(37,99,235,0.25); }
+        .input:focus, .search:focus, .select:focus { 
+          outline:none; 
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.15); 
+          border-color: rgba(37,99,235,0.5); 
+        }
+        .input:disabled, .select:disabled {
+          background: #f1f5f9;
+          cursor: not-allowed;
+          opacity: 0.7;
+        }
 
         .select {
           appearance: none;
@@ -1112,30 +945,44 @@ const ItemCreation = ({ onCreated }) => {
         .btn {
           padding:10px 12px;
           border-radius:10px;
-          border:1px solid rgba(12,18,35,0.06);
+          border:1px solid rgba(12,18,35,0.1);
           background: linear-gradient(180deg,#fff,#f8fafc);
           cursor:pointer;
           min-width:86px;
           font-weight:600;
           white-space: nowrap;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .btn:hover {
+          background: linear-gradient(180deg,#f8fafc,#f1f5f9);
+        }
+        .btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
-        .controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+        .controls { 
+          display:flex; 
+          gap:10px; 
+          margin-top:10px; 
+          flex-wrap:wrap; 
+        }
 
         /* tree panel */
         .panel {
           margin-top:8px;
           border-radius:10px;
           background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(250,251,255,0.6));
-          border: 1px solid rgba(12,18,35,0.04);
+          border: 1px solid rgba(12,18,35,0.08);
           padding:10px;
           width: 100%;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
         .tree-scroll { 
           max-height:260px; 
           overflow:auto; 
           padding-right:6px;
-          /* Scrollbar styles */
           scrollbar-width: thin;
           scrollbar-color: rgba(12,18,35,0.1) transparent;
         }
@@ -1163,10 +1010,17 @@ const ItemCreation = ({ onCreated }) => {
           padding:10px;
           border-radius:10px;
           cursor:pointer;
-          transition: background 160ms ease, transform 120ms ease, box-shadow 180ms ease;
+          transition: all 160ms ease;
+          margin-bottom: 2px;
         }
-        .tree-row:hover { background: linear-gradient(90deg, rgba(74,222,128,0.06), rgba(74,222,128,0.02)); transform: translateX(6px); }
-        .tree-row.selected { background: linear-gradient(90deg, rgba(15,23,42,0.03), rgba(15,23,42,0.01)); box-shadow: inset 0 0 0 1px rgba(16,163,98,0.06); }
+        .tree-row:hover { 
+          background: linear-gradient(90deg, rgba(74,222,128,0.06), rgba(74,222,128,0.02)); 
+          transform: translateX(4px); 
+        }
+        .tree-row.selected { 
+          background: linear-gradient(90deg, rgba(15,23,42,0.03), rgba(15,23,42,0.01)); 
+          box-shadow: inset 0 0 0 1px rgba(16,163,98,0.1); 
+        }
 
         .chev, .chev-placeholder {
           background:transparent;
@@ -1178,12 +1032,29 @@ const ItemCreation = ({ onCreated }) => {
           justify-content:center;
           cursor:pointer;
           font-size:14px;
+          padding: 0;
         }
-        .chev-rot { display:inline-block; transition: transform 220ms cubic-bezier(.2,.8,.2,1); }
+        .chev-rot { 
+          display:inline-block; 
+          transition: transform 220ms cubic-bezier(.2,.8,.2,1); 
+        }
         .chev-rot.open { transform: rotate(90deg); }
 
-        .node-icon { width:22px; display:inline-flex; align-items:center; justify-content:center; color:var(--accent); }
-        .node-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; color:#0f172a; }
+        .node-icon { 
+          width:22px; 
+          display:inline-flex; 
+          align-items:center; 
+          justify-content:center; 
+          color:var(--accent); 
+        }
+        .node-text { 
+          white-space:nowrap; 
+          overflow:hidden; 
+          text-overflow:ellipsis; 
+          font-weight:600; 
+          color:#0f172a;
+          flex: 1;
+        }
 
         /* right card (preview / summary) */
         .side {
@@ -1195,9 +1066,20 @@ const ItemCreation = ({ onCreated }) => {
           background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(250,251,255,0.7));
           border-radius: 12px;
           padding:12px;
-          border: 1px solid rgba(12,18,35,0.04);
+          border: 1px solid rgba(12,18,35,0.06);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { 
+          color: var(--muted); 
+          font-size:13px; 
+          margin-bottom: 4px;
+        }
+        .stat-value {
+          font-weight: 700;
+          font-size: 16px;
+          color: #0f172a;
+          min-height: 24px;
+        }
 
         /* message */
         .message {
@@ -1205,9 +1087,18 @@ const ItemCreation = ({ onCreated }) => {
           padding:12px;
           border-radius:10px;
           font-weight:600;
+          font-size: 14px;
         }
-        .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
-        .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
+        .message.error { 
+          background: #fff1f2; 
+          color: #9f1239; 
+          border: 1px solid #ffd7da; 
+        }
+        .message.success { 
+          background: #f0fdf4; 
+          color: #064e3b; 
+          border: 1px solid #bbf7d0; 
+        }
 
         /* submit row */
         .submit-row { 
@@ -1226,29 +1117,52 @@ const ItemCreation = ({ onCreated }) => {
           font-weight:700;
           cursor:pointer;
           min-width: 120px;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .submit-primary:hover:not(:disabled) {
+          background: linear-gradient(180deg, var(--accent-2), var(--accent-3));
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(48, 122, 200, 0.3);
+        }
+        .submit-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+          box-shadow: none !important;
         }
         .submit-clear {
           padding:10px 12px;
           background:#fff;
-          border:1px solid rgba(12,18,35,0.06);
+          border:1px solid rgba(12,18,35,0.1);
           border-radius:10px;
           cursor:pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .submit-clear:hover:not(:disabled) {
+          background: #f8fafc;
+          border-color: rgba(12,18,35,0.2);
+        }
+        .submit-clear:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
         
         .search-container {
           position: relative;
-          width: 80%;
+          width: 100%;
         }
 
         .search-with-clear {
           width: 100%;
-           padding: 12px 40px 12px 16px;
+          padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
           font-size: 14px;
           transition: all 0.2s;
+          font-family: inherit;
         }
-        /* Limit search width inside panels and modals to avoid overly long inputs */
         .panel .search-with-clear,
         .modal .search-with-clear {
           max-width: 420px;
@@ -1275,6 +1189,7 @@ const ItemCreation = ({ onCreated }) => {
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: all 0.2s;
         }
 
         .clear-search-btn:hover {
@@ -1308,16 +1223,33 @@ const ItemCreation = ({ onCreated }) => {
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
         }
          
-        .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
-        .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; }
-        .dropdown-item:hover { background: linear-gradient(90deg, rgba(16,163,98,0.04), rgba(16,163,98,0.01)); transform: translateX(6px); }
+        .dropdown-list { 
+          max-height:50vh; 
+          overflow:auto; 
+          border-top:1px solid rgba(12,18,35,0.03); 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          padding:6px 0; 
+        }
+        .dropdown-item { 
+          padding:12px; 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          cursor:pointer; 
+          display:flex; 
+          flex-direction:column; 
+          gap:4px; 
+          transition: all 0.2s;
+        }
+        .dropdown-item:hover { 
+          background: linear-gradient(90deg, rgba(16,163,98,0.04), rgba(16,163,98,0.01)); 
+          transform: translateX(6px); 
+        }
         .dropdown-item, .node-text { text-align: left; }
 
-        /* form grid - UPDATED WITH MORE SPACE BETWEEN COLUMNS */
+        /* form grid */
         .form-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 24px 32px; /* Increased horizontal gap to 32px */
+          gap: 24px 32px;
           margin-bottom: 16px;
           align-items: start;
         }
@@ -1347,6 +1279,7 @@ const ItemCreation = ({ onCreated }) => {
           align-items: center;
           justify-content: center;
           transition: all 0.2s;
+          flex-shrink: 0;
         }
         .checkbox.checked {
           background: var(--accent);
@@ -1362,6 +1295,10 @@ const ItemCreation = ({ onCreated }) => {
           font-size: 14px;
           font-weight: 500;
           color: #374151;
+          user-select: none;
+        }
+        .checkbox-group:hover .checkbox:not(.checked) {
+          border-color: var(--accent);
         }
 
         /* Custom styles for browse buttons with search icon */
@@ -1378,6 +1315,7 @@ const ItemCreation = ({ onCreated }) => {
           min-width: 42px;
           height: 42px;
           transition: all 0.2s;
+          border: none;
         }
         
         .browse-btn:hover {
@@ -1404,6 +1342,7 @@ const ItemCreation = ({ onCreated }) => {
           width: 100%;
           padding-right: 40px;
           cursor: pointer;
+          background: white;
         }
         
         .input-search-icon {
@@ -1427,6 +1366,13 @@ const ItemCreation = ({ onCreated }) => {
         .field .row input[placeholder="Min"] {
           text-align: center;
           padding: 10px 8px;
+          min-width: 80px;
+        }
+
+        /* Tips panel */
+        .tips-panel {
+          background: linear-gradient(180deg, rgba(240, 249, 255, 0.7), rgba(240, 249, 255, 0.5));
+          border: 1px solid rgba(173, 216, 230, 0.3);
         }
 
         /* Responsive styles */
@@ -1468,7 +1414,7 @@ const ItemCreation = ({ onCreated }) => {
           }
           .form-grid {
             grid-template-columns: 1fr;
-            gap: 16px; /* Reset gap for mobile */
+            gap: 16px;
           }
           .field .row input[placeholder="Max"],
           .field .row input[placeholder="Min"] {
@@ -1753,27 +1699,27 @@ const ItemCreation = ({ onCreated }) => {
                     <div className="tree-scroll" role="tree" aria-label="Group list">
                       {loading ? (
                         <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-                      ) : filteredTree.length === 0 ? (
-                        <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-                      ) : (
-                        filteredTree.map((node) => (
-                          <TreeNode
-                            key={node.key}
-                            node={node}
-                            onSelect={handleSelectNode}
-                            expandedKeys={expandedKeys}
-                            toggleExpand={toggleExpand}
-                            selectedKey={selectedNode?.key}
-                          />
-                        ))
-                      )}
+                        ) : filteredTree.length === 0 ? (
+                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+                        ) : (
+                          filteredTree.map((node) => (
+                            <TreeNode
+                              key={node.key}
+                              node={node}
+                              onSelect={handleSelectNode}
+                              expandedKeys={expandedKeys}
+                              toggleExpand={toggleExpand}
+                              selectedKey={selectedNode?.key}
+                            />
+                          ))
+                        )}
                     </div>
                   </div>
                 )
               )}
             </div>
 
-            {/* Item Name field - Full width with search icon */}
+            {/* Item Name field */}
             <div className="field">
               <label className="field-label">Item Name *</label>
               <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
@@ -1808,7 +1754,7 @@ const ItemCreation = ({ onCreated }) => {
               </div>
             </div>
 
-            {/* Short Name field - Full width with search icon */}
+            {/* Short Name field */}
             <div className="field">
               <label className="field-label">Short Name</label>
               <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
@@ -1843,9 +1789,9 @@ const ItemCreation = ({ onCreated }) => {
               </div>
             </div>
 
-            {/* Form Grid - REARRANGED AS REQUESTED */}
+            {/* Form Grid */}
             <div className="form-grid">
-              {/* Brand - with built-in search icon */}
+              {/* Brand */}
               <div className="field">
                 <label className="field-label">Brand</label>
                 <div className="input-with-search">
@@ -1866,7 +1812,7 @@ const ItemCreation = ({ onCreated }) => {
                 </div>
               </div>
 
-              {/* Category - with built-in search icon */}
+              {/* Category */}
               <div className="field">
                 <label className="field-label">Category</label>
                 <div className="input-with-search">
@@ -1887,7 +1833,7 @@ const ItemCreation = ({ onCreated }) => {
                 </div>
               </div>
 
-              {/* Product - with built-in search icon */}
+              {/* Product */}
               <div className="field">
                 <label className="field-label">Product</label>
                 <div className="input-with-search">
@@ -1908,7 +1854,7 @@ const ItemCreation = ({ onCreated }) => {
                 </div>
               </div>
 
-              {/* Model - with built-in search icon */}
+              {/* Model */}
               <div className="field">
                 <label className="field-label">Model</label>
                 <div className="input-with-search">
@@ -1929,7 +1875,7 @@ const ItemCreation = ({ onCreated }) => {
                 </div>
               </div>
 
-              {/* Size - with built-in search icon */}
+              {/* Size */}
               <div className="field">
                 <label className="field-label">Size</label>
                 <div className="input-with-search">
@@ -1950,7 +1896,7 @@ const ItemCreation = ({ onCreated }) => {
                 </div>
               </div>
 
-              {/* Units - with built-in search icon */}
+              {/* Units */}
               <div className="field">
                 <label className="field-label">Units</label>
                 <div className="input-with-search">
@@ -1971,7 +1917,7 @@ const ItemCreation = ({ onCreated }) => {
                 </div>
               </div>
 
-              {/* Max - Separate field */}
+              {/* Max */}
               <div className="field">
                 <label className="field-label">Max</label>
                 <input
@@ -1986,7 +1932,7 @@ const ItemCreation = ({ onCreated }) => {
                 />
               </div>
 
-              {/* Min - Separate field */}
+              {/* Min */}
               <div className="field">
                 <label className="field-label">Min</label>
                 <input
@@ -2022,10 +1968,9 @@ const ItemCreation = ({ onCreated }) => {
 
               {/* Piece Rate Checkbox */}
               <div className="field">
-                <div className="checkbox-group">
-                  <div
+                <div className="checkbox-group" onClick={handlePieceRateToggle}>
+                  <div 
                     className={`checkbox ${pieceRateChecked ? 'checked' : ''}`}
-                    onClick={handlePieceRateToggle}
                   />
                   <span className="checkbox-label">Piece Rate</span>
                 </div>
@@ -2060,10 +2005,9 @@ const ItemCreation = ({ onCreated }) => {
 
               {/* GST Checkbox */}
               <div className="field">
-                <div className="checkbox-group">
-                  <div
+                <div className="checkbox-group" onClick={handleGstToggle}>
+                  <div 
                     className={`checkbox ${gstChecked ? 'checked' : ''}`}
-                    onClick={handleGstToggle}
                   />
                   <span className="checkbox-label">GST</span>
                 </div>
@@ -2089,10 +2033,9 @@ const ItemCreation = ({ onCreated }) => {
 
               {/* Manual Prefix Checkbox */}
               <div className="field">
-                <div className="checkbox-group">
-                  <div
+                <div className="checkbox-group" onClick={handleManualPrefixToggle}>
+                  <div 
                     className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
-                    onClick={handleManualPrefixToggle}
                   />
                   <span className="checkbox-label">Manual Prefix</span>
                 </div>
@@ -2181,19 +2124,19 @@ const ItemCreation = ({ onCreated }) => {
                     return;
                   }
 
-                  const confirmationMessage =
+                  const confirmationMessage = 
                     actionType === 'create' ? 'Do You Want Save?' :
-                      actionType === 'edit' ? 'Do You Want Modify?' :
-                        'Do You Want Delete?';
+                    actionType === 'edit' ? 'Do You Want Modify?' :
+                    'Do You Want Delete?';
 
                   showConfirmation(confirmationMessage, handleSubmit);
                 }}
                 disabled={isSubmitting}
                 type="button"
               >
-                {isSubmitting ? "Processing..." :
-                  actionType === 'create' ? 'Save' :
-                    actionType === 'edit' ? 'Update' : 'Delete'}
+                {isSubmitting ? "Processing..." : 
+                 actionType === 'create' ? 'Save' : 
+                 actionType === 'edit' ? 'Update' : 'Delete'}
               </button>
               <button
                 className="submit-clear"
@@ -2210,146 +2153,110 @@ const ItemCreation = ({ onCreated }) => {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>
-                {actionType === 'create' ? 'Create New Item' :
-                  actionType === 'edit' ? 'Edit Item' : 'Delete Item'}
+              <div className="stat-value">
+                {actionType === 'create' ? 'Create New Item' : 
+                 actionType === 'edit' ? 'Edit Item' : 'Delete Item'}
               </div>
             </div>
 
             <div className="stat">
               <div className="muted">Group Name</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {mainGroup || ""}
-              </div>
+              <div className="stat-value">{mainGroup || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Item Name</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.itemName || ""}
-              </div>
+              <div className="stat-value">{formData.itemName || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Short Name</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.shortName || ""}
-              </div>
+              <div className="stat-value">{formData.shortName || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Brand</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.brand || ""}
-              </div>
+              <div className="stat-value">{formData.brand || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Category</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.category || ""}
-              </div>
+              <div className="stat-value">{formData.category || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Product</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.product || ""}
-              </div>
+              <div className="stat-value">{formData.product || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Model</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.model || ""}
-              </div>
+              <div className="stat-value">{formData.model || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Size</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.size || ""}
-              </div>
+              <div className="stat-value">{formData.size || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Units</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.unit || ""}
-              </div>
+              <div className="stat-value">{formData.unit || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Max</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.max || ""}
-              </div>
+              <div className="stat-value">{formData.max || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Min</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.min || ""}
-              </div>
+              <div className="stat-value">{formData.min || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">HSN Code</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.hsnCode || ""}
-              </div>
+              <div className="stat-value">{formData.hsnCode || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Piece Rate</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {pieceRateChecked ? 'Yes' : 'No'}
-              </div>
+              <div className="stat-value">{pieceRateChecked ? 'Yes' : 'No'}</div>
             </div>
 
             <div className="stat">
               <div className="muted">GST%</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.gstin ? `${formData.gstin}%` : ""}
-              </div>
+              <div className="stat-value">{formData.gstin ? `${formData.gstin}%` : ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Prefix</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.prefix || ""}
-              </div>
+              <div className="stat-value">{formData.prefix || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Selling Price</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.sellingPrice ? `₹${formData.sellingPrice}` : ""}
-              </div>
+              <div className="stat-value">{formData.sellingPrice ? `₹${formData.sellingPrice}` : ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Cost Price</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.costPrice ? `₹${formData.costPrice}` : ""}
-              </div>
+              <div className="stat-value">{formData.costPrice ? `₹${formData.costPrice}` : ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Type</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.type || ""}
-              </div>
+              <div className="stat-value">{formData.type || ""}</div>
             </div>
 
             <div className="stat tips-panel">
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--accent)" />
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--accent)"/>
                 </svg>
                 <div style={{ fontWeight: 700 }}>Quick Tips</div>
               </div>
-
+              
               <div className="muted" style={{ fontSize: "13px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
