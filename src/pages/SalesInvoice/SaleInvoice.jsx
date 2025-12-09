@@ -989,43 +989,123 @@ const SaleInvoice = () => {
 
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
-        <div style={styles.rightColumn}>
-          <ActionButtons 
-            activeButton={activeTopAction} 
-            onButtonClick={(type) => {
-              setActiveTopAction(type);
-              if (type === 'add') handleAddRow();
-              else if (type === 'edit') alert('Edit action: select a row to edit');
-              else if (type === 'delete') handleDelete();
-            }}
-          >
-            <AddButton />
-            <EditButton />
-            <DeleteButton />
-          </ActionButtons>
-        </div>
-        <div style={styles.totalsContainer}>
-          <div style={styles.totalItem}>
-            <span style={styles.totalLabel}>Total Quantity</span>
-            <span style={styles.totalValue}>{totalQty.toFixed(2)}</span>
-          </div>
-          <div style={styles.totalItem}>
-            <span style={styles.totalLabel}>Total Amount</span>
-            <span style={styles.totalValue}>
-              ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
-        <div style={styles.footerButtons}>
-          <ActionButtons1
-            onClear={handleClear}
-            onSave={handleSave}
-            onPrint={handlePrint}
-            activeButton={activeFooterAction}
-            onButtonClick={(type) => setActiveFooterAction(type)}
-          />
-        </div>
-      </div>
+  <div style={styles.rightColumn}>
+    <ActionButtons 
+      activeButton={activeTopAction} 
+      onButtonClick={(type) => {
+        setActiveTopAction(type);
+        if (type === 'add') handleAddRow();
+        else if (type === 'edit') alert('Edit action: select a row to edit');
+        else if (type === 'delete') handleDelete();
+      }}
+    >
+      <AddButton />
+      <EditButton />
+      <DeleteButton />
+    </ActionButtons>
+  </div>
+
+  {/* Add/Less Quantity Input Box */}
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: screenSize.isMobile ? '6px' : '8px',
+    marginRight: screenSize.isMobile ? '0' : '15px',
+    order: screenSize.isMobile ? 2 : 0,
+    marginTop: screenSize.isMobile ? '5px' : '0',
+    width: screenSize.isMobile ? '100%' : 'auto',
+    justifyContent: screenSize.isMobile ? 'center' : 'flex-start'
+  }}>
+    <span style={{
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      whiteSpace: 'nowrap'
+    }}>
+      Add/Less:
+    </span>
+    <input
+      type="number"
+      style={{
+        width: screenSize.isMobile ? '120px' : '150px',
+        border: '1px solid #1B91DA',
+        borderRadius: '4px',
+        padding: screenSize.isMobile ? '6px 10px' : '8px 12px',
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        fontFamily: TYPOGRAPHY.fontFamily,
+        fontWeight: TYPOGRAPHY.fontWeight.medium,
+        outline: 'none',
+        textAlign: 'center',
+        backgroundColor: 'white',
+        color: '#333',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        transition: 'border-color 0.2s, box-shadow 0.2s'
+      }}
+      placeholder="Enter Qty"
+      min="-999"
+      max="999"
+      step="1"
+      defaultValue=""
+      onFocus={(e) => {
+        e.target.style.borderColor = '#1479c0';
+        e.target.style.boxShadow = '0 0 0 2px rgba(27, 145, 218, 0.2)';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = '#1B91DA';
+        e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          const value = parseInt(e.target.value) || 0;
+          
+          if (value !== 0) {
+            // Apply the value to all items (add if positive, subtract if negative)
+            const updatedItems = items.map(item => {
+              const currentQty = parseFloat(item.qty) || 0;
+              const newQty = Math.max(0, currentQty + value); // Don't go below 0
+              return {
+                ...item,
+                qty: newQty.toString(),
+                amount: calculateAmount(newQty.toString(), item.sRate)
+              };
+            });
+            setItems(updatedItems);
+            
+            // Show feedback
+            const action = value > 0 ? 'added to' : 'subtracted from';
+            console.log(`${Math.abs(value)} ${action} all quantities`);
+          }
+          
+          // Clear the input after applying
+          e.target.value = '';
+        }
+      }}
+    />
+  </div>
+  
+  <div style={styles.totalsContainer}>
+    <div style={styles.totalItem}>
+      <span style={styles.totalLabel}>Total Quantity</span>
+      <span style={styles.totalValue}>{totalQty.toFixed(2)}</span>
+    </div>
+    <div style={styles.totalItem}>
+      <span style={styles.totalLabel}>Total Amount</span>
+      <span style={styles.totalValue}>
+        ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </span>
+    </div>
+  </div>
+  <div style={styles.footerButtons}>
+    <ActionButtons1
+      onClear={handleClear}
+      onSave={handleSave}
+      onPrint={handlePrint}
+      activeButton={activeFooterAction}
+      onButtonClick={(type) => setActiveFooterAction(type)}
+    />
+  </div>
+</div>
     </div>
   );
 };
