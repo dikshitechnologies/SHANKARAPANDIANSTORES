@@ -102,32 +102,18 @@ user_creation: {
   },
 
 // ITEM_CREATION: {
-//     POST: `ItemCreation/ItemCreationPost`,
-//     PUT: `ItemCreation/ItemCreationUpdate`,
-//     DELETE: `ItemCreation/ItemCreationDelete`,
-//     GET_DROPDOWNS: `ItemCreation/GetItemCreationdropdowslist`,
-//     GET_MAX_PREFIX: `ItemCreation/GetMaxPrefix`,
-//     GET_ALL_ITEMS: `ItemCreation/GetAllItems`,
-//     GET_TREE_DATA: `ItemCreation/GetTreeData`,
-//   }
+//     getTree: `${API_BASE}/ItemGroupCreation/ItemGroupCreationGet`,
+//     getDropdown: `${API_BASE}/ItemCreation/GetItemCreationdropdowslist`,
+//     getDropdownPaged: (page = 1, pageSize = 10, search = '') => 
+//       `${API_BASE}/ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
+//     getMaxPrefix: `${API_BASE}/ItemCreation/GetMaxPrefix`,
+//     postCreate: `${API_BASE}/ItemCreation/ItemCreationPost`,
+//     putEdit: `${API_BASE}/ItemCreation/ItemCreationUpdate`,
+//     delete: (fCode) => `${API_BASE}/ItemCreation/ItemCreationDelete/${encodeURIComponent(fCode)}`,
+//   },
   
-//   // Other endpoints
-//   BRANDS: `${BASE_URL}Brand/GetAllBrands`,
-//   CATEGORIES: `${BASE_URL}Category/GetAllCategories`,
-//   PRODUCTS: `${BASE_URL}Product/GetAllProducts`,
-//   MODELS: `${BASE_URL}Model/GetAllModels`,
-//   SIZES: `${BASE_URL}Size/GetAllSizes`,
-//   UNITS: `${BASE_URL}Unit/GetAllUnits`,
-// }
+
  
-
-
-
-
-
-
-
-
 
  scrapratefix:
  {
