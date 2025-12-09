@@ -100,7 +100,7 @@ user_creation: {
     GETSTATECODE: (code) => `/StateCreation/getStateFcode?code=${code}`,
     CREATE_STATE: '/StateCreation/createStates',
     UPDATE_STATE: (code) => `/StateCreation/updateModel`,
-    DELETE_STATE: (code) => `/StateCreation/deleteState?fuCode=${code}`,
+    DELETE_STATE: (code) => `/StateCreation/deleteState/${code}`,
   },
 
   SCRAP_CREATION: {
