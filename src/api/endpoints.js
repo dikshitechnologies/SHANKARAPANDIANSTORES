@@ -112,11 +112,10 @@ user_creation: {
     GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
 
- scrapratefix:
- {
-  getscrapratefixing:"ScrapRateFixing/getFullScrapRateFixing",
-  putscrapratefixing:"ScrapRateFixing/updateFullScrapRateFixing",
- },
+ SCRAP_RATE_FIXING: {
+    GET_FULL_SCRAP_RATES: 'ScrapRateFixing/getFullScrapRateFixing',
+    UPDATE_FULL_SCRAP_RATES: 'ScrapRateFixing/updateFullScrapRateFixing',
+  },
 
   PURCHASE_INVOICE: {
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
