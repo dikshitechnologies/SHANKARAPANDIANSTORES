@@ -92,6 +92,17 @@ user_creation: {
     DELETE_PERMISSIONS: "Administartor/administration/delete"
   },
 
+
+  STATECREATION: {
+    GET_STATE_ITEMS: (page = 1, pageSize = 10) => 
+      `/StateCreation/getStates?page=${page}&pageSize=${pageSize}`,
+    NEXT_STATE_CODE: '/StateCreation/getStateFcode',
+    GETSTATECODE: (code) => `/StateCreation/getStateFcode?code=${code}`,
+    CREATE_STATE: '/StateCreation/createStates',
+    UPDATE_STATE: (code) => `/StateCreation/updateModel`,
+    DELETE_STATE: (code) => `/StateCreation/deleteState?fuCode=${code}`,
+  },
+
   SCRAP_CREATION: {
     GET_SCRAP_ITEMS: '/ScrapCreation/getScrapItem',
     GET_NEXT_SCRAP_CODE: '/ScrapCreation/getNextScrapFcode',
@@ -100,34 +111,6 @@ user_creation: {
     DELETE_SCRAP: (scrapCode) => `/ScrapCreation/deleteScrap/${scrapCode}`,
     GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
-
-// ITEM_CREATION: {
-//     POST: `ItemCreation/ItemCreationPost`,
-//     PUT: `ItemCreation/ItemCreationUpdate`,
-//     DELETE: `ItemCreation/ItemCreationDelete`,
-//     GET_DROPDOWNS: `ItemCreation/GetItemCreationdropdowslist`,
-//     GET_MAX_PREFIX: `ItemCreation/GetMaxPrefix`,
-//     GET_ALL_ITEMS: `ItemCreation/GetAllItems`,
-//     GET_TREE_DATA: `ItemCreation/GetTreeData`,
-//   }
-  
-//   // Other endpoints
-//   BRANDS: `${BASE_URL}Brand/GetAllBrands`,
-//   CATEGORIES: `${BASE_URL}Category/GetAllCategories`,
-//   PRODUCTS: `${BASE_URL}Product/GetAllProducts`,
-//   MODELS: `${BASE_URL}Model/GetAllModels`,
-//   SIZES: `${BASE_URL}Size/GetAllSizes`,
-//   UNITS: `${BASE_URL}Unit/GetAllUnits`,
-// }
- 
-
-
-
-
-
-
-
-
 
  scrapratefix:
  {
@@ -138,7 +121,53 @@ user_creation: {
   PURCHASE_INVOICE: {
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
     CREATE_PURCHASE_INVOICE: "PurchaseInvoice/CreatePurchase",
-  }
+  },
+
+
+  DESIGNCREATION: {
+    NEXT_DESIGN_CODE: 'DesignCreation/getNextFcode',
+    GET_DESIGNS: 'DesignCreation/getDesignItem',
+    GETDESIGNCODE: (code) => `DesignCreation/getDesignItem/${code}`,
+    CREATE_DESIGN: 'DesignCreation/createDesign',
+    UPDATE_DESIGN: 'DesignCreation/updateDesign',
+    DELETE_DESIGN: (code) => `DesignCreation/deleteDesign/${code}`
+  },
+
+  SCRAPCREATION: {
+    GET_SCRAP_ITEMS: 'ScrapCreation/getScrapItem',
+    GET_NEXT_SCRAP_CODE: 'ScrapCreation/getNextScrapFcode',
+    CREATE_SCRAP: 'ScrapCreation/createScrap',
+    UPDATE_SCRAP: 'ScrapCreation/updateScrap',
+    DELETE_SCRAP: (code) => `ScrapCreation/deleteScrap/${code}`,
+  },
+
+  BRAND: {
+    GET_BRANDS: 'Brand',
+    CREATE_BRAND: 'Brand?selecttype=true',
+    UPDATE_BRAND: 'Brand?selecttype=false',
+    DELETE_BRAND: (code) => `Brand/${code}`,
+  },
+
+  PRODUCT: {
+  GET_PRODUCTS: 'Product',
+  CREATE_PRODUCT: 'Product?selecttype=true',
+  UPDATE_PRODUCT: 'Product?selecttype=false',
+  DELETE_PRODUCT: (code) => `Product/${code}`,
+  GET_NEXT_CODE: 'Product/getNextProductFcode'
+},
+
+CATEGORY: {
+  GET_CATEGORIES: 'CATEGORY/GetAllCategory',
+  CREATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=true',
+  UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
+  DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
+  GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
+}
+
+
+
+
+
+
 };
 
-export const ADMINISTRATION = API_ENDPOINTS.ADMINISTRATION;
