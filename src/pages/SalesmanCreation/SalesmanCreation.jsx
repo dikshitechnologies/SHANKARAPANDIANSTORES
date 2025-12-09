@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import apiService from '../../api/apiService';
-import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
-// --- Inline SVG icons (matching ItemGroupCreation style) ---
+// --- Inline SVG icons ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -31,11 +29,6 @@ const Icon = {
       <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 16.88 16.88z" />
     </svg>
   ),
-  Refresh: ({ size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M17.65 6.35A8 8 0 103.95 15.5H6a6 6 0 118.9-5.31l-1.9-1.9h6v6l-2.35-2.35z" />
-    </svg>
-  ),
   Check: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
       <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
@@ -48,16 +41,24 @@ const Icon = {
   ),
 };
 
-export default function StateCreation() {
+// Sample initial salesmen data
+const initialSalesmen = [
+  { id: 1, salesmanCode: "001", salesmanName: "John Smith" },
+  { id: 2, salesmanCode: "002", salesmanName: "Jane Doe" },
+  { id: 3, salesmanCode: "003", salesmanName: "Robert Johnson" },
+  { id: 4, salesmanCode: "004", salesmanName: "Emily Davis" },
+  { id: 5, salesmanCode: "005", salesmanName: "Michael Wilson" },
+];
+
+export default function SalesmanCreation() {
   // ---------- state ----------
-  const [states, setStates] = useState([]);
+  const [salesmen, setSalesmen] = useState(initialSalesmen);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    fuCode: "", 
-    stateName: ""
+    salesmanCode: "", 
+    salesmanName: ""
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -74,107 +75,25 @@ export default function StateCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const stateCodeRef = useRef(null);
-  const stateNameRef = useRef(null);
+  const salesmanCodeRef = useRef(null);
+  const salesmanNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // ---------- API functions ----------
-  const fetchNextStateCode = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
-      }
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next state code" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStates = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS);
-      setStates(data || []);
-      setMessage(null);
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load states" });
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStateByCode = async (code) => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GETSTATECODE(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch state" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createState = async (stateData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.STATECREATION.CREATE_STATE, stateData);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to create state" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateState = async (stateData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), stateData);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to update state" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteState = async (stateCode) => {
-    try {
-      setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete state" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+  // Generate next salesman code
+  const generateNextSalesmanCode = () => {
+    if (salesmen.length === 0) return "001";
+    
+    // Get highest numeric code and increment
+    const maxCode = Math.max(...salesmen.map(s => parseInt(s.salesmanCode) || 0));
+    const nextCode = (maxCode + 1).toString().padStart(3, '0');
+    return nextCode;
   };
 
   // ---------- effects ----------
   useEffect(() => {
-    loadInitial();
     const handleResize = () => {
       const width = window.innerWidth;
       setScreenWidth(width);
@@ -187,76 +106,88 @@ export default function StateCreation() {
   }, []);
 
   useEffect(() => {
-    if (stateCodeRef.current) stateCodeRef.current.focus();
+    if (salesmanCodeRef.current) salesmanCodeRef.current.focus();
+    // Set initial salesman code
+    const nextCode = generateNextSalesmanCode();
+    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
   }, []);
 
   // ---------- handlers ----------
-  const loadInitial = async () => {
-    await Promise.all([fetchStates(), fetchNextStateCode()]);
+  const loadInitial = () => {
+    const nextCode = generateNextSalesmanCode();
+    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
   };
 
   const handleEdit = async () => {
-    if (!form.fuCode || !form.stateName) {
-      setMessage({ type: "error", text: "Please fill State Code and State Name." });
+    if (!form.salesmanCode || !form.salesmanName) {
+      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update state "${form.stateName}"?`)) return;
+    if (!window.confirm(`Do you want to update salesman "${form.salesmanName}"?`)) return;
 
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
-      await updateState(stateData);
-      await loadInitial();
+      setSalesmen(prev => 
+        prev.map(salesman => 
+          salesman.salesmanCode === form.salesmanCode 
+            ? { ...salesman, salesmanName: form.salesmanName }
+            : salesman
+        )
+      );
       
-      setMessage({ type: "success", text: "State updated successfully." });
+      setMessage({ type: "success", text: "Salesman updated successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in updateState
+      setMessage({ type: "error", text: "Failed to update salesman." });
     }
   };
 
   const handleDelete = async () => {
-    if (!form.fuCode) {
-      setMessage({ type: "error", text: "Please select a state to delete." });
+    if (!form.salesmanCode) {
+      setMessage({ type: "error", text: "Please select a salesman to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete state "${form.stateName}"?`)) return;
+    if (!window.confirm(`Do you want to delete salesman "${form.salesmanName}"?`)) return;
 
     try {
-      await deleteState(form.fuCode);
-      await loadInitial();
+      setSalesmen(prev => prev.filter(salesman => salesman.salesmanCode !== form.salesmanCode));
       
-      setMessage({ type: "success", text: "State deleted successfully." });
+      setMessage({ type: "success", text: "Salesman deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced states
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        setMessage({ 
-          type: "error", 
-          text: `Cannot delete state "${form.stateName}". It is referenced in other tables and cannot be removed.` 
-        });
-      }
+      setMessage({ type: "error", text: "Failed to delete salesman." });
     }
   };
 
   const handleAdd = async () => {
-    if (!form.fuCode || !form.stateName) {
-      setMessage({ type: "error", text: "Please fill State Code and State Name." });
+    if (!form.salesmanCode || !form.salesmanName) {
+      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to create state "${form.stateName}"?`)) return;
+    // Check if salesman code already exists
+    const exists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
+    if (exists) {
+      setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to create salesman "${form.salesmanName}"?`)) return;
 
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
-      await createState(stateData);
-      await loadInitial();
+      const newSalesman = {
+        id: salesmen.length + 1,
+        salesmanCode: form.salesmanCode,
+        salesmanName: form.salesmanName
+      };
       
-      setMessage({ type: "success", text: "State created successfully." });
+      setSalesmen(prev => [...prev, newSalesman]);
+      
+      setMessage({ type: "success", text: "Salesman created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createState
+      setMessage({ type: "error", text: "Failed to create salesman." });
     }
   };
 
@@ -267,8 +198,8 @@ export default function StateCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextStateCode();
-    setForm(prev => ({ ...prev, stateName: "" }));
+    const nextCode = generateNextSalesmanCode();
+    setForm({ salesmanCode: nextCode, salesmanName: "" });
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -276,7 +207,7 @@ export default function StateCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -285,11 +216,11 @@ export default function StateCreation() {
   };
 
   const handleEditRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+    setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
     setActionType("edit");
-    setEditingId(s.uCode);
+    setEditingId(s.salesmanCode);
     setEditModalOpen(false);
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -297,86 +228,82 @@ export default function StateCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? states.filter(s => (s.uCode || '').toLowerCase().includes(q) || (s.stateName || '').toLowerCase().includes(q))
-      : states;
+      ? salesmen.filter(s => 
+          (s.salesmanCode || '').toLowerCase().includes(q) || 
+          (s.salesmanName || '').toLowerCase().includes(q)
+        )
+      : salesmen;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [states]);
+  }, [salesmen]);
 
   const handleDeleteRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+    setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
     setActionType("delete");
-    setDeleteTargetId(s.uCode);
+    setDeleteTargetId(s.salesmanCode);
     setDeleteModalOpen(false);
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
-  const onStateCodeKeyDown = (e) => {
+  const onSalesmanCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      stateNameRef.current?.focus();
+      salesmanNameRef.current?.focus();
     }
   };
 
-  const onStateNameKeyDown = (e) => {
+  const onSalesmanNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
     }
   };
 
-  const stopEnterPropagation = (e) => {
-    if (e.key === "Enter") {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  };
-
   // ---------- filters ----------
-  const filteredEditStates = useMemo(() => {
+  const filteredEditSalesmen = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter(
+    if (!q) return salesmen;
+    return salesmen.filter(
       (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.salesmanCode || "").toLowerCase().includes(q) ||
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, states]);
+  }, [editQuery, salesmen]);
 
-  const filteredDeleteStates = useMemo(() => {
+  const filteredDeleteSalesmen = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter(
+    if (!q) return salesmen;
+    return salesmen.filter(
       (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.salesmanCode || "").toLowerCase().includes(q) ||
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, states]);
+  }, [deleteQuery, salesmen]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter(
+    if (!q) return salesmen;
+    return salesmen.filter(
       (s) => 
-        (s.uCode || "").toLowerCase().includes(q) || 
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.salesmanCode || "").toLowerCase().includes(q) || 
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, states]);
+  }, [existingQuery, salesmen]);
 
   // ---------- render ----------
   return (
-    <div className="uc-root" role="region" aria-labelledby="state-creation-title">
+    <div className="uc-root" role="region" aria-labelledby="salesman-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* blue theme (matching ItemGroupCreation style) */
+          /* blue theme */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
@@ -401,7 +328,7 @@ export default function StateCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 18px; /* increased base font size */
+          font-size: 14px;
           box-sizing: border-box;
         }
 
@@ -437,13 +364,13 @@ export default function StateCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px; /* slightly larger title */
+          font-size: 18px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
         .subtitle {
           color: var(--muted);
-          font-size: 16px;
+          font-size: 14px;
         }
 
         /* action pills */
@@ -464,7 +391,7 @@ export default function StateCreation() {
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
-          font-size: 18px;
+          font-size: 14px;
           transition: all 0.2s;
           white-space: nowrap;
         }
@@ -503,7 +430,7 @@ export default function StateCreation() {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:18px;
+          font-size:14px;
           text-align: left;
           width: 100%;
         }
@@ -528,7 +455,7 @@ export default function StateCreation() {
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
-          font-size:18px;
+          font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
@@ -580,7 +507,7 @@ export default function StateCreation() {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:15px; }
+        .muted { color: var(--muted); font-size:13px; }
 
         /* message */
         .message {
@@ -588,7 +515,7 @@ export default function StateCreation() {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 16px;
+          font-size: 14px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -613,7 +540,7 @@ export default function StateCreation() {
           cursor:pointer;
           min-width: 120px;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
@@ -631,8 +558,7 @@ export default function StateCreation() {
           border-radius:10px;
           cursor:pointer;
           transition: all 0.2s;
-          font-size: 18px;
-
+          font-size: 14px;
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
@@ -651,7 +577,7 @@ export default function StateCreation() {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 16px;
+          font-size: 12px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -683,8 +609,8 @@ export default function StateCreation() {
           color: #374151;
         }
 
-        /* states table */
-        .states-table-container {
+        /* salesmen table */
+        .salesmen-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -692,13 +618,13 @@ export default function StateCreation() {
           margin-top: 12px;
         }
 
-        .states-table {
+        .salesmen-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 18px;
+          font-size: 14px;
         }
 
-        .states-table th {
+        .salesmen-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -707,22 +633,22 @@ export default function StateCreation() {
           font-weight: 700;
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
-          font-size: 18px;
+          font-size: 14px;
           z-index: 1;
         }
 
-        .states-table td {
+        .salesmen-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .states-table tr:hover {
+        .salesmen-table tr:hover {
           background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
           cursor: pointer;
         }
 
-        .states-table tr.selected {
+        .salesmen-table tr.selected {
           background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
@@ -815,7 +741,7 @@ export default function StateCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .states-table-container {
+          .salesmen-table-container {
             max-height: 300px;
           }
         }
@@ -829,27 +755,27 @@ export default function StateCreation() {
             border-radius: 12px;
           }
           .title-block h2 {
-            font-size: 18px;
+            font-size: 14px;
           }
           .action-pill {
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 10px;
           }
           .input, .search {
             padding: 8px 10px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .btn {
             padding: 8px 10px;
             min-width: 70px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
             min-width: 0;
           }
-          .states-table th,
-          .states-table td {
+          .salesmen-table th,
+          .salesmen-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -898,16 +824,17 @@ export default function StateCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="state-creation-title">
+      <div className="dashboard" aria-labelledby="salesman-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
-              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M18 16v-2a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v2" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
+              <circle cx="12" cy="7" r="4" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
             </svg>
             <div>
-              <h2 id="state-creation-title">State Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete states.</div>
+              <h2 id="salesman-creation-title">Salesman Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete salesmen.</div>
             </div>
           </div>
 
@@ -920,41 +847,40 @@ export default function StateCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* State Code field */}
+            {/* Salesman Code field */}
             <div className="field">
               <label className="field-label">
-                State Code <span className="asterisk">*</span>
+                Salesman Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={stateCodeRef}
+                  ref={salesmanCodeRef}
                   className="input"
-                  value={form.fuCode}
-                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                  placeholder="State code (auto-generated)"
-                  onKeyDown={onStateCodeKeyDown}
+                  value={form.salesmanCode}
+                  onChange={(e) => setForm(s => ({ ...s, salesmanCode: e.target.value }))}
+                  placeholder="Salesman code (auto-generated)"
+                  onKeyDown={onSalesmanCodeKeyDown}
                   disabled={loading}
-                  aria-label="State Code"
+                  aria-label="Salesman Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
               </div>
             </div>
 
-            {/* State Name field */}
+            {/* Salesman Name field */}
             <div className="field">
               <label className="field-label">
-                State Name <span className="asterisk">*</span>
+                Salesman Name <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
-                  ref={stateNameRef} 
+                  ref={salesmanNameRef} 
                   className="input" 
-                  value={form.stateName} 
-                  onChange={(e) => setForm(s => ({ ...s, stateName: e.target.value }))} 
-                  placeholder="Enter state name" 
-                  onKeyDown={onStateNameKeyDown}
+                  value={form.salesmanName} 
+                  onChange={(e) => setForm(s => ({ ...s, salesmanName: e.target.value }))} 
+                  onKeyDown={onSalesmanNameKeyDown}
                   disabled={loading}
-                  aria-label="State Name"
+                  aria-label="Salesman Name"
                   readOnly={actionType === "delete"}
                 />
               </div>
@@ -987,14 +913,14 @@ export default function StateCreation() {
               </button>
             </div>
                <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing States</div>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Salesmen</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing states..."
+                  placeholder="Search existing salesmen..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing states"
+                  aria-label="Search existing salesmen"
                 />
                 {existingQuery && (
                   <button
@@ -1003,40 +929,40 @@ export default function StateCreation() {
                     type="button"
                     aria-label="Clear search"
                   >
-                    <Icon.Close size={16} />
+                    <Icon.Close size={14} />
                   </button>
                 )}
               </div>
               
-              <div className="states-table-container">
+              <div className="salesmen-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading states...
+                    Loading salesmen...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {states.length === 0 ? "No states found" : "No matching states"}
+                    {salesmen.length === 0 ? "No salesmen found" : "No matching salesmen"}
                   </div>
                 ) : (
-                  <table className="states-table">
+                  <table className="salesmen-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>State Name</th>
+                        <th>Salesman Name</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredExisting.map((s) => (
                         <tr 
-                          key={s.uCode}
-                          className={form.fuCode === s.uCode ? "selected" : ""}
+                          key={s.salesmanCode}
+                          className={form.salesmanCode === s.salesmanCode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ fuCode: s.uCode, stateName: s.stateName });
+                            setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
                             setActionType("edit");
                           }}
                         >
-                          <td>{s.uCode}</td>
-                          <td>{s.stateName}</td>
+                          <td>{s.salesmanCode}</td>
+                          <td>{s.salesmanName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1050,29 +976,29 @@ export default function StateCreation() {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit State" : "Delete State"}
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Salesman" : "Delete Salesman"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">State Code</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
+              <div className="muted">Salesman Code</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.salesmanCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">State Name</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.stateName || "Not set"}
+              <div className="muted">Salesman Name</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.salesmanName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing States</div>
-              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
-                {states.length}
+              <div className="muted">Existing Salesmen</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
+                {salesmen.length}
               </div>
             </div>
 
@@ -1082,18 +1008,18 @@ export default function StateCreation() {
                 <div style={{ fontWeight: 700 }}>Quick Tips</div>
               </div>
               
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
+              <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>State code is auto-generated for new states</span>
+                  <span>Salesman code is auto-generated for new salesmen</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find states</span>
+                  <span>For edit/delete, use search modals to find salesmen</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Examples: Maharashtra, Karnataka, Tamil Nadu</span>
+                  <span>Salesmen manage customer relationships and sales</span>
                 </div>
               </div>
             </div>
@@ -1101,31 +1027,29 @@ export default function StateCreation() {
         </div>
       </div>
 
-      {/* Edit Popup */}
       <PopupListSelector
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select State to Edit"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        title="Select Salesman to Edit"
+        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
+        searchFields={[ 'salesmanName', 'salesmanCode' ]}
+        headerNames={[ 'Salesman Name', 'Code' ]}
+        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
         maxHeight="60vh"
       />
 
-      {/* Delete Popup */}
       <PopupListSelector
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select State to Delete"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        title="Select Salesman to Delete"
+        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
+        searchFields={[ 'salesmanName', 'salesmanCode' ]}
+        headerNames={[ 'Salesman Name', 'Code' ]}
+        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

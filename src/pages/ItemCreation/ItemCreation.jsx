@@ -276,21 +276,8 @@ const MOCK_TREE_DATA = [
 
 // Mock data for items
 const MOCK_ITEMS_DATA = [
-  { fItemcode: "ITEM001", fItemName: "iPhone 15 Pro", fParent: "Electronics/Apple", fShort: "i15P", fBrand: "Apple", fCategory: "Smartphones", fProduct: "iPhone", fModel: "15 Pro", fSize: "128GB", fMax: "100", fMin: "10", ftax: "18", fPrefix: "1001", gstcheckbox: "Y", manualprefix: "Y" },
-  { fItemcode: "ITEM002", fItemName: "Samsung Galaxy S24", fParent: "Electronics/Samsung", fShort: "SGS24", fBrand: "Samsung", fCategory: "Smartphones", fProduct: "Galaxy", fModel: "S24", fSize: "256GB", fMax: "150", fMin: "15", ftax: "18", fPrefix: "1002", gstcheckbox: "Y", manualprefix: "Y" },
-  { fItemcode: "ITEM003", fItemName: "Dell XPS 13", fParent: "Electronics/Dell", fShort: "DXPS13", fBrand: "Dell", fCategory: "Laptops", fProduct: "XPS", fModel: "13", fSize: "16GB/512GB", fMax: "50", fMin: "5", ftax: "18", fPrefix: "1003", gstcheckbox: "Y", manualprefix: "Y" },
-  { fItemcode: "ITEM004", fItemName: "Men's Formal Shirt", fParent: "Clothing/Shirts", fShort: "MFS", fBrand: "Van Heusen", fCategory: "Clothing", fProduct: "Shirt", fModel: "Formal", fSize: "M", fMax: "200", fMin: "20", ftax: "12", fPrefix: "1004", gstcheckbox: "Y", manualprefix: "Y" },
-  { fItemcode: "ITEM005", fItemName: "Women's Summer Dress", fParent: "Clothing/Dresses", fShort: "WSSD", fBrand: "Zara", fCategory: "Clothing", fProduct: "Dress", fModel: "Summer", fSize: "S", fMax: "180", fMin: "18", ftax: "12", fPrefix: "1005", gstcheckbox: "Y", manualprefix: "Y" },
-  { fItemcode: "ITEM006", fItemName: "Leather Sofa", fParent: "Furniture/Sofa", fShort: "LS", fBrand: "Urban Ladder", fCategory: "Furniture", fProduct: "Sofa", fModel: "Leather", fSize: "3 Seater", fMax: "30", fMin: "3", ftax: "18", fPrefix: "1006", gstcheckbox: "Y", manualprefix: "Y" },
-  { fItemcode: "ITEM007", fItemName: "Office Desk", fParent: "Furniture/Desks", fShort: "OD", fBrand: "Godrej", fCategory: "Furniture", fProduct: "Desk", fModel: "Executive", fSize: "150x75cm", fMax: "40", fMin: "4", ftax: "18", fPrefix: "1007", gstcheckbox: "Y", manualprefix: "Y" },
-  { fItemcode: "ITEM008", fItemName: "Basmati Rice", fParent: "Groceries/Grains", fShort: "BR", fBrand: "India Gate", fCategory: "Groceries", fProduct: "Rice", fModel: "Basmati", fSize: "5kg", fMax: "500", fMin: "50", ftax: "5", fPrefix: "1008", gstcheckbox: "Y", manualprefix: "N" },
-  { fItemcode: "ITEM009", fItemName: "Red Bull Energy Drink", fParent: "Groceries/Soft Drinks", fShort: "RBED", fBrand: "Red Bull", fCategory: "Beverages", fProduct: "Energy Drink", fModel: "Original", fSize: "250ml", fMax: "1000", fMin: "100", ftax: "28", fPrefix: "1009", gstcheckbox: "Y", manualprefix: "N" },
-  { fItemcode: "ITEM010", fItemName: "Ballpoint Pen Pack", fParent: "Stationery/Pens", fShort: "BPP", fBrand: "Reynolds", fCategory: "Stationery", fProduct: "Pen", fModel: "Ballpoint", fSize: "10 Pack", fMax: "2000", fMin: "200", ftax: "18", fPrefix: "1010", gstcheckbox: "N", manualprefix: "N" },
-  { fItemcode: "ITEM011", fItemName: "A4 Notebook", fParent: "Stationery/Notebooks", fShort: "A4N", fBrand: "Classmate", fCategory: "Stationery", fProduct: "Notebook", fModel: "A4", fSize: "200 Pages", fMax: "800", fMin: "80", ftax: "12", fPrefix: "1011", gstcheckbox: "Y", manualprefix: "N" },
-  { fItemcode: "ITEM012", fItemName: "LED TV 55 inch", fParent: "Electronics/LG", fShort: "LED55", fBrand: "LG", fCategory: "Electronics", fProduct: "TV", fModel: "OLED", fSize: "55 inch", fMax: "25", fMin: "2", ftax: "28", fPrefix: "1012", gstcheckbox: "Y", manualprefix: "Y" },
-  { fItemcode: "ITEM013", fItemName: "Kids School Bag", fParent: "Clothing/School Uniform", fShort: "KSB", fBrand: "Skybags", fCategory: "Bags", fProduct: "School Bag", fModel: "Junior", fSize: "Medium", fMax: "300", fMin: "30", ftax: "12", fPrefix: "1013", gstcheckbox: "Y", manualprefix: "N" },
-  { fItemcode: "ITEM014", fItemName: "Kitchen Cabinet", fParent: "Furniture/Cabinets", fShort: "KC", fBrand: "Hafele", fCategory: "Furniture", fProduct: "Cabinet", fModel: "Kitchen", fSize: "6x2 feet", fMax: "20", fMin: "2", ftax: "18", fPrefix: "1014", gstcheckbox: "Y", manualprefix: "Y" },
-  { fItemcode: "ITEM015", fItemName: "Turmeric Powder", fParent: "Groceries/Spices", fShort: "TP", fBrand: "Everest", fCategory: "Groceries", fProduct: "Spice", fModel: "Turmeric", fSize: "200g", fMax: "1000", fMin: "100", ftax: "5", fPrefix: "1015", gstcheckbox: "Y", manualprefix: "N" }
+  { fItemcode: "ITEM001", fItemName: "iPhone 15 Pro", fParent: "Electronics/Apple", fShort: "i15P", fBrand: "Apple", fCategory: "Smartphones", fProduct: "iPhone", fModel: "15 Pro", fSize: "128GB", fMax: "100", fMin: "10", ftax: "18", fPrefix: "1001", gstcheckbox: "Y", manualprefix: "Y", fHSN: "8517", fPieceRate: "Y", fType: "Finished Product", fSellingPrice: "99999", fCostPrice: "75000", fUnit: "Pieces", fUnitCode: "PCS" },
+  { fItemcode: "ITEM002", fItemName: "Samsung Galaxy S24", fParent: "Electronics/Samsung", fShort: "SGS24", fBrand: "Samsung", fCategory: "Smartphones", fProduct: "Galaxy", fModel: "S24", fSize: "256GB", fMax: "150", fMin: "15", ftax: "18", fPrefix: "1002", gstcheckbox: "Y", manualprefix: "Y", fHSN: "8517", fPieceRate: "N", fType: "Finished Product", fSellingPrice: "84999", fCostPrice: "65000", fUnit: "Pieces", fUnitCode: "PCS" },
 ];
 
 // Mock data for brands
@@ -298,23 +285,6 @@ const MOCK_BRANDS_DATA = [
   { fcode: "BR001", fname: "Apple" },
   { fcode: "BR002", fname: "Samsung" },
   { fcode: "BR003", fname: "Dell" },
-  { fcode: "BR004", fname: "HP" },
-  { fcode: "BR005", fname: "LG" },
-  { fcode: "BR006", fname: "Sony" },
-  { fcode: "BR007", fname: "Van Heusen" },
-  { fcode: "BR008", fname: "Zara" },
-  { fcode: "BR009", fname: "Urban Ladder" },
-  { fcode: "BR010", fname: "Godrej" },
-  { fcode: "BR011", fname: "India Gate" },
-  { fcode: "BR012", fname: "Red Bull" },
-  { fcode: "BR013", fname: "Reynolds" },
-  { fcode: "BR014", fname: "Classmate" },
-  { fcode: "BR015", fname: "Skybags" },
-  { fcode: "BR016", fname: "Hafele" },
-  { fcode: "BR017", fname: "Everest" },
-  { fcode: "BR018", fname: "Nike" },
-  { fcode: "BR019", fname: "Adidas" },
-  { fcode: "BR020", fname: "Puma" }
 ];
 
 // Mock data for categories
@@ -322,18 +292,6 @@ const MOCK_CATEGORIES_DATA = [
   { fcode: "CAT001", fname: "Electronics" },
   { fcode: "CAT002", fname: "Clothing" },
   { fcode: "CAT003", fname: "Furniture" },
-  { fcode: "CAT004", fname: "Groceries" },
-  { fcode: "CAT005", fname: "Stationery" },
-  { fcode: "CAT006", fname: "Beverages" },
-  { fcode: "CAT007", fname: "Footwear" },
-  { fcode: "CAT008", fname: "Home Appliances" },
-  { fcode: "CAT009", fname: "Beauty & Personal Care" },
-  { fcode: "CAT010", fname: "Sports" },
-  { fcode: "CAT011", fname: "Toys" },
-  { fcode: "CAT012", fname: "Jewelry" },
-  { fcode: "CAT013", fname: "Books" },
-  { fcode: "CAT014", fname: "Automotive" },
-  { fcode: "CAT015", fname: "Health & Wellness" }
 ];
 
 // Mock data for products
@@ -341,23 +299,6 @@ const MOCK_PRODUCTS_DATA = [
   { fcode: "PROD001", fname: "Smartphones" },
   { fcode: "PROD002", fname: "Laptops" },
   { fcode: "PROD003", fname: "Televisions" },
-  { fcode: "PROD004", fname: "Shirts" },
-  { fcode: "PROD005", fname: "Dresses" },
-  { fcode: "PROD006", fname: "Sofa" },
-  { fcode: "PROD007", fname: "Desk" },
-  { fcode: "PROD008", fname: "Rice" },
-  { fcode: "PROD009", fname: "Energy Drink" },
-  { fcode: "PROD010", fname: "Pen" },
-  { fcode: "PROD011", fname: "Notebook" },
-  { fcode: "PROD012", fname: "TV" },
-  { fcode: "PROD013", fname: "School Bag" },
-  { fcode: "PROD014", fname: "Cabinet" },
-  { fcode: "PROD015", fname: "Spice" },
-  { fcode: "PROD016", fname: "Shoes" },
-  { fcode: "PROD017", fname: "Watch" },
-  { fcode: "PROD018", fname: "Headphones" },
-  { fcode: "PROD019", fname: "Tablet" },
-  { fcode: "PROD020", fname: "Refrigerator" }
 ];
 
 // Mock data for models
@@ -365,23 +306,6 @@ const MOCK_MODELS_DATA = [
   { fcode: "MOD001", fname: "15 Pro" },
   { fcode: "MOD002", fname: "Galaxy S24" },
   { fcode: "MOD003", fname: "XPS 13" },
-  { fcode: "MOD004", fname: "Formal" },
-  { fcode: "MOD005", fname: "Summer" },
-  { fcode: "MOD006", fname: "Leather" },
-  { fcode: "MOD007", fname: "Executive" },
-  { fcode: "MOD008", fname: "Basmati" },
-  { fcode: "MOD009", fname: "Original" },
-  { fcode: "MOD010", fname: "Ballpoint" },
-  { fcode: "MOD011", fname: "A4" },
-  { fcode: "MOD012", fname: "OLED" },
-  { fcode: "MOD013", fname: "Junior" },
-  { fcode: "MOD014", fname: "Kitchen" },
-  { fcode: "MOD015", fname: "Turmeric" },
-  { fcode: "MOD016", fname: "Air Max" },
-  { fcode: "MOD017", fname: "Classic" },
-  { fcode: "MOD018", fname: "Wireless" },
-  { fcode: "MOD019", fname: "iPad Air" },
-  { fcode: "MOD020", fname: "Frost Free" }
 ];
 
 // Mock data for sizes
@@ -389,23 +313,30 @@ const MOCK_SIZES_DATA = [
   { fcode: "SIZ001", fname: "128GB" },
   { fcode: "SIZ002", fname: "256GB" },
   { fcode: "SIZ003", fname: "16GB/512GB" },
-  { fcode: "SIZ004", fname: "M" },
-  { fcode: "SIZ005", fname: "S" },
-  { fcode: "SIZ006", fname: "3 Seater" },
-  { fcode: "SIZ007", fname: "150x75cm" },
-  { fcode: "SIZ008", fname: "5kg" },
-  { fcode: "SIZ009", fname: "250ml" },
-  { fcode: "SIZ010", fname: "10 Pack" },
-  { fcode: "SIZ011", fname: "200 Pages" },
-  { fcode: "SIZ012", fname: "55 inch" },
-  { fcode: "SIZ013", fname: "Medium" },
-  { fcode: "SIZ014", fname: "6x2 feet" },
-  { fcode: "SIZ015", fname: "200g" },
-  { fcode: "SIZ016", fname: "L" },
-  { fcode: "SIZ017", fname: "XL" },
-  { fcode: "SIZ018", fname: "XXL" },
-  { fcode: "SIZ019", fname: "10 inch" },
-  { fcode: "SIZ020", fname: "15 inch" }
+];
+
+// Mock data for units
+const MOCK_UNITS_DATA = [
+  { fcode: "PCS", fname: "Pieces" },
+  { fcode: "KG", fname: "Kilograms" },
+  { fcode: "LTR", fname: "Liters" },
+  { fcode: "MTR", fname: "Meters" },
+  { fcode: "BOX", fname: "Box" },
+  { fcode: "PKT", fname: "Packet" },
+  { fcode: "SET", fname: "Set" },
+  { fcode: "DOZ", fname: "Dozen" },
+  { fcode: "ROL", fname: "Roll" },
+  { fcode: "UNT", fname: "Unit" },
+];
+
+// Type options for dropdown
+const TYPE_OPTIONS = [
+  { value: "Scrap Product", label: "Scrap Product" },
+  { value: "Finished Product", label: "Finished Product" },
+  { value: "Raw Material", label: "Raw Material" },
+  { value: "Semi-Finished", label: "Semi-Finished" },
+  { value: "Component", label: "Component" },
+  { value: "Accessory", label: "Accessory" },
 ];
 
 const ItemCreation = ({ onCreated }) => {
@@ -426,8 +357,9 @@ const ItemCreation = ({ onCreated }) => {
   // Checkbox states
   const [gstChecked, setGstChecked] = useState(false);
   const [manualPrefixChecked, setManualPrefixChecked] = useState(false);
+  const [pieceRateChecked, setPieceRateChecked] = useState(false);
 
-  // Form data state - Updated
+  // Form data state - Updated with new fields
   const [formData, setFormData] = useState({
     fitemCode: '',
     itemName: '',
@@ -443,7 +375,14 @@ const ItemCreation = ({ onCreated }) => {
     prefix: '',
     gstin: '',
     gst: 'N',
-    manualprefix: 'N'
+    manualprefix: 'N',
+    hsnCode: '',
+    pieceRate: 'N',
+    type: '',
+    sellingPrice: '',
+    costPrice: '',
+    unit: '',
+    unitCode: ''
   });
 
   // Popup states for fields
@@ -452,6 +391,7 @@ const ItemCreation = ({ onCreated }) => {
   const [isProductPopupOpen, setIsProductPopupOpen] = useState(false);
   const [isModelPopupOpen, setIsModelPopupOpen] = useState(false);
   const [isSizePopupOpen, setIsSizePopupOpen] = useState(false);
+  const [isUnitPopupOpen, setIsUnitPopupOpen] = useState(false);
 
   // Refs for form inputs
   const itemNameRef = useRef(null);
@@ -466,6 +406,11 @@ const ItemCreation = ({ onCreated }) => {
   const minRef = useRef(null);
   const prefixRef = useRef(null);
   const gstinRef = useRef(null);
+  const hsnCodeRef = useRef(null);
+  const typeRef = useRef(null);
+  const sellingPriceRef = useRef(null);
+  const costPriceRef = useRef(null);
+  const unitRef = useRef(null);
 
   // Get permissions for this form.
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
@@ -556,6 +501,12 @@ const ItemCreation = ({ onCreated }) => {
     }
   };
 
+  const handlePieceRateToggle = () => {
+    const newValue = !pieceRateChecked;
+    setPieceRateChecked(newValue);
+    handleChange('pieceRate', newValue ? 'Y' : 'N');
+  };
+
   const getMaxPrefixFromAPI = async () => {
     try {
       // Mock API call - generate next available prefix
@@ -589,6 +540,27 @@ const ItemCreation = ({ onCreated }) => {
         gstinRef.current?.focus();
         return false;
       }
+    }
+
+    // Validate HSN Code
+    if (formData.hsnCode && !/^\d{4,8}$/.test(formData.hsnCode)) {
+      setMessage({ type: "error", text: 'HSN Code should be 4-8 digits.' });
+      hsnCodeRef.current?.focus();
+      return false;
+    }
+
+    // Validate Selling Price
+    if (formData.sellingPrice && isNaN(parseFloat(formData.sellingPrice))) {
+      setMessage({ type: "error", text: 'Selling Price should be a valid number.' });
+      sellingPriceRef.current?.focus();
+      return false;
+    }
+
+    // Validate Cost Price
+    if (formData.costPrice && isNaN(parseFloat(formData.costPrice))) {
+      setMessage({ type: "error", text: 'Cost Price should be a valid number.' });
+      costPriceRef.current?.focus();
+      return false;
     }
 
     return true;
@@ -658,6 +630,13 @@ const ItemCreation = ({ onCreated }) => {
         gstNumber: formData.gstin || '', 
         gst: formData.gst || 'N',
         manualprefix: formData.manualprefix || 'N',
+        fHSN: formData.hsnCode || '',
+        fPieceRate: formData.pieceRate || 'N',
+        fType: formData.type || '',
+        fSellingPrice: formData.sellingPrice || '',
+        fCostPrice: formData.costPrice || '',
+        fUnit: formData.unit || '',
+        fUnitCode: formData.unitCode || '',
         fCompCode: FCompCode || '',
       };
 
@@ -743,7 +722,13 @@ const ItemCreation = ({ onCreated }) => {
         fModel: it.fModel || '',
         fSize: it.fSize || '',
         fMax: it.fMax || '',
-        fMin: it.fMin || ''
+        fMin: it.fMin || '',
+        fHSN: it.fHSN || '',
+        fPieceRate: it.fPieceRate || '',
+        fType: it.fType || '',
+        fSellingPrice: it.fSellingPrice || '',
+        fCostPrice: it.fCostPrice || '',
+        fUnit: it.fUnit || ''
       }));
     } catch (err) {
       console.error('fetchPopupItems error', err);
@@ -872,6 +857,31 @@ const ItemCreation = ({ onCreated }) => {
     }
   }, []);
 
+  const fetchUnits = useCallback(async (page = 1, search = '') => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      let items = [...MOCK_UNITS_DATA];
+      
+      if (search.trim()) {
+        const searchLower = search.toLowerCase();
+        items = items.filter(item => 
+          item.fname?.toLowerCase().includes(searchLower) ||
+          item.fcode?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return items.map((item) => ({
+        ...item,
+        fname: item.fname || '',
+        fcode: item.fcode || ''
+      }));
+    } catch (err) {
+      console.error('fetchUnits error', err);
+      return [];
+    }
+  }, []);
+
   const resetForm = (keepAction = false) => {
     setMainGroup('');
     setSelectedNode(null);
@@ -890,10 +900,18 @@ const ItemCreation = ({ onCreated }) => {
       prefix: '',
       gstin: '',
       gst: 'N',
-      manualprefix: 'N'
+      manualprefix: 'N',
+      hsnCode: '',
+      pieceRate: 'N',
+      type: '',
+      sellingPrice: '',
+      costPrice: '',
+      unit: '',
+      unitCode: ''
     });
     setGstChecked(false);
     setManualPrefixChecked(false);
+    setPieceRateChecked(false);
     setMessage(null);
     setSearchTree('');
     if (!keepAction) setActionType('create');
@@ -1066,7 +1084,7 @@ const ItemCreation = ({ onCreated }) => {
           width:100%;
           flex-wrap: wrap;
         }
-        .input, .search {
+        .input, .search, .select {
           flex:1;
           min-width: 0;
           padding:10px 12px;
@@ -1079,7 +1097,17 @@ const ItemCreation = ({ onCreated }) => {
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
         }
-        .input:focus, .search:focus { outline:none; box-shadow: 0 8px 26px rgba(37,99,235,0.08); transform: translateY(-1px); border-color: rgba(37,99,235,0.25); }
+        .input:focus, .search:focus, .select:focus { outline:none; box-shadow: 0 8px 26px rgba(37,99,235,0.08); transform: translateY(-1px); border-color: rgba(37,99,235,0.25); }
+
+        .select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23307AC8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 10px center;
+          background-size: 16px;
+          padding-right: 32px;
+          cursor: pointer;
+        }
 
         .btn {
           padding:10px 12px;
@@ -1465,7 +1493,7 @@ const ItemCreation = ({ onCreated }) => {
             padding: 8px 10px;
             font-size: 12px;
           }
-          .input, .search {
+          .input, .search, .select {
             padding: 8px 10px;
             font-size: 13px;
           }
@@ -1815,7 +1843,7 @@ const ItemCreation = ({ onCreated }) => {
               </div>
             </div>
 
-            {/* Form Grid */}
+            {/* Form Grid - REARRANGED AS REQUESTED */}
             <div className="form-grid">
               {/* Brand - with built-in search icon */}
               <div className="field">
@@ -1922,56 +1950,84 @@ const ItemCreation = ({ onCreated }) => {
                 </div>
               </div>
 
-              {/* Max and Min - Side by side (KEPT IN ORIGINAL POSITION) */}
+              {/* Units - with built-in search icon */}
               <div className="field">
-                <label className="field-label">Max & Min</label>
-                <div className="row" style={{ display: "flex", gap: "12px", alignItems: "center", width: "100%" }}>
+                <label className="field-label">Units</label>
+                <div className="input-with-search">
                   <input
-                    ref={maxRef}
+                    ref={unitRef}
                     className="input"
-                    value={formData.max}
-                    onChange={(e) => handleChange('max', e.target.value)}
-                    placeholder="Max"
+                    value={formData.unit}
+                    onChange={(e) => handleChange('unit', e.target.value)}
+                    onClick={() => setIsUnitPopupOpen(true)}
+                    placeholder="Select Units"
                     disabled={isSubmitting}
-                    aria-label="Max"
-                    style={{ 
-                      flex: 1, 
-                      textAlign: "center", 
-                      padding: "10px 8px"
-                    }}
+                    readOnly
+                    aria-label="Units"
                   />
-                  <span style={{ 
-                    color: "var(--muted)", 
-                    fontSize: "14px", 
-                    whiteSpace: "nowrap", 
-                    margin: "0 6px",
-                    flexShrink: 0 
-                  }}>|</span>
-                  <input
-                    ref={minRef}
-                    className="input"
-                    value={formData.min}
-                    onChange={(e) => handleChange('min', e.target.value)}
-                    placeholder="Min"
-                    disabled={isSubmitting}
-                    aria-label="Min"
-                    style={{ 
-                      flex: 1, 
-                      textAlign: "center", 
-                      padding: "10px 8px"
-                    }}
-                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
                 </div>
               </div>
 
-              {/* GST Checkbox */}
+              {/* Max - Separate field */}
+              <div className="field">
+                <label className="field-label">Max</label>
+                <input
+                  ref={maxRef}
+                  className="input"
+                  value={formData.max}
+                  onChange={(e) => handleChange('max', e.target.value)}
+                  placeholder="Enter Max"
+                  disabled={isSubmitting}
+                  aria-label="Max"
+                  style={{ textAlign: "center" }}
+                />
+              </div>
+
+              {/* Min - Separate field */}
+              <div className="field">
+                <label className="field-label">Min</label>
+                <input
+                  ref={minRef}
+                  className="input"
+                  value={formData.min}
+                  onChange={(e) => handleChange('min', e.target.value)}
+                  placeholder="Enter Min"
+                  disabled={isSubmitting}
+                  aria-label="Min"
+                  style={{ textAlign: "center" }}
+                />
+              </div>
+
+              {/* HSN Code */}
+              <div className="field">
+                <label className="field-label">HSN Code</label>
+                <input
+                  ref={hsnCodeRef}
+                  className="input"
+                  value={formData.hsnCode}
+                  onChange={(e) => {
+                    if (/^\d{0,8}$/.test(e.target.value)) {
+                      handleChange('hsnCode', e.target.value);
+                    }
+                  }}
+                  placeholder="Enter HSN Code"
+                  disabled={isSubmitting}
+                  aria-label="HSN Code"
+                  title="4-8 digit HSN Code"
+                />
+              </div>
+
+              {/* Piece Rate Checkbox */}
               <div className="field">
                 <div className="checkbox-group">
                   <div 
-                    className={`checkbox ${gstChecked ? 'checked' : ''}`}
-                    onClick={handleGstToggle}
+                    className={`checkbox ${pieceRateChecked ? 'checked' : ''}`}
+                    onClick={handlePieceRateToggle}
                   />
-                  <span className="checkbox-label">GST</span>
+                  <span className="checkbox-label">Piece Rate</span>
                 </div>
               </div>
 
@@ -2002,14 +2058,14 @@ const ItemCreation = ({ onCreated }) => {
                 />
               </div>
 
-              {/* Manual Prefix Checkbox */}
+              {/* GST Checkbox */}
               <div className="field">
                 <div className="checkbox-group">
                   <div 
-                    className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
-                    onClick={handleManualPrefixToggle}
+                    className={`checkbox ${gstChecked ? 'checked' : ''}`}
+                    onClick={handleGstToggle}
                   />
-                  <span className="checkbox-label">Manual Prefix</span>
+                  <span className="checkbox-label">GST</span>
                 </div>
               </div>
 
@@ -2029,6 +2085,77 @@ const ItemCreation = ({ onCreated }) => {
                   disabled={isSubmitting || !manualPrefixChecked}
                   aria-label="Prefix"
                 />
+              </div>
+
+              {/* Manual Prefix Checkbox */}
+              <div className="field">
+                <div className="checkbox-group">
+                  <div 
+                    className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
+                    onClick={handleManualPrefixToggle}
+                  />
+                  <span className="checkbox-label">Manual Prefix</span>
+                </div>
+              </div>
+
+              {/* Selling Price */}
+              <div className="field">
+                <label className="field-label">Selling Price</label>
+                <input
+                  ref={sellingPriceRef}
+                  className="input"
+                  value={formData.sellingPrice}
+                  onChange={(e) => {
+                    if (/^\d*\.?\d{0,2}$/.test(e.target.value)) {
+                      handleChange('sellingPrice', e.target.value);
+                    }
+                  }}
+                  placeholder="Enter Selling Price"
+                  disabled={isSubmitting}
+                  aria-label="Selling Price"
+                  type="number"
+                  step="0.01"
+                />
+              </div>
+
+              {/* Cost Price */}
+              <div className="field">
+                <label className="field-label">Cost Price</label>
+                <input
+                  ref={costPriceRef}
+                  className="input"
+                  value={formData.costPrice}
+                  onChange={(e) => {
+                    if (/^\d*\.?\d{0,2}$/.test(e.target.value)) {
+                      handleChange('costPrice', e.target.value);
+                    }
+                  }}
+                  placeholder="Enter Cost Price"
+                  disabled={isSubmitting}
+                  aria-label="Cost Price"
+                  type="number"
+                  step="0.01"
+                />
+              </div>
+
+              {/* Type Dropdown */}
+              <div className="field">
+                <label className="field-label">Type</label>
+                <select
+                  ref={typeRef}
+                  className="select"
+                  value={formData.type}
+                  onChange={(e) => handleChange('type', e.target.value)}
+                  disabled={isSubmitting}
+                  aria-label="Type"
+                >
+                  <option value="">Select Type</option>
+                  {TYPE_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -2146,6 +2273,13 @@ const ItemCreation = ({ onCreated }) => {
             </div>
 
             <div className="stat">
+              <div className="muted">Units</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.unit || ""}
+              </div>
+            </div>
+
+            <div className="stat">
               <div className="muted">Max</div>
               <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
                 {formData.max || ""}
@@ -2156,6 +2290,55 @@ const ItemCreation = ({ onCreated }) => {
               <div className="muted">Min</div>
               <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
                 {formData.min || ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">HSN Code</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.hsnCode || ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Piece Rate</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {pieceRateChecked ? 'Yes' : 'No'}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">GST%</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.gstin ? `${formData.gstin}%` : ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Prefix</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.prefix || ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Selling Price</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.sellingPrice ? `₹${formData.sellingPrice}` : ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Cost Price</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.costPrice ? `₹${formData.costPrice}` : ""}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Type</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
+                {formData.type || ""}
               </div>
             </div>
 
@@ -2280,6 +2463,24 @@ const ItemCreation = ({ onCreated }) => {
         responsiveBreakpoint={640}
       />
 
+      {/* PopupListSelector for Unit Selection */}
+      <PopupListSelector
+        open={isUnitPopupOpen}
+        onClose={() => setIsUnitPopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, unit: item.fname || '', unitCode: item.fcode || '' }));
+          setIsUnitPopupOpen(false);
+        }}
+        fetchItems={fetchUnits}
+        title="Select Unit"
+        displayFieldKeys={['fname', 'fcode']}
+        searchFields={['fname', 'fcode']}
+        headerNames={['Unit Name', 'Code']}
+        columnWidths={{ fname: '60%', fcode: '40%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
       {/* PopupListSelector for Edit/Delete actions */}
       <PopupListSelector
         open={isPopupOpen}
@@ -2300,11 +2501,19 @@ const ItemCreation = ({ onCreated }) => {
             min: item.fMin || '',
             gstin: item.ftax || item.fTax || '',
             prefix: item.fPrefix || item.fprefix || '',
+            hsnCode: item.fHSN || '',
+            pieceRate: item.fPieceRate || 'N',
+            type: item.fType || '',
+            sellingPrice: item.fSellingPrice || '',
+            costPrice: item.fCostPrice || '',
+            unit: item.fUnit || '',
+            unitCode: item.fUnitCode || '',
             gst: item.gstcheckbox === 'Y' ? 'Y' : 'N',
             manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N'
           });
           setGstChecked(item.gstcheckbox === 'Y');
           setManualPrefixChecked(item.manualprefix === 'Y');
+          setPieceRateChecked(item.fPieceRate === 'Y');
           setMainGroup(groupValue);
           setIsPopupOpen(false);
         }}

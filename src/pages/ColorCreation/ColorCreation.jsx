@@ -48,16 +48,16 @@ const Icon = {
   ),
 };
 
-export default function StateCreation() {
+export default function ColorCreation() {
   // ---------- state ----------
-  const [states, setStates] = useState([]);
+  const [colors, setColors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    fuCode: "", 
-    stateName: ""
+    colourCode: "", 
+    colourName: ""  // Changed to match API response
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -74,27 +74,27 @@ export default function StateCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const stateCodeRef = useRef(null);
-  const stateNameRef = useRef(null);
+  const colorCodeRef = useRef(null);
+  const colorNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
   // ---------- API functions ----------
-  const fetchNextStateCode = async () => {
+  const fetchNextColorCode = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
+      const data = await apiService.get(API_ENDPOINTS.COLORCREATION.NEXT_COLOR_CODE);
       // Support both string and object responses
       if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
+        setForm(prev => ({ ...prev, colourCode: data.trim() }));
+      } else if (data && (data.nextBillNo || data.code || data.colourCode)) {
+        setForm(prev => ({ ...prev, colourCode: data.nextBillNo || data.code || data.colourCode }));
       }
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next state code" });
+      setMessage({ type: "error", text: "Failed to load next color code" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -102,41 +102,34 @@ export default function StateCreation() {
     }
   };
 
-  const fetchStates = async () => {
+  const fetchColors = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS);
-      setStates(data || []);
+      const data = await apiService.get(API_ENDPOINTS.COLORCREATION.GET_COLOR_ITEMS);
+      setColors(data || []);
       setMessage(null);
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load states" });
+      setMessage({ type: "error", text: "Failed to load colors" });
       console.error("API Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStateByCode = async (code) => {
+  const createColor = async (colorData) => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GETSTATECODE(code));
+      // API expects colourCode and colourName (based on your response structure)
+      const apiData = { 
+        colourCode: colorData.colourCode, 
+        colourName: colorData.colourName 
+      };
+      console.log("Creating color:", apiData);
+      const data = await apiService.post(API_ENDPOINTS.COLORCREATION.CREATE_COLOR, apiData);
+      console.log("Create response:", data);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch state" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createState = async (stateData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.STATECREATION.CREATE_STATE, stateData);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to create state" });
+      setMessage({ type: "error", text: "Failed to create color" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -144,13 +137,20 @@ export default function StateCreation() {
     }
   };
 
-  const updateState = async (stateData) => {
+  const updateColor = async (colorData) => {
     try {
       setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), stateData);
+      // API expects colourCode and colourName (based on your response structure)
+      const apiData = { 
+        colourCode: colorData.colourCode, 
+        colourName: colorData.colourName 
+      };
+      console.log("Updating color:", apiData);
+      const data = await apiService.put(API_ENDPOINTS.COLORCREATION.UPDATE_COLOR, apiData);
+      console.log("Update response:", data);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update state" });
+      setMessage({ type: "error", text: "Failed to update color" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -158,13 +158,15 @@ export default function StateCreation() {
     }
   };
 
-  const deleteState = async (stateCode) => {
+  const deleteColor = async (colorCode) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
+      console.log("Deleting color code:", colorCode);
+      const data = await apiService.del(API_ENDPOINTS.COLORCREATION.DELETE_COLOR(colorCode));
+      console.log("Delete response:", data);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete state" });
+      setMessage({ type: "error", text: err.message || "Failed to delete color" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -187,76 +189,80 @@ export default function StateCreation() {
   }, []);
 
   useEffect(() => {
-    if (stateCodeRef.current) stateCodeRef.current.focus();
+    if (colorCodeRef.current) colorCodeRef.current.focus();
   }, []);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchStates(), fetchNextStateCode()]);
+    await Promise.all([fetchColors(), fetchNextColorCode()]);
   };
 
   const handleEdit = async () => {
-    if (!form.fuCode || !form.stateName) {
-      setMessage({ type: "error", text: "Please fill State Code and State Name." });
+    if (!form.colourCode || !form.colourName) {
+      setMessage({ type: "error", text: "Please fill Color Code and Color Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update state "${form.stateName}"?`)) return;
-
+    if (!window.confirm(`Do you want to update color "${form.colourName}"?`)) return;
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
-      await updateState(stateData);
+      const colorData = { 
+        colourCode: form.colourCode, 
+        colourName: form.colourName 
+      };
+      await updateColor(colorData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "State updated successfully." });
+      setMessage({ type: "success", text: "Color updated successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in updateState
+      // Error message already set in updateColor
     }
   };
 
   const handleDelete = async () => {
-    if (!form.fuCode) {
-      setMessage({ type: "error", text: "Please select a state to delete." });
+    if (!form.colourCode) {
+      setMessage({ type: "error", text: "Please select a color to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete state "${form.stateName}"?`)) return;
-
+    if (!window.confirm(`Do you want to delete color "${form.colourName}"?`)) return;
     try {
-      await deleteState(form.fuCode);
+      await deleteColor(form.colourCode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "State deleted successfully." });
+      setMessage({ type: "success", text: "Color deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced states
+      // Special handling for referenced colors
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete state "${form.stateName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete color "${form.colourName}". It is referenced in other tables and cannot be removed.` 
         });
       }
     }
   };
 
   const handleAdd = async () => {
-    if (!form.fuCode || !form.stateName) {
-      setMessage({ type: "error", text: "Please fill State Code and State Name." });
+    if (!form.colourCode || !form.colourName) {
+      setMessage({ type: "error", text: "Please fill Color Code and Color Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to create state "${form.stateName}"?`)) return;
+    if (!window.confirm(`Do you want to create color "${form.colourName}"?`)) return;
 
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
-      await createState(stateData);
+      const colorData = { 
+        colourCode: form.colourCode, 
+        colourName: form.colourName 
+      };
+      await createColor(colorData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "State created successfully." });
+      setMessage({ type: "success", text: "Color created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createState
+      // Error message already set in createColor
     }
   };
 
@@ -267,8 +273,8 @@ export default function StateCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextStateCode();
-    setForm(prev => ({ ...prev, stateName: "" }));
+    fetchNextColorCode();
+    setForm(prev => ({ ...prev, colourName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -276,7 +282,7 @@ export default function StateCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => colorNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -284,12 +290,15 @@ export default function StateCreation() {
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+  const handleEditRowClick = (color) => {
+    setForm({ 
+      colourCode: color.colourCode, 
+      colourName: color.colourName 
+    });
     setActionType("edit");
-    setEditingId(s.uCode);
+    setEditingId(color.colourCode);
     setEditModalOpen(false);
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => colorNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -297,33 +306,39 @@ export default function StateCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? states.filter(s => (s.uCode || '').toLowerCase().includes(q) || (s.stateName || '').toLowerCase().includes(q))
-      : states;
+      ? colors.filter(s => 
+          (s.colourCode || '').toString().toLowerCase().includes(q) || 
+          (s.colourName || '').toString().toLowerCase().includes(q)
+        )
+      : colors;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [states]);
+  }, [colors]);
 
-  const handleDeleteRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+  const handleDeleteRowClick = (color) => {
+    setForm({ 
+      colourCode: color.colourCode, 
+      colourName: color.colourName 
+    });
     setActionType("delete");
-    setDeleteTargetId(s.uCode);
+    setDeleteTargetId(color.colourCode);
     setDeleteModalOpen(false);
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => colorNameRef.current?.focus(), 60);
   };
 
-  const onStateCodeKeyDown = (e) => {
+  const onColorCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      stateNameRef.current?.focus();
+      colorNameRef.current?.focus();
     }
   };
 
-  const onStateNameKeyDown = (e) => {
+  const onColorNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -338,45 +353,50 @@ export default function StateCreation() {
   };
 
   // ---------- filters ----------
-  const filteredEditStates = useMemo(() => {
+  const filteredEditColors = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter(
+    if (!q) return colors;
+    return colors.filter(
       (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.colourCode || "").toLowerCase().includes(q) ||
+        (s.colourName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, states]);
+  }, [editQuery, colors]);
 
-  const filteredDeleteStates = useMemo(() => {
+  const filteredDeleteColors = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter(
+    if (!q) return colors;
+    return colors.filter(
       (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.colourCode || "").toLowerCase().includes(q) ||
+        (s.colourName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, states]);
+  }, [deleteQuery, colors]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter(
+    if (!q) return colors;
+    return colors.filter(
       (s) => 
-        (s.uCode || "").toLowerCase().includes(q) || 
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.colourCode || "").toLowerCase().includes(q) || 
+        (s.colourName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, states]);
+  }, [existingQuery, colors]);
 
-  // ---------- render ----------
+  // Helper to safely get color code
+  const getColorCode = (color) => color.colourCode || '';
+  
+  // Helper to safely get color name
+  const getColorName = (color) => color.colourName || '';
+
   return (
-    <div className="uc-root" role="region" aria-labelledby="state-creation-title">
+    <div className="uc-root" role="region" aria-labelledby="color-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* blue theme (matching ItemGroupCreation style) */
+          /* blue theme (matching ItemGroupCreation) */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
@@ -401,7 +421,7 @@ export default function StateCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 18px; /* increased base font size */
+          font-size: 12px; /* increased base font size */
           box-sizing: border-box;
         }
 
@@ -437,13 +457,13 @@ export default function StateCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px; /* slightly larger title */
+          font-size: 20px; /* slightly larger title */
           color: #0f172a;
           letter-spacing: -0.2px;
         }
         .subtitle {
           color: var(--muted);
-          font-size: 16px;
+          font-size: 14px;
         }
 
         /* action pills */
@@ -464,7 +484,7 @@ export default function StateCreation() {
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
-          font-size: 18px;
+          font-size: 14px;
           transition: all 0.2s;
           white-space: nowrap;
         }
@@ -496,6 +516,9 @@ export default function StateCreation() {
           padding: 16px;
           border: 1px solid rgba(15,23,42,0.04);
           box-shadow: 0 6px 20px rgba(12,18,35,0.06);
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
         }
 
         label.field-label {
@@ -503,7 +526,7 @@ export default function StateCreation() {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:18px;
+          font-size:14px;
           text-align: left;
           width: 100%;
         }
@@ -528,7 +551,7 @@ export default function StateCreation() {
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
-          font-size:18px;
+          font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
@@ -588,7 +611,7 @@ export default function StateCreation() {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 16px;
+          font-size: 12px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -613,7 +636,7 @@ export default function StateCreation() {
           cursor:pointer;
           min-width: 120px;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
@@ -631,7 +654,7 @@ export default function StateCreation() {
           border-radius:10px;
           cursor:pointer;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
 
         }
         .submit-clear:hover:not(:disabled) {
@@ -651,7 +674,7 @@ export default function StateCreation() {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 16px;
+          font-size: 12px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -683,8 +706,8 @@ export default function StateCreation() {
           color: #374151;
         }
 
-        /* states table */
-        .states-table-container {
+        /* colors table */
+        .colors-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -692,13 +715,13 @@ export default function StateCreation() {
           margin-top: 12px;
         }
 
-        .states-table {
+        .colors-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 18px;
+          font-size: 14px;
         }
 
-        .states-table th {
+        .colors-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -707,22 +730,21 @@ export default function StateCreation() {
           font-weight: 700;
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
-          font-size: 18px;
-          z-index: 1;
+          font-size: 14px;
         }
 
-        .states-table td {
+        .colors-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .states-table tr:hover {
+        .colors-table tr:hover {
           background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
           cursor: pointer;
         }
 
-        .states-table tr.selected {
+        .colors-table tr.selected {
           background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
@@ -815,7 +837,7 @@ export default function StateCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .states-table-container {
+          .colors-table-container {
             max-height: 300px;
           }
         }
@@ -829,29 +851,29 @@ export default function StateCreation() {
             border-radius: 12px;
           }
           .title-block h2 {
-            font-size: 18px;
+            font-size: 14px;
           }
           .action-pill {
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 10px;
           }
           .input, .search {
             padding: 8px 10px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .btn {
             padding: 8px 10px;
             min-width: 70px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
             min-width: 0;
           }
-          .states-table th,
-          .states-table td {
+          .colors-table th,
+          .colors-table td {
             padding: 8px;
-            font-size: 12px;
+            font-size: 10px;
           }
           .modal-overlay {
             padding: 12px;
@@ -868,7 +890,7 @@ export default function StateCreation() {
           .dashboard {
             padding: 10px;
           }
-          .title-block {
+          .title-block { 
             flex-direction: column;
             align-items: flex-start;
             gap: 8px;
@@ -878,7 +900,7 @@ export default function StateCreation() {
           }
           .action-pill {
             padding: 6px 8px;
-            font-size: 11px;
+            font-size: 10px;
           }
           .card {
             padding: 12px;
@@ -898,7 +920,7 @@ export default function StateCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="state-creation-title">
+      <div className="dashboard" aria-labelledby="color-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -906,8 +928,8 @@ export default function StateCreation() {
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
-              <h2 id="state-creation-title">State Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete states.</div>
+              <h2 id="color-creation-title">Color Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete measurement colors.</div>
             </div>
           </div>
 
@@ -920,81 +942,84 @@ export default function StateCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* State Code field */}
-            <div className="field">
-              <label className="field-label">
-                State Code <span className="asterisk">*</span>
-              </label>
-              <div className="row">
-                <input
-                  ref={stateCodeRef}
-                  className="input"
-                  value={form.fuCode}
-                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                  placeholder="State code (auto-generated)"
-                  onKeyDown={onStateCodeKeyDown}
+            {/* Form section */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Color Code field */}
+              <div className="field">
+                <label className="field-label">
+                  Color Code <span className="asterisk">*</span>
+                </label>
+                <div className="row">
+                  <input
+                    ref={colorCodeRef}
+                    className="input"
+                    value={form.colourCode}
+                    onChange={(e) => setForm(s => ({ ...s, colourCode: e.target.value }))}
+                    onKeyDown={onColorCodeKeyDown}
+                    disabled={loading}
+                    aria-label="Color Code"
+                    readOnly={actionType === "edit" || actionType === "delete"}
+                  />
+                </div>
+              </div>
+
+              {/* Color Name field */}
+              <div className="field">
+                <label className="field-label">
+                  Color Name <span className="asterisk">*</span>
+                </label>
+                <div className="row">
+                  <input 
+                    ref={colorNameRef} 
+                    className="input" 
+                    value={form.colourName} 
+                    onChange={(e) => setForm(s => ({ ...s, colourName: e.target.value }))} 
+                    onKeyDown={onColorNameKeyDown}
+                    disabled={loading}
+                    aria-label="Color Name"
+                    readOnly={actionType === "delete"}
+                  />
+                </div>
+              </div>
+
+              {/* Message display */}
+              {message && (
+                <div className={`message ${message.type}`} role="alert">
+                  {message.text}
+                </div>
+              )}
+
+              {/* Submit controls */}
+              <div className="submit-row">
+                <button
+                  className="submit-primary"
+                  onClick={handleSubmit}
                   disabled={loading}
-                  aria-label="State Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
-                />
-              </div>
-            </div>
-
-            {/* State Name field */}
-            <div className="field">
-              <label className="field-label">
-                State Name <span className="asterisk">*</span>
-              </label>
-              <div className="row">
-                <input 
-                  ref={stateNameRef} 
-                  className="input" 
-                  value={form.stateName} 
-                  onChange={(e) => setForm(s => ({ ...s, stateName: e.target.value }))} 
-                  placeholder="Enter state name" 
-                  onKeyDown={onStateNameKeyDown}
+                  type="button"
+                >
+                  {loading ? "Processing..." : actionType === "Add" ? "Create" : actionType}
+                </button>
+                <button
+                  className="submit-clear"
+                  onClick={resetForm}
                   disabled={loading}
-                  aria-label="State Name"
-                  readOnly={actionType === "delete"}
-                />
+                  type="button"
+                >
+                  Clear
+                </button>
               </div>
             </div>
 
-            {/* Message display */}
-            {message && (
-              <div className={`message ${message.type}`} role="alert">
-                {message.text}
-              </div>
-            )}
-
-            {/* Submit controls */}
-            <div className="submit-row">
-              <button
-                className="submit-primary"
-                onClick={handleSubmit}
-                disabled={loading}
-                type="button"
-              >
-                {loading ? "Processing..." : actionType}
-              </button>
-              <button
-                className="submit-clear"
-                onClick={resetForm}
-                disabled={loading}
-                type="button"
-              >
-                Clear
-              </button>
-            </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing States</div>
+            {/* Existing Colors Table */}
+            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Colors</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing states..."
+                  placeholder="Search existing colors..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing states"
+                  aria-label="Search existing colors"
                 />
                 {existingQuery && (
                   <button
@@ -1008,35 +1033,38 @@ export default function StateCreation() {
                 )}
               </div>
               
-              <div className="states-table-container">
+              <div className="colors-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading states...
+                    Loading Colors...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {states.length === 0 ? "No states found" : "No matching states"}
+                    {colors.length === 0 ? "No colors found" : "No matching colors"}
                   </div>
                 ) : (
-                  <table className="states-table">
+                  <table className="colors-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>State Name</th>
+                        <th>Color Name</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredExisting.map((s) => (
                         <tr 
-                          key={s.uCode}
-                          className={form.fuCode === s.uCode ? "selected" : ""}
+                          key={getColorCode(s)}
+                          className={form.colourCode === getColorCode(s) ? "selected" : ""}
                           onClick={() => {
-                            setForm({ fuCode: s.uCode, stateName: s.stateName });
+                            setForm({ 
+                              colourCode: getColorCode(s), 
+                              colourName: getColorName(s) 
+                            });
                             setActionType("edit");
                           }}
                         >
-                          <td>{s.uCode}</td>
-                          <td>{s.stateName}</td>
+                          <td>{getColorCode(s)}</td>
+                          <td>{getColorName(s)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1050,29 +1078,29 @@ export default function StateCreation() {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit State" : "Delete State"}
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Color" : "Delete Color"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">State Code</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
+              <div className="muted">Color Code</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.colourCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">State Name</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.stateName || "Not set"}
+              <div className="muted">Color Name</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.colourName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing States</div>
-              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
-                {states.length}
+              <div className="muted">Existing Colors</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
+                {colors.length}
               </div>
             </div>
 
@@ -1085,15 +1113,16 @@ export default function StateCreation() {
               <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>State code is auto-generated for new states</span>
+                  <span>
+                    Color code is auto-generated for new colors</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find states</span>
+                  <span>For edit/delete, use search modals to find colors</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Examples: Maharashtra, Karnataka, Tamil Nadu</span>
+                  <span>Common colors: Red, Blue, Green, etc.</span>
                 </div>
               </div>
             </div>
@@ -1101,31 +1130,29 @@ export default function StateCreation() {
         </div>
       </div>
 
-      {/* Edit Popup */}
       <PopupListSelector
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select State to Edit"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        title="Select Color to Edit"
+        displayFieldKeys={['colourCode', 'colourName']}
+        searchFields={['colourCode', 'colourName']}
+        headerNames={['Code', 'Color']}
+        columnWidths={{ colourName: '70%', colourCode: '30%' }}
         maxHeight="60vh"
       />
 
-      {/* Delete Popup */}
       <PopupListSelector
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select State to Delete"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        title="Select Color to Delete"
+        displayFieldKeys={['colourCode', 'colourName']}
+        searchFields={['colourCode', 'colourName']}
+        headerNames={['Code', 'Color']}
+        columnWidths={{ colourName: '70%', colourCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

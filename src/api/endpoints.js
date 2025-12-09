@@ -50,18 +50,40 @@ user_creation: {
     GET_COMPANY_LIST: "CompanyCreation/GetCompanyList",
     GET_COMPANY_DETAILS: (compCode) => `CompanyCreation/GetCompany/${compCode}`,
     DELETE_COMPANY: (fcompcode) => `CompanyCreation/DeleteCompany/${fcompcode}`,
-  
-    
-    
   },
-UNITCREATION: {
+  UNITCREATION: {
     NEXT_SIZE_CODE : "UnitCreation/NextBillNo", 
     GET_SIZE_ITEMS : "UnitCreation/GetUnits",
     GETUNITCODE : (code) => `UnitCreation/GetUnit/${code}`, 
-    CREATE_SIZE: "UnitCreation/CreationUnit",
+    CREATE_SIZE: "UnitCreation/CreateUnit",
     UPDATE_SIZE: (code) => `UnitCreation/UpdateUnit/${code}`,
     DELETE_SIZE: (code) => `UnitCreation/DeleteUnit/${code}`,
-  },    
+  },  
+  
+  COLORCREATION: {
+    NEXT_COLOR_CODE : "Colour_Creation/getNextColurFcode", 
+    GET_COLOR_ITEMS : "Colour_Creation/getColourItem",
+    // GETCOLORCODE : (code) => `ColorCreation/GetColor/${code}`, 
+    CREATE_COLOR: "Colour_Creation/createColour",
+    UPDATE_COLOR: "Colour_Creation/updateColour",
+    DELETE_COLOR: (code) => `Colour_Creation/deleteColour/${code}`,
+  },
+  SIZECREATION: {
+    NEXT_SIZE_CODE : "SizeCreation/SizeNextFcode", 
+    GET_SIZE_ITEMS : "SizeCreation/getSizeItem",
+    // GETUNITCODE : (code) => `SizeCreation/GetSize/${code}`, 
+    CREATE_SIZE: "SizeCreation/createSize",
+    UPDATE_SIZE: "SizeCreation/UpdateSize",
+    DELETE_SIZE: (code) => `SizeCreation/DeleteSize/${code}`,
+  },
+  MODELCREATION: {
+    NEXT_MODEL_CODE : "ModelCreation/getNextModelFcode", 
+    GET_MODEL_ITEMS : "ModelCreation/getModelItem",
+    // GETUNITCODE : (code) => `SizeCreation/GetSize/${code}`, 
+    CREATE_MODEL: "ModelCreation/createModel",
+    UPDATE_MODEL: "ModelCreation/updateModel",
+    DELETE_MODEL: (code) => `ModelCreation/deleteColour/${code}`,
+  },
 
     ADMINISTRATION: {
     USER_LIST: "Administartor/UserNameList",
@@ -70,56 +92,43 @@ UNITCREATION: {
     DELETE_PERMISSIONS: "Administartor/administration/delete"
   },
 
-  DESIGNCREATION: {
-    NEXT_DESIGN_CODE: 'DesignCreation/getNextFcode',
-    GET_DESIGNS: 'DesignCreation/getDesignItem',
-    GETDESIGNCODE: (code) => `DesignCreation/getDesignItem/${code}`,
-    CREATE_DESIGN: 'DesignCreation/createDesign',
-    UPDATE_DESIGN: 'DesignCreation/updateDesign',
-    DELETE_DESIGN: (code) => `DesignCreation/deleteDesign/${code}`
+  SCRAP_CREATION: {
+    GET_SCRAP_ITEMS: '/ScrapCreation/getScrapItem',
+    GET_NEXT_SCRAP_CODE: '/ScrapCreation/getNextScrapFcode',
+    CREATE_SCRAP: '/ScrapCreation/createScrap',
+    UPDATE_SCRAP: '/ScrapCreation/updateScrap',
+    DELETE_SCRAP: (scrapCode) => `/ScrapCreation/deleteScrap/${scrapCode}`,
+    GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
 
-  SCRAPCREATION: {
-    GET_SCRAP_ITEMS: 'ScrapCreation/getScrapItem',
-    GET_NEXT_SCRAP_CODE: 'ScrapCreation/getNextScrapFcode',
-    CREATE_SCRAP: 'ScrapCreation/createScrap',
-    UPDATE_SCRAP: 'ScrapCreation/updateScrap',
-    DELETE_SCRAP: (code) => `ScrapCreation/deleteScrap/${code}`,
-  },
-
-  BRAND: {
-    GET_BRANDS: 'Brand',
-    CREATE_BRAND: 'Brand?selecttype=true',
-    UPDATE_BRAND: 'Brand?selecttype=false',
-    DELETE_BRAND: (code) => `Brand/${code}`,
-  },
-
-  // Update in your endpoints.js file:
-CATEGORY: {
-  GET_CATEGORIES: 'CATEGORY/GetAllCategory',
-  CREATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=true',
-  UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
-  DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
-  GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
-},
-
-PRODUCT: {
-  GET_PRODUCTS: 'Product',
-  CREATE_PRODUCT: 'Product?selecttype=true',
-  UPDATE_PRODUCT: 'Product?selecttype=false',
-  DELETE_PRODUCT: (code) => `Product/${code}`,
-  GET_NEXT_CODE: 'Product/getNextProductFcode'
-},
+// ITEM_CREATION: {
+//     POST: `ItemCreation/ItemCreationPost`,
+//     PUT: `ItemCreation/ItemCreationUpdate`,
+//     DELETE: `ItemCreation/ItemCreationDelete`,
+//     GET_DROPDOWNS: `ItemCreation/GetItemCreationdropdowslist`,
+//     GET_MAX_PREFIX: `ItemCreation/GetMaxPrefix`,
+//     GET_ALL_ITEMS: `ItemCreation/GetAllItems`,
+//     GET_TREE_DATA: `ItemCreation/GetTreeData`,
+//   }
+  
+//   // Other endpoints
+//   BRANDS: `${BASE_URL}Brand/GetAllBrands`,
+//   CATEGORIES: `${BASE_URL}Category/GetAllCategories`,
+//   PRODUCTS: `${BASE_URL}Product/GetAllProducts`,
+//   MODELS: `${BASE_URL}Model/GetAllModels`,
+//   SIZES: `${BASE_URL}Size/GetAllSizes`,
+//   UNITS: `${BASE_URL}Unit/GetAllUnits`,
+// }
+ 
 
 
 
-scrap:{
-  getscrapitem:"ScrapCreation/getScrapItem",
-  getscrapcode:"ScrapCreation/getNextScrapFcode",
-  postcreatescrap:"ScrapCreation/createScrap",
-  putupdatedscrap:"Sction/deleteUserrapCreation/updateScrap",
- delete: (fCode) => `ScrapCreation/deleteScrap/001/${fCode}`,
- },
+
+
+
+
+
+
  scrapratefix:
  {
   getscrapratefixing:"ScrapRateFixing/getFullScrapRateFixing",

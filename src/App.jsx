@@ -5,7 +5,6 @@ import Navbar from './components/Navbar/Navbar'
 import TestPage from './pages/TestPage/TestPage'
 import  Company  from './pages/company/Company'
 import LedgerCreation from './pages/Ledgercreation/Ledgercreation'
-import ItemCreation from './pages/ItemCreation/ItemCreation'
 import LedgerGroupCreation from './pages/Ledgergroupcreation/Ledgergroupcreation'
 import ItemGroupCreation from './pages/ItemGroupCreation/ItemGroupCreation'
 import Administration from './pages/Administration/Admistration'
@@ -16,17 +15,23 @@ import Scrap from './pages/Scrap/scrap'
 import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
 import UnitCreation from './pages/UnitCreation/UnitCreation'
+import ColorCreation from './pages/ColorCreation/ColorCreation'
+import SizeCreation from './pages/SizeCreation/SizeCreation'
+import ModelCreation from './pages/ModelCreation/ModelCreation'
 import Billcollector  from './pages/billcollector/billcollectior'
 import Design from './pages/DesignCreation/DesignCreation'
 import Tender from './pages/Tender/Tender'
-import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 import ScrapPage from './pages/scrappage/scrappage'
 import BrandPage from './pages/Brand/Brand'
 import Category from './pages/category/category'
 import Product from './pages/Product/Product'
-
+import ItemCreation from './pages/ItemCreation/ItemCreation'
 import ScrapProcurement from './pages/ScrapProcurement/Scrapprocurement'
 import Salecreation from './pages/statecreation/statecreation'
+import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
+import Statecreation from './pages/statecreation/statecreation'
+import Purchasereturn from './pages/Purchasereturn/Purchasereturn'
+import SalesmanCreation from './pages/SalesmanCreation/SalesmanCreation'
 function App() {
   return (
     <div className="app">
@@ -37,12 +42,8 @@ function App() {
           <Route path="test" element={<TestPage />} />
           {/* <Route path="test" element={<Test />} /> */}
           <Route path="/masters/company-creation" element={<Company />} />
-          
-          
-
           <Route path="sales-invoice" element={<SalesInvoice />} />
           <Route path="/masters/ledger-creation" element={<LedgerCreation />} />
-          <Route path="/masters/item-creation" element={<ItemCreation />} />
           <Route path="/masters/ledger-group-creation" element={<LedgerGroupCreation />} />
           <Route path="/masters/User-creation" element={<UserCreation />} />
           <Route path="/masters/item-group-creation" element={<ItemGroupCreation />} />
@@ -52,6 +53,9 @@ function App() {
           <Route path="/transactions/scrap" element={<Scrap />} />
           <Route path="/popup-list-selector-example" element={<ExampleUsage />} />
           <Route path="/masters/unit-creation" element={<UnitCreation />} />
+          <Route path="/masters/color-creation" element={<ColorCreation />} />
+          <Route path="/masters/size-creation" element={<SizeCreation />} />
+          <Route path="/masters/model-creation" element={<ModelCreation />} />
           <Route path="/transactions/bill-collector" element={<Billcollector />} />
           <Route path="/Transaction/Tender" element={<Tender />} />
           <Route path="/transactions/purchase-invoice" element={<PurchaseInvoice />} />
@@ -61,7 +65,10 @@ function App() {
           <Route path="/masters/category-creation" element={<Category />} />
           <Route path="/masters/product-creation" element={<Product />} />
            <Route path="/ScrapProcurement" element={<ScrapProcurement />} />
-           <Route path="/masters/Salecreation" element={<Salecreation />} /> 
+           <Route path="/masters/Statecreation" element={<Statecreation />} /> 
+          <Route path="/transactions/Purchasereturn" element={<Purchasereturn />} />
+          <Route path="/masters/ItemCreation" element={<ItemCreation />} /> 
+          <Route path="/masters/SalesmanCreation" element={<SalesmanCreation />} /> 
         </Routes>
       </main>
     </div>

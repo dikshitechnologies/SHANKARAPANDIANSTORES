@@ -1,21 +1,22 @@
 import React, { useState, useRef, useEffect } from "react";
+import axios from "axios";
 
 export default function ScrapRateFixing() {
-  // Sample scrap rate data
-  const [scrapRates, setScrapRates] = useState([
-    { id: 1, scrapCode: "003", scrapName: "METAL", rate: "" },
-    { id: 2, scrapCode: "004", scrapName: "PLASTIC", rate: "1800" },
-    { id: 3, scrapCode: "005", scrapName: "PAPER", rate: "100" },
-    { id: 4, scrapCode: "006", scrapName: "ELECTRONIC", rate: "100" },
-    { id: 5, scrapCode: "007", scrapName: "GLASS", rate: "11600" },
-    { id: 6, scrapCode: "008", scrapName: "WOOD", rate: "" },
-    { id: 7, scrapCode: "010", scrapName: "RUBBER", rate: "2500" },
-  ]);
-
+  // State for scrap rates - initially empty
+  const [scrapRates, setScrapRates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  
+  // API configuration
+  const API_BASE_URL = "http://dikshiserver/spstorewebapi/api";
+  
+  const API_ENDPOINTS = {
+    getScrapRates: "ScrapRateFixing/getFullScrapRateFixing",
+    updateScrapRates: "ScrapRateFixing/updateFullScrapRateFixing"
+  };
   
   // Array of refs for each rate input
   const rateInputRefs = useRef([]);
@@ -49,10 +50,50 @@ export default function ScrapRateFixing() {
     };
   }, []);
 
+  // Fetch scrap rates from API on component mount
+  useEffect(() => {
+    fetchScrapRates();
+  }, []);
+
   // Initialize refs array
   useEffect(() => {
     rateInputRefs.current = rateInputRefs.current.slice(0, scrapRates.length);
   }, [scrapRates]);
+
+  // Fetch scrap rates from API
+  const fetchScrapRates = async () => {
+    try {
+      setIsFetching(true);
+      const response = await axios.get(
+        `${API_BASE_URL}/${API_ENDPOINTS.getScrapRates}`
+      );
+      
+      console.log("API Response:", response.data); // Debug log
+      
+      // Transform API data to match your component structure
+      const transformedData = response.data.map((item, index) => ({
+        id: index + 1,
+        scrapCode: item.fcode || item.scrapCode || "",
+        scrapName: item.fname || item.scrapName || "",
+        rate: item.frate || item.rate || ""
+      }));
+      
+      setScrapRates(transformedData);
+      setIsFetching(false);
+    } catch (error) {
+      console.error("Error fetching scrap rates:", error);
+      setMessage({
+        type: "error",
+        text: `Failed to load scrap rates: ${error.message}`
+      });
+      setIsFetching(false);
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 5000);
+    }
+  };
 
   // Handle rate input change
   const handleRateChange = (id, value) => {
@@ -83,36 +124,128 @@ export default function ScrapRateFixing() {
   };
 
   // Handle update button click
-  const handleUpdate = () => {
-    setLoading(true);
-    
-    // Validate that all rates are numbers
-    const invalidRates = scrapRates.filter(scrap => 
-      scrap.rate !== "" && isNaN(parseFloat(scrap.rate))
-    );
-    
-    if (invalidRates.length > 0) {
+  const handleUpdate = async () => {
+    // First, validate the data
+    const validationResult = validateScrapRates();
+    if (!validationResult.isValid) {
       setMessage({
         type: "error",
-        text: `Invalid rate values found for: ${invalidRates.map(s => s.scrapName).join(', ')}`
+        text: validationResult.message
       });
-      setLoading(false);
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 5000);
       return;
     }
     
-    // Simulate API call
-    setTimeout(() => {
+    setLoading(true);
+    
+    try {
+      // Transform data to match API format
+      const apiData = scrapRates.map(scrap => ({
+        fcode: scrap.scrapCode,
+        fname: scrap.scrapName,
+        frate: scrap.rate || "0" // Send 0 if rate is empty
+      }));
+      
+      console.log("Sending data:", apiData); // Debug log
+      
+      // Send PUT request to update scrap rates
+      const response = await axios.put(
+        `${API_BASE_URL}/${API_ENDPOINTS.updateScrapRates}`,
+        apiData,
+        {
+          headers: {
+            'Accept': '*/*',
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log("Update response:", response.data); // Debug log
+      
+      if (response.data && response.data.message) {
+        setMessage({
+          type: "success",
+          text: response.data.message
+        });
+      } else {
+        setMessage({
+          type: "success",
+          text: "Scrap rates updated successfully!"
+        });
+      }
+      
+      // Refresh data from server to ensure consistency
+      await fetchScrapRates();
+      
+    } catch (error) {
+      console.error("Error updating scrap rates:", error);
+      let errorMessage = "Failed to update scrap rates";
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        errorMessage = `Server error: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`;
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = "No response from server. Please check your connection.";
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        errorMessage = error.message;
+      }
+      
       setMessage({
-        type: "success",
-        text: "Scrap rates updated successfully!"
+        type: "error",
+        text: errorMessage
       });
+    } finally {
       setLoading(false);
       
-      // Clear message after 3 seconds
+      // Clear message after 5 seconds
       setTimeout(() => {
         setMessage(null);
-      }, 3000);
-    }, 1000);
+      }, 5000);
+    }
+  };
+
+  // Validation function
+  const validateScrapRates = () => {
+    // Check if there are any rates
+    if (scrapRates.length === 0) {
+      return {
+        isValid: false,
+        message: "No scrap rates to update"
+      };
+    }
+    
+    // Check for invalid rates (non-numeric or negative)
+    const invalidRates = scrapRates.filter(scrap => 
+      scrap.rate !== "" && (isNaN(parseFloat(scrap.rate)) || parseFloat(scrap.rate) < 0)
+    );
+    
+    if (invalidRates.length > 0) {
+      return {
+        isValid: false,
+        message: `Invalid rate values found for: ${invalidRates.map(s => s.scrapName).join(', ')}`
+      };
+    }
+    
+    // Check for empty required fields
+    const emptyFields = scrapRates.filter(scrap => 
+      !scrap.scrapCode || !scrap.scrapName
+    );
+    
+    if (emptyFields.length > 0) {
+      return {
+        isValid: false,
+        message: "Some items are missing scrap code or name"
+      };
+    }
+    
+    return { isValid: true, message: "" };
   };
 
   // Handle clear button click
@@ -131,6 +264,15 @@ export default function ScrapRateFixing() {
         setMessage(null);
       }, 3000);
     }
+  };
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    fetchScrapRates();
+    setMessage({
+      type: "info",
+      text: "Refreshing scrap rates..."
+    });
   };
 
   // Filter scraps based on search term
@@ -202,39 +344,98 @@ export default function ScrapRateFixing() {
         border: `1px solid ${colors.border}`,
         transition: 'all 0.3s ease'
       }}>
-        {/* Header Section - No underline */}
+        {/* Header Section with Refresh Button */}
         <div style={{
-          marginBottom: '25px'
+          marginBottom: '25px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '15px'
         }}>
-          <h1 style={{
-            fontSize: isMobile ? '24px' : '28px',
-            fontWeight: '700',
-            margin: '0 0 5px 0',
-            color: colors.primary,
-            background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            Scrap Rate Fixing
-          </h1>
-          <p style={{
-            fontSize: isMobile ? '14px' : '16px',
-            color: colors.muted,
-            margin: '0',
-            fontWeight: '400'
-          }}>
-            Edit rates directly in the table below.
-          </p>
+          <div>
+            <h1 style={{
+              fontSize: isMobile ? '24px' : '28px',
+              fontWeight: '700',
+              margin: '0 0 5px 0',
+              color: colors.primary,
+              background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              Scrap Rate Fixing
+            </h1>
+            <p style={{
+              fontSize: isMobile ? '14px' : '16px',
+              color: colors.muted,
+              margin: '0',
+              fontWeight: '400'
+            }}>
+              Edit rates directly in the table below.
+            </p>
+          </div>
+          
+          {/* Refresh Button */}
+          <button
+            onClick={handleRefresh}
+            disabled={isFetching || loading}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: `1px solid ${colors.border}`,
+              background: '#ffffff',
+              color: colors.primary,
+              fontWeight: '500',
+              fontSize: '14px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              height: '36px'
+            }}
+            onMouseEnter={(e) => {
+              if (!isFetching && !loading) {
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                e.target.style.borderColor = colors.primary;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = colors.border;
+            }}
+          >
+            {isFetching ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  width: '12px',
+                  height: '12px',
+                  border: `2px solid rgba(48, 122, 200, 0.3)`,
+                  borderTop: `2px solid ${colors.primary}`,
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></span>
+                Loading...
+              </span>
+            ) : (
+              <>
+                <span>↻</span>
+                Refresh
+              </>
+            )}
+          </button>
         </div>
 
-        {/* Search Bar - No icon */}
+        {/* Search Bar */}
         <div style={{
           marginBottom: '25px'
         }}>
           <input
             type="text"
-            placeholder="Search by scrap name..."
+            placeholder="Search by scrap name or code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -272,19 +473,38 @@ export default function ScrapRateFixing() {
             borderRadius: '8px',
             marginBottom: '20px',
             animation: 'slideIn 0.3s ease',
-            background: message.type === 'error' ? '#fef2f2' : '#f0fdf4',
-            border: `1px solid ${message.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
-            color: message.type === 'error' ? '#991b1b' : '#065f46',
+            background: message.type === 'error' ? '#fef2f2' : 
+                      message.type === 'success' ? '#f0fdf4' : '#eff6ff',
+            border: `1px solid ${message.type === 'error' ? '#fecaca' : 
+                     message.type === 'success' ? '#bbf7d0' : '#bfdbfe'}`,
+            color: message.type === 'error' ? '#991b1b' : 
+                   message.type === 'success' ? '#065f46' : '#1e40af',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
             gap: '10px'
           }}>
-            <span style={{
-              fontSize: '18px'
-            }}>
-              {message.type === 'error' ? '❌' : '✅'}
-            </span>
-            <span style={{ fontWeight: '500' }}>{message.text}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>
+                {message.type === 'error' ? '❌' : 
+                 message.type === 'success' ? '✅' : 'ℹ️'}
+              </span>
+              <span style={{ fontWeight: '500' }}>{message.text}</span>
+            </div>
+            <button
+              onClick={() => setMessage(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'inherit',
+                cursor: 'pointer',
+                fontSize: '20px',
+                padding: '0',
+                lineHeight: '1'
+              }}
+            >
+              ×
+            </button>
           </div>
         )}
 
@@ -340,7 +560,32 @@ export default function ScrapRateFixing() {
                 </tr>
               </thead>
               <tbody>
-                {filteredScrapRates.length === 0 ? (
+                {isFetching ? (
+                  <tr>
+                    <td colSpan="3" style={{
+                      padding: '40px 20px',
+                      textAlign: 'center',
+                      color: colors.muted
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '15px'
+                      }}>
+                        <span style={{
+                          width: '40px',
+                          height: '40px',
+                          border: `3px solid rgba(48, 122, 200, 0.2)`,
+                          borderTop: `3px solid ${colors.primary}`,
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }}></span>
+                        <span>Loading scrap rates...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredScrapRates.length === 0 ? (
                   <tr>
                     <td colSpan="3" style={{
                       padding: '40px 20px',
@@ -348,7 +593,9 @@ export default function ScrapRateFixing() {
                       color: colors.muted,
                       fontStyle: 'italic'
                     }}>
-                      No scrap items found matching your search.
+                      {scrapRates.length === 0 ? 
+                        'No scrap rates found. Please check the API connection.' : 
+                        'No scrap items found matching your search.'}
                     </td>
                   </tr>
                 ) : (
@@ -416,7 +663,31 @@ export default function ScrapRateFixing() {
           </div>
         </div>
 
-        {/* Clear and Update Buttons - Right side end of form */}
+        {/* Footer Stats */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px',
+          padding: '10px 0',
+          borderTop: `1px solid ${colors.border}`,
+          borderBottom: `1px solid ${colors.border}`,
+          fontSize: '14px',
+          color: colors.muted
+        }}>
+          <span>
+            Total Items: <strong>{scrapRates.length}</strong>
+          </span>
+          <span>
+            Showing: <strong>{filteredScrapRates.length}</strong>
+            {searchTerm && ` (filtered)`}
+          </span>
+          <span>
+            Items with rates: <strong>{scrapRates.filter(s => s.rate).length}</strong>
+          </span>
+        </div>
+
+        {/* Clear and Update Buttons */}
         <div style={{
           display: 'flex',
           justifyContent: 'flex-end',
@@ -426,23 +697,24 @@ export default function ScrapRateFixing() {
           {/* Clear Button */}
           <button
             onClick={handleClear}
-            disabled={loading}
+            disabled={loading || isFetching || scrapRates.length === 0}
             style={{
               padding: '10px 30px',
               borderRadius: '50px',
               border: `1px solid ${colors.border}`,
               background: '#ffffff',
-              color: colors.muted,
+              color: loading || isFetching || scrapRates.length === 0 ? '#cbd5e1' : colors.muted,
               fontWeight: '600',
               fontSize: '15px',
-              cursor: 'pointer',
+              cursor: loading || isFetching || scrapRates.length === 0 ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
               minWidth: '120px',
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-              height: '42px'
+              height: '42px',
+              opacity: loading || isFetching || scrapRates.length === 0 ? 0.6 : 1
             }}
             onMouseEnter={(e) => {
-              if (!loading) {
+              if (!loading && !isFetching && scrapRates.length > 0) {
                 e.target.style.transform = 'translateY(-2px)';
                 e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.12)';
                 e.target.style.borderColor = colors.warning;
@@ -455,31 +727,34 @@ export default function ScrapRateFixing() {
               e.target.style.borderColor = colors.border;
               e.target.style.color = colors.muted;
             }}
-            disable={loading}
           >
-            Clear
+            Clear All
           </button>
 
           {/* Update Button */}
           <button
             onClick={handleUpdate}
-            disabled={loading}
+            disabled={loading || isFetching || scrapRates.length === 0}
             style={{
               padding: '10px 30px',
               borderRadius: '50px',
               border: 'none',
-              background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+              background: loading || isFetching || scrapRates.length === 0 ? 
+                `linear-gradient(135deg, #cbd5e1, #e2e8f0)` :
+                `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
               color: '#ffffff',
               fontWeight: '600',
               fontSize: '15px',
-              cursor: 'pointer',
+              cursor: loading || isFetching || scrapRates.length === 0 ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
               minWidth: '120px',
-              boxShadow: '0 4px 12px rgba(48, 122, 200, 0.25)',
-              height: '42px'
+              boxShadow: loading || isFetching || scrapRates.length === 0 ? 
+                'none' : '0 4px 12px rgba(48, 122, 200, 0.25)',
+              height: '42px',
+              opacity: loading || isFetching || scrapRates.length === 0 ? 0.6 : 1
             }}
             onMouseEnter={(e) => {
-              if (!loading) {
+              if (!loading && !isFetching && scrapRates.length > 0) {
                 e.target.style.transform = 'translateY(-2px)';
                 e.target.style.boxShadow = '0 6px 20px rgba(48, 122, 200, 0.35)';
               }
@@ -488,7 +763,6 @@ export default function ScrapRateFixing() {
               e.target.style.transform = 'translateY(0)';
               e.target.style.boxShadow = '0 4px 12px rgba(48, 122, 200, 0.25)';
             }}
-            disable={loading}
           >
             {loading ? (
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
@@ -502,7 +776,7 @@ export default function ScrapRateFixing() {
                 }}></span>
                 Updating...
               </span>
-            ) : 'Update'}
+            ) : 'Update Rates'}
           </button>
         </div>
       </div>

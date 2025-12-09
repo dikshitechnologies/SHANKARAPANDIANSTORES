@@ -48,16 +48,16 @@ const Icon = {
   ),
 };
 
-export default function StateCreation() {
+export default function ModelCreation() {
   // ---------- state ----------
-  const [states, setStates] = useState([]);
+  const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
     fuCode: "", 
-    stateName: ""
+    modelName: ""  
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -74,27 +74,32 @@ export default function StateCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const stateCodeRef = useRef(null);
-  const stateNameRef = useRef(null);
+  const modelCodeRef = useRef(null);
+  const modelNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
   // ---------- API functions ----------
-  const fetchNextStateCode = async () => {
+  const fetchNextModelCode = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
+      const data = await apiService.get(API_ENDPOINTS.MODELCREATION.NEXT_MODEL_CODE);
       // Support both string and object responses
       if (typeof data === 'string' && data.trim()) {
         setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
+      } else if (data && (data.nextBillNo || data.code || data.fuCode || data.fCode)) {
+        setForm(prev => ({ 
+          ...prev, 
+          fuCode: data.nextBillNo || data.code || data.fuCode || data.fCode || "" 
+        }));
+      } else if (data && data.nextCode) {
+        setForm(prev => ({ ...prev, fuCode: data.nextCode }));
       }
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next state code" });
+      setMessage({ type: "error", text: "Failed to load next model code" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -102,41 +107,36 @@ export default function StateCreation() {
     }
   };
 
-  const fetchStates = async () => {
+  const fetchModels = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS);
-      setStates(data || []);
+      const data = await apiService.get(API_ENDPOINTS.MODELCREATION.GET_MODEL_ITEMS);
+      console.log("Fetched models:", data); // Debug log
+      setModels(data || []);
       setMessage(null);
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load states" });
+      setMessage({ type: "error", text: "Failed to load models" });
       console.error("API Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStateByCode = async (code) => {
+  const createModel = async (modelData) => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GETSTATECODE(code));
+      console.log("Creating model with data:", modelData); // Debug log
+      // API expects fCode and fname
+      const apiData = { 
+        fCode: modelData.fCode, 
+        fname: modelData.modelName // Changed from modelName to fname
+      };
+      console.log("Sending to API:", apiData); // Debug log
+      const data = await apiService.post(API_ENDPOINTS.MODELCREATION.CREATE_MODEL, apiData);
+      console.log("Create response:", data); // Debug log
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch state" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createState = async (stateData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.STATECREATION.CREATE_STATE, stateData);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to create state" });
+      setMessage({ type: "error", text: err.message || "Failed to create model" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -144,13 +144,21 @@ export default function StateCreation() {
     }
   };
 
-  const updateState = async (stateData) => {
+  const updateModel = async (modelData) => {
     try {
       setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), stateData);
+      console.log("Updating model with data:", modelData); // Debug log
+      // API expects fCode and fname
+      const apiData = { 
+        fCode: modelData.fCode, 
+        fname: modelData.modelName // Changed from modelName to fname
+      };
+      console.log("Sending to API for update:", apiData); // Debug log
+      const data = await apiService.put(API_ENDPOINTS.MODELCREATION.UPDATE_MODEL, apiData);
+      console.log("Update response:", data); // Debug log
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update state" });
+      setMessage({ type: "error", text: err.message || "Failed to update model" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -158,13 +166,15 @@ export default function StateCreation() {
     }
   };
 
-  const deleteState = async (stateCode) => {
+  const deleteModel = async (modelCode) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
+      console.log("Deleting model code:", modelCode); // Debug log
+      const data = await apiService.del(API_ENDPOINTS.MODELCREATION.DELETE_MODEL(modelCode));
+      console.log("Delete response:", data); // Debug log
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete state" });
+      setMessage({ type: "error", text: err.message || "Failed to delete model" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -187,76 +197,93 @@ export default function StateCreation() {
   }, []);
 
   useEffect(() => {
-    if (stateCodeRef.current) stateCodeRef.current.focus();
+    if (modelCodeRef.current) modelCodeRef.current.focus();
   }, []);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchStates(), fetchNextStateCode()]);
+    try {
+      await Promise.all([fetchModels(), fetchNextModelCode()]);
+    } catch (err) {
+      console.error("Initial load error:", err);
+    }
   };
 
   const handleEdit = async () => {
-    if (!form.fuCode || !form.stateName) {
-      setMessage({ type: "error", text: "Please fill State Code and State Name." });
+    if (!form.fuCode || !form.modelName) {
+      setMessage({ type: "error", text: "Please fill Model Code and Model Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update state "${form.stateName}"?`)) return;
-
+    if (!window.confirm(`Do you want to update model "${form.modelName}"?`)) return;
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
-      await updateState(stateData);
+      const modelData = { fCode: form.fuCode, modelName: form.modelName };
+      await updateModel(modelData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "State updated successfully." });
+      setMessage({ type: "success", text: "Model updated successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in updateState
+      console.error("Edit error:", err);
+      // Error message already set in updateModel
     }
   };
 
   const handleDelete = async () => {
     if (!form.fuCode) {
-      setMessage({ type: "error", text: "Please select a state to delete." });
+      setMessage({ type: "error", text: "Please select a model to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete state "${form.stateName}"?`)) return;
-
+    if (!window.confirm(`Do you want to delete model "${form.modelName}"?`)) return;
     try {
-      await deleteState(form.fuCode);
+      await deleteModel(form.fuCode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "State deleted successfully." });
+      setMessage({ type: "success", text: "Model deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced states
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
+      console.error("Delete error:", err);
+      // Special handling for referenced models
+      if (err.message.includes("used in related tables") || 
+          err.message.includes("409") || 
+          err.message.includes("cannot delete") ||
+          err.response?.status === 409) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete state "${form.stateName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete model "${form.modelName}". It is referenced in other tables and cannot be removed.` 
         });
       }
     }
   };
 
   const handleAdd = async () => {
-    if (!form.fuCode || !form.stateName) {
-      setMessage({ type: "error", text: "Please fill State Code and State Name." });
+    if (!form.fuCode || !form.modelName) {
+      setMessage({ type: "error", text: "Please fill Model Code and Model Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to create state "${form.stateName}"?`)) return;
+    if (!window.confirm(`Do you want to create model "${form.modelName}"?`)) return;
 
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
-      await createState(stateData);
+      const modelData = { fCode: form.fuCode, modelName: form.modelName };
+      console.log("Handling add with:", modelData); // Debug log
+      await createModel(modelData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "State created successfully." });
+      setMessage({ type: "success", text: "Model created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createState
+      console.error("Add error:", err);
+      // Check for duplicate entry
+      if (err.message.includes("already exists") || 
+          err.message.includes("duplicate") ||
+          err.response?.status === 409) {
+        setMessage({ 
+          type: "error", 
+          text: `Model "${form.modelName}" already exists. Please use a different name.` 
+        });
+      }
     }
   };
 
@@ -267,8 +294,8 @@ export default function StateCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextStateCode();
-    setForm(prev => ({ ...prev, stateName: "" }));
+    fetchNextModelCode();
+    setForm(prev => ({ ...prev, modelName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -276,7 +303,7 @@ export default function StateCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => modelNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -284,12 +311,20 @@ export default function StateCreation() {
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+  const handleEditRowClick = (model) => {
+    console.log("Edit row clicked:", model); // Debug log
+    // Get model data based on API response structure
+    const modelCode = model.fcode || model.fCode || model.fuCode || "";
+    const modelName = model.fname || model.fname || model.modelName || "";
+    
+    setForm({ 
+      fuCode: modelCode, 
+      modelName: modelName 
+    });
     setActionType("edit");
-    setEditingId(s.uCode);
+    setEditingId(modelCode);
     setEditModalOpen(false);
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => modelNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -297,33 +332,49 @@ export default function StateCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
+    
+    // Filter models based on available fields
     const filtered = q
-      ? states.filter(s => (s.uCode || '').toLowerCase().includes(q) || (s.stateName || '').toLowerCase().includes(q))
-      : states;
+      ? models.filter(m => {
+          const code = m.fcode || m.fCode || m.fuCode || '';
+          const name = m.fname || m.fname || m.modelName || '';
+          return code.toString().toLowerCase().includes(q) || 
+                 name.toString().toLowerCase().includes(q);
+        })
+      : models;
+    
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [states]);
+  }, [models]);
 
-  const handleDeleteRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+  const handleDeleteRowClick = (model) => {
+    console.log("Delete row clicked:", model); // Debug log
+    // Get model data based on API response structure
+    const modelCode = model.fcode || model.fCode || model.fuCode || "";
+    const modelName = model.fname || model.fname || model.modelName || "";
+    
+    setForm({ 
+      fuCode: modelCode, 
+      modelName: modelName 
+    });
     setActionType("delete");
-    setDeleteTargetId(s.uCode);
+    setDeleteTargetId(modelCode);
     setDeleteModalOpen(false);
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => modelNameRef.current?.focus(), 60);
   };
 
-  const onStateCodeKeyDown = (e) => {
+  const onModelCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      stateNameRef.current?.focus();
+      modelNameRef.current?.focus();
     }
   };
 
-  const onStateNameKeyDown = (e) => {
+  const onModelNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -338,45 +389,63 @@ export default function StateCreation() {
   };
 
   // ---------- filters ----------
-  const filteredEditStates = useMemo(() => {
+  const filteredEditSizes = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter(
-      (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+    if (!q) return models;
+    return models.filter(
+      (m) => {
+        const code = m.fcode || m.fCode || m.fuCode || '';
+        const name = m.fname || m.fname || m.modelName || '';
+        return code.toString().toLowerCase().includes(q) ||
+               name.toString().toLowerCase().includes(q);
+      }
     );
-  }, [editQuery, states]);
+  }, [editQuery, models]);
 
-  const filteredDeleteStates = useMemo(() => {
+  const filteredDeleteSizes = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter(
-      (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+    if (!q) return models;
+    return models.filter(
+      (m) => {
+        const code = m.fcode || m.fCode || m.fuCode || '';
+        const name = m.fname || m.fname || m.modelName || '';
+        return code.toString().toLowerCase().includes(q) ||
+               name.toString().toLowerCase().includes(q);
+      }
     );
-  }, [deleteQuery, states]);
+  }, [deleteQuery, models]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return states;
-    return states.filter(
-      (s) => 
-        (s.uCode || "").toLowerCase().includes(q) || 
-        (s.stateName || "").toLowerCase().includes(q)
+    if (!q) return models;
+    return models.filter(
+      (m) => {
+        const code = m.fcode || m.fCode || m.fuCode || '';
+        const name = m.fname || m.fname || m.modelName || '';
+        return code.toString().toLowerCase().includes(q) || 
+               name.toString().toLowerCase().includes(q);
+      }
     );
-  }, [existingQuery, states]);
+  }, [existingQuery, models]);
 
-  // ---------- render ----------
+  // Helper to safely get model code for display
+  const getModelCode = (model) => {
+    return model.fcode || model.fCode || model.fuCode || '';
+  };
+  
+  // Helper to safely get model name for display
+  const getModelName = (model) => {
+    return model.fname || model.fname || model.modelName || '';
+  };
+
   return (
-    <div className="uc-root" role="region" aria-labelledby="state-creation-title">
+    <div className="uc-root" role="region" aria-labelledby="model-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* blue theme (matching ItemGroupCreation style) */
+          /* blue theme (matching ItemGroupCreation) */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
@@ -401,7 +470,7 @@ export default function StateCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 18px; /* increased base font size */
+          font-size: 12px; /* increased base font size */
           box-sizing: border-box;
         }
 
@@ -437,13 +506,13 @@ export default function StateCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px; /* slightly larger title */
+          font-size: 20px; /* slightly larger title */
           color: #0f172a;
           letter-spacing: -0.2px;
         }
         .subtitle {
           color: var(--muted);
-          font-size: 16px;
+          font-size: 14px;
         }
 
         /* action pills */
@@ -464,7 +533,7 @@ export default function StateCreation() {
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
-          font-size: 18px;
+          font-size: 14px;
           transition: all 0.2s;
           white-space: nowrap;
         }
@@ -496,6 +565,9 @@ export default function StateCreation() {
           padding: 16px;
           border: 1px solid rgba(15,23,42,0.04);
           box-shadow: 0 6px 20px rgba(12,18,35,0.06);
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
         }
 
         label.field-label {
@@ -503,7 +575,7 @@ export default function StateCreation() {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:18px;
+          font-size:14px;
           text-align: left;
           width: 100%;
         }
@@ -528,7 +600,7 @@ export default function StateCreation() {
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
-          font-size:18px;
+          font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
@@ -588,7 +660,7 @@ export default function StateCreation() {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 16px;
+          font-size: 12px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -613,7 +685,7 @@ export default function StateCreation() {
           cursor:pointer;
           min-width: 120px;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
@@ -631,7 +703,7 @@ export default function StateCreation() {
           border-radius:10px;
           cursor:pointer;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
 
         }
         .submit-clear:hover:not(:disabled) {
@@ -651,7 +723,7 @@ export default function StateCreation() {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 16px;
+          font-size: 12px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -683,8 +755,8 @@ export default function StateCreation() {
           color: #374151;
         }
 
-        /* states table */
-        .states-table-container {
+        /* models table */
+        .models-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -692,13 +764,13 @@ export default function StateCreation() {
           margin-top: 12px;
         }
 
-        .states-table {
+        .models-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 18px;
+          font-size: 14px;
         }
 
-        .states-table th {
+        .models-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -707,22 +779,21 @@ export default function StateCreation() {
           font-weight: 700;
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
-          font-size: 18px;
-          z-index: 1;
+          font-size: 14px;
         }
 
-        .states-table td {
+        .models-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .states-table tr:hover {
+        .models-table tr:hover {
           background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
           cursor: pointer;
         }
 
-        .states-table tr.selected {
+        .models-table tr.selected {
           background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
@@ -815,7 +886,7 @@ export default function StateCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .states-table-container {
+          .models-table-container {
             max-height: 300px;
           }
         }
@@ -829,29 +900,29 @@ export default function StateCreation() {
             border-radius: 12px;
           }
           .title-block h2 {
-            font-size: 18px;
+            font-size: 14px;
           }
           .action-pill {
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 10px;
           }
           .input, .search {
             padding: 8px 10px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .btn {
             padding: 8px 10px;
             min-width: 70px;
-            font-size: 13px;
+            font-size: 12px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
             min-width: 0;
           }
-          .states-table th,
-          .states-table td {
+          .models-table th,
+          .models-table td {
             padding: 8px;
-            font-size: 12px;
+            font-size: 10px;
           }
           .modal-overlay {
             padding: 12px;
@@ -868,7 +939,7 @@ export default function StateCreation() {
           .dashboard {
             padding: 10px;
           }
-          .title-block {
+          .title-block { 
             flex-direction: column;
             align-items: flex-start;
             gap: 8px;
@@ -878,7 +949,7 @@ export default function StateCreation() {
           }
           .action-pill {
             padding: 6px 8px;
-            font-size: 11px;
+            font-size: 10px;
           }
           .card {
             padding: 12px;
@@ -898,7 +969,7 @@ export default function StateCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="state-creation-title">
+      <div className="dashboard" aria-labelledby="model-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -906,8 +977,8 @@ export default function StateCreation() {
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
-              <h2 id="state-creation-title">State Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete states.</div>
+              <h2 id="model-creation-title">Model Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete measurement models.</div>
             </div>
           </div>
 
@@ -920,81 +991,84 @@ export default function StateCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* State Code field */}
-            <div className="field">
-              <label className="field-label">
-                State Code <span className="asterisk">*</span>
-              </label>
-              <div className="row">
-                <input
-                  ref={stateCodeRef}
-                  className="input"
-                  value={form.fuCode}
-                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                  placeholder="State code (auto-generated)"
-                  onKeyDown={onStateCodeKeyDown}
+            {/* Form section */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Model Code field */}
+              <div className="field">
+                <label className="field-label">
+                  Model Code <span className="asterisk">*</span>
+                </label>
+                <div className="row">
+                  <input
+                    ref={modelCodeRef}
+                    className="input"
+                    value={form.fuCode}
+                    onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
+                    onKeyDown={onModelCodeKeyDown}
+                    disabled={loading}
+                    aria-label="Model Code"
+                    readOnly={actionType === "edit" || actionType === "delete"}
+                  />
+                </div>
+              </div>
+
+              {/* Model Name field */}
+              <div className="field">
+                <label className="field-label">
+                  Model Name <span className="asterisk">*</span>
+                </label>
+                <div className="row">
+                  <input 
+                    ref={modelNameRef} 
+                    className="input" 
+                    value={form.modelName} 
+                    onChange={(e) => setForm(s => ({ ...s, modelName: e.target.value }))} 
+                    onKeyDown={onModelNameKeyDown}
+                    disabled={loading}
+                    aria-label="Model Name"
+                    readOnly={actionType === "delete"}
+                  />
+                </div>
+              </div>
+
+              {/* Message display */}
+              {message && (
+                <div className={`message ${message.type}`} role="alert">
+                  {message.text}
+                </div>
+              )}
+
+              {/* Submit controls */}
+              <div className="submit-row">
+                <button
+                  className="submit-primary"
+                  onClick={handleSubmit}
                   disabled={loading}
-                  aria-label="State Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
-                />
-              </div>
-            </div>
-
-            {/* State Name field */}
-            <div className="field">
-              <label className="field-label">
-                State Name <span className="asterisk">*</span>
-              </label>
-              <div className="row">
-                <input 
-                  ref={stateNameRef} 
-                  className="input" 
-                  value={form.stateName} 
-                  onChange={(e) => setForm(s => ({ ...s, stateName: e.target.value }))} 
-                  placeholder="Enter state name" 
-                  onKeyDown={onStateNameKeyDown}
+                  type="button"
+                >
+                  {loading ? "Processing..." : actionType === "Add" ? "Create" : actionType}
+                </button>
+                <button
+                  className="submit-clear"
+                  onClick={resetForm}
                   disabled={loading}
-                  aria-label="State Name"
-                  readOnly={actionType === "delete"}
-                />
+                  type="button"
+                >
+                  Clear
+                </button>
               </div>
             </div>
 
-            {/* Message display */}
-            {message && (
-              <div className={`message ${message.type}`} role="alert">
-                {message.text}
-              </div>
-            )}
-
-            {/* Submit controls */}
-            <div className="submit-row">
-              <button
-                className="submit-primary"
-                onClick={handleSubmit}
-                disabled={loading}
-                type="button"
-              >
-                {loading ? "Processing..." : actionType}
-              </button>
-              <button
-                className="submit-clear"
-                onClick={resetForm}
-                disabled={loading}
-                type="button"
-              >
-                Clear
-              </button>
-            </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing States</div>
+            {/* Existing Models Table */}
+            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Models</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing states..."
+                  placeholder="Search existing models..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing states"
+                  aria-label="Search existing models"
                 />
                 {existingQuery && (
                   <button
@@ -1008,35 +1082,38 @@ export default function StateCreation() {
                 )}
               </div>
               
-              <div className="states-table-container">
+              <div className="models-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading states...
+                    Loading Models...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {states.length === 0 ? "No states found" : "No matching states"}
+                    {models.length === 0 ? "No models found" : "No matching models"}
                   </div>
                 ) : (
-                  <table className="states-table">
+                  <table className="models-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>State Name</th>
+                        <th>Model Name</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredExisting.map((s) => (
                         <tr 
-                          key={s.uCode}
-                          className={form.fuCode === s.uCode ? "selected" : ""}
+                          key={getModelCode(s)}
+                          className={form.fuCode === getModelCode(s) ? "selected" : ""}
                           onClick={() => {
-                            setForm({ fuCode: s.uCode, stateName: s.stateName });
+                            setForm({ 
+                              fuCode: getModelCode(s), 
+                              modelName: getModelName(s) 
+                            });
                             setActionType("edit");
                           }}
                         >
-                          <td>{s.uCode}</td>
-                          <td>{s.stateName}</td>
+                          <td>{getModelCode(s)}</td>
+                          <td>{getModelName(s)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1050,29 +1127,29 @@ export default function StateCreation() {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit State" : "Delete State"}
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Model" : "Delete Model"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">State Code</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+              <div className="muted">Model Code</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.fuCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">State Name</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
-                {form.stateName || "Not set"}
+              <div className="muted">Model Name</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.modelName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing States</div>
-              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
-                {states.length}
+              <div className="muted">Existing Models</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
+                {models.length}
               </div>
             </div>
 
@@ -1085,15 +1162,15 @@ export default function StateCreation() {
               <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>State code is auto-generated for new states</span>
+                  <span>Model code is auto-generated for new models</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find states</span>
+                  <span>For edit/delete, use search modals to find models</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Examples: Maharashtra, Karnataka, Tamil Nadu</span>
+                  <span>Common models: Large, Medium, Small, etc.</span>
                 </div>
               </div>
             </div>
@@ -1101,31 +1178,29 @@ export default function StateCreation() {
         </div>
       </div>
 
-      {/* Edit Popup */}
       <PopupListSelector
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select State to Edit"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        title="Select Model to Edit"
+        displayFieldKeys={['fcode', 'fname']}
+        searchFields={['fcode', 'fname']}
+        headerNames={['Code', 'Name']}
+        columnWidths={{ modelName: '70%', fCode: '30%' }}
         maxHeight="60vh"
       />
 
-      {/* Delete Popup */}
       <PopupListSelector
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select State to Delete"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        title="Select Model to Delete"
+        displayFieldKeys={['fcode', 'fname']}
+        searchFields={['fcode', 'fname']}
+        headerNames={['Code', 'Name']}
+        columnWidths={{ modelName: '70%', fCode: '30%' }}
         maxHeight="60vh"
       />
     </div>
