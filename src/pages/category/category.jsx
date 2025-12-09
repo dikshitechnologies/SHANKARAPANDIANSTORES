@@ -3,7 +3,8 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
-// --- Inline SVG icons (matching ItemGroupCreation style) ---
+
+// --- Inline SVG icons (matching BrandPage style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -45,18 +46,35 @@ const Icon = {
       <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
     </svg>
   ),
+  Category: ({ size = 38 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <rect width="24" height="24" rx="6" fill="#ffffffff" />
+      <path d="M12 2l-5.5 9h11L12 2zm0 3.84L14.93 9H9.07L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 7a2.5 2.5 0 010-5 2.5 2.5 0 010 5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z" fill="#307AC8" />
+    </svg>
+  ),
 };
 
-export default function UnitCreation() {
+// Update your API_ENDPOINTS in endpoints.js with these:
+/*
+  CATEGORY: {
+    GET_CATEGORIES: 'CATEGORY/GetAllCategory',
+    CREATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=true',
+    UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
+    DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
+    GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
+  }
+*/
+
+export default function CategoryPage() {
   // ---------- state ----------
-  const [units, setUnits] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    fuCode: "", 
-    unitName: ""
+    catCode: "", 
+    catName: ""
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -73,57 +91,28 @@ export default function UnitCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const unitCodeRef = useRef(null);
-  const unitNameRef = useRef(null);
+  const catCodeRef = useRef(null);
+  const catNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Base URL for API
-
   // ---------- API functions ----------
-  const fetchNextUnitCode = async () => {
+  const fetchCategories = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.NEXT_SIZE_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
-      }
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next unit code" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUnits = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GET_SIZE_ITEMS);
-      setUnits(data || []);
+      const data = await apiService.get(API_ENDPOINTS.CATEGORY.GET_CATEGORIES);
+      // Transform API data to match our naming convention
+      const transformedData = Array.isArray(data) ? data.map(item => ({
+        catCode: item.catCode || '',
+        catName: item.catName || ''
+      })) : [];
+      setCategories(transformedData);
       setMessage(null);
+      return transformedData;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load units" });
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getUnitByCode = async (code) => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GETUNITCODE(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch unit" });
+      setMessage({ type: "error", text: "Failed to load categories" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -131,13 +120,65 @@ export default function UnitCreation() {
     }
   };
 
-  const createUnit = async (unitData) => {
+  const getNextCategoryCode = async () => {
+    try {
+      const response = await apiService.get(API_ENDPOINTS.CATEGORY.GET_NEXT_CODE);
+      
+      // Handle different response formats
+      let nextCode = "0001"; // Default fallback
+      
+      if (typeof response === 'string' || typeof response === 'number') {
+        // If response is a string or number, use it directly
+        nextCode = response.toString().padStart(4, '0');
+      } else if (response && response.fCode) {
+        // If response has fCode property
+        nextCode = response.fCode.toString().padStart(4, '0');
+      } else if (response && response.code) {
+        // If response has code property
+        nextCode = response.code.toString().padStart(4, '0');
+      } else if (response && response.nextCode) {
+        // If response has nextCode property
+        nextCode = response.nextCode.toString().padStart(4, '0');
+      } else if (response && response.catCode) {
+        // If response has catCode property
+        nextCode = response.catCode.toString().padStart(4, '0');
+      }
+      
+      setForm(prev => ({ ...prev, catCode: nextCode }));
+      return nextCode;
+    } catch (err) {
+      console.error("Failed to get next code:", err);
+      // Fallback: find highest code from existing categories
+      try {
+        const categoriesData = await fetchCategories();
+        if (categoriesData.length > 0) {
+          const codes = categoriesData.map(c => {
+            const codeNum = parseInt(c.catCode) || 0;
+            return isNaN(codeNum) ? 0 : codeNum;
+          });
+          const maxCode = Math.max(...codes);
+          const nextCode = (maxCode + 1).toString().padStart(4, '0');
+          setForm(prev => ({ ...prev, catCode: nextCode }));
+          return nextCode;
+        } else {
+          setForm(prev => ({ ...prev, catCode: "0001" }));
+          return "0001";
+        }
+      } catch (innerErr) {
+        setForm(prev => ({ ...prev, catCode: "0001" }));
+        return "0001";
+      }
+    }
+  };
+
+  const getCategoryByCode = async (code) => {
     try {
       setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.UNITCREATION.CREATE_SIZE, unitData);
-      return data;
+      // Since API doesn't have a specific endpoint, filter from existing items
+      const category = categories.find(c => c.catCode === code);
+      return category || null;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to create unit" });
+      setMessage({ type: "error", text: "Failed to fetch category" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -145,13 +186,18 @@ export default function UnitCreation() {
     }
   };
 
-  const updateUnit = async (unitData) => {
+  const createCategory = async (categoryData) => {
     try {
       setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.UNITCREATION.UPDATE_SIZE(unitData.fuCode), unitData);
+      // Transform to API expected format
+      const apiData = {
+        catCode: categoryData.catCode,
+        catName: categoryData.catName
+      };
+      const data = await apiService.post(API_ENDPOINTS.CATEGORY.CREATE_CATEGORY, apiData);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update unit" });
+      setMessage({ type: "error", text: "Failed to create category" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -159,13 +205,40 @@ export default function UnitCreation() {
     }
   };
 
-  const deleteUnit = async (unitCode) => {
+  const updateCategory = async (categoryData) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.UNITCREATION.DELETE_SIZE(unitCode));
+      console.log("Sending update data:", categoryData);
+      
+      // Transform to API expected format
+      const apiData = {
+        catCode: categoryData.catCode,
+        catName: categoryData.catName
+      };
+      
+      const response = await apiService.post(API_ENDPOINTS.CATEGORY.UPDATE_CATEGORY, apiData);
+      console.log("Update response:", response);
+      
+      if (typeof response === 'string' && response.includes("successfully")) {
+        return { success: true, message: response };
+      }
+      return response;
+    } catch (err) {
+      console.error("Update error details:", err.response || err);
+      setMessage({ type: "error", text: err.message || "Failed to update category" });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteCategory = async (catCode) => {
+    try {
+      setLoading(true);
+      const data = await apiService.del(API_ENDPOINTS.CATEGORY.DELETE_CATEGORY(catCode));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete unit" });
+      setMessage({ type: "error", text: err.message || "Failed to delete category" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -188,76 +261,89 @@ export default function UnitCreation() {
   }, []);
 
   useEffect(() => {
-    if (unitCodeRef.current) unitCodeRef.current.focus();
+    if (catCodeRef.current) catCodeRef.current.focus();
   }, []);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchUnits(), fetchNextUnitCode()]);
+    await Promise.all([fetchCategories(), getNextCategoryCode()]);
   };
 
   const handleEdit = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.catCode || !form.catName) {
+      setMessage({ type: "error", text: "Please fill Category Code and Category Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to update category "${form.catName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await updateUnit(unitData);
+      const categoryData = { 
+        catCode: form.catCode, 
+        catName: form.catName
+      };
+      await updateCategory(categoryData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit updated successfully." });
-      resetForm(true);
+      setMessage({ type: "success", text: "Category updated successfully." });
+      resetForm();
     } catch (err) {
-      // Error message already set in updateUnit
+      // Error message already set in updateCategory
     }
   };
 
   const handleDelete = async () => {
-    if (!form.fuCode) {
-      setMessage({ type: "error", text: "Please select a unit to delete." });
+    if (!form.catCode) {
+      setMessage({ type: "error", text: "Please select a category to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to delete category "${form.catName}"?`)) return;
 
     try {
-      await deleteUnit(form.fuCode);
+      await deleteCategory(form.catCode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit deleted successfully." });
+      setMessage({ type: "success", text: "Category deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced units
+      // Special handling for referenced categories
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete unit "${form.unitName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete category "${form.catName}". It is referenced in other tables and cannot be removed.` 
         });
       }
     }
   };
 
   const handleAdd = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.catCode || !form.catName) {
+      setMessage({ type: "error", text: "Please fill Category Code and Category Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to create unit "${form.unitName}"?`)) return;
+    // Check if category code already exists
+    const exists = categories.some(c => c.catCode === form.catCode);
+    if (exists) {
+      setMessage({ type: "error", text: `Category code ${form.catCode} already exists.` });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to create category "${form.catName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await createUnit(unitData);
+      const categoryData = { 
+        catCode: form.catCode, 
+        catName: form.catName
+      };
+      await createCategory(categoryData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit created successfully." });
+      setMessage({ type: "success", text: "Category created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createUnit
+      // Error message already set in createCategory
     }
   };
 
@@ -268,8 +354,8 @@ export default function UnitCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextUnitCode();
-    setForm(prev => ({ ...prev, unitName: "" }));
+    getNextCategoryCode();
+    setForm(prev => ({ ...prev, catName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -277,7 +363,7 @@ export default function UnitCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => catNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -285,12 +371,12 @@ export default function UnitCreation() {
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleEditRowClick = (c) => {
+    setForm({ catCode: c.catCode, catName: c.catName });
     setActionType("edit");
-    setEditingId(u.uCode);
+    setEditingId(c.catCode);
     setEditModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => catNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -298,33 +384,36 @@ export default function UnitCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  const handleDeleteRowClick = (c) => {
+    setForm({ catCode: c.catCode, catName: c.catName });
+    setActionType("delete");
+    setDeleteTargetId(c.catCode);
+    setDeleteModalOpen(false);
+    setTimeout(() => catNameRef.current?.focus(), 60);
+  };
+
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? units.filter(u => (u.uCode || '').toLowerCase().includes(q) || (u.unitName || '').toLowerCase().includes(q))
-      : units;
+      ? categories.filter(c => 
+          (c.catCode || '').toLowerCase().includes(q) || 
+          (c.catName || '').toLowerCase().includes(q)
+        )
+      : categories;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [units]);
+  }, [categories]);
 
-  const handleDeleteRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
-    setActionType("delete");
-    setDeleteTargetId(u.uCode);
-    setDeleteModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
-  };
-
-  const onUnitCodeKeyDown = (e) => {
+  const onCatCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      unitNameRef.current?.focus();
+      catNameRef.current?.focus();
     }
   };
 
-  const onUnitNameKeyDown = (e) => {
+  const onCatNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -339,44 +428,44 @@ export default function UnitCreation() {
   };
 
   // ---------- filters ----------
-  const filteredEditUnits = useMemo(() => {
+  const filteredEditCategories = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return categories;
+    return categories.filter(
+      (c) =>
+        (c.catCode || "").toLowerCase().includes(q) ||
+        (c.catName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, units]);
+  }, [editQuery, categories]);
 
-  const filteredDeleteUnits = useMemo(() => {
+  const filteredDeleteCategories = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return categories;
+    return categories.filter(
+      (c) =>
+        (c.catCode || "").toLowerCase().includes(q) ||
+        (c.catName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, units]);
+  }, [deleteQuery, categories]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) => 
-        (u.uCode || "").toLowerCase().includes(q) || 
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return categories;
+    return categories.filter(
+      (c) => 
+        (c.catCode || "").toLowerCase().includes(q) || 
+        (c.catName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, units]);
+  }, [existingQuery, categories]);
 
   // ---------- render ----------
   return (
-    <div className="uc-root" role="region" aria-labelledby="unit-creation-title">
+    <div className="category-root" role="region" aria-labelledby="category-management-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
-        :root{
+         :root{
           /* blue theme (matching ItemGroupCreation) */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
@@ -394,7 +483,7 @@ export default function UnitCreation() {
         }
 
         /* Page layout */
-        .uc-root {
+        .category-root {
           min-height: 100vh;
           display: flex;
           align-items: center;
@@ -402,7 +491,7 @@ export default function UnitCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 14px; /* increased base font size */
+          font-size: 18px;
           box-sizing: border-box;
         }
 
@@ -412,7 +501,7 @@ export default function UnitCreation() {
           max-width: 1100px;
           border-radius: 16px;
           padding: 20px;
-          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
+          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,253,244,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
@@ -438,13 +527,13 @@ export default function UnitCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 18px; /* slightly larger title */
+          font-size: 24px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
         .subtitle {
           color: var(--muted);
-          font-size: 14px;
+          font-size: 16px;
         }
 
         /* action pills */
@@ -465,7 +554,7 @@ export default function UnitCreation() {
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
-          font-size: 14px;
+          font-size: 18px;
           transition: all 0.2s;
           white-space: nowrap;
         }
@@ -504,7 +593,7 @@ export default function UnitCreation() {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:14px;
+          font-size:18px;
           text-align: left;
           width: 100%;
         }
@@ -529,17 +618,18 @@ export default function UnitCreation() {
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
-          font-size:14px;
+          font-size:18px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
+          font-family: inherit;
         }
         .input:focus, .search:focus { 
           outline:none; 
-          box-shadow: 0 8px 26px rgba(48,122,200,0.08); 
+          box-shadow: 0 8px 26px rgba(16,185,129,0.08); 
           transform: translateY(-1px); 
-          border-color: rgba(48,122,200,0.25); 
+          border-color: var(--accent); 
         }
         .input:read-only {
           background: #f8fafc;
@@ -581,7 +671,7 @@ export default function UnitCreation() {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { color: var(--muted); font-size:15px; }
 
         /* message */
         .message {
@@ -589,7 +679,7 @@ export default function UnitCreation() {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 14px;
+          font-size: 16px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -614,11 +704,11 @@ export default function UnitCreation() {
           cursor:pointer;
           min-width: 120px;
           transition: all 0.2s;
-          font-size: 14px;
+          font-size: 18px;
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(48,122,200,0.25);
+          box-shadow: 0 8px 24px rgba(16,185,129,0.25);
         }
         .submit-primary:disabled {
           opacity: 0.7;
@@ -632,12 +722,11 @@ export default function UnitCreation() {
           border-radius:10px;
           cursor:pointer;
           transition: all 0.2s;
-          font-size: 14px;
-
+          font-size: 18px;
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: rgba(48,122,200,0.3);
+          border-color: #307AC8;
           transform: translateY(-1px);
         }
         
@@ -652,7 +741,7 @@ export default function UnitCreation() {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 16px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -660,7 +749,7 @@ export default function UnitCreation() {
         .search-with-clear:focus {
           outline: none;
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px rgba(48, 122, 200, 0.1);
+          box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
         }
 
         .clear-search-btn {
@@ -684,8 +773,8 @@ export default function UnitCreation() {
           color: #374151;
         }
 
-        /* units table */
-        .units-table-container {
+        /* categories table */
+        .categories-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -693,13 +782,13 @@ export default function UnitCreation() {
           margin-top: 12px;
         }
 
-        .units-table {
+        .categories-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 14px;
+          font-size: 18px;
         }
 
-        .units-table th {
+        .categories-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -708,23 +797,23 @@ export default function UnitCreation() {
           font-weight: 700;
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
-          font-size: 14px;
+          font-size: 18px;
           z-index: 1;
         }
 
-        .units-table td {
+        .categories-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .units-table tr:hover {
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
+        .categories-table tr:hover {
+          background: linear-gradient(90deg, rgba(16,185,129,0.04), rgba(16,185,129,0.01));
           cursor: pointer;
         }
 
-        .units-table tr.selected {
-          background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
+        .categories-table tr.selected {
+          background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
@@ -771,13 +860,13 @@ export default function UnitCreation() {
           transition: all 0.2s;
         }
         .dropdown-item:hover { 
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
+          background: linear-gradient(90deg, rgba(16,185,129,0.04), rgba(16,185,129,0.01)); 
           transform: translateX(6px); 
         }
 
         /* tips panel */
         .tips-panel {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
+          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,253,244,0.8));
           border-left: 3px solid var(--accent);
         }
 
@@ -796,7 +885,7 @@ export default function UnitCreation() {
         }
 
         @media (max-width: 768px) {
-          .uc-root {
+          .category-root {
             padding: 16px 12px;
           }
           .dashboard {
@@ -816,13 +905,13 @@ export default function UnitCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .units-table-container {
+          .categories-table-container {
             max-height: 300px;
           }
         }
 
         @media (max-width: 480px) {
-          .uc-root {
+          .category-root {
             padding: 12px 8px;
           }
           .dashboard {
@@ -830,27 +919,27 @@ export default function UnitCreation() {
             border-radius: 12px;
           }
           .title-block h2 {
-            font-size: 14px;
+            font-size: 18px;
           }
           .action-pill {
             padding: 8px 10px;
-            font-size: 10px;
+            font-size: 12px;
           }
           .input, .search {
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 13px;
           }
           .btn {
             padding: 8px 10px;
             min-width: 70px;
-            font-size: 12px;
+            font-size: 13px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
             min-width: 0;
           }
-          .units-table th,
-          .units-table td {
+          .categories-table th,
+          .categories-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -863,7 +952,7 @@ export default function UnitCreation() {
         }
 
         @media (max-width: 360px) {
-          .uc-root {
+          .category-root {
             padding: 8px 6px;
           }
           .dashboard {
@@ -899,16 +988,13 @@ export default function UnitCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="unit-creation-title">
+      <div className="dashboard" aria-labelledby="category-management-title">
         <div className="top-row">
           <div className="title-block">
-            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#eff6ff" />
-              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <Icon.Category size={38} />
             <div>
-              <h2 id="unit-creation-title">Unit Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete measurement units.</div>
+              <h2 id="category-management-title">Category Management</h2>
+              <div className="subtitle muted">Create, edit, or delete product categories.</div>
             </div>
           </div>
 
@@ -921,51 +1007,40 @@ export default function UnitCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Unit Code field */}
+            {/* Category Code field */}
             <div className="field">
               <label className="field-label">
-                Unit Code <span className="asterisk">*</span>
+                Category Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={unitCodeRef}
+                  ref={catCodeRef}
                   className="input"
-                  value={form.fuCode}
-                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                  placeholder="Unit code (auto-generated)"
-                  onKeyDown={onUnitCodeKeyDown}
+                  value={form.catCode}
+                  onChange={(e) => setForm(s => ({ ...s, catCode: e.target.value }))}
+                  onKeyDown={onCatCodeKeyDown}
                   disabled={loading}
-                  aria-label="Unit Code"
+                  aria-label="Category Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
-                  {/* <button
-                    className="btn"
-                    onClick={fetchNextUnitCode}
-                    disabled={loading || actionType === "edit" || actionType === "delete"}
-                    type="button"
-                    aria-label="Refresh unit code"
-                    title="Get next unit code"
-                  >
-                    <Icon.Refresh />
-                  </button> */}
               </div>
             </div>
 
-            {/* Unit Name field */}
+            {/* Category Name field */}
             <div className="field">
               <label className="field-label">
-                Unit Name <span className="asterisk">*</span>
+                Category Name <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
-                  ref={unitNameRef} 
+                  ref={catNameRef} 
                   className="input" 
-                  value={form.unitName} 
-                  onChange={(e) => setForm(s => ({ ...s, unitName: e.target.value }))} 
-                  // placeholder="Enter unit name (e.g., M.T, KGS, PCS)" 
-                  onKeyDown={onUnitNameKeyDown}
+                  value={form.catName} 
+                  onChange={(e) => setForm(s => ({ ...s, catName: e.target.value }))} 
+                  placeholder="Enter category name" 
+                  onKeyDown={onCatNameKeyDown}
                   disabled={loading}
-                  aria-label="Unit Name"
+                  aria-label="Category Name"
                   readOnly={actionType === "delete"}
                 />
               </div>
@@ -977,7 +1052,7 @@ export default function UnitCreation() {
                 {message.text}
               </div>
             )}
-
+            
             {/* Submit controls */}
             <div className="submit-row">
               <button
@@ -997,15 +1072,16 @@ export default function UnitCreation() {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" ,marginTop: "20px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Units</div>
+            
+            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Categories</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing units..."
+                  placeholder="Search categories..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing units"
+                  aria-label="Search categories"
                 />
                 {existingQuery && (
                   <button
@@ -1014,40 +1090,43 @@ export default function UnitCreation() {
                     type="button"
                     aria-label="Clear search"
                   >
-                    <Icon.Close size={14} />
+                    <Icon.Close size={16} />
                   </button>
                 )}
               </div>
               
-              <div className="units-table-container">
+              <div className="categories-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading units...
+                    Loading categories...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {units.length === 0 ? "No units found" : "No matching units"}
+                    {categories.length === 0 ? "No categories found" : "No matching categories"}
                   </div>
                 ) : (
-                  <table className="units-table">
+                  <table className="categories-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Unit Name</th>
+                        <th>Category Name</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExisting.map((u) => (
+                      {filteredExisting.map((c) => (
                         <tr 
-                          key={u.uCode}
-                          className={form.fuCode === u.uCode ? "selected" : ""}
+                          key={c.catCode}
+                          className={form.catCode === c.catCode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ fuCode: u.uCode, unitName: u.unitName });
+                            setForm({ 
+                              catCode: c.catCode, 
+                              catName: c.catName
+                            });
                             setActionType("edit");
                           }}
                         >
-                          <td>{u.uCode}</td>
-                          <td>{u.unitName}</td>
+                          <td>{c.catCode}</td>
+                          <td>{c.catName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1061,29 +1140,29 @@ export default function UnitCreation() {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Unit" : "Delete Unit"}
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Category" : "Delete Category"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Code</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
+              <div className="muted">Category Code</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.catCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Name</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.unitName || "Not set"}
+              <div className="muted">Category Name</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.catName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing Units</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {units.length}
+              <div className="muted">Existing Categories</div>
+              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
+                {categories.length}
               </div>
             </div>
 
@@ -1096,21 +1175,22 @@ export default function UnitCreation() {
               <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Unit code is auto-generated for new units</span>
+                  <span>Category code is auto-generated from API</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find units</span>
+                  <span>For edit/delete, use search modals to find categories</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Use Tab/Enter to navigate between fields</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common units: KG, M.T, PCS, LTR, MTR</span>
+                  <span>Click on any category in the table to edit it</span>
                 </div>
               </div>
             </div>
-
-            {/* Existing Units Table */}
-         
           </div>
         </div>
       </div>
@@ -1120,11 +1200,11 @@ export default function UnitCreation() {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Edit"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Category to Edit"
+        displayFieldKeys={[ 'catName', 'catCode' ]}
+        searchFields={[ 'catName', 'catCode' ]}
+        headerNames={[ 'Category Name', 'Code' ]}
+        columnWidths={{ catName: '70%', catCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1133,11 +1213,11 @@ export default function UnitCreation() {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Delete"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Category to Delete"
+        displayFieldKeys={[ 'catName', 'catCode' ]}
+        searchFields={[ 'catName', 'catCode' ]}
+        headerNames={[ 'Category Name', 'Code' ]}
+        columnWidths={{ catName: '70%', catCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

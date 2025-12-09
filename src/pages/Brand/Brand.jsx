@@ -3,7 +3,8 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
-// --- Inline SVG icons (matching ItemGroupCreation style) ---
+
+// --- Inline SVG icons (matching DesignCreation style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -47,16 +48,27 @@ const Icon = {
   ),
 };
 
-export default function UnitCreation() {
+// Update your API endpoints file with these brand endpoints
+// Add these to your API_ENDPOINTS in endpoints.js:
+/*
+  BRAND: {
+    GET_BRANDS: 'Brand',
+    CREATE_BRAND: 'Brand?selecttype=true',
+    UPDATE_BRAND: 'Brand?selecttype=false',
+    DELETE_BRAND: (code) => `Brand/${code}`,
+  }
+*/
+
+export default function BrandPage() {
   // ---------- state ----------
-  const [units, setUnits] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    fuCode: "", 
-    unitName: ""
+    brandCode: "", 
+    brandName: ""
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -73,57 +85,28 @@ export default function UnitCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const unitCodeRef = useRef(null);
-  const unitNameRef = useRef(null);
+  const brandCodeRef = useRef(null);
+  const brandNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Base URL for API
-
   // ---------- API functions ----------
-  const fetchNextUnitCode = async () => {
+  const fetchBrands = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.NEXT_SIZE_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
-      }
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next unit code" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUnits = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GET_SIZE_ITEMS);
-      setUnits(data || []);
+      const data = await apiService.get(API_ENDPOINTS.BRAND.GET_BRANDS);
+      // Transform API data to match our naming convention
+      const transformedData = Array.isArray(data) ? data.map(item => ({
+        brandCode: item.fCode || '',
+        brandName: item.fBrand || ''
+      })) : [];
+      setBrands(transformedData);
       setMessage(null);
+      return transformedData;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load units" });
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getUnitByCode = async (code) => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GETUNITCODE(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch unit" });
+      setMessage({ type: "error", text: "Failed to load brands" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -131,13 +114,38 @@ export default function UnitCreation() {
     }
   };
 
-  const createUnit = async (unitData) => {
+  const getNextBrandCode = async () => {
+    try {
+      // Since your API doesn't have a next code endpoint, we'll calculate it from existing brands
+      const brandsData = await fetchBrands();
+      
+      if (brandsData.length > 0) {
+        // Find the highest numeric code and increment
+        const codes = brandsData.map(b => parseInt(b.brandCode) || 0);
+        const maxCode = Math.max(...codes);
+        const nextCode = (maxCode + 1).toString().padStart(4, '0');
+        setForm(prev => ({ ...prev, brandCode: nextCode }));
+        return nextCode;
+      } else {
+        // First brand
+        setForm(prev => ({ ...prev, brandCode: "0001" }));
+        return "0001";
+      }
+    } catch (err) {
+      // Fallback to a default
+      setForm(prev => ({ ...prev, brandCode: "0001" }));
+      return "0001";
+    }
+  };
+
+  const getBrandByCode = async (code) => {
     try {
       setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.UNITCREATION.CREATE_SIZE, unitData);
-      return data;
+      // Filter from existing items since API doesn't have a specific endpoint
+      const brand = brands.find(b => b.brandCode === code);
+      return brand || null;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to create unit" });
+      setMessage({ type: "error", text: "Failed to fetch brand" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -145,13 +153,18 @@ export default function UnitCreation() {
     }
   };
 
-  const updateUnit = async (unitData) => {
+  const createBrand = async (brandData) => {
     try {
       setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.UNITCREATION.UPDATE_SIZE(unitData.fuCode), unitData);
+      // Transform to API expected format
+      const apiData = {
+        fCode: brandData.brandCode,
+        fBrand: brandData.brandName
+      };
+      const data = await apiService.post(API_ENDPOINTS.BRAND.CREATE_BRAND, apiData);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update unit" });
+      setMessage({ type: "error", text: "Failed to create brand" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -159,13 +172,40 @@ export default function UnitCreation() {
     }
   };
 
-  const deleteUnit = async (unitCode) => {
+  const updateBrand = async (brandData) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.UNITCREATION.DELETE_SIZE(unitCode));
+      console.log("Sending update data:", brandData);
+      
+      // Transform to API expected format
+      const apiData = {
+        fCode: brandData.brandCode,
+        fBrand: brandData.brandName
+      };
+      
+      const response = await apiService.post(API_ENDPOINTS.BRAND.UPDATE_BRAND, apiData);
+      console.log("Update response:", response);
+      
+      if (typeof response === 'string' && response.includes("successfully")) {
+        return { success: true, message: response };
+      }
+      return response;
+    } catch (err) {
+      console.error("Update error details:", err.response || err);
+      setMessage({ type: "error", text: err.message || "Failed to update brand" });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteBrand = async (brandCode) => {
+    try {
+      setLoading(true);
+      const data = await apiService.del(API_ENDPOINTS.BRAND.DELETE_BRAND(brandCode));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete unit" });
+      setMessage({ type: "error", text: err.message || "Failed to delete brand" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -188,76 +228,89 @@ export default function UnitCreation() {
   }, []);
 
   useEffect(() => {
-    if (unitCodeRef.current) unitCodeRef.current.focus();
+    if (brandCodeRef.current) brandCodeRef.current.focus();
   }, []);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchUnits(), fetchNextUnitCode()]);
+    await Promise.all([fetchBrands(), getNextBrandCode()]);
   };
 
   const handleEdit = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.brandCode || !form.brandName) {
+      setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to update brand "${form.brandName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await updateUnit(unitData);
+      const brandData = { 
+        brandCode: form.brandCode, 
+        brandName: form.brandName
+      };
+      await updateBrand(brandData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit updated successfully." });
-      resetForm(true);
+      setMessage({ type: "success", text: "Brand updated successfully." });
+      resetForm();
     } catch (err) {
-      // Error message already set in updateUnit
+      // Error message already set in updateBrand
     }
   };
 
   const handleDelete = async () => {
-    if (!form.fuCode) {
-      setMessage({ type: "error", text: "Please select a unit to delete." });
+    if (!form.brandCode) {
+      setMessage({ type: "error", text: "Please select a brand to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to delete brand "${form.brandName}"?`)) return;
 
     try {
-      await deleteUnit(form.fuCode);
+      await deleteBrand(form.brandCode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit deleted successfully." });
+      setMessage({ type: "success", text: "Brand deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced units
+      // Special handling for referenced brands
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete unit "${form.unitName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete brand "${form.brandName}". It is referenced in other tables and cannot be removed.` 
         });
       }
     }
   };
 
   const handleAdd = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.brandCode || !form.brandName) {
+      setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to create unit "${form.unitName}"?`)) return;
+    // Check if brand code already exists
+    const exists = brands.some(b => b.brandCode === form.brandCode);
+    if (exists) {
+      setMessage({ type: "error", text: `Brand code ${form.brandCode} already exists.` });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to create brand "${form.brandName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await createUnit(unitData);
+      const brandData = { 
+        brandCode: form.brandCode, 
+        brandName: form.brandName
+      };
+      await createBrand(brandData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit created successfully." });
+      setMessage({ type: "success", text: "Brand created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createUnit
+      // Error message already set in createBrand
     }
   };
 
@@ -268,8 +321,8 @@ export default function UnitCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextUnitCode();
-    setForm(prev => ({ ...prev, unitName: "" }));
+    getNextBrandCode();
+    setForm(prev => ({ ...prev, brandName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -277,7 +330,7 @@ export default function UnitCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => brandNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -285,12 +338,12 @@ export default function UnitCreation() {
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleEditRowClick = (b) => {
+    setForm({ brandCode: b.brandCode, brandName: b.brandName });
     setActionType("edit");
-    setEditingId(u.uCode);
+    setEditingId(b.brandCode);
     setEditModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => brandNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -298,33 +351,36 @@ export default function UnitCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? units.filter(u => (u.uCode || '').toLowerCase().includes(q) || (u.unitName || '').toLowerCase().includes(q))
-      : units;
+      ? brands.filter(b => 
+          (b.brandCode || '').toLowerCase().includes(q) || 
+          (b.brandName || '').toLowerCase().includes(q)
+        )
+      : brands;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [units]);
+  }, [brands]);
 
-  const handleDeleteRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleDeleteRowClick = (b) => {
+    setForm({ brandCode: b.brandCode, brandName: b.brandName });
     setActionType("delete");
-    setDeleteTargetId(u.uCode);
+    setDeleteTargetId(b.brandCode);
     setDeleteModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => brandNameRef.current?.focus(), 60);
   };
 
-  const onUnitCodeKeyDown = (e) => {
+  const onBrandCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      unitNameRef.current?.focus();
+      brandNameRef.current?.focus();
     }
   };
 
-  const onUnitNameKeyDown = (e) => {
+  const onBrandNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -339,39 +395,39 @@ export default function UnitCreation() {
   };
 
   // ---------- filters ----------
-  const filteredEditUnits = useMemo(() => {
+  const filteredEditBrands = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return brands;
+    return brands.filter(
+      (b) =>
+        (b.brandCode || "").toLowerCase().includes(q) ||
+        (b.brandName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, units]);
+  }, [editQuery, brands]);
 
-  const filteredDeleteUnits = useMemo(() => {
+  const filteredDeleteBrands = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return brands;
+    return brands.filter(
+      (b) =>
+        (b.brandCode || "").toLowerCase().includes(q) ||
+        (b.brandName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, units]);
+  }, [deleteQuery, brands]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) => 
-        (u.uCode || "").toLowerCase().includes(q) || 
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return brands;
+    return brands.filter(
+      (b) => 
+        (b.brandCode || "").toLowerCase().includes(q) || 
+        (b.brandName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, units]);
+  }, [existingQuery, brands]);
 
   // ---------- render ----------
   return (
-    <div className="uc-root" role="region" aria-labelledby="unit-creation-title">
+    <div className="brand-root" role="region" aria-labelledby="brand-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
@@ -393,8 +449,9 @@ export default function UnitCreation() {
           --glass-border: rgba(255,255,255,0.45);
         }
 
+
         /* Page layout */
-        .uc-root {
+        .brand-root {
           min-height: 100vh;
           display: flex;
           align-items: center;
@@ -402,7 +459,7 @@ export default function UnitCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 14px; /* increased base font size */
+          font-size: 18px;
           box-sizing: border-box;
         }
 
@@ -412,7 +469,7 @@ export default function UnitCreation() {
           max-width: 1100px;
           border-radius: 16px;
           padding: 20px;
-          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
+          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,243,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
@@ -438,13 +495,13 @@ export default function UnitCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 18px; /* slightly larger title */
+          font-size: 24px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
         .subtitle {
           color: var(--muted);
-          font-size: 14px;
+          font-size: 16px;
         }
 
         /* action pills */
@@ -465,7 +522,7 @@ export default function UnitCreation() {
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
-          font-size: 14px;
+          font-size: 18px;
           transition: all 0.2s;
           white-space: nowrap;
         }
@@ -504,7 +561,7 @@ export default function UnitCreation() {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:14px;
+          font-size:18px;
           text-align: left;
           width: 100%;
         }
@@ -529,17 +586,18 @@ export default function UnitCreation() {
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
-          font-size:14px;
+          font-size:18px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
+          font-family: inherit;
         }
         .input:focus, .search:focus { 
           outline:none; 
-          box-shadow: 0 8px 26px rgba(48,122,200,0.08); 
+          box-shadow: 0 8px 26px rgba(139,92,246,0.08); 
           transform: translateY(-1px); 
-          border-color: rgba(48,122,200,0.25); 
+          border-color: var(--accent); 
         }
         .input:read-only {
           background: #f8fafc;
@@ -581,7 +639,7 @@ export default function UnitCreation() {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { color: var(--muted); font-size:15px; }
 
         /* message */
         .message {
@@ -589,7 +647,7 @@ export default function UnitCreation() {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 14px;
+          font-size: 16px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -614,11 +672,11 @@ export default function UnitCreation() {
           cursor:pointer;
           min-width: 120px;
           transition: all 0.2s;
-          font-size: 14px;
+          font-size: 18px;
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(48,122,200,0.25);
+          box-shadow: 0 8px 24px rgba(139,92,246,0.25);
         }
         .submit-primary:disabled {
           opacity: 0.7;
@@ -632,12 +690,11 @@ export default function UnitCreation() {
           border-radius:10px;
           cursor:pointer;
           transition: all 0.2s;
-          font-size: 14px;
-
+          font-size: 18px;
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: rgba(48,122,200,0.3);
+          border-color: #307AC8;
           transform: translateY(-1px);
         }
         
@@ -652,7 +709,7 @@ export default function UnitCreation() {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 16px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -660,7 +717,7 @@ export default function UnitCreation() {
         .search-with-clear:focus {
           outline: none;
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px rgba(48, 122, 200, 0.1);
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
         }
 
         .clear-search-btn {
@@ -684,8 +741,8 @@ export default function UnitCreation() {
           color: #374151;
         }
 
-        /* units table */
-        .units-table-container {
+        /* brands table */
+        .brands-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -693,13 +750,13 @@ export default function UnitCreation() {
           margin-top: 12px;
         }
 
-        .units-table {
+        .brands-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 14px;
+          font-size: 18px;
         }
 
-        .units-table th {
+        .brands-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -708,23 +765,23 @@ export default function UnitCreation() {
           font-weight: 700;
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
-          font-size: 14px;
+          font-size: 18px;
           z-index: 1;
         }
 
-        .units-table td {
+        .brands-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .units-table tr:hover {
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
+        .brands-table tr:hover {
+          background: linear-gradient(90deg, rgba(139,92,246,0.04), rgba(139,92,246,0.01));
           cursor: pointer;
         }
 
-        .units-table tr.selected {
-          background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
+        .brands-table tr.selected {
+          background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
@@ -771,13 +828,13 @@ export default function UnitCreation() {
           transition: all 0.2s;
         }
         .dropdown-item:hover { 
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
+          background: linear-gradient(90deg, rgba(139,92,246,0.04), rgba(139,92,246,0.01)); 
           transform: translateX(6px); 
         }
 
         /* tips panel */
         .tips-panel {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
+          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(245,243,255,0.8));
           border-left: 3px solid var(--accent);
         }
 
@@ -796,7 +853,7 @@ export default function UnitCreation() {
         }
 
         @media (max-width: 768px) {
-          .uc-root {
+          .brand-root {
             padding: 16px 12px;
           }
           .dashboard {
@@ -816,13 +873,13 @@ export default function UnitCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .units-table-container {
+          .brands-table-container {
             max-height: 300px;
           }
         }
 
         @media (max-width: 480px) {
-          .uc-root {
+          .brand-root {
             padding: 12px 8px;
           }
           .dashboard {
@@ -830,27 +887,27 @@ export default function UnitCreation() {
             border-radius: 12px;
           }
           .title-block h2 {
-            font-size: 14px;
+            font-size: 18px;
           }
           .action-pill {
             padding: 8px 10px;
-            font-size: 10px;
+            font-size: 12px;
           }
           .input, .search {
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 13px;
           }
           .btn {
             padding: 8px 10px;
             min-width: 70px;
-            font-size: 12px;
+            font-size: 13px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
             min-width: 0;
           }
-          .units-table th,
-          .units-table td {
+          .brands-table th,
+          .brands-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -863,7 +920,7 @@ export default function UnitCreation() {
         }
 
         @media (max-width: 360px) {
-          .uc-root {
+          .brand-root {
             padding: 8px 6px;
           }
           .dashboard {
@@ -899,16 +956,16 @@ export default function UnitCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="unit-creation-title">
+      <div className="dashboard" aria-labelledby="brand-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#eff6ff" />
-              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <rect width="24" height="24" rx="6" fill="#ffffffff" />
+              <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 8h8v2H8V8zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" fill="#307AC8" />
             </svg>
             <div>
-              <h2 id="unit-creation-title">Unit Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete measurement units.</div>
+              <h2 id="brand-creation-title">Brand Management</h2>
+              <div className="subtitle muted">Create, edit, or delete brands.</div>
             </div>
           </div>
 
@@ -921,51 +978,40 @@ export default function UnitCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Unit Code field */}
+            {/* Brand Code field */}
             <div className="field">
               <label className="field-label">
-                Unit Code <span className="asterisk">*</span>
+                Brand Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={unitCodeRef}
+                  ref={brandCodeRef}
                   className="input"
-                  value={form.fuCode}
-                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                  placeholder="Unit code (auto-generated)"
-                  onKeyDown={onUnitCodeKeyDown}
+                  value={form.brandCode}
+                  onChange={(e) => setForm(s => ({ ...s, brandCode: e.target.value }))}
+                  onKeyDown={onBrandCodeKeyDown}
                   disabled={loading}
-                  aria-label="Unit Code"
+                  aria-label="Brand Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
-                  {/* <button
-                    className="btn"
-                    onClick={fetchNextUnitCode}
-                    disabled={loading || actionType === "edit" || actionType === "delete"}
-                    type="button"
-                    aria-label="Refresh unit code"
-                    title="Get next unit code"
-                  >
-                    <Icon.Refresh />
-                  </button> */}
               </div>
             </div>
 
-            {/* Unit Name field */}
+            {/* Brand Name field */}
             <div className="field">
               <label className="field-label">
-                Unit Name <span className="asterisk">*</span>
+                Brand Name <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
-                  ref={unitNameRef} 
+                  ref={brandNameRef} 
                   className="input" 
-                  value={form.unitName} 
-                  onChange={(e) => setForm(s => ({ ...s, unitName: e.target.value }))} 
-                  // placeholder="Enter unit name (e.g., M.T, KGS, PCS)" 
-                  onKeyDown={onUnitNameKeyDown}
+                  value={form.brandName} 
+                  onChange={(e) => setForm(s => ({ ...s, brandName: e.target.value }))} 
+                  placeholder="Enter brand name" 
+                  onKeyDown={onBrandNameKeyDown}
                   disabled={loading}
-                  aria-label="Unit Name"
+                  aria-label="Brand Name"
                   readOnly={actionType === "delete"}
                 />
               </div>
@@ -977,7 +1023,7 @@ export default function UnitCreation() {
                 {message.text}
               </div>
             )}
-
+            
             {/* Submit controls */}
             <div className="submit-row">
               <button
@@ -997,15 +1043,16 @@ export default function UnitCreation() {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" ,marginTop: "20px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Units</div>
+            
+            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Brands</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing units..."
+                  placeholder="Search brands..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing units"
+                  aria-label="Search brands"
                 />
                 {existingQuery && (
                   <button
@@ -1014,40 +1061,43 @@ export default function UnitCreation() {
                     type="button"
                     aria-label="Clear search"
                   >
-                    <Icon.Close size={14} />
+                    <Icon.Close size={16} />
                   </button>
                 )}
               </div>
               
-              <div className="units-table-container">
+              <div className="brands-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading units...
+                    Loading brands...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {units.length === 0 ? "No units found" : "No matching units"}
+                    {brands.length === 0 ? "No brands found" : "No matching brands"}
                   </div>
                 ) : (
-                  <table className="units-table">
+                  <table className="brands-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Unit Name</th>
+                        <th>Brand Name</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExisting.map((u) => (
+                      {filteredExisting.map((b) => (
                         <tr 
-                          key={u.uCode}
-                          className={form.fuCode === u.uCode ? "selected" : ""}
+                          key={b.brandCode}
+                          className={form.brandCode === b.brandCode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ fuCode: u.uCode, unitName: u.unitName });
+                            setForm({ 
+                              brandCode: b.brandCode, 
+                              brandName: b.brandName
+                            });
                             setActionType("edit");
                           }}
                         >
-                          <td>{u.uCode}</td>
-                          <td>{u.unitName}</td>
+                          <td>{b.brandCode}</td>
+                          <td>{b.brandName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1061,29 +1111,29 @@ export default function UnitCreation() {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Unit" : "Delete Unit"}
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Brand" : "Delete Brand"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Code</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
+              <div className="muted">Brand Code</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.brandCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Name</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.unitName || "Not set"}
+              <div className="muted">Brand Name</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.brandName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing Units</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {units.length}
+              <div className="muted">Existing Brands</div>
+              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
+                {brands.length}
               </div>
             </div>
 
@@ -1096,21 +1146,22 @@ export default function UnitCreation() {
               <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Unit code is auto-generated for new units</span>
+                  <span>Brand code is auto-generated for new brands</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find units</span>
+                  <span>For edit/delete, use search modals to find brands</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Use Tab/Enter to navigate between fields</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common units: KG, M.T, PCS, LTR, MTR</span>
+                  <span>Click on any brand in the table to edit it</span>
                 </div>
               </div>
             </div>
-
-            {/* Existing Units Table */}
-         
           </div>
         </div>
       </div>
@@ -1120,11 +1171,11 @@ export default function UnitCreation() {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Edit"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Brand to Edit"
+        displayFieldKeys={[ 'brandName', 'brandCode' ]}
+        searchFields={[ 'brandName', 'brandCode' ]}
+        headerNames={[ 'Brand Name', 'Code' ]}
+        columnWidths={{ brandName: '70%', brandCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1133,11 +1184,11 @@ export default function UnitCreation() {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Delete"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Brand to Delete"
+        displayFieldKeys={[ 'brandName', 'brandCode' ]}
+        searchFields={[ 'brandName', 'brandCode' ]}
+        headerNames={[ 'Brand Name', 'Code' ]}
+        columnWidths={{ brandName: '70%', brandCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

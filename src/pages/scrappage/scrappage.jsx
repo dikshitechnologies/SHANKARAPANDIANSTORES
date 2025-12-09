@@ -3,7 +3,8 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
-// --- Inline SVG icons (matching ItemGroupCreation style) ---
+
+// --- Inline SVG icons (matching DesignCreation style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -47,16 +48,28 @@ const Icon = {
   ),
 };
 
-export default function UnitCreation() {
+// Update your API endpoints file with these scrap endpoints
+// Add these to your API_ENDPOINTS in endpoints.js:
+/*
+  SCRAPCREATION: {
+    GET_SCRAP_ITEMS: 'ScrapCreation/getScrapItem',
+    GET_NEXT_SCRAP_CODE: 'ScrapCreation/getNextScrapFcode',
+    CREATE_SCRAP: 'ScrapCreation/createScrap',
+    UPDATE_SCRAP: 'ScrapCreation/updateScrap',
+    DELETE_SCRAP: (code) => `ScrapCreation/deleteScrap/${code}`,
+  }
+*/
+
+export default function ScrapPage() {
   // ---------- state ----------
-  const [units, setUnits] = useState([]);
+  const [scrapItems, setScrapItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    fuCode: "", 
-    unitName: ""
+    scrapCode: "", 
+    scrapName: ""
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -73,29 +86,29 @@ export default function UnitCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const unitCodeRef = useRef(null);
-  const unitNameRef = useRef(null);
+  const scrapCodeRef = useRef(null);
+  const scrapNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Base URL for API
-
   // ---------- API functions ----------
-  const fetchNextUnitCode = async () => {
+  const fetchNextScrapCode = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.NEXT_SIZE_CODE);
-      // Support both string and object responses
+      const data = await apiService.get(API_ENDPOINTS.SCRAPCREATION.GET_NEXT_SCRAP_CODE);
+      // Since your API returns a string "003", we handle it directly
       if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
+        setForm(prev => ({ ...prev, scrapCode: data.trim() }));
+      } else if (data && (data.nextScrapNo || data.scrapCode || data.fcode)) {
+        setForm(prev => ({ ...prev, scrapCode: data.nextScrapNo || data.scrapCode || data.fcode }));
+      } else if (data && data.nextCode) {
+        setForm(prev => ({ ...prev, scrapCode: data.nextCode }));
       }
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next unit code" });
+      setMessage({ type: "error", text: "Failed to load next scrap code" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -103,41 +116,29 @@ export default function UnitCreation() {
     }
   };
 
-  const fetchUnits = async () => {
+  const fetchScrapItems = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GET_SIZE_ITEMS);
-      setUnits(data || []);
+      const data = await apiService.get(API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_ITEMS);
+      setScrapItems(data || []);
       setMessage(null);
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load units" });
+      setMessage({ type: "error", text: "Failed to load scrap items" });
       console.error("API Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getUnitByCode = async (code) => {
+  const getScrapByCode = async (code) => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GETUNITCODE(code));
+      // If your API has a specific endpoint for fetching by code, use it
+      // Otherwise, filter from existing items
+      const data = await apiService.get(API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_BY_CODE?.(code));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch unit" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createUnit = async (unitData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.UNITCREATION.CREATE_SIZE, unitData);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to create unit" });
+      setMessage({ type: "error", text: "Failed to fetch scrap item" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -145,13 +146,13 @@ export default function UnitCreation() {
     }
   };
 
-  const updateUnit = async (unitData) => {
+  const createScrap = async (scrapData) => {
     try {
       setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.UNITCREATION.UPDATE_SIZE(unitData.fuCode), unitData);
+      const data = await apiService.post(API_ENDPOINTS.SCRAPCREATION.CREATE_SCRAP, scrapData);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update unit" });
+      setMessage({ type: "error", text: "Failed to create scrap item" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -159,13 +160,33 @@ export default function UnitCreation() {
     }
   };
 
-  const deleteUnit = async (unitCode) => {
+  const updateScrap = async (scrapData) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.UNITCREATION.DELETE_SIZE(unitCode));
+      console.log("Sending update data:", scrapData);
+      const response = await apiService.put(API_ENDPOINTS.SCRAPCREATION.UPDATE_SCRAP, scrapData);
+      console.log("Update response:", response);
+      
+      if (typeof response === 'string' && response.includes("successfully")) {
+        return { success: true, message: response };
+      }
+      return response;
+    } catch (err) {
+      console.error("Update error details:", err.response || err);
+      setMessage({ type: "error", text: err.message || "Failed to update scrap item" });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteScrap = async (scrapCode) => {
+    try {
+      setLoading(true);
+      const data = await apiService.del(API_ENDPOINTS.SCRAPCREATION.DELETE_SCRAP(scrapCode));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete unit" });
+      setMessage({ type: "error", text: err.message || "Failed to delete scrap item" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -188,76 +209,82 @@ export default function UnitCreation() {
   }, []);
 
   useEffect(() => {
-    if (unitCodeRef.current) unitCodeRef.current.focus();
+    if (scrapCodeRef.current) scrapCodeRef.current.focus();
   }, []);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchUnits(), fetchNextUnitCode()]);
+    await Promise.all([fetchScrapItems(), fetchNextScrapCode()]);
   };
 
   const handleEdit = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.scrapCode || !form.scrapName) {
+      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to update scrap item "${form.scrapName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await updateUnit(unitData);
+      const scrapData = { 
+        scrapCode: form.scrapCode, 
+        scrapName: form.scrapName
+      };
+      await updateScrap(scrapData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit updated successfully." });
-      resetForm(true);
+      setMessage({ type: "success", text: "Scrap item updated successfully." });
+      resetForm();
     } catch (err) {
-      // Error message already set in updateUnit
+      // Error message already set in updateScrap
     }
   };
 
   const handleDelete = async () => {
-    if (!form.fuCode) {
-      setMessage({ type: "error", text: "Please select a unit to delete." });
+    if (!form.scrapCode) {
+      setMessage({ type: "error", text: "Please select a scrap item to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to delete scrap item "${form.scrapName}"?`)) return;
 
     try {
-      await deleteUnit(form.fuCode);
+      await deleteScrap(form.scrapCode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit deleted successfully." });
+      setMessage({ type: "success", text: "Scrap item deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced units
+      // Special handling for referenced scrap items
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete unit "${form.unitName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete scrap item "${form.scrapName}". It is referenced in other tables and cannot be removed.` 
         });
       }
     }
   };
 
   const handleAdd = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.scrapCode || !form.scrapName) {
+      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to create unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to create scrap item "${form.scrapName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await createUnit(unitData);
+      const scrapData = { 
+        scrapCode: form.scrapCode, 
+        scrapName: form.scrapName
+      };
+      await createScrap(scrapData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit created successfully." });
+      setMessage({ type: "success", text: "Scrap item created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createUnit
+      // Error message already set in createScrap
     }
   };
 
@@ -268,8 +295,8 @@ export default function UnitCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextUnitCode();
-    setForm(prev => ({ ...prev, unitName: "" }));
+    fetchNextScrapCode();
+    setForm(prev => ({ ...prev, scrapName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -277,7 +304,7 @@ export default function UnitCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => scrapNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -285,12 +312,12 @@ export default function UnitCreation() {
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleEditRowClick = (s) => {
+    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
     setActionType("edit");
-    setEditingId(u.uCode);
+    setEditingId(s.scrapCode);
     setEditModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => scrapNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -298,33 +325,36 @@ export default function UnitCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? units.filter(u => (u.uCode || '').toLowerCase().includes(q) || (u.unitName || '').toLowerCase().includes(q))
-      : units;
+      ? scrapItems.filter(s => 
+          (s.scrapCode || '').toLowerCase().includes(q) || 
+          (s.scrapName || '').toLowerCase().includes(q)
+        )
+      : scrapItems;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [units]);
+  }, [scrapItems]);
 
-  const handleDeleteRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleDeleteRowClick = (s) => {
+    setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
     setActionType("delete");
-    setDeleteTargetId(u.uCode);
+    setDeleteTargetId(s.scrapCode);
     setDeleteModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => scrapNameRef.current?.focus(), 60);
   };
 
-  const onUnitCodeKeyDown = (e) => {
+  const onScrapCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      unitNameRef.current?.focus();
+      scrapNameRef.current?.focus();
     }
   };
 
-  const onUnitNameKeyDown = (e) => {
+  const onScrapNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -339,44 +369,44 @@ export default function UnitCreation() {
   };
 
   // ---------- filters ----------
-  const filteredEditUnits = useMemo(() => {
+  const filteredEditScrapItems = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return scrapItems;
+    return scrapItems.filter(
+      (s) =>
+        (s.scrapCode || "").toLowerCase().includes(q) ||
+        (s.scrapName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, units]);
+  }, [editQuery, scrapItems]);
 
-  const filteredDeleteUnits = useMemo(() => {
+  const filteredDeleteScrapItems = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return scrapItems;
+    return scrapItems.filter(
+      (s) =>
+        (s.scrapCode || "").toLowerCase().includes(q) ||
+        (s.scrapName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, units]);
+  }, [deleteQuery, scrapItems]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) => 
-        (u.uCode || "").toLowerCase().includes(q) || 
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return scrapItems;
+    return scrapItems.filter(
+      (s) => 
+        (s.scrapCode || "").toLowerCase().includes(q) || 
+        (s.scrapName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, units]);
+  }, [existingQuery, scrapItems]);
 
   // ---------- render ----------
   return (
-    <div className="uc-root" role="region" aria-labelledby="unit-creation-title">
+    <div className="scrap-root" role="region" aria-labelledby="scrap-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
-        :root{
+         :root{
           /* blue theme (matching ItemGroupCreation) */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
@@ -394,7 +424,7 @@ export default function UnitCreation() {
         }
 
         /* Page layout */
-        .uc-root {
+        .scrap-root {
           min-height: 100vh;
           display: flex;
           align-items: center;
@@ -402,7 +432,7 @@ export default function UnitCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 14px; /* increased base font size */
+          font-size: 18px;
           box-sizing: border-box;
         }
 
@@ -412,7 +442,7 @@ export default function UnitCreation() {
           max-width: 1100px;
           border-radius: 16px;
           padding: 20px;
-          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
+          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,253,250,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
@@ -438,13 +468,13 @@ export default function UnitCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 18px; /* slightly larger title */
+          font-size: 24px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
         .subtitle {
           color: var(--muted);
-          font-size: 14px;
+          font-size: 16px;
         }
 
         /* action pills */
@@ -465,7 +495,7 @@ export default function UnitCreation() {
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
-          font-size: 14px;
+          font-size: 18px;
           transition: all 0.2s;
           white-space: nowrap;
         }
@@ -504,7 +534,7 @@ export default function UnitCreation() {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:14px;
+          font-size:18px;
           text-align: left;
           width: 100%;
         }
@@ -529,17 +559,18 @@ export default function UnitCreation() {
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
-          font-size:14px;
+          font-size:18px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
+          font-family: inherit;
         }
         .input:focus, .search:focus { 
           outline:none; 
-          box-shadow: 0 8px 26px rgba(48,122,200,0.08); 
+          box-shadow: 0 8px 26px rgba(16,185,129,0.08); 
           transform: translateY(-1px); 
-          border-color: rgba(48,122,200,0.25); 
+          border-color: var(--accent); 
         }
         .input:read-only {
           background: #f8fafc;
@@ -581,7 +612,7 @@ export default function UnitCreation() {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { color: var(--muted); font-size:15px; }
 
         /* message */
         .message {
@@ -589,7 +620,7 @@ export default function UnitCreation() {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 14px;
+          font-size: 16px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -614,11 +645,11 @@ export default function UnitCreation() {
           cursor:pointer;
           min-width: 120px;
           transition: all 0.2s;
-          font-size: 14px;
+          font-size: 18px;
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(48,122,200,0.25);
+          box-shadow: 0 8px 24px rgba(16,185,129,0.25);
         }
         .submit-primary:disabled {
           opacity: 0.7;
@@ -632,12 +663,11 @@ export default function UnitCreation() {
           border-radius:10px;
           cursor:pointer;
           transition: all 0.2s;
-          font-size: 14px;
-
+          font-size: 18px;
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: rgba(48,122,200,0.3);
+          border-color: #307AC8;
           transform: translateY(-1px);
         }
         
@@ -652,7 +682,7 @@ export default function UnitCreation() {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 16px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -660,7 +690,7 @@ export default function UnitCreation() {
         .search-with-clear:focus {
           outline: none;
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px rgba(48, 122, 200, 0.1);
+          box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
         }
 
         .clear-search-btn {
@@ -684,8 +714,8 @@ export default function UnitCreation() {
           color: #374151;
         }
 
-        /* units table */
-        .units-table-container {
+        /* scrap items table */
+        .scrap-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -693,13 +723,13 @@ export default function UnitCreation() {
           margin-top: 12px;
         }
 
-        .units-table {
+        .scrap-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 14px;
+          font-size: 18px;
         }
 
-        .units-table th {
+        .scrap-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -708,23 +738,23 @@ export default function UnitCreation() {
           font-weight: 700;
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
-          font-size: 14px;
+          font-size: 18px;
           z-index: 1;
         }
 
-        .units-table td {
+        .scrap-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .units-table tr:hover {
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
+        .scrap-table tr:hover {
+          background: linear-gradient(90deg, rgba(16,185,129,0.04), rgba(16,185,129,0.01));
           cursor: pointer;
         }
 
-        .units-table tr.selected {
-          background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
+        .scrap-table tr.selected {
+          background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
@@ -771,13 +801,13 @@ export default function UnitCreation() {
           transition: all 0.2s;
         }
         .dropdown-item:hover { 
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
+          background: linear-gradient(90deg, rgba(16,185,129,0.04), rgba(16,185,129,0.01)); 
           transform: translateX(6px); 
         }
 
         /* tips panel */
         .tips-panel {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
+          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,253,250,0.8));
           border-left: 3px solid var(--accent);
         }
 
@@ -796,7 +826,7 @@ export default function UnitCreation() {
         }
 
         @media (max-width: 768px) {
-          .uc-root {
+          .scrap-root {
             padding: 16px 12px;
           }
           .dashboard {
@@ -816,13 +846,13 @@ export default function UnitCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .units-table-container {
+          .scrap-table-container {
             max-height: 300px;
           }
         }
 
         @media (max-width: 480px) {
-          .uc-root {
+          .scrap-root {
             padding: 12px 8px;
           }
           .dashboard {
@@ -830,27 +860,27 @@ export default function UnitCreation() {
             border-radius: 12px;
           }
           .title-block h2 {
-            font-size: 14px;
+            font-size: 18px;
           }
           .action-pill {
             padding: 8px 10px;
-            font-size: 10px;
+            font-size: 12px;
           }
           .input, .search {
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 13px;
           }
           .btn {
             padding: 8px 10px;
             min-width: 70px;
-            font-size: 12px;
+            font-size: 13px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
             min-width: 0;
           }
-          .units-table th,
-          .units-table td {
+          .scrap-table th,
+          .scrap-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -863,7 +893,7 @@ export default function UnitCreation() {
         }
 
         @media (max-width: 360px) {
-          .uc-root {
+          .scrap-root {
             padding: 8px 6px;
           }
           .dashboard {
@@ -899,16 +929,16 @@ export default function UnitCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="unit-creation-title">
+      <div className="dashboard" aria-labelledby="scrap-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#eff6ff" />
-              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <rect width="24" height="24" rx="6" fill="#ffffffff" />
+              <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 8h8v2H8V8zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" fill="#307AC8" />
             </svg>
             <div>
-              <h2 id="unit-creation-title">Unit Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete measurement units.</div>
+              <h2 id="scrap-creation-title">Scrap Management</h2>
+              <div className="subtitle muted">Create, edit, or delete scrap items.</div>
             </div>
           </div>
 
@@ -921,51 +951,40 @@ export default function UnitCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Unit Code field */}
+            {/* Scrap Code field */}
             <div className="field">
               <label className="field-label">
-                Unit Code <span className="asterisk">*</span>
+                Scrap Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={unitCodeRef}
+                  ref={scrapCodeRef}
                   className="input"
-                  value={form.fuCode}
-                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                  placeholder="Unit code (auto-generated)"
-                  onKeyDown={onUnitCodeKeyDown}
+                  value={form.scrapCode}
+                  onChange={(e) => setForm(s => ({ ...s, scrapCode: e.target.value }))}
+                  onKeyDown={onScrapCodeKeyDown}
                   disabled={loading}
-                  aria-label="Unit Code"
+                  aria-label="Scrap Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
-                  {/* <button
-                    className="btn"
-                    onClick={fetchNextUnitCode}
-                    disabled={loading || actionType === "edit" || actionType === "delete"}
-                    type="button"
-                    aria-label="Refresh unit code"
-                    title="Get next unit code"
-                  >
-                    <Icon.Refresh />
-                  </button> */}
               </div>
             </div>
 
-            {/* Unit Name field */}
+            {/* Scrap Name field */}
             <div className="field">
               <label className="field-label">
-                Unit Name <span className="asterisk">*</span>
+                Scrap Name <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
-                  ref={unitNameRef} 
+                  ref={scrapNameRef} 
                   className="input" 
-                  value={form.unitName} 
-                  onChange={(e) => setForm(s => ({ ...s, unitName: e.target.value }))} 
-                  // placeholder="Enter unit name (e.g., M.T, KGS, PCS)" 
-                  onKeyDown={onUnitNameKeyDown}
+                  value={form.scrapName} 
+                  onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))} 
+                  placeholder="Enter scrap name" 
+                  onKeyDown={onScrapNameKeyDown}
                   disabled={loading}
-                  aria-label="Unit Name"
+                  aria-label="Scrap Name"
                   readOnly={actionType === "delete"}
                 />
               </div>
@@ -997,15 +1016,16 @@ export default function UnitCreation() {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" ,marginTop: "20px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Units</div>
+            
+            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Scrap Items</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing units..."
+                  placeholder="Search scrap items..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing units"
+                  aria-label="Search scrap items"
                 />
                 {existingQuery && (
                   <button
@@ -1014,40 +1034,43 @@ export default function UnitCreation() {
                     type="button"
                     aria-label="Clear search"
                   >
-                    <Icon.Close size={14} />
+                    <Icon.Close size={16} />
                   </button>
                 )}
               </div>
               
-              <div className="units-table-container">
+              <div className="scrap-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading units...
+                    Loading scrap items...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {units.length === 0 ? "No units found" : "No matching units"}
+                    {scrapItems.length === 0 ? "No scrap items found" : "No matching scrap items"}
                   </div>
                 ) : (
-                  <table className="units-table">
+                  <table className="scrap-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Unit Name</th>
+                        <th>Scrap Name</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExisting.map((u) => (
+                      {filteredExisting.map((s) => (
                         <tr 
-                          key={u.uCode}
-                          className={form.fuCode === u.uCode ? "selected" : ""}
+                          key={s.scrapCode}
+                          className={form.scrapCode === s.scrapCode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ fuCode: u.uCode, unitName: u.unitName });
+                            setForm({ 
+                              scrapCode: s.scrapCode, 
+                              scrapName: s.scrapName
+                            });
                             setActionType("edit");
                           }}
                         >
-                          <td>{u.uCode}</td>
-                          <td>{u.unitName}</td>
+                          <td>{s.scrapCode}</td>
+                          <td>{s.scrapName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1061,29 +1084,29 @@ export default function UnitCreation() {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Unit" : "Delete Unit"}
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Scrap" : "Delete Scrap"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Code</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
+              <div className="muted">Scrap Code</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.scrapCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Name</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.unitName || "Not set"}
+              <div className="muted">Scrap Name</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+                {form.scrapName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing Units</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {units.length}
+              <div className="muted">Existing Scrap Items</div>
+              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
+                {scrapItems.length}
               </div>
             </div>
 
@@ -1096,21 +1119,22 @@ export default function UnitCreation() {
               <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Unit code is auto-generated for new units</span>
+                  <span>Scrap code is auto-generated for new items</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find units</span>
+                  <span>For edit/delete, use search modals to find items</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Use Tab/Enter to navigate between fields</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common units: KG, M.T, PCS, LTR, MTR</span>
+                  <span>Click on any item in the table to edit it</span>
                 </div>
               </div>
             </div>
-
-            {/* Existing Units Table */}
-         
           </div>
         </div>
       </div>
@@ -1120,11 +1144,11 @@ export default function UnitCreation() {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Edit"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Scrap Item to Edit"
+        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
+        searchFields={[ 'scrapName', 'scrapCode' ]}
+        headerNames={[ 'Scrap Name', 'Code' ]}
+        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1133,11 +1157,11 @@ export default function UnitCreation() {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Delete"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Scrap Item to Delete"
+        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
+        searchFields={[ 'scrapName', 'scrapCode' ]}
+        headerNames={[ 'Scrap Name', 'Code' ]}
+        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

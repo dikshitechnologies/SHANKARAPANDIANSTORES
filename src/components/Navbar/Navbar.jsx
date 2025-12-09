@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  MenuOutlined, 
-  LogoutOutlined, 
+import {
+  MenuOutlined,
+  LogoutOutlined,
   CloseOutlined,
   HomeOutlined,
   AppstoreOutlined,
@@ -14,7 +14,7 @@ import {
   DatabaseOutlined,
   DollarOutlined,
   DownOutlined,
-  UpOutlined,MoneyCollectOutlined,
+  UpOutlined, MoneyCollectOutlined,
 } from '@ant-design/icons';
 import { Button, Dropdown, Space, Modal } from 'antd';
 import DropdownMenu from './DropdownMenu';
@@ -37,10 +37,10 @@ const Navbar = () => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
-    
+
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
-    
+
     return () => {
       window.removeEventListener('resize', checkScreenSize);
       document.body.classList.remove('mobile-menu-open');
@@ -65,40 +65,56 @@ const Navbar = () => {
         window.scrollTo(0, parseInt(scrollY || '0') * -1);
       }
     }
-    
+
     return () => {
       document.body.classList.remove('mobile-menu-open');
     };
   }, [isMobile, isMenuOpen]);
 
   const masterItems = [
-    { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <AppstoreOutlined /> },
+    // { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <AppstoreOutlined /> },
     { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
-    { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined /> },
-    { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <ShopOutlined /> },
-    { name: 'Item Creation', path: '/masters/item-creation', icon: <BuildOutlined /> },
+    // { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined /> },
+    // { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <ShopOutlined /> },
+    // { name: 'Item Creation', path: '/masters/item-creation', icon: <BuildOutlined /> },
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined /> },
-    { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },
+    { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined /> },
+    { name: 'Size Creation', path: '/masters/size-creation', icon: <TeamOutlined /> },
+    { name: 'Model Creation', path: '/masters/model-creation', icon: <TeamOutlined /> },
+    { name: 'Salesman Creation', path: '/masters/SalesmanCreation', icon: <UserOutlined /> },
     { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined /> },
     { name: 'Administration', path: '/Administration', icon: <BuildOutlined /> },
-    // { name: 'Salesman Creation', path: '/masters/salesman-creation', icon: <UserOutlined /> },   
     { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined /> },
-     { name: 'Scrap', path: '/masters/Scrap', icon: <BuildOutlined /> },
+    { name: 'Design Creation', path: '/design-creation', icon: <BuildOutlined /> },
+    { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined /> },
+    { name: 'Brand Creation', path: '/masters/brand-creation', icon: <BuildOutlined /> },
+    { name: 'Category Creation', path: '/masters/category-creation', icon: <BuildOutlined /> },
+    { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined /> },
+    { name: 'Scrap', path: '/masters/Scrap', icon: <BuildOutlined /> },
+    { name: 'Salecreation', path: '/masters/Salecreation', icon: <BuildOutlined /> },
+     
    
      
+    { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined /> },
+    { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined /> }
+
+
+
   ];
 
   const transactionItems = [
     { name: 'Sales Invoice', path: 'sales-invoice', icon: <FileTextOutlined /> },
-    { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
-    { name: 'Purchase Return', path: '/transactions/purchase-return', icon: <DollarOutlined /> },
-    { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined  /> },
-     { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined /> },
+    { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
+    { name: 'Purchase Return', path: '/transactions/Purchasereturn', icon: <DollarOutlined /> },
+    { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined /> },
+    { name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> },
+    { name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined /> },
     { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
-  {name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> },
-   {name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined /> }
-    
+    { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined /> },
+
+
+
   ];
 
   // Desktop hover handlers
@@ -173,15 +189,15 @@ const Navbar = () => {
           {!isMobile && (
             <div className={styles['nav-center-menu']}>
               <div className={styles['nav-menu']}>
-                <Link 
-                  to="/" 
+                <Link
+                  to="/"
                   className={`${styles['nav-link']} ${location.pathname === '/' ? styles.active : ''}`}
                 >
                   <HomeOutlined /> Home
                 </Link>
 
                 {/* Masters Dropdown - Click to open/close */}
-                <div 
+                <div
                   className={`${styles['nav-item']} ${styles.dropdown}`}
                   onMouseEnter={() => handleMouseEnter('masters')}
                   onMouseLeave={handleMouseLeave}
@@ -195,8 +211,8 @@ const Navbar = () => {
                   </button>
                   {activeDropdown === 'masters' && (
                     <div className={styles['dropdown-container']}>
-                      <DropdownMenu 
-                        items={masterItems} 
+                      <DropdownMenu
+                        items={masterItems}
                         onItemClick={() => setActiveDropdown(null)}
                         position="center"
                       />
@@ -205,7 +221,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Transactions Dropdown - Click to open/close */}
-                <div 
+                <div
                   className={`${styles['nav-item']} ${styles.dropdown}`}
                   onMouseEnter={() => handleMouseEnter('transactions')}
                   onMouseLeave={handleMouseLeave}
@@ -219,8 +235,8 @@ const Navbar = () => {
                   </button>
                   {activeDropdown === 'transactions' && (
                     <div className={styles['dropdown-container']}>
-                      <DropdownMenu 
-                        items={transactionItems} 
+                      <DropdownMenu
+                        items={transactionItems}
                         onItemClick={() => setActiveDropdown(null)}
                         position="center"
                       />
@@ -271,123 +287,123 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Menu Overlay */}
-       {/* Mobile Menu Overlay */}
-{isMobile && isMenuOpen && (
-  <div 
-    className={styles['mobile-menu-overlay']}
-    onClick={closeMobileMenu}
-  >
-    <div 
-      className={styles['mobile-menu']}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className={styles['mobile-menu-header']}>
-        <Link to="/" onClick={closeMobileMenu} className={styles['nav-logo']}>
-          <span className={styles['logo-text']}>Sankarapandian</span>
-          <span className={styles['logo-subtext']}>Stores</span>
-        </Link>
-        <Button 
-          type="text" 
-          icon={<CloseOutlined />} 
-          onClick={closeMobileMenu}
-          className={styles['close-menu-btn']}
-        />
-      </div>
-      
-      <div className={styles['mobile-menu-content']}>
-        <div className={styles['mobile-menu-items']}>
-          <Link 
-            to="/" 
-            className={`${styles['mobile-link']} ${location.pathname === '/' ? styles.active : ''}`}
+        {/* Mobile Menu Overlay */}
+        {isMobile && isMenuOpen && (
+          <div
+            className={styles['mobile-menu-overlay']}
             onClick={closeMobileMenu}
           >
-            <HomeOutlined /> Home
-          </Link>
-          
-          {/* Masters Accordion */}
-          <div className={styles['mobile-dropdown-accordion']}>
-            <div 
-              className={`${styles['mobile-dropdown-header']} ${mobileMenuState.masters ? styles.active : ''}`}
-              onClick={() => toggleMobileDropdown('masters')}
+            <div
+              className={styles['mobile-menu']}
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className={styles['header-content']}>
-                <AppstoreOutlined /> Masters
-              </div>
-              <span className={styles['arrow-icon']}>
-                {mobileMenuState.masters ? <UpOutlined /> : <DownOutlined />}
-              </span>
-            </div>
-            <div className={`${styles['mobile-dropdown-items']} ${mobileMenuState.masters ? styles.open : ''}`}>
-              {masterItems.map(item => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`${styles['mobile-dropdown-item']} ${location.pathname === item.path ? styles.active : ''}`}
-                  onClick={closeMobileMenu}
-                >
-                  {item.icon} {item.name}
+              <div className={styles['mobile-menu-header']}>
+                <Link to="/" onClick={closeMobileMenu} className={styles['nav-logo']}>
+                  <span className={styles['logo-text']}>Sankarapandian</span>
+                  <span className={styles['logo-subtext']}>Stores</span>
                 </Link>
-              ))}
-            </div>
-          </div>
-          
-          {/* Transactions Accordion */}
-          <div className={styles['mobile-dropdown-accordion']}>
-            <div 
-              className={`${styles['mobile-dropdown-header']} ${mobileMenuState.transactions ? styles.active : ''}`}
-              onClick={() => toggleMobileDropdown('transactions')}
-            >
-              <div className={styles['header-content']}>
-                <FileTextOutlined /> Transactions
-              </div>
-              <span className={styles['arrow-icon']}>
-                {mobileMenuState.transactions ? <UpOutlined /> : <DownOutlined />}
-              </span>
-            </div>
-            <div className={`${styles['mobile-dropdown-items']} ${mobileMenuState.transactions ? styles.open : ''}`}>
-              {transactionItems.map(item => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`${styles['mobile-dropdown-item']} ${location.pathname === item.path ? styles.active : ''}`}
+                <Button
+                  type="text"
+                  icon={<CloseOutlined />}
                   onClick={closeMobileMenu}
-                >
-                  {item.icon} {item.name}
-                </Link>
-              ))}
+                  className={styles['close-menu-btn']}
+                />
+              </div>
+
+              <div className={styles['mobile-menu-content']}>
+                <div className={styles['mobile-menu-items']}>
+                  <Link
+                    to="/"
+                    className={`${styles['mobile-link']} ${location.pathname === '/' ? styles.active : ''}`}
+                    onClick={closeMobileMenu}
+                  >
+                    <HomeOutlined /> Home
+                  </Link>
+
+                  {/* Masters Accordion */}
+                  <div className={styles['mobile-dropdown-accordion']}>
+                    <div
+                      className={`${styles['mobile-dropdown-header']} ${mobileMenuState.masters ? styles.active : ''}`}
+                      onClick={() => toggleMobileDropdown('masters')}
+                    >
+                      <div className={styles['header-content']}>
+                        <AppstoreOutlined /> Masters
+                      </div>
+                      <span className={styles['arrow-icon']}>
+                        {mobileMenuState.masters ? <UpOutlined /> : <DownOutlined />}
+                      </span>
+                    </div>
+                    <div className={`${styles['mobile-dropdown-items']} ${mobileMenuState.masters ? styles.open : ''}`}>
+                      {masterItems.map(item => (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className={`${styles['mobile-dropdown-item']} ${location.pathname === item.path ? styles.active : ''}`}
+                          onClick={closeMobileMenu}
+                        >
+                          {item.icon} {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Transactions Accordion */}
+                  <div className={styles['mobile-dropdown-accordion']}>
+                    <div
+                      className={`${styles['mobile-dropdown-header']} ${mobileMenuState.transactions ? styles.active : ''}`}
+                      onClick={() => toggleMobileDropdown('transactions')}
+                    >
+                      <div className={styles['header-content']}>
+                        <FileTextOutlined /> Transactions
+                      </div>
+                      <span className={styles['arrow-icon']}>
+                        {mobileMenuState.transactions ? <UpOutlined /> : <DownOutlined />}
+                      </span>
+                    </div>
+                    <div className={`${styles['mobile-dropdown-items']} ${mobileMenuState.transactions ? styles.open : ''}`}>
+                      {transactionItems.map(item => (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className={`${styles['mobile-dropdown-item']} ${location.pathname === item.path ? styles.active : ''}`}
+                          onClick={closeMobileMenu}
+                        >
+                          {item.icon} {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer with side-by-side buttons */}
+                <div className={styles['mobile-menu-footer']}>
+                  <div className={styles['mobile-action-buttons']}>
+                    <Button
+                      icon={<LogoutOutlined />}
+                      onClick={() => {
+                        closeMobileMenu();
+                        showLogoutConfirm();
+                      }}
+                      className={styles['mobile-logout-btn']}
+                    >
+                      Logout
+                    </Button>
+                    <Button
+                      icon={<CloseOutlined />}
+                      onClick={() => {
+                        closeMobileMenu();
+                        handleExit();
+                      }}
+                      className={styles['mobile-exit-btn']}
+                    >
+                      Exit
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Footer with side-by-side buttons */}
-        <div className={styles['mobile-menu-footer']}>
-          <div className={styles['mobile-action-buttons']}>
-            <Button 
-              icon={<LogoutOutlined />} 
-              onClick={() => {
-                closeMobileMenu();
-                showLogoutConfirm();
-              }}
-              className={styles['mobile-logout-btn']}
-            >
-              Logout
-            </Button>
-            <Button 
-              icon={<CloseOutlined />} 
-              onClick={() => {
-                closeMobileMenu();
-                handleExit();
-              }}
-              className={styles['mobile-exit-btn']}
-            >
-              Exit
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+        )}
       </nav>
 
       {/* Logout Confirmation Modal */}

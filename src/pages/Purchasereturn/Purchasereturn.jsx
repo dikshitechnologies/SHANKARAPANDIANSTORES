@@ -1,62 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import axiosInstance from '../../api/axiosInstance';
-import { API_ENDPOINTS } from '../../api/endpoints';
-import { useAuth } from '../../context/AuthContext';
 
-// Calculation helpers
-const calculateTotals = (items = []) => {
-  const subTotal = items.reduce((acc, it) => {
-    const qty = parseFloat(it?.qty) || 0;
-    const rate = parseFloat(it?.rate) || 0;
-    return acc + qty * rate;
-  }, 0);
-  const total = subTotal; // extend here if you add discounts/charges
-  const net = total;      // extend here if you add tax/rounding
-  return { subTotal, total, net };
-};
-
-const PurchaseInvoice = () => {
+const PurchaseReturn = () => {
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('all');
-  
+
   // 1. Header Details State
-  const [billDetails, setBillDetails] = useState({
-    invNo: '',
-    billDate: '',
+  const [returnDetails, setReturnDetails] = useState({
+    returnNo: '',
+    returnDate: '',
     mobileNo: '',
     customerName: '',
-    type: 'Retail',
+    type: 'Return',
     barcodeInput: '',
     entryDate: '',
     amount: '',
     partyCode: '',
     gstno: '',
-    gstType: 'CGST',
-    purNo: '',
-    invoiceNo: '',
-    purDate: '',
-    invoiceAmount: '',
-    transType: 'PURCHASE',
+    originalInvoiceNo: '',
+    originalInvoiceDate: '',
+    originalInvoiceAmount: '',
+    transType: 'RETURN',
     city: '',
+    reason: '',
     isLedger: false,
   });
 
   // 2. Table Items State
   const [items, setItems] = useState([
-    { 
-      id: 1, 
-      barcode: '', 
-      name: '', 
-      sub: '', 
-      stock: '0', 
-      mrp: '0', 
-      uom: '', 
-      hsn: '', 
-      tax: '', 
-      rate: 0, 
+    {
+      id: 1,
+      barcode: '',
+      name: '',
+      sub: '',
+      stock: '0',
+      mrp: '0',
+      uom: '',
+      hsn: '',
+      tax: '',
+      rate: 0,
       qty: '1',
       ovrwt: '',
       avgwt: '',
@@ -74,7 +57,8 @@ const PurchaseInvoice = () => {
       wsPercent: '',
       wsRate: '',
       min: '',
-      max: ''
+      max: '',
+      returnReason: ''
     }
   ]);
 
@@ -82,7 +66,7 @@ const PurchaseInvoice = () => {
   const [netTotal, setNetTotal] = useState(0);
 
   // --- REFS FOR ENTER KEY NAVIGATION ---
-  const billNoRef = useRef(null);
+  const returnNoRef = useRef(null);
   const dateRef = useRef(null);
   const mobileRef = useRef(null);
   const customerRef = useRef(null);
@@ -92,8 +76,6 @@ const PurchaseInvoice = () => {
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
-  const [showSupplierPopup, setShowSupplierPopup] = useState(false);
-  
 
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('all');
@@ -107,29 +89,6 @@ const PurchaseInvoice = () => {
     isDesktop: true
   });
 
-  // Auth context for company code
-  const { userData } = useAuth() || {};
-
-  // Helper: Fetch next invoice number
-  const fetchNextInvNo = async () => {
-    try {
-      const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
-      const endpoint = API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_INVOICES(compCode);
-      const response = await axiosInstance.get(endpoint);
-      const nextCode = response?.data?.nextCode ?? response?.nextCode;
-      if (nextCode) {
-        setBillDetails((prev) => ({ ...prev, invNo: nextCode }));
-      }
-    } catch (err) {
-      console.warn('Failed to fetch next invoice number:', err);
-    }
-  };
-
-  // Fetch next invoice number on mount
-  useEffect(() => {
-    fetchNextInvNo();
-  }, [userData]);
-
   // Update screen size on resize
   useEffect(() => {
     const handleResize = () => {
@@ -138,7 +97,7 @@ const PurchaseInvoice = () => {
       const isMobile = width < 640;
       const isTablet = width >= 640 && width < 1024;
       const isDesktop = width >= 1024;
-      
+
       setScreenSize({
         width,
         height,
@@ -155,22 +114,15 @@ const PurchaseInvoice = () => {
 
   // Calculate Totals whenever items change
   useEffect(() => {
-    const { net } = calculateTotals(items);
-    setNetTotal(net);
+    const total = items.reduce((acc, item) => acc + (parseFloat(item.rate) || 0) * (parseFloat(item.qty) || 0), 0);
+    setNetTotal(total);
   }, [items]);
 
   // --- HANDLERS ---
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setBillDetails(prev => ({ ...prev, [name]: value }));
-  };
-
-  const fetchSupplierItems = async (pageNum = 1, search = '') => {
-    const url = API_ENDPOINTS.PURCHASE_INVOICE.SUPPLIER_LIST(search || '', pageNum, 20);
-    const res = await axiosInstance.get(url);
-    const data = res?.data || [];
-    return Array.isArray(data) ? data : [];
+    setReturnDetails(prev => ({ ...prev, [name]: value }));
   };
 
   // Handle Enter Key Navigation
@@ -184,24 +136,25 @@ const PurchaseInvoice = () => {
   };
 
   const handleAddItem = () => {
-    if (!billDetails.barcodeInput) return alert("Please enter barcode");
-    
+    if (!returnDetails.barcodeInput) return alert("Please enter barcode");
+
     const newItem = {
       id: items.length + 1,
-      barcode: billDetails.barcodeInput,
-      name: 'Fauget Cafe', // Mock data logic
-      sub: 'Coffee Shop',
-      stock: 500,
+      barcode: returnDetails.barcodeInput,
+      name: 'Item Name', // Static data
+      sub: 'Item Description',
+      stock: 100,
       mrp: 500,
-      uom: 500,
-      hsn: 'ASW090',
-      tax: 21,
-      rate: 2000000,
+      uom: 'PCS',
+      hsn: 'HSCODE',
+      tax: 18,
+      rate: 400,
       qty: 1,
+      returnReason: 'Damaged'
     };
-    
+
     setItems([...items, newItem]);
-    setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
+    setReturnDetails(prev => ({ ...prev, barcodeInput: '' }));
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
@@ -234,98 +187,17 @@ const PurchaseInvoice = () => {
       wsPercent: '',
       wsRate: '',
       min: '',
-      max: ''
+      max: '',
+      returnReason: ''
     };
     setItems([...items, newRow]);
   };
 
-  // const handleItemChange = (id, field, value) => {
-  //   setItems(items.map(item => 
-  //     item.id === id ? { ...item, [field]: value } : item
-  //   ));
-  // };
-const handleItemChange = (id, field, value) => {
-  const updatedItems = items.map(item => {
-    if (item.id !== id) return item;
-    
-    const updatedItem = { ...item, [field]: value };
-    
-    // Calculate avgwt when ovrwt or qty changes
-    if (field === 'ovrwt' || field === 'qty') {
-      const ovrwt = parseFloat(updatedItem.ovrwt) || 0;
-      const qty = parseFloat(updatedItem.qty) || 1;
-      
-      if (qty > 0) {
-        updatedItem.avgwt = (ovrwt / qty).toFixed(2);
-      } else {
-        updatedItem.avgwt = '';
-      }
-    }
-    
-    // Calculate acost based on uom, prate, qty, and avgwt
-    // Trigger calculation when uom, prate, qty, or avgwt changes
-    if (field === 'uom' || field === 'prate' || field === 'qty' || field === 'avgwt') {
-      const uom = updatedItem.uom?.toUpperCase() || '';
-      const prate = parseFloat(updatedItem.prate) || 0;
-      const qty = parseFloat(updatedItem.qty) || 0;
-      const avgwt = parseFloat(updatedItem.avgwt) || 0;
-      
-      if (uom === 'PCS') {
-        // For PCS: acost = qty * prate
-        updatedItem.acost = (qty * prate).toFixed(2);
-      } else if (uom === 'KG') {
-        // For KG: acost = avgwt * prate
-        updatedItem.acost = (avgwt * prate).toFixed(2);
-      } else {
-        // Default calculation or keep existing
-        updatedItem.acost = updatedItem.acost || '';
-      }
-      
-      // After acost is calculated, also update profitPercent and asRate
-      const acost = parseFloat(updatedItem.acost) || 0;
-      if (acost > 0) {
-        // Calculate 5% of acost as profitPercent
-        updatedItem.profitPercent = (acost * 0.05).toFixed(2);
-        // Calculate asRate = acost + profitPercent
-        updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
-      } else {
-        updatedItem.profitPercent = '';
-        updatedItem.asRate = '';
-      }
-    }
-    
-    // When acost is directly changed, update profitPercent and asRate
-    if (field === 'acost') {
-      const acost = parseFloat(value) || 0;
-      if (acost > 0) {
-        // Calculate 5% of acost as profitPercent
-        updatedItem.profitPercent = (acost * 0.05).toFixed(2);
-        // Calculate asRate = acost + profitPercent
-        updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
-      } else {
-        updatedItem.profitPercent = '';
-        updatedItem.asRate = '';
-      }
-    }
-    
-    // When profitPercent is changed manually, update asRate
-    if (field === 'profitPercent') {
-      const acost = parseFloat(updatedItem.acost) || 0;
-      const profitPercent = parseFloat(value) || 0;
-      
-      if (acost > 0) {
-        // Calculate asRate = acost + profitPercent
-        updatedItem.asRate = (acost + profitPercent).toFixed(2);
-      } else {
-        updatedItem.asRate = '';
-      }
-    }
-    
-    return updatedItem;
-  });
-  
-  setItems(updatedItems);
-};
+  const handleItemChange = (id, field, value) => {
+    setItems(items.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if (e.key === 'Enter') {
@@ -333,7 +205,7 @@ const handleItemChange = (id, field, value) => {
 
       // Fields in the visual order
       const fields = [
-        'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
+        'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'returnReason', 'ovrwt', 'avgwt',
         'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 'sRate', 'asRate',
         'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'min', 'max'
       ];
@@ -367,7 +239,7 @@ const handleItemChange = (id, field, value) => {
 
   const handleDelete = () => {
     // Removes the last item for demo purposes
-    if(items.length > 0) {
+    if (items.length > 0) {
       setItems(items.slice(0, -1));
     }
   };
@@ -383,17 +255,17 @@ const handleItemChange = (id, field, value) => {
   const handleClear = () => {
     // Keep a single empty row after clearing
     setItems([
-      { 
-        id: 1, 
-        barcode: '', 
-        name: '', 
-        sub: '', 
-        stock: 0, 
-        mrp: 0, 
-        uom: '', 
-        hsn: '', 
-        tax: 0, 
-        rate: 0, 
+      {
+        id: 1,
+        barcode: '',
+        name: '',
+        sub: '',
+        stock: 0,
+        mrp: 0,
+        uom: '',
+        hsn: '',
+        tax: 0,
+        rate: 0,
         qty: 0,
         ovrwt: '',
         avgwt: '',
@@ -411,167 +283,121 @@ const handleItemChange = (id, field, value) => {
         wsPercent: '',
         wsRate: '',
         min: '',
-        max: ''
+        max: '',
+        returnReason: ''
       }
     ]);
-    setBillDetails({ ...billDetails, barcodeInput: '' });
+    setReturnDetails({ ...returnDetails, barcodeInput: '' });
   };
 
   const handleSave = () => {
     try {
-      const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
-      const username = (userData && userData.username) ? userData.username : '';
-
-      const toNumber = (v) => {
-        const n = parseFloat(v);
-        return Number.isFinite(n) ? n : 0;
+      // Prepare return data
+      const returnData = {
+        returnNo: returnDetails.returnNo,
+        returnDate: returnDetails.returnDate,
+        customerName: returnDetails.customerName,
+        partyCode: returnDetails.partyCode,
+        originalInvoiceNo: returnDetails.originalInvoiceNo,
+        originalInvoiceDate: returnDetails.originalInvoiceDate,
+        totalAmount: netTotal,
+        items: items.map(item => ({
+          barcode: item.barcode,
+          name: item.name,
+          qty: parseFloat(item.qty) || 0,
+          rate: parseFloat(item.rate) || 0,
+          amount: (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0),
+          returnReason: item.returnReason || '',
+          uom: item.uom,
+          hsn: item.hsn
+        }))
       };
 
-      const toISODate = (d) => {
-        try {
-          if (!d) return new Date().toISOString();
-          const date = new Date(d);
-          return date.toISOString();
-        } catch {
-          return new Date().toISOString();
-        }
-      };
+      console.log('Return Data:', returnData);
+      alert('Purchase Return saved successfully!');
 
-      const voucherNo = billDetails.invNo || '';
-      const voucherDateISO = toISODate(billDetails.billDate || billDetails.purDate);
+      // In a real application, you would send this data to your API
+      // Example:
+      // await axios.post('/api/purchase-returns', returnData);
 
-      const totals = calculateTotals(items);
-
-      const payload = {
-        bledger: {
-          customerCode: billDetails.partyCode || '',
-          voucherNo: voucherNo,
-          voucherDate: voucherDateISO,
-          billAmount: totals.net,
-          balanceAmount: totals.net,
-          refType: 'pe',
-          refName: billDetails.customerName || '',
-          compCode: '001',
-          user: '001',
-          gstType: billDetails.gstType || 'CGST',
-        },
-        iledger: {
-          vrNo: voucherNo,
-          less: 0 ,
-          subTotal: totals.subTotal,
-          total: totals.total,
-          net: totals.net,
-          add1: '',
-          add2: '',
-          cstsNo: '',
-          add3: '',
-          add4: '',
-        },
-        items: items.map((it) => ({
-          voucher: voucherNo,
-          itemCode: it.barcode || '',
-          qty: toNumber(it.qty),
-          rate: toNumber(it.rate),
-          amount: toNumber(it.qty) * toNumber(it.rate),
-          fTax: toNumber(it.tax),
-          wRate: toNumber(it.wsRate),
-          fid: String(it.id || ''),
-          fDate: voucherDateISO,
-          fUnit: it.uom || '',
-          fhsn: it.hsn || '',
-          ovrWt: toNumber(it.ovrwt),
-          avgWt: toNumber(it.avgwt),
-          inTax: toNumber(it.intax),
-          outTax: toNumber(it.outtax),
-          acost: toNumber(it.acost),
-          sudo: it.sudo || '',
-          profitPercent: toNumber(it.profitPercent),
-          preRate: toNumber(it.preRT),
-          sRate: toNumber(it.sRate),
-          asRate: toNumber(it.asRate),
-          mrp: toNumber(it.mrp),
-          letProfPer: toNumber(it.letProfPer),
-          ntCost: toNumber(it.ntCost),
-          wsPer: toNumber(it.wsPercent),
-        })),
-      };
-
-      const purchaseType = billDetails.isLedger ? 'true' : 'false';
-      axiosInstance
-        .post(API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE(purchaseType), payload)
-        .then((res) => {
-          alert('Purchase saved successfully');
-          setBillDetails({
-            invNo: '',
-            billDate: '',
-            mobileNo: '',
-            customerName: '',
-            type: 'Retail',
-            barcodeInput: '',
-            entryDate: '',
-            amount: '',
-            partyCode: '',
-            gstno: '',
-            gstType: 'CGST',
-            purNo: '',
-            invoiceNo: '',
-            purDate: '',
-            invoiceAmount: '',
-            transType: 'PURCHASE',
-            city: '',
-            isLedger: false,
-          });
-          setItems([
-            {
-              id: 1,
-              barcode: '',
-              name: '',
-              sub: '',
-              stock: 0,
-              mrp: 0,
-              uom: '',
-              hsn: '',
-              tax: 0,
-              rate: 0,
-              qty: 0,
-              ovrwt: '',
-              avgwt: '',
-              prate: 0,
-              intax: '',
-              outtax: '',
-              acost: '',
-              sudo: '',
-              profitPercent: '',
-              preRT: '',
-              sRate: '',
-              asRate: '',
-              letProfPer: '',
-              ntCost: '',
-              wsPercent: '',
-              wsRate: '',
-              min: '',
-              max: ''
-            }
-          ]);
-          // Get next invoice number for the next entry
-          fetchNextInvNo();
-        })
-        .catch((err) => {
-          const status = err?.response?.status;
-          const data = err?.response?.data;
-          const message = typeof data === 'string' ? data : data?.message || data?.error || err?.message;
-          console.warn('CreatePurchase failed:', { status, data, err });
-          alert(`Failed to save purchase${message ? `: ${message}` : ''}`);
-        });
-    } catch (e) {
-      console.warn('Save error:', e);
-      alert('Failed to save purchase');
+    } catch (error) {
+      console.error('Error saving purchase return:', error);
+      alert('Failed to save purchase return');
     }
   };
 
   const handlePrint = () => {
     // Print logic here
-    alert('Print functionality to be implemented');
+    const printContent = `
+      <html>
+        <head>
+          <title>Purchase Return - ${returnDetails.returnNo}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .details { margin-bottom: 20px; }
+            .details table { width: 100%; border-collapse: collapse; }
+            .details td { padding: 5px; }
+            .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .items-table th, .items-table td { border: 1px solid #000; padding: 8px; text-align: left; }
+            .total { text-align: right; font-weight: bold; margin-top: 20px; }
+            .footer { margin-top: 50px; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Purchase Return</h2>
+            <h3>Return No: ${returnDetails.returnNo}</h3>
+          </div>
+          <div class="details">
+            <table>
+              <tr><td><strong>Return Date:</strong></td><td>${returnDetails.returnDate}</td></tr>
+              <tr><td><strong>Customer Name:</strong></td><td>${returnDetails.customerName}</td></tr>
+              <tr><td><strong>Party Code:</strong></td><td>${returnDetails.partyCode}</td></tr>
+              <tr><td><strong>Original Invoice No:</strong></td><td>${returnDetails.originalInvoiceNo}</td></tr>
+            </table>
+          </div>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item Code</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Rate</th>
+                <th>Amount</th>
+                <th>Return Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(item => `
+                <tr>
+                  <td>${item.barcode}</td>
+                  <td>${item.name}</td>
+                  <td>${item.qty} ${item.uom}</td>
+                  <td>₹${parseFloat(item.rate).toFixed(2)}</td>
+                  <td>₹${(parseFloat(item.qty) * parseFloat(item.rate)).toFixed(2)}</td>
+                  <td>${item.returnReason || ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="total">
+            <h3>Total Amount: ₹${netTotal.toFixed(2)}</h3>
+          </div>
+          <div class="footer">
+            <p>Authorized Signature</p>
+            <p>Date: ${new Date().toLocaleDateString()}</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   };
 
   // --- RESPONSIVE STYLES ---
@@ -650,7 +476,7 @@ const handleItemChange = (id, field, value) => {
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#333',
-      minWidth: screenSize.isMobile ? '65px' : screenSize.isTablet ? '75px' : '85px',
+      minWidth: screenSize.isMobile ? '75px' : screenSize.isTablet ? '85px' : '95px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
       paddingTop: '2px',
@@ -706,7 +532,7 @@ const handleItemChange = (id, field, value) => {
       fontSize: TYPOGRAPHY.fontSize.xs,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
-      backgroundColor: '#1B91DA', 
+      backgroundColor: '#1B91DA', // Changed to red for return
       color: 'white',
       padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
       textAlign: 'center',
@@ -789,7 +615,7 @@ const handleItemChange = (id, field, value) => {
       fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.base : screenSize.isTablet ? TYPOGRAPHY.fontSize.lg : TYPOGRAPHY.fontSize.xl,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
-      color: '#1B91DA',
+      color: '#FF6B6B', // Changed to red for return
       padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '10px 20px' : '12px 32px',
       display: 'flex',
       alignItems: 'center',
@@ -799,7 +625,7 @@ const handleItemChange = (id, field, value) => {
       width: screenSize.isMobile ? '100%' : 'auto',
       order: screenSize.isMobile ? 1 : 0,
       borderRadius: screenSize.isMobile ? '4px' : '6px',
-      backgroundColor: '#f0f8ff',
+      backgroundColor: '#FFF0F0', // Light red background
     },
     rightColumn: {
       display: 'flex',
@@ -827,8 +653,8 @@ const handleItemChange = (id, field, value) => {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      backgroundColor: '#e8f4fc',
-      borderTop: '2px solid #1B91DA',
+      backgroundColor: '#FFE8E8', // Light red background
+      borderTop: '2px solid #FF6B6B', // Red border
     },
   };
 
@@ -852,35 +678,35 @@ const handleItemChange = (id, field, value) => {
           ...styles.gridRow,
           gridTemplateColumns: getGridColumns(),
         }}>
-          {/* Inv No */}
+          {/* Return No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Inv No:</label>
-            <input 
+            <input
               type="text"
               style={styles.inlineInput}
-              value={billDetails.invNo}
-              name="invNo"
+              value={returnDetails.returnNo}
+              name="returnNo"
               onChange={handleInputChange}
-              ref={billNoRef}
+              ref={returnNoRef}
               onKeyDown={(e) => handleKeyDown(e, dateRef)}
-              onFocus={() => setFocusedField('invNo')}
+              onFocus={() => setFocusedField('returnNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Bill No"
+              placeholder="Return No"
             />
           </div>
 
-          {/* Bill Date */}
+          {/* Return Date */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
-              style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
-              value={billDetails.billDate}
-              name="billDate"
+              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
+              value={returnDetails.returnDate}
+              name="returnDate"
               onChange={handleInputChange}
               ref={dateRef}
               onKeyDown={(e) => handleKeyDown(e, amountRef)}
-              onFocus={() => setFocusedField('billDate')}
+              onFocus={() => setFocusedField('returnDate')}
               onBlur={() => setFocusedField('')}
             />
           </div>
@@ -891,7 +717,7 @@ const handleItemChange = (id, field, value) => {
             <input
               type="text"
               style={styles.inlineInput}
-              value={billDetails.amount}
+              value={returnDetails.amount}
               name="amount"
               onChange={handleInputChange}
               ref={amountRef}
@@ -902,50 +728,50 @@ const handleItemChange = (id, field, value) => {
             />
           </div>
 
-          {/* Pur No */}
+          {/* Original Invoice No */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Pur No:</label>
+            <label style={styles.inlineLabel}> Invoice No:</label>
             <input
               type="text"
-              name="purNo"
+              name="originalInvoiceNo"
               style={styles.inlineInput}
-              value={billDetails.purNo}
+              value={returnDetails.originalInvoiceNo}
               onChange={handleInputChange}
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
-              onFocus={() => setFocusedField('purNo')}
+              onFocus={() => setFocusedField('originalInvoiceNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Pur No"
+              placeholder="Original Invoice No"
             />
           </div>
 
-          {/* Invoice No */}
+          {/* Original Invoice Date */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Invoice No:</label>
-            <input
-              type="text"
-              name="invoiceNo"
-              style={styles.inlineInput}
-              value={billDetails.invoiceNo}
-              onChange={handleInputChange}
-              onKeyDown={(e) => handleKeyDown(e, customerRef)}
-              onFocus={() => setFocusedField('invoiceNo')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Invoice No"
-            />
-          </div>
-
-          {/* Pur Date */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Pur Date:</label>
+            <label style={styles.inlineLabel}> Inv Date:</label>
             <input
               type="date"
-              name="purDate"
-              style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
-              value={billDetails.purDate}
+              name="originalInvoiceDate"
+              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
+              value={returnDetails.originalInvoiceDate}
               onChange={handleInputChange}
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
-              onFocus={() => setFocusedField('purDate')}
+              onFocus={() => setFocusedField('originalInvoiceDate')}
               onBlur={() => setFocusedField('')}
+            />
+          </div>
+
+          {/* Original Invoice Amount */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Original Amt:</label>
+            <input
+              type="text"
+              name="originalInvoiceAmount"
+              style={styles.inlineInput}
+              value={returnDetails.originalInvoiceAmount}
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onFocus={() => setFocusedField('originalInvoiceAmount')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Original Amount"
             />
           </div>
         </div>
@@ -961,7 +787,7 @@ const handleItemChange = (id, field, value) => {
             <input
               type="text"
               style={styles.inlineInput}
-              value={billDetails.partyCode}
+              value={returnDetails.partyCode}
               name="partyCode"
               onChange={handleInputChange}
               ref={customerRef}
@@ -974,37 +800,18 @@ const handleItemChange = (id, field, value) => {
 
           {/* Customer Name */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Name:</label>
-            <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
-              <input
-                type="text"
-                style={{...styles.inlineInput, flex: 1}}
-                value={billDetails.customerName}
-                name="customerName"
-                onChange={handleInputChange}
-                onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-                onFocus={() => setFocusedField('customerName')}
-                onBlur={() => setFocusedField('')}
-                placeholder="Customer Name"
-              />
-              <button
-                type="button"
-                aria-label="Search supplier"
-                title="Search supplier"
-                onClick={() => setShowSupplierPopup(true)}
-                style={{
-                  height: screenSize.isMobile ? '32px' : '40px',
-                  minWidth: '40px',
-                  border: '1px solid #1B91DA',
-                  background: '#e8f4fc',
-                  color: '#1B91DA',
-                  borderRadius: screenSize.isMobile ? '3px' : '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                🔎
-              </button>
-            </div>
+            <label style={styles.inlineLabel}> Name:</label>
+            <input
+              type="text"
+              style={styles.inlineInput}
+              value={returnDetails.customerName}
+              name="customerName"
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
+              onFocus={() => setFocusedField('customerName')}
+              onBlur={() => setFocusedField('')}
+              placeholder="Customer Name"
+            />
           </div>
 
           {/* City */}
@@ -1013,7 +820,7 @@ const handleItemChange = (id, field, value) => {
             <input
               type="text"
               style={styles.inlineInput}
-              value={billDetails.city}
+              value={returnDetails.city}
               name="city"
               onChange={handleInputChange}
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
@@ -1023,79 +830,53 @@ const handleItemChange = (id, field, value) => {
             />
           </div>
 
-                    {/* GST Type */}
-
-
-           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>GST Type:</label>
-            <select
-              name="gstType"
-              style={styles.inlineInput}
-              value={billDetails.gstType}
-              onChange={handleInputChange}
-              onKeyDown={(e) => handleKeyDown(e, customerRef)}
-              onFocus={() => setFocusedField('gstType')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="CGST">CGST</option>
-              <option value="IGST">IGST</option>
-            </select>
-          </div>
-
           {/* Trans Type */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Trans Type:</label>
             <select
               name="transType"
               style={styles.inlineInput}
-              value={billDetails.transType}
+              value={returnDetails.transType}
               onChange={handleInputChange}
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('transType')}
               onBlur={() => setFocusedField('')}
             >
-              <option value="PURCHASE">PURCHASE</option>
-              <option value="SALE">SALE</option>
-              <option value="Cash">Cash</option>
-              <option value="Credit">Credit</option>
+              <option value="RETURN">RETURN</option>
+              <option value="REFUND">REFUND</option>
+              <option value="CREDIT_NOTE">CREDIT NOTE</option>
             </select>
           </div>
 
-         
-
-          {/* Invoice Amt */}
+          {/* Return Reason */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Invoice Amt:</label>
-            <input
-              type="text"
-              name="invoiceAmount"
+            <label style={styles.inlineLabel}>Reason:</label>
+            <select
+              name="reason"
               style={styles.inlineInput}
-              value={billDetails.invoiceAmount}
+              value={returnDetails.reason}
               onChange={handleInputChange}
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
-              onFocus={() => setFocusedField('invoiceAmount')}
+              onFocus={() => setFocusedField('reason')}
               onBlur={() => setFocusedField('')}
-              placeholder="Invoice Amount"
-            />
+            >
+              <option value="">Select Reason</option>
+              <option value="DAMAGED">Damaged Goods</option>
+              <option value="WRONG_ITEM">Wrong Item</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="OVERSTOCK">Overstock</option>
+              <option value="QUALITY">Quality Issue</option>
+              <option value="OTHER">Other</option>
+            </select>
           </div>
 
-         
-        </div>
-
-        {/* ROW 3 */}
-        <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
-          marginBottom: '0',
-        }}>
-
-           {/* Mobile No */}
+          {/* Mobile No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Mobile No:</label>
             <input
               type="text"
               style={styles.inlineInput}
-              value={billDetails.mobileNo}
+              value={returnDetails.mobileNo}
               name="mobileNo"
               onChange={handleInputChange}
               ref={mobileRef}
@@ -1105,13 +886,21 @@ const handleItemChange = (id, field, value) => {
               placeholder="Mobile No"
             />
           </div>
+        </div>
+
+        {/* ROW 3 */}
+        <div style={{
+          ...styles.gridRow,
+          gridTemplateColumns: getGridColumns(),
+          marginBottom: '0',
+        }}>
           {/* GST No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>GST No:</label>
             <input
               type="text"
               style={styles.inlineInput}
-              value={billDetails.gstno}
+              value={returnDetails.gstno}
               name="gstno"
               onChange={handleInputChange}
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
@@ -1130,11 +919,11 @@ const handleItemChange = (id, field, value) => {
             gap: '8px',
             height: '40px',
           }}>
-            <label style={{...styles.inlineLabel, marginBottom: 0}}>Is Ledger?</label>
+            <label style={{ ...styles.inlineLabel, marginBottom: 0 }}>Is Ledger?</label>
             <input
               type="checkbox"
-              checked={billDetails.isLedger}
-              onChange={(e) => setBillDetails(prev => ({ ...prev, isLedger: e.target.checked }))}
+              checked={returnDetails.isLedger}
+              onChange={(e) => setReturnDetails(prev => ({ ...prev, isLedger: e.target.checked }))}
               style={{ width: 18, height: 18 }}
               id="isLedger"
             />
@@ -1154,7 +943,8 @@ const handleItemChange = (id, field, value) => {
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>Stock</th>
                 <th style={styles.th}>HSN</th>
-                <th style={styles.th}>Qty</th>
+                <th style={styles.th}>Return Qty</th>
+                <th style={styles.th}>Return Reason</th>
                 <th style={styles.th}>OvrWt</th>
                 <th style={styles.th}>AvgWt</th>
                 <th style={styles.th}>PRate</th>
@@ -1170,8 +960,7 @@ const handleItemChange = (id, field, value) => {
                 <th style={styles.th}>PPer</th>
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
-                <th style={styles.th}>WRate</th>
-                <th style={styles.th}>Amt</th>
+                <th style={styles.th}>WSate</th>
                 {/* <th style={styles.th}>Min</th>
                 <th style={styles.th}>Max</th> */}
                 <th style={styles.th}>Action</th>
@@ -1202,34 +991,14 @@ const handleItemChange = (id, field, value) => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'name')}
                     />
                   </td>
-                  {/* onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('fprintgap', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('fprintgap', formData.fprintgap === "N" ? "Y" : "N");
-                      }
-                    }} */}
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
                       value={item.uom}
                       data-row={index}
                       data-field="uom"
-                      onChange ={(e) => {
-                        const v = e.target.value.toUpperCase();
-                        if(v === "PCS" || v === "KG" ) handleItemChange(item.id, 'uom', v);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === " ") {
-                          const currentUom = item.uom.toUpperCase();
-                          const newUom = currentUom === "PCS" ? "KG" : "PCS";
-                          handleItemChange(item.id, 'uom', newUom);
-                      }
-                    }}
-                      // onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
-                      // onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
+                      onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
                     />
                   </td>
                   <td style={styles.td}>
@@ -1261,6 +1030,23 @@ const handleItemChange = (id, field, value) => {
                       onChange={(e) => handleItemChange(item.id, 'qty', parseFloat(e.target.value) || 0)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
                     />
+                  </td>
+                  <td style={styles.td}>
+                    <select
+                      style={styles.editableInput}
+                      value={item.returnReason || ''}
+                      data-row={index}
+                      data-field="returnReason"
+                      onChange={(e) => handleItemChange(item.id, 'returnReason', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'returnReason')}
+                    >
+                      <option value="">Select Reason</option>
+                      <option value="DAMAGED">Damaged</option>
+                      <option value="WRONG_ITEM">Wrong Item</option>
+                      <option value="EXPIRED">Expired</option>
+                      <option value="QUALITY">Quality Issue</option>
+                      <option value="OTHER">Other</option>
+                    </select>
                   </td>
                   <td style={styles.td}>
                     <input
@@ -1422,16 +1208,6 @@ const handleItemChange = (id, field, value) => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
                     />
                   </td>
-                  <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
-                      value={item.wsRate || ''}
-                      data-row={index}
-                      data-field="wsRate"
-                      onChange={(e) => handleItemChange(item.id, 'wsRate', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
-                    />
-                  </td>
                   {/* <td style={styles.td}>
                     <input
                       style={styles.editableInput}
@@ -1503,33 +1279,11 @@ const handleItemChange = (id, field, value) => {
         </div>
       </div>
 
-      <PopupListSelector
-        open={showSupplierPopup}
-        onClose={() => setShowSupplierPopup(false)}
-        title="Select Supplier"
-        fetchItems={fetchSupplierItems}
-        displayFieldKeys={['code','name','city','gstType']}
-        headerNames={['Code','Name','City','GST Type']}
-        searchFields={['code','name','city','gstType']}
-        columnWidths={{ code: '20%', name: '40%', city: '20%', gstType: '20%' }}
-        searchPlaceholder="Search supplier..."
-        onSelect={(s) => {
-          setBillDetails(prev => ({
-            ...prev,
-            partyCode: s.code || '',
-            customerName: s.name || '',
-            city: s.city || '',
-            gstno: s.gstType || '',
-            gstType: s.gstType || prev.gstType || 'CGST'
-          }));
-        }}
-      />
-
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
-          <ActionButtons 
-            activeButton={activeTopAction} 
+          <ActionButtons
+            activeButton={activeTopAction}
             onButtonClick={(type) => {
               setActiveTopAction(type);
               if (type === 'add') handleAddRow();
@@ -1543,7 +1297,7 @@ const handleItemChange = (id, field, value) => {
           </ActionButtons>
         </div>
         <div style={styles.netBox}>
-          <span>Total Amount:</span>
+          <span>Total Return Amount:</span>
           <span>₹ {netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
         <div style={styles.footerButtons}>
@@ -1560,4 +1314,4 @@ const handleItemChange = (id, field, value) => {
   );
 };
 
-export default PurchaseInvoice;
+export default PurchaseReturn;

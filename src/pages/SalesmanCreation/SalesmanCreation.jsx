@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import apiService from '../../api/apiService';
-import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
-// --- Inline SVG icons (matching ItemGroupCreation style) ---
+
+// --- Inline SVG icons ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -30,11 +29,6 @@ const Icon = {
       <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 16.88 16.88z" />
     </svg>
   ),
-  Refresh: ({ size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M17.65 6.35A8 8 0 103.95 15.5H6a6 6 0 118.9-5.31l-1.9-1.9h6v6l-2.35-2.35z" />
-    </svg>
-  ),
   Check: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
       <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
@@ -47,16 +41,24 @@ const Icon = {
   ),
 };
 
-export default function UnitCreation() {
+// Sample initial salesmen data
+const initialSalesmen = [
+  { id: 1, salesmanCode: "001", salesmanName: "John Smith" },
+  { id: 2, salesmanCode: "002", salesmanName: "Jane Doe" },
+  { id: 3, salesmanCode: "003", salesmanName: "Robert Johnson" },
+  { id: 4, salesmanCode: "004", salesmanName: "Emily Davis" },
+  { id: 5, salesmanCode: "005", salesmanName: "Michael Wilson" },
+];
+
+export default function SalesmanCreation() {
   // ---------- state ----------
-  const [units, setUnits] = useState([]);
+  const [salesmen, setSalesmen] = useState(initialSalesmen);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    fuCode: "", 
-    unitName: ""
+    salesmanCode: "", 
+    salesmanName: ""
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -73,109 +75,25 @@ export default function UnitCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const unitCodeRef = useRef(null);
-  const unitNameRef = useRef(null);
+  const salesmanCodeRef = useRef(null);
+  const salesmanNameRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Base URL for API
-
-  // ---------- API functions ----------
-  const fetchNextUnitCode = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.NEXT_SIZE_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
-      }
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next unit code" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUnits = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GET_SIZE_ITEMS);
-      setUnits(data || []);
-      setMessage(null);
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load units" });
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getUnitByCode = async (code) => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GETUNITCODE(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch unit" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createUnit = async (unitData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.UNITCREATION.CREATE_SIZE, unitData);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to create unit" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateUnit = async (unitData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.UNITCREATION.UPDATE_SIZE(unitData.fuCode), unitData);
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to update unit" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteUnit = async (unitCode) => {
-    try {
-      setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.UNITCREATION.DELETE_SIZE(unitCode));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete unit" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+  // Generate next salesman code
+  const generateNextSalesmanCode = () => {
+    if (salesmen.length === 0) return "001";
+    
+    // Get highest numeric code and increment
+    const maxCode = Math.max(...salesmen.map(s => parseInt(s.salesmanCode) || 0));
+    const nextCode = (maxCode + 1).toString().padStart(3, '0');
+    return nextCode;
   };
 
   // ---------- effects ----------
   useEffect(() => {
-    loadInitial();
     const handleResize = () => {
       const width = window.innerWidth;
       setScreenWidth(width);
@@ -188,76 +106,88 @@ export default function UnitCreation() {
   }, []);
 
   useEffect(() => {
-    if (unitCodeRef.current) unitCodeRef.current.focus();
+    if (salesmanCodeRef.current) salesmanCodeRef.current.focus();
+    // Set initial salesman code
+    const nextCode = generateNextSalesmanCode();
+    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
   }, []);
 
   // ---------- handlers ----------
-  const loadInitial = async () => {
-    await Promise.all([fetchUnits(), fetchNextUnitCode()]);
+  const loadInitial = () => {
+    const nextCode = generateNextSalesmanCode();
+    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
   };
 
   const handleEdit = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.salesmanCode || !form.salesmanName) {
+      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to update unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to update salesman "${form.salesmanName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await updateUnit(unitData);
-      await loadInitial();
+      setSalesmen(prev => 
+        prev.map(salesman => 
+          salesman.salesmanCode === form.salesmanCode 
+            ? { ...salesman, salesmanName: form.salesmanName }
+            : salesman
+        )
+      );
       
-      setMessage({ type: "success", text: "Unit updated successfully." });
+      setMessage({ type: "success", text: "Salesman updated successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in updateUnit
+      setMessage({ type: "error", text: "Failed to update salesman." });
     }
   };
 
   const handleDelete = async () => {
-    if (!form.fuCode) {
-      setMessage({ type: "error", text: "Please select a unit to delete." });
+    if (!form.salesmanCode) {
+      setMessage({ type: "error", text: "Please select a salesman to delete." });
       return;
     }
 
-    if (!window.confirm(`Do you want to delete unit "${form.unitName}"?`)) return;
+    if (!window.confirm(`Do you want to delete salesman "${form.salesmanName}"?`)) return;
 
     try {
-      await deleteUnit(form.fuCode);
-      await loadInitial();
+      setSalesmen(prev => prev.filter(salesman => salesman.salesmanCode !== form.salesmanCode));
       
-      setMessage({ type: "success", text: "Unit deleted successfully." });
+      setMessage({ type: "success", text: "Salesman deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced units
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        setMessage({ 
-          type: "error", 
-          text: `Cannot delete unit "${form.unitName}". It is referenced in other tables and cannot be removed.` 
-        });
-      }
+      setMessage({ type: "error", text: "Failed to delete salesman." });
     }
   };
 
   const handleAdd = async () => {
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.salesmanCode || !form.salesmanName) {
+      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
 
-    if (!window.confirm(`Do you want to create unit "${form.unitName}"?`)) return;
+    // Check if salesman code already exists
+    const exists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
+    if (exists) {
+      setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to create salesman "${form.salesmanName}"?`)) return;
 
     try {
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await createUnit(unitData);
-      await loadInitial();
+      const newSalesman = {
+        id: salesmen.length + 1,
+        salesmanCode: form.salesmanCode,
+        salesmanName: form.salesmanName
+      };
       
-      setMessage({ type: "success", text: "Unit created successfully." });
+      setSalesmen(prev => [...prev, newSalesman]);
+      
+      setMessage({ type: "success", text: "Salesman created successfully." });
       resetForm(true);
     } catch (err) {
-      // Error message already set in createUnit
+      setMessage({ type: "error", text: "Failed to create salesman." });
     }
   };
 
@@ -268,8 +198,8 @@ export default function UnitCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextUnitCode();
-    setForm(prev => ({ ...prev, unitName: "" }));
+    const nextCode = generateNextSalesmanCode();
+    setForm({ salesmanCode: nextCode, salesmanName: "" });
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -277,7 +207,7 @@ export default function UnitCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
   const openEditModal = () => {
@@ -285,12 +215,12 @@ export default function UnitCreation() {
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleEditRowClick = (s) => {
+    setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
     setActionType("edit");
-    setEditingId(u.uCode);
+    setEditingId(s.salesmanCode);
     setEditModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
@@ -298,86 +228,82 @@ export default function UnitCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? units.filter(u => (u.uCode || '').toLowerCase().includes(q) || (u.unitName || '').toLowerCase().includes(q))
-      : units;
+      ? salesmen.filter(s => 
+          (s.salesmanCode || '').toLowerCase().includes(q) || 
+          (s.salesmanName || '').toLowerCase().includes(q)
+        )
+      : salesmen;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [units]);
+  }, [salesmen]);
 
-  const handleDeleteRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleDeleteRowClick = (s) => {
+    setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
     setActionType("delete");
-    setDeleteTargetId(u.uCode);
+    setDeleteTargetId(s.salesmanCode);
     setDeleteModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => salesmanNameRef.current?.focus(), 60);
   };
 
-  const onUnitCodeKeyDown = (e) => {
+  const onSalesmanCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      unitNameRef.current?.focus();
+      salesmanNameRef.current?.focus();
     }
   };
 
-  const onUnitNameKeyDown = (e) => {
+  const onSalesmanNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
     }
   };
 
-  const stopEnterPropagation = (e) => {
-    if (e.key === "Enter") {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  };
-
   // ---------- filters ----------
-  const filteredEditUnits = useMemo(() => {
+  const filteredEditSalesmen = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return salesmen;
+    return salesmen.filter(
+      (s) =>
+        (s.salesmanCode || "").toLowerCase().includes(q) ||
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, units]);
+  }, [editQuery, salesmen]);
 
-  const filteredDeleteUnits = useMemo(() => {
+  const filteredDeleteSalesmen = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return salesmen;
+    return salesmen.filter(
+      (s) =>
+        (s.salesmanCode || "").toLowerCase().includes(q) ||
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, units]);
+  }, [deleteQuery, salesmen]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) => 
-        (u.uCode || "").toLowerCase().includes(q) || 
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return salesmen;
+    return salesmen.filter(
+      (s) => 
+        (s.salesmanCode || "").toLowerCase().includes(q) || 
+        (s.salesmanName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, units]);
+  }, [existingQuery, salesmen]);
 
   // ---------- render ----------
   return (
-    <div className="uc-root" role="region" aria-labelledby="unit-creation-title">
+    <div className="uc-root" role="region" aria-labelledby="salesman-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* blue theme (matching ItemGroupCreation) */
+          /* blue theme */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
@@ -402,7 +328,7 @@ export default function UnitCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 14px; /* increased base font size */
+          font-size: 14px;
           box-sizing: border-box;
         }
 
@@ -438,7 +364,7 @@ export default function UnitCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 18px; /* slightly larger title */
+          font-size: 18px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
@@ -633,7 +559,6 @@ export default function UnitCreation() {
           cursor:pointer;
           transition: all 0.2s;
           font-size: 14px;
-
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
@@ -684,8 +609,8 @@ export default function UnitCreation() {
           color: #374151;
         }
 
-        /* units table */
-        .units-table-container {
+        /* salesmen table */
+        .salesmen-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -693,13 +618,13 @@ export default function UnitCreation() {
           margin-top: 12px;
         }
 
-        .units-table {
+        .salesmen-table {
           width: 100%;
           border-collapse: collapse;
           font-size: 14px;
         }
 
-        .units-table th {
+        .salesmen-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -712,18 +637,18 @@ export default function UnitCreation() {
           z-index: 1;
         }
 
-        .units-table td {
+        .salesmen-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
         }
 
-        .units-table tr:hover {
+        .salesmen-table tr:hover {
           background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
           cursor: pointer;
         }
 
-        .units-table tr.selected {
+        .salesmen-table tr.selected {
           background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
@@ -816,7 +741,7 @@ export default function UnitCreation() {
             justify-content: center;
             min-width: 0;
           }
-          .units-table-container {
+          .salesmen-table-container {
             max-height: 300px;
           }
         }
@@ -849,8 +774,8 @@ export default function UnitCreation() {
             flex: 1;
             min-width: 0;
           }
-          .units-table th,
-          .units-table td {
+          .salesmen-table th,
+          .salesmen-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -899,16 +824,17 @@ export default function UnitCreation() {
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="unit-creation-title">
+      <div className="dashboard" aria-labelledby="salesman-creation-title">
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
-              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M18 16v-2a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v2" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
+              <circle cx="12" cy="7" r="4" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
             </svg>
             <div>
-              <h2 id="unit-creation-title">Unit Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete measurement units.</div>
+              <h2 id="salesman-creation-title">Salesman Creation</h2>
+              <div className="subtitle muted">Create, edit, or delete salesmen.</div>
             </div>
           </div>
 
@@ -921,51 +847,40 @@ export default function UnitCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Unit Code field */}
+            {/* Salesman Code field */}
             <div className="field">
               <label className="field-label">
-                Unit Code <span className="asterisk">*</span>
+                Salesman Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={unitCodeRef}
+                  ref={salesmanCodeRef}
                   className="input"
-                  value={form.fuCode}
-                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                  placeholder="Unit code (auto-generated)"
-                  onKeyDown={onUnitCodeKeyDown}
+                  value={form.salesmanCode}
+                  onChange={(e) => setForm(s => ({ ...s, salesmanCode: e.target.value }))}
+                  placeholder="Salesman code (auto-generated)"
+                  onKeyDown={onSalesmanCodeKeyDown}
                   disabled={loading}
-                  aria-label="Unit Code"
+                  aria-label="Salesman Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
-                  {/* <button
-                    className="btn"
-                    onClick={fetchNextUnitCode}
-                    disabled={loading || actionType === "edit" || actionType === "delete"}
-                    type="button"
-                    aria-label="Refresh unit code"
-                    title="Get next unit code"
-                  >
-                    <Icon.Refresh />
-                  </button> */}
               </div>
             </div>
 
-            {/* Unit Name field */}
+            {/* Salesman Name field */}
             <div className="field">
               <label className="field-label">
-                Unit Name <span className="asterisk">*</span>
+                Salesman Name <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
-                  ref={unitNameRef} 
+                  ref={salesmanNameRef} 
                   className="input" 
-                  value={form.unitName} 
-                  onChange={(e) => setForm(s => ({ ...s, unitName: e.target.value }))} 
-                  // placeholder="Enter unit name (e.g., M.T, KGS, PCS)" 
-                  onKeyDown={onUnitNameKeyDown}
+                  value={form.salesmanName} 
+                  onChange={(e) => setForm(s => ({ ...s, salesmanName: e.target.value }))} 
+                  onKeyDown={onSalesmanNameKeyDown}
                   disabled={loading}
-                  aria-label="Unit Name"
+                  aria-label="Salesman Name"
                   readOnly={actionType === "delete"}
                 />
               </div>
@@ -997,15 +912,15 @@ export default function UnitCreation() {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" ,marginTop: "20px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Units</div>
+               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Salesmen</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing units..."
+                  placeholder="Search existing salesmen..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing units"
+                  aria-label="Search existing salesmen"
                 />
                 {existingQuery && (
                   <button
@@ -1019,35 +934,35 @@ export default function UnitCreation() {
                 )}
               </div>
               
-              <div className="units-table-container">
+              <div className="salesmen-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading units...
+                    Loading salesmen...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {units.length === 0 ? "No units found" : "No matching units"}
+                    {salesmen.length === 0 ? "No salesmen found" : "No matching salesmen"}
                   </div>
                 ) : (
-                  <table className="units-table">
+                  <table className="salesmen-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Unit Name</th>
+                        <th>Salesman Name</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExisting.map((u) => (
+                      {filteredExisting.map((s) => (
                         <tr 
-                          key={u.uCode}
-                          className={form.fuCode === u.uCode ? "selected" : ""}
+                          key={s.salesmanCode}
+                          className={form.salesmanCode === s.salesmanCode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ fuCode: u.uCode, unitName: u.unitName });
+                            setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
                             setActionType("edit");
                           }}
                         >
-                          <td>{u.uCode}</td>
-                          <td>{u.unitName}</td>
+                          <td>{s.salesmanCode}</td>
+                          <td>{s.salesmanName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1062,28 +977,28 @@ export default function UnitCreation() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Unit" : "Delete Unit"}
+                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Salesman" : "Delete Salesman"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Code</div>
+              <div className="muted">Salesman Code</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
+                {form.salesmanCode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Unit Name</div>
+              <div className="muted">Salesman Name</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.unitName || "Not set"}
+                {form.salesmanName || "Not set"}
               </div>
             </div>
 
             <div className="stat">
-              <div className="muted">Existing Units</div>
+              <div className="muted">Existing Salesmen</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {units.length}
+                {salesmen.length}
               </div>
             </div>
 
@@ -1093,24 +1008,21 @@ export default function UnitCreation() {
                 <div style={{ fontWeight: 700 }}>Quick Tips</div>
               </div>
               
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
+              <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Unit code is auto-generated for new units</span>
+                  <span>Salesman code is auto-generated for new salesmen</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find units</span>
+                  <span>For edit/delete, use search modals to find salesmen</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common units: KG, M.T, PCS, LTR, MTR</span>
+                  <span>Salesmen manage customer relationships and sales</span>
                 </div>
               </div>
             </div>
-
-            {/* Existing Units Table */}
-         
           </div>
         </div>
       </div>
@@ -1120,11 +1032,11 @@ export default function UnitCreation() {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Edit"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Salesman to Edit"
+        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
+        searchFields={[ 'salesmanName', 'salesmanCode' ]}
+        headerNames={[ 'Salesman Name', 'Code' ]}
+        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1133,11 +1045,11 @@ export default function UnitCreation() {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Delete"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Salesman to Delete"
+        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
+        searchFields={[ 'salesmanName', 'salesmanCode' ]}
+        headerNames={[ 'Salesman Name', 'Code' ]}
+        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
         maxHeight="60vh"
       />
     </div>

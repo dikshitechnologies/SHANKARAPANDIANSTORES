@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import axiosInstance from '../../api/axiosInstance';
-import { API_ENDPOINTS } from '../../api/endpoints';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
-// import { useFormPermissions } from '../../../hooks/useFormPermissions';
+import axios from 'axios';
+import { API_ENDPOINTS } from "../../api/endpoints";
+import apiService from "../../api/apiService";
 
 const FCompCode = "001";
 
@@ -25,7 +25,7 @@ const Icon = {
   ),
   Search: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
+      <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
     </svg>
   ),
   Close: ({ size = 18 }) => (
@@ -116,10 +116,22 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
   );
 }
 
+// Type options for dropdown
+const TYPE_OPTIONS = [
+  { value: "Scrap Product", label: "Scrap Product" },
+  { value: "Finished Product", label: "Finished Product" },
+  { value: "Raw Material", label: "Raw Material" },
+  { value: "Semi-Finished", label: "Semi-Finished" },
+  { value: "Component", label: "Component" },
+  { value: "Accessory", label: "Accessory" },
+];
+
+// Mock data for fallback
+
 const ItemCreation = ({ onCreated }) => {
   // State management
   const [treeData, setTreeData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
@@ -128,7 +140,6 @@ const ItemCreation = ({ onCreated }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
-  const [isCounterPopupOpen, setIsCounterPopupOpen] = useState(false);
   const [message, setMessage] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
 
@@ -143,27 +154,54 @@ const ItemCreation = ({ onCreated }) => {
     itemName: '',
     groupName: '',
     shortName: '',
-    counter: '',
+    brand: '',
+    category: '',
+    product: '',
+    model: '',
+    size: '',
+    max: '',
+    min: '',
     prefix: '',
-    hsnCode: '',
     gstin: '',
-    pieceRate: 'N',
     gst: 'N',
-    manualprefix: 'N'
+    manualprefix: 'N',
+    hsnCode: '',
+    pieceRate: 'N',
+    type: '',
+    sellingPrice: '',
+    costPrice: '',
+    unit: '',
+    unitCode: ''
   });
+
+  // Popup states for fields
+  const [isBrandPopupOpen, setIsBrandPopupOpen] = useState(false);
+  const [isCategoryPopupOpen, setIsCategoryPopupOpen] = useState(false);
+  const [isProductPopupOpen, setIsProductPopupOpen] = useState(false);
+  const [isModelPopupOpen, setIsModelPopupOpen] = useState(false);
+  const [isSizePopupOpen, setIsSizePopupOpen] = useState(false);
+  const [isUnitPopupOpen, setIsUnitPopupOpen] = useState(false);
 
   // Refs for form inputs
   const itemNameRef = useRef(null);
-  const groupNameRef = useRef(null);
   const shortNameRef = useRef(null);
-  const counterRef = useRef(null);
+  const groupNameRef = useRef(null);
+  const brandRef = useRef(null);
+  const categoryRef = useRef(null);
+  const productRef = useRef(null);
+  const modelRef = useRef(null);
+  const sizeRef = useRef(null);
+  const maxRef = useRef(null);
+  const minRef = useRef(null);
   const prefixRef = useRef(null);
-  const hsnCodeRef = useRef(null);
   const gstinRef = useRef(null);
+  const hsnCodeRef = useRef(null);
+  const typeRef = useRef(null);
+  const sellingPriceRef = useRef(null);
+  const costPriceRef = useRef(null);
+  const unitRef = useRef(null);
 
-  // Get permissions for this form.
-  // The `useFormPermissions` hook may not be available in this workspace yet.
-  // Use a safe permissive fallback to avoid runtime ReferenceError.
+  // Get permissions for this form
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
 
   // Auto-focus Group Name on component mount
@@ -192,42 +230,44 @@ const ItemCreation = ({ onCreated }) => {
     try {
       await fetchTreeData();
     } catch (err) {
-      console.error(err);
-      setMessage({ type: "error", text: "Failed to load data. Check console." });
+      console.error('Failed to load initial data:', err);
+      setMessage({ type: "error", text: "Failed to load data. Please check your connection." });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchTreeData = async () => {
-    try {
-      const response = await axiosInstance.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
-      if (!response.data) throw new Error('Invalid tree data format');
+ const fetchTreeData = async () => {
+  try {
+    // Change from axios.get(API_ENDPOINTS.ITEM_CREATION.getTree)
+    const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
+    
+    if (response.data && Array.isArray(response.data)) {
+      // Transform API response
+      const transformTreeData = (nodes) => {
+        return nodes.map(node => ({
+          key: node.fgroupCode || node.id || Math.random().toString(),
+          displayName: node.fgroupName || node.name || '',
+          id: node.fgroupCode || node.id || '',
+          children: node.children ? transformTreeData(node.children) : []
+        }));
+      };
       
-      const transformedData = transformApiData(response.data);
-      setTreeData(transformedData);
-      setExpandedKeys(new Set(transformedData.map(item => item.key)));
-    } catch (error) {
-      console.error('Tree data fetch error:', error);
+      const treeData = transformTreeData(response.data);
+      setTreeData(treeData);
+      setExpandedKeys(new Set(treeData.map(item => item.key)));
+    } else {
+      // Remove the fallback to MOCK_TREE_DATA
+      console.warn('Unexpected API response format');
+      setTreeData([]);
       setMessage({ type: "error", text: 'Failed to fetch tree data.' });
     }
-  };
-
-  const transformApiData = (apiData) => {
-    if (!Array.isArray(apiData)) return [];
-    
-    const buildTree = (items, parentPath = "") =>
-      items.map((item, idx) => {
-        const key = `${parentPath}/${item.fitemcode || item.fitemCode || idx}`;
-        return {
-          key,
-          displayName: item.fitemname || item.fitemName || "Unnamed",
-          id: item.fitemcode || item.fitemCode || null,
-          children: Array.isArray(item.children) ? buildTree(item.children, key) : [],
-        };
-      });
-    return buildTree(apiData);
-  };
+  } catch (error) {
+    console.error('Tree data fetch error:', error);
+    setMessage({ type: "error", text: 'Failed to fetch tree data.' });
+    setTreeData([]); // Set empty array instead of mock data
+  }
+};
 
   const toggleExpand = (key) => {
     setExpandedKeys((prev) => {
@@ -258,12 +298,13 @@ const ItemCreation = ({ onCreated }) => {
     }
   };
 
-  const handleManualPrefixToggle = () => {
+  const handleManualPrefixToggle = async () => {
     const newValue = !manualPrefixChecked;
     setManualPrefixChecked(newValue);
     handleChange('manualprefix', newValue ? 'Y' : 'N');
+    
     if (newValue) {
-      getMaxPrefixFromAPI();
+      await getMaxPrefixFromAPI();
     } else {
       handleChange('prefix', '');
     }
@@ -275,17 +316,25 @@ const ItemCreation = ({ onCreated }) => {
     handleChange('pieceRate', newValue ? 'Y' : 'N');
   };
 
-  const getMaxPrefixFromAPI = async () => {
-    try {
-      const response = await axiosInstance.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getMaxPrefix);
-      if (response.status === 200 && response.data.prefix) {
-        handleChange('prefix', response.data.prefix);
-      }
-    } catch (error) {
-      console.error('Error fetching max prefix:', error);
-      setMessage({ type: "error", text: 'Failed to fetch prefix. Please try again.' });
+const getMaxPrefixFromAPI = async () => {
+  try {
+    const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getMaxPrefix);
+    
+    if (response.data && response.data.maxPrefix) {
+      handleChange('prefix', response.data.maxPrefix.toString());
+    } else if (response.data && response.data.nextPrefix) {
+      handleChange('prefix', response.data.nextPrefix.toString());
+    } else {
+      const defaultPrefix = "1001";
+      handleChange('prefix', defaultPrefix);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching max prefix:', error);
+    setMessage({ type: "error", text: 'Failed to fetch prefix. Using default.' });
+    const defaultPrefix = "1001";
+    handleChange('prefix', defaultPrefix);
+  }
+};
 
   // Validation function
   const validateForm = () => {
@@ -309,10 +358,24 @@ const ItemCreation = ({ onCreated }) => {
       }
     }
 
-    // Validate HSN Code (8 digits)
-    if (formData.hsnCode && (isNaN(formData.hsnCode) || formData.hsnCode.length !== 8)) {
-      setMessage({ type: "error", text: 'HSN Code must be an 8-digit number.' });
+    // Validate HSN Code
+    if (formData.hsnCode && !/^\d{4,8}$/.test(formData.hsnCode)) {
+      setMessage({ type: "error", text: 'HSN Code should be 4-8 digits.' });
       hsnCodeRef.current?.focus();
+      return false;
+    }
+
+    // Validate Selling Price
+    if (formData.sellingPrice && isNaN(parseFloat(formData.sellingPrice))) {
+      setMessage({ type: "error", text: 'Selling Price should be a valid number.' });
+      sellingPriceRef.current?.focus();
+      return false;
+    }
+
+    // Validate Cost Price
+    if (formData.costPrice && isNaN(parseFloat(formData.costPrice))) {
+      setMessage({ type: "error", text: 'Cost Price should be a valid number.' });
+      costPriceRef.current?.focus();
       return false;
     }
 
@@ -346,90 +409,88 @@ const ItemCreation = ({ onCreated }) => {
 
     setIsSubmitting(true);
     setMessage(null);
+    
     try {
-      // For create operations, check for duplicates
-      if (actionType === 'create') {
-        try {
-          const response = await axiosInstance.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown);
-          const existingItems = Array.isArray(response.data) ? response.data : [];
-          const isDuplicate = existingItems.some(item => 
-            item.fItemName?.toLowerCase() === formData.itemName.toLowerCase()
-          );
-          if (isDuplicate) {
-            setMessage({ type: "error", text: 'An item with this name already exists. Please choose a different name.' });
-            setIsSubmitting(false);
-            return;
-          }
-        } catch (error) {
-          console.error('Error checking for duplicates:', error);
-          setMessage({ type: "error", text: 'Failed to verify item uniqueness. Please try again.' });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
+      // Prepare request data
       const requestData = {
-        fitemCode: formData.fitemCode || '',
-        fitemName: formData.itemName || '',
-        groupName: mainGroup || '',
-        shortName: formData.shortName || '',
-        counter: formData.counter || '',
-        prefix: formData.prefix || '',
-        hsnCode: formData.hsnCode || '',
-        gstNumber: formData.gstin || '', 
-        pieceRate: formData.pieceRate || 'N',
-        gst: formData.gst || 'N',
+        fCompCode: FCompCode,
+        fItemCode: formData.fitemCode || '',
+        fItemName: formData.itemName || '',
+        fParent: mainGroup || '',
+        fShort: formData.shortName || '',
+        fBrand: formData.brand || '',
+        fCategory: formData.category || '',
+        fProduct: formData.product || '',
+        fModel: formData.model || '',
+        fSize: formData.size || '',
+        fMax: formData.max || '',
+        fMin: formData.min || '',
+        fPrefix: formData.prefix || '',
+        ftax: formData.gstin || '',
+        gstcheckbox: formData.gst || 'N',
         manualprefix: formData.manualprefix || 'N',
-        fCompCode: FCompCode || '',
+        fHSN: formData.hsnCode || '',
+        fPieceRate: formData.pieceRate || 'N',
+        fType: formData.type || '',
+        fSellingPrice: formData.sellingPrice || '',
+        fCostPrice: formData.costPrice || '',
+        fUnit: formData.unit || '',
+        fUnitCode: formData.unitCode || '',
       };
 
-      console.log('Submitted Request Data:', requestData);
+      console.log('Submitting data:', requestData);
 
       let response;
-      switch (actionType) {
-        case 'create':
-          response = await axiosInstance.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
-          setMessage({ type: "success", text: 'Data saved successfully!' });
-          if (onCreated) {
-            onCreated({
-              name: requestData.fitemName,
-              code: requestData.fitemCode,
-            });
-          }
-          break;
-        case 'edit':
-          response = await axiosInstance.put(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.putEdit, requestData);
-          setMessage({ type: "success", text: 'Data updated successfully!' });
-          break;
-        case 'delete':
-          if (!formData.fitemCode) {
-            setMessage({ type: "error", text: 'fitemCode is required for deletion' });
-            return;
-          }
-          response = await axiosInstance.delete(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
-          setMessage({ type: "success", text: 'Data deleted successfully!' });
-          break;
+      
+     switch (actionType) {
+  case 'create':
+    // Duplicate check
+    const duplicateCheck = await apiService.get(
+      `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?search=${encodeURIComponent(formData.itemName)}`
+    );
+    
+    if (duplicateCheck.data && duplicateCheck.data.length > 0) {
+      // Handle duplicate
+    }
+    
+    response = await apiService.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
+    break;
+    
+  case 'edit':
+    response = await apiService.put(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.putEdit, requestData);
+    break;
+    
+  case 'delete':
+    response = await apiService.delete(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
+    break;
+
         default:
           setMessage({ type: "error", text: 'Invalid action type' });
+          setIsSubmitting(false);
           return;
       }
 
-      if (response.status === 200 || response.status === 201) {
-        handleClear();
-        await fetchTreeData();
-      } else {
-        setMessage({ type: "error", text: 'Failed to process request' });
-      }
+      // Refresh tree data
+      await fetchTreeData();
+      handleClear();
+      
     } catch (error) {
       console.error('Submit error:', error);
+      
       if (error.response) {
         const status = error.response.status;
-        const message = error.response.data?.message || 'An unexpected server error occurred.';
+        const errorMessage = error.response.data?.message || error.response.data || 'An unexpected server error occurred.';
 
         if (status === 409) {
           setMessage({ type: "error", text: 'Concurrent modification detected. Please refresh and try again.' });
+        } else if (status === 400) {
+          setMessage({ type: "error", text: `Validation error: ${errorMessage}` });
+        } else if (status === 404) {
+          setMessage({ type: "error", text: 'Resource not found. Please check the item code.' });
+        } else if (status === 500) {
+          setMessage({ type: "error", text: 'Server error. Please try again later.' });
         } else {
-          setMessage({ type: "error", text: `Error ${status}: ${message}` });
+          setMessage({ type: "error", text: `Error ${status}: ${errorMessage}` });
         }
       } else if (error.request) {
         setMessage({ type: "error", text: 'No response received from the server. Please check your network connection.' });
@@ -441,73 +502,182 @@ const ItemCreation = ({ onCreated }) => {
     }
   };
 
-  const fetchData = async (searchText = '') => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get(
-        `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?searchText=${searchText}`,
-      );
-
-      let responseData = response.data;
-      if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
-        responseData = responseData.data || responseData.result || [];
-      }
-
-      const dataArray = Array.isArray(responseData) ? responseData : [];
-      setDataList(dataArray);
-      setModalVisible(true);
-    } catch (error) {
-      console.error('Fetch error:', error);
-      setMessage({ type: "error", text: 'Failed to fetch data' });
-      setDataList([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Fetch function used by PopupListSelector for Edit/Delete
-  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
-    try {
-      const url = `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?searchText=${encodeURIComponent(search)}`;
-      const resp = await axiosInstance.get(url);
-      let items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || resp.data?.result || []);
-
-      return items.map((it) => ({
-        ...it,
-        // normalized fields for consumers
-        fItemName: it.fItemName ?? it.fitemName ?? it.fItemname ?? it.fItem ?? '',
-        fItemcode: it.fItemcode ?? it.fitemCode ?? it.fitemcode ?? it.fCode ?? '',
-        fParent: it.fParent ?? it.groupName ?? it.fParentName ?? ''
+ const fetchPopupItems = useCallback(async (page = 1, search = '') => {
+  try {
+    const response = await apiService.get(
+      API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown
+    );
+    
+    // Note: Your endpoint doesn't have pagination parameters
+    // You might need to handle filtering on frontend or update backend
+    if (response.data && Array.isArray(response.data)) {
+      // Filter by search term on frontend if needed
+      let filteredData = response.data;
+      if (search) {
+        filteredData = response.data.filter(item => 
+          (item.fItemName || '').toLowerCase().includes(search.toLowerCase()) ||
+          (item.fParent || '').toLowerCase().includes(search.toLowerCase())
+        );
+      }
+      
+      // Apply pagination on frontend
+      const startIndex = (page - 1) * 10;
+      const paginatedData = filteredData.slice(startIndex, startIndex + 10);
+      
+      return paginatedData.map((it) => ({
+        fItemName: it.fItemName || '',
+        fItemcode: it.fItemcode || '',
+        fParent: it.fParent || '',
+        fBrand: it.fBrand || '',
+        fCategory: it.fCategory || '',
+        fProduct: it.fProduct || '',
+        fModel: it.fModel || '',
+        fSize: it.fSize || '',
+        fMax: it.fMax || '',
+        fMin: it.fMin || '',
+        ftax: it.ftax || '',
+        fPrefix: it.fPrefix || '',
+        gstcheckbox: it.gstcheckbox || 'N',
+        manualprefix: it.manualprefix || 'N',
+        fHSN: it.fHSN || '',
+        fPieceRate: it.fPieceRate || 'N',
+        fType: it.fType || '',
+        fSellingPrice: it.fSellingPrice || '',
+        fCostPrice: it.fCostPrice || '',
+        fUnit: it.fUnit || '',
+        fUnitCode: it.fUnitCode || '',
+        fShort: it.fShort || '',
       }));
+    }
+    
+    return []; // Return empty array instead of mock data
+  } catch (err) {
+    console.error('fetchPopupItems error', err);
+    return []; // Return empty array instead of mock data
+  }
+}, []);
+
+  // Fetch functions for popups
+  const fetchBrands = useCallback(async (page = 1, search = '') => {
+    try {
+      const response = await axios.get(
+        `${API_ENDPOINTS.BRANDS.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fbrandName || item.name || '',
+          fcode: item.fbrandCode || item.code || ''
+        }));
+      }
+      
+      return MOCK_BRANDS_DATA;
     } catch (err) {
-      console.error('fetchPopupItems error', err);
-      return [];
+      console.error('fetchBrands error', err);
+      return MOCK_BRANDS_DATA;
     }
   }, []);
 
-  // Fetch function for Counter PopupListSelector
-  const fetchCounterItems = useCallback(async (page = 1, search = '') => {
+  const fetchCategories = useCallback(async (page = 1, search = '') => {
     try {
-      const response = await axiosInstance.get(API_ENDPOINTS.GET_COUNTER_LIST);
-      const counterData = Array.isArray(response.data) ? response.data : [];
+      const response = await axios.get(
+        `${API_ENDPOINTS.CATEGORIES.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
       
-      // Filter by search text if provided
-      const filtered = search ? counterData.filter(item => 
-        item.fbox?.toLowerCase().includes(search.toLowerCase())
-      ) : counterData;
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fcategoryName || item.name || '',
+          fcode: item.fcategoryCode || item.code || ''
+        }));
+      }
       
-      return filtered.map((item) => ({
-        ...item,
-        fbox: item.fbox || '',
-        fcode: item.fcode || ''
-      }));
+      return MOCK_CATEGORIES_DATA;
     } catch (err) {
-      console.error('fetchCounterItems error', err);
-      return [];
+      console.error('fetchCategories error', err);
+      return MOCK_CATEGORIES_DATA;
     }
   }, []);
 
+  const fetchProducts = useCallback(async (page = 1, search = '') => {
+    try {
+      const response = await axios.get(
+        `${API_ENDPOINTS.PRODUCTS.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fproductName || item.name || '',
+          fcode: item.fproductCode || item.code || ''
+        }));
+      }
+      
+      return MOCK_PRODUCTS_DATA;
+    } catch (err) {
+      console.error('fetchProducts error', err);
+      return MOCK_PRODUCTS_DATA;
+    }
+  }, []);
 
+  const fetchModels = useCallback(async (page = 1, search = '') => {
+    try {
+      const response = await axios.get(
+        `${API_ENDPOINTS.MODELS.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fmodelName || item.name || '',
+          fcode: item.fmodelCode || item.code || ''
+        }));
+      }
+      
+      return MOCK_MODELS_DATA;
+    } catch (err) {
+      console.error('fetchModels error', err);
+      return MOCK_MODELS_DATA;
+    }
+  }, []);
+
+  const fetchSizes = useCallback(async (page = 1, search = '') => {
+    try {
+      const response = await axios.get(
+        `${API_ENDPOINTS.SIZES.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.fsizeName || item.name || '',
+          fcode: item.fsizeCode || item.code || ''
+        }));
+      }
+      
+      return MOCK_SIZES_DATA;
+    } catch (err) {
+      console.error('fetchSizes error', err);
+      return MOCK_SIZES_DATA;
+    }
+  }, []);
+
+  const fetchUnits = useCallback(async (page = 1, search = '') => {
+    try {
+      const response = await axios.get(
+        `${API_ENDPOINTS.UNITS.get}?page=${page}&search=${encodeURIComponent(search)}`
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          fname: item.funitName || item.name || '',
+          fcode: item.funitCode || item.code || ''
+        }));
+      }
+      
+      return MOCK_UNITS_DATA;
+    } catch (err) {
+      console.error('fetchUnits error', err);
+      return MOCK_UNITS_DATA;
+    }
+  }, []);
 
   const resetForm = (keepAction = false) => {
     setMainGroup('');
@@ -517,13 +687,24 @@ const ItemCreation = ({ onCreated }) => {
       itemName: '',
       groupName: '',
       shortName: '',
-      counter: '',
+      brand: '',
+      category: '',
+      product: '',
+      model: '',
+      size: '',
+      max: '',
+      min: '',
       prefix: '',
-      hsnCode: '',
       gstin: '',
-      pieceRate: 'N',
       gst: 'N',
-      manualprefix: 'N'
+      manualprefix: 'N',
+      hsnCode: '',
+      pieceRate: 'N',
+      type: '',
+      sellingPrice: '',
+      costPrice: '',
+      unit: '',
+      unitCode: ''
     });
     setGstChecked(false);
     setManualPrefixChecked(false);
@@ -541,7 +722,7 @@ const ItemCreation = ({ onCreated }) => {
     setIsTreeOpen(true);
     
     if (type === 'edit' || type === 'delete') {
-      fetchData();
+      // PopupListSelector will handle data fetching
     }
   };
 
@@ -566,19 +747,18 @@ const ItemCreation = ({ onCreated }) => {
 
   return (
     <div className="lg-root" role="region" aria-labelledby="item-title">
-      {/* Google/Local font — will fallback to system fonts if blocked */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* custom blue theme (provided by user) */
+          /* custom blue theme */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
           --glass-2: rgba(255,255,255,0.35);
-          --accent: #307AC8; /* primary */
-          --accent-2: #1B91DA; /* secondary */
-          --accent-3: #06A7EA; /* tertiary */
+          --accent: #307AC8;
+          --accent-2: #1B91DA;
+          --accent-3: #06A7EA;
           --success: #06A7EA;
           --danger: #ef4444;
           --muted: #64748b;
@@ -610,7 +790,6 @@ const ItemCreation = ({ onCreated }) => {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
-          
         }
         .dashboard:hover { transform: translateY(-6px); }
 
@@ -659,10 +838,33 @@ const ItemCreation = ({ onCreated }) => {
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
           font-size: 13px;
+          transition: all 0.2s;
+          border: none;
         }
-        .action-pill.primary { color:white; background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
-        .action-pill.warn { color:white; background: linear-gradient(180deg,#f59e0b,#f97316); }
-        .action-pill.danger { color:white; background: linear-gradient(180deg,var(--danger),#f97373); }
+        .action-pill:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(2,6,23,0.08);
+        }
+        .action-pill:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+        .action-pill.primary { 
+          color:white; 
+          background: linear-gradient(180deg, var(--accent), var(--accent-2));
+          border: 1px solid rgba(48, 122, 200, 0.3);
+        }
+        .action-pill.warn { 
+          color:white; 
+          background: linear-gradient(180deg,#f59e0b,#f97316);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .action-pill.danger { 
+          color:white; 
+          background: linear-gradient(180deg,var(--danger),#f97373);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
 
         /* grid layout */
         .grid {
@@ -691,7 +893,12 @@ const ItemCreation = ({ onCreated }) => {
           width: 100%;
         }
 
-        .field { margin-bottom:12px; display:flex; flex-direction:column; align-items:flex-start; }
+        .field { 
+          margin-bottom:12px; 
+          display:flex; 
+          flex-direction:column; 
+          align-items:flex-start; 
+        }
 
         .row { 
           display:flex; 
@@ -700,44 +907,101 @@ const ItemCreation = ({ onCreated }) => {
           width:100%;
           flex-wrap: wrap;
         }
-        .input, .search {
+        .input, .search, .select {
           flex:1;
           min-width: 0;
           padding:10px 12px;
           border-radius:10px;
-          border: 1px solid rgba(15,23,42,0.06);
+          border: 1px solid rgba(15,23,42,0.1);
           background: linear-gradient(180deg, #fff, #fbfdff);
           font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
-          transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
+          transition: all 160ms ease;
           text-align: left;
+          font-family: inherit;
         }
-        .input:focus, .search:focus { outline:none; box-shadow: 0 8px 26px rgba(37,99,235,0.08); transform: translateY(-1px); border-color: rgba(37,99,235,0.25); }
+        .input:focus, .search:focus, .select:focus { 
+          outline:none; 
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.15); 
+          border-color: rgba(37,99,235,0.5); 
+        }
+        .input:disabled, .select:disabled {
+          background: #f1f5f9;
+          cursor: not-allowed;
+          opacity: 0.7;
+        }
+
+        .select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23307AC8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 10px center;
+          background-size: 16px;
+          padding-right: 32px;
+          cursor: pointer;
+        }
 
         .btn {
           padding:10px 12px;
           border-radius:10px;
-          border:1px solid rgba(12,18,35,0.06);
+          border:1px solid rgba(12,18,35,0.1);
           background: linear-gradient(180deg,#fff,#f8fafc);
           cursor:pointer;
           min-width:86px;
           font-weight:600;
           white-space: nowrap;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .btn:hover {
+          background: linear-gradient(180deg,#f8fafc,#f1f5f9);
+        }
+        .btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
-        .controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+        .controls { 
+          display:flex; 
+          gap:10px; 
+          margin-top:10px; 
+          flex-wrap:wrap; 
+        }
 
         /* tree panel */
         .panel {
           margin-top:8px;
           border-radius:10px;
           background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(250,251,255,0.6));
-          border: 1px solid rgba(12,18,35,0.04);
+          border: 1px solid rgba(12,18,35,0.08);
           padding:10px;
           width: 100%;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
-        .tree-scroll { max-height:260px; overflow:auto; padding-right:6px; }
+        .tree-scroll { 
+          max-height:260px; 
+          overflow:auto; 
+          padding-right:6px;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(12,18,35,0.1) transparent;
+        }
+        .tree-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .tree-scroll::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 10px;
+        }
+        .tree-scroll::-webkit-scrollbar-thumb {
+          background: rgba(12,18,35,0.15);
+          border-radius: 10px;
+          border: 2px solid transparent;
+          background-clip: padding-box;
+        }
+        .tree-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(12,18,35,0.25);
+        }
 
         .tree-row {
           display:flex;
@@ -746,10 +1010,17 @@ const ItemCreation = ({ onCreated }) => {
           padding:10px;
           border-radius:10px;
           cursor:pointer;
-          transition: background 160ms ease, transform 120ms ease, box-shadow 180ms ease;
+          transition: all 160ms ease;
+          margin-bottom: 2px;
         }
-        .tree-row:hover { background: linear-gradient(90deg, rgba(74,222,128,0.06), rgba(74,222,128,0.02)); transform: translateX(6px); }
-        .tree-row.selected { background: linear-gradient(90deg, rgba(15,23,42,0.03), rgba(15,23,42,0.01)); box-shadow: inset 0 0 0 1px rgba(16,163,98,0.06); }
+        .tree-row:hover { 
+          background: linear-gradient(90deg, rgba(74,222,128,0.06), rgba(74,222,128,0.02)); 
+          transform: translateX(4px); 
+        }
+        .tree-row.selected { 
+          background: linear-gradient(90deg, rgba(15,23,42,0.03), rgba(15,23,42,0.01)); 
+          box-shadow: inset 0 0 0 1px rgba(16,163,98,0.1); 
+        }
 
         .chev, .chev-placeholder {
           background:transparent;
@@ -761,12 +1032,29 @@ const ItemCreation = ({ onCreated }) => {
           justify-content:center;
           cursor:pointer;
           font-size:14px;
+          padding: 0;
         }
-        .chev-rot { display:inline-block; transition: transform 220ms cubic-bezier(.2,.8,.2,1); }
+        .chev-rot { 
+          display:inline-block; 
+          transition: transform 220ms cubic-bezier(.2,.8,.2,1); 
+        }
         .chev-rot.open { transform: rotate(90deg); }
 
-        .node-icon { width:22px; display:inline-flex; align-items:center; justify-content:center; color:var(--accent); }
-        .node-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; color:#0f172a; }
+        .node-icon { 
+          width:22px; 
+          display:inline-flex; 
+          align-items:center; 
+          justify-content:center; 
+          color:var(--accent); 
+        }
+        .node-text { 
+          white-space:nowrap; 
+          overflow:hidden; 
+          text-overflow:ellipsis; 
+          font-weight:600; 
+          color:#0f172a;
+          flex: 1;
+        }
 
         /* right card (preview / summary) */
         .side {
@@ -778,9 +1066,20 @@ const ItemCreation = ({ onCreated }) => {
           background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(250,251,255,0.7));
           border-radius: 12px;
           padding:12px;
-          border: 1px solid rgba(12,18,35,0.04);
+          border: 1px solid rgba(12,18,35,0.06);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { 
+          color: var(--muted); 
+          font-size:13px; 
+          margin-bottom: 4px;
+        }
+        .stat-value {
+          font-weight: 700;
+          font-size: 16px;
+          color: #0f172a;
+          min-height: 24px;
+        }
 
         /* message */
         .message {
@@ -788,9 +1087,18 @@ const ItemCreation = ({ onCreated }) => {
           padding:12px;
           border-radius:10px;
           font-weight:600;
+          font-size: 14px;
         }
-        .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
-        .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
+        .message.error { 
+          background: #fff1f2; 
+          color: #9f1239; 
+          border: 1px solid #ffd7da; 
+        }
+        .message.success { 
+          background: #f0fdf4; 
+          color: #064e3b; 
+          border: 1px solid #bbf7d0; 
+        }
 
         /* submit row */
         .submit-row { 
@@ -809,29 +1117,52 @@ const ItemCreation = ({ onCreated }) => {
           font-weight:700;
           cursor:pointer;
           min-width: 120px;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .submit-primary:hover:not(:disabled) {
+          background: linear-gradient(180deg, var(--accent-2), var(--accent-3));
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(48, 122, 200, 0.3);
+        }
+        .submit-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+          box-shadow: none !important;
         }
         .submit-clear {
           padding:10px 12px;
           background:#fff;
-          border:1px solid rgba(12,18,35,0.06);
+          border:1px solid rgba(12,18,35,0.1);
           border-radius:10px;
           cursor:pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .submit-clear:hover:not(:disabled) {
+          background: #f8fafc;
+          border-color: rgba(12,18,35,0.2);
+        }
+        .submit-clear:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
         
         .search-container {
           position: relative;
-          width: 80%;
+          width: 100%;
         }
 
         .search-with-clear {
           width: 100%;
-           padding: 12px 40px 12px 16px;
+          padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
           font-size: 14px;
           transition: all 0.2s;
+          font-family: inherit;
         }
-        /* Limit search width inside panels and modals to avoid overly long inputs */
         .panel .search-with-clear,
         .modal .search-with-clear {
           max-width: 420px;
@@ -858,6 +1189,7 @@ const ItemCreation = ({ onCreated }) => {
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: all 0.2s;
         }
 
         .clear-search-btn:hover {
@@ -866,17 +1198,58 @@ const ItemCreation = ({ onCreated }) => {
         }
 
         /* dropdown modal (glass) */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 16px;
+        }
+        
+        .modal {
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
+          max-width: 600px;
+          width: 100%;
+          max-height: 80vh;
+          overflow: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
          
-        .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
-        .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; }
-        .dropdown-item:hover { background: linear-gradient(90deg, rgba(16,163,98,0.04), rgba(16,163,98,0.01)); transform: translateX(6px); }
+        .dropdown-list { 
+          max-height:50vh; 
+          overflow:auto; 
+          border-top:1px solid rgba(12,18,35,0.03); 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          padding:6px 0; 
+        }
+        .dropdown-item { 
+          padding:12px; 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          cursor:pointer; 
+          display:flex; 
+          flex-direction:column; 
+          gap:4px; 
+          transition: all 0.2s;
+        }
+        .dropdown-item:hover { 
+          background: linear-gradient(90deg, rgba(16,163,98,0.04), rgba(16,163,98,0.01)); 
+          transform: translateX(6px); 
+        }
         .dropdown-item, .node-text { text-align: left; }
 
         /* form grid */
         .form-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 24px 32px;
           margin-bottom: 16px;
           align-items: start;
         }
@@ -906,6 +1279,7 @@ const ItemCreation = ({ onCreated }) => {
           align-items: center;
           justify-content: center;
           transition: all 0.2s;
+          flex-shrink: 0;
         }
         .checkbox.checked {
           background: var(--accent);
@@ -921,6 +1295,84 @@ const ItemCreation = ({ onCreated }) => {
           font-size: 14px;
           font-weight: 500;
           color: #374151;
+          user-select: none;
+        }
+        .checkbox-group:hover .checkbox:not(.checked) {
+          border-color: var(--accent);
+        }
+
+        /* Custom styles for browse buttons with search icon */
+        .browse-btn {
+          padding: 10px 12px;
+          background: linear-gradient(180deg, var(--accent), var(--accent-2));
+          border: 1px solid var(--accent);
+          border-radius: 10px;
+          cursor: pointer;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 42px;
+          height: 42px;
+          transition: all 0.2s;
+          border: none;
+        }
+        
+        .browse-btn:hover {
+          background: linear-gradient(180deg, var(--accent-2), var(--accent-3));
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(48, 122, 200, 0.2);
+        }
+        
+        .browse-btn:disabled {
+          background: #cbd5e1;
+          border-color: #cbd5e1;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
+        /* Styles for input fields with built-in search icon */
+        .input-with-search {
+          position: relative;
+          width: 100%;
+        }
+        
+        .input-with-search .input {
+          width: 100%;
+          padding-right: 40px;
+          cursor: pointer;
+          background: white;
+        }
+        
+        .input-search-icon {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--accent);
+          pointer-events: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .input-with-search .input:focus + .input-search-icon {
+          color: var(--accent-2);
+        }
+
+        /* Compact Max & Min fields layout */
+        .field .row input[placeholder="Max"],
+        .field .row input[placeholder="Min"] {
+          text-align: center;
+          padding: 10px 8px;
+          min-width: 80px;
+        }
+
+        /* Tips panel */
+        .tips-panel {
+          background: linear-gradient(180deg, rgba(240, 249, 255, 0.7), rgba(240, 249, 255, 0.5));
+          border: 1px solid rgba(173, 216, 230, 0.3);
         }
 
         /* Responsive styles */
@@ -962,6 +1414,12 @@ const ItemCreation = ({ onCreated }) => {
           }
           .form-grid {
             grid-template-columns: 1fr;
+            gap: 16px;
+          }
+          .field .row input[placeholder="Max"],
+          .field .row input[placeholder="Min"] {
+            min-width: 70px;
+            padding: 8px 6px;
           }
         }
 
@@ -981,14 +1439,15 @@ const ItemCreation = ({ onCreated }) => {
             padding: 8px 10px;
             font-size: 12px;
           }
-          .input, .search {
+          .input, .search, .select {
             padding: 8px 10px;
             font-size: 13px;
           }
-          .btn {
+          .btn, .browse-btn {
             padding: 8px 10px;
-            min-width: 70px;
+            min-width: 38px;
             font-size: 13px;
+            height: 38px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
@@ -1006,6 +1465,12 @@ const ItemCreation = ({ onCreated }) => {
           }
           .modal {
             padding: 12px;
+          }
+          .field .row input[placeholder="Max"],
+          .field .row input[placeholder="Min"] {
+            min-width: 60px;
+            padding: 8px 4px;
+            font-size: 13px;
           }
         }
 
@@ -1041,10 +1506,6 @@ const ItemCreation = ({ onCreated }) => {
       <div className="dashboard" aria-labelledby="item-title">
         <div className="top-row">
           <div className="title-block">
-            {/* <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#ecfdf5" />
-              <path d="M6 12h12M6 8h12M6 16h12" stroke="var(--accent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg> */}
             <div>
               <h2 id="item-title">Item Creation</h2>
               <div className="subtitle muted">Create, edit, or delete items — organized & fast.</div>
@@ -1087,72 +1548,72 @@ const ItemCreation = ({ onCreated }) => {
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
             {/* Group Name field */}
-<div className="field">
-  <label className="field-label">Group Name *</label>
-  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-    <div style={{
-      display: "flex",
-      flex: 1,
-      border: "1px solid rgba(15,23,42,0.06)",
-      borderRadius: "10px",
-      overflow: "hidden",
-      background: "linear-gradient(180deg, #fff, #fbfdff)",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-    }}>
-      <input
-        ref={groupNameRef}
-        className="input"
-        value={mainGroup}
-        onChange={(e) => setMainGroup(e.target.value)}
-        onFocus={() => setIsTreeOpen(true)}
-        placeholder="Select Group Name"
-        disabled={isSubmitting}
-        aria-label="Group Name"
-        style={{
-          flex: 1,
-          border: "none",
-          borderRadius: 0,
-          padding: "10px 12px",
-          minWidth: "120px",
-          fontSize: "14px",
-          outline: "none",
-          cursor: "pointer"
-        }}
-      />
-      <button
-        className="btn"
-        onClick={() => { setIsTreeOpen((v) => !v); setModalVisible(false); }}
-        disabled={isSubmitting}
-        type="button"
-        aria-expanded={isTreeOpen}
-        aria-controls="group-tree"
-        style={{
-          flexShrink: 0,
-          border: "none",
-          borderLeft: "1px solid rgba(15,23,42,0.06)",
-          borderRadius: 0,
-          padding: "8px 12px",
-          minWidth: "70px",
-          fontSize: "12px",
-          fontWeight: "600",
-          background: "linear-gradient(180deg,#fff,#f8fafc)",
-          cursor: isSubmitting ? "not-allowed" : "pointer",
-          color: "#0f172a",
-          transition: "all 0.2s"
-        }}
-        onMouseOver={(e) => {
-          if (!isSubmitting) {
-            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
-          }
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
-        }}
-      >
-        {isTreeOpen ? "Close" : "Open"}
-      </button>
-    </div>
-  </div>
+            <div className="field">
+              <label className="field-label">Group Name *</label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    ref={groupNameRef}
+                    className="input"
+                    value={mainGroup}
+                    onChange={(e) => setMainGroup(e.target.value)}
+                    onFocus={() => setIsTreeOpen(true)}
+                    placeholder="Select Group Name"
+                    disabled={isSubmitting}
+                    aria-label="Group Name"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      minWidth: "120px",
+                      fontSize: "14px",
+                      outline: "none",
+                      cursor: "pointer"
+                    }}
+                  />
+                  <button
+                    className="btn"
+                    onClick={() => { setIsTreeOpen((v) => !v); }}
+                    disabled={isSubmitting}
+                    type="button"
+                    aria-expanded={isTreeOpen}
+                    aria-controls="group-tree"
+                    style={{
+                      flexShrink: 0,
+                      border: "none",
+                      borderLeft: "1px solid rgba(15,23,42,0.06)",
+                      borderRadius: 0,
+                      padding: "8px 12px",
+                      minWidth: "70px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      background: "linear-gradient(180deg,#fff,#f8fafc)",
+                      cursor: isSubmitting ? "not-allowed" : "pointer",
+                      color: "#0f172a",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseOver={(e) => {
+                      if (!isSubmitting) {
+                        e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
+                    }}
+                  >
+                    {isTreeOpen ? "Close" : "Open"}
+                  </button>
+                </div>
+              </div>
 
               {isTreeOpen && (
                 isMobile ? (
@@ -1238,99 +1699,280 @@ const ItemCreation = ({ onCreated }) => {
                     <div className="tree-scroll" role="tree" aria-label="Group list">
                       {loading ? (
                         <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-                      ) : filteredTree.length === 0 ? (
-                        <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-                      ) : (
-                        filteredTree.map((node) => (
-                          <TreeNode
-                            key={node.key}
-                            node={node}
-                            onSelect={handleSelectNode}
-                            expandedKeys={expandedKeys}
-                            toggleExpand={toggleExpand}
-                            selectedKey={selectedNode?.key}
-                          />
-                        ))
-                      )}
+                        ) : filteredTree.length === 0 ? (
+                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+                        ) : (
+                          filteredTree.map((node) => (
+                            <TreeNode
+                              key={node.key}
+                              node={node}
+                              onSelect={handleSelectNode}
+                              expandedKeys={expandedKeys}
+                              toggleExpand={toggleExpand}
+                              selectedKey={selectedNode?.key}
+                            />
+                          ))
+                        )}
                     </div>
                   </div>
                 )
               )}
             </div>
 
+            {/* Item Name field */}
+            <div className="field">
+              <label className="field-label">Item Name *</label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    ref={itemNameRef}
+                    className="input"
+                    value={formData.itemName}
+                    onChange={(e) => handleChange('itemName', e.target.value)}
+                    placeholder="Enter Item Name"
+                    disabled={isSubmitting}
+                    aria-label="Item Name"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      minWidth: "120px",
+                      fontSize: "14px",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Short Name field */}
+            <div className="field">
+              <label className="field-label">Short Name</label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    ref={shortNameRef}
+                    className="input"
+                    value={formData.shortName}
+                    onChange={(e) => handleChange('shortName', e.target.value)}
+                    placeholder="Enter Short Name"
+                    disabled={isSubmitting}
+                    aria-label="Short Name"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      minWidth: "120px",
+                      fontSize: "14px",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Form Grid */}
             <div className="form-grid">
-              {/* Item Name */}
-              <div className="field full-width">
-                <label className="field-label">Item Name *</label>
-                <input
-                  ref={itemNameRef}
-                  className="input"
-                  value={formData.itemName}
-                  onChange={(e) => handleChange('itemName', e.target.value)}
-                  placeholder="Enter Item Name"
-                  disabled={isSubmitting}
-                  aria-label="Item Name"
-                />
-              </div>
-
-              {/* Short Name */}
+              {/* Brand */}
               <div className="field">
-                <label className="field-label">Short Name</label>
-                <input
-                  ref={shortNameRef}
-                  className="input"
-                  value={formData.shortName}
-                  onChange={(e) => handleChange('shortName', e.target.value)}
-                  placeholder="Enter Short Name"
-                  disabled={isSubmitting}
-                  aria-label="Short Name"
-                />
-              </div>
-
-              {/* Counter */}
-<div className="field">
-  <label className="field-label">Counter</label>
-  <div style={{ display: "flex", gap: "8px" }}>
-    <input
-      ref={counterRef}
-      className="input"
-      value={formData.counter}
-      onChange={(e) => handleChange('counter', e.target.value)}
-      placeholder="Select Counter"
-      disabled={isSubmitting}
-      readOnly
-      aria-label="Counter"
-      style={{ flex: 1 }}
-    />
-    <button
-      type="button"
-      onClick={() => setIsCounterPopupOpen(true)}
-      disabled={isSubmitting}
-      style={{
-        padding: "10px 12px",
-        backgroundColor: "#f0f7fb",
-        border: "1px solid #307AC8",
-        borderRadius: "10px",
-        cursor: "pointer",
-        color: "#307AC8",
-        fontWeight: "600"
-      }}
-      title="Browse Counters"
-    >
-      Browse
-    </button>
-  </div>
-</div>
-
-              {/* GST Checkbox */}
-              <div className="field">
-                <div className="checkbox-group">
-                  <div 
-                    className={`checkbox ${gstChecked ? 'checked' : ''}`}
-                    onClick={handleGstToggle}
+                <label className="field-label">Brand</label>
+                <div className="input-with-search">
+                  <input
+                    ref={brandRef}
+                    className="input"
+                    value={formData.brand}
+                    onChange={(e) => handleChange('brand', e.target.value)}
+                    onClick={() => setIsBrandPopupOpen(true)}
+                    placeholder="Select Brand"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Brand"
                   />
-                  <span className="checkbox-label">GST</span>
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="field">
+                <label className="field-label">Category</label>
+                <div className="input-with-search">
+                  <input
+                    ref={categoryRef}
+                    className="input"
+                    value={formData.category}
+                    onChange={(e) => handleChange('category', e.target.value)}
+                    onClick={() => setIsCategoryPopupOpen(true)}
+                    placeholder="Select Category"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Category"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Product */}
+              <div className="field">
+                <label className="field-label">Product</label>
+                <div className="input-with-search">
+                  <input
+                    ref={productRef}
+                    className="input"
+                    value={formData.product}
+                    onChange={(e) => handleChange('product', e.target.value)}
+                    onClick={() => setIsProductPopupOpen(true)}
+                    placeholder="Select Product"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Product"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Model */}
+              <div className="field">
+                <label className="field-label">Model</label>
+                <div className="input-with-search">
+                  <input
+                    ref={modelRef}
+                    className="input"
+                    value={formData.model}
+                    onChange={(e) => handleChange('model', e.target.value)}
+                    onClick={() => setIsModelPopupOpen(true)}
+                    placeholder="Select Model"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Model"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Size */}
+              <div className="field">
+                <label className="field-label">Size</label>
+                <div className="input-with-search">
+                  <input
+                    ref={sizeRef}
+                    className="input"
+                    value={formData.size}
+                    onChange={(e) => handleChange('size', e.target.value)}
+                    onClick={() => setIsSizePopupOpen(true)}
+                    placeholder="Select Size"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Size"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Units */}
+              <div className="field">
+                <label className="field-label">Units</label>
+                <div className="input-with-search">
+                  <input
+                    ref={unitRef}
+                    className="input"
+                    value={formData.unit}
+                    onChange={(e) => handleChange('unit', e.target.value)}
+                    onClick={() => setIsUnitPopupOpen(true)}
+                    placeholder="Select Units"
+                    disabled={isSubmitting}
+                    readOnly
+                    aria-label="Units"
+                  />
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Max */}
+              <div className="field">
+                <label className="field-label">Max</label>
+                <input
+                  ref={maxRef}
+                  className="input"
+                  value={formData.max}
+                  onChange={(e) => handleChange('max', e.target.value)}
+                  placeholder="Enter Max"
+                  disabled={isSubmitting}
+                  aria-label="Max"
+                  style={{ textAlign: "center" }}
+                />
+              </div>
+
+              {/* Min */}
+              <div className="field">
+                <label className="field-label">Min</label>
+                <input
+                  ref={minRef}
+                  className="input"
+                  value={formData.min}
+                  onChange={(e) => handleChange('min', e.target.value)}
+                  placeholder="Enter Min"
+                  disabled={isSubmitting}
+                  aria-label="Min"
+                  style={{ textAlign: "center" }}
+                />
+              </div>
+
+              {/* HSN Code */}
+              <div className="field">
+                <label className="field-label">HSN Code</label>
+                <input
+                  ref={hsnCodeRef}
+                  className="input"
+                  value={formData.hsnCode}
+                  onChange={(e) => {
+                    if (/^\d{0,8}$/.test(e.target.value)) {
+                      handleChange('hsnCode', e.target.value);
+                    }
+                  }}
+                  placeholder="Enter HSN Code"
+                  disabled={isSubmitting}
+                  aria-label="HSN Code"
+                  title="4-8 digit HSN Code"
+                />
+              </div>
+
+              {/* Piece Rate Checkbox */}
+              <div className="field">
+                <div className="checkbox-group" onClick={handlePieceRateToggle}>
+                  <div 
+                    className={`checkbox ${pieceRateChecked ? 'checked' : ''}`}
+                  />
+                  <span className="checkbox-label">Piece Rate</span>
                 </div>
               </div>
 
@@ -1361,14 +2003,13 @@ const ItemCreation = ({ onCreated }) => {
                 />
               </div>
 
-              {/* Manual Prefix Checkbox */}
+              {/* GST Checkbox */}
               <div className="field">
-                <div className="checkbox-group">
+                <div className="checkbox-group" onClick={handleGstToggle}>
                   <div 
-                    className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
-                    onClick={handleManualPrefixToggle}
+                    className={`checkbox ${gstChecked ? 'checked' : ''}`}
                   />
-                  <span className="checkbox-label">Manual Prefix</span>
+                  <span className="checkbox-label">GST</span>
                 </div>
               </div>
 
@@ -1390,34 +2031,74 @@ const ItemCreation = ({ onCreated }) => {
                 />
               </div>
 
-              {/* Piece Rate Checkbox */}
+              {/* Manual Prefix Checkbox */}
               <div className="field">
-                <div className="checkbox-group">
+                <div className="checkbox-group" onClick={handleManualPrefixToggle}>
                   <div 
-                    className={`checkbox ${pieceRateChecked ? 'checked' : ''}`}
-                    onClick={handlePieceRateToggle}
+                    className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
                   />
-                  <span className="checkbox-label">Piece Rate</span>
+                  <span className="checkbox-label">Manual Prefix</span>
                 </div>
               </div>
 
-              {/* HSN Code */}
+              {/* Selling Price */}
               <div className="field">
-                <label className="field-label">HSN Code</label>
+                <label className="field-label">Selling Price</label>
                 <input
-                  ref={hsnCodeRef}
+                  ref={sellingPriceRef}
                   className="input"
-                  value={formData.hsnCode}
+                  value={formData.sellingPrice}
                   onChange={(e) => {
-                    if (/^\d*$/.test(e.target.value)) {
-                      handleChange('hsnCode', e.target.value);
+                    if (/^\d*\.?\d{0,2}$/.test(e.target.value)) {
+                      handleChange('sellingPrice', e.target.value);
                     }
                   }}
-                  maxLength="8"
-                  placeholder="Enter HSN Code"
+                  placeholder="Enter Selling Price"
                   disabled={isSubmitting}
-                  aria-label="HSN Code"
+                  aria-label="Selling Price"
+                  type="number"
+                  step="0.01"
                 />
+              </div>
+
+              {/* Cost Price */}
+              <div className="field">
+                <label className="field-label">Cost Price</label>
+                <input
+                  ref={costPriceRef}
+                  className="input"
+                  value={formData.costPrice}
+                  onChange={(e) => {
+                    if (/^\d*\.?\d{0,2}$/.test(e.target.value)) {
+                      handleChange('costPrice', e.target.value);
+                    }
+                  }}
+                  placeholder="Enter Cost Price"
+                  disabled={isSubmitting}
+                  aria-label="Cost Price"
+                  type="number"
+                  step="0.01"
+                />
+              </div>
+
+              {/* Type Dropdown */}
+              <div className="field">
+                <label className="field-label">Type</label>
+                <select
+                  ref={typeRef}
+                  className="select"
+                  value={formData.type}
+                  onChange={(e) => handleChange('type', e.target.value)}
+                  disabled={isSubmitting}
+                  aria-label="Type"
+                >
+                  <option value="">Select Type</option>
+                  {TYPE_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -1472,7 +2153,7 @@ const ItemCreation = ({ onCreated }) => {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>
+              <div className="stat-value">
                 {actionType === 'create' ? 'Create New Item' : 
                  actionType === 'edit' ? 'Edit Item' : 'Delete Item'}
               </div>
@@ -1480,38 +2161,93 @@ const ItemCreation = ({ onCreated }) => {
 
             <div className="stat">
               <div className="muted">Group Name</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {mainGroup || ""}
-              </div>
+              <div className="stat-value">{mainGroup || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Item Name</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.itemName || ""}
-              </div>
+              <div className="stat-value">{formData.itemName || ""}</div>
             </div>
 
             <div className="stat">
               <div className="muted">Short Name</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.shortName || ""}
-              </div>
+              <div className="stat-value">{formData.shortName || ""}</div>
             </div>
 
             <div className="stat">
-              <div className="muted">F-Code</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {formData.fitemCode || ""}
-              </div>
+              <div className="muted">Brand</div>
+              <div className="stat-value">{formData.brand || ""}</div>
             </div>
 
             <div className="stat">
-  <div className="muted">Counter</div>
-  <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-    {formData.counter || ""}
-  </div>
-</div>
+              <div className="muted">Category</div>
+              <div className="stat-value">{formData.category || ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Product</div>
+              <div className="stat-value">{formData.product || ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Model</div>
+              <div className="stat-value">{formData.model || ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Size</div>
+              <div className="stat-value">{formData.size || ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Units</div>
+              <div className="stat-value">{formData.unit || ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Max</div>
+              <div className="stat-value">{formData.max || ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Min</div>
+              <div className="stat-value">{formData.min || ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">HSN Code</div>
+              <div className="stat-value">{formData.hsnCode || ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Piece Rate</div>
+              <div className="stat-value">{pieceRateChecked ? 'Yes' : 'No'}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">GST%</div>
+              <div className="stat-value">{formData.gstin ? `${formData.gstin}%` : ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Prefix</div>
+              <div className="stat-value">{formData.prefix || ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Selling Price</div>
+              <div className="stat-value">{formData.sellingPrice ? `₹${formData.sellingPrice}` : ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Cost Price</div>
+              <div className="stat-value">{formData.costPrice ? `₹${formData.costPrice}` : ""}</div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Type</div>
+              <div className="stat-value">{formData.type || ""}</div>
+            </div>
 
             <div className="stat tips-panel">
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
@@ -1536,7 +2272,7 @@ const ItemCreation = ({ onCreated }) => {
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>HSN Code must be 8 digits</span>
+                  <span>Click search icons to browse available options</span>
                 </div>
               </div>
             </div>
@@ -1544,112 +2280,110 @@ const ItemCreation = ({ onCreated }) => {
         </div>
       </div>
 
-      {/* Data List Modal for Edit/Delete */}
-      {/* {modalVisible && (
-        <div className="modal-overlay" onClick={() => setModalVisible(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Item selection modal">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 18 }}>Select Item</h3>
-              <button
-                onClick={() => setModalVisible(false)}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-                aria-label="Close"
-              >
-                <Icon.Close />
-              </button>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div className="search-container">
-                <input
-                  className="search-with-clear"
-                  placeholder="Search items..."
-                  onChange={(e) => fetchData(e.target.value)}
-                  aria-label="Search items"
-                />
-              </div>
-            </div>
-
-            <div className="dropdown-list" role="listbox" aria-label="Item options">
-              {loading ? (
-                <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-              ) : dataList.length === 0 ? (
-                <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No items found</div>
-              ) : (
-                dataList.map((item, index) => (
-                  <div
-                    key={index}
-                    className="dropdown-item"
-                    onClick={() => {
-                      setMainGroup(item.fParent || '');
-                      setFormData({
-                        fitemCode: item.fItemcode || '',
-                        itemName: item.fItemName || '',
-                        groupName: item.fParent || '',
-                        shortName: item.fShort || '',
-                        counter: item.fCounter || '',
-                        hsnCode: item.fhsn || '',
-                        gstin: item.ftax || '',
-                        prefix: item.fPrefix || '',
-                        pieceRate: item.pieceRate === "Y" ? "Y" : "N",
-                        gst: item.gstcheckbox === "Y" ? "Y" : "N",
-                        manualprefix: item.manualprefix === "Y" ? "Y" : "N"
-                      });
-                      setGstChecked(item.gstcheckbox === "Y");
-                      setManualPrefixChecked(item.manualprefix === "Y");
-                      setPieceRateChecked(item.pieceRate === "Y");
-                      setModalVisible(false);
-                    }}
-                    role="option"
-                    aria-selected={item.fItemName === formData.itemName}
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && (() => {
-                      setMainGroup(item.fParent || '');
-                      setFormData({
-                        fitemCode: item.fItemcode || '',
-                        itemName: item.fItemName || '',
-                        groupName: item.fParent || '',
-                        shortName: item.fShort || '',
-                        counter: item.fCounter || '',
-                        hsnCode: item.fhsn || '',
-                        gstin: item.ftax || '',
-                        prefix: item.fPrefix || '',
-                        pieceRate: item.pieceRate === "Y" ? "Y" : "N",
-                        gst: item.gstcheckbox === "Y" ? "Y" : "N",
-                        manualprefix: item.manualprefix === "Y" ? "Y" : "N"
-                      });
-                      setGstChecked(item.gstcheckbox === "Y");
-                      setManualPrefixChecked(item.manualprefix === "Y");
-                      setPieceRateChecked(item.pieceRate === "Y");
-                      setModalVisible(false);
-                    })()}
-                  >
-                    <div style={{ fontWeight: 600, color: "#0f172a" }}>{item.fItemName}</div>
-                    {item.fParent && (
-                      <div style={{ fontSize: 12, color: "var(--muted)" }}>Group: {item.fParent}</div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )} */}
-
-      {/* PopupListSelector for Counter Selection */}
+      {/* PopupListSelector for Brand Selection */}
       <PopupListSelector
-        open={isCounterPopupOpen}
-        onClose={() => setIsCounterPopupOpen(false)}
+        open={isBrandPopupOpen}
+        onClose={() => setIsBrandPopupOpen(false)}
         onSelect={(item) => {
-          setFormData(prev => ({ ...prev, counter: item.fbox || '' }));
-          setIsCounterPopupOpen(false);
+          setFormData(prev => ({ ...prev, brand: item.fname || '' }));
+          setIsBrandPopupOpen(false);
         }}
-        fetchItems={fetchCounterItems}
-        title="Select Counter"
-        displayFieldKeys={['fbox']}
-        searchFields={['fbox']}
-        headerNames={['Counter Name']}
-        columnWidths={{ fbox: '100%' }}
+        fetchItems={fetchBrands}
+        title="Select Brand"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Brand Name']}
+        columnWidths={{ fname: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
+      {/* PopupListSelector for Category Selection */}
+      <PopupListSelector
+        open={isCategoryPopupOpen}
+        onClose={() => setIsCategoryPopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, category: item.fname || '' }));
+          setIsCategoryPopupOpen(false);
+        }}
+        fetchItems={fetchCategories}
+        title="Select Category"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Category Name']}
+        columnWidths={{ fname: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
+      {/* PopupListSelector for Product Selection */}
+      <PopupListSelector
+        open={isProductPopupOpen}
+        onClose={() => setIsProductPopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, product: item.fname || '' }));
+          setIsProductPopupOpen(false);
+        }}
+        fetchItems={fetchProducts}
+        title="Select Product"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Product Name']}
+        columnWidths={{ fname: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
+      {/* PopupListSelector for Model Selection */}
+      <PopupListSelector
+        open={isModelPopupOpen}
+        onClose={() => setIsModelPopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, model: item.fname || '' }));
+          setIsModelPopupOpen(false);
+        }}
+        fetchItems={fetchModels}
+        title="Select Model"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Model Name']}
+        columnWidths={{ fname: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
+      {/* PopupListSelector for Size Selection */}
+      <PopupListSelector
+        open={isSizePopupOpen}
+        onClose={() => setIsSizePopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, size: item.fname || '' }));
+          setIsSizePopupOpen(false);
+        }}
+        fetchItems={fetchSizes}
+        title="Select Size"
+        displayFieldKeys={['fname']}
+        searchFields={['fname']}
+        headerNames={['Size']}
+        columnWidths={{ fname: '100%' }}
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+      />
+
+      {/* PopupListSelector for Unit Selection */}
+      <PopupListSelector
+        open={isUnitPopupOpen}
+        onClose={() => setIsUnitPopupOpen(false)}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, unit: item.fname || '', unitCode: item.fcode || '' }));
+          setIsUnitPopupOpen(false);
+        }}
+        fetchItems={fetchUnits}
+        title="Select Unit"
+        displayFieldKeys={['fname', 'fcode']}
+        searchFields={['fname', 'fcode']}
+        headerNames={['Unit Name', 'Code']}
+        columnWidths={{ fname: '60%', fcode: '40%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
@@ -1665,17 +2399,28 @@ const ItemCreation = ({ onCreated }) => {
             itemName: item.fItemName || item.fItemname || item.fItem || '',
             groupName: groupValue,
             shortName: item.fShort || item.fshort || '',
-            counter: item.fCounter || item.fcounter || '',
-            hsnCode: item.fhsn || item.fHsn || '',
+            brand: item.fBrand || '',
+            category: item.fCategory || '',
+            product: item.fProduct || '',
+            model: item.fModel || '',
+            size: item.fSize || '',
+            max: item.fMax || '',
+            min: item.fMin || '',
             gstin: item.ftax || item.fTax || '',
             prefix: item.fPrefix || item.fprefix || '',
-            pieceRate: item.pieceRate === 'Y' ? 'Y' : 'N',
+            hsnCode: item.fHSN || '',
+            pieceRate: item.fPieceRate || 'N',
+            type: item.fType || '',
+            sellingPrice: item.fSellingPrice || '',
+            costPrice: item.fCostPrice || '',
+            unit: item.fUnit || '',
+            unitCode: item.fUnitCode || '',
             gst: item.gstcheckbox === 'Y' ? 'Y' : 'N',
             manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N'
           });
           setGstChecked(item.gstcheckbox === 'Y');
           setManualPrefixChecked(item.manualprefix === 'Y');
-          setPieceRateChecked(item.pieceRate === 'Y');
+          setPieceRateChecked(item.fPieceRate === 'Y');
           setMainGroup(groupValue);
           setIsPopupOpen(false);
         }}
