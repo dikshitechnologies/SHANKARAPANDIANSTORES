@@ -234,7 +234,7 @@ export default function ScrapPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Scrap item updated successfully." });
-      resetForm(true);
+      resetForm();
     } catch (err) {
       // Error message already set in updateScrap
     }
@@ -667,7 +667,7 @@ export default function ScrapPage() {
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: rgba(16,185,129,0.3);
+          border-color: #307AC8;
           transform: translateY(-1px);
         }
         
@@ -754,7 +754,7 @@ export default function ScrapPage() {
         }
 
         .scrap-table tr.selected {
-          background: linear-gradient(90deg, rgba(16,185,129,0.1), rgba(16,185,129,0.05));
+          background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
 

@@ -280,8 +280,8 @@ const Company = () => {
         phone2: company.phonE2 || "",
         statecode: company.stateCode || company.statecode || "",
         phone3: company.phonE3 || "",
-        phone4: company.phonE4 || "",
-        fcompadd1: company.address || (company.shopNo != null ? String(company.shopNo) : "") || "",
+        // phone4: company.phonE4 || "",        
+        fcompadd1: company.address ||  "",
         fcompadd2: company.address2 || "",
         fcompadd3: company.address3 || "",
         fprintname: company.printName || "",
@@ -291,7 +291,7 @@ const Company = () => {
         fpassword: company.password || "",
         fconfirmpass: company.password || "",
         fprefix: company.prefix || "",
-        fdefaultmode: company.defultMode || company.defaultMode || "",
+        fdefaultmode: company.defultMode ||"T",
         note1: company.note1 || "",
         note2: company.note2 || "",
         note3: company.note3 || "",
@@ -505,7 +505,7 @@ const Company = () => {
         printGAP: formData.fprintgap || "",
         password: formData.fpassword || "",
         prefix: formData.fprefix || "",
-        defultMode: formData.fdefaultmode || "",
+        defultMode: formData.fdefaultmode || "T",
         note1: formData.note1 || "",
         note2: formData.note2 || "",
         note3: formData.note3 || "",
@@ -593,7 +593,7 @@ const Company = () => {
         printGAP: formData.fprintgap || "",
         password: formData.fpassword || "",
         prefix: formData.fprefix || "",
-        defultMode: formData.fdefaultmode || "",
+        defultMode: formData.fdefaultmode || "T",
         note1: formData.note1 || "",
         note2: formData.note2 || "",
         note3: formData.note3 || "",
@@ -949,7 +949,7 @@ const Company = () => {
                   />
                 </div>
                 </div>
-                <div className="row4">
+                <div className="row2">
                   <div className="input-group">
                   <label>Prefix</label>
                   <input
@@ -966,16 +966,37 @@ const Company = () => {
                   <label>Default Mode</label>
                   <input    
                     type="text"
+                    value ={formData.fdefaultmode}
                     ref={defaultModeRef}
-                    maxLength={1}
-                    value={formData.fdefaultmode}
-                    onChange={(e) => handleInputChange('fdefaultmode', e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      if(v === "T" || v === "N") handleInputChange('fdefaultmode', v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        handleInputChange('fdefaultmode', formData.fdefaultmode === "N" ? "T" : "N");
+                      }
+                    }}
+                    placeholder="T or N"
+                    style={{ textAlign: "center" }}
+                  />
+                </div>
+               
+                  <div className="input-group">
+                  <label> Bill Prefix</label>
+                  <input
+                    type="text"
+                    ref={billPrefixRef}
+                    maxLength={3}
+                    value={formData.billprefix}
+                    onChange={(e) => handleInputChange('billprefix', e.target.value)}
                     disabled={selectedAction === "delete"}
                     onKeyDown={(e) => handleKeyDown(e, 16)}
                   />
+                
                 </div>
                 </div>
-                <div className="row">
+                {/* <div className="row">
                   <div className="input-group">
                   <label>Note 1</label>
                   <input  
@@ -1039,12 +1060,12 @@ const Company = () => {
                     onKeyDown={(e) => handleKeyDown(e, 21)}
                   />
                   </div>
-                  </div>
+                  </div> */}
                 </div>
                 </div>
 
                 {/* Right side form */}
-                <div className="form-column right-form">
+                {/* <div className="form-column right-form">
                   <h3 style={{textAlign:'center', marginBottom: '0'}}>Bank Details</h3>
                   <div className="form">
                     <div className="row4">
@@ -1486,7 +1507,7 @@ const Company = () => {
                 </div>
               </div>
                 </div>
-                </div>
+                </div> */}
               </div>
 
               <div className="button-row">

@@ -997,7 +997,7 @@ export default function UnitCreation() {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+               <div className="stat" style={{ flex: 1, minHeight: "200px" ,marginTop: "20px" }}>
               <div className="muted" style={{ marginBottom: "10px" }}>Existing Units</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
