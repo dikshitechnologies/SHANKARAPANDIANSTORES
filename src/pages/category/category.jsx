@@ -260,9 +260,25 @@ export default function CategoryPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (catCodeRef.current) catCodeRef.current.focus();
-  }, []);
+  // Focus on category name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (catNameRef.current) {
+      catNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (catNameRef.current) catNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -354,17 +370,19 @@ export default function CategoryPage() {
   };
 
   const resetForm = (keepAction = false) => {
-    getNextCategoryCode();
-    setForm(prev => ({ ...prev, catName: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => catNameRef.current?.focus(), 60);
-  };
+  getNextCategoryCode();
+  setForm(prev => ({ ...prev, catName: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // This line already focuses on catName field after reset - GOOD
+  setTimeout(() => catNameRef.current?.focus(), 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
@@ -372,12 +390,12 @@ export default function CategoryPage() {
   };
 
   const handleEditRowClick = (c) => {
-    setForm({ catCode: c.catCode, catName: c.catName });
-    setActionType("edit");
-    setEditingId(c.catCode);
-    setEditModalOpen(false);
-    setTimeout(() => catNameRef.current?.focus(), 60);
-  };
+  setForm({ catCode: c.catCode, catName: c.catName });
+  setActionType("edit");
+  setEditingId(c.catCode);
+  setEditModalOpen(false);
+  setTimeout(() => catNameRef.current?.focus(), 60); // GOOD
+};
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -385,12 +403,12 @@ export default function CategoryPage() {
   };
 
   const handleDeleteRowClick = (c) => {
-    setForm({ catCode: c.catCode, catName: c.catName });
-    setActionType("delete");
-    setDeleteTargetId(c.catCode);
-    setDeleteModalOpen(false);
-    setTimeout(() => catNameRef.current?.focus(), 60);
-  };
+  setForm({ catCode: c.catCode, catName: c.catName });
+  setActionType("delete");
+  setDeleteTargetId(c.catCode);
+  setDeleteModalOpen(false);
+  setTimeout(() => catNameRef.current?.focus(), 60); // GOOD
+};
 
   // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
@@ -1021,7 +1039,7 @@ export default function CategoryPage() {
                   onKeyDown={onCatCodeKeyDown}
                   disabled={loading}
                   aria-label="Category Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
+                  readOnly={true}
                 />
               </div>
             </div>

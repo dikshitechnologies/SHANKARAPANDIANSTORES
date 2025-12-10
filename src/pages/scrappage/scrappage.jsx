@@ -208,9 +208,25 @@ export default function ScrapPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (scrapCodeRef.current) scrapCodeRef.current.focus();
-  }, []);
+  // Focus on scrap name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (scrapNameRef.current) {
+      scrapNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (scrapNameRef.current) scrapNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -295,17 +311,19 @@ export default function ScrapPage() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextScrapCode();
-    setForm(prev => ({ ...prev, scrapName: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => scrapNameRef.current?.focus(), 60);
-  };
+  fetchNextScrapCode();
+  setForm(prev => ({ ...prev, scrapName: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // This line already focuses on scrapName field after reset - GOOD
+  setTimeout(() => scrapNameRef.current?.focus(), 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
@@ -347,12 +365,13 @@ export default function ScrapPage() {
     setTimeout(() => scrapNameRef.current?.focus(), 60);
   };
 
-  const onScrapCodeKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      scrapNameRef.current?.focus();
-    }
-  };
+ const onScrapCodeKeyDown = (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    // Focus on scrap name field when Enter is pressed in scrap code field
+    scrapNameRef.current?.focus();
+  }
+};
 
   const onScrapNameKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -952,23 +971,24 @@ export default function ScrapPage() {
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
             {/* Scrap Code field */}
-            <div className="field">
-              <label className="field-label">
-                Scrap Code <span className="asterisk">*</span>
-              </label>
-              <div className="row">
-                <input
-                  ref={scrapCodeRef}
-                  className="input"
-                  value={form.scrapCode}
-                  onChange={(e) => setForm(s => ({ ...s, scrapCode: e.target.value }))}
-                  onKeyDown={onScrapCodeKeyDown}
-                  disabled={loading}
-                  aria-label="Scrap Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
-                />
-              </div>
-            </div>
+            {/* Scrap Code field */}
+<div className="field">
+  <label className="field-label">
+    Scrap Code <span className="asterisk">*</span>
+  </label>
+  <div className="row">
+    <input
+      ref={scrapCodeRef}
+      className="input"
+      value={form.scrapCode}
+      onChange={(e) => setForm(s => ({ ...s, scrapCode: e.target.value }))}
+      onKeyDown={onScrapCodeKeyDown}
+      disabled={loading}
+      aria-label="Scrap Code"
+      readOnly={true} // Changed from readOnly={actionType === "edit" || actionType === "delete"}
+    />
+  </div>
+</div>
 
             {/* Scrap Name field */}
             <div className="field">

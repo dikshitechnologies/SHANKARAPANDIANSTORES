@@ -188,9 +188,25 @@ export default function ColorCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (colorCodeRef.current) colorCodeRef.current.focus();
-  }, []);
+  // Focus on color name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (colorNameRef.current) {
+      colorNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (colorNameRef.current) colorNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -273,17 +289,19 @@ export default function ColorCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextColorCode();
-    setForm(prev => ({ ...prev, colourName: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => colorNameRef.current?.focus(), 60);
-  };
+  fetchNextColorCode();
+  setForm(prev => ({ ...prev, colourName: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // This line already focuses on colorName field after reset - GOOD
+  setTimeout(() => colorNameRef.current?.focus(), 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
@@ -291,16 +309,15 @@ export default function ColorCreation() {
   };
 
   const handleEditRowClick = (color) => {
-    setForm({ 
-      colourCode: color.colourCode, 
-      colourName: color.colourName 
-    });
-    setActionType("edit");
-    setEditingId(color.colourCode);
-    setEditModalOpen(false);
-    setTimeout(() => colorNameRef.current?.focus(), 60);
-  };
-
+  setForm({ 
+    colourCode: color.colourCode, 
+    colourName: color.colourName 
+  });
+  setActionType("edit");
+  setEditingId(color.colourCode);
+  setEditModalOpen(false);
+  setTimeout(() => colorNameRef.current?.focus(), 60); // GOOD
+};
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
@@ -320,17 +337,16 @@ export default function ColorCreation() {
     return filtered.slice(start, start + pageSize);
   }, [colors]);
 
-  const handleDeleteRowClick = (color) => {
-    setForm({ 
-      colourCode: color.colourCode, 
-      colourName: color.colourName 
-    });
-    setActionType("delete");
-    setDeleteTargetId(color.colourCode);
-    setDeleteModalOpen(false);
-    setTimeout(() => colorNameRef.current?.focus(), 60);
-  };
-
+ const handleDeleteRowClick = (color) => {
+  setForm({ 
+    colourCode: color.colourCode, 
+    colourName: color.colourName 
+  });
+  setActionType("delete");
+  setDeleteTargetId(color.colourCode);
+  setDeleteModalOpen(false);
+  setTimeout(() => colorNameRef.current?.focus(), 60); // GOOD
+};
   const onColorCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -958,7 +974,7 @@ export default function ColorCreation() {
                     onKeyDown={onColorCodeKeyDown}
                     disabled={loading}
                     aria-label="Color Code"
-                    readOnly={actionType === "edit" || actionType === "delete"}
+                    readOnly={true}
                   />
                 </div>
               </div>

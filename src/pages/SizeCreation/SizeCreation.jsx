@@ -182,9 +182,25 @@ export default function SizeCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (sizeCodeRef.current) sizeCodeRef.current.focus();
-  }, []);
+ // Focus on size name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (sizeNameRef.current) {
+      sizeNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (sizeNameRef.current) sizeNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -261,35 +277,36 @@ export default function SizeCreation() {
     else if (actionType === "delete") await handleDelete();
   };
 
-  const resetForm = (keepAction = false) => {
-    fetchNextSizeCode();
-    setForm(prev => ({ ...prev, sizeName: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => sizeNameRef.current?.focus(), 60);
-  };
+ const resetForm = (keepAction = false) => {
+  fetchNextSizeCode();
+  setForm(prev => ({ ...prev, sizeName: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // This line already focuses on sizeName field after reset - GOOD
+  setTimeout(() => sizeNameRef.current?.focus(), 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (size) => {
-    // Map fsize to sizeName for the form
-    setForm({ 
-      fuCode: size.fcode || size.fCode, 
-      sizeName: size.fsize || size.sizeName 
-    });
-    setActionType("edit");
-    setEditingId(size.fcode || size.fCode);
-    setEditModalOpen(false);
-    setTimeout(() => sizeNameRef.current?.focus(), 60);
-  };
+ const handleEditRowClick = (size) => {
+  setForm({ 
+    fuCode: size.fcode || size.fCode, 
+    sizeName: size.fsize || size.sizeName 
+  });
+  setActionType("edit");
+  setEditingId(size.fcode || size.fCode);
+  setEditModalOpen(false);
+  setTimeout(() => sizeNameRef.current?.focus(), 60); // GOOD
+};
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -311,16 +328,15 @@ export default function SizeCreation() {
   }, [sizes]);
 
   const handleDeleteRowClick = (size) => {
-    // Map fsize to sizeName for the form
-    setForm({ 
-      fuCode: size.fcode || size.fCode, 
-      sizeName: size.fsize || size.sizeName 
-    });
-    setActionType("delete");
-    setDeleteTargetId(size.fcode || size.fCode);
-    setDeleteModalOpen(false);
-    setTimeout(() => sizeNameRef.current?.focus(), 60);
-  };
+  setForm({ 
+    fuCode: size.fcode || size.fCode, 
+    sizeName: size.fsize || size.sizeName 
+  });
+  setActionType("delete");
+  setDeleteTargetId(size.fcode || size.fCode);
+  setDeleteModalOpen(false);
+  setTimeout(() => sizeNameRef.current?.focus(), 60); // GOOD
+};
 
   const onSizeCodeKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -949,7 +965,7 @@ export default function SizeCreation() {
                     onKeyDown={onSizeCodeKeyDown} /* FIXED: was onUnitCodeKeyDown */
                     disabled={loading}
                     aria-label="Size Code"
-                    readOnly={actionType === "edit" || actionType === "delete"}
+                    readOnly={true}
                   />
                 </div>
               </div>
