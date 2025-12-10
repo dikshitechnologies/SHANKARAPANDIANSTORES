@@ -127,6 +127,9 @@ const TYPE_OPTIONS = [
   { value: "Accessory", label: "Accessory" },
 ];
 
+// GST percentage options
+const GST_PERCENTAGES = ['3', '5', '12', '18', '28'];
+
 const ItemCreation = ({ onCreated }) => {
   // State management
   const [treeData, setTreeData] = useState([]);
@@ -141,7 +144,7 @@ const ItemCreation = ({ onCreated }) => {
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [message, setMessage] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
-
+  
   // Checkbox states
   const [gstChecked, setGstChecked] = useState(false);
   const [manualPrefixChecked, setManualPrefixChecked] = useState(false);
@@ -276,46 +279,46 @@ const ItemCreation = ({ onCreated }) => {
     }
   };
 
- const fetchTreeData = async () => {
-  try {
-    const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
-    
-    // Log response for debugging
-    console.log('Tree API Response:', response);
-    
-    // Handle both direct array and data property
-    const data = Array.isArray(response) ? response : (response?.data || response);
-    
-    if (Array.isArray(data) && data.length > 0) {
-      // Transform API response to match tree structure
-      const transformTreeData = (nodes) => {
-        return nodes.map(node => ({
-          key: node.fgroupCode || node.fitemcode || node.fCode || node.id || Math.random().toString(),
-          displayName: node.fgroupName || node.fitemname || node.fBrand || node.label || node.name || '',
-          id: node.fgroupCode || node.fitemcode || node.fCode || node.id || '',
-          fitemcode: node.fgroupCode || node.fitemcode || node.fCode || '',
-          fitemname: node.fgroupName || node.fitemname || node.fBrand || '',
-          fparent: node.fparent || node.fParent || '',
-          fAclevel: node.fAclevel || 0,
-          children: node.children && Array.isArray(node.children) ? transformTreeData(node.children) : []
-        }));
-      };
+  const fetchTreeData = async () => {
+    try {
+      const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
       
-      const treeData = transformTreeData(data);
-      setTreeData(treeData);
-      setExpandedKeys(new Set(treeData.map(item => item.key)));
-      console.log('Transformed tree data:', treeData);
-    } else {
-      console.warn('Unexpected API response format or empty data:', data);
+      // Log response for debugging
+      console.log('Tree API Response:', response);
+      
+      // Handle both direct array and data property
+      const data = Array.isArray(response) ? response : (response?.data || response);
+      
+      if (Array.isArray(data) && data.length > 0) {
+        // Transform API response to match tree structure
+        const transformTreeData = (nodes) => {
+          return nodes.map(node => ({
+            key: node.fgroupCode || node.fitemcode || node.fCode || node.id || Math.random().toString(),
+            displayName: node.fgroupName || node.fitemname || node.fBrand || node.label || node.name || '',
+            id: node.fgroupCode || node.fitemcode || node.fCode || node.id || '',
+            fitemcode: node.fgroupCode || node.fitemcode || node.fCode || '',
+            fitemname: node.fgroupName || node.fitemname || node.fBrand || '',
+            fparent: node.fparent || node.fParent || '',
+            fAclevel: node.fAclevel || 0,
+            children: node.children && Array.isArray(node.children) ? transformTreeData(node.children) : []
+          }));
+        };
+        
+        const treeData = transformTreeData(data);
+        setTreeData(treeData);
+        setExpandedKeys(new Set(treeData.map(item => item.key)));
+        console.log('Transformed tree data:', treeData);
+      } else {
+        console.warn('Unexpected API response format or empty data:', data);
+        setTreeData([]);
+        setMessage({ type: "error", text: 'No item groups found. Please create item groups first.' });
+      }
+    } catch (error) {
+      console.error('Tree data fetch error:', error);
+      setMessage({ type: "error", text: `Failed to fetch tree data: ${error.message}` });
       setTreeData([]);
-      setMessage({ type: "error", text: 'No item groups found. Please create item groups first.' });
     }
-  } catch (error) {
-    console.error('Tree data fetch error:', error);
-    setMessage({ type: "error", text: `Failed to fetch tree data: ${error.message}` });
-    setTreeData([]);
-  }
-};
+  };
 
   const toggleExpand = (key) => {
     setExpandedKeys((prev) => {
@@ -341,7 +344,12 @@ const ItemCreation = ({ onCreated }) => {
     const newValue = !gstChecked;
     setGstChecked(newValue);
     handleChange('gst', newValue ? 'Y' : 'N');
-    if (!newValue) {
+    
+    if (newValue) {
+      // Auto-populate with 3% when GST is checked
+      const defaultGst = "3";
+      handleChange('gstin', defaultGst);
+    } else {
       handleChange('gstin', '');
     }
   };
@@ -402,25 +410,25 @@ const ItemCreation = ({ onCreated }) => {
     }
   };
 
-const getMaxPrefixFromAPI = async () => {
-  try {
-    const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getMaxPrefix);
-    
-    if (response.data && response.data.maxPrefix) {
-      handleChange('prefix', response.data.maxPrefix.toString());
-    } else if (response.data && response.data.nextPrefix) {
-      handleChange('prefix', response.data.nextPrefix.toString());
-    } else {
+  const getMaxPrefixFromAPI = async () => {
+    try {
+      const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getMaxPrefix);
+      
+      if (response.data && response.data.maxPrefix) {
+        handleChange('prefix', response.data.maxPrefix.toString());
+      } else if (response.data && response.data.nextPrefix) {
+        handleChange('prefix', response.data.nextPrefix.toString());
+      } else {
+        const defaultPrefix = "1001";
+        handleChange('prefix', defaultPrefix);
+      }
+    } catch (error) {
+      console.error('Error fetching max prefix:', error);
+      setMessage({ type: "error", text: 'Failed to fetch prefix. Using default.' });
       const defaultPrefix = "1001";
       handleChange('prefix', defaultPrefix);
     }
-  } catch (error) {
-    console.error('Error fetching max prefix:', error);
-    setMessage({ type: "error", text: 'Failed to fetch prefix. Using default.' });
-    const defaultPrefix = "1001";
-    handleChange('prefix', defaultPrefix);
-  }
-};
+  };
 
   // Validation function
   const validateForm = () => {
@@ -451,15 +459,15 @@ const getMaxPrefixFromAPI = async () => {
       return false;
     }
 
-    // Validate Selling Price
-    if (formData.sellingPrice && isNaN(parseFloat(formData.sellingPrice))) {
+    // Validate Selling Price - accept only numbers
+    if (formData.sellingPrice && !/^\d*\.?\d{0,2}$/.test(formData.sellingPrice)) {
       setMessage({ type: "error", text: 'Selling Price should be a valid number.' });
       sellingPriceRef.current?.focus();
       return false;
     }
 
-    // Validate Cost Price
-    if (formData.costPrice && isNaN(parseFloat(formData.costPrice))) {
+    // Validate Cost Price - accept only numbers
+    if (formData.costPrice && !/^\d*\.?\d{0,2}$/.test(formData.costPrice)) {
       setMessage({ type: "error", text: 'Cost Price should be a valid number.' });
       costPriceRef.current?.focus();
       return false;
@@ -519,34 +527,34 @@ const getMaxPrefixFromAPI = async () => {
         ftype: 'sc',
         fSellPrice: formData.sellingPrice || '',
         fCostPrice: formData.costPrice || '',
-        fUnits:  '',
+        fUnits: formData.unit || '',
       };
 
       console.log('Submitting data:', requestData);
 
       let response;
       
-     switch (actionType) {
-  case 'create':
-    // Duplicate check
-    const duplicateCheck = await apiService.get(
-      `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?search=${encodeURIComponent(formData.itemName)}`
-    );
-    
-    if (duplicateCheck.data && duplicateCheck.data.length > 0) {
-      // Handle duplicate
-    }
-    
-    response = await apiService.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
-    break;
-    
-  case 'edit':
-    response = await apiService.put(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.putEdit, requestData);
-    break;
-    
-  case 'delete':
-    response = await apiService.del(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
-    break;
+      switch (actionType) {
+        case 'create':
+          // Duplicate check
+          const duplicateCheck = await apiService.get(
+            `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?search=${encodeURIComponent(formData.itemName)}`
+          );
+          
+          if (duplicateCheck.data && duplicateCheck.data.length > 0) {
+            // Handle duplicate
+          }
+          
+          response = await apiService.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
+          break;
+          
+        case 'edit':
+          response = await apiService.put(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.putEdit, requestData);
+          break;
+          
+        case 'delete':
+          response = await apiService.del(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
+          break;
 
         default:
           setMessage({ type: "error", text: 'Invalid action type' });
@@ -587,62 +595,62 @@ const getMaxPrefixFromAPI = async () => {
   };
 
   // Fetch function used by PopupListSelector for Edit/Delete - UPDATED
- const fetchPopupItems = useCallback(async (page = 1, search = '') => {
-  try {
-    const response = await apiService.get(
-      API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown
-    );
-    
-    if (response.data && Array.isArray(response.data)) {
-      // Filter by search term on frontend if needed
-      let filteredData = response.data;
-      if (search) {
-        filteredData = response.data.filter(item => 
-          (item.fItemName || '').toLowerCase().includes(search.toLowerCase()) ||
-          (item.fParent || '').toLowerCase().includes(search.toLowerCase())
-        );
+  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
+    try {
+      const response = await apiService.get(
+        API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Filter by search term on frontend if needed
+        let filteredData = response.data;
+        if (search) {
+          filteredData = response.data.filter(item => 
+            (item.fItemName || '').toLowerCase().includes(search.toLowerCase()) ||
+            (item.fParent || '').toLowerCase().includes(search.toLowerCase())
+          );
+        }
+        
+        // Apply pagination on frontend
+        const startIndex = (page - 1) * 10;
+        const paginatedData = filteredData.slice(startIndex, startIndex + 10);
+        
+        // Map backend response to include all necessary fields
+        return paginatedData.map((it) => ({
+          fItemcode: it.fItemcode || '',
+          fItemName: it.fItemName || '',
+          fParent: it.fParent || '',
+          fShort: it.fShort || '',
+          fhsn: it.fhsn || '',
+          ftax: it.ftax || '',
+          fPrefix: it.fPrefix || '',
+          manualprefix: it.manualprefix || 'N',
+          fUnits: it.fUnits || '',
+          fCostPrice: it.fCostPrice || '',
+          fSellPrice: it.fSellPrice || '',
+          fbrand: it.fbrand || '',
+          fcategory: it.fcategory || '',
+          fmodel: it.fmodel || '',
+          fsize: it.fsize || '',
+          fmin: it.fmin || '',
+          fmax: it.fmax || '',
+          ftype: it.ftype || '',
+          fproduct: it.fproduct || '',
+          brand: it.brand || '',
+          category: it.category || '',
+          model: it.model || '',
+          size: it.size || '',
+          product: it.product || '',
+          gstcheckbox: it.gstcheckbox || (it.ftax && it.ftax !== '' ? 'Y' : 'N')
+        }));
       }
       
-      // Apply pagination on frontend
-      const startIndex = (page - 1) * 10;
-      const paginatedData = filteredData.slice(startIndex, startIndex + 10);
-      
-      // Map backend response to include all necessary fields
-      return paginatedData.map((it) => ({
-        fItemcode: it.fItemcode || '',
-        fItemName: it.fItemName || '',
-        fParent: it.fParent || '',
-        fShort: it.fShort || '',
-        fhsn: it.fhsn || '',
-        ftax: it.ftax || '',
-        fPrefix: it.fPrefix || '',
-        manualprefix: it.manualprefix || 'N',
-        fUnits: it.fUnits || '',
-        fCostPrice: it.fCostPrice || '',
-        fSellPrice: it.fSellPrice || '',
-        fbrand: it.fbrand || '',
-        fcategory: it.fcategory || '',
-        fmodel: it.fmodel || '',
-        fsize: it.fsize || '',
-        fmin: it.fmin || '',
-        fmax: it.fmax || '',
-        ftype: it.ftype || '',
-        fproduct: it.fproduct || '',
-        brand: it.brand || '',
-        category: it.category || '',
-        model: it.model || '',
-        size: it.size || '',
-        product: it.product || '',
-        gstcheckbox: it.gstcheckbox || (it.ftax && it.ftax !== '' ? 'Y' : 'N')
-      }));
+      return [];
+    } catch (err) {
+      console.error('fetchPopupItems error', err);
+      return [];
     }
-    
-    return [];
-  } catch (err) {
-    console.error('fetchPopupItems error', err);
-    return [];
-  }
-}, []);
+  }, []);
 
   // Fetch functions for popups (Brand, Category, Product, Model, Size, Unit)
   const fetchBrands = useCallback(async (page = 1, search = '') => {
@@ -1149,6 +1157,7 @@ const getMaxPrefixFromAPI = async () => {
           display:flex; 
           flex-direction:column; 
           align-items:flex-start; 
+          position: relative;
         }
 
         .row { 
@@ -1624,6 +1633,23 @@ const getMaxPrefixFromAPI = async () => {
         .tips-panel {
           background: linear-gradient(180deg, rgba(240, 249, 255, 0.7), rgba(240, 249, 255, 0.5));
           border: 1px solid rgba(173, 216, 230, 0.3);
+        }
+
+        /* Type dropdown open state */
+        .select[open] {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+
+        /* Remove spinner buttons from number inputs */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        
+        input[type="number"] {
+          -moz-appearance: textfield;
         }
 
         /* Responsive styles */
@@ -2241,17 +2267,23 @@ const getMaxPrefixFromAPI = async () => {
                   className="input"
                   value={formData.gstin}
                   onChange={(e) => {
-                    if (/^\d{0,2}$/.test(e.target.value)) {
-                      handleChange('gstin', e.target.value);
+                    const value = e.target.value;
+                    // Allow empty or numbers only
+                    if (/^\d{0,2}$/.test(value)) {
+                      handleChange('gstin', value);
                     }
                   }}
                   onBlur={() => {
+                    // Validate GST value when user leaves the field
                     const allowedGSTValues = ['3', '5', '12', '18', '28'];
                     const gstValue = formData.gstin;
                     if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
+                      // Show error message
+                      setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
+                      // Clear invalid value
                       handleChange('gstin', '');
-                      setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed.' });
-                      gstinRef.current?.focus();
+                      // Focus back to show error
+                      setTimeout(() => gstinRef.current?.focus(), 10);
                     }
                   }}
                   placeholder="Enter GST%"
@@ -2322,7 +2354,7 @@ const getMaxPrefixFromAPI = async () => {
                 </div>
               </div>
 
-              {/* Selling Price */}
+              {/* Selling Price - Changed to text input with validation */}
               <div className="field">
                 <label className="field-label">Selling Price</label>
                 <input
@@ -2330,19 +2362,22 @@ const getMaxPrefixFromAPI = async () => {
                   className="input"
                   value={formData.sellingPrice}
                   onChange={(e) => {
-                    if (/^\d*\.?\d{0,2}$/.test(e.target.value)) {
-                      handleChange('sellingPrice', e.target.value);
+                    // Allow only numbers and decimal point
+                    const value = e.target.value;
+                    if (/^\d*\.?\d{0,2}$/.test(value)) {
+                      handleChange('sellingPrice', value);
                     }
                   }}
                   placeholder="Enter Selling Price"
                   disabled={isSubmitting}
                   aria-label="Selling Price"
-                  type="number"
-                  step="0.01"
+                  // Use text type instead of number to remove spinners
+                  type="text"
+                  inputMode="decimal"
                 />
               </div>
 
-              {/* Cost Price */}
+              {/* Cost Price - Changed to text input with validation */}
               <div className="field">
                 <label className="field-label">Cost Price</label>
                 <input
@@ -2350,26 +2385,62 @@ const getMaxPrefixFromAPI = async () => {
                   className="input"
                   value={formData.costPrice}
                   onChange={(e) => {
-                    if (/^\d*\.?\d{0,2}$/.test(e.target.value)) {
-                      handleChange('costPrice', e.target.value);
+                    // Allow only numbers and decimal point
+                    const value = e.target.value;
+                    if (/^\d*\.?\d{0,2}$/.test(value)) {
+                      handleChange('costPrice', value);
                     }
                   }}
                   placeholder="Enter Cost Price"
                   disabled={isSubmitting}
                   aria-label="Cost Price"
-                  type="number"
-                  step="0.01"
+                  // Use text type instead of number to remove spinners
+                  type="text"
+                  inputMode="decimal"
                 />
               </div>
 
-              {/* Type Dropdown */}
+              {/* Type Dropdown - UPDATED */}
               <div className="field">
                 <label className="field-label">Type</label>
                 <select
                   ref={typeRef}
                   className="select"
                   value={formData.type}
-                  onChange={(e) => handleChange('type', e.target.value)}
+                  onChange={(e) => {
+                    handleChange('type', e.target.value);
+                    // Close dropdown after selection
+                    e.target.size = 0;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      // Toggle dropdown on Enter
+                      if (e.target.size === 0) {
+                        e.target.size = TYPE_OPTIONS.length + 1; // Open dropdown
+                      } else {
+                        e.target.size = 0; // Close dropdown
+                        // Move to next field (Save button)
+                        const saveButton = document.querySelector('.submit-primary');
+                        if (saveButton) {
+                          setTimeout(() => saveButton.focus(), 10);
+                        }
+                      }
+                    }
+                  }}
+                  onBlur={(e) => {
+                    // Close dropdown when losing focus
+                    e.target.size = 0;
+                  }}
+                  onClick={(e) => {
+                    // Toggle dropdown on click
+                    if (e.target.size === 0) {
+                      e.target.size = TYPE_OPTIONS.length + 1;
+                    } else {
+                      e.target.size = 0;
+                    }
+                  }}
+                  size={0}
                   disabled={isSubmitting}
                   aria-label="Type"
                 >
@@ -2559,6 +2630,14 @@ const getMaxPrefixFromAPI = async () => {
                   <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
                   <span><strong>New:</strong> Type any letter in popup fields to open search with that letter</span>
                 </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
+                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
+                  <span><strong>GST Feature:</strong> Check GST to auto-fill 3%</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
+                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
+                  <span><strong>Enter Key:</strong> Press Enter in Type field to open dropdown, press again to go to Save button</span>
+                </div>
               </div>
             </div>
           </div>
@@ -2719,9 +2798,8 @@ const getMaxPrefixFromAPI = async () => {
         open={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
         onSelect={(item) => {
-          // Map backend fields to form f
-           console.log("✔️ RAW SELECTED ITEM:", item);
-          // ields
+          // Map backend fields to form fields
+          console.log("✔️ RAW SELECTED ITEM:", item);
           setFormData({
             fitemCode: item.fItemcode || '',
             itemName: item.fItemName || '',
@@ -2750,7 +2828,6 @@ const getMaxPrefixFromAPI = async () => {
           // Also set the field codes for backend submission
           setFieldCodes({
             brandCode: item.fbrand || '',
-            
             categoryCode: item.fcategory || '',
             productCode: item.fproduct || '',
             modelCode: item.fmodel || '',
@@ -2759,7 +2836,8 @@ const getMaxPrefixFromAPI = async () => {
           });
           
           // Set checkbox states
-          setGstChecked(item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== ''));
+          const hasGst = item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '');
+          setGstChecked(hasGst);
           setManualPrefixChecked(item.manualprefix === 'Y');
           setPieceRateChecked(false); // Set to false since not in backend data
           
