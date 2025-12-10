@@ -177,7 +177,7 @@ export default function ScrapRateFixing() {
   // Handle confirmation to update
   const handleConfirmUpdate = async () => {
     setShowConfirmation(false);
-    setLoading(true);
+    setLoading(true)
     
     try {
       // Transform data to match API format
