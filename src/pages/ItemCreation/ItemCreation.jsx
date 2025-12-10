@@ -336,6 +336,44 @@ const ItemCreation = ({ onCreated }) => {
     handleChange('pieceRate', newValue ? 'Y' : 'N');
   };
 
+  // Handle Enter key to move focus to next input within the form card
+  const handleEnterNavigation = (e) => {
+    if (e.key !== 'Enter') return;
+    // Prevent form submission on Enter
+    e.preventDefault();
+    try {
+      const container = e.currentTarget;
+      if (!container) return;
+      const selectors = 'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])';
+      const elements = Array.from(container.querySelectorAll(selectors)).filter(el => el.offsetParent !== null);
+      if (elements.length === 0) return;
+      const active = document.activeElement;
+      const idx = elements.indexOf(active);
+      let next = null;
+      if (idx === -1) {
+        next = elements[0];
+      } else if (idx < elements.length - 1) {
+        next = elements[idx + 1];
+      } else {
+        // wrap to first element
+        next = elements[0];
+      }
+      if (next) {
+        next.focus();
+        // If the focused element is a button, also trigger click when Enter pressed on it
+        if (next.tagName === 'BUTTON') {
+          // small delay to ensure focus applied
+          setTimeout(() => {
+            try { next.click(); } catch (err) {}
+          }, 50);
+        }
+      }
+    } catch (err) {
+      // ignore navigation errors
+      console.warn('Enter navigation error', err);
+    }
+  };
+
 const getMaxPrefixFromAPI = async () => {
   try {
     const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getMaxPrefix);
@@ -479,7 +517,7 @@ const getMaxPrefixFromAPI = async () => {
     break;
     
   case 'delete':
-    response = await apiService.delete(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
+    response = await apiService.del(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
     break;
 
         default:
@@ -520,15 +558,13 @@ const getMaxPrefixFromAPI = async () => {
     }
   };
 
-  // Fetch function used by PopupListSelector for Edit/Delete
+  // Fetch function used by PopupListSelector for Edit/Delete - UPDATED
  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
   try {
     const response = await apiService.get(
       API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown
     );
     
-    // Note: Your endpoint doesn't have pagination parameters
-    // You might need to handle filtering on frontend or update backend
     if (response.data && Array.isArray(response.data)) {
       // Filter by search term on frontend if needed
       let filteredData = response.data;
@@ -543,36 +579,40 @@ const getMaxPrefixFromAPI = async () => {
       const startIndex = (page - 1) * 10;
       const paginatedData = filteredData.slice(startIndex, startIndex + 10);
       
+      // Map backend response to include all necessary fields
       return paginatedData.map((it) => ({
-        fItemName: it.fItemName || '',
         fItemcode: it.fItemcode || '',
+        fItemName: it.fItemName || '',
         fParent: it.fParent || '',
-        fBrand: it.fBrand || '',
-        fCategory: it.fCategory || '',
-        fProduct: it.fProduct || '',
-        fModel: it.fModel || '',
-        fSize: it.fSize || '',
-        fMax: it.fMax || '',
-        fMin: it.fMin || '',
+        fShort: it.fShort || '',
+        fhsn: it.fhsn || '',
         ftax: it.ftax || '',
         fPrefix: it.fPrefix || '',
-        gstcheckbox: it.gstcheckbox || 'N',
         manualprefix: it.manualprefix || 'N',
-        fHSN: it.fHSN || '',
-        fPieceRate: it.fPieceRate || 'N',
-        fType: it.fType || '',
-        fSellingPrice: it.fSellingPrice || '',
+        fUnits: it.fUnits || '',
         fCostPrice: it.fCostPrice || '',
-        fUnit: it.fUnit || '',
-        fUnitCode: it.fUnitCode || '',
-        fShort: it.fShort || '',
+        fSellPrice: it.fSellPrice || '',
+        fbrand: it.fbrand || '',
+        fcategory: it.fcategory || '',
+        fmodel: it.fmodel || '',
+        fsize: it.fsize || '',
+        fmin: it.fmin || '',
+        fmax: it.fmax || '',
+        ftype: it.ftype || '',
+        fproduct: it.fproduct || '',
+        brand: it.brand || '',
+        category: it.category || '',
+        model: it.model || '',
+        size: it.size || '',
+        product: it.product || '',
+        gstcheckbox: it.gstcheckbox || (it.ftax && it.ftax !== '' ? 'Y' : 'N')
       }));
     }
     
-    return []; // Return empty array instead of mock data
+    return [];
   } catch (err) {
     console.error('fetchPopupItems error', err);
-    return []; // Return empty array instead of mock data
+    return [];
   }
 }, []);
 
@@ -739,6 +779,14 @@ const getMaxPrefixFromAPI = async () => {
       sellingPrice: '',
       costPrice: '',
       unit: '',
+      unitCode: ''
+    });
+    setFieldCodes({
+      brandCode: '',
+      categoryCode: '',
+      productCode: '',
+      modelCode: '',
+      sizeCode: '',
       unitCode: ''
     });
     setGstChecked(false);
@@ -1569,7 +1617,7 @@ const getMaxPrefixFromAPI = async () => {
         </div>
 
         <div className="grid" role="main">
-          <div className="card" aria-live="polite">
+          <div className="card" aria-live="polite" onKeyDown={handleEnterNavigation}>
             {/* Group Name field */}
             <div className="field">
               <label className="field-label">Group Name *</label>
@@ -2416,40 +2464,58 @@ const getMaxPrefixFromAPI = async () => {
         responsiveBreakpoint={640}
       />
 
-      {/* PopupListSelector for Edit/Delete actions */}
+      {/* PopupListSelector for Edit/Delete actions - FIXED VERSION */}
       <PopupListSelector
         open={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
         onSelect={(item) => {
-          const groupValue = item.fParent || item.groupName || '';
+          // Map backend fields to form f
+           console.log("✔️ RAW SELECTED ITEM:", item);
+          // ields
           setFormData({
-            fitemCode: item.fItemcode || item.fItemCode || item.fCode || '',
-            itemName: item.fItemName || item.fItemname || item.fItem || '',
-            groupName: groupValue,
-            shortName: item.fShort || item.fshort || '',
-            brand: item.fBrand || '',
-            category: item.fCategory || '',
-            product: item.fProduct || '',
-            model: item.fModel || '',
-            size: item.fSize || '',
-            max: item.fMax || '',
-            min: item.fMin || '',
-            gstin: item.ftax || item.fTax || '',
-            prefix: item.fPrefix || item.fprefix || '',
-            hsnCode: item.fHSN || '',
-            pieceRate: item.fPieceRate || 'N',
-            type: item.fType || '',
-            sellingPrice: item.fSellingPrice || '',
+            fitemCode: item.fItemcode || '',
+            itemName: item.fItemName || '',
+            groupName: item.fParent || '',
+            shortName: item.fShort || '',
+            brand: item.brand || '', // Use display name field
+            category: item.category || '', // Use display name field
+            product: item.product || '', // Use display name field
+            model: item.model || '', // Use display name field
+            size: item.size || '', // Use display name field
+            max: item.fmax || item.fMax || '',
+            min: item.fmin || item.fMin || '',
+            prefix: item.fPrefix || '',
+            gstin: item.ftax || '',
+            gst: (item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '')) ? 'Y' : 'N',
+            manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N',
+            hsnCode: item.fhsn || '',
+            pieceRate: 'N', // Default to 'N' if not provided
+            type: item.ftype || '',
+            sellingPrice: item.fSellPrice || '',
             costPrice: item.fCostPrice || '',
-            unit: item.fUnit || '',
-            unitCode: item.fUnitCode || '',
-            gst: item.gstcheckbox === 'Y' ? 'Y' : 'N',
-            manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N'
+            unit: item.fUnits || '',
+            unitCode: item.funitcode || '',
           });
-          setGstChecked(item.gstcheckbox === 'Y');
+          
+          // Also set the field codes for backend submission
+          setFieldCodes({
+            brandCode: item.fbrand || '',
+            
+            categoryCode: item.fcategory || '',
+            productCode: item.fproduct || '',
+            modelCode: item.fmodel || '',
+            sizeCode: item.fsize || '',
+            unitCode: item.funitcode || '',
+          });
+          
+          // Set checkbox states
+          setGstChecked(item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== ''));
           setManualPrefixChecked(item.manualprefix === 'Y');
-          setPieceRateChecked(item.fPieceRate === 'Y');
-          setMainGroup(groupValue);
+          setPieceRateChecked(false); // Set to false since not in backend data
+          
+          // Set main group
+          setMainGroup(item.fParent || '');
+          
           setIsPopupOpen(false);
         }}
         fetchItems={fetchPopupItems}
