@@ -197,8 +197,11 @@ export default function DesignCreation() {
   }, []);
 
   useEffect(() => {
-    if (designCodeRef.current) designCodeRef.current.focus();
-  }, []);
+    const timer = setTimeout(() => {
+      if (designNameRef.current) designNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -954,7 +957,7 @@ export default function DesignCreation() {
                   onKeyDown={onDesignCodeKeyDown}
                   disabled={loading}
                   aria-label="Design Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
+                  readOnly={true}
                 />
               </div>
             </div>
