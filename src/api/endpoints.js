@@ -151,21 +151,19 @@ export const API_ENDPOINTS = {
   },
 
   PRODUCT: {
-    GET_PRODUCTS: 'Product',
-    CREATE_PRODUCT: 'Product?selecttype=true',
-    UPDATE_PRODUCT: 'Product?selecttype=false',
-    DELETE_PRODUCT: (code) => `Product/${code}`,
-    GET_NEXT_CODE: 'Product/getNextProductFcode'
-  },
+  GET_PRODUCTS: 'Product',
+  CREATE_PRODUCT: 'Product?selecttype=true',
+  UPDATE_PRODUCT: 'Product?selecttype=false',
+  DELETE_PRODUCT: (code) => `Product/${code}`,
+  GET_NEXT_CODE: 'Product/getNextProductFcode'
+},
 
-  CATEGORY: {
-    GET_CATEGORIES: 'CATEGORY/GetAllCategory',
-    CREATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=true',
-    UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
-    DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
-    GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
-  },
-
-
+CATEGORY: {
+  GET_CATEGORIES: 'CATEGORY/GetAllCategory',
+  CREATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=true',
+  UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
+  DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
+  GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
+}
 };
 

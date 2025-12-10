@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import styles from './Tender.module.css';
+import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
 
 const Tender = () => {
+  const [activeFooterAction, setActiveFooterAction] = useState('all');
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: '', issue: '', closing: 0 },
     200: { available: 4, collect: '', issue: '', closing: 4 },
@@ -59,6 +61,37 @@ const Tender = () => {
     if (window.confirm('Are you sure you want to delete?')) {
       console.log('Deleted');
       alert('Deleted successfully!');
+    }
+  };
+
+  const handlePrint = () => {
+    console.log('Printing...');
+    window.print();
+  };
+
+  const handleClear = () => {
+    if (window.confirm('Are you sure you want to clear all data?')) {
+      setFormData({
+        grossAmt: '',
+        itemDAmt: '',
+        billAmount: '',
+        billDiscountPercent: '',
+        billDiscAmt: '',
+        granTotal: '',
+        roudOff: '',
+        scrapAmount: '',
+        salesReturn: '',
+        netAmount: '',
+        receivedCash: '',
+        issuedCash: '',
+        upi: '',
+        card: '',
+        balance: '',
+        isServiceCharge: false,
+        isCreditBill: false,
+        delivery: false,
+      });
+      console.log('Cleared successfully!');
     }
   };
 
@@ -175,7 +208,7 @@ const Tender = () => {
           {/* Gran Total & Roud Off Row */}
           <div className={styles.inputRow}>
             <div className={styles.inputGroup}>
-              <label className={styles.label}>Gran Total</label>
+              <label className={styles.label}>Grand Total</label>
               <div className={styles.inputContainer}>
                 <input
                   type="text"
@@ -187,7 +220,7 @@ const Tender = () => {
             </div>
             
             <div className={styles.inputGroup}>
-              <label className={styles.label}>Roud Off</label>
+              <label className={styles.label}>Round Off</label>
               <div className={styles.inputContainer}>
                 <input
                   type="number"
@@ -468,30 +501,27 @@ const Tender = () => {
       </div>
 
       {/* Bottom Action Buttons */}
-      <div className={styles.actionButtons}>
-        <div className={styles.buttonContainer}>
-          <button 
-            className={styles.deleteButton}
-            onClick={handleDelete}
-          >
-            Delete
-          </button>
-          <button 
-            className={styles.saveButton}
-            onClick={handleSave}
-          > 
-            Save
-          </button>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className={styles.footer}>
-        <span className={styles.paporeText}>PAPORE 1941</span>
-        <div className={styles.footerRight}>
-          <span className={styles.billText}>BILL NO</span>
-          <span className={styles.billText}>BILL DATE</span>
-        </div>
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        gap: "0",
+        padding: "8px 16px",
+        backgroundColor: "#ffffff",
+        borderTop: "1px solid #e5e7eb",
+        position: "fixed",
+        bottom: "0",
+        width: "100%",
+        boxShadow: "0 -1px 3px rgba(0,0,0,0.08)",
+        flexShrink: 0,
+        zIndex: 100
+      }}>
+        <ActionButtons1
+          onClear={handleClear}
+          onSave={handleSave}
+          onPrint={handlePrint}
+          activeButton={activeFooterAction}
+          onButtonClick={(type) => setActiveFooterAction(type)}
+        />
       </div>
     </div>
   );
