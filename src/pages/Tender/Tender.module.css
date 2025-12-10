@@ -342,7 +342,7 @@
 
 .paymentRow {
   display: flex;
-  gap: 15px;
+  gap: 16px;
   margin-bottom: 10px;
 }
 
@@ -351,10 +351,11 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .paymentGroup:first-child {
-  flex: 0 0 10%;
+  flex: 1;
 }
 
 .paymentLabel {
@@ -367,7 +368,7 @@
 
 .paymentInputContainer {
   position: relative;
-  width: 140px;
+  width: 100%;
 }
 
 .paymentInput {
