@@ -63,7 +63,7 @@ const positionNotifyTopRight = () => {
 // Axios Instance
 // ---------------------
 const apiService = axios.create({
-  baseURL: "http://dikshiserver/spstorewebapi/api/",
+ baseURL: "http://dikshiserver/spstorewebapi/api/", 
   headers: { "Content-Type": "application/json" },
 });
 

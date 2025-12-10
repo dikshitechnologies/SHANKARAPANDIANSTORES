@@ -92,6 +92,17 @@ user_creation: {
     DELETE_PERMISSIONS: "Administartor/administration/delete"
   },
 
+
+  STATECREATION: {
+    GET_STATE_ITEMS: (page = 1, pageSize = 10) => 
+      `/StateCreation/getStates?page=${page}&pageSize=${pageSize}`,
+    NEXT_STATE_CODE: '/StateCreation/getStateFcode',
+    GETSTATECODE: (code) => `/StateCreation/getStateFcode?code=${code}`,
+    CREATE_STATE: '/StateCreation/createStates',
+    UPDATE_STATE: (code) => `/StateCreation/updateModel`,
+    DELETE_STATE: (code) => `/StateCreation/deleteState/${code}`,
+  },
+
   SCRAP_CREATION: {
     GET_SCRAP_ITEMS: '/ScrapCreation/getScrapItem',
     GET_NEXT_SCRAP_CODE: '/ScrapCreation/getNextScrapFcode',
@@ -101,18 +112,18 @@ user_creation: {
     GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
 
-
-
-  scrapratefix:
- {
-  getscrapratefixing:"ScrapRateFixing/getFullScrapRateFixing",
-  putscrapratefixing:"ScrapRateFixing/updateFullScrapRateFixing",
- },
+ SCRAP_RATE_FIXING: {
+    GET_FULL_SCRAP_RATES: 'ScrapRateFixing/getFullScrapRateFixing',
+    UPDATE_FULL_SCRAP_RATES: 'ScrapRateFixing/updateFullScrapRateFixing',
+  },
 
   PURCHASE_INVOICE: {
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
-    CREATE_PURCHASE_INVOICE: "PurchaseInvoice/CreatePurchase",
+    CREATE_PURCHASE_INVOICE: (purchaseType) => `PurchaseInvoice/CreatePurchase/${purchaseType}`,
+    SUPPLIER_LIST: (search = '', page = 1, pageSize = 20) =>
+      `PurchaseInvoice/SupplierList?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
   },
+    
 
 
   DESIGNCREATION: {
@@ -134,8 +145,8 @@ user_creation: {
 
   BRAND: {
     GET_BRANDS: 'Brand',
-    CREATE_BRAND: 'Brand?selecttype=true',
-    UPDATE_BRAND: 'Brand?selecttype=false',
+    POST_BRAND: 'Brand',
+    GET_NEXT_BRAND_CODE: 'Brand/getNextBrandFcode',
     DELETE_BRAND: (code) => `Brand/${code}`,
   },
 
@@ -156,5 +167,3 @@ CATEGORY: {
 }
 };
 
-export const ADMINISTRATION = API_ENDPOINTS.ADMINISTRATION;
-      

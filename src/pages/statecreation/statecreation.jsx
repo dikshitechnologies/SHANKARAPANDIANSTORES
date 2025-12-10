@@ -46,18 +46,30 @@ const Icon = {
       <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
     </svg>
   ),
+  ChevronDown: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+    </svg>
+  ),
 };
 
 export default function StateCreation() {
   // ---------- state ----------
   const [states, setStates] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
+  
+  // Infinite scroll states
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [pageSize] = useState(20); // Fixed page size for infinite scroll
 
   const [form, setForm] = useState({ 
     fuCode: "", 
-    stateName: ""
+    stateName: "",
+    originalStateName: "" // Track original name when editing
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -76,6 +88,7 @@ export default function StateCreation() {
   // refs for step-by-step Enter navigation
   const stateCodeRef = useRef(null);
   const stateNameRef = useRef(null);
+  const tableContainerRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -85,73 +98,236 @@ export default function StateCreation() {
   const fetchNextStateCode = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
+      const response = await apiService.get(API_ENDPOINTS.STATECREATION.NEXT_STATE_CODE);
+      
+      // Handle different response formats
+      if (typeof response === 'string' && response.trim()) {
+        setForm(prev => ({ ...prev, fuCode: response.trim() }));
+      } else if (response && typeof response === 'object') {
+        // Check for various possible field names in the response
+        if (response.fuCode) {
+          setForm(prev => ({ ...prev, fuCode: response.fuCode }));
+        } else if (response.fcode) {
+          setForm(prev => ({ ...prev, fuCode: response.fcode }));
+        } else if (response.nextStateCode) {
+          setForm(prev => ({ ...prev, fuCode: response.nextStateCode }));
+        } else if (response.nextCode) {
+          setForm(prev => ({ ...prev, fuCode: response.nextCode }));
+        } else if (response.code) {
+          setForm(prev => ({ ...prev, fuCode: response.code }));
+        } else if (response.data) {
+          // If response has data property
+          if (typeof response.data === 'string') {
+            setForm(prev => ({ ...prev, fuCode: response.data }));
+          } else if (response.data.fuCode || response.data.fcode || response.data.nextStateCode) {
+            setForm(prev => ({ 
+              ...prev, 
+              fuCode: response.data.fuCode || response.data.fcode || response.data.nextStateCode 
+            }));
+          }
+        }
       }
-      return data;
+      return response;
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load next state code" });
-      console.error("API Error:", err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchStates = async () => {
+  // UPDATED: Fetch states with infinite scroll support
+  const fetchStates = async (pageNum = 1, append = false) => {
     try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS);
-      setStates(data || []);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      
+      const response = await apiService.get(
+        API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS(pageNum, pageSize)
+      );
+      
+      let statesData = [];
+      let totalRecords = 0;
+      
+      // Handle different API response formats
+      if (response && Array.isArray(response)) {
+        // If API returns direct array
+        statesData = response || [];
+        totalRecords = response.length;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // If API returns {data: [...]}
+        statesData = response.data || [];
+        totalRecords = response.data.length;
+      } else if (response && response.items && Array.isArray(response.items)) {
+        // If API returns paginated response
+        statesData = response.items || [];
+        totalRecords = response.totalRecords || response.items.length;
+      } else if (response && response.states && Array.isArray(response.states)) {
+        // If API returns {states: [...]}
+        statesData = response.states || [];
+        totalRecords = response.states.length;
+      }
+      
+      // Map server fields (fcode, fname) to UI fields (fuCode, stateName)
+      const mappedStates = statesData.map(state => ({
+        ...state,
+        fuCode: state.fcode || state.uCode || state.FCode || state.fuCode || state.code || '',
+        stateName: state.fname || state.stateName || state.StateName || state.name || '',
+        originalStateName: state.fname || state.stateName || state.StateName || state.name || ''
+      }));
+      
+      // Append or replace states based on append flag
+      if (append) {
+        setStates(prev => [...prev, ...mappedStates]);
+      } else {
+        setStates(mappedStates);
+      }
+      
+      // Check if there are more records to load
+      const hasMoreData = statesData.length === pageSize;
+      setHasMore(hasMoreData);
+      
+      // Update page number
+      if (!append) {
+        setPage(1);
+      } else {
+        setPage(prev => prev + 1);
+      }
+      
       setMessage(null);
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load states" });
-      console.error("API Error:", err);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStateByCode = async (code) => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.STATECREATION.GETSTATECODE(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch state" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
   const createState = async (stateData) => {
     try {
       setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.STATECREATION.CREATE_STATE, stateData);
-      return data;
+      
+      // Server expects fcode and fname (based on the logs)
+      const requestData = { 
+        fcode: stateData.fuCode, 
+        fname: stateData.stateName 
+      };
+      
+      const response = await apiService.post(
+        API_ENDPOINTS.STATECREATION.CREATE_STATE, 
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      return response;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to create state" });
-      console.error("API Error:", err);
+      // Handle duplicate name error
+      if (err.response?.status === 409) {
+        const errorMsg = err.response?.data?.message || "State name already exists. Please choose a different name.";
+        setMessage({ type: "error", text: errorMsg });
+      }
+      // Log validation errors in detail
+      else if (err.response?.data?.errors) {
+        const validationErrors = err.response.data.errors;
+        
+        const errorMessages = [];
+        for (const [field, messages] of Object.entries(validationErrors)) {
+          if (Array.isArray(messages)) {
+            errorMessages.push(...messages.map(msg => `${field}: ${msg}`));
+          } else {
+            errorMessages.push(`${field}: ${messages}`);
+          }
+        }
+        
+        if (errorMessages.length > 0) {
+          setMessage({ 
+            type: "error", 
+            text: `Validation errors: ${errorMessages.join(', ')}` 
+          });
+        }
+      }
+      else {
+        const errorMsg = err.response?.data?.title || 
+                        err.response?.data?.message || 
+                        err.message || 
+                        "Failed to create state";
+        setMessage({ type: "error", text: errorMsg });
+      }
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const updateState = async (stateData) => {
+  const updateState = async (stateData, originalStateName = "") => {
     try {
       setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), stateData);
-      return data;
+      
+      // Check if name is actually being changed
+      if (originalStateName && stateData.stateName === originalStateName) {
+        setMessage({ type: "info", text: "State name unchanged. No update needed." });
+        return { status: "unchanged" };
+      }
+      
+      // Server expects fcode and fname (based on the logs)
+      const requestData = { 
+        fcode: stateData.fuCode, 
+        fname: stateData.stateName 
+      };
+      
+      const response = await apiService.put(
+        API_ENDPOINTS.STATECREATION.UPDATE_STATE(stateData.fuCode), 
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      return response;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update state" });
-      console.error("API Error:", err);
+      // Handle 409 Conflict - duplicate state name
+      if (err.response?.status === 409) {
+        const errorMsg = err.response?.data?.message || "State name already exists. Please choose a different name.";
+        setMessage({ type: "error", text: errorMsg });
+      }
+      else if (err.response?.data?.errors) {
+        const validationErrors = err.response.data.errors;
+        
+        const errorMessages = [];
+        for (const [field, messages] of Object.entries(validationErrors)) {
+          if (Array.isArray(messages)) {
+            errorMessages.push(...messages.map(msg => `${field}: ${msg}`));
+          } else {
+            errorMessages.push(`${field}: ${messages}`);
+          }
+        }
+        
+        if (errorMessages.length > 0) {
+          setMessage({ 
+            type: "error", 
+            text: `Validation errors: ${errorMessages.join(', ')}` 
+          });
+        }
+      }
+      else {
+        const errorMsg = err.response?.data?.title || 
+                        err.response?.data?.message || 
+                        err.message || 
+                        "Failed to update state";
+        setMessage({ type: "error", text: errorMsg });
+      }
       throw err;
     } finally {
       setLoading(false);
@@ -161,11 +337,17 @@ export default function StateCreation() {
   const deleteState = async (stateCode) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode));
-      return data;
+      const url = API_ENDPOINTS.STATECREATION.DELETE_STATE(stateCode);
+      const response = await apiService.del(url);
+      return response;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete state" });
-      console.error("API Error:", err);
+      if (err.response?.status === 409) {
+        setMessage({ type: "error", text: "Cannot delete state. It is used elsewhere." });
+      } else if (err.response?.status === 404) {
+        setMessage({ type: "error", text: "State not found or already deleted." });
+      } else {
+        setMessage({ type: "error", text: "Delete failed." });
+      }
       throw err;
     } finally {
       setLoading(false);
@@ -190,9 +372,40 @@ export default function StateCreation() {
     if (stateCodeRef.current) stateCodeRef.current.focus();
   }, []);
 
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    const container = tableContainerRef.current;
+    if (!container) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isBottom = scrollHeight - scrollTop <= clientHeight + 50; // 50px buffer
+    
+    if (isBottom && hasMore && !loadingMore && !loading) {
+      fetchStates(page + 1, true);
+    }
+  }, [hasMore, loadingMore, loading, page]);
+
+  // Attach scroll event listener
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
+
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchStates(), fetchNextStateCode()]);
+    await Promise.all([
+      fetchStates(1, false), 
+      fetchNextStateCode()
+    ]);
+  };
+
+  const loadMore = () => {
+    if (hasMore && !loadingMore && !loading) {
+      fetchStates(page + 1, true);
+    }
   };
 
   const handleEdit = async () => {
@@ -201,14 +414,24 @@ export default function StateCreation() {
       return;
     }
 
-    if (!window.confirm(`Do you want to update state "${form.stateName}"?`)) return;
+    if (form.stateName === form.originalStateName) {
+      setMessage({ type: "info", text: "No changes made. State name is unchanged." });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to update state "${form.originalStateName}" to "${form.stateName}"?`)) return;
 
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
-      await updateState(stateData);
-      await loadInitial();
+      const stateData = { 
+        fuCode: form.fuCode, 
+        stateName: form.stateName 
+      };
+      const response = await updateState(stateData, form.originalStateName);
       
-      setMessage({ type: "success", text: "State updated successfully." });
+      if (response?.status !== "unchanged") {
+        await loadInitial();
+        setMessage({ type: "success", text: "State updated successfully." });
+      }
       resetForm(true);
     } catch (err) {
       // Error message already set in updateState
@@ -221,22 +444,15 @@ export default function StateCreation() {
       return;
     }
 
-    if (!window.confirm(`Do you want to delete state "${form.stateName}"?`)) return;
+    if (!window.confirm(`Do you want to permanently delete state "${form.stateName}" (Code: ${form.fuCode})? This action cannot be undone.`)) return;
 
     try {
       await deleteState(form.fuCode);
       await loadInitial();
-      
       setMessage({ type: "success", text: "State deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced states
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        setMessage({ 
-          type: "error", 
-          text: `Cannot delete state "${form.stateName}". It is referenced in other tables and cannot be removed.` 
-        });
-      }
+      // Error message already set in deleteState
     }
   };
 
@@ -246,13 +462,15 @@ export default function StateCreation() {
       return;
     }
 
-    if (!window.confirm(`Do you want to create state "${form.stateName}"?`)) return;
+    if (!window.confirm(`Do you want to create new state "${form.stateName}" with code ${form.fuCode}?`)) return;
 
     try {
-      const stateData = { fuCode: form.fuCode, stateName: form.stateName };
+      const stateData = { 
+        fuCode: form.fuCode, 
+        stateName: form.stateName 
+      };
       await createState(stateData);
       await loadInitial();
-      
       setMessage({ type: "success", text: "State created successfully." });
       resetForm(true);
     } catch (err) {
@@ -268,7 +486,7 @@ export default function StateCreation() {
 
   const resetForm = (keepAction = false) => {
     fetchNextStateCode();
-    setForm(prev => ({ ...prev, stateName: "" }));
+    setForm(prev => ({ ...prev, stateName: "", originalStateName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -285,11 +503,18 @@ export default function StateCreation() {
   };
 
   const handleEditRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+    setForm({ 
+      fuCode: s.fuCode || s.fcode || s.uCode || s.FCode, 
+      stateName: s.stateName || s.fname || s.StateName,
+      originalStateName: s.stateName || s.fname || s.StateName
+    });
     setActionType("edit");
-    setEditingId(s.uCode);
+    setEditingId(s.fuCode || s.fcode || s.uCode || s.FCode);
     setEditModalOpen(false);
-    setTimeout(() => stateNameRef.current?.focus(), 60);
+    setTimeout(() => {
+      stateNameRef.current?.focus();
+      stateNameRef.current?.select();
+    }, 60);
   };
 
   const openDeleteModal = () => {
@@ -297,21 +522,27 @@ export default function StateCreation() {
     setDeleteModalOpen(true);
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
-    const pageSize = 20;
+    const modalPageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? states.filter(s => (s.uCode || '').toLowerCase().includes(q) || (s.stateName || '').toLowerCase().includes(q))
+      ? states.filter(s => 
+          (s.fuCode || s.fcode || '').toString().toLowerCase().includes(q) || 
+          (s.stateName || s.fname || '').toString().toLowerCase().includes(q)
+        )
       : states;
-    const start = (page - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
+    const start = (page - 1) * modalPageSize;
+    return filtered.slice(start, start + modalPageSize);
   }, [states]);
 
   const handleDeleteRowClick = (s) => {
-    setForm({ fuCode: s.uCode, stateName: s.stateName });
+    setForm({ 
+      fuCode: s.fuCode || s.fcode || s.uCode || s.FCode, 
+      stateName: s.stateName || s.fname || s.StateName,
+      originalStateName: s.stateName || s.fname || s.StateName
+    });
     setActionType("delete");
-    setDeleteTargetId(s.uCode);
+    setDeleteTargetId(s.fuCode || s.fcode || s.uCode || s.FCode);
     setDeleteModalOpen(false);
     setTimeout(() => stateNameRef.current?.focus(), 60);
   };
@@ -337,14 +568,21 @@ export default function StateCreation() {
     }
   };
 
+  const isStateNameDuplicate = useCallback((name, excludeCode = null) => {
+    return states.some(state => 
+      (state.fuCode || state.fcode) !== excludeCode && 
+      (state.stateName || state.fname).toLowerCase() === name.toLowerCase()
+    );
+  }, [states]);
+
   // ---------- filters ----------
   const filteredEditStates = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
     if (!q) return states;
     return states.filter(
       (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.fuCode || s.fcode || "").toString().toLowerCase().includes(q) ||
+        (s.stateName || s.fname || "").toString().toLowerCase().includes(q)
     );
   }, [editQuery, states]);
 
@@ -353,8 +591,8 @@ export default function StateCreation() {
     if (!q) return states;
     return states.filter(
       (s) =>
-        (s.uCode || "").toLowerCase().includes(q) ||
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.fuCode || s.fcode || "").toString().toLowerCase().includes(q) ||
+        (s.stateName || s.fname || "").toString().toLowerCase().includes(q)
     );
   }, [deleteQuery, states]);
 
@@ -363,27 +601,45 @@ export default function StateCreation() {
     if (!q) return states;
     return states.filter(
       (s) => 
-        (s.uCode || "").toLowerCase().includes(q) || 
-        (s.stateName || "").toLowerCase().includes(q)
+        (s.fuCode || s.fcode || "").toString().toLowerCase().includes(q) || 
+        (s.stateName || s.fname || "").toString().toLowerCase().includes(q)
     );
   }, [existingQuery, states]);
+
+  // FIXED: Generate unique key that includes both code and name
+  const getStateKey = (s, index) => {
+    const code = s.fuCode || s.fcode || s.uCode || s.FCode || '';
+    const name = s.stateName || s.fname || s.StateName || s.name || '';
+    // Combine code and name to create a unique key
+    const uniqueKey = `${code}-${name}`.replace(/\s+/g, '-').toLowerCase();
+    
+    // If both code and name are empty, use index as fallback
+    if (!code && !name) return `state-${index}`;
+    
+    // Add index to ensure uniqueness even if code+name combo is duplicated
+    return `${uniqueKey}-${index}`;
+  };
+
+  const isCurrentNameDuplicate = useMemo(() => {
+    if (actionType !== "edit" || !form.stateName || !form.originalStateName) return false;
+    if (form.stateName === form.originalStateName) return false;
+    return isStateNameDuplicate(form.stateName, form.fuCode);
+  }, [form.stateName, form.originalStateName, form.fuCode, actionType, isStateNameDuplicate]);
 
   // ---------- render ----------
   return (
     <div className="uc-root" role="region" aria-labelledby="state-creation-title">
-      {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* blue theme (matching ItemGroupCreation style) */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
           --glass-2: rgba(255,255,255,0.35);
-          --accent: #307AC8; /* primary */
-          --accent-2: #1B91DA; /* secondary */
-          --accent-3: #06A7EA; /* tertiary */
+          --accent: #307AC8;
+          --accent-2: #1B91DA;
+          --accent-3: #06A7EA;
           --success: #06A7EA;
           --danger: #ef4444;
           --warning: #f59e0b;
@@ -392,7 +648,6 @@ export default function StateCreation() {
           --glass-border: rgba(255,255,255,0.45);
         }
 
-        /* Page layout */
         .uc-root {
           min-height: 100vh;
           display: flex;
@@ -401,11 +656,10 @@ export default function StateCreation() {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 18px; /* increased base font size */
+          font-size: 18px;
           box-sizing: border-box;
         }
 
-        /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
           max-width: 1100px;
@@ -420,7 +674,6 @@ export default function StateCreation() {
         }
         .dashboard:hover { transform: translateY(-6px); }
 
-        /* header */
         .top-row {
           display:flex;
           align-items:center;
@@ -437,7 +690,7 @@ export default function StateCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px; /* slightly larger title */
+          font-size: 24px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
@@ -446,7 +699,6 @@ export default function StateCreation() {
           font-size: 16px;
         }
 
-        /* action pills */
         .actions {
           display:flex;
           gap:10px;
@@ -481,7 +733,6 @@ export default function StateCreation() {
         .action-pill.warn { color:white; background: linear-gradient(180deg, var(--warning), #f97316); }
         .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
 
-        /* grid layout */
         .grid {
           display:grid;
           grid-template-columns: 1fr 360px;
@@ -489,7 +740,6 @@ export default function StateCreation() {
           align-items:start;
         }
 
-        /* left card (form) */
         .card {
           background: rgba(255,255,255,0.85);
           border-radius: 12px;
@@ -545,6 +795,10 @@ export default function StateCreation() {
           color: var(--muted);
           cursor: not-allowed;
         }
+        .input.warning { 
+          border-color: var(--warning);
+          box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.1); 
+        }
 
         .btn {
           padding:10px 12px;
@@ -568,7 +822,6 @@ export default function StateCreation() {
 
         .controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
 
-        /* right side panel */
         .side {
           display:flex;
           flex-direction:column;
@@ -582,7 +835,6 @@ export default function StateCreation() {
         }
         .muted { color: var(--muted); font-size:15px; }
 
-        /* message */
         .message {
           margin-top:8px;
           padding:12px;
@@ -593,8 +845,8 @@ export default function StateCreation() {
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
         .message.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .message.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
 
-        /* submit row */
         .submit-row { 
           display:flex; 
           gap:12px; 
@@ -640,7 +892,6 @@ export default function StateCreation() {
           transform: translateY(-1px);
         }
         
-        /* search container */
         .search-container {
           position: relative;
           width: 100%;
@@ -683,7 +934,6 @@ export default function StateCreation() {
           color: #374151;
         }
 
-        /* states table */
         .states-table-container {
           max-height: 400px;
           overflow-y: auto;
@@ -727,57 +977,56 @@ export default function StateCreation() {
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
-        /* modal overlay (glass) */
-        .modal-overlay {
-          position:fixed; 
-          inset:0; 
-          display:flex; 
-          align-items:center; 
-          justify-content:center; 
-          background: rgba(2,6,23,0.46); 
-          z-index:1200; 
-          padding:20px;
-          backdrop-filter: blur(4px);
-        }
-        .modal {
-          width:100%; 
-          max-width:720px; 
-          max-height:80vh; 
-          overflow:auto; 
-          background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
-          border-radius:12px; 
-          padding:14px;
-          border:1px solid rgba(255,255,255,0.5);
-          box-shadow: 0 18px 50px rgba(2,6,23,0.36);
-          backdrop-filter: blur(8px);
+        /* Infinite scroll loader */
+        .infinite-scroll-loader {
+          padding: 16px;
+          text-align: center;
+          color: var(--muted);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
         }
 
-        .dropdown-list { 
-          max-height:50vh; 
-          overflow:auto; 
-          border-top:1px solid rgba(12,18,35,0.03); 
-          border-bottom:1px solid rgba(12,18,35,0.03); 
-          padding:6px 0; 
-        }
-        .dropdown-item { 
-          padding:12px; 
-          border-bottom:1px solid rgba(12,18,35,0.03); 
-          cursor:pointer; 
-          display:flex; 
-          flex-direction:column; 
-          gap:4px; 
-          text-align: left;
+        .load-more-btn {
+          padding: 8px 16px;
+          background: linear-gradient(180deg, var(--accent), var(--accent-2));
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
           transition: all 0.2s;
-        }
-        .dropdown-item:hover { 
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
-          transform: translateX(6px); 
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
 
-        /* tips panel */
-        .tips-panel {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
-          border-left: 3px solid var(--accent);
+        .load-more-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(48,122,200,0.2);
+        }
+
+        .load-more-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .loading {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .spinner {
+          animation: spin 1s linear infinite;
         }
 
         /* Responsive styles */
@@ -853,48 +1102,6 @@ export default function StateCreation() {
             padding: 8px;
             font-size: 12px;
           }
-          .modal-overlay {
-            padding: 12px;
-          }
-          .modal {
-            padding: 12px;
-          }
-        }
-
-        @media (max-width: 360px) {
-          .uc-root {
-            padding: 8px 6px;
-          }
-          .dashboard {
-            padding: 10px;
-          }
-          .title-block {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-          }
-          .actions {
-            gap: 6px;
-          }
-          .action-pill {
-            padding: 6px 8px;
-            font-size: 11px;
-          }
-          .card {
-            padding: 12px;
-          }
-          .stat {
-            padding: 10px;
-          }
-        }
-
-        /* Loading animation */
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        .loading {
-          animation: pulse 1.5s ease-in-out infinite;
         }
       `}</style>
 
@@ -933,10 +1140,11 @@ export default function StateCreation() {
                   onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
                   placeholder="State code (auto-generated)"
                   onKeyDown={onStateCodeKeyDown}
-                  disabled={loading}
+                  disabled={loading || actionType === "edit" || actionType === "delete"}
                   aria-label="State Code"
                   readOnly={actionType === "edit" || actionType === "delete"}
                 />
+                
               </div>
             </div>
 
@@ -944,11 +1152,17 @@ export default function StateCreation() {
             <div className="field">
               <label className="field-label">
                 State Name <span className="asterisk">*</span>
+                {isCurrentNameDuplicate && actionType === "edit" && (
+                  <span className="validation-warning">
+                    <Icon.Info size={14} />
+                    This name already exists for another state!
+                  </span>
+                )}
               </label>
               <div className="row">
                 <input 
                   ref={stateNameRef} 
-                  className="input" 
+                  className={`input ${isCurrentNameDuplicate ? 'warning' : ''}`}
                   value={form.stateName} 
                   onChange={(e) => setForm(s => ({ ...s, stateName: e.target.value }))} 
                   placeholder="Enter state name" 
@@ -958,6 +1172,11 @@ export default function StateCreation() {
                   readOnly={actionType === "delete"}
                 />
               </div>
+              {actionType === "edit" && form.originalStateName && (
+                <div className="muted" style={{ fontSize: "14px", marginTop: "4px" }}>
+                  Original name: <strong>{form.originalStateName}</strong>
+                </div>
+              )}
             </div>
 
             {/* Message display */}
@@ -972,10 +1191,12 @@ export default function StateCreation() {
               <button
                 className="submit-primary"
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || (actionType === "edit" && isCurrentNameDuplicate)}
                 type="button"
               >
-                {loading ? "Processing..." : actionType}
+                {loading ? "Processing..." : 
+                  actionType === "Add" ? "Create" : 
+                  actionType === "edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"
@@ -986,8 +1207,16 @@ export default function StateCreation() {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing States</div>
+
+            {/* Existing States List */}
+            <div className="stat" style={{ flex: 1, minHeight: "200px", marginTop: "20px" }}>
+              <div className="row" style={{ justifyContent: "space-between", marginBottom: "10px" }}>
+                <div className="muted">Existing States</div>
+                <div className="muted" style={{ fontSize: "14px" }}>
+                  {states.length} states loaded • {hasMore ? "Scroll for more" : "All states loaded"}
+                </div>
+              </div>
+              
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
@@ -1008,8 +1237,12 @@ export default function StateCreation() {
                 )}
               </div>
               
-              <div className="states-table-container">
-                {loading ? (
+              <div 
+                className="states-table-container" 
+                ref={tableContainerRef}
+                style={{ maxHeight: "400px", overflowY: "auto" }}
+              >
+                {loading && !loadingMore ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
                     Loading states...
                   </div>
@@ -1018,29 +1251,62 @@ export default function StateCreation() {
                     {states.length === 0 ? "No states found" : "No matching states"}
                   </div>
                 ) : (
-                  <table className="states-table">
-                    <thead>
-                      <tr>
-                        <th>Code</th>
-                        <th>State Name</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredExisting.map((s) => (
-                        <tr 
-                          key={s.uCode}
-                          className={form.fuCode === s.uCode ? "selected" : ""}
-                          onClick={() => {
-                            setForm({ fuCode: s.uCode, stateName: s.stateName });
-                            setActionType("edit");
-                          }}
-                        >
-                          <td>{s.uCode}</td>
-                          <td>{s.stateName}</td>
+                  <>
+                    <table className="states-table">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>State Name</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {filteredExisting.map((s, index) => (
+                          <tr 
+                            key={getStateKey(s, index)}
+                            className={form.fuCode === (s.fuCode || s.fcode) ? "selected" : ""}
+                            onClick={() => {
+                              setForm({ 
+                                fuCode: s.fuCode || s.fcode, 
+                                stateName: s.stateName || s.fname,
+                                originalStateName: s.stateName || s.fname
+                              });
+                              setActionType("edit");
+                            }}
+                            style={{ cursor: "pointer" }}
+                          >
+                            <td>{s.fuCode || s.fcode}</td>
+                            <td>{s.stateName || s.fname}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    
+                    {/* Infinite Scroll Loader */}
+                    <div className="infinite-scroll-loader">
+                      {loadingMore ? (
+                        <>
+                          <svg className="spinner" width="24" height="24" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="var(--accent)" strokeWidth="4" fill="none" strokeDasharray="80" strokeDashoffset="60" />
+                          </svg>
+                          <div>Loading more states...</div>
+                        </>
+                      ) : hasMore ? (
+                        <>
+                          <div>Scroll down to load more states</div>
+                          <button 
+                            className="load-more-btn" 
+                            onClick={loadMore}
+                            disabled={loading || loadingMore}
+                          >
+                            <Icon.ChevronDown />
+                            Load More
+                          </button>
+                        </>
+                      ) : (
+                        <div>All states loaded ✓</div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1051,7 +1317,8 @@ export default function StateCreation() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit State" : "Delete State"}
+                {actionType === "Add" ? "Create New State" : 
+                 actionType === "edit" ? "Edit Existing State" : "Delete State"}
               </div>
             </div>
 
@@ -1067,10 +1334,15 @@ export default function StateCreation() {
               <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
                 {form.stateName || "Not set"}
               </div>
+              {form.originalStateName && actionType === "edit" && (
+                <div className="muted" style={{ fontSize: "14px", marginTop: "4px" }}>
+                  Original: {form.originalStateName}
+                </div>
+              )}
             </div>
 
             <div className="stat">
-              <div className="muted">Existing States</div>
+              <div className="muted">Loaded States</div>
               <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
                 {states.length}
               </div>
@@ -1089,12 +1361,18 @@ export default function StateCreation() {
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find states</span>
+                  <span>Scroll down to load more states automatically</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
                   <span>Examples: Maharashtra, Karnataka, Tamil Nadu</span>
                 </div>
+                {actionType === "edit" && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
+                    <span style={{ color: "var(--warning)", fontWeight: "bold" }}>⚠</span>
+                    <span style={{ color: "var(--warning)" }}>State names must be unique</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1105,13 +1383,16 @@ export default function StateCreation() {
       <PopupListSelector
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
+        onSelect={(item) => { 
+          handleEditRowClick(item); 
+          setEditModalOpen(false); 
+        }}
         fetchItems={fetchItemsForModal}
         title="Select State to Edit"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        displayFieldKeys={['stateName', 'fuCode']}
+        searchFields={['stateName', 'fuCode']}
+        headerNames={['State Name', 'Code']}
+        columnWidths={{ stateName: '70%', fuCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1119,14 +1400,18 @@ export default function StateCreation() {
       <PopupListSelector
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
+        onSelect={(item) => { 
+          handleDeleteRowClick(item); 
+          setDeleteModalOpen(false); 
+        }}
         fetchItems={fetchItemsForModal}
         title="Select State to Delete"
-        displayFieldKeys={[ 'stateName', 'uCode' ]}
-        searchFields={[ 'stateName', 'uCode' ]}
-        headerNames={[ 'State Name', 'Code' ]}
-        columnWidths={{ stateName: '70%', uCode: '30%' }}
+        displayFieldKeys={['stateName', 'fuCode']}
+        searchFields={['stateName', 'fuCode']}
+        headerNames={['State Name', 'Code']}
+        columnWidths={{ stateName: '70%', fuCode: '30%' }}
         maxHeight="60vh"
+        warningText="Deleting a state cannot be undone. Make sure the state is not referenced elsewhere."
       />
     </div>
   );

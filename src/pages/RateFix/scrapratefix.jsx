@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import axios from "axios";
+import apiService from "../../api/apiService";
+import { API_ENDPOINTS } from '../../api/endpoints';
 
 export default function ScrapRateFixing() {
   // State for scrap rates - initially empty
@@ -9,14 +10,6 @@ export default function ScrapRateFixing() {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-  
-  // API configuration
-  const API_BASE_URL = "http://dikshiserver/spstorewebapi/api";
-  
-  const API_ENDPOINTS = {
-    getScrapRates: "ScrapRateFixing/getFullScrapRateFixing",
-    updateScrapRates: "ScrapRateFixing/updateFullScrapRateFixing"
-  };
   
   // Array of refs for each rate input
   const rateInputRefs = useRef([]);
@@ -60,31 +53,67 @@ export default function ScrapRateFixing() {
     rateInputRefs.current = rateInputRefs.current.slice(0, scrapRates.length);
   }, [scrapRates]);
 
-  // Fetch scrap rates from API
+  // Fetch scrap rates from API using apiService
   const fetchScrapRates = async () => {
     try {
       setIsFetching(true);
-      const response = await axios.get(
-        `${API_BASE_URL}/${API_ENDPOINTS.getScrapRates}`
-      );
       
-      console.log("API Response:", response.data); // Debug log
+      const response = await apiService.get(API_ENDPOINTS.SCRAP_RATE_FIXING.GET_FULL_SCRAP_RATES);
       
-      // Transform API data to match your component structure
-      const transformedData = response.data.map((item, index) => ({
-        id: index + 1,
-        scrapCode: item.fcode || item.scrapCode || "",
-        scrapName: item.fname || item.scrapName || "",
-        rate: item.frate || item.rate || ""
-      }));
+      // The API returns the data directly (array), not wrapped in a data property
+      let dataArray = response;
       
-      setScrapRates(transformedData);
-      setIsFetching(false);
+      // Check if response exists
+      if (!dataArray) {
+        throw new Error("No data received from server");
+      }
+      
+      // If response is an array, use it directly
+      if (Array.isArray(dataArray)) {
+        // Transform API data to match your component structure
+        const transformedData = dataArray.map((item, index) => ({
+          id: index + 1,
+          scrapCode: item.fcode || item.scrapCode || item.code || `SCR${String(index + 1).padStart(3, '0')}`,
+          scrapName: item.fname || item.scrapName || item.name || `Scrap Item ${index + 1}`,
+          rate: item.frate || item.rate || item.price || ""
+        }));
+        
+        setScrapRates(transformedData);
+        setIsFetching(false);
+      } else {
+        // If it's not an array, check if it's an object with data property
+        if (dataArray.data && Array.isArray(dataArray.data)) {
+          // Transform data from data.data
+          const transformedData = dataArray.data.map((item, index) => ({
+            id: index + 1,
+            scrapCode: item.fcode || item.scrapCode || item.code || `SCR${String(index + 1).padStart(3, '0')}`,
+            scrapName: item.fname || item.scrapName || item.name || `Scrap Item ${index + 1}`,
+            rate: item.frate || item.rate || item.price || ""
+          }));
+          
+          setScrapRates(transformedData);
+          setIsFetching(false);
+        } else {
+          throw new Error(`Unexpected response format: ${typeof dataArray}`);
+        }
+      }
+      
     } catch (error) {
       console.error("Error fetching scrap rates:", error);
+      
+      // Set test data for development
+      const testData = [
+        { id: 1, scrapCode: "SCR001", scrapName: "Steel Scrap", rate: "100" },
+        { id: 2, scrapCode: "SCR002", scrapName: "Copper Scrap", rate: "250" },
+        { id: 3, scrapCode: "SCR003", scrapName: "Aluminum Scrap", rate: "80" },
+        { id: 4, scrapCode: "SCR004", scrapName: "Brass Scrap", rate: "180" },
+        { id: 5, scrapCode: "SCR005", scrapName: "Stainless Steel Scrap", rate: "120" },
+      ];
+      
+      setScrapRates(testData);
       setMessage({
-        type: "error",
-        text: `Failed to load scrap rates: ${error.message}`
+        type: "warning",
+        text: `Using test data: ${error.message}`
       });
       setIsFetching(false);
       
@@ -123,7 +152,7 @@ export default function ScrapRateFixing() {
     }
   };
 
-  // Handle update button click
+  // Handle update button click using apiService
   const handleUpdate = async () => {
     // First, validate the data
     const validationResult = validateScrapRates();
@@ -150,26 +179,27 @@ export default function ScrapRateFixing() {
         frate: scrap.rate || "0" // Send 0 if rate is empty
       }));
       
-      console.log("Sending data:", apiData); // Debug log
-      
-      // Send PUT request to update scrap rates
-      const response = await axios.put(
-        `${API_BASE_URL}/${API_ENDPOINTS.updateScrapRates}`,
-        apiData,
-        {
-          headers: {
-            'Accept': '*/*',
-            'Content-Type': 'application/json'
-          }
-        }
+      // Send PUT request to update scrap rates using apiService
+      const response = await apiService.put(
+        API_ENDPOINTS.SCRAP_RATE_FIXING.UPDATE_FULL_SCRAP_RATES,
+        apiData
       );
       
-      console.log("Update response:", response.data); // Debug log
-      
-      if (response.data && response.data.message) {
+      // Check different possible response formats
+      if (response && response.message) {
+        setMessage({
+          type: "success",
+          text: response.message
+        });
+      } else if (response && response.data && response.data.message) {
         setMessage({
           type: "success",
           text: response.data.message
+        });
+      } else if (response && typeof response === 'string') {
+        setMessage({
+          type: "success",
+          text: response
         });
       } else {
         setMessage({
@@ -248,8 +278,17 @@ export default function ScrapRateFixing() {
     return { isValid: true, message: "" };
   };
 
-  // Handle clear button click
-  const handleClear = () => {
+  // Handle refresh button click (changed from Clear All to Refresh)
+  const handleRefresh = () => {
+    fetchScrapRates();
+    setMessage({
+      type: "info",
+      text: "Refreshing scrap rates..."
+    });
+  };
+
+  // Handle clear all rates button click
+  const handleClearAll = () => {
     if (window.confirm("Are you sure you want to clear all rate values?")) {
       setScrapRates(prev => 
         prev.map(scrap => ({ ...scrap, rate: "" }))
@@ -266,15 +305,6 @@ export default function ScrapRateFixing() {
     }
   };
 
-  // Handle refresh button click
-  const handleRefresh = () => {
-    fetchScrapRates();
-    setMessage({
-      type: "info",
-      text: "Refreshing scrap rates..."
-    });
-  };
-
   // Filter scraps based on search term
   const filteredScrapRates = scrapRates.filter(scrap =>
     scrap.scrapName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -286,7 +316,7 @@ export default function ScrapRateFixing() {
       fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
       background: `linear-gradient(135deg, ${colors.background} 0%, #f1f5f9 100%)`,
       minHeight: '100vh',
-      padding: isMobile ? '20px 12px' : '30px 20px',
+      padding: isMobile ? '16px 10px' : '24px 16px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
@@ -319,16 +349,53 @@ export default function ScrapRateFixing() {
             transform: translateY(-1px);
           }
           
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
           @media (max-width: 768px) {
             .table-container {
               font-size: 14px;
             }
             th, td {
-              padding: 8px !important;
+              padding: 10px !important;
             }
             input {
               font-size: 14px !important;
+              padding: 8px 10px !important;
+            }
+            h1 {
+              font-size: 22px !important;
+            }
+            button {
+              font-size: 14px !important;
+              padding: 8px 20px !important;
+              min-width: 100px !important;
+            }
+          }
+
+          @media (max-width: 480px) {
+            .footer-stats {
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 8px;
+            }
+            th, td {
+              padding: 8px !important;
+              font-size: 13px !important;
+            }
+            input {
+              font-size: 13px !important;
               padding: 6px 8px !important;
+            }
+            .button-group {
+              flex-direction: column;
+              width: 100%;
+            }
+            .button-group button {
+              width: 100%;
+              margin-bottom: 8px;
             }
           }
         `}
@@ -339,14 +406,14 @@ export default function ScrapRateFixing() {
         maxWidth: isMobile ? '100%' : '900px',
         background: colors.cardBg,
         borderRadius: '12px',
-        padding: isMobile ? '20px' : '30px',
+        padding: isMobile ? '16px' : '24px',
         boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
         border: `1px solid ${colors.border}`,
         transition: 'all 0.3s ease'
       }}>
-        {/* Header Section with Refresh Button */}
+        {/* Header Section - Removed Refresh Button */}
         <div style={{
-          marginBottom: '25px',
+          marginBottom: '20px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -355,7 +422,7 @@ export default function ScrapRateFixing() {
         }}>
           <div>
             <h1 style={{
-              fontSize: isMobile ? '24px' : '28px',
+              fontSize: isMobile ? '22px' : '26px',
               fontWeight: '700',
               margin: '0 0 5px 0',
               color: colors.primary,
@@ -367,7 +434,7 @@ export default function ScrapRateFixing() {
               Scrap Rate Fixing
             </h1>
             <p style={{
-              fontSize: isMobile ? '14px' : '16px',
+              fontSize: isMobile ? '13px' : '15px',
               color: colors.muted,
               margin: '0',
               fontWeight: '400'
@@ -376,62 +443,20 @@ export default function ScrapRateFixing() {
             </p>
           </div>
           
-          {/* Refresh Button */}
-          <button
-            onClick={handleRefresh}
-            disabled={isFetching || loading}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: `1px solid ${colors.border}`,
-              background: '#ffffff',
-              color: colors.primary,
-              fontWeight: '500',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              height: '36px'
-            }}
-            onMouseEnter={(e) => {
-              if (!isFetching && !loading) {
-                e.target.style.transform = 'translateY(-1px)';
-                e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                e.target.style.borderColor = colors.primary;
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = 'none';
-              e.target.style.borderColor = colors.border;
-            }}
-          >
-            {isFetching ? (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{
-                  width: '12px',
-                  height: '12px',
-                  border: `2px solid rgba(48, 122, 200, 0.3)`,
-                  borderTop: `2px solid ${colors.primary}`,
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></span>
-                Loading...
-              </span>
-            ) : (
-              <>
-                <span>↻</span>
-                Refresh
-              </>
-            )}
-          </button>
+          {/* Stats Info */}
+          <div style={{
+            fontSize: isMobile ? '12px' : '14px',
+            color: colors.muted,
+            textAlign: 'right'
+          }}>
+            <div>Total: <strong>{scrapRates.length}</strong> items</div>
+            <div>Loaded: <strong>{scrapRates.filter(s => s.rate).length}</strong> rates</div>
+          </div>
         </div>
 
         {/* Search Bar */}
         <div style={{
-          marginBottom: '25px'
+          marginBottom: '20px'
         }}>
           <input
             type="text"
@@ -440,10 +465,10 @@ export default function ScrapRateFixing() {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
               width: '100%',
-              padding: '12px 16px',
+              padding: isMobile ? '10px 14px' : '12px 16px',
               borderRadius: '8px',
               border: `2px solid ${colors.border}`,
-              fontSize: '16px',
+              fontSize: isMobile ? '14px' : '16px',
               background: '#ffffff',
               transition: 'all 0.2s',
               boxSizing: 'border-box',
@@ -469,27 +494,34 @@ export default function ScrapRateFixing() {
         {/* Message Display */}
         {message && (
           <div style={{
-            padding: '12px 16px',
+            padding: isMobile ? '10px 14px' : '12px 16px',
             borderRadius: '8px',
             marginBottom: '20px',
             animation: 'slideIn 0.3s ease',
             background: message.type === 'error' ? '#fef2f2' : 
-                      message.type === 'success' ? '#f0fdf4' : '#eff6ff',
+                      message.type === 'success' ? '#f0fdf4' : 
+                      message.type === 'warning' ? '#fffbeb' : '#eff6ff',
             border: `1px solid ${message.type === 'error' ? '#fecaca' : 
-                     message.type === 'success' ? '#bbf7d0' : '#bfdbfe'}`,
+                     message.type === 'success' ? '#bbf7d0' : 
+                     message.type === 'warning' ? '#fde68a' : '#bfdbfe'}`,
             color: message.type === 'error' ? '#991b1b' : 
-                   message.type === 'success' ? '#065f46' : '#1e40af',
+                   message.type === 'success' ? '#065f46' : 
+                   message.type === 'warning' ? '#92400e' : '#1e40af',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '10px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+              <span style={{ fontSize: isMobile ? '16px' : '18px' }}>
                 {message.type === 'error' ? '❌' : 
-                 message.type === 'success' ? '✅' : 'ℹ️'}
+                 message.type === 'success' ? '✅' : 
+                 message.type === 'warning' ? '⚠️' : 'ℹ️'}
               </span>
-              <span style={{ fontWeight: '500' }}>{message.text}</span>
+              <span style={{ 
+                fontWeight: '500',
+                fontSize: isMobile ? '13px' : '14px'
+              }}>{message.text}</span>
             </div>
             <button
               onClick={() => setMessage(null)}
@@ -498,9 +530,10 @@ export default function ScrapRateFixing() {
                 border: 'none',
                 color: 'inherit',
                 cursor: 'pointer',
-                fontSize: '20px',
+                fontSize: isMobile ? '18px' : '20px',
                 padding: '0',
-                lineHeight: '1'
+                lineHeight: '1',
+                flexShrink: 0
               }}
             >
               ×
@@ -513,7 +546,7 @@ export default function ScrapRateFixing() {
           borderRadius: '8px',
           border: `1px solid ${colors.border}`,
           overflow: 'hidden',
-          marginBottom: '30px',
+          marginBottom: '25px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
         }}>
           <div style={{
@@ -529,31 +562,31 @@ export default function ScrapRateFixing() {
                   background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`
                 }}>
                   <th style={{
-                    padding: '16px',
+                    padding: isMobile ? '12px' : '16px',
                     textAlign: 'left',
                     color: '#ffffff',
                     fontWeight: '600',
-                    fontSize: '16px',
+                    fontSize: isMobile ? '14px' : '16px',
                     borderRight: `1px solid rgba(255,255,255,0.1)`
                   }}>
                     Scrap Code
                   </th>
                   <th style={{
-                    padding: '16px',
+                    padding: isMobile ? '12px' : '16px',
                     textAlign: 'left',
                     color: '#ffffff',
                     fontWeight: '600',
-                    fontSize: '16px',
+                    fontSize: isMobile ? '14px' : '16px',
                     borderRight: `1px solid rgba(255,255,255,0.1)`
                   }}>
                     Scrap Name
                   </th>
                   <th style={{
-                    padding: '16px',
+                    padding: isMobile ? '12px' : '16px',
                     textAlign: 'left',
                     color: '#ffffff',
                     fontWeight: '600',
-                    fontSize: '16px'
+                    fontSize: isMobile ? '14px' : '16px'
                   }}>
                     Rate
                   </th>
@@ -608,22 +641,24 @@ export default function ScrapRateFixing() {
                       }}
                     >
                       <td style={{
-                        padding: '16px',
+                        padding: isMobile ? '12px' : '16px',
                         fontWeight: '600',
                         color: colors.primary,
-                        background: index % 2 === 0 ? '#ffffff' : '#f8fafc'
+                        background: index % 2 === 0 ? '#ffffff' : '#f8fafc',
+                        fontSize: isMobile ? '13px' : '15px'
                       }}>
                         {scrap.scrapCode}
                       </td>
                       <td style={{
-                        padding: '16px',
+                        padding: isMobile ? '12px' : '16px',
                         color: '#1e293b',
-                        background: index % 2 === 0 ? '#ffffff' : '#f8fafc'
+                        background: index % 2 === 0 ? '#ffffff' : '#f8fafc',
+                        fontSize: isMobile ? '13px' : '15px'
                       }}>
                         {scrap.scrapName}
                       </td>
                       <td style={{
-                        padding: '16px',
+                        padding: isMobile ? '12px' : '16px',
                         background: index % 2 === 0 ? '#ffffff' : '#f8fafc'
                       }}>
                         <input
@@ -635,10 +670,10 @@ export default function ScrapRateFixing() {
                           placeholder="Enter rate"
                           style={{
                             width: '100%',
-                            padding: '10px 12px',
+                            padding: isMobile ? '8px 10px' : '10px 12px',
                             borderRadius: '6px',
                             border: `1px solid ${scrap.rate ? colors.success : colors.border}`,
-                            fontSize: '15px',
+                            fontSize: isMobile ? '14px' : '15px',
                             fontWeight: scrap.rate ? '600' : '400',
                             color: scrap.rate ? '#059669' : '#64748b',
                             background: '#ffffff',
@@ -672,8 +707,10 @@ export default function ScrapRateFixing() {
           padding: '10px 0',
           borderTop: `1px solid ${colors.border}`,
           borderBottom: `1px solid ${colors.border}`,
-          fontSize: '14px',
-          color: colors.muted
+          fontSize: isMobile ? '12px' : '14px',
+          color: colors.muted,
+          flexWrap: 'wrap',
+          gap: isMobile ? '8px' : '0'
         }}>
           <span>
             Total Items: <strong>{scrapRates.length}</strong>
@@ -687,30 +724,33 @@ export default function ScrapRateFixing() {
           </span>
         </div>
 
-        {/* Clear and Update Buttons */}
+        {/* Clear All and Update Buttons */}
         <div style={{
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           gap: '12px',
           flexWrap: 'wrap'
         }}>
-          {/* Clear Button */}
+          {/* Refresh Button (formerly Clear All) */}
+         
+
+          {/* Clear All Button (new functionality) */}
           <button
-            onClick={handleClear}
+            onClick={handleClearAll}
             disabled={loading || isFetching || scrapRates.length === 0}
             style={{
-              padding: '10px 30px',
+              padding: isMobile ? '10px 20px' : '12px 24px',
               borderRadius: '50px',
               border: `1px solid ${colors.border}`,
               background: '#ffffff',
               color: loading || isFetching || scrapRates.length === 0 ? '#cbd5e1' : colors.muted,
               fontWeight: '600',
-              fontSize: '15px',
+              fontSize: isMobile ? '14px' : '15px',
               cursor: loading || isFetching || scrapRates.length === 0 ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
-              minWidth: '120px',
+              minWidth: isMobile ? '100px' : '120px',
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-              height: '42px',
+              height: isMobile ? '38px' : '42px',
               opacity: loading || isFetching || scrapRates.length === 0 ? 0.6 : 1
             }}
             onMouseEnter={(e) => {
@@ -736,7 +776,7 @@ export default function ScrapRateFixing() {
             onClick={handleUpdate}
             disabled={loading || isFetching || scrapRates.length === 0}
             style={{
-              padding: '10px 30px',
+              padding: isMobile ? '10px 20px' : '12px 24px',
               borderRadius: '50px',
               border: 'none',
               background: loading || isFetching || scrapRates.length === 0 ? 
@@ -744,13 +784,13 @@ export default function ScrapRateFixing() {
                 `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
               color: '#ffffff',
               fontWeight: '600',
-              fontSize: '15px',
+              fontSize: isMobile ? '14px' : '15px',
               cursor: loading || isFetching || scrapRates.length === 0 ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
-              minWidth: '120px',
+              minWidth: isMobile ? '100px' : '120px',
               boxShadow: loading || isFetching || scrapRates.length === 0 ? 
                 'none' : '0 4px 12px rgba(48, 122, 200, 0.25)',
-              height: '42px',
+              height: isMobile ? '38px' : '42px',
               opacity: loading || isFetching || scrapRates.length === 0 ? 0.6 : 1
             }}
             onMouseEnter={(e) => {
@@ -780,15 +820,6 @@ export default function ScrapRateFixing() {
           </button>
         </div>
       </div>
-
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
     </div>
   );
 }
