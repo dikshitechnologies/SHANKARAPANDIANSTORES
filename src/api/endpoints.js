@@ -35,7 +35,7 @@ export const API_ENDPOINTS = {
     putEdit: "ItemGroupCreation/ItemGroupCreationPut",
     delete: (fCode) => `ItemGroupCreation/ItemGroupCreationDelete/${fCode}`,
   },
-user_creation: {
+  user_creation: {
     getuserdetails: "UserCreation/getUserItem",
     getDropdown: "UserCreation/GetUserCreationdropdowslist",
     postCreate: "UserCreation/CreateUser",
@@ -52,40 +52,40 @@ user_creation: {
     DELETE_COMPANY: (fcompcode) => `CompanyCreation/DeleteCompany/${fcompcode}`,
   },
   UNITCREATION: {
-    NEXT_SIZE_CODE : "UnitCreation/NextBillNo", 
-    GET_SIZE_ITEMS : "UnitCreation/GetUnits",
-    GETUNITCODE : (code) => `UnitCreation/GetUnit/${code}`, 
+    NEXT_SIZE_CODE: "UnitCreation/NextBillNo",
+    GET_SIZE_ITEMS: "UnitCreation/GetUnits",
+    GETUNITCODE: (code) => `UnitCreation/GetUnit/${code}`,
     CREATE_SIZE: "UnitCreation/CreateUnit",
     UPDATE_SIZE: (code) => `UnitCreation/UpdateUnit/${code}`,
     DELETE_SIZE: (code) => `UnitCreation/DeleteUnit/${code}`,
-  },  
-  
+  },
+
   COLORCREATION: {
-    NEXT_COLOR_CODE : "Colour_Creation/getNextColurFcode", 
-    GET_COLOR_ITEMS : "Colour_Creation/getColourItem",
+    NEXT_COLOR_CODE: "Colour_Creation/getNextColurFcode",
+    GET_COLOR_ITEMS: "Colour_Creation/getColourItem",
     // GETCOLORCODE : (code) => `ColorCreation/GetColor/${code}`, 
     CREATE_COLOR: "Colour_Creation/createColour",
     UPDATE_COLOR: "Colour_Creation/updateColour",
     DELETE_COLOR: (code) => `Colour_Creation/deleteColour/${code}`,
   },
   SIZECREATION: {
-    NEXT_SIZE_CODE : "SizeCreation/SizeNextFcode", 
-    GET_SIZE_ITEMS : "SizeCreation/getSizeItem",
+    NEXT_SIZE_CODE: "SizeCreation/SizeNextFcode",
+    GET_SIZE_ITEMS: "SizeCreation/getSizeItem",
     // GETUNITCODE : (code) => `SizeCreation/GetSize/${code}`, 
     CREATE_SIZE: "SizeCreation/createSize",
     UPDATE_SIZE: "SizeCreation/UpdateSize",
     DELETE_SIZE: (code) => `SizeCreation/DeleteSize/${code}`,
   },
   MODELCREATION: {
-    NEXT_MODEL_CODE : "ModelCreation/getNextModelFcode", 
-    GET_MODEL_ITEMS : "ModelCreation/getModelItem",
+    NEXT_MODEL_CODE: "ModelCreation/getNextModelFcode",
+    GET_MODEL_ITEMS: "ModelCreation/getModelItem",
     // GETUNITCODE : (code) => `SizeCreation/GetSize/${code}`, 
     CREATE_MODEL: "ModelCreation/createModel",
     UPDATE_MODEL: "ModelCreation/updateModel",
     DELETE_MODEL: (code) => `ModelCreation/deleteColour/${code}`,
   },
 
-    ADMINISTRATION: {
+  ADMINISTRATION: {
     USER_LIST: "Administartor/UserNameList",
     ADMIN_BATCH_INSERT: "Administartor/adminstration/InsertBatch",
     GET_PERMISSIONS_BY_USER: "Administartor/GetPermissionsByUserCode",
@@ -94,7 +94,7 @@ user_creation: {
 
 
   STATECREATION: {
-    GET_STATE_ITEMS: (page = 1, pageSize = 10) => 
+    GET_STATE_ITEMS: (page = 1, pageSize = 10) =>
       `/StateCreation/getStates?page=${page}&pageSize=${pageSize}`,
     NEXT_STATE_CODE: '/StateCreation/getStateFcode',
     GETSTATECODE: (code) => `/StateCreation/getStateFcode?code=${code}`,
@@ -112,7 +112,7 @@ user_creation: {
     GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
 
- SCRAP_RATE_FIXING: {
+  SCRAP_RATE_FIXING: {
     GET_FULL_SCRAP_RATES: 'ScrapRateFixing/getFullScrapRateFixing',
     UPDATE_FULL_SCRAP_RATES: 'ScrapRateFixing/updateFullScrapRateFixing',
   },
@@ -123,7 +123,7 @@ user_creation: {
     SUPPLIER_LIST: (search = '', page = 1, pageSize = 20) =>
       `PurchaseInvoice/SupplierList?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
   },
-    
+
 
 
   DESIGNCREATION: {
@@ -151,20 +151,47 @@ user_creation: {
   },
 
   PRODUCT: {
-  GET_PRODUCTS: 'Product',
-  CREATE_PRODUCT: 'Product?selecttype=true',
-  UPDATE_PRODUCT: 'Product?selecttype=false',
-  DELETE_PRODUCT: (code) => `Product/${code}`,
-  GET_NEXT_CODE: 'Product/getNextProductFcode'
-},
+    GET_PRODUCTS: 'Product',
+    CREATE_PRODUCT: 'Product?selecttype=true',
+    UPDATE_PRODUCT: 'Product?selecttype=false',
+    DELETE_PRODUCT: (code) => `Product/${code}`,
+    GET_NEXT_CODE: 'Product/getNextProductFcode'
+  },
 
-CATEGORY: {
-  GET_CATEGORIES: 'CATEGORY/GetAllCategory',
-  CREATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=true',
-  UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
-  DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
-  GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
-}
+  CATEGORY: {
+    GET_CATEGORIES: 'CATEGORY/GetAllCategory',
+    CREATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=true',
+    UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
+    DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
+    GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
+  },
+
+  // Sales Invoice Endpoints
+
+  SALES_INVOICE: {
+    // GET: Get next bill number
+    GET_NEXT_BILL_NUMBER: "Salesinvoices/salesnextbillNo",
+    
+    // POST: Create/Update sales invoice
+    CREATE_SALES: (isInsert) => `Salesinvoices/CreateSales/${isInsert}`,
+    
+    // GET: Get sales vouchers with pagination
+    GET_SALES_VOUCHERS: (pageNumber = 1, pageSize = 20) => 
+      `Salesinvoices/SalesVouchers?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    
+    // Alternative endpoint names that might work
+    GET_SALES_LIST: "Salesinvoices/GetSalesList",
+    GET_ALL_SALES: "Salesinvoices/GetAll",
+    
+    // DELETE: Delete sales invoice by bill number
+    DELETE_SALES_INVOICE: (billNumber) => `Salesinvoices/${billNumber}`,
+    DELETE_SALES_BILL: (billNumber) => `Salesinvoices/salesbillnumber/${billNumber}`,
+    
+    // Additional endpoints that might be useful
+    GET_SALES_BY_ID: (id) => `Salesinvoices/${id}`,
+    GET_SALES_BY_BILL_NUMBER: (billNumber) => `Salesinvoices/GetByBillNumber/${billNumber}`,
+    GET_SALES_BY_DATE: (date) => `Salesinvoices/GetByDate/${date}`,
+  },
 
 
 
