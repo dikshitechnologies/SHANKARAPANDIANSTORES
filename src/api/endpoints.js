@@ -166,37 +166,6 @@ export const API_ENDPOINTS = {
     GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
   },
 
-  // Sales Invoice Endpoints
-
-  SALES_INVOICE: {
-    // GET: Get next bill number
-    GET_NEXT_BILL_NUMBER: "Salesinvoices/salesnextbillNo",
-    
-    // POST: Create/Update sales invoice
-    CREATE_SALES: (isInsert) => `Salesinvoices/CreateSales/${isInsert}`,
-    
-    // GET: Get sales vouchers with pagination
-    GET_SALES_VOUCHERS: (pageNumber = 1, pageSize = 20) => 
-      `Salesinvoices/SalesVouchers?pageNumber=${pageNumber}&pageSize=${pageSize}`,
-    
-    // Alternative endpoint names that might work
-    GET_SALES_LIST: "Salesinvoices/GetSalesList",
-    GET_ALL_SALES: "Salesinvoices/GetAll",
-    
-    // DELETE: Delete sales invoice by bill number
-    DELETE_SALES_INVOICE: (billNumber) => `Salesinvoices/${billNumber}`,
-    DELETE_SALES_BILL: (billNumber) => `Salesinvoices/salesbillnumber/${billNumber}`,
-    
-    // Additional endpoints that might be useful
-    GET_SALES_BY_ID: (id) => `Salesinvoices/${id}`,
-    GET_SALES_BY_BILL_NUMBER: (billNumber) => `Salesinvoices/GetByBillNumber/${billNumber}`,
-    GET_SALES_BY_DATE: (date) => `Salesinvoices/GetByDate/${date}`,
-  },
-
-
-
-
-
 
 };
 
