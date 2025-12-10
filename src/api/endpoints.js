@@ -145,8 +145,9 @@ export const API_ENDPOINTS = {
 
   BRAND: {
     GET_BRANDS: 'Brand',
-    POST_BRAND: 'Brand',
+    CREATE_BRAND: 'Brand?selecttype=true',
     GET_NEXT_BRAND_CODE: 'Brand/getNextBrandFcode',
+    UPDATE_BRAND: 'Brand?selecttype=false',
     DELETE_BRAND: (code) => `Brand/${code}`,
   },
 
