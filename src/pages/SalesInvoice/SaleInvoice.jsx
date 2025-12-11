@@ -2252,7 +2252,7 @@ const SaleInvoice = () => {
                 onClick={() => openSalesmanPopup(billDetails.salesman)}
                 aria-label="Select salesman"
               >
-                ▼
+                
               </button>
             </div>
           </div>
@@ -2307,7 +2307,7 @@ const SaleInvoice = () => {
                 onClick={() => openCustomerPopup(billDetails.custName)}
                 aria-label="Select customer"
               >
-                ▼
+                
               </button>
             </div>
           </div>
@@ -2416,7 +2416,7 @@ const SaleInvoice = () => {
                         onClick={() => openItemPopup(index, item.itemName)}
                         aria-label="Select item"
                       >
-                        ▼
+                        
                       </button>
                     </div>
                   </td>
