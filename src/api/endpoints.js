@@ -164,6 +164,81 @@ CATEGORY: {
   UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
   DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
   GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
-}
+},
+
+  SALES_INVOICE_ENDPOINTS: {
+    // 1) Get next bill number
+    getNextBillNo: (compCode) => 
+      `Salesinvoices/salesnextbillNo/${compCode}`,
+
+    // 2) Create Sales Invoice
+    // isSave → true/false
+    createSales: (isSave = true) => 
+      `Salesinvoices/CreateSales/${isSave}`,
+
+    // 3) Get sales bill list (paginated)
+    getBillList: (compCode, page = 1, pageSize = 20) => 
+      `Salesinvoices/salesbillList/${compCode}?page=${page}&pageSize=${pageSize}`,
+
+    // 4) Delete sales bill number
+    // Requires voucher & compCode as query params
+    deleteBillNumber: (voucher, compCode) => 
+      `Salesinvoices/salesbillnumber?voucher=${voucher}&compCode=${compCode}`,
+
+    // 5) Get stock by item name
+    getStockByItemName: (billType, itemcode) => 
+      `Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
+
+    // 6) Get voucher details
+    getVoucherDetails: (voucherNo) => 
+      `Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`,
+
+    // 7) Get item types
+    getItemTypes: () => 
+      `Salesinvoices/GetItemTypes`,
+
+    // 8) Get items by type
+    getItemsByType: (type) => 
+      `Salesinvoices/GetItemsByType?type=${type}`,
+
+    // 9) Get stock by itemcode (alternate endpoint)
+    getStockByItemName1: (itemcode) => 
+      `Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
+  },
+
+
+   SALESMAN_CREATION_ENDPOINTS: {
+    // GET all salesmen
+    getSalesmen: "SalesmanCreation/GetSalesman",
+    
+    // GET next salesman code
+    getNextCode: "SalesmanCreation/SalesmanNextFcode",
+    
+    // POST create new salesman
+    createSalesman: "SalesmanCreation/createSalesman",
+    
+    // PUT update salesman
+    updateSalesman: "SalesmanCreation/updateSalesman",
+    
+    // DELETE salesman by code
+    deleteSalesman: (fcode) => `SalesmanCreation/deleteSalesMan/${fcode}`,
+    
+    // GET salesmen with pagination and search
+    getSalesmenPaged: (page = 1, pageSize = 20, searchText = '') =>
+      `SalesmanCreation/GetSalesmanPaged/${page}/${pageSize}?searchText=${encodeURIComponent(searchText)}`
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
 };
 
