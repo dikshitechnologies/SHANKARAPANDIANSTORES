@@ -205,7 +205,7 @@ const Tender = () => {
             </div>
           </div>
 
-          {/* Gran Total & Roud Off Row */}
+          {/* Grand Total & Round Off Row */}
           <div className={styles.inputRow}>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Grand Total</label>
@@ -394,7 +394,7 @@ const Tender = () => {
           {/* Bottom: Payment Details */}
           <div className={styles.paymentSection}>
             <div className={styles.paymentRow}>
-              <div className={styles.paymentGroup}>
+              <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
                 <label className={styles.paymentLabel}>Received Cash</label>
                 <div className={styles.paymentInputContainer}>
                   <input
@@ -407,7 +407,7 @@ const Tender = () => {
                 </div>
               </div>
               
-              <div className={styles.paymentGroup}>
+              <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
                 <label className={styles.paymentLabel}>Issued Cash</label>
                 <div className={styles.paymentInputContainer}>
                   <input
@@ -418,10 +418,8 @@ const Tender = () => {
                   />
                 </div>
               </div>
-            </div>
 
-            <div className={styles.paymentRow}>
-              <div className={styles.paymentGroup}>
+              <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
                 <label className={styles.paymentLabel}>UPI</label>
                 <div className={styles.paymentInputContainer}>
                   <input
@@ -433,7 +431,7 @@ const Tender = () => {
                 </div>
               </div>
               
-              <div className={styles.paymentGroup}>
+              <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
                 <label className={styles.paymentLabel}>Card</label>
                 <div className={styles.paymentInputContainer}>
                   <input
@@ -447,8 +445,8 @@ const Tender = () => {
               </div>
             </div>
 
-            <div className={styles.paymentRow}>
-              <div className={styles.paymentGroup}>
+            <div className={styles.paymentRow} style={{ gap: '12px' }}>
+              <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
                 <label className={styles.paymentLabel}>Balance</label>
                 <div className={styles.paymentInputContainer}>
                   <input

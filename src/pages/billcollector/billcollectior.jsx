@@ -106,7 +106,7 @@ function BillCollector() {
   const statCard = {
     flex: 1,
     backgroundColor: "#ffffff",
-    padding: isMobile ? "12px 16px" : "16px 20px",
+    padding: isMobile ? "4px 8px" : "8px 12px",
     borderRadius: "6px",
     boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
     display: "flex",
@@ -187,7 +187,7 @@ function BillCollector() {
   const selectedRowStyle = {
     ...tdHoverStyle,
     backgroundColor: "#dbeafe",
-    borderLeft: "4px solid #307AC8"
+    // borderLeft: "4px solid #307AC8"
   };
 
   const footer = {

@@ -196,9 +196,25 @@ export default function ModelCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (modelCodeRef.current) modelCodeRef.current.focus();
-  }, []);
+  // Focus on model name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (modelNameRef.current) {
+      modelNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (modelNameRef.current) modelNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -294,17 +310,19 @@ export default function ModelCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextModelCode();
-    setForm(prev => ({ ...prev, modelName: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => modelNameRef.current?.focus(), 60);
-  };
+  fetchNextModelCode();
+  setForm(prev => ({ ...prev, modelName: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // This line already focuses on modelName field after reset - GOOD
+  setTimeout(() => modelNameRef.current?.focus(), 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
@@ -312,21 +330,20 @@ export default function ModelCreation() {
   };
 
   const handleEditRowClick = (model) => {
-    console.log("Edit row clicked:", model); // Debug log
-    // Get model data based on API response structure
-    const modelCode = model.fcode || model.fCode || model.fuCode || "";
-    const modelName = model.fname || model.fname || model.modelName || "";
-    
-    setForm({ 
-      fuCode: modelCode, 
-      modelName: modelName 
-    });
-    setActionType("edit");
-    setEditingId(modelCode);
-    setEditModalOpen(false);
-    setTimeout(() => modelNameRef.current?.focus(), 60);
-  };
-
+  console.log("Edit row clicked:", model); // Debug log
+  // Get model data based on API response structure
+  const modelCode = model.fcode || model.fCode || model.fuCode || "";
+  const modelName = model.fname || model.fname || model.modelName || "";
+  
+  setForm({ 
+    fuCode: modelCode, 
+    modelName: modelName 
+  });
+  setActionType("edit");
+  setEditingId(modelCode);
+  setEditModalOpen(false);
+  setTimeout(() => modelNameRef.current?.focus(), 60); // GOOD
+};
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
@@ -351,21 +368,21 @@ export default function ModelCreation() {
     return filtered.slice(start, start + pageSize);
   }, [models]);
 
-  const handleDeleteRowClick = (model) => {
-    console.log("Delete row clicked:", model); // Debug log
-    // Get model data based on API response structure
-    const modelCode = model.fcode || model.fCode || model.fuCode || "";
-    const modelName = model.fname || model.fname || model.modelName || "";
-    
-    setForm({ 
-      fuCode: modelCode, 
-      modelName: modelName 
-    });
-    setActionType("delete");
-    setDeleteTargetId(modelCode);
-    setDeleteModalOpen(false);
-    setTimeout(() => modelNameRef.current?.focus(), 60);
-  };
+ const handleDeleteRowClick = (model) => {
+  console.log("Delete row clicked:", model); // Debug log
+  // Get model data based on API response structure
+  const modelCode = model.fcode || model.fCode || model.fuCode || "";
+  const modelName = model.fname || model.fname || model.modelName || "";
+  
+  setForm({ 
+    fuCode: modelCode, 
+    modelName: modelName 
+  });
+  setActionType("delete");
+  setDeleteTargetId(modelCode);
+  setDeleteModalOpen(false);
+  setTimeout(() => modelNameRef.current?.focus(), 60); // GOOD
+};
 
   const onModelCodeKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -1007,7 +1024,7 @@ export default function ModelCreation() {
                     onKeyDown={onModelCodeKeyDown}
                     disabled={loading}
                     aria-label="Model Code"
-                    readOnly={actionType === "edit" || actionType === "delete"}
+                    readOnly={true}
                   />
                 </div>
               </div>
