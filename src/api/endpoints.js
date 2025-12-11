@@ -114,7 +114,7 @@ export const API_ENDPOINTS = {
   sales_return:{
      getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
       getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
-      
+       getCustomers: "Salesinvoices/GetPartyByParent",
 
   },
 
