@@ -173,6 +173,22 @@ CATEGORY: {
   GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
 },
 
+
+
+ SALESMAN_CREATION_ENDPOINTS: {
+    getSalesmen: "SalesmanCreation/GetSalesman",
+    getNextCode: "SalesmanCreation/SalesmanNextFcode",
+    createSalesman: "SalesmanCreation/createSalesman",
+    updateSalesman: "SalesmanCreation/updateSalesman",
+    deleteSalesman: (fcode) => `SalesmanCreation/deleteSalesMan/${fcode}`,
+    getSalesmenPaged: (page = 1, pageSize = 20, searchText = '') => `SalesmanCreation/GetSalesmanPaged/${page}/${pageSize}?searchText=${encodeURIComponent(searchText)}`
+  },
+
+
+
+
+
+
   SALES_INVOICE_ENDPOINTS: {
     // 1) Get next bill number
     getNextBillNo: (compCode) => 
@@ -211,29 +227,19 @@ CATEGORY: {
     // 9) Get stock by itemcode (alternate endpoint)
     getStockByItemName1: (itemcode) => 
       `Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
+
+    // 10) Get salesman list
+    getSalesman: () => `SalesmanCreation/GetSalesman`,
+
+    getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>
+      `ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
+
+      getCustomers: () => 
+      `Salesinvoices/GetPartyByParent`,
   },
 
 
-   SALESMAN_CREATION_ENDPOINTS: {
-    // GET all salesmen
-    getSalesmen: "SalesmanCreation/GetSalesman",
-    
-    // GET next salesman code
-    getNextCode: "SalesmanCreation/SalesmanNextFcode",
-    
-    // POST create new salesman
-    createSalesman: "SalesmanCreation/createSalesman",
-    
-    // PUT update salesman
-    updateSalesman: "SalesmanCreation/updateSalesman",
-    
-    // DELETE salesman by code
-    deleteSalesman: (fcode) => `SalesmanCreation/deleteSalesMan/${fcode}`,
-    
-    // GET salesmen with pagination and search
-    getSalesmenPaged: (page = 1, pageSize = 20, searchText = '') =>
-      `SalesmanCreation/GetSalesmanPaged/${page}/${pageSize}?searchText=${encodeURIComponent(searchText)}`
-  }
+  
 
 
 
