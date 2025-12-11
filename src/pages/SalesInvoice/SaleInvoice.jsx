@@ -129,17 +129,86 @@ const SaleInvoice = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Function to open appropriate popup based on field name
+  const openPopupByFieldName = useCallback((fieldName, rowIndex = 0, currentValue = '') => {
+    switch(fieldName.toLowerCase()) {
+      // Header fields
+      case 'salesman':
+        openSalesmanPopup(currentValue);
+        break;
+      
+      case 'custname':
+      case 'customer':
+        openCustomerPopup(currentValue);
+        break;
+      
+      case 'itemname':
+        // For item name fields in the table
+        openItemPopup(parseInt(rowIndex) || 0, currentValue);
+        break;
+      
+      // Add more cases for other fields if needed
+      case 'barcode':
+        // Optionally open item popup for barcode field too
+        openItemPopup(parseInt(rowIndex) || 0, currentValue);
+        break;
+      
+      case 'barcodeinput':
+        // For the main barcode input in header
+        openItemPopup(0, currentValue);
+        break;
+      
+      case 'mobile':
+      case 'mobileno':
+        // You can add mobile number popup if needed
+        console.log('Mobile field - add popup if required');
+        break;
+      
+      case 'hsn':
+        // HSN code field
+        console.log('HSN field - add popup if required');
+        break;
+      
+      default:
+        // For any other field, open customer popup as default
+        if (fieldName) {
+          console.log(`Field "${fieldName}" - opening customer popup as default`);
+          openCustomerPopup(currentValue);
+        } else {
+          // If no specific field, open quick selection
+          openQuickSelectionPopup();
+        }
+        break;
+    }
+  }, []);
+
   // Global keyboard event listener for "/" key
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
-      // Check if "/" key is pressed and no input is focused
-      if (e.key === '/' && !isInputElement(document.activeElement)) {
+      // Check if "/" key is pressed
+      if (e.key === '/') {
         e.preventDefault();
-        openQuickSelectionPopup();
+        
+        const activeElement = document.activeElement;
+        const isInput = isInputElement(activeElement);
+        
+        if (isInput) {
+          // Get the field name from input's name attribute or dataset
+          const fieldName = activeElement.name || activeElement.dataset.field || '';
+          const rowIndex = activeElement.dataset.row || 0;
+          const currentValue = activeElement.value || '';
+          
+          // Open appropriate popup based on field name
+          openPopupByFieldName(fieldName, rowIndex, currentValue);
+        } else {
+          // If no input is focused, open quick selection
+          openQuickSelectionPopup();
+        }
       }
     };
 
     const isInputElement = (element) => {
+      if (!element) return false;
       const tagName = element.tagName.toLowerCase();
       return tagName === 'input' || 
              tagName === 'textarea' || 
@@ -149,7 +218,7 @@ const SaleInvoice = () => {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
+  }, [openPopupByFieldName]);
 
   // Function to open quick selection popup
   const openQuickSelectionPopup = () => {
@@ -2156,9 +2225,6 @@ const SaleInvoice = () => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     handleKeyDown(e, custNameRef);
-                  } else if (e.key === '?' || e.key === '/') {
-                    e.preventDefault();
-                    handleSalesmanCustomerKeyDown(e, 'salesman');
                   }
                 }}
                 onClick={() => openSalesmanPopup(billDetails.salesman)}
@@ -2186,7 +2252,7 @@ const SaleInvoice = () => {
                 onClick={() => openSalesmanPopup(billDetails.salesman)}
                 aria-label="Select salesman"
               >
-                
+                ▼
               </button>
             </div>
           </div>
@@ -2214,9 +2280,6 @@ const SaleInvoice = () => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     handleKeyDown(e, barcodeRef);
-                  } else if (e.key === '?' || e.key === '/') {
-                    e.preventDefault();
-                    handleSalesmanCustomerKeyDown(e, 'custName');
                   }
                 }}
                 onClick={() => openCustomerPopup(billDetails.custName)}
@@ -2244,7 +2307,7 @@ const SaleInvoice = () => {
                 onClick={() => openCustomerPopup(billDetails.custName)}
                 aria-label="Select customer"
               >
-                
+                ▼
               </button>
             </div>
           </div>
@@ -2328,8 +2391,6 @@ const SaleInvoice = () => {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             handleTableKeyDown(e, index, 'itemName');
-                          } else if (e.key === '?' || e.key === ' ' || e.key === '/') {
-                            handleItemNameKeyDown(e, index);
                           }
                         }}
                         onClick={() => openItemPopup(index, item.itemName)}
@@ -2355,7 +2416,7 @@ const SaleInvoice = () => {
                         onClick={() => openItemPopup(index, item.itemName)}
                         aria-label="Select item"
                       >
-                        
+                        ▼
                       </button>
                     </div>
                   </td>
