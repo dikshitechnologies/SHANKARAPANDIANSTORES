@@ -111,6 +111,12 @@ export const API_ENDPOINTS = {
     DELETE_SCRAP: (scrapCode) => `/ScrapCreation/deleteScrap/${scrapCode}`,
     GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
+  sales_return:{
+     getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
+      getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
+      
+
+  },
 
   SCRAP_RATE_FIXING: {
     GET_FULL_SCRAP_RATES: 'ScrapRateFixing/getFullScrapRateFixing',
