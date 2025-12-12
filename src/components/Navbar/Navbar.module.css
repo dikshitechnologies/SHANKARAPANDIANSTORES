@@ -20,7 +20,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
   height: 100%;
+}
+
+/* Center screen title */
+.nav-screen-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.95);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.2px;
+  pointer-events: none;
+  z-index: 1003;
+  text-align: center;
 }
 
 /* Logo Styles */
@@ -52,9 +67,8 @@
 
 /* Navigation Menu */
 .nav-center-menu {
-  flex: 1;
-  display: flex;
-  justify-content: center;
+ 
+  
 }
 
 .nav-menu {
@@ -206,6 +220,22 @@
   align-items: center;
   gap: 12px;
   z-index: 1002;
+}
+
+/* Pin actions (Admin) to the far right on desktop */
+@media (min-width: 769px) {
+  .nav-actions {
+    position: absolute;
+    right: 24px;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    z-index: 1004;
+  }
+}
+.user-menu {
+  padding-right: 0;
 }
 
 .action-buttons {

@@ -1038,7 +1038,7 @@ const SaleInvoice = () => {
 
   // Handle keydown with / key support
   const handleKeyDown = (e, nextRef, fieldName = '') => {
-    if (e.key === '/') {
+    if (e.key === '/' || e.key === '?') {
       e.preventDefault();
       
       if (fieldName === 'salesman') {
@@ -1050,6 +1050,26 @@ const SaleInvoice = () => {
       e.preventDefault();
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
+      }
+    }
+  };
+
+  // Handle backspace in customer and salesman fields
+  const handleBackspace = (e, fieldName) => {
+    if (e.key === 'Backspace') {
+      if (fieldName === 'salesman') {
+        setBillDetails(prev => ({
+          ...prev,
+          salesman: '',
+          salesmanCode: ''
+        }));
+      } else if (fieldName === 'custName') {
+        setBillDetails(prev => ({
+          ...prev,
+          custName: '',
+          custCode: '',
+          partyCode: ''
+        }));
       }
     }
   };
@@ -1077,7 +1097,7 @@ const SaleInvoice = () => {
 
   // Handle table keydown
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    if (e.key === '/' && currentField === 'itemName') {
+    if ((e.key === '/' || e.key === '?') && currentField === 'itemName') {
       e.preventDefault();
       openItemPopup(currentRowIndex);
       return;
@@ -1284,15 +1304,6 @@ const SaleInvoice = () => {
     if (window.confirm('Are you sure you want to clear current unsaved data?')) {
       resetForm();
       // Fetch new bill number for new invoice
-      fetchNextBillNo();
-    }
-  };
-
-  // Clear all data including localStorage
-  const handleClearAll = () => {
-    if (window.confirm('Are you sure you want to clear ALL data including saved form data? This cannot be undone.')) {
-      localStorage.removeItem('saleInvoiceData');
-      resetForm();
       fetchNextBillNo();
     }
   };
@@ -1621,6 +1632,7 @@ const SaleInvoice = () => {
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
       cursor: 'pointer',
+      backgroundColor: 'white',
     },
     gridRow: {
       display: 'grid',
@@ -1878,16 +1890,6 @@ const SaleInvoice = () => {
       borderRadius: '8px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
-    },
-    clearAllButton: {
-      backgroundColor: '#f8f9fa',
-      border: '1px solid #dc3545',
-      color: '#dc3545',
-      padding: '6px 12px',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      marginLeft: '10px'
     }
   };
 
@@ -2004,11 +2006,13 @@ const SaleInvoice = () => {
               onChange={handleInputChange}
               ref={salesmanRef}
               onClick={openSalesmanPopup}
-              onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
+              onKeyDown={(e) => {
+                handleKeyDown(e, custNameRef, 'salesman');
+                handleBackspace(e, 'salesman');
+              }}
               onFocus={() => setFocusedField('salesman')}
               onBlur={() => setFocusedField('')}
-              placeholder="Click to select salesman"
-              readOnly
+              placeholder="Click to select or type name"
             />
           </div>
 
@@ -2023,11 +2027,13 @@ const SaleInvoice = () => {
               onChange={handleInputChange}
               ref={custNameRef}
               onClick={openCustomerPopup}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef, 'custName')}
+              onKeyDown={(e) => {
+                handleKeyDown(e, barcodeRef, 'custName');
+                handleBackspace(e, 'custName');
+              }}
               onFocus={() => setFocusedField('custName')}
               onBlur={() => setFocusedField('')}
-              placeholder="Click to select customer"
-              readOnly
+              placeholder="Click to select or type name"
             />
           </div>
 
@@ -2259,13 +2265,6 @@ const SaleInvoice = () => {
             <EditButton buttonType="edit" />
             <DeleteButton buttonType="delete" />
           </ActionButtons>
-          <button 
-            style={styles.clearAllButton}
-            onClick={handleClearAll}
-            title="Clear all data including saved form data"
-          >
-            Clear All
-          </button>
         </div>
         
         {/* Add/Less Input */}
