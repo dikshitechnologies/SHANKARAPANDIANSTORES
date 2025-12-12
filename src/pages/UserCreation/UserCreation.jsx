@@ -671,7 +671,7 @@ export default function UserCreation() {
     },
     
     leftTitle: {
-      fontSize: isMobile ? '20px' : '26px',
+      fontSize: isMobile ? '18px' : '18px',
       fontWeight: 700,
       marginBottom: '6px',
       color: '#11303F',
@@ -682,7 +682,7 @@ export default function UserCreation() {
     
     leftSubtitle: {
       color: '#666',
-      fontSize: isMobile ? '13px' : '15px',
+      fontSize: isMobile ? '13px' : '14px',
       margin: 0,
       fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       fontWeight: 400,
@@ -699,7 +699,7 @@ export default function UserCreation() {
       border: '2px solid #e1e8f0',
       borderRadius: isMobile ? '10px' : '12px',
       width: '100%',
-      fontSize: isMobile ? '15px' : '16px',
+      fontSize: isMobile ? '14px' : '14px',
       background: '#fafcff',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       outline: 'none',
@@ -715,7 +715,7 @@ export default function UserCreation() {
       top: '50%',
       transform: 'translateY(-50%)',
       color: '#94a3b8',
-      fontSize: isMobile ? '16px' : '18px',
+      fontSize: isMobile ? '14px' : '14px',
     },
     
     tableContainer: {
@@ -733,7 +733,7 @@ export default function UserCreation() {
       background: '#f1f7ff',
       borderBottom: '2px solid #e1e8f0',
       fontWeight: 600,
-      fontSize: isMobile ? '14px' : '15px',
+      fontSize: isMobile ? '13px' : '14px',
       color: '#334155',
       fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       gap: isMobile ? '8px' : '0',
@@ -751,7 +751,7 @@ export default function UserCreation() {
       gridTemplateColumns: '1fr 2fr 2fr',
       padding: isMobile ? '12px 16px' : '16px 20px',
       borderBottom: '1px solid #f1f5f9',
-      fontSize: isMobile ? '15px' : '16px',
+      fontSize: isMobile ? '14px' : '14px',
       transition: 'background-color 0.2s',
       cursor: 'pointer',
       fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
@@ -787,7 +787,7 @@ export default function UserCreation() {
     },
     
     rightTitle: {
-      fontSize: isMobile ? '20px' : '26px',
+      fontSize: isMobile ? '18px' : '18px',
       fontWeight: 700,
       marginBottom: '6px',
       color: '#11303F',
@@ -798,7 +798,7 @@ export default function UserCreation() {
     
     rightSubtitle: {
       color: '#666',
-      fontSize: isMobile ? '13px' : '15px',
+      fontSize: isMobile ? '13px' : '14px',
       margin: 0,
       fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       fontWeight: 400,
@@ -834,7 +834,7 @@ export default function UserCreation() {
       cursor: 'pointer',
       boxShadow: '0 4px 12px rgba(2,6,23,0.04)',
       fontWeight: 600,
-      fontSize: isMobile ? '12px' : '13px',
+      fontSize: isMobile ? '13px' : '14px',
       color: '#334155',
       transition: 'all 0.2s ease',
       fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
@@ -887,8 +887,8 @@ export default function UserCreation() {
     formLabel: {
       display: 'block',
       marginBottom: '8px',
-      fontWeight: 600,
-      fontSize: isMobile ? '14px' : '15px',
+      fontWeight: 700,
+      fontSize: isMobile ? '14px' : '14px',
       color: '#334155',
       fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
       letterSpacing: '0.01em',
@@ -904,7 +904,7 @@ export default function UserCreation() {
       width: '100%',
       border: '2px solid #e1e8f0',
       borderRadius: isMobile ? '10px' : '10px',
-      fontSize: isMobile ? '15px' : '16px',
+      fontSize: isMobile ? '14px' : '14px',
       background: 'white',
       color: '#0f172a',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -919,7 +919,7 @@ export default function UserCreation() {
       width: '100%',
       border: '2px solid #e1e8f0',
       borderRadius: isMobile ? '10px' : '10px',
-      fontSize: isMobile ? '15px' : '16px',
+      fontSize: isMobile ? '14px' : '14px',
       background: 'white',
       color: '#0f172a',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -936,7 +936,7 @@ export default function UserCreation() {
       top: '50%',
       transform: 'translateY(-50%)',
       color: '#94a3b8',
-      fontSize: isMobile ? '16px' : '18px',
+      fontSize: isMobile ? '14px' : '14px',
     },
     
     formActions: {
@@ -957,7 +957,7 @@ export default function UserCreation() {
       border: 'none',
       color: 'white',
       fontWeight: 600,
-      fontSize: isMobile ? '15px' : '16px',
+      fontSize: isMobile ? '14px' : '14px',
       cursor: 'pointer',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       boxShadow: '0 4px 12px rgba(6, 167, 234, 0.25)',
@@ -980,7 +980,7 @@ export default function UserCreation() {
       border: '2px solid #e1e8f0',
       color: '#475569',
       fontWeight: 600,
-      fontSize: isMobile ? '15px' : '16px',
+      fontSize: isMobile ? '14px' : '14px',
       cursor: 'pointer',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       minWidth: isMobile ? '100%' : '140px',

@@ -26,7 +26,8 @@ const PopupListSelector = ({
   tableStyles = {},
   maxHeight = '70vh',
   searchPlaceholder = 'Search...',
-  responsiveBreakpoint = 768 
+  responsiveBreakpoint = 768,
+  initialSearchText = '' // New prop for initial search value
 }) => {
   const [searchText, setSearchText] = useState('');
   const [data, setData] = useState([]);
@@ -65,8 +66,14 @@ const PopupListSelector = ({
       setInitialLoading(true);
       setPage(1);
       setHasMore(true);
-
-      loadData(1, '', true);
+      
+      // Set initial search text if provided
+      if (initialSearchText && initialSearchText.trim().length > 0) {
+        setSearchText(initialSearchText);
+        loadData(1, initialSearchText, true);
+      } else {
+        loadData(1, '', true);
+      }
 
       setTimeout(() => {
         if (searchInputRef.current) searchInputRef.current.focus();
