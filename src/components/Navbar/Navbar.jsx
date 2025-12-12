@@ -74,11 +74,6 @@ const Navbar = () => {
   }, [isMobile, isMenuOpen]);
 
   const masterItems = [
-    // { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <AppstoreOutlined /> },
-    { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
-    // { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined /> },
-    // { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <ShopOutlined /> },
-    // { name: 'Item Creation', path: '/masters/item-creation', icon: <BuildOutlined /> },
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined /> },
     { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined /> },
     { name: 'Size Creation', path: '/masters/size-creation', icon: <TeamOutlined /> },
@@ -93,10 +88,7 @@ const Navbar = () => {
     { name: 'Category Creation', path: '/masters/category-creation', icon: <BuildOutlined /> },
     { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined /> },
     { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined /> },
-    { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined /> }
-
-
-
+    { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined /> },
   ];
 
   const transactionItems = [
@@ -243,7 +235,7 @@ const Navbar = () => {
                     </span>
                   </button>
                   {activeDropdown === 'masters' && (
-                    <div className={styles['dropdown-container']}>
+                    <div className={`${styles['dropdown-container']} ${styles.masters}`}>
                       <DropdownMenu
                         items={masterItems}
                         onItemClick={() => setActiveDropdown(null)}

@@ -162,6 +162,12 @@
   border: 1px solid rgba(6, 167, 234, 0.15);
 }
 
+/* Masters dropdown with scroll */
+.dropdown-container.masters .dropdown-menu {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
 .dropdown-menu.center {
   position: relative;
   left: auto;
