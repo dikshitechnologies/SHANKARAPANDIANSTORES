@@ -172,8 +172,8 @@ export default function ScrapPage() {
       }
       return response;
     } catch (err) {
-      console.error("Update error details:", err.response || err);
-      setMessage({ type: "error", text: err.message || "Failed to update scrap item" });
+      console.error("Update error details:", err.response?.data?.message );
+      setMessage({ type: "error", text: err.response?.data?.message || "Failed to update scrap item" });
       throw err;
     } finally {
       setLoading(false);
