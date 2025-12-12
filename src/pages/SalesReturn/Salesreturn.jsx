@@ -2219,4 +2219,4 @@ const SalesReturn = () => {
   );
 };
 
-export default SalesReturn;
+export default SalesReturn

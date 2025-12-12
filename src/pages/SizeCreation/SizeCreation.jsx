@@ -428,7 +428,7 @@ useEffect(() => {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 14px; /* match other pages */
+          font-size: 12px; /* increased base font size */
           box-sizing: border-box;
         }
 
@@ -464,10 +464,9 @@ useEffect(() => {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 18px; /* match Product.jsx title size */
-          color: #0c1a3bff;
+          font-size: 20px; /* slightly larger title */
+          color: #0f172a;
           letter-spacing: -0.2px;
-          font-weight: 700;
         }
         .subtitle {
           color: var(--muted);
@@ -531,7 +530,7 @@ useEffect(() => {
 
         label.field-label {
           display:block;
-          margin-bottom:2px;
+          margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
           font-size:14px;
@@ -557,14 +556,13 @@ useEffect(() => {
           min-width: 0;
           padding:10px 12px;
           border-radius:10px;
-          border: 2px solid rgba(15,23,42,0.06);
+          border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
           font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
-          margin: 0 10px;
         }
         .input:focus, .search:focus { 
           outline:none; 
@@ -612,7 +610,7 @@ useEffect(() => {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { color: var(--muted); font-size:15px; }
 
         /* message */
         .message {
@@ -620,7 +618,7 @@ useEffect(() => {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 14px;
+          font-size: 12px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
