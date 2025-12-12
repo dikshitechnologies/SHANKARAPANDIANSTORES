@@ -187,9 +187,25 @@ export default function UnitCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (unitCodeRef.current) unitCodeRef.current.focus();
-  }, []);
+ // Focus on unit name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (unitNameRef.current) {
+      unitNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (unitNameRef.current) unitNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -210,7 +226,7 @@ export default function UnitCreation() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Unit updated successfully." });
-      resetForm(true);
+      resetForm();
     } catch (err) {
       // Error message already set in updateUnit
     }
@@ -268,17 +284,19 @@ export default function UnitCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextUnitCode();
-    setForm(prev => ({ ...prev, unitName: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => unitNameRef.current?.focus(), 60);
-  };
+  fetchNextUnitCode();
+  setForm(prev => ({ ...prev, unitName: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // This line already focuses on unitName field after reset - GOOD
+  setTimeout(() => unitNameRef.current?.focus(), 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
@@ -286,12 +304,12 @@ export default function UnitCreation() {
   };
 
   const handleEditRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
-    setActionType("edit");
-    setEditingId(u.uCode);
-    setEditModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
-  };
+  setForm({ fuCode: u.uCode, unitName: u.unitName });
+  setActionType("edit");
+  setEditingId(u.uCode);
+  setEditModalOpen(false);
+  setTimeout(() => unitNameRef.current?.focus(), 60); // GOOD
+};
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -310,12 +328,12 @@ export default function UnitCreation() {
   }, [units]);
 
   const handleDeleteRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
-    setActionType("delete");
-    setDeleteTargetId(u.uCode);
-    setDeleteModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
-  };
+  setForm({ fuCode: u.uCode, unitName: u.unitName });
+  setActionType("delete");
+  setDeleteTargetId(u.uCode);
+  setDeleteModalOpen(false);
+  setTimeout(() => unitNameRef.current?.focus(), 60); // GOOD
+};
 
   const onUnitCodeKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -939,7 +957,7 @@ export default function UnitCreation() {
                   onKeyDown={onUnitCodeKeyDown}
                   disabled={loading}
                   aria-label="Unit Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
+                  readOnly={true}
                 />
                   {/* <button
                     className="btn"

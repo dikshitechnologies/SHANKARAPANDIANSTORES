@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import { API_ENDPOINTS } from '../../api/endpoints';
+import { axiosInstance } from '../../api/apiService';
 
 // --- Inline SVG icons ---
 const Icon = {
@@ -41,18 +43,9 @@ const Icon = {
   ),
 };
 
-// Sample initial salesmen data
-const initialSalesmen = [
-  { id: 1, salesmanCode: "001", salesmanName: "John Smith" },
-  { id: 2, salesmanCode: "002", salesmanName: "Jane Doe" },
-  { id: 3, salesmanCode: "003", salesmanName: "Robert Johnson" },
-  { id: 4, salesmanCode: "004", salesmanName: "Emily Davis" },
-  { id: 5, salesmanCode: "005", salesmanName: "Michael Wilson" },
-];
-
 export default function SalesmanCreation() {
   // ---------- state ----------
-  const [salesmen, setSalesmen] = useState(initialSalesmen);
+  const [salesmen, setSalesmen] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -82,7 +75,99 @@ export default function SalesmanCreation() {
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Generate next salesman code
+  // ---------- API functions ----------
+  const fetchSalesmen = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.getSalesmen
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Transform API response to match our format
+        const transformedData = response.data.map(item => ({
+          id: item.fcode,
+          salesmanCode: item.fcode,
+          salesmanName: item.fname
+        }));
+        setSalesmen(transformedData);
+      }
+    } catch (err) {
+      console.error('Error fetching salesmen:', err);
+      setMessage({ type: "error", text: "Failed to load salesmen." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchNextCode = async () => {
+    try {
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.getNextCode
+      );
+      
+      if (response.data) {
+        // The API returns just the code as string (e.g., "022")
+        setForm(prev => ({ ...prev, salesmanCode: String(response.data) }));
+      }
+    } catch (err) {
+      console.error('Error fetching next code:', err);
+      // Generate locally if API fails
+      generateNextSalesmanCode();
+    }
+  };
+
+  const createSalesman = async (salesmanData) => {
+    try {
+      // Prepare data for API - note field names: fcode, fname
+      const apiData = {
+        fcode: salesmanData.salesmanCode,
+        fname: salesmanData.salesmanName
+      };
+      
+      const response = await axiosInstance.post(
+        API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.createSalesman,
+        apiData
+      );
+      
+      return response.data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const updateSalesman = async (salesmanData) => {
+    try {
+      // Prepare data for API
+      const apiData = {
+        fcode: salesmanData.salesmanCode,
+        fname: salesmanData.salesmanName
+      };
+      
+      const response = await axiosInstance.put(
+        API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.updateSalesman,
+        apiData
+      );
+      
+      return response.data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const deleteSalesman = async (salesmanCode) => {
+    try {
+      const response = await axiosInstance.delete(
+        API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.deleteSalesman(salesmanCode)
+      );
+      
+      return response.data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  // Generate next salesman code locally (fallback)
   const generateNextSalesmanCode = () => {
     if (salesmen.length === 0) return "001";
     
@@ -106,16 +191,19 @@ export default function SalesmanCreation() {
   }, []);
 
   useEffect(() => {
+    // Fetch initial data
+    fetchSalesmen();
+    fetchNextCode();
+  }, []);
+
+  // Focus on first input
+  useEffect(() => {
     if (salesmanCodeRef.current) salesmanCodeRef.current.focus();
-    // Set initial salesman code
-    const nextCode = generateNextSalesmanCode();
-    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
   }, []);
 
   // ---------- handlers ----------
   const loadInitial = () => {
-    const nextCode = generateNextSalesmanCode();
-    setForm(prev => ({ ...prev, salesmanCode: nextCode }));
+    fetchNextCode();
   };
 
   const handleEdit = async () => {
@@ -127,18 +215,24 @@ export default function SalesmanCreation() {
     if (!window.confirm(`Do you want to update salesman "${form.salesmanName}"?`)) return;
 
     try {
-      setSalesmen(prev => 
-        prev.map(salesman => 
-          salesman.salesmanCode === form.salesmanCode 
-            ? { ...salesman, salesmanName: form.salesmanName }
-            : salesman
-        )
-      );
+      setLoading(true);
+      const result = await updateSalesman(form);
       
-      setMessage({ type: "success", text: "Salesman updated successfully." });
+      if (result && result.message) {
+        setMessage({ type: "success", text: result.message });
+      } else {
+        setMessage({ type: "success", text: "Salesman updated successfully." });
+      }
+      
+      // Refresh the list
+      await fetchSalesmen();
       resetForm(true);
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update salesman." });
+      console.error('Update error:', err.response?.data || err.message);
+      const errorMsg = err.response?.data?.message || "Failed to update salesman.";
+      setMessage({ type: "error", text: errorMsg });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -151,12 +245,24 @@ export default function SalesmanCreation() {
     if (!window.confirm(`Do you want to delete salesman "${form.salesmanName}"?`)) return;
 
     try {
-      setSalesmen(prev => prev.filter(salesman => salesman.salesmanCode !== form.salesmanCode));
+      setLoading(true);
+      const result = await deleteSalesman(form.salesmanCode);
       
-      setMessage({ type: "success", text: "Salesman deleted successfully." });
+      if (result && result.message) {
+        setMessage({ type: "success", text: result.message });
+      } else {
+        setMessage({ type: "success", text: "Salesman deleted successfully." });
+      }
+      
+      // Refresh the list
+      await fetchSalesmen();
       resetForm();
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to delete salesman." });
+      console.error('Delete error:', err.response?.data || err.message);
+      const errorMsg = err.response?.data?.message || "Failed to delete salesman.";
+      setMessage({ type: "error", text: errorMsg });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -166,7 +272,7 @@ export default function SalesmanCreation() {
       return;
     }
 
-    // Check if salesman code already exists
+    // Check if salesman code already exists (locally)
     const exists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
     if (exists) {
       setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
@@ -176,18 +282,45 @@ export default function SalesmanCreation() {
     if (!window.confirm(`Do you want to create salesman "${form.salesmanName}"?`)) return;
 
     try {
-      const newSalesman = {
-        id: salesmen.length + 1,
-        salesmanCode: form.salesmanCode,
-        salesmanName: form.salesmanName
+      setLoading(true);
+      // Helper function to limit string length to prevent truncation errors
+      const limitString = (str, maxLength = 50) => {
+        if (!str) return '';
+        return String(str).substring(0, maxLength);
       };
+
+      const salesmanData = {
+        salesmanCode: limitString(form.salesmanCode, 10),
+        salesmanName: limitString(form.salesmanName, 100)
+      };
+
+      const result = await createSalesman(salesmanData);
       
-      setSalesmen(prev => [...prev, newSalesman]);
+      if (result && result.message) {
+        setMessage({ type: "success", text: result.message });
+      } else {
+        setMessage({ type: "success", text: "Salesman created successfully." });
+      }
       
-      setMessage({ type: "success", text: "Salesman created successfully." });
+      // Refresh the list and get next code
+      await fetchSalesmen();
+      await fetchNextCode();
       resetForm(true);
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to create salesman." });
+      console.error('Create error:', err.response?.data || err.message);
+      let errorMsg = "Failed to create salesman.";
+      
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+        // Handle truncation error
+        if (errorMsg.includes('truncated') || errorMsg.includes('String or binary data')) {
+          errorMsg = "Data too long for database fields. Please shorten the salesman name.";
+        }
+      }
+      
+      setMessage({ type: "error", text: errorMsg });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -198,8 +331,8 @@ export default function SalesmanCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    const nextCode = generateNextSalesmanCode();
-    setForm({ salesmanCode: nextCode, salesmanName: "" });
+    fetchNextCode(); // Get new code
+    setForm({ salesmanCode: "", salesmanName: "" });
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -939,9 +1072,13 @@ export default function SalesmanCreation() {
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
                     Loading salesmen...
                   </div>
+                ) : salesmen.length === 0 ? (
+                  <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
+                    No salesmen found
+                  </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {salesmen.length === 0 ? "No salesmen found" : "No matching salesmen"}
+                    No matching salesmen
                   </div>
                 ) : (
                   <table className="salesmen-table">
@@ -1011,11 +1148,11 @@ export default function SalesmanCreation() {
               <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Salesman code is auto-generated for new salesmen</span>
+                  <span>Salesman code is auto-generated from API</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find salesmen</span>
+                  <span>Keep salesman name under 50 characters to avoid errors</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>

@@ -227,9 +227,25 @@ export default function BrandPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (brandCodeRef.current) brandCodeRef.current.focus();
-  }, []);
+ // Focus on brand name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (brandNameRef.current) {
+      brandNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (brandNameRef.current) brandNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -320,31 +336,33 @@ export default function BrandPage() {
     else if (actionType === "delete") await handleDelete();
   };
 
-  const resetForm = (keepAction = false) => {
-    getNextBrandCode();
-    setForm(prev => ({ ...prev, brandName: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => brandNameRef.current?.focus(), 60);
-  };
+const resetForm = (keepAction = false) => {
+  getNextBrandCode();
+  setForm(prev => ({ ...prev, brandName: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // This line already focuses on brandName field after reset - GOOD
+  setTimeout(() => brandNameRef.current?.focus(), 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (b) => {
-    setForm({ brandCode: b.brandCode, brandName: b.brandName });
-    setActionType("edit");
-    setEditingId(b.brandCode);
-    setEditModalOpen(false);
-    setTimeout(() => brandNameRef.current?.focus(), 60);
-  };
+ const handleEditRowClick = (b) => {
+  setForm({ brandCode: b.brandCode, brandName: b.brandName });
+  setActionType("edit");
+  setEditingId(b.brandCode);
+  setEditModalOpen(false);
+  setTimeout(() => brandNameRef.current?.focus(), 60); // GOOD
+};
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -365,13 +383,13 @@ export default function BrandPage() {
     return filtered.slice(start, start + pageSize);
   }, [brands]);
 
-  const handleDeleteRowClick = (b) => {
-    setForm({ brandCode: b.brandCode, brandName: b.brandName });
-    setActionType("delete");
-    setDeleteTargetId(b.brandCode);
-    setDeleteModalOpen(false);
-    setTimeout(() => brandNameRef.current?.focus(), 60);
-  };
+ const handleDeleteRowClick = (b) => {
+  setForm({ brandCode: b.brandCode, brandName: b.brandName });
+  setActionType("delete");
+  setDeleteTargetId(b.brandCode);
+  setDeleteModalOpen(false);
+  setTimeout(() => brandNameRef.current?.focus(), 60); // GOOD
+};
 
   const onBrandCodeKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -992,7 +1010,7 @@ export default function BrandPage() {
                   onKeyDown={onBrandCodeKeyDown}
                   disabled={loading}
                   aria-label="Brand Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
+                  readOnly={true}
                 />
               </div>
             </div>

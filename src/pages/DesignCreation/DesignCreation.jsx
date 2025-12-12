@@ -196,9 +196,25 @@ export default function DesignCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (designCodeRef.current) designCodeRef.current.focus();
-  }, []);
+ // Focus on design name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (designNameRef.current) {
+      designNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (designNameRef.current) designNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -283,17 +299,23 @@ export default function DesignCreation() {
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextDesignCode();
-    setForm(prev => ({ ...prev, designName: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => designNameRef.current?.focus(), 60);
-  };
+  fetchNextDesignCode();
+  setForm(prev => ({ ...prev, designName: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // Focus on design name field after reset
+  setTimeout(() => {
+    if (designNameRef.current) {
+      designNameRef.current.focus();
+    }
+  }, 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
@@ -954,7 +976,7 @@ export default function DesignCreation() {
                   onKeyDown={onDesignCodeKeyDown}
                   disabled={loading}
                   aria-label="Design Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
+                  readOnly={true}
                 />
               </div>
             </div>

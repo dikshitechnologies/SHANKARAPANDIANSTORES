@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
 
 function BillCollector() {
   const [selectedRow, setSelectedRow] = useState(null);
@@ -9,6 +10,7 @@ function BillCollector() {
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [activeFooterAction, setActiveFooterAction] = useState('all');
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -104,7 +106,7 @@ function BillCollector() {
   const statCard = {
     flex: 1,
     backgroundColor: "#ffffff",
-    padding: isMobile ? "12px 16px" : "16px 20px",
+    padding: isMobile ? "4px 8px" : "8px 12px",
     borderRadius: "6px",
     boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
     display: "flex",
@@ -185,13 +187,13 @@ function BillCollector() {
   const selectedRowStyle = {
     ...tdHoverStyle,
     backgroundColor: "#dbeafe",
-    borderLeft: "4px solid #307AC8"
+    // borderLeft: "4px solid #307AC8"
   };
 
   const footer = {
     display: "flex",
     justifyContent: "center",
-    gap: isMobile ? "6px" : "10px",
+    gap: "0",
     padding: isMobile ? "12px 16px" : "16px 32px",
     backgroundColor: "#ffffff",
     borderTop: "1px solid #e5e7eb",
@@ -209,9 +211,9 @@ function BillCollector() {
     cursor: "pointer",
     fontSize: isMobile ? "11px" : "13px",
     fontWeight: "600",
-    borderRadius: "6px",
-    transition: "all 0.2s",
-    display: "flex",
+    borderRadius: "50px",
+    transition: "all 0.3s ease",
+    display: "inline-flex",
     alignItems: "center",
     gap: isMobile ? "4px" : "6px",
     flex: isMobile ? "1 1 calc(50% - 3px)" : "0 0 auto",
@@ -223,40 +225,40 @@ function BillCollector() {
     ...btnBase, 
     backgroundColor: "#059669", 
     color: "white",
-    boxShadow: "0 1px 3px rgba(5, 150, 105, 0.2)"
+    boxShadow: "0 4px 20px rgba(5, 150, 105, 0.2)"
   };
 
   const viewBtn = { 
     ...btnBase, 
     backgroundColor: "#307AC8", 
     color: "white",
-    boxShadow: "0 1px 3px rgba(48, 122, 200, 0.2)"
+    boxShadow: "0 4px 20px rgba(48, 122, 200, 0.2)"
   };
 
   const printBtn = { 
     ...btnBase, 
-    backgroundColor: "#7c3aed", 
+    backgroundColor: "#6a1b9a", 
     color: "white",
-    boxShadow: "0 1px 3px rgba(124, 58, 237, 0.2)"
+    boxShadow: "0 4px 20px rgba(106, 27, 154, 0.2)"
   };
 
   const clearBtn = { 
     ...btnBase, 
-    backgroundColor: "#d97706", 
+    backgroundColor: "#e53935", 
     color: "white",
-    boxShadow: "0 1px 3px rgba(217, 119, 6, 0.2)"
+    boxShadow: "0 4px 20px rgba(229, 57, 53, 0.2)"
   };
 
   const exitBtn = { 
     ...btnBase, 
     backgroundColor: "#dc2626", 
     color: "white",
-    boxShadow: "0 1px 3px rgba(220, 38, 38, 0.2)"
+    boxShadow: "0 4px 20px rgba(220, 38, 38, 0.2)"
   };
 
   const btnHover = {
-    transform: "translateY(-1px)",
-    boxShadow: "0 3px 8px rgba(0,0,0,0.12)"
+    transform: "translateY(-2px)",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.15)"
   };
 
   const statusBadge = {
@@ -285,35 +287,39 @@ function BillCollector() {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     display: showPrintConfirm || showSaveConfirm || showClearConfirm || showExitConfirm ? "flex" : "none",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1000,
-    backdropFilter: "blur(4px)"
+    backdropFilter: "blur(8px)",
+    animation: "fadeIn 0.3s ease-out"
   };
 
   const modalContent = {
     backgroundColor: "white",
-    padding: "24px",
-    borderRadius: "8px",
-    boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+    padding: "32px",
+    borderRadius: "16px",
+    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
     textAlign: "center",
-    maxWidth: "400px",
-    width: "90%"
+    maxWidth: "420px",
+    width: "90%",
+    animation: "modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
   };
 
   const modalTitle = {
-    fontSize: "18px",
+    fontSize: "20px",
     fontWeight: "700",
-    color: "#1f2937",
-    marginBottom: "12px"
+    color: "#0f172a",
+    marginBottom: "12px",
+    letterSpacing: "-0.5px"
   };
 
   const modalMessage = {
-    fontSize: "14px",
-    color: "#6b7280",
-    marginBottom: "24px"
+    fontSize: "15px",
+    color: "#64748b",
+    marginBottom: "28px",
+    lineHeight: "1.5"
   };
 
   const modalButtons = {
@@ -489,6 +495,27 @@ function BillCollector() {
 
   return (
     <div style={container}>
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
   
 
       <div style={billNoContainer}>
@@ -685,37 +712,13 @@ function BillCollector() {
       </div>
 
       <div style={footer}>
-        <button 
-          style={saveBtn}
-          onClick={handleSave}
-          onMouseEnter={(e) => Object.assign(e.target.style, btnHover)}
-          onMouseLeave={(e) => Object.assign(e.target.style, saveBtn)}
-        >
-          💾 Save
-        </button>
-        <button 
-          style={viewBtn}
-          onMouseEnter={(e) => Object.assign(e.target.style, btnHover)}
-          onMouseLeave={(e) => Object.assign(e.target.style, viewBtn)}
-        >
-          👁️ View
-        </button>
-        <button 
-          style={printBtn}
-          onClick={handlePrint}
-          onMouseEnter={(e) => Object.assign(e.target.style, btnHover)}
-          onMouseLeave={(e) => Object.assign(e.target.style, printBtn)}
-        >
-          🖨️ Print
-        </button>
-        <button 
-          style={clearBtn}
-          onClick={handleClear}
-          onMouseEnter={(e) => Object.assign(e.target.style, btnHover)}
-          onMouseLeave={(e) => Object.assign(e.target.style, clearBtn)}
-        >
-          🧹 Clear
-        </button>
+        <ActionButtons1
+          onClear={handleClear}
+          onSave={handleSave}
+          onPrint={handlePrint}
+          activeButton={activeFooterAction}
+          onButtonClick={(type) => setActiveFooterAction(type)}
+        />
       </div>
     </div>
   );

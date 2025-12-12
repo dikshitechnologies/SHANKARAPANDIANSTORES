@@ -247,9 +247,25 @@ export default function ProductPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (productCodeRef.current) productCodeRef.current.focus();
-  }, []);
+// Focus on product name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (productNameRef.current) {
+      productNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (productNameRef.current) productNameRef.current.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -341,17 +357,19 @@ export default function ProductPage() {
   };
 
   const resetForm = (keepAction = false) => {
-    getNextProductCode();
-    setForm(prev => ({ ...prev, fproductname: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => productNameRef.current?.focus(), 60);
-  };
+  getNextProductCode();
+  setForm(prev => ({ ...prev, fproductname: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // This line already focuses on productName field after reset - GOOD
+  setTimeout(() => productNameRef.current?.focus(), 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
@@ -359,12 +377,12 @@ export default function ProductPage() {
   };
 
   const handleEditRowClick = (p) => {
-    setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
-    setActionType("edit");
-    setEditingId(p.fproductcode);
-    setEditModalOpen(false);
-    setTimeout(() => productNameRef.current?.focus(), 60);
-  };
+  setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
+  setActionType("edit");
+  setEditingId(p.fproductcode);
+  setEditModalOpen(false);
+  setTimeout(() => productNameRef.current?.focus(), 60); // GOOD
+};
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -372,12 +390,12 @@ export default function ProductPage() {
   };
 
   const handleDeleteRowClick = (p) => {
-    setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
-    setActionType("delete");
-    setDeleteTargetId(p.fproductcode);
-    setDeleteModalOpen(false);
-    setTimeout(() => productNameRef.current?.focus(), 60);
-  };
+  setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
+  setActionType("delete");
+  setDeleteTargetId(p.fproductcode);
+  setDeleteModalOpen(false);
+  setTimeout(() => productNameRef.current?.focus(), 60); // GOOD
+};
 
   // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
@@ -1008,7 +1026,7 @@ export default function ProductPage() {
                   onKeyDown={onProductCodeKeyDown}
                   disabled={loading}
                   aria-label="Product Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
+                  readOnly={true}
                 />
               </div>
             </div>

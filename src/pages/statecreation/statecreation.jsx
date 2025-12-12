@@ -368,9 +368,31 @@ export default function StateCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (stateCodeRef.current) stateCodeRef.current.focus();
-  }, []);
+// Focus on state name field on initial load/reload
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (stateNameRef.current) {
+      stateNameRef.current.focus();
+    }
+  }, 100); // Small delay to ensure DOM is ready
+  return () => clearTimeout(timer);
+}, []); // Empty dependency array = runs once on mount
+
+// Additional focus for when actionType changes
+useEffect(() => {
+  if (actionType === "edit" || actionType === "Add") {
+    const timer = setTimeout(() => {
+      if (stateNameRef.current) {
+        stateNameRef.current.focus();
+        // Also select the text when in edit mode for easier editing
+        if (actionType === "edit") {
+          stateNameRef.current.select();
+        }
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [actionType]);
 
   // Infinite scroll handler
   const handleScroll = useCallback(() => {
@@ -484,38 +506,40 @@ export default function StateCreation() {
     else if (actionType === "delete") await handleDelete();
   };
 
-  const resetForm = (keepAction = false) => {
-    fetchNextStateCode();
-    setForm(prev => ({ ...prev, stateName: "", originalStateName: "" }));
-    setEditingId(null);
-    setDeleteTargetId(null);
-    setExistingQuery("");
-    setEditQuery("");
-    setDeleteQuery("");
-    setMessage(null);
-    if (!keepAction) setActionType("Add");
-    setTimeout(() => stateNameRef.current?.focus(), 60);
-  };
+const resetForm = (keepAction = false) => {
+  fetchNextStateCode();
+  setForm(prev => ({ ...prev, stateName: "", originalStateName: "" }));
+  setEditingId(null);
+  setDeleteTargetId(null);
+  setExistingQuery("");
+  setEditQuery("");
+  setDeleteQuery("");
+  setMessage(null);
+  if (!keepAction) setActionType("Add");
+  
+  // This line already focuses on stateName field after reset - GOOD
+  setTimeout(() => stateNameRef.current?.focus(), 60);
+};
 
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
   };
 
-  const handleEditRowClick = (s) => {
-    setForm({ 
-      fuCode: s.fuCode || s.fcode || s.uCode || s.FCode, 
-      stateName: s.stateName || s.fname || s.StateName,
-      originalStateName: s.stateName || s.fname || s.StateName
-    });
-    setActionType("edit");
-    setEditingId(s.fuCode || s.fcode || s.uCode || s.FCode);
-    setEditModalOpen(false);
-    setTimeout(() => {
-      stateNameRef.current?.focus();
-      stateNameRef.current?.select();
-    }, 60);
-  };
+const handleEditRowClick = (s) => {
+  setForm({ 
+    fuCode: s.fuCode || s.fcode || s.uCode || s.FCode, 
+    stateName: s.stateName || s.fname || s.StateName,
+    originalStateName: s.stateName || s.fname || s.StateName
+  });
+  setActionType("edit");
+  setEditingId(s.fuCode || s.fcode || s.uCode || s.FCode);
+  setEditModalOpen(false);
+  setTimeout(() => {
+    stateNameRef.current?.focus();
+    stateNameRef.current?.select(); // GOOD - selects text for easy editing
+  }, 60);
+};
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -535,17 +559,17 @@ export default function StateCreation() {
     return filtered.slice(start, start + modalPageSize);
   }, [states]);
 
-  const handleDeleteRowClick = (s) => {
-    setForm({ 
-      fuCode: s.fuCode || s.fcode || s.uCode || s.FCode, 
-      stateName: s.stateName || s.fname || s.StateName,
-      originalStateName: s.stateName || s.fname || s.StateName
-    });
-    setActionType("delete");
-    setDeleteTargetId(s.fuCode || s.fcode || s.uCode || s.FCode);
-    setDeleteModalOpen(false);
-    setTimeout(() => stateNameRef.current?.focus(), 60);
-  };
+const handleDeleteRowClick = (s) => {
+  setForm({ 
+    fuCode: s.fuCode || s.fcode || s.uCode || s.FCode, 
+    stateName: s.stateName || s.fname || s.StateName,
+    originalStateName: s.stateName || s.fname || s.StateName
+  });
+  setActionType("delete");
+  setDeleteTargetId(s.fuCode || s.fcode || s.uCode || s.FCode);
+  setDeleteModalOpen(false);
+  setTimeout(() => stateNameRef.current?.focus(), 60); // GOOD
+};
 
   const onStateCodeKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -1142,7 +1166,7 @@ export default function StateCreation() {
                   onKeyDown={onStateCodeKeyDown}
                   disabled={loading || actionType === "edit" || actionType === "delete"}
                   aria-label="State Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
+                  readOnly={true}
                 />
                 
               </div>

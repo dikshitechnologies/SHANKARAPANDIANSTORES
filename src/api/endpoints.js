@@ -35,7 +35,7 @@ export const API_ENDPOINTS = {
     putEdit: "ItemGroupCreation/ItemGroupCreationPut",
     delete: (fCode) => `ItemGroupCreation/ItemGroupCreationDelete/${fCode}`,
   },
-user_creation: {
+  user_creation: {
     getuserdetails: "UserCreation/getUserItem",
     getDropdown: "UserCreation/GetUserCreationdropdowslist",
     postCreate: "UserCreation/CreateUser",
@@ -52,40 +52,40 @@ user_creation: {
     DELETE_COMPANY: (fcompcode) => `CompanyCreation/DeleteCompany/${fcompcode}`,
   },
   UNITCREATION: {
-    NEXT_SIZE_CODE : "UnitCreation/NextBillNo", 
-    GET_SIZE_ITEMS : "UnitCreation/GetUnits",
-    GETUNITCODE : (code) => `UnitCreation/GetUnit/${code}`, 
+    NEXT_SIZE_CODE: "UnitCreation/NextBillNo",
+    GET_SIZE_ITEMS: "UnitCreation/GetUnits",
+    GETUNITCODE: (code) => `UnitCreation/GetUnit/${code}`,
     CREATE_SIZE: "UnitCreation/CreateUnit",
     UPDATE_SIZE: (code) => `UnitCreation/UpdateUnit/${code}`,
     DELETE_SIZE: (code) => `UnitCreation/DeleteUnit/${code}`,
-  },  
-  
+  },
+
   COLORCREATION: {
-    NEXT_COLOR_CODE : "Colour_Creation/getNextColurFcode", 
-    GET_COLOR_ITEMS : "Colour_Creation/getColourItem",
+    NEXT_COLOR_CODE: "Colour_Creation/getNextColurFcode",
+    GET_COLOR_ITEMS: "Colour_Creation/getColourItem",
     // GETCOLORCODE : (code) => `ColorCreation/GetColor/${code}`, 
     CREATE_COLOR: "Colour_Creation/createColour",
     UPDATE_COLOR: "Colour_Creation/updateColour",
     DELETE_COLOR: (code) => `Colour_Creation/deleteColour/${code}`,
   },
   SIZECREATION: {
-    NEXT_SIZE_CODE : "SizeCreation/SizeNextFcode", 
-    GET_SIZE_ITEMS : "SizeCreation/getSizeItem",
+    NEXT_SIZE_CODE: "SizeCreation/SizeNextFcode",
+    GET_SIZE_ITEMS: "SizeCreation/getSizeItem",
     // GETUNITCODE : (code) => `SizeCreation/GetSize/${code}`, 
     CREATE_SIZE: "SizeCreation/createSize",
     UPDATE_SIZE: "SizeCreation/UpdateSize",
     DELETE_SIZE: (code) => `SizeCreation/DeleteSize/${code}`,
   },
   MODELCREATION: {
-    NEXT_MODEL_CODE : "ModelCreation/getNextModelFcode", 
-    GET_MODEL_ITEMS : "ModelCreation/getModelItem",
+    NEXT_MODEL_CODE: "ModelCreation/getNextModelFcode",
+    GET_MODEL_ITEMS: "ModelCreation/getModelItem",
     // GETUNITCODE : (code) => `SizeCreation/GetSize/${code}`, 
     CREATE_MODEL: "ModelCreation/createModel",
     UPDATE_MODEL: "ModelCreation/updateModel",
     DELETE_MODEL: (code) => `ModelCreation/deleteColour/${code}`,
   },
 
-    ADMINISTRATION: {
+  ADMINISTRATION: {
     USER_LIST: "Administartor/UserNameList",
     ADMIN_BATCH_INSERT: "Administartor/adminstration/InsertBatch",
     GET_PERMISSIONS_BY_USER: "Administartor/GetPermissionsByUserCode",
@@ -94,7 +94,7 @@ user_creation: {
 
 
   STATECREATION: {
-    GET_STATE_ITEMS: (page = 1, pageSize = 10) => 
+    GET_STATE_ITEMS: (page = 1, pageSize = 10) =>
       `/StateCreation/getStates?page=${page}&pageSize=${pageSize}`,
     NEXT_STATE_CODE: '/StateCreation/getStateFcode',
     GETSTATECODE: (code) => `/StateCreation/getStateFcode?code=${code}`,
@@ -111,12 +111,17 @@ user_creation: {
     DELETE_SCRAP: (scrapCode) => `/ScrapCreation/deleteScrap/${scrapCode}`,
     GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
+  sales_return:{
+     getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
+      getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
+       getCustomers: "Salesinvoices/GetPartyByParent",
 
- scrapratefix:
- {
-  getscrapratefixing:"ScrapRateFixing/getFullScrapRateFixing",
-  putscrapratefixing:"ScrapRateFixing/updateFullScrapRateFixing",
- },
+  },
+
+  SCRAP_RATE_FIXING: {
+    GET_FULL_SCRAP_RATES: 'ScrapRateFixing/getFullScrapRateFixing',
+    UPDATE_FULL_SCRAP_RATES: 'ScrapRateFixing/updateFullScrapRateFixing',
+  },
 
   PURCHASE_INVOICE: {
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
@@ -129,7 +134,7 @@ user_creation: {
     GET_ITEM_CODE_LIST: "Salesinvoices/GetItemsByType?type=FG",
     GET_ITEM_DETAILS_BY_CODE: (itemCode) => `Salesinvoices/GetStockByItemName?itemcode=${itemCode}&billType=FG`,
   },
-    
+
 
 
   DESIGNCREATION: {
@@ -152,6 +157,7 @@ user_creation: {
   BRAND: {
     GET_BRANDS: 'Brand',
     CREATE_BRAND: 'Brand?selecttype=true',
+    GET_NEXT_BRAND_CODE: 'Brand/getNextBrandFcode',
     UPDATE_BRAND: 'Brand?selecttype=false',
     DELETE_BRAND: (code) => `Brand/${code}`,
   },
@@ -170,7 +176,82 @@ CATEGORY: {
   UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
   DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
   GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
-}
+},
+
+
+
+ SALESMAN_CREATION_ENDPOINTS: {
+    getSalesmen: "SalesmanCreation/GetSalesman",
+    getNextCode: "SalesmanCreation/SalesmanNextFcode",
+    createSalesman: "SalesmanCreation/createSalesman",
+    updateSalesman: "SalesmanCreation/updateSalesman",
+    deleteSalesman: (fcode) => `SalesmanCreation/deleteSalesMan/${fcode}`,
+    getSalesmenPaged: (page = 1, pageSize = 20, searchText = '') => `SalesmanCreation/GetSalesmanPaged/${page}/${pageSize}?searchText=${encodeURIComponent(searchText)}`
+  },
+
+
+
+
+
+
+  SALES_INVOICE_ENDPOINTS: {
+    // 1) Get next bill number
+    getNextBillNo: (compCode) => 
+      `Salesinvoices/salesnextbillNo/${compCode}`,
+
+    // 2) Create Sales Invoice
+    // isSave → true/false
+    createSales: (isSave = true) => 
+      `Salesinvoices/CreateSales/${isSave}`,
+
+    // 3) Get sales bill list (paginated)
+    getBillList: (compCode, page = 1, pageSize = 20) => 
+      `Salesinvoices/salesbillList/${compCode}?page=${page}&pageSize=${pageSize}`,
+
+    // 4) Delete sales bill number
+    // Requires voucher & compCode as query params
+    deleteBillNumber: (voucher, compCode) => 
+      `Salesinvoices/salesbillnumber?voucher=${voucher}&compCode=${compCode}`,
+
+    // 5) Get stock by item name
+    getStockByItemName: (billType, itemcode) => 
+      `Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
+
+    // 6) Get voucher details
+    getVoucherDetails: (voucherNo) => 
+      `Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`,
+
+    // 7) Get item types
+    getItemTypes: () => 
+      `Salesinvoices/GetItemTypes`,
+
+    // 8) Get items by type
+    getItemsByType: (type) => 
+      `Salesinvoices/GetItemsByType?type=${type}`,
+
+    // 9) Get stock by itemcode (alternate endpoint)
+    getStockByItemName1: (itemcode) => 
+      `Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
+
+    // 10) Get salesman list
+    getSalesman: () => `SalesmanCreation/GetSalesman`,
+
+    getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>
+      `ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
+
+      getCustomers: () => 
+      `Salesinvoices/GetPartyByParent`,
+  },
+
+
+  
+
+
+
+
+
+
+
 
 
 
