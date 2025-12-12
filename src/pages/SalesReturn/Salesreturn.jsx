@@ -1733,7 +1733,7 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
               onFocus={() => setFocusedField('salesman')}
               onBlur={() => setFocusedField('')}
-              placeholder="Click or press /"
+              placeholder="salesman"
               readOnly
             />
           </div>
@@ -1752,28 +1752,12 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, returnReasonRef, 'custName')}
               onFocus={() => setFocusedField('custName')}
               onBlur={() => setFocusedField('')}
-              placeholder="Click or press /"
+              placeholder="Customer"
               readOnly
             />
           </div>
 
-          {/* Return Reason */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Return Reason:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.returnReason}
-              name="returnReason"
-              onChange={handleInputChange}
-              ref={returnReasonRef}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-              onFocus={() => setFocusedField('returnReason')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Return Reason"
-            />
-          </div>
-
+          
           {/* Barcode */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Barcode:</label>
@@ -1837,7 +1821,7 @@ const SalesReturn = () => {
                     <input
                       style={styles.editableInputClickable}
                       value={item.itemName}
-                      placeholder="Click or press /"
+                      placeholder="item name"
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
@@ -1879,7 +1863,7 @@ const SalesReturn = () => {
                           handleTableKeyDown(e, index, 'uom');
                         }
                       }}
-                      placeholder="Press space for K/P"
+                      
                     />
                   </td>
                   <td style={styles.td}>
