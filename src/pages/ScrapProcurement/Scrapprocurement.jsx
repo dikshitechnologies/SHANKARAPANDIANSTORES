@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { API_ENDPOINTS } from '../../api/endpoints';
+import axiosInstance from '../../api/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
 
 const Scrapprocurement = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('all');
+  const [activeTopAction, setActiveTopAction] = useState('add');
 
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -54,6 +58,12 @@ const Scrapprocurement = () => {
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
+  const [showSalesmanPopup, setShowSalesmanPopup] = useState(false);
+  const [itemSearchTerm, setItemSearchTerm] = useState(''); // Track search term for item popup
+  const [closedByUser, setClosedByUser] = useState(false); // Track if user closed the popup
+  
+  // Store all fetched salesmen for filtering
+  const [allSalesmen, setAllSalesmen] = useState([]);
 
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('all');
@@ -66,6 +76,9 @@ const Scrapprocurement = () => {
     isTablet: false,
     isDesktop: true
   });
+
+  // Auth context for company code
+  const { userData } = useAuth() || {};
 
   // Update screen size on resize
   useEffect(() => {
@@ -98,6 +111,104 @@ const Scrapprocurement = () => {
     setTotalQty(qtyTotal);
     setTotalAmount(amountTotal);
   }, [items]);
+
+  // Fetch all salesmen when component mounts
+  useEffect(() => {
+    const fetchAllSalesmen = async () => {
+      try {
+        const url = API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.getSalesmen;
+        const res = await axiosInstance.get(url);
+        const data = res?.data || [];
+        setAllSalesmen(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching salesmen:', error);
+        setAllSalesmen([]);
+      }
+    };
+
+    fetchAllSalesmen();
+  }, []);
+
+  // Handle popup auto-open when typing in salesman field
+  useEffect(() => {
+    // If salesman field has value and user hasn't closed the popup manually
+    if (billDetails.salesman.length > 0 && !showSalesmanPopup && !closedByUser) {
+      setItemSearchTerm(billDetails.salesman);
+      // Delay opening to prevent flickering
+      const timer = setTimeout(() => {
+        setShowSalesmanPopup(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [billDetails.salesman, showSalesmanPopup, closedByUser]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setShowSalesmanPopup(false);
+      setClosedByUser(false);
+      setItemSearchTerm('');
+    };
+  }, []);
+
+  // Fetch salesmen list for popup
+  const fetchSalesManList = async (pageNum = 1, search = '') => {
+    try {
+      console.log('Fetching salesmen with search:', search || itemSearchTerm);
+      
+      const searchTerm = search || itemSearchTerm || '';
+      
+      // If we have all salesmen stored, filter them locally for faster response
+      if (allSalesmen.length > 0 && searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const filtered = allSalesmen.filter(salesman => {
+          const fullName = `${salesman.fname || ''} ${salesman.lname || ''}`.toLowerCase();
+          const code = (salesman.code || '').toLowerCase();
+          const fname = (salesman.fname || '').toLowerCase();
+          const lname = (salesman.lname || '').toLowerCase();
+          
+          return fullName.includes(searchLower) || 
+                 code.includes(searchLower) ||
+                 fname.includes(searchLower) ||
+                 lname.includes(searchLower);
+        });
+        
+        return filtered.map((salesman, index) => ({
+          id: salesman.id || salesman.code || `salesman-${index}`,
+          code: salesman.code || '',
+          fname: salesman.fname || '',
+          lname: salesman.lname || '',
+          fullName: `${salesman.fname || ''} ${salesman.lname || ''}`.trim(),
+          mobile: salesman.mobile || '',
+        }));
+      }
+      
+      // Fallback: fetch from API
+      const url = API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.getSalesmen + 
+                  (searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '');
+      
+      const response = await axiosInstance.get(url);
+      const data = response?.data || [];
+      
+      if (!Array.isArray(data)) {
+        return [];
+      }
+      
+      // Format data for the popup
+      return data.map((salesman, index) => ({
+        id: salesman.id || salesman.code || `salesman-${index}`,
+        code: salesman.code || '',
+        fname: salesman.fname || '',
+        lname: salesman.lname || '',
+        fullName: `${salesman.fname || ''} ${salesman.lname || ''}`.trim(),
+        mobile: salesman.mobile || '',
+      }));
+      
+    } catch (error) {
+      console.error('Error fetching salesmen:', error);
+      return [];
+    }
+  };
 
   // Calculate amount when qty or sRate changes
   const calculateAmount = (qty, sRate) => {
@@ -207,7 +318,7 @@ const Scrapprocurement = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
 
-      // Fields in the visual order (after removing stock, mrp, hsn, WRate)
+      // Fields in the visual order
       const fields = [
         'scrapProductName', 'itemName', 'uom', 'tax', 'sRate', 'qty'
       ];
@@ -720,20 +831,71 @@ const Scrapprocurement = () => {
           {/* Salesman */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Salesman:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.salesman}
-              name="salesman"
-              onChange={handleInputChange}
-              ref={salesmanRef}
-              onKeyDown={(e) => handleKeyDown(e, custNameRef)}
-              onFocus={() => setFocusedField('salesman')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Salesman"
-            />
+            <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
+              <input
+                type="text"
+                style={{ ...styles.inlineInput, flex: 1 }}
+                value={billDetails.salesman}
+                name="salesman"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleInputChange(e);
+                  setItemSearchTerm(value);
+                  
+                  if (value.length > 0) {
+                    setClosedByUser(false);
+                    setTimeout(() => setShowSalesmanPopup(true), 300);
+                  }
+                }}
+                ref={salesmanRef}
+                onKeyDown={(e) => {
+                  if (e.key === '/' || e.key === 'F2') {
+                    e.preventDefault();
+                    setItemSearchTerm(billDetails.salesman);
+                    setShowSalesmanPopup(true);
+                  } else if (e.key === 'Enter') {
+                    handleKeyDown(e, custNameRef);
+                  }
+                }}
+                onFocus={() => {
+                  setFocusedField('salesman');
+                  if (billDetails.salesman.length > 0 && !showSalesmanPopup && !closedByUser) {
+                    setItemSearchTerm(billDetails.salesman);
+                    setTimeout(() => setShowSalesmanPopup(true), 100);
+                  }
+                }}
+                onBlur={() => {
+                  setFocusedField('');
+                }}
+                placeholder="Type name or press / to search"
+              />
+              <button
+                type="button"
+                aria-label="Search salesman"
+                title="Search salesman"
+                onClick={() => {
+                  setItemSearchTerm(billDetails.salesman);
+                  setShowSalesmanPopup(true);
+                }}
+                style={{
+                  height: screenSize.isMobile ? '32px' : '40px',
+                  minWidth: '40px',
+                  border: '1px solid #1B91DA',
+                  background: '#e8f4fc',
+                  color: '#1B91DA',
+                  borderRadius: screenSize.isMobile ? '3px' : '4px',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                🔎
+              </button>
+            </div>
           </div>
-
+        
           {/* Customer Name */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Customer:</label>
@@ -750,8 +912,6 @@ const Scrapprocurement = () => {
               placeholder="Customer Name"
             />
           </div>
-
-
 
           {/* Scrap Product Name */}
           <div style={styles.formField}>
@@ -775,8 +935,6 @@ const Scrapprocurement = () => {
             />
           </div>
         </div>
-
-
       </div>
 
       {/* --- TABLE SECTION --- */}
@@ -926,6 +1084,43 @@ const Scrapprocurement = () => {
         </div>
       </div>
 
+      {/* Salesman Popup */}
+      <PopupListSelector
+        open={showSalesmanPopup}
+        onClose={() => { 
+          setShowSalesmanPopup(false);
+          setClosedByUser(true);
+          setItemSearchTerm('');
+        }}
+        title="Select Salesman"
+        fetchItems={(pageNum = 1, search = '') => fetchSalesManList(pageNum, search || itemSearchTerm)}
+        displayFieldKeys={['fname']}
+        headerNames={['First Name']}
+        searchFields={['fname']}
+        columnWidths={['100%']}
+        searchPlaceholder="Search salesman by name..."
+        initialSearchText={itemSearchTerm}
+        onSelect={(selectedSalesman) => {
+          // Format the name for display
+          const fullName = selectedSalesman.fullName || 
+                          `${selectedSalesman.fname || ''} ${selectedSalesman.lname || ''}`.trim() ||
+                          selectedSalesman.code || '';
+          
+          setBillDetails(prev => ({
+            ...prev,
+            salesman: fullName,
+          }));
+          setShowSalesmanPopup(false);
+          setClosedByUser(false);
+          setItemSearchTerm('');
+          
+          // Move focus to next field
+          if (custNameRef.current) {
+            custNameRef.current.focus();
+          }
+        }}
+      />
+      
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
@@ -942,9 +1137,9 @@ const Scrapprocurement = () => {
               }
             }}
           >
-            <AddButton />
-            <EditButton />
-            <DeleteButton />
+            <AddButton buttonType="add" />
+            <EditButton buttonType="edit" />
+            <DeleteButton buttonType="delete" />
           </ActionButtons>
         </div>
         <div style={styles.totalsContainer}>
