@@ -457,9 +457,10 @@ export default function ColorCreation() {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 20px; /* slightly larger title */
-          color: #0f172a;
+          font-size: 24px; /* slightly larger title */
+          color: #0c1a3bff;
           letter-spacing: -0.2px;
+          font-weight: 500;
         }
         .subtitle {
           color: var(--muted);
@@ -523,10 +524,10 @@ export default function ColorCreation() {
 
         label.field-label {
           display:block;
-          margin-bottom:6px;
-          font-weight:700;
+          margin-bottom:2px;
+          font-weight:600;
           color:#0f172a;
-          font-size:14px;
+          font-size:18px;
           text-align: left;
           width: 100%;
         }
@@ -549,13 +550,14 @@ export default function ColorCreation() {
           min-width: 0;
           padding:10px 12px;
           border-radius:10px;
-          border: 1px solid rgba(15,23,42,0.06);
+          border: 2px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
           font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
+          margin: 0 10px;
         }
         .input:focus, .search:focus { 
           outline:none; 

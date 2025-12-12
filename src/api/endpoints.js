@@ -121,8 +121,13 @@ user_creation: {
   PURCHASE_INVOICE: {
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
     CREATE_PURCHASE_INVOICE: (purchaseType) => `PurchaseInvoice/CreatePurchase/${purchaseType}`,
+    GET_BILL_LIST: (compCode) => `PurchaseInvoice/PurBillList/${compCode}`,
     SUPPLIER_LIST: (search = '', page = 1, pageSize = 20) =>
       `PurchaseInvoice/SupplierList?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
+    DELETE_PURCHASE_INVOICE: "PurchaseInvoice/RemovePurchaseBill",
+    GET_PURCHASE_DETAILS: "PurchaseInvoice/GetPurchaseDetails",
+    GET_ITEM_CODE_LIST: "Salesinvoices/GetItemsByType?type=FG",
+    GET_ITEM_DETAILS_BY_CODE: (itemCode) => `Salesinvoices/GetStockByItemName?itemcode=${itemCode}&billType=FG`,
   },
     
 

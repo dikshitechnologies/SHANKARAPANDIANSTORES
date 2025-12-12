@@ -432,6 +432,7 @@ export default function LedgerCreation({ onCreated }) {
       };
 
       console.log('Submitted Request Data:', requestData);
+      
 
       let response;
       switch (actionType) {
