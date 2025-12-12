@@ -198,45 +198,50 @@ const PurchaseInvoice = () => {
     }
   };
 
-// Fetch item details by item code - FIXED VERSION
+
+// Fetch item details by item code - SIMPLIFIED VERSION
 const fetchItemDetailsByCode = async (itemCode) => {
   try {
     console.log('Fetching item details for code:', itemCode);
     
-    // Make sure itemCode is properly encoded
-    const encodedItemCode = encodeURIComponent(itemCode.trim());
+    // First, get all items from the item code list endpoint
+    const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST);
+    const allItems = response?.data || [];
     
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_DETAILS_BY_CODE(encodedItemCode)
-    );
+    console.log('All items from API:', allItems);
     
-    console.log('Full API response:', response);
-    console.log('Item details response data:', response.data);
-    
-    const data = response?.data;
-    
-    if (!data) {
-      console.warn('No data returned from API');
+    if (!Array.isArray(allItems) || allItems.length === 0) {
+      console.warn('No items returned from API');
       return [];
     }
     
-    // Check if the response matches the requested itemCode
-    const returnedItemCode = data.itemCode || data.code || '';
-    if (returnedItemCode !== itemCode) {
-      console.warn(`API returned item ${returnedItemCode} but requested ${itemCode}`);
+    // Find the item with matching itemCode
+    const matchedItem = allItems.find(item => 
+      (item.itemCode || item.code) === itemCode
+    );
+    
+    console.log('Matched item:', matchedItem);
+    
+    if (!matchedItem) {
+      console.warn(`Item ${itemCode} not found in response`);
+      return [];
     }
     
-    // Return as array with the item data
     return [{
-      barcode: data.itemCode || data.code || itemCode,
-      name: data.itemName || data.name || '',
-      stock: data.finalStock || data.stock || data.totalStock || '0',
-      mrp: data.mrp || data.price || '0',
-      min: data.min || data.minimum || '',
-      max: data.max || data.maximum || '',
-      uom: data.uom || data.unit || '',
-      hsn: data.hsn || data.hsnCode || '',
-      // Add any other fields you need
+      barcode: matchedItem.itemCode || matchedItem.code || itemCode,
+      name: matchedItem.itemName || matchedItem.name || '',
+      stock: matchedItem.finalStock || matchedItem.stock || matchedItem.totalStock || '0',
+      uom: matchedItem.units || matchedItem.uom || matchedItem.unit || 'PCS',
+      hsn: matchedItem.hsn || matchedItem.hsnCode || '',
+      preRT: matchedItem.preRate || '0',
+      // Add other fields from your API response
+      brand: matchedItem.brand || '',
+      category: matchedItem.category || '',
+      model: matchedItem.model || '',
+      size: matchedItem.size || '',
+      max: matchedItem.maxQty || '',
+      min: matchedItem.minQty || '',
+      type: matchedItem.type || '',
     }];
     
   } catch (err) {
@@ -269,22 +274,25 @@ const fetchPurchaseDetails = async (voucherNo) => {
     if (data) {
       // Update header details - add null checks
       const bledger = data.bledger || {};
+      const iledger = data.iledger || [];
       const headerDetails = {
         invNo: bledger.voucherNo || '',
         billDate: bledger.voucherDate ? bledger.voucherDate.split('T')[0] : '',
         customerName: bledger.refName || '',
         amount: bledger.billAmount || '',
         partyCode: bledger.customerCode || '',
-        gstno: bledger.gstNo || '',
-        gstType: bledger.gstType || 'G',
-        purNo: bledger.purNo || '',
-        invoiceNo: bledger.invoiceNo || '',
-        purDate: bledger.purDate ? bledger.purDate.split('T')[0] : '',
-        invoiceAmount: bledger.invoiceAmount || '',
+        gstno: iledger.cstsNo || '',
+        city: iledger.add3 || '',
+        mobileNo: iledger.add4 || '',
+        // gstType: bledger.gstType || 'G',
+        // purNo: bledger.purNo || '',
+        // invoiceNo: bledger.invoiceNo || '',
+        // purDate: bledger.purDate ? bledger.purDate.split('T')[0] : '',
+        // invoiceAmount: bledger.invoiceAmount || '',
         transType: bledger.transType || 'PURCHASE',
-        city: bledger.city || '',
-        mobileNo: bledger.mobileNo || '',
-        isLedger: bledger.isLedger || false,
+        // city: bledger.city || '',
+        // mobileNo: bledger.mobileNo || '',
+        // isLedger: bledger.isLedger || false,
       };
       
       console.log('Setting header details:', headerDetails);
@@ -450,10 +458,15 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
               barcode: details.barcode || selectedItem.barcode || '',
               name: details.name || selectedItem.name || '',
               stock: details.stock || '0',
+              uom: details.uom || '',
+              hsn: details.hsn || '',
+              preRT: details.preRT || '0',
+              // Set prate equal to preRT
+              prate: details.preRT || '0',
+              // Add other fields as needed
               // mrp: details.mrp || '0',
-              // Uncomment if you have these fields in your API response
-              // min: details.min || '',
-              // max: details.max || '',
+              // min: details.minQty || '',
+              // max: details.maxQty || '',
             };
           }
           return item;
@@ -468,7 +481,11 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
               ...item,
               barcode: selectedItem.barcode || '',
               name: selectedItem.name || '',
-              // Keep existing values for other fields
+              // Use the data from the popup if available
+              uom: selectedItem.uom || item.uom || '',
+              hsn: selectedItem.hsn || item.hsn || '',
+              preRT: selectedItem.preRT || item.preRT || '0',
+              prate: selectedItem.preRT || item.prate || '0',
             };
           }
           return item;
@@ -486,6 +503,11 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             ...item,
             barcode: selectedItem.barcode || '',
             name: selectedItem.name || '',
+            // Use popup data if available
+            uom: selectedItem.uom || item.uom || '',
+            hsn: selectedItem.hsn || item.hsn || '',
+            preRT: selectedItem.preRT || item.preRT || '0',
+            prate: selectedItem.preRT || item.prate || '0',
           };
         }
         return item;
@@ -947,20 +969,20 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
           voucherDate: voucherDateISO,
           billAmount: totals.net,
           balanceAmount: totals.net,
-          refType: 'pe',
+          // refType: 'pe',
           refName: billDetails.customerName || '',
           compCode: compCode,
           user: username || '001',
           gstType: billDetails.gstType || 'G',
-          mobileNo: billDetails.mobileNo || '',
-          city: billDetails.city || '',
-          gstNo: billDetails.gstno || '',
-          purNo: billDetails.purNo || '',
-          invoiceNo: billDetails.invoiceNo || '',
-          purDate: toISODate(billDetails.purDate),
-          invoiceAmount: toNumber(billDetails.invoiceAmount),
-          transType: billDetails.transType || 'PURCHASE',
-          isLedger: billDetails.isLedger || false
+          // mobileNo: billDetails.mobileNo || '',
+          // city: billDetails.city || '',
+          // gstNo: billDetails.gstno || '',
+          // purNo: billDetails.purNo || '',
+          // invoiceNo: billDetails.invoiceNo || '',
+          // purDate: toISODate(billDetails.purDate),
+          // invoiceAmount: toNumber(billDetails.invoiceAmount),
+          // transType: billDetails.transType || 'PURCHASE',
+          // isLedger: billDetails.isLedger || false
         },
         iledger: {
           vrNo: voucherNo,
@@ -970,9 +992,9 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
           net: totals.net,
           add1: '',
           add2: '',
-          cstsNo: '',
-          add3: '',
-          add4: '',
+          cstsNo: billDetails.gstno || '',
+          add3: billDetails.city || '',
+          add4: billDetails.mobileNo || '',
         },
         items: items.map((it) => ({
           itemCode: it.barcode || '',
@@ -1719,17 +1741,20 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
                       value={item.uom}
                       data-row={index}
                       data-field="uom"
-                      onChange ={(e) => {
-                        const v = e.target.value.toUpperCase();
-                        if(v === "PCS" || v === "KG" ) handleItemChange(item.id, 'uom', v);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === " ") {
-                          const currentUom = item.uom.toUpperCase();
-                          const newUom = currentUom === "PCS" ? "KG" : "PCS";
-                          handleItemChange(item.id, 'uom', newUom);
-                      }
-                    }}
+                      onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
+                    // Alternative UOM toggle implementation:
+                    //   onChange ={(e) => {
+                    //     const v = e.target.value.toUpperCase();
+                    //     if(v === "PCS" || v === "KG" ) handleItemChange(item.id, 'uom', v);
+                    //   }}
+                    //   onKeyDown={(e) => {
+                    //     if (e.key === " ") {
+                    //       const currentUom = item.uom.toUpperCase();
+                    //       const newUom = currentUom === "PCS" ? "KG" : "PCS";
+                    //       handleItemChange(item.id, 'uom', newUom);
+                    //   }
+                    // }}
                     />
                   </td>
                   <td style={styles.td}>
