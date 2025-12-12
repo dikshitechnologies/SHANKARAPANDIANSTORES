@@ -189,57 +189,71 @@ CATEGORY: {
 
 
 
+
+
+
   SALES_INVOICE_ENDPOINTS: {
-    // 1) Get next bill number
-    getNextBillNo: (compCode) => 
-      `Salesinvoices/salesnextbillNo/${compCode}`,
 
-    // 2) Create Sales Invoice
-    // isSave → true/false
-    createSales: (isSave = true) => 
-      `Salesinvoices/CreateSales/${isSave}`,
-
-    // 3) Get sales bill list (paginated)
-    getBillList: (compCode, page = 1, pageSize = 20) => 
-      `Salesinvoices/salesbillList/${compCode}?page=${page}&pageSize=${pageSize}`,
-
-    // 4) Delete sales bill number
-    // Requires voucher & compCode as query params
-    deleteBillNumber: (voucher, compCode) => 
-      `Salesinvoices/salesbillnumber?voucher=${voucher}&compCode=${compCode}`,
-
-    // 5) Get stock by item name
-    getStockByItemName: (billType, itemcode) => 
-      `Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
-
-    // 6) Get voucher details
-    getVoucherDetails: (voucherNo) => 
-      `Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`,
-
-    // 7) Get item types
-    getItemTypes: () => 
-      `Salesinvoices/GetItemTypes`,
-
-    // 8) Get items by type
-    getItemsByType: (type) => 
-      `Salesinvoices/GetItemsByType?type=${type}`,
-
-    // 9) Get stock by itemcode (alternate endpoint)
-    getStockByItemName1: (itemcode) => 
-      `Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
-
-    // 10) Get salesman list
-    getSalesman: () => `SalesmanCreation/GetSalesman`,
-
-    getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>
-      `ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
-
-      getCustomers: () => 
-      `Salesinvoices/GetPartyByParent`,
-  },
+  // 1) Get next bill number
+  getNextBillNo: (compCode) =>
+    `Salesinvoices/salesnextbillNo/${compCode}`,
 
 
-  
+// In API_ENDPOINTS.js - SALES_INVOICE_ENDPOINTS
+createSales: (isSave = true) => 
+  `Salesinvoices/CreateSales/${isSave}`,
+
+
+  // 3) Get sales bill list
+  getBillList: (compCode, page = 1, pageSize = 20) =>
+    `Salesinvoices/salesbillList/${compCode}?page=${page}&pageSize=${pageSize}`,
+
+
+  // 4) Delete sales bill number
+  deleteBillNumber: (voucher, compCode) =>
+    `Salesinvoices/salesbillnumber?voucher=${voucher}&compCode=${compCode}`,
+
+
+  // 5) Get stock by item
+  getStockByItemName: (billType, itemcode) =>
+    `Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
+
+
+  // 6) Get voucher details
+  getVoucherDetails: (voucherNo) =>
+    `Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`,
+
+
+  // 7) Get item types
+  getItemTypes: () =>
+    `Salesinvoices/GetItemTypes`,
+
+
+  // 8) Get items by type
+  getItemsByType: (type) =>
+    `Salesinvoices/GetItemsByType?type=${type}`,
+
+
+  // 9) Stock by itemcode (alternative)
+  getStockByItemName1: (itemcode) =>
+    `Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
+
+
+  // 10) Get salesman list
+  getSalesman: () =>
+    `SalesmanCreation/GetSalesman`,
+
+
+  // 11) Item dropdown
+  getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>
+    `ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
+
+
+  // 12) Get customers
+  getCustomers: () =>
+    `Salesinvoices/GetPartyByParent`,
+}
+
 
 
 
