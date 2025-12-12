@@ -456,10 +456,10 @@ useEffect(() => {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px; /* slightly larger title */
+          font-size: 18px; /* match Product.jsx title size */
           color: #0c1a3bff;
           letter-spacing: -0.2px;
-          font-weight: 500;
+          font-weight: 700;
         }
         .subtitle {
           color: var(--muted);
@@ -521,9 +521,9 @@ useEffect(() => {
         label.field-label {
           display:block;
           margin-bottom:2px;
-          font-weight:600;
+          font-weight:700;
           color:#0f172a;
-          font-size:18px;
+          font-size:14px;
           text-align: left;
           width: 100%;
         }
