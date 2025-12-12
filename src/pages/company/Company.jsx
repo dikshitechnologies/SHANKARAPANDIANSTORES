@@ -414,17 +414,12 @@ const Company = () => {
     setSelectedAction("edit");
   };
 
-  const handleKeyDown = (e, currentIndex) => {
+  // Handle Enter Key Navigation
+  const handleKeyDown = (e, nextRef) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      let nextIndex = currentIndex + 1;
-      while (nextIndex < inputRefs.length) {
-        const nextRef = inputRefs[nextIndex];
-        if (nextRef.current && !nextRef.current.disabled && nextRef.current.type !== 'color') {
-          nextRef.current.focus();
-          break;
-        }
-        nextIndex++;
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
       }
     }
   };
@@ -742,6 +737,7 @@ const Company = () => {
                       type="text"
                       value={formData.fcompcode}
                       onChange={(e) => handleInputChange('fcompcode', e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, companyNameRef)}
                       disabled={selectedAction === "delete"}
                       readOnly={true}
                     />
@@ -754,7 +750,7 @@ const Company = () => {
                       value={formData.fcompname}
                       onChange={(e) => handleInputChange('fcompname', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 0)}
+                      onKeyDown={(e) => handleKeyDown(e, gstinRef)}
                     />
                   </div>
                   </div>
@@ -767,7 +763,7 @@ const Company = () => {
                       value={formData.tngst}
                       onChange={(e) => handleInputChange('tngst', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 1)}
+                      onKeyDown={(e) => handleKeyDown(e, stateRef)}
                     />
                   </div>
                   <div className="input-group">
@@ -778,7 +774,7 @@ const Company = () => {
                       value={formData.state}
                       onChange={(e) => handleInputChange('state', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 2)}
+                      onKeyDown={(e) => handleKeyDown(e, statecodeRef)}
                     />
                   </div>
                   <div className="input-group">
@@ -789,7 +785,7 @@ const Company = () => {
                       value={formData.statecode}
                       onChange={(e) => handleInputChange('statecode', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 3)}
+                      onKeyDown={(e) => handleKeyDown(e, phone1Ref)}
                     />
                   </div>
                   </div>
@@ -802,7 +798,7 @@ const Company = () => {
                       value={formData.phone1}
                       onChange={(e) => handleInputChange('phone1', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 4)}
+                      onKeyDown={(e) => handleKeyDown(e, phone2Ref)}
                     />
                   </div>
                   <div className="input-group">
@@ -813,7 +809,7 @@ const Company = () => {
                       value={formData.phone2}
                       onChange={(e) => handleInputChange('phone2', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 5)}
+                      onKeyDown={(e) => handleKeyDown(e, phone3Ref)}
                     />
                   </div>
                   <div className="input-group">
@@ -824,7 +820,7 @@ const Company = () => {
                       value={formData.phone3}
                       onChange={(e) => handleInputChange('phone3', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 6)}
+                      onKeyDown={(e) => handleKeyDown(e, addressRef)}
                     />
                   </div>
                   </div>
@@ -837,7 +833,7 @@ const Company = () => {
                       value={formData.fcompadd1}
                       onChange={(e) => handleInputChange('fcompadd1', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 8)}
+                      onKeyDown={(e) => handleKeyDown(e, address1Ref)}
                     />
                   </div>
                   <div className="input-group">
@@ -848,7 +844,7 @@ const Company = () => {
                       value={formData.fcompadd2}
                       onChange={(e) => handleInputChange('fcompadd2', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 9)}
+                      onKeyDown={(e) => handleKeyDown(e, address2Ref)}
                     />
                   </div>
                   </div>
@@ -861,7 +857,7 @@ const Company = () => {
                       value={formData.fcompadd3}
                       onChange={(e) => handleInputChange('fcompadd3', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 10)}
+                      onKeyDown={(e) => handleKeyDown(e, printerNameRef)}
                     />
                   </div>
                   <div className="input-group">
@@ -872,7 +868,7 @@ const Company = () => {
                       value={formData.fprintname}
                       onChange={(e) => handleInputChange('fprintname', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 11)}
+                      onKeyDown={(e) => handleKeyDown(e, usernameRef)}
                     />
                   </div>
                   </div>
@@ -885,7 +881,7 @@ const Company = () => {
                       value={formData.fusername}
                       onChange={(e) => handleInputChange('fusername', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 12)}
+                      onKeyDown={(e) => handleKeyDown(e, passwordRef)}
                     />
                   </div>
                   <div className="input-group">
@@ -896,7 +892,7 @@ const Company = () => {
                       value={formData.fpassword}
                       onChange={(e) => handleInputChange('fpassword', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 13)}
+                      onKeyDown={(e) => handleKeyDown(e, confirmPasswordRef)}
                     />
                   </div>
                   <div className="input-group">
@@ -907,7 +903,7 @@ const Company = () => {
                       value={formData.fconfirmpass}
                       onChange={(e) => handleInputChange('fconfirmpass', e.target.value)}
                       disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 14)}
+                      onKeyDown={(e) => handleKeyDown(e, descriptionRef)}
                     />
                   </div>
                   </div>
@@ -959,7 +955,7 @@ const Company = () => {
                     value={formData.fprefix}
                     onChange={(e) => handleInputChange('fprefix', e.target.value)}
                     disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 15)}
+                    onKeyDown={(e) => handleKeyDown(e, defaultModeRef)}
                   />
                 </div>
                 <div className="input-group">

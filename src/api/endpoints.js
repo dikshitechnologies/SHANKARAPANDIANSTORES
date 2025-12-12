@@ -114,7 +114,7 @@ export const API_ENDPOINTS = {
   sales_return:{
      getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
       getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
-      
+       getCustomers: "Salesinvoices/GetPartyByParent",
 
   },
 
@@ -126,8 +126,13 @@ export const API_ENDPOINTS = {
   PURCHASE_INVOICE: {
     GET_PURCHASE_INVOICES: (compCode) => `PurchaseInvoice/FlushNumber/${compCode}`,
     CREATE_PURCHASE_INVOICE: (purchaseType) => `PurchaseInvoice/CreatePurchase/${purchaseType}`,
+    GET_BILL_LIST: (compCode) => `PurchaseInvoice/PurBillList/${compCode}`,
     SUPPLIER_LIST: (search = '', page = 1, pageSize = 20) =>
       `PurchaseInvoice/SupplierList?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
+    DELETE_PURCHASE_INVOICE: "PurchaseInvoice/RemovePurchaseBill",
+    GET_PURCHASE_DETAILS: "PurchaseInvoice/GetPurchaseDetails",
+    GET_ITEM_CODE_LIST: "Salesinvoices/GetItemsByType?type=FG",
+    GET_ITEM_DETAILS_BY_CODE: (itemCode) => `Salesinvoices/GetStockByItemName?itemcode=${itemCode}&billType=FG`,
   },
 
 
@@ -173,6 +178,22 @@ CATEGORY: {
   GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
 },
 
+
+
+ SALESMAN_CREATION_ENDPOINTS: {
+    getSalesmen: "SalesmanCreation/GetSalesman",
+    getNextCode: "SalesmanCreation/SalesmanNextFcode",
+    createSalesman: "SalesmanCreation/createSalesman",
+    updateSalesman: "SalesmanCreation/updateSalesman",
+    deleteSalesman: (fcode) => `SalesmanCreation/deleteSalesMan/${fcode}`,
+    getSalesmenPaged: (page = 1, pageSize = 20, searchText = '') => `SalesmanCreation/GetSalesmanPaged/${page}/${pageSize}?searchText=${encodeURIComponent(searchText)}`
+  },
+
+
+
+
+
+
   SALES_INVOICE_ENDPOINTS: {
     // 1) Get next bill number
     getNextBillNo: (compCode) => 
@@ -211,29 +232,19 @@ CATEGORY: {
     // 9) Get stock by itemcode (alternate endpoint)
     getStockByItemName1: (itemcode) => 
       `Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
+
+    // 10) Get salesman list
+    getSalesman: () => `SalesmanCreation/GetSalesman`,
+
+    getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>
+      `ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
+
+      getCustomers: () => 
+      `Salesinvoices/GetPartyByParent`,
   },
 
 
-   SALESMAN_CREATION_ENDPOINTS: {
-    // GET all salesmen
-    getSalesmen: "SalesmanCreation/GetSalesman",
-    
-    // GET next salesman code
-    getNextCode: "SalesmanCreation/SalesmanNextFcode",
-    
-    // POST create new salesman
-    createSalesman: "SalesmanCreation/createSalesman",
-    
-    // PUT update salesman
-    updateSalesman: "SalesmanCreation/updateSalesman",
-    
-    // DELETE salesman by code
-    deleteSalesman: (fcode) => `SalesmanCreation/deleteSalesMan/${fcode}`,
-    
-    // GET salesmen with pagination and search
-    getSalesmenPaged: (page = 1, pageSize = 20, searchText = '') =>
-      `SalesmanCreation/GetSalesmanPaged/${page}/${pageSize}?searchText=${encodeURIComponent(searchText)}`
-  }
+  
 
 
 

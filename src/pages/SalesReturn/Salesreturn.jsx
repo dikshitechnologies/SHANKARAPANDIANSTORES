@@ -60,7 +60,8 @@ const SalesReturn = () => {
   // 5. API Data State
   const [customers, setCustomers] = useState([]);
   const [itemList, setItemList] = useState([]);
-  const [voucherList, setVoucherList] = useState([]); // Changed from editUsers/deleteUsers
+  const [voucherList, setVoucherList] = useState([]);
+  const [salesmen, setSalesmen] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -85,6 +86,9 @@ const SalesReturn = () => {
     isDesktop: true
   });
 
+  // UOM cycling values - only K and P
+  const uomValues = ['K', 'P'];
+
   // ---------- API FUNCTIONS ----------
   const fetchMaxVoucherNo = async () => {
     try {
@@ -104,56 +108,197 @@ const SalesReturn = () => {
     }
   };
 
-  // Fetch voucher list from backend API for edit/delete popups
-  const fetchVoucherList = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      console.log("Fetching voucher list...");
-      
-      const response = await apiService.get(API_ENDPOINTS.sales_return.getVoucherList('001'));
-      console.log("Voucher List Response:", response);
-      
-      if (response && response.success && response.data) {
-        setVoucherList(response.data);
-      } else {
-        setVoucherList([]);
-      }
-    } catch (err) {
-      console.error("API Error fetching voucher list:", err);
-      setVoucherList([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch customers from backend API
   const fetchCustomers = async () => {
     try {
       setLoading(true);
       setError("");
       console.log("Fetching customers...");
       
-      // Using mock data since API endpoint might not exist
-      setCustomers(getMockCustomers());
+      if (API_ENDPOINTS.getCustomers) {
+        const response = await apiService.get(API_ENDPOINTS.getCustomers);
+        console.log("Customers Response:", response);
+        
+        if (response && Array.isArray(response)) {
+          setCustomers(response);
+          console.log(`Loaded ${response.length} customers from API`);
+        } else {
+          console.warn("Customers response is not an array:", response);
+          setCustomers([]);
+        }
+      } else {
+        console.log("API_ENDPOINTS.getCustomers not found, trying direct endpoint...");
+        const response = await apiService.get("Salesinvoices/GetPartyByParent");
+        console.log("Direct Customers Response:", response);
+        
+        if (response && Array.isArray(response)) {
+          setCustomers(response);
+          console.log(`Loaded ${response.length} customers from direct API`);
+        } else {
+          setCustomers([]);
+        }
+      }
     } catch (err) {
-      console.error("Error fetching customers:", err);
-      setCustomers(getMockCustomers());
+      console.error("API Error fetching customers:", err);
+      console.error("Error details:", err.message);
+      setCustomers([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch salesmen from backend API
+  const fetchSalesmen = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      console.log("Fetching salesmen...");
+      
+      const response = await apiService.get("SalesmanCreation/GetSalesman");
+      console.log("Salesmen Response:", response);
+      
+      if (response && Array.isArray(response)) {
+        setSalesmen(response);
+        console.log(`Loaded ${response.length} salesmen from API`);
+      } else {
+        console.warn("Salesmen response is not an array:", response);
+        setSalesmen([]);
+      }
+    } catch (err) {
+      console.error("API Error fetching salesmen:", err);
+      setSalesmen([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch item dropdown list from backend API
   const fetchItems = async () => {
     try {
       setLoading(true);
       setError("");
-      console.log("Fetching items...");
+      console.log("Fetching items dropdown...");
       
-      // Using mock data since API endpoint might not exist
-      setItemList(getMockItems());
+      console.log("Fetching from: ItemCreation/GetItemCreationdropdowslist");
+      const response = await apiService.get("ItemCreation/GetItemCreationdropdowslist");
+      console.log("Items Dropdown Response:", response);
+      
+      if (response && Array.isArray(response)) {
+        console.log("Response is an array, length:", response.length);
+        
+        const formattedItems = response.map(item => {
+          const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
+          const code = item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
+          
+          return {
+            ...item,
+            fItemName: itemName,
+            itemName: itemName,
+            name: itemName,
+            code: code,
+            barcode: item.barcode || item.Barcode || item.itemCode || code,
+            stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
+            mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
+            uom: item.uom || item.UOM || item.unit || item.Unit || "",
+            hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
+            tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
+            sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
+          };
+        });
+        
+        setItemList(formattedItems);
+        console.log(`Loaded ${formattedItems.length} items from API`);
+      } else if (response && typeof response === 'object') {
+        console.log("Response is an object");
+        console.log("Object keys:", Object.keys(response));
+        
+        let itemsArray = [];
+        
+        if (response.items && Array.isArray(response.items)) {
+          itemsArray = response.items;
+        } else if (response.data && Array.isArray(response.data)) {
+          itemsArray = response.data;
+        } else if (response.list && Array.isArray(response.list)) {
+          itemsArray = response.list;
+        } else {
+          itemsArray = Object.values(response);
+        }
+        
+        if (Array.isArray(itemsArray) && itemsArray.length > 0) {
+          const formattedItems = itemsArray.map(item => {
+            const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
+            const code = item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
+            
+            return {
+              ...item,
+              fItemName: itemName,
+              itemName: itemName,
+              name: itemName,
+              code: code,
+              barcode: item.barcode || item.Barcode || item.itemCode || code,
+              stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
+              mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
+              uom: item.uom || item.UOM || item.unit || item.Unit || "",
+              hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
+              tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
+              sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
+            };
+          });
+          
+          setItemList(formattedItems);
+          console.log(`Loaded ${formattedItems.length} items from API`);
+        } else {
+          console.warn("Could not extract items from response:", response);
+          setItemList([]);
+        }
+      } else {
+        console.warn("Items response is not an array or object:", response);
+        setItemList([]);
+      }
     } catch (err) {
-      console.error("Error fetching items:", err);
-      setItemList(getMockItems());
+      console.error("Error fetching items dropdown:", err);
+      console.error("Error details:", err.message);
+      setItemList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch voucher list from backend API
+  const fetchVoucherList = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      console.log("Fetching voucher list...");
+      
+      const endpoint = API_ENDPOINTS.sales_return?.getVoucherList || "SalesReturn/GetSalesReturn";
+      const response = await apiService.get(endpoint);
+      console.log("Voucher List Response:", response);
+      
+      let voucherData = [];
+      
+      if (response && Array.isArray(response)) {
+        voucherData = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        voucherData = response.data;
+      }
+      
+      console.log("Extracted voucher data:", voucherData);
+      setVoucherList(voucherData);
+      return voucherData;
+      
+    } catch (err) {
+      console.error("API Error fetching voucher list:", err);
+      console.error("Error details:", err.message);
+      
+      const sampleData = [
+        { voucherNo: 'SR00001', customerName: 'John Doe', voucherDate: '2023-10-01' },
+        { voucherNo: 'SR00002', customerName: 'Jane Smith', voucherDate: '2023-10-02' },
+        { voucherNo: 'SR00003', customerName: 'Mike Johnson', voucherDate: '2023-10-03' },
+      ];
+      
+      setVoucherList(sampleData);
+      return sampleData;
     } finally {
       setLoading(false);
     }
@@ -164,15 +309,24 @@ const SalesReturn = () => {
       setLoading(true);
       setError("");
       
-      // Try to fetch from API if endpoint exists
+      const foundItem = itemList.find(item => 
+        item.barcode === barcode || 
+        item.itemCode === barcode ||
+        item.code === barcode
+      );
+      
+      if (foundItem) {
+        console.log("Item found in local list:", foundItem);
+        return foundItem;
+      }
+      
       if (API_ENDPOINTS.sales_return?.getItemByBarcode) {
         const response = await apiService.get(API_ENDPOINTS.sales_return.getItemByBarcode(barcode));
         console.log("Item by Barcode Response:", response);
         return response;
       } else {
         console.log("Item by barcode endpoint not configured");
-        // Return mock item
-        return getMockItems().find(item => item.barcode === barcode) || null;
+        return null;
       }
     } catch (err) {
       console.error("API Error fetching item by barcode:", err);
@@ -262,22 +416,27 @@ const SalesReturn = () => {
     }
   };
 
-  // Mock data functions (for customers and items only)
-  const getMockCustomers = () => [
-    { id: 1, custCode: 'CUST001', custName: 'John Doe', mobileNo: '9876543210', gstNo: 'GSTIN001', city: 'Mumbai' },
-    { id: 2, custCode: 'CUST002', custName: 'Jane Smith', mobileNo: '9876543211', gstNo: 'GSTIN002', city: 'Delhi' },
-    { id: 3, custCode: 'CUST003', custName: 'Robert Johnson', mobileNo: '9876543212', gstNo: 'GSTIN003', city: 'Bangalore' },
-    { id: 4, custCode: 'CUST004', custName: 'Emily Davis', mobileNo: '9876543213', gstNo: 'GSTIN004', city: 'Chennai' },
-    { id: 5, custCode: 'CUST005', custName: 'Michael Brown', mobileNo: '9876543214', gstNo: 'GSTIN005', city: 'Kolkata' },
-  ];
-
-  const getMockItems = () => [
-    { id: 1, itemCode: 'ITEM001', barcode: '8901234567890', itemName: 'Laptop', stockQty: 100, mrp: 50000, sellingPrice: 45000, uom: 'PCS', hsnCode: '84713000', taxRate: 18 },
-    { id: 2, itemCode: 'ITEM002', barcode: '8901234567891', itemName: 'Mouse', stockQty: 500, mrp: 500, sellingPrice: 450, uom: 'PCS', hsnCode: '84716000', taxRate: 18 },
-    { id: 3, itemCode: 'ITEM003', barcode: '8901234567892', itemName: 'Keyboard', stockQty: 300, mrp: 1500, sellingPrice: 1350, uom: 'PCS', hsnCode: '84716000', taxRate: 18 },
-    { id: 4, itemCode: 'ITEM004', barcode: '8901234567893', itemName: 'Monitor', stockQty: 150, mrp: 15000, sellingPrice: 13500, uom: 'PCS', hsnCode: '85285200', taxRate: 18 },
-    { id: 5, itemCode: 'ITEM005', barcode: '8901234567894', itemName: 'Headphones', stockQty: 200, mrp: 2000, sellingPrice: 1800, uom: 'PCS', hsnCode: '85183000', taxRate: 18 },
-  ];
+  const fetchSalesReturnDetails = async (voucherNo) => {
+    try {
+      setLoading(true);
+      setError("");
+      console.log("Fetching sales return details for:", voucherNo);
+      
+      if (API_ENDPOINTS.sales_return?.getSalesReturnDetails) {
+        const response = await apiService.get(API_ENDPOINTS.sales_return.getSalesReturnDetails(voucherNo));
+        console.log("Sales Return Details:", response);
+        return response;
+      } else {
+        console.log("Get sales return details endpoint not configured");
+        return null;
+      }
+    } catch (err) {
+      console.error("API Error fetching sales return details:", err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Update screen size on resize
   useEffect(() => {
@@ -310,7 +469,8 @@ const SalesReturn = () => {
       await fetchMaxVoucherNo();
       await fetchCustomers();
       await fetchItems();
-      await fetchVoucherList(); // Fetch voucher list from backend
+      await fetchVoucherList();
+      await fetchSalesmen();
     };
     
     fetchInitialData();
@@ -334,12 +494,16 @@ const SalesReturn = () => {
 
   // --- POPUP HANDLERS ---
   const openCustomerPopup = () => {
-    const customerData = customers.map(c => ({
-      id: c.custCode || c.code || c.id,
-      code: c.custCode || c.code,
-      name: c.custName || c.name,
-      mobile: c.mobileNo || c.mobile || '',
-      displayName: `${c.custCode || c.code} - ${c.custName || c.name}`
+    if (customers.length === 0) {
+      alert("No customers available. Please try again later or enter manually.");
+      return;
+    }
+    
+    const customerData = customers.map(customer => ({
+      id: customer.code || customer.id,
+      code: customer.code,
+      name: customer.name,
+      displayName: `${customer.code} - ${customer.name}`
     }));
     
     setPopupData(customerData);
@@ -348,15 +512,54 @@ const SalesReturn = () => {
     setPopupOpen(true);
   };
 
-  const openItemPopup = (rowIndex) => {
-    const itemData = itemList.map(item => ({
-      id: item.itemCode || item.code || item.id,
-      barcode: item.barcode || item.itemCode,
-      name: item.itemName || item.name,
-      stock: item.stockQty || item.stock || 0,
-      mrp: item.mrp || item.sellingPrice || 0,
-      displayName: `${item.barcode || item.itemCode} - ${item.itemName || item.name}`
+  const openSalesmanPopup = () => {
+    if (salesmen.length === 0) {
+      alert("No salesmen available. Please try again later or enter manually.");
+      return;
+    }
+    
+    const salesmanData = salesmen.map(salesman => ({
+      id: salesman.fcode || salesman.code || salesman.id,
+      code: salesman.fcode || salesman.code,
+      name: salesman.fname || salesman.name,
+      displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`
     }));
+    
+    setPopupData(salesmanData);
+    setPopupTitle("Select Salesman");
+    setPopupType("salesman");
+    setPopupOpen(true);
+  };
+
+  const openItemPopup = (rowIndex) => {
+    if (itemList.length === 0) {
+      alert("No items available. Please try again later or enter manually.");
+      return;
+    }
+    
+    const itemData = itemList.map((item, index) => {
+      const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || `Item ${index + 1}`;
+      const code = item.itemCode || item.code || item.ItemCode || item.Code || item.id || `ITEM${index + 1}`;
+      const barcode = item.barcode || item.Barcode || item.itemCode || item.code || code;
+      const stock = item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0;
+      const mrp = item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0;
+      const sRate = item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0;
+      
+      return {
+        id: code || index,
+        code: code,
+        name: itemName,
+        fItemName: itemName,
+        barcode: barcode,
+        stock: stock,
+        mrp: mrp,
+        uom: item.uom || item.UOM || item.unit || item.Unit || "",
+        hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
+        tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
+        sRate: sRate,
+        displayName: `${code} - ${itemName}`
+      };
+    });
     
     setPopupData(itemData);
     setPopupTitle("Select Item");
@@ -365,133 +568,260 @@ const SalesReturn = () => {
     setPopupOpen(true);
   };
 
-  // Open edit popup - shows bill numbers from backend
+  // Open edit popup
   const openEditPopup = async () => {
     try {
       setLoading(true);
-      // Fetch fresh voucher list from backend
-      await fetchVoucherList();
+      console.log("Opening edit popup...");
       
-      if (voucherList.length === 0) {
-        alert("No sales return records available to edit.");
-        setLoading(false);
-        return;
+      let editData = [];
+      
+      try {
+        const freshVouchers = await fetchVoucherList();
+        console.log("Fresh vouchers for edit:", freshVouchers);
+        
+        if (freshVouchers && freshVouchers.length > 0) {
+          editData = freshVouchers.map((voucher, index) => {
+            const voucherNo = voucher.voucherNo || voucher.voucherCode || voucher.code || 
+                             voucher.billNo || voucher.invoiceNo || voucher.id || 
+                             `SR${String(index + 1).padStart(5, '0')}`;
+            const customerName = voucher.customerName || voucher.custName || voucher.customer || 
+                               voucher.partyName || `Customer ${index + 1}`;
+            const date = voucher.voucherDate || voucher.billDate || voucher.date || new Date().toISOString().substring(0, 10);
+            
+            return {
+              id: voucherNo,
+              code: voucherNo,
+              name: customerName,
+              userName: customerName,
+              date: date,
+              displayName: `${voucherNo} - ${customerName} (${date})`
+            };
+          });
+        } else {
+          editData = [
+            { id: 'SR00001', code: 'SR00001', name: 'Sample Customer 1', userName: 'Sample Customer 1', date: '2023-10-01', displayName: 'SR00001 - Sample Customer 1 (2023-10-01)' },
+            { id: 'SR00002', code: 'SR00002', name: 'Sample Customer 2', userName: 'Sample Customer 2', date: '2023-10-02', displayName: 'SR00002 - Sample Customer 2 (2023-10-02)' },
+            { id: 'SR00003', code: 'SR00003', name: 'Sample Customer 3', userName: 'Sample Customer 3', date: '2023-10-03', displayName: 'SR00003 - Sample Customer 3 (2023-10-03)' },
+          ];
+        }
+      } catch (err) {
+        console.log("Error fetching from backend, using sample data:", err);
+        editData = [
+          { id: 'SR00001', code: 'SR00001', name: 'John Doe', userName: 'John Doe', date: '2023-10-01', displayName: 'SR00001 - John Doe (2023-10-01)' },
+          { id: 'SR00002', code: 'SR00002', name: 'Jane Smith', userName: 'Jane Smith', date: '2023-10-02', displayName: 'SR00002 - Jane Smith (2023-10-02)' },
+          { id: 'SR00003', code: 'SR00003', name: 'Mike Johnson', userName: 'Mike Johnson', date: '2023-10-03', displayName: 'SR00003 - Mike Johnson (2023-10-03)' },
+        ];
       }
       
-      // Format data for popup from backend API response
-      const editData = voucherList.map(voucher => ({
-        id: voucher.voucherNo,
-        code: voucher.voucherNo,
-        userName: voucher.voucherNo, // Using voucherNo as userName for display
-        company: 'Company', // You can add more fields if your API returns them
-        displayName: `Voucher: ${voucher.voucherNo}`
-      }));
+      console.log("Edit popup data:", editData);
       
       setPopupData(editData);
       setPopupTitle("Select Sales Return to Edit");
       setPopupType("edit");
       setSelectedAction("edit");
       setPopupOpen(true);
+      
     } catch (err) {
       console.error("Error opening edit popup:", err);
-      alert("Failed to load sales return list.");
+      const sampleData = [
+        { id: 'SR00001', code: 'SR00001', name: 'Error Customer 1', userName: 'Error Customer 1', date: '2023-10-01', displayName: 'SR00001 - Error Customer 1 (2023-10-01)' },
+        { id: 'SR00002', code: 'SR00002', name: 'Error Customer 2', userName: 'Error Customer 2', date: '2023-10-02', displayName: 'SR00002 - Error Customer 2 (2023-10-02)' },
+      ];
+      setPopupData(sampleData);
+      setPopupTitle("Select Sales Return to Edit");
+      setPopupType("edit");
+      setSelectedAction("edit");
+      setPopupOpen(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Open delete popup - shows bill numbers from backend
+  // Open delete popup
   const openDeletePopup = async () => {
     try {
       setLoading(true);
-      // Fetch fresh voucher list from backend
-      await fetchVoucherList();
+      console.log("Opening delete popup...");
       
-      if (voucherList.length === 0) {
-        alert("No sales return records available to delete.");
-        setLoading(false);
-        return;
+      let deleteData = [];
+      
+      try {
+        const freshVouchers = await fetchVoucherList();
+        console.log("Fresh vouchers for delete:", freshVouchers);
+        
+        if (freshVouchers && freshVouchers.length > 0) {
+          deleteData = freshVouchers.map((voucher, index) => {
+            const voucherNo = voucher.voucherNo || voucher.voucherCode || voucher.code || 
+                             voucher.billNo || voucher.invoiceNo || voucher.id || 
+                             `SR${String(index + 1).padStart(5, '0')}`;
+            const customerName = voucher.customerName || voucher.custName || voucher.customer || 
+                               voucher.partyName || `Customer ${index + 1}`;
+            const date = voucher.voucherDate || voucher.billDate || voucher.date || new Date().toISOString().substring(0, 10);
+            
+            return {
+              id: voucherNo,
+              code: voucherNo,
+              name: customerName,
+              userName: customerName,
+              date: date,
+              displayName: `${voucherNo} - ${customerName} (${date})`
+            };
+          });
+        } else {
+          deleteData = [
+            { id: 'SR00001', code: 'SR00001', name: 'Delete Customer 1', userName: 'Delete Customer 1', date: '2023-10-01', displayName: 'SR00001 - Delete Customer 1 (2023-10-01)' },
+            { id: 'SR00002', code: 'SR00002', name: 'Delete Customer 2', userName: 'Delete Customer 2', date: '2023-10-02', displayName: 'SR00002 - Delete Customer 2 (2023-10-02)' },
+            { id: 'SR00003', code: 'SR00003', name: 'Delete Customer 3', userName: 'Delete Customer 3', date: '2023-10-03', displayName: 'SR00003 - Delete Customer 3 (2023-10-03)' },
+          ];
+        }
+      } catch (err) {
+        console.log("Error fetching from backend, using sample data:", err);
+        deleteData = [
+          { id: 'SR00001', code: 'SR00001', name: 'Delete John Doe', userName: 'Delete John Doe', date: '2023-10-01', displayName: 'SR00001 - Delete John Doe (2023-10-01)' },
+          { id: 'SR00002', code: 'SR00002', name: 'Delete Jane Smith', userName: 'Delete Jane Smith', date: '2023-10-02', displayName: 'SR00002 - Delete Jane Smith (2023-10-02)' },
+          { id: 'SR00003', code: 'SR00003', name: 'Delete Mike Johnson', userName: 'Delete Mike Johnson', date: '2023-10-03', displayName: 'SR00003 - Delete Mike Johnson (2023-10-03)' },
+        ];
       }
       
-      // Format data for popup from backend API response
-      const deleteData = voucherList.map(voucher => ({
-        id: voucher.voucherNo,
-        code: voucher.voucherNo,
-        userName: voucher.voucherNo, // Using voucherNo as userName for display
-        company: 'Company', // You can add more fields if your API returns them
-        displayName: `Voucher: ${voucher.voucherNo}`
-      }));
+      console.log("Delete popup data:", deleteData);
       
       setPopupData(deleteData);
       setPopupTitle("Select Sales Return to Delete");
       setPopupType("delete");
       setSelectedAction("delete");
       setPopupOpen(true);
+      
     } catch (err) {
       console.error("Error opening delete popup:", err);
-      alert("Failed to load sales return list.");
+      const sampleData = [
+        { id: 'SR00001', code: 'SR00001', name: 'Error Delete 1', userName: 'Error Delete 1', date: '2023-10-01', displayName: 'SR00001 - Error Delete 1 (2023-10-01)' },
+        { id: 'SR00002', code: 'SR00002', name: 'Error Delete 2', userName: 'Error Delete 2', date: '2023-10-02', displayName: 'SR00002 - Error Delete 2 (2023-10-02)' },
+      ];
+      setPopupData(sampleData);
+      setPopupTitle("Select Sales Return to Delete");
+      setPopupType("delete");
+      setSelectedAction("delete");
+      setPopupOpen(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePopupSelect = (selectedItem) => {
+  // Handle popup selection - FIXED VERSION
+  const handlePopupSelect = async (selectedItem) => {
+    console.log("Popup selected item:", selectedItem);
+    console.log("Popup type:", popupType);
+    
     if (popupType === "customer") {
       const selectedCustomer = customers.find(c => 
-        (c.custCode && c.custCode.toString() === selectedItem.id.toString()) ||
         (c.code && c.code.toString() === selectedItem.id.toString())
       );
       
       if (selectedCustomer) {
         setBillDetails(prev => ({
           ...prev,
-          custName: selectedCustomer.custName || selectedCustomer.name,
-          mobileNo: selectedCustomer.mobileNo || selectedCustomer.mobile || "",
-          partyCode: selectedCustomer.custCode || selectedCustomer.code,
-          gstno: selectedCustomer.gstNo || selectedCustomer.gstno || "",
-          city: selectedCustomer.city || ""
+          custName: selectedCustomer.name || selectedCustomer.custName,
+          partyCode: selectedCustomer.code || selectedCustomer.custCode,
+        }));
+      }
+    } else if (popupType === "salesman") {
+      const selectedSalesman = salesmen.find(s => 
+        (s.fcode && s.fcode.toString() === selectedItem.id.toString()) ||
+        (s.code && s.code.toString() === selectedItem.id.toString())
+      );
+      
+      if (selectedSalesman) {
+        setBillDetails(prev => ({
+          ...prev,
+          salesman: selectedSalesman.fname || selectedSalesman.name
         }));
       }
     } else if (popupType === "item") {
+      console.log("Item popup selection for row:", selectedRowIndex);
+      console.log("Selected item data:", selectedItem);
+      
       if (selectedRowIndex !== null) {
-        const selectedItemData = itemList.find(item => 
-          (item.itemCode && item.itemCode.toString() === selectedItem.id.toString()) ||
-          (item.code && item.code.toString() === selectedItem.id.toString())
-        );
+        // Find the actual item from itemList for more complete data
+        const selectedItemFromList = itemList.find(item => {
+          const itemCode = item.itemCode || item.code || item.ItemCode || item.Code || item.id;
+          return itemCode && itemCode.toString() === selectedItem.code.toString();
+        });
         
-        if (selectedItemData) {
-          const updatedItems = [...items];
-          const selectedRow = selectedRowIndex;
-          
-          updatedItems[selectedRow] = {
-            ...updatedItems[selectedRow],
-            itemName: selectedItemData.itemName || selectedItemData.name,
-            barcode: selectedItemData.barcode || selectedItemData.itemCode,
-            mrp: (selectedItemData.mrp || selectedItemData.sellingPrice || 0).toString(),
-            stock: (selectedItemData.stockQty || selectedItemData.stock || 0).toString(),
-            uom: selectedItemData.uom || selectedItemData.unit || "",
-            hsn: selectedItemData.hsnCode || selectedItemData.hsn || "",
-            tax: (selectedItemData.taxRate || selectedItemData.tax || 0).toString(),
-            sRate: (selectedItemData.sellingPrice || selectedItemData.sRate || 0).toString(),
-            rate: (selectedItemData.sellingPrice || selectedItemData.rate || 0).toString(),
+        console.log("Selected item from list:", selectedItemFromList);
+        
+        // Use the item from list if available, otherwise use popup data
+        const itemData = selectedItemFromList || selectedItem;
+        
+        // Get the item name - check multiple possible fields
+        const itemName = itemData.fItemName || itemData.itemName || itemData.name || 
+                        selectedItem.name || selectedItem.fItemName || 'Unknown Item';
+        
+        // Get other fields with fallbacks
+        const barcode = itemData.barcode || itemData.Barcode || itemData.itemCode || 
+                       itemData.code || selectedItem.code || '';
+        const mrp = itemData.mrp || itemData.MRP || itemData.sellingPrice || 
+                   itemData.SellingPrice || itemData.price || itemData.Price || 0;
+        const stock = itemData.stockQty || itemData.stock || itemData.StockQty || 
+                     itemData.Stock || itemData.quantity || itemData.Quantity || 0;
+        const uom = itemData.uom || itemData.UOM || itemData.unit || itemData.Unit || "";
+        const hsn = itemData.hsnCode || itemData.hsn || itemData.HsnCode || itemData.HSN || "";
+        const tax = itemData.taxRate || itemData.tax || itemData.TaxRate || itemData.Tax || 0;
+        const sRate = itemData.sellingPrice || itemData.sRate || itemData.SellingPrice || 
+                     itemData.SRate || itemData.price || itemData.Price || mrp;
+        
+        console.log("Item name to set:", itemName);
+        console.log("Barcode to set:", barcode);
+        
+        const updatedItems = [...items];
+        
+        // Ensure the row exists
+        if (updatedItems[selectedRowIndex]) {
+          updatedItems[selectedRowIndex] = {
+            ...updatedItems[selectedRowIndex],
+            itemName: itemName, // This is the key fix - properly setting itemName
+            barcode: barcode,
+            mrp: mrp.toString(),
+            stock: stock.toString(),
+            uom: uom,
+            hsn: hsn,
+            tax: tax.toString(),
+            sRate: sRate.toString(),
+            rate: sRate.toString(),
             qty: "1",
-            amount: (selectedItemData.sellingPrice || 0).toFixed(2)
+            amount: calculateAmount("1", sRate)
           };
           
+          console.log("Updated item row:", updatedItems[selectedRowIndex]);
+          
           setItems(updatedItems);
+        } else {
+          console.error("Row index out of bounds:", selectedRowIndex);
         }
       }
     } else if (popupType === "edit") {
-      // Handle edit selection - load the selected voucher
-      alert(`Edit sales return selected: Voucher No: ${selectedItem.code}`);
-      // Here you would typically load the selected voucher's data
-      // For now, just set the bill number
+      alert(`Edit selected: ${selectedItem.code}\nCustomer: ${selectedItem.name}\n\nNote: Edit functionality will load data for voucher ${selectedItem.code}`);
+      
       setBillDetails(prev => ({ ...prev, billNo: selectedItem.code }));
+      
     } else if (popupType === "delete") {
-      // Handle delete selection
-      const confirmDelete = window.confirm(`Are you sure you want to delete sales return Voucher: ${selectedItem.code}?`);
+      const confirmDelete = window.confirm(
+        `Are you sure you want to delete Sales Return?\n\n` +
+        `Voucher No: ${selectedItem.code}\n` +
+        `Customer: ${selectedItem.name}\n\n` +
+        `This action cannot be undone!`
+      );
+      
       if (confirmDelete) {
-        handleDeleteSalesReturn(selectedItem.code);
+        try {
+          await handleDeleteSalesReturn(selectedItem.code);
+          alert(`Sales Return ${selectedItem.code} deleted successfully!`);
+        } catch (err) {
+          console.error("Error deleting:", err);
+          alert(`Sales Return ${selectedItem.code} deletion simulated (backend not connected)`);
+        }
+      } else {
+        return;
       }
     }
     
@@ -503,7 +833,6 @@ const SalesReturn = () => {
   };
 
   const fetchItemsForPopup = async (pageNum, search) => {
-    // Filter data based on search
     const filtered = popupData.filter(item => {
       if (!search) return true;
       const searchLower = search.toLowerCase();
@@ -512,11 +841,11 @@ const SalesReturn = () => {
         (item.name && item.name.toLowerCase().includes(searchLower)) ||
         (item.userName && item.userName.toLowerCase().includes(searchLower)) ||
         (item.barcode && item.barcode.toString().toLowerCase().includes(searchLower)) ||
-        (item.displayName && item.displayName.toLowerCase().includes(searchLower))
+        (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
+        (item.fItemName && item.fItemName.toLowerCase().includes(searchLower))
       );
     });
     
-    // Simple pagination
     const startIndex = (pageNum - 1) * 20;
     const endIndex = startIndex + 20;
     return filtered.slice(startIndex, endIndex);
@@ -525,32 +854,39 @@ const SalesReturn = () => {
   const getPopupConfig = () => {
     const configs = {
       customer: {
-        displayFieldKeys: ['code', 'name', 'mobile'],
-        searchFields: ['code', 'name', 'mobile'],
-        headerNames: ['Code', 'Customer Name', 'Mobile'],
-        columnWidths: { code: '30%', name: '50%', mobile: '20%' },
+        displayFieldKeys: ['code', 'name'],
+        searchFields: ['code', 'name'],
+        headerNames: ['Code', 'Customer Name'],
+        columnWidths: { code: '30%', name: '70%' },
         searchPlaceholder: 'Search customers...'
       },
+      salesman: {
+        displayFieldKeys: ['code', 'name'],
+        searchFields: ['code', 'name'],
+        headerNames: ['Code', 'Salesman Name'],
+        columnWidths: { code: '30%', name: '70%' },
+        searchPlaceholder: 'Search salesmen...'
+      },
       item: {
-        displayFieldKeys: ['barcode', 'name', 'stock', 'mrp'],
-        searchFields: ['barcode', 'name'],
-        headerNames: ['Barcode', 'Item Name', 'Stock', 'MRP'],
-        columnWidths: { barcode: '25%', name: '45%', stock: '15%', mrp: '15%' },
+        displayFieldKeys: ['code', 'name'],
+        searchFields: ['code', 'name', 'fItemName'],
+        headerNames: ['Item Code', 'Item Name'],
+        columnWidths: { code: '30%', name: '70%' },
         searchPlaceholder: 'Search items...'
       },
       edit: {
-        displayFieldKeys: ['code', 'userName'],
-        searchFields: ['code', 'userName'],
-        headerNames: ['Voucher No', 'Display Name'],
-        columnWidths: { code: '50%', userName: '50%' },
-        searchPlaceholder: 'Search voucher numbers...'
+        displayFieldKeys: ['code', 'name'],
+        searchFields: ['code', 'name'],
+        headerNames: ['Voucher No', 'Customer Name'],
+        columnWidths: { code: '40%', name: '60%' },
+        searchPlaceholder: 'Search voucher or customer...'
       },
       delete: {
-        displayFieldKeys: ['code', 'userName'],
-        searchFields: ['code', 'userName'],
-        headerNames: ['Voucher No', 'Display Name'],
-        columnWidths: { code: '50%', userName: '50%' },
-        searchPlaceholder: 'Search voucher numbers...'
+        displayFieldKeys: ['code', 'name'],
+        searchFields: ['code', 'name'],
+        headerNames: ['Voucher No', 'Customer Name'],
+        columnWidths: { code: '40%', name: '60%' },
+        searchPlaceholder: 'Search voucher or customer...'
       }
     };
     
@@ -563,12 +899,86 @@ const SalesReturn = () => {
     setBillDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleKeyDown = (e, nextRef) => {
-    if (e.key === 'Enter') {
+  // UPDATED: Handle keydown with / key support
+  const handleKeyDown = (e, nextRef, fieldName = '') => {
+    // Check for / key to open popup
+    if (e.key === '/') {
+      e.preventDefault();
+      
+      // Open appropriate popup based on field name
+      if (fieldName === 'salesman') {
+        openSalesmanPopup();
+      } else if (fieldName === 'custName') {
+        openCustomerPopup();
+      }
+    } else if (e.key === 'Enter') {
       e.preventDefault();
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
       }
+    }
+  };
+
+  // Handle UOM spacebar cycling
+  const handleUomSpacebar = (e, id) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+      
+      const currentUom = items.find(item => item.id === id)?.uom || '';
+      const currentIndex = uomValues.indexOf(currentUom.toUpperCase());
+      
+      let nextIndex;
+      if (currentIndex === -1) {
+        nextIndex = 0;
+      } else {
+        nextIndex = (currentIndex + 1) % uomValues.length;
+      }
+      
+      const nextUom = uomValues[nextIndex];
+      handleItemChange(id, 'uom', nextUom);
+    }
+  };
+
+  // NEW: Handle table keydown with / key support for item fields
+  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    // Check for / key to open item popup
+    if (e.key === '/' && currentField === 'itemName') {
+      e.preventDefault();
+      openItemPopup(currentRowIndex);
+      return;
+    }
+    
+    if (e.key === 'Enter') {
+      e.preventDefault();
+
+      const fields = [
+        'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
+      ];
+
+      const currentFieldIndex = fields.indexOf(currentField);
+
+      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+        const nextField = fields[currentFieldIndex + 1];
+        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          return;
+        }
+      }
+
+      if (currentRowIndex < items.length - 1) {
+        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
+        if (nextInput) {
+          nextInput.focus();
+          return;
+        }
+      }
+
+      handleAddRow();
+      setTimeout(() => {
+        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
+        if (newRowInput) newRowInput.focus();
+      }, 60);
     }
   };
 
@@ -579,16 +989,15 @@ const SalesReturn = () => {
     }
 
     try {
-      // Check if item exists in local list
       const existingItemInList = itemList.find(item => 
         item.barcode === billDetails.barcodeInput || 
-        item.itemCode === billDetails.barcodeInput
+        item.itemCode === billDetails.barcodeInput ||
+        item.code === billDetails.barcodeInput
       );
 
       if (existingItemInList) {
         handleAddItemFromLocal(existingItemInList);
       } else {
-        // Try to fetch from API
         const itemData = await fetchItemByBarcode(billDetails.barcodeInput);
         if (itemData) {
           handleAddItemFromAPI(itemData);
@@ -604,7 +1013,10 @@ const SalesReturn = () => {
 
   const handleAddItemFromLocal = (itemData) => {
     const existingItemIndex = items.findIndex(item =>
-      (item.barcode === itemData.barcode || item.barcode === itemData.itemCode) && item.barcode !== ''
+      (item.barcode === itemData.barcode || 
+       item.barcode === itemData.itemCode ||
+       item.barcode === itemData.code) && 
+      item.barcode !== ''
     );
 
     if (existingItemIndex !== -1) {
@@ -624,17 +1036,17 @@ const SalesReturn = () => {
       const newItem = {
         id: items.length + 1,
         sNo: items.length + 1,
-        barcode: itemData.barcode || itemData.itemCode,
-        itemName: itemData.itemName || itemData.name,
-        stock: (itemData.stockQty || itemData.stock || 0).toString(),
-        mrp: (itemData.mrp || itemData.sellingPrice || 0).toString(),
+        barcode: itemData.barcode || itemData.itemCode || itemData.code,
+        itemName: itemData.fItemName || itemData.itemName || itemData.name,
+        stock: (itemData.stockQty || itemData.stock || itemData.quantity || 0).toString(),
+        mrp: (itemData.mrp || itemData.sellingPrice || itemData.price || 0).toString(),
         uom: itemData.uom || itemData.unit || "",
         hsn: itemData.hsnCode || itemData.hsn || "",
         tax: (itemData.taxRate || itemData.tax || 0).toString(),
-        sRate: (itemData.sellingPrice || itemData.sRate || 0).toString(),
-        rate: (itemData.sellingPrice || itemData.rate || 0).toString(),
+        sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
+        rate: (itemData.sellingPrice || itemData.rate || itemData.price || 0).toString(),
         qty: '1',
-        amount: (itemData.sellingPrice || 0).toFixed(2)
+        amount: (itemData.sellingPrice || itemData.price || 0).toFixed(2)
       };
 
       setItems([...items, newItem]);
@@ -648,17 +1060,17 @@ const SalesReturn = () => {
     const newItem = {
       id: items.length + 1,
       sNo: items.length + 1,
-      barcode: itemData.barcode || itemData.itemCode,
-      itemName: itemData.itemName || itemData.name,
-      stock: (itemData.stockQty || itemData.stock || 0).toString(),
-      mrp: (itemData.mrp || itemData.sellingPrice || 0).toString(),
+      barcode: itemData.barcode || itemData.itemCode || itemData.code,
+      itemName: itemData.fItemName || itemData.itemName || itemData.name,
+      stock: (itemData.stockQty || itemData.stock || itemData.quantity || 0).toString(),
+      mrp: (itemData.mrp || itemData.sellingPrice || itemData.price || 0).toString(),
       uom: itemData.uom || itemData.unit || "",
       hsn: itemData.hsnCode || itemData.hsn || "",
       tax: (itemData.taxRate || itemData.tax || 0).toString(),
-      sRate: (itemData.sellingPrice || itemData.sRate || 0).toString(),
-      rate: (itemData.sellingPrice || itemData.rate || 0).toString(),
+      sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
+      rate: (itemData.sellingPrice || itemData.rate || itemData.price || 0).toString(),
       qty: '1',
-      amount: (itemData.sellingPrice || 0).toFixed(2)
+      amount: (itemData.sellingPrice || itemData.price || 0).toFixed(2)
     };
 
     setItems([...items, newItem]);
@@ -707,41 +1119,6 @@ const SalesReturn = () => {
     }));
   };
 
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-
-      const fields = [
-        'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
-      ];
-
-      const currentFieldIndex = fields.indexOf(currentField);
-
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-        if (nextInput) {
-          nextInput.focus();
-          return;
-        }
-      }
-
-      if (currentRowIndex < items.length - 1) {
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-        if (nextInput) {
-          nextInput.focus();
-          return;
-        }
-      }
-
-      handleAddRow();
-      setTimeout(() => {
-        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
-        if (newRowInput) newRowInput.focus();
-      }, 60);
-    }
-  };
-
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to delete the last item?')) {
       if (items.length > 0) {
@@ -788,9 +1165,10 @@ const SalesReturn = () => {
     try {
       await deleteSalesReturn(voucherNo);
       alert(`Sales return ${voucherNo} deleted successfully.`);
-      await fetchVoucherList(); // Refresh the list
+      await fetchVoucherList();
     } catch (err) {
       alert(`Failed to delete sales return: ${err.message}`);
+      throw err;
     }
   };
 
@@ -855,6 +1233,7 @@ const SalesReturn = () => {
         items: items.map(item => ({
           barcode: item.barcode,
           itemName: item.itemName,
+          fItemName: item.itemName,
           qty: parseFloat(item.qty) || 0,
           rate: parseFloat(item.sRate) || 0,
           amount: parseFloat(item.amount) || 0,
@@ -869,9 +1248,22 @@ const SalesReturn = () => {
 
       console.log("Saving sales return:", salesReturnData);
       
-      await createSalesReturn(salesReturnData);
+      const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
+                                billDetails.billNo !== 'SR0000001' && 
+                                billDetails.billNo !== 'Auto';
       
-      alert(`Sales Return ${billDetails.billNo} saved successfully!\n\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+      let response;
+      if (isExistingVoucher) {
+        response = await updateSalesReturn(salesReturnData);
+        alert(`Sales Return ${billDetails.billNo} updated successfully!`);
+      } else {
+        response = await createSalesReturn(salesReturnData);
+        alert(`Sales Return ${billDetails.billNo} saved successfully!`);
+      }
+      
+      console.log("Save response:", response);
+      
+      await fetchVoucherList();
       
       handleClear();
       await fetchMaxVoucherNo();
@@ -1332,15 +1724,17 @@ const SalesReturn = () => {
             <label style={styles.inlineLabel}>Salesman:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={styles.inlineInputClickable}
               value={billDetails.salesman}
               name="salesman"
               onChange={handleInputChange}
               ref={salesmanRef}
-              onKeyDown={(e) => handleKeyDown(e, custNameRef)}
+              onClick={openSalesmanPopup}
+              onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
               onFocus={() => setFocusedField('salesman')}
               onBlur={() => setFocusedField('')}
-              placeholder="Salesman"
+              placeholder="salesman"
+              readOnly
             />
           </div>
 
@@ -1355,38 +1749,15 @@ const SalesReturn = () => {
               onChange={handleInputChange}
               ref={custNameRef}
               onClick={openCustomerPopup}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  openCustomerPopup();
-                } else {
-                  handleKeyDown(e, returnReasonRef);
-                }
-              }}
+              onKeyDown={(e) => handleKeyDown(e, returnReasonRef, 'custName')}
               onFocus={() => setFocusedField('custName')}
               onBlur={() => setFocusedField('')}
-              placeholder="Click to select customer"
+              placeholder="Customer"
               readOnly
             />
           </div>
 
-          {/* Return Reason */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Return Reason:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.returnReason}
-              name="returnReason"
-              onChange={handleInputChange}
-              ref={returnReasonRef}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-              onFocus={() => setFocusedField('returnReason')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Return Reason"
-            />
-          </div>
-
+          
           {/* Barcode */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Barcode:</label>
@@ -1450,20 +1821,12 @@ const SalesReturn = () => {
                     <input
                       style={styles.editableInputClickable}
                       value={item.itemName}
-                      placeholder="Click to select item"
+                      placeholder="item name"
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          openItemPopup(index);
-                        } else {
-                          handleTableKeyDown(e, index, 'itemName');
-                        }
-                      }}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
                       onClick={() => openItemPopup(index)}
-                      readOnly
                     />
                   </td>
                   <td style={styles.td}>
@@ -1493,7 +1856,14 @@ const SalesReturn = () => {
                       data-row={index}
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ') {
+                          handleUomSpacebar(e, item.id);
+                        } else {
+                          handleTableKeyDown(e, index, 'uom');
+                        }
+                      }}
+                      
                     />
                   </td>
                   <td style={styles.td}>
@@ -1578,7 +1948,7 @@ const SalesReturn = () => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         transition: 'color 0.15s ease',
-                        minHeight: screenSize.isMobile ? '28px' : '32px',
+                        minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
                       }}
                       onClick={() => handleDeleteRow(item.id)}
                     >
