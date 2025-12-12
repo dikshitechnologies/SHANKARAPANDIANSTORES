@@ -1,7 +1,9 @@
 import './App.css'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Home from './pages/Home/Home'
 import Navbar from './components/Navbar/Navbar'
+import Login from './pages/Login/Login'
+import { useAuth } from './context/AuthContext'
 import TestPage from './pages/TestPage/TestPage'
 import  Company  from './pages/company/Company'
 import LedgerCreation from './pages/Ledgercreation/Ledgercreation'
@@ -31,47 +33,77 @@ import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 import Statecreation from './pages/statecreation/statecreation'
 import Purchasereturn from './pages/Purchasereturn/Purchasereturn'
 import SalesmanCreation from './pages/SalesmanCreation/SalesmanCreation'
-function App() {
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { userData } = useAuth();
+  
+  if (!userData) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
+
+// Layout with Navbar
+const LayoutWithNavbar = ({ children }) => {
   return (
     <div className="app">
       <Navbar />
       <main className="main-content">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="test" element={<TestPage />} />
-          {/* <Route path="test" element={<Test />} /> */}
-          <Route path="/masters/company-creation" element={<Company />} />
-          <Route path="sales-invoice" element={<SalesInvoice />} />
-          <Route path="/masters/ledger-creation" element={<LedgerCreation />} />
-          <Route path="/masters/ledger-group-creation" element={<LedgerGroupCreation />} />
-          <Route path="/masters/User-creation" element={<UserCreation />} />
-          <Route path="/masters/item-group-creation" element={<ItemGroupCreation />} />
-          <Route path="/Administration" element={<Administration />} />
-          <Route path="/transactions/sales-return" element={<SalesReturn />} />
-          <Route path="/mastersScrapRateFix" element={<ScrapRateFix />} /> 
-          <Route path="/transactions/scrap" element={<Scrap />} />
-          <Route path="/popup-list-selector-example" element={<ExampleUsage />} />
-          <Route path="/masters/unit-creation" element={<UnitCreation />} />
-          <Route path="/masters/color-creation" element={<ColorCreation />} />
-          <Route path="/masters/size-creation" element={<SizeCreation />} />
-          <Route path="/masters/model-creation" element={<ModelCreation />} />
-          <Route path="/transactions/bill-collector" element={<Billcollector />} />
-          <Route path="/Transaction/Tender" element={<Tender />} />
-          <Route path="/transactions/purchase-invoice" element={<PurchaseInvoice />} />
-          <Route path="/design-creation" element={<Design />} />
-          <Route path="/masters/scrap-page" element={<ScrapPage />} />
-          <Route path="/masters/brand-creation" element={<BrandPage />} />
-          <Route path="/masters/category-creation" element={<Category />} />
-          <Route path="/masters/product-creation" element={<Product />} />
-           <Route path="/ScrapProcurement" element={<ScrapProcurement />} />
-           <Route path="/masters/Statecreation" element={<Statecreation />} /> 
-          <Route path="/transactions/Purchasereturn" element={<Purchasereturn />} />
-          <Route path="/masters/ItemCreation" element={<ItemCreation />} /> 
-          <Route path="/masters/SalesmanCreation" element={<SalesmanCreation />} /> 
-        </Routes>
+        {children}
       </main>
     </div>
-  )
+  );
+};
+
+function App() {
+  const { userData } = useAuth();
+  const location = useLocation();
+
+  return (
+    <Routes>
+      {/* Public Route - Login */}
+      <Route 
+        path="/login" 
+        element={
+          userData ? <Navigate to="/" replace /> : <Login />
+        } 
+      />
+
+      {/* Protected Routes with Navbar */}
+      <Route path="/" element={<ProtectedRoute><LayoutWithNavbar><Home /></LayoutWithNavbar></ProtectedRoute>} />
+      <Route path="/test" element={<ProtectedRoute><LayoutWithNavbar><TestPage /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/company-creation" element={<ProtectedRoute><LayoutWithNavbar><Company /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/sales-invoice" element={<ProtectedRoute><LayoutWithNavbar><SalesInvoice /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/ledger-creation" element={<ProtectedRoute><LayoutWithNavbar><LedgerCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/ledger-group-creation" element={<ProtectedRoute><LayoutWithNavbar><LedgerGroupCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/User-creation" element={<ProtectedRoute><LayoutWithNavbar><UserCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/item-group-creation" element={<ProtectedRoute><LayoutWithNavbar><ItemGroupCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/Administration" element={<ProtectedRoute><LayoutWithNavbar><Administration /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/transactions/sales-return" element={<ProtectedRoute><LayoutWithNavbar><SalesReturn /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/mastersScrapRateFix" element={<ProtectedRoute><LayoutWithNavbar><ScrapRateFix /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/transactions/scrap" element={<ProtectedRoute><LayoutWithNavbar><Scrap /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/popup-list-selector-example" element={<ProtectedRoute><LayoutWithNavbar><ExampleUsage /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/unit-creation" element={<ProtectedRoute><LayoutWithNavbar><UnitCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/color-creation" element={<ProtectedRoute><LayoutWithNavbar><ColorCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/size-creation" element={<ProtectedRoute><LayoutWithNavbar><SizeCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/model-creation" element={<ProtectedRoute><LayoutWithNavbar><ModelCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/transactions/bill-collector" element={<ProtectedRoute><LayoutWithNavbar><Billcollector /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/Transaction/Tender" element={<ProtectedRoute><LayoutWithNavbar><Tender /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/transactions/purchase-invoice" element={<ProtectedRoute><LayoutWithNavbar><PurchaseInvoice /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/design-creation" element={<ProtectedRoute><LayoutWithNavbar><Design /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/scrap-page" element={<ProtectedRoute><LayoutWithNavbar><ScrapPage /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/brand-creation" element={<ProtectedRoute><LayoutWithNavbar><BrandPage /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/category-creation" element={<ProtectedRoute><LayoutWithNavbar><Category /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/product-creation" element={<ProtectedRoute><LayoutWithNavbar><Product /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/ScrapProcurement" element={<ProtectedRoute><LayoutWithNavbar><ScrapProcurement /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/Statecreation" element={<ProtectedRoute><LayoutWithNavbar><Statecreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/transactions/Purchasereturn" element={<ProtectedRoute><LayoutWithNavbar><Purchasereturn /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/ItemCreation" element={<ProtectedRoute><LayoutWithNavbar><ItemCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/SalesmanCreation" element={<ProtectedRoute><LayoutWithNavbar><SalesmanCreation /></LayoutWithNavbar></ProtectedRoute>} />
+    </Routes>
+  );
 }
 
 export default App
