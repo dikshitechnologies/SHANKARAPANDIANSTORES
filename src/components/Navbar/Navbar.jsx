@@ -100,7 +100,7 @@ const Navbar = () => {
   ];
 
   const transactionItems = [
-    { name: 'Sales Invoice', path: 'sales-invoice', icon: <FileTextOutlined /> },
+    { name: 'Sales Invoice', path: '/sales-invoice', icon: <FileTextOutlined /> },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
     { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Purchase Return', path: '/transactions/Purchasereturn', icon: <DollarOutlined /> },
