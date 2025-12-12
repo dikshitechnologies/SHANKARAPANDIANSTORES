@@ -1689,7 +1689,7 @@ const SalesReturn = () => {
       minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
       width: '100%',
       boxSizing: 'border-box',
-      zIndex: 100,
+      zIndex: 90,
     },
     totalsContainer: {
       fontFamily: TYPOGRAPHY.fontFamily,
