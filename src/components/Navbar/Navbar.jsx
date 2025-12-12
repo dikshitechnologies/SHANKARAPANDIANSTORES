@@ -179,6 +179,39 @@ const Navbar = () => {
             <span className={styles['logo-text']}>Sankarapandian</span>
             <span className={styles['logo-subtext']}>Store</span>
           </Link>
+  {!isMobile && (
+  <div className={styles['nav-screen-title']}>
+    {(() => {
+      const path = location.pathname || '/';
+
+      // Simple mapping for common routes
+      const map = {
+        '/': 'Home',
+        '/masters': 'Masters',
+        '/transactions': 'Transactions',
+        '/masters/ledger-creation': 'Ledger Creation',
+        '/masters/unit-creation': 'Unit Creation',
+        '/masters/color-creation': 'Color Creation',
+        '/masters/size-creation': 'Size Creation',
+        '/masters/model-creation': 'Model Creation',
+        '/masters/user-creation': 'User Creation',
+        '/administration': 'Administration',
+      };
+
+      // if path is predefined in map
+      if (map[path]) return map[path];
+
+      // derive a friendly title from last part of path
+      const parts = path.split('/').filter(Boolean);
+      if (parts.length === 0) return 'Home';
+
+      const last = parts[parts.length - 1];
+      return last
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+    })()}
+  </div>
+)}
 
           {/* Center: Navigation Menu (Desktop) */}
           {!isMobile && (
@@ -272,7 +305,7 @@ const Navbar = () => {
                   }}
                   placement="bottomRight"
                 >
-                  <Button type="text" icon={<UserOutlined />} className={styles['user-menu']}>
+                  <Button type="text" icon={<UserOutlined />} className={styles['user-menu']}   style={{ marginRight: '-120px' }}>
                     Admin
                   </Button>
                 </Dropdown>
