@@ -73,9 +73,9 @@ function App() {
 
       {/* Protected Routes with Navbar */}
       <Route path="/" element={<ProtectedRoute><LayoutWithNavbar><Home /></LayoutWithNavbar></ProtectedRoute>} />
-      <Route path="test" element={<ProtectedRoute><LayoutWithNavbar><TestPage /></LayoutWithNavbar></ProtectedRoute>} />
+      <Route path="/test" element={<ProtectedRoute><LayoutWithNavbar><TestPage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/company-creation" element={<ProtectedRoute><LayoutWithNavbar><Company /></LayoutWithNavbar></ProtectedRoute>} />
-          <Route path="sales-invoice" element={<ProtectedRoute><LayoutWithNavbar><SalesInvoice /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/sales-invoice" element={<ProtectedRoute><LayoutWithNavbar><SalesInvoice /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/ledger-creation" element={<ProtectedRoute><LayoutWithNavbar><LedgerCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/ledger-group-creation" element={<ProtectedRoute><LayoutWithNavbar><LedgerGroupCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/User-creation" element={<ProtectedRoute><LayoutWithNavbar><UserCreation /></LayoutWithNavbar></ProtectedRoute>} />
