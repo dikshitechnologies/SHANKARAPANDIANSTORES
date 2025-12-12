@@ -440,58 +440,48 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
   setShowItemCodePopup(false);
   
   try {
-    // Fetch item details
-    const itemDetails = await fetchItemDetailsByCode(selectedItem.barcode);
+    // Run both APIs in parallel
+    const [stockResponse, itemDetailsArray] = await Promise.all([
+      // API 1: GetStockByItemName - for stock and detailed info
+      axiosInstance.get(
+        API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_DETAILS_BY_CODE(selectedItem.barcode)
+      ),
+      // API 2: fetchItemDetailsByCode - for additional item details
+      fetchItemDetailsByCode(selectedItem.barcode)
+    ]);
     
-    if (itemDetails && itemDetails.length > 0) {
-      const details = itemDetails[0];
-      
-      console.log('Selected item details:', details);
-      
-      // Update the selected row with the fetched data
-      setItems(prevItems => {
-        return prevItems.map(item => {
-          // Only update the row that was selected
-          if (item.id === selectedRowId) {
-            return {
-              ...item,
-              barcode: details.barcode || selectedItem.barcode || '',
-              name: details.name || selectedItem.name || '',
-              stock: details.stock || '0',
-              uom: details.uom || '',
-              hsn: details.hsn || '',
-              preRT: details.preRT || '0',
-              // Set prate equal to preRT
-              prate: details.preRT || '0',
-              // Add other fields as needed
-              // mrp: details.mrp || '0',
-              // min: details.minQty || '',
-              // max: details.maxQty || '',
-            };
-          }
-          return item;
-        });
+    const stockData = stockResponse?.data || {};
+    const itemDetails = itemDetailsArray && itemDetailsArray.length > 0 ? itemDetailsArray[0] : {};
+    
+    console.log('Stock API response:', stockData);
+    console.log('Item Details API response:', itemDetails);
+    
+    // Merge data from both APIs
+    setItems(prevItems => {
+      return prevItems.map(item => {
+        // Only update the row that was selected
+        if (item.id === selectedRowId) {
+          return {
+            ...item,
+            barcode: stockData.itemCode || itemDetails.barcode || selectedItem.barcode || '',
+            name: stockData.itemName || itemDetails.name || selectedItem.name || '',
+            stock: stockData.finalStock !== undefined && stockData.finalStock !== null ? stockData.finalStock : itemDetails.stock || '0',
+            uom: itemDetails.uom || selectedItem.uom || item.uom || '',
+            hsn: stockData.hsn || itemDetails.hsn || selectedItem.hsn || item.hsn || '',
+            preRT: itemDetails.preRT || selectedItem.preRT || item.preRT || '0',
+            prate: itemDetails.preRT || selectedItem.preRT || item.prate || '0',
+            brand: stockData.brand || itemDetails.brand || '',
+            category: stockData.category || itemDetails.category || '',
+            model: stockData.model || itemDetails.model || '',
+            size: stockData.size || itemDetails.size || '',
+            max: stockData.max || itemDetails.max || '',
+            min: stockData.min || itemDetails.min || '',
+            type: stockData.type || itemDetails.type || '',
+          };
+        }
+        return item;
       });
-    } else {
-      // If no details found from API, at least fill with popup data
-      setItems(prevItems => {
-        return prevItems.map(item => {
-          if (item.id === selectedRowId) {
-            return {
-              ...item,
-              barcode: selectedItem.barcode || '',
-              name: selectedItem.name || '',
-              // Use the data from the popup if available
-              uom: selectedItem.uom || item.uom || '',
-              hsn: selectedItem.hsn || item.hsn || '',
-              preRT: selectedItem.preRT || item.preRT || '0',
-              prate: selectedItem.preRT || item.prate || '0',
-            };
-          }
-          return item;
-        });
-      });
-    }
+    });
   } catch (error) {
     console.error('Error in handleItemCodeSelection:', error);
     
@@ -503,7 +493,6 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             ...item,
             barcode: selectedItem.barcode || '',
             name: selectedItem.name || '',
-            // Use popup data if available
             uom: selectedItem.uom || item.uom || '',
             hsn: selectedItem.hsn || item.hsn || '',
             preRT: selectedItem.preRT || item.preRT || '0',

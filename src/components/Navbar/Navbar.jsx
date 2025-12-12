@@ -17,6 +17,7 @@ import {
   UpOutlined, MoneyCollectOutlined,
 } from '@ant-design/icons';
 import { Button, Dropdown, Space, Modal } from 'antd';
+import { useAuth } from '../../context/AuthContext';
 import DropdownMenu from './DropdownMenu';
 import styles from './Navbar.module.css';
 
@@ -31,6 +32,7 @@ const Navbar = () => {
   });
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // Check screen size
   useEffect(() => {
@@ -154,10 +156,13 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    console.log('Logging out...');
-    navigate('/login');
+    // Clear authentication data
+    logout();
+    // Close modal and mobile menu
     setLogoutModalOpen(false);
     closeMobileMenu();
+    // Navigate to login page
+    navigate('/login');
   };
 
   const handleExit = () => {
