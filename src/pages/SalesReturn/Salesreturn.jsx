@@ -708,7 +708,7 @@ const SalesReturn = () => {
     }
   };
 
-  // Handle popup selection
+  // Handle popup selection - FIXED VERSION
   const handlePopupSelect = async (selectedItem) => {
     console.log("Popup selected item:", selectedItem);
     console.log("Popup type:", popupType);
@@ -738,28 +738,48 @@ const SalesReturn = () => {
         }));
       }
     } else if (popupType === "item") {
+      console.log("Item popup selection for row:", selectedRowIndex);
+      console.log("Selected item data:", selectedItem);
+      
       if (selectedRowIndex !== null) {
-        const selectedItemData = itemList.find(item => {
+        // Find the actual item from itemList for more complete data
+        const selectedItemFromList = itemList.find(item => {
           const itemCode = item.itemCode || item.code || item.ItemCode || item.Code || item.id;
           return itemCode && itemCode.toString() === selectedItem.code.toString();
         });
         
-        if (selectedItemData) {
-          const updatedItems = [...items];
-          const selectedRow = selectedRowIndex;
-          
-          const itemName = selectedItemData.fItemName || selectedItemData.itemName || selectedItemData.name || selectedItem.name;
-          const barcode = selectedItemData.barcode || selectedItemData.Barcode || selectedItemData.itemCode || selectedItemData.code || selectedItem.code;
-          const mrp = selectedItemData.mrp || selectedItemData.MRP || selectedItemData.sellingPrice || selectedItemData.SellingPrice || selectedItemData.price || selectedItemData.Price || 0;
-          const stock = selectedItemData.stockQty || selectedItemData.stock || selectedItemData.StockQty || selectedItemData.Stock || selectedItemData.quantity || selectedItemData.Quantity || 0;
-          const uom = selectedItemData.uom || selectedItemData.UOM || selectedItemData.unit || selectedItemData.Unit || "";
-          const hsn = selectedItemData.hsnCode || selectedItemData.hsn || selectedItemData.HsnCode || selectedItemData.HSN || "";
-          const tax = selectedItemData.taxRate || selectedItemData.tax || selectedItemData.TaxRate || selectedItemData.Tax || 0;
-          const sRate = selectedItemData.sellingPrice || selectedItemData.sRate || selectedItemData.SellingPrice || selectedItemData.SRate || selectedItemData.price || selectedItemData.Price || 0;
-          
-          updatedItems[selectedRow] = {
-            ...updatedItems[selectedRow],
-            itemName: itemName,
+        console.log("Selected item from list:", selectedItemFromList);
+        
+        // Use the item from list if available, otherwise use popup data
+        const itemData = selectedItemFromList || selectedItem;
+        
+        // Get the item name - check multiple possible fields
+        const itemName = itemData.fItemName || itemData.itemName || itemData.name || 
+                        selectedItem.name || selectedItem.fItemName || 'Unknown Item';
+        
+        // Get other fields with fallbacks
+        const barcode = itemData.barcode || itemData.Barcode || itemData.itemCode || 
+                       itemData.code || selectedItem.code || '';
+        const mrp = itemData.mrp || itemData.MRP || itemData.sellingPrice || 
+                   itemData.SellingPrice || itemData.price || itemData.Price || 0;
+        const stock = itemData.stockQty || itemData.stock || itemData.StockQty || 
+                     itemData.Stock || itemData.quantity || itemData.Quantity || 0;
+        const uom = itemData.uom || itemData.UOM || itemData.unit || itemData.Unit || "";
+        const hsn = itemData.hsnCode || itemData.hsn || itemData.HsnCode || itemData.HSN || "";
+        const tax = itemData.taxRate || itemData.tax || itemData.TaxRate || itemData.Tax || 0;
+        const sRate = itemData.sellingPrice || itemData.sRate || itemData.SellingPrice || 
+                     itemData.SRate || itemData.price || itemData.Price || mrp;
+        
+        console.log("Item name to set:", itemName);
+        console.log("Barcode to set:", barcode);
+        
+        const updatedItems = [...items];
+        
+        // Ensure the row exists
+        if (updatedItems[selectedRowIndex]) {
+          updatedItems[selectedRowIndex] = {
+            ...updatedItems[selectedRowIndex],
+            itemName: itemName, // This is the key fix - properly setting itemName
             barcode: barcode,
             mrp: mrp.toString(),
             stock: stock.toString(),
@@ -769,28 +789,14 @@ const SalesReturn = () => {
             sRate: sRate.toString(),
             rate: sRate.toString(),
             qty: "1",
-            amount: sRate.toFixed(2)
+            amount: calculateAmount("1", sRate)
           };
+          
+          console.log("Updated item row:", updatedItems[selectedRowIndex]);
           
           setItems(updatedItems);
         } else {
-          const updatedItems = [...items];
-          updatedItems[selectedRow] = {
-            ...updatedItems[selectedRow],
-            itemName: selectedItem.name,
-            barcode: selectedItem.barcode || selectedItem.code,
-            mrp: (selectedItem.mrp || 0).toString(),
-            stock: (selectedItem.stock || 0).toString(),
-            uom: selectedItem.uom || "",
-            hsn: selectedItem.hsn || "",
-            tax: (selectedItem.tax || 0).toString(),
-            sRate: (selectedItem.sRate || selectedItem.mrp || 0).toString(),
-            rate: (selectedItem.sRate || selectedItem.mrp || 0).toString(),
-            qty: "1",
-            amount: (selectedItem.sRate || selectedItem.mrp || 0).toFixed(2)
-          };
-          
-          setItems(updatedItems);
+          console.error("Row index out of bounds:", selectedRowIndex);
         }
       }
     } else if (popupType === "edit") {
