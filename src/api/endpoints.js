@@ -117,18 +117,17 @@ export const API_ENDPOINTS = {
     DELETE_SCRAP: (scrapCode) => `/ScrapCreation/deleteScrap/${scrapCode}`,
     GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
-  sales_return: {
-    getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
-    getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
-    getCustomers: "Salesinvoices/GetPartyByParent",
-    // Create Sales Return
-    createSalesReturn: (selectType = true) => `SalesReturn/SalesReturnCreate?SelectType=${selectType}`,
-    // Update Sales Return
-    updateSalesReturn: (selectType = false) => `SalesReturn/SalesReturnUpdate?SelectType=${selectType}`,
-    // Delete Sales Return
+  sales_return:{
+     getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
+      getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
+       getCustomers: "Salesinvoices/GetPartyByParent",
+       createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
+    updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true', // Same endpoint for both
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
-    // Get Sales Return Details
-    getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnByVoucherNo/${voucherNo}`,
+    getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
+        
+  
+ 
   },
   
 
