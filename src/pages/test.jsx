@@ -76,7 +76,7 @@ const ExampleUsage = () => {
     
     try {
       // Simulate API call or async operation
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Your actual save logic here
       console.log('Changes saved successfully!');
@@ -196,11 +196,11 @@ const ExampleUsage = () => {
         disableBackdropClose={isLoading} 
         customStyles={{
           modal: {
-            borderTop: '4px solid #48e6ecff'
+            borderTop: '4px solid #ec488cff'
           },
           confirmButton: {
             style: {
-              background: 'linear-gradient(90deg, #9fec48ff, #6c27dbff)'
+              background: 'linear-gradient(90deg, #ec489dff, #f186c2ff)'
             }
           }
         }}
