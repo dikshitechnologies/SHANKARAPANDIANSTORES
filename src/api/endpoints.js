@@ -1,4 +1,10 @@
 export const API_ENDPOINTS = {
+  // Login Endpoint
+  LOGIN: {
+    getUserInfo: (username, password) => 
+      `Login/GetCompanyUserInfo?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+  },
+
   LEDGER_CREATION_ENDPOINTS: {
     getTree: "LedgerGroupCreation/LedgerGroupCreationGet",
     getDropdown: "LedgerCreation/GetledgerCreationdropdowslist",
