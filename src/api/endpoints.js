@@ -122,7 +122,7 @@ export const API_ENDPOINTS = {
       getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
        getCustomers: "Salesinvoices/GetPartyByParent",
        createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
-    updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true', // Same endpoint for both
+    updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=false', // Same endpoint for both
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
         
