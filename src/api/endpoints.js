@@ -117,51 +117,18 @@ export const API_ENDPOINTS = {
     DELETE_SCRAP: (scrapCode) => `/ScrapCreation/deleteScrap/${scrapCode}`,
     GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
   },
-  sales_return:{
-     getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
-      getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
-       getCustomers: "Salesinvoices/GetPartyByParent",
-        SALES_RETURN: {
-    // Create Sales Return (POST)
-    CREATE_SALES_RETURN: (selectType = true) => 
-      `SalesReturn/SalesReturnCreate?SelectType=${selectType}`,
-    
-    // Update Sales Return (PUT) - if available
-    UPDATE_SALES_RETURN: (selectType = true) => 
-      `SalesReturn/SalesReturnUpdate?SelectType=${selectType}`,
-    
-    // Delete Sales Return (DELETE)
-    DELETE_SALES_RETURN: (voucherNo) => 
-      `SalesReturn/DeleteSalesReturn/${voucherNo}`,
-    
+  sales_return: {
+    getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
+    getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
+    getCustomers: "Salesinvoices/GetPartyByParent",
+    // Create Sales Return
+    createSalesReturn: (selectType = true) => `SalesReturn/SalesReturnCreate?SelectType=${selectType}`,
+    // Update Sales Return
+    updateSalesReturn: (selectType = false) => `SalesReturn/SalesReturnUpdate?SelectType=${selectType}`,
+    // Delete Sales Return
+    deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     // Get Sales Return Details
-    GET_SALES_RETURN_DETAILS: (voucherNo) => 
-      `SalesReturn/GetSalesReturnByVoucherNo/${voucherNo}`,
-    
-    // Get Max Voucher Number
-    GET_MAX_VOUCHER_NO: (companyCode) => 
-      `SalesReturn/GetMaxVoucherNo/${companyCode}`,
-    
-    // Get Voucher List
-    GET_VOUCHER_LIST: (companyCode) => 
-      `SalesReturn/VoucherList/${companyCode}`,
-    
-    // Get Item by Barcode
-    GET_ITEM_BY_BARCODE: (barcode) => 
-      `ItemCreation/GetItemByBarcode/${barcode}`,
-  },
-  
-  // Customer Endpoints
-  GET_CUSTOMERS: "Salesinvoices/GetPartyByParent",
-  
-  // Item Endpoints
-  GET_ITEM_DROPDOWN: "ItemCreation/GetItemCreationdropdowslist",
-  
-  // Salesman Endpoints
-  GET_SALESMEN: "SalesmanCreation/GetSalesman",
-  
-  // Scrap Creation Endpoints (keep existing)
- 
+    getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnByVoucherNo/${voucherNo}`,
   },
   
 
