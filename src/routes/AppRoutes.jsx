@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Login from '../pages/Login/Login';
 import ProtectedRoute from '../components/ProtectedRoute/ProtectedRoute';
 import TestPage from '../pages/TestPage/TestPage';
@@ -9,6 +9,8 @@ import LedgerGroupCreation from '../pages/Ledgergroupcreation/Ledgergroupcreatio
 import ItemGroupCreation from '../pages/ItemGroupCreation/ItemGroupCreation';
 import BillCollector from '../pages/billcollector/billcollectior';
 import DesignCreation from '../pages/DesignCreation/DesignCreation';
+import CashManagement from '../pages/CashManagement/CashManagement';
+import { useAuth } from '../context/AuthContext';
 
 const AppRoutes = () => {
   return (
@@ -134,7 +136,8 @@ const HomePage = () => {
           { path: '/item-group-creation', label: '📂 Item Group', color: '#45B7D1' },
           { path: '/ledger-creation', label: '📊 Ledger Creation', color: '#FFA502' },
           { path: '/ledger-group-creation', label: '📇 Ledger Group', color: '#F7B731' },
-          { path: '/bill-collector', label: '💳 Bill Collector', color: '#5F27CD' }
+          { path: '/bill-collector', label: '💳 Bill Collector', color: '#5F27CD' },
+          // { path: '/transactions/cash-management', label: '💰 Cash Management', color: '#26de81' }
         ].map((item, idx) => (
           <a
             key={idx}
@@ -184,6 +187,7 @@ const HomePage = () => {
           <li>✅ <strong>Item Group:</strong> Organize items into categories</li>
           <li>✅ <strong>Ledger Management:</strong> Track financial accounts</li>
           <li>✅ <strong>Bill Collector:</strong> Process payment collections</li>
+          <li>✅ <strong>Cash Management:</strong> Opening and closing cash tracking</li>
           <li>✅ <strong>Test Page:</strong> Try out sample features</li>
         </ul>
       </div>

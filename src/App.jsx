@@ -33,6 +33,7 @@ import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 import Statecreation from './pages/statecreation/statecreation'
 import Purchasereturn from './pages/Purchasereturn/Purchasereturn'
 import SalesmanCreation from './pages/SalesmanCreation/SalesmanCreation'
+import CashManagement from './pages/CashManagement/CashManagement'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -102,6 +103,7 @@ function App() {
           <Route path="/transactions/Purchasereturn" element={<ProtectedRoute><LayoutWithNavbar><Purchasereturn /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/ItemCreation" element={<ProtectedRoute><LayoutWithNavbar><ItemCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/SalesmanCreation" element={<ProtectedRoute><LayoutWithNavbar><SalesmanCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          {/* <Route path="/transactions/cash-management" element={<ProtectedRoute><LayoutWithNavbar><CashManagement /></LayoutWithNavbar></ProtectedRoute>} /> */}
     </Routes>
   );
 }

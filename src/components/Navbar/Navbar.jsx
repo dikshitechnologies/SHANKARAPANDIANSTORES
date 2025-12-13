@@ -102,6 +102,7 @@ const Navbar = () => {
     { name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined /> },
     { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
     { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined /> },
+    // { name: 'Cash Management', path: '/transactions/cash-management', icon: <MoneyCollectOutlined /> },
 
 
 
