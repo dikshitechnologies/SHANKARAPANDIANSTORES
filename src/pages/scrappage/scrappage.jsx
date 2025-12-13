@@ -93,6 +93,9 @@ export default function ScrapPage() {
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Track original scrap name when editing
+  const [originalScrapName, setOriginalScrapName] = useState("");
+
   // ---------- API functions ----------
   const fetchNextScrapCode = async () => {
     try {
@@ -239,6 +242,12 @@ useEffect(() => {
       return;
     }
 
+    // Check if no changes were made
+    if (originalScrapName && originalScrapName.toUpperCase() === form.scrapName.toUpperCase()) {
+      setMessage({ type: "warning", text: "No changes detected. Scrap name remains the same." });
+      return;
+    }
+
     if (!window.confirm(`Do you want to update scrap item "${form.scrapName}"?`)) return;
 
     try {
@@ -313,6 +322,7 @@ useEffect(() => {
   const resetForm = (keepAction = false) => {
   fetchNextScrapCode();
   setForm(prev => ({ ...prev, scrapName: "" }));
+  setOriginalScrapName("");
   setEditingId(null);
   setDeleteTargetId(null);
   setExistingQuery("");
@@ -332,6 +342,7 @@ useEffect(() => {
 
   const handleEditRowClick = (s) => {
     setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+    setOriginalScrapName(s.scrapName);
     setActionType("edit");
     setEditingId(s.scrapCode);
     setEditModalOpen(false);
@@ -1083,13 +1094,7 @@ useEffect(() => {
                         <tr 
                           key={s.scrapCode}
                           className={form.scrapCode === s.scrapCode ? "selected" : ""}
-                          onClick={() => {
-                            setForm({ 
-                              scrapCode: s.scrapCode, 
-                              scrapName: s.scrapName
-                            });
-                            setActionType("edit");
-                          }}
+                          onClick={() => handleEditRowClick(s)}
                         >
                           <td>{s.scrapCode}</td>
                           <td>{s.scrapName}</td>
@@ -1122,6 +1127,11 @@ useEffect(() => {
               <div className="muted">Scrap Name</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.scrapName || "Not set"}
+                {originalScrapName && actionType === "edit" && (
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
+                    Original: {originalScrapName}
+                  </div>
+                )}
               </div>
             </div>
 

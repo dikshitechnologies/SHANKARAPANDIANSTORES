@@ -98,7 +98,7 @@ const Navbar = () => {
     { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Purchase Return', path: '/transactions/Purchasereturn', icon: <DollarOutlined /> },
     { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined /> },
-    { name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> },
+    // { name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> },
     { name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined /> },
     { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
     { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined /> },
