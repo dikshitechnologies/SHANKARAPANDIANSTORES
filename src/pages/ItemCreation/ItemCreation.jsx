@@ -237,6 +237,7 @@ const ItemCreation = ({ onCreated }) => {
   const sellingPriceRef = useRef(null);
   const costPriceRef = useRef(null);
   const unitRef = useRef(null);
+  const isInitialFocusRef = useRef(true);
 
   // Get permissions for this form
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
@@ -1827,7 +1828,12 @@ const ItemCreation = ({ onCreated }) => {
                     className="input"
                     value={mainGroup}
                     onChange={(e) => setMainGroup(e.target.value)}
-                    onFocus={() => setIsTreeOpen(true)}
+                    onFocus={() => {
+                      if (!isInitialFocusRef.current) {
+                        setIsTreeOpen(true);
+                      }
+                      isInitialFocusRef.current = false;
+                    }}
                     placeholder="Select Group Name"
                     disabled={isSubmitting}
                     aria-label="Group Name"
