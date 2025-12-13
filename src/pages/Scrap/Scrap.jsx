@@ -81,6 +81,9 @@ export default function ScrapCreation() {
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Track original scrap name when editing
+  const [originalScrapName, setOriginalScrapName] = useState("");
+
   // Base URL for API
   const BASE_URL = "http://dikshiserver/spstorewebapi/api";
 
@@ -170,15 +173,26 @@ export default function ScrapCreation() {
       const payload = {
         scrapCode: scrapData.scrapCode,
         scrapName: scrapData.scrapName.toUpperCase(),
-        // Add other fields if required by your API
       };
 
+      console.log("Creating scrap with payload:", payload);
       const data = await apiService.post(API_ENDPOINTS.SCRAP_CREATION.CREATE_SCRAP, payload);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to create scrap" });
-      console.error("API Error:", err);
-      throw err;
+      // Handle specific error cases
+      if (err.response?.status === 409) {
+        const errorMessage = err.response?.data?.message || 
+                            err.response?.data?.error ||
+                            "Scrap with this name already exists.";
+        setMessage({ type: "error", text: errorMessage });
+        throw new Error(errorMessage);
+      } else {
+        const errorMessage = err.response?.data?.message || 
+                            "Failed to create scrap. Please try again.";
+        setMessage({ type: "error", text: errorMessage });
+        console.error("Create API Error:", err.response?.data || err.message);
+        throw new Error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -188,19 +202,38 @@ export default function ScrapCreation() {
     try {
       setLoading(true);
 
-      // Prepare payload based on your API requirements
+      // Prepare payload - use the same format as createScrap
       const payload = {
         scrapCode: scrapData.scrapCode,
         scrapName: scrapData.scrapName.toUpperCase(),
-        // Add other fields if required by your API
       };
 
+      console.log("Updating scrap with payload:", payload);
+      
       const data = await apiService.put(API_ENDPOINTS.SCRAP_CREATION.UPDATE_SCRAP, payload);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update scrap" });
-      console.error("API Error:", err);
-      throw err;
+      console.error("Update API Error Details:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message
+      });
+      
+      // Handle specific error cases
+      if (err.response?.status === 409) {
+        let errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error ||
+                          "Scrap name already exists. Please choose a different name.";
+        
+        setMessage({ type: "error", text: errorMessage });
+        throw new Error(errorMessage);
+      } else {
+        const errorMessage = err.response?.data?.message || 
+                            err.response?.data?.error || 
+                            "Failed to update scrap. Please try again.";
+        setMessage({ type: "error", text: errorMessage });
+        throw new Error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -209,12 +242,23 @@ export default function ScrapCreation() {
   const deleteScrap = async (scrapCode) => {
     try {
       setLoading(true);
+      console.log("Deleting scrap with code:", scrapCode);
       const data = await apiService.del(API_ENDPOINTS.SCRAP_CREATION.DELETE_SCRAP(scrapCode));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete scrap" });
-      console.error("API Error:", err);
-      throw err;
+      console.error("Delete API Error:", err.response?.data || err.message);
+      
+      let errorMessage = err.message || "Failed to delete scrap";
+      
+      if (err.response?.status === 409) {
+        errorMessage = err.response?.data?.message || 
+                      `Cannot delete scrap "${scrapCode}". It is referenced in other tables and cannot be removed.`;
+      } else if (err.response?.status === 404) {
+        errorMessage = `Scrap with code "${scrapCode}" not found.`;
+      }
+      
+      setMessage({ type: "error", text: errorMessage });
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -249,10 +293,36 @@ export default function ScrapCreation() {
       return;
     }
 
-    if (!window.confirm(`Do you want to update scrap "${form.scrapName}"?`)) return;
+    // Get the original scrap to check if name actually changed
+    const originalScrap = scraps.find(s => s.scrapCode === form.scrapCode);
+    
+    // If name hasn't changed, no need to check for duplicates
+    if (originalScrap && originalScrap.scrapName.toUpperCase() === form.scrapName.toUpperCase()) {
+      setMessage({ type: "warning", text: "No changes detected. Scrap name remains the same." });
+      return;
+    }
+
+    // Check if another scrap with the same name already exists (case-insensitive)
+    const duplicateName = scraps.some(s => 
+      s.scrapCode !== form.scrapCode && 
+      s.scrapName.toUpperCase() === form.scrapName.toUpperCase()
+    );
+    
+    if (duplicateName) {
+      setMessage({ 
+        type: "error", 
+        text: `Scrap name "${form.scrapName}" already exists. Please choose a different name.` 
+      });
+      return;
+    }
+
+    if (!window.confirm(`Do you want to update scrap "${originalScrap?.scrapName}" to "${form.scrapName}"?`)) return;
 
     try {
-      const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
+      const scrapData = { 
+        scrapCode: form.scrapCode, 
+        scrapName: form.scrapName 
+      };
       await updateScrap(scrapData);
       await loadInitial();
 
@@ -260,6 +330,7 @@ export default function ScrapCreation() {
       resetForm(true);
     } catch (err) {
       // Error message already set in updateScrap
+      console.error("Error in handleEdit:", err);
     }
   };
 
@@ -269,7 +340,7 @@ export default function ScrapCreation() {
       return;
     }
 
-    if (!window.confirm(`Do you want to delete scrap "${form.scrapName}"?`)) return;
+    if (!window.confirm(`Do you want to permanently delete scrap "${form.scrapName}"? This action cannot be undone.`)) return;
 
     try {
       await deleteScrap(form.scrapCode);
@@ -278,13 +349,8 @@ export default function ScrapCreation() {
       setMessage({ type: "success", text: "Scrap deleted successfully." });
       resetForm();
     } catch (err) {
-      // Special handling for referenced scraps
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        setMessage({
-          type: "error",
-          text: `Cannot delete scrap "${form.scrapName}". It is referenced in other tables and cannot be removed.`
-        });
-      }
+      // Error message already set in deleteScrap
+      console.error("Error in handleDelete:", err);
     }
   };
 
@@ -301,10 +367,26 @@ export default function ScrapCreation() {
       return;
     }
 
+    // Check if scrap name already exists (case-insensitive)
+    const duplicateName = scraps.some(s => 
+      s.scrapName.toUpperCase() === form.scrapName.toUpperCase()
+    );
+    
+    if (duplicateName) {
+      setMessage({ 
+        type: "error", 
+        text: `Scrap name "${form.scrapName}" already exists. Please choose a different name.` 
+      });
+      return;
+    }
+
     if (!window.confirm(`Do you want to create scrap "${form.scrapName}"?`)) return;
 
     try {
-      const scrapData = { scrapCode: form.scrapCode, scrapName: form.scrapName };
+      const scrapData = { 
+        scrapCode: form.scrapCode, 
+        scrapName: form.scrapName 
+      };
       await createScrap(scrapData);
       await loadInitial();
 
@@ -312,6 +394,7 @@ export default function ScrapCreation() {
       resetForm(true);
     } catch (err) {
       // Error message already set in createScrap
+      console.error("Error in handleAdd:", err);
     }
   };
 
@@ -324,6 +407,7 @@ export default function ScrapCreation() {
   const resetForm = (keepAction = false) => {
     fetchNextScrapCode();
     setForm(prev => ({ ...prev, scrapName: "" }));
+    setOriginalScrapName("");
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -341,6 +425,7 @@ export default function ScrapCreation() {
 
   const handleEditRowClick = (s) => {
     setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+    setOriginalScrapName(s.scrapName);
     setActionType("edit");
     setEditingId(s.scrapCode);
     setEditModalOpen(false);
@@ -644,10 +729,12 @@ export default function ScrapCreation() {
           border-radius:10px;
           font-weight:600;
           font-size: 14px;
+          transition: all 0.3s ease;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
         .message.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .message.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
 
         /* submit row */
         .submit-row { 
@@ -763,7 +850,6 @@ export default function ScrapCreation() {
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
           font-size: 14px;
-          z-index: 1;
         }
 
         .scraps-table td {
@@ -835,6 +921,24 @@ export default function ScrapCreation() {
         .tips-panel {
           background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
           border-left: 3px solid var(--accent);
+        }
+
+        /* Conflict error specific styling */
+        .conflict-help {
+          margin-top: 8px;
+          padding: 10px;
+          background: #fffbeb;
+          border: 1px solid #fbbf24;
+          border-radius: 6px;
+          font-size: 13px;
+          color: #92400e;
+        }
+        .conflict-help ul {
+          margin: 4px 0 0 16px;
+          padding: 0;
+        }
+        .conflict-help li {
+          margin-bottom: 2px;
         }
 
         /* Responsive styles */
@@ -1007,7 +1111,7 @@ export default function ScrapCreation() {
                   ref={scrapNameRef}
                   className="input"
                   value={form.scrapName}
-                  onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))}
+                  onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value.toUpperCase() }))}
                   placeholder="Enter scrap name"
                   onKeyDown={onScrapNameKeyDown}
                   disabled={loading}
@@ -1020,7 +1124,23 @@ export default function ScrapCreation() {
             {/* Message display */}
             {message && (
               <div className={`message ${message.type}`} role="alert">
-                {message.text}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {message.type === 'error' && <Icon.Close size={16} />}
+                  {message.type === 'success' && <Icon.Check size={16} />}
+                  {message.type === 'warning' && <Icon.Info size={16} />}
+                  <span>{message.text}</span>
+                </div>
+                
+                {message.type === "error" && message.text.includes("already exists") && (
+                  <div className="conflict-help">
+                    <strong>How to fix:</strong>
+                    <ul>
+                      <li>Check if the scrap name already exists in the table below</li>
+                      <li>Choose a unique name that doesn't already exist</li>
+                      <li>Consider adding a prefix or suffix to make it unique</li>
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1032,7 +1152,14 @@ export default function ScrapCreation() {
                 disabled={loading}
                 type="button"
               >
-                {loading ? "Processing..." : actionType}
+                {loading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '12px', height: '12px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    Processing...
+                  </div>
+                ) : (
+                  actionType
+                )}
               </button>
               <button
                 className="submit-clear"
@@ -1080,22 +1207,51 @@ export default function ScrapCreation() {
                       <tr>
                         <th>Code</th>
                         <th>Scrap Name</th>
+                        
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExisting.map((s) => (
-                        <tr
-                          key={s.scrapCode}
-                          className={form.scrapCode === s.scrapCode ? "selected" : ""}
-                          onClick={() => {
-                            setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
-                            setActionType("edit");
-                          }}
-                        >
-                          <td>{s.scrapCode}</td>
-                          <td>{s.scrapName}</td>
-                        </tr>
-                      ))}
+                      {filteredExisting.map((s) => {
+                        const isCurrent = form.scrapCode === s.scrapCode;
+                        const hasDuplicateName = scraps.filter(item => 
+                          item.scrapName.toUpperCase() === s.scrapName.toUpperCase()
+                        ).length > 1;
+                        
+                        return (
+                          <tr
+                            key={s.scrapCode}
+                            className={isCurrent ? "selected" : ""}
+                            onClick={() => {
+                              setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
+                              setActionType("edit");
+                            }}
+                          >
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {s.scrapCode}
+                                {isCurrent && <Icon.Edit size={12} />}
+                              </div>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {s.scrapName}
+                                {hasDuplicateName && (
+                                  <span style={{ 
+                                    fontSize: '10px', 
+                                    background: '#fef3c7', 
+                                    color: '#92400e',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px'
+                                  }}>
+                                    Duplicate
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                           
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}
@@ -1107,7 +1263,12 @@ export default function ScrapCreation() {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
+              <div style={{ 
+                fontWeight: 700, 
+                fontSize: 14, 
+                color: actionType === "Add" ? "var(--accent)" : 
+                       actionType === "edit" ? "var(--warning)" : "var(--danger)" 
+              }}>
                 {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Scrap" : "Delete Scrap"}
               </div>
             </div>
@@ -1123,6 +1284,11 @@ export default function ScrapCreation() {
               <div className="muted">Scrap Name</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.scrapName || "Not set"}
+                {originalScrapName && actionType === "edit" && (
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
+                    Original: {originalScrapName}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1130,6 +1296,11 @@ export default function ScrapCreation() {
               <div className="muted">Existing Scraps</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
                 {scraps.length}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
+                {scraps.filter((s, i, arr) => 
+                  arr.findIndex(item => item.scrapName.toUpperCase() === s.scrapName.toUpperCase()) === i
+                ).length} unique names
               </div>
             </div>
 
@@ -1142,17 +1313,43 @@ export default function ScrapCreation() {
               <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Scrap code is auto-generated for new scraps</span>
+                  <span><strong>Scrap names must be unique</strong> (case-insensitive)</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find scraps</span>
+                  <span>Check the table for existing names before creating/editing</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Names are automatically converted to UPPERCASE</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
                   <span>Common scraps: METAL, PLASTIC, PAPER, GLASS, RUBBER</span>
                 </div>
               </div>
+              
+              {actionType === "edit" && form.scrapName && (
+                <div style={{ 
+                  marginTop: '12px', 
+                  padding: '10px', 
+                  background: '#f0f9ff', 
+                  borderRadius: '6px',
+                  border: '1px solid #bae6fd'
+                }}>
+                  <div style={{ fontWeight: 600, fontSize: '13px', color: '#0369a1', marginBottom: '4px' }}>
+                    Editing Tip:
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#0c4a6e' }}>
+                    If you're getting a duplicate error, try:
+                    <ul style={{ margin: '4px 0 0 12px', padding: 0 }}>
+                      <li>Adding numbers (KALE-1, KALE-2)</li>
+                      <li>Using abbreviations (KALE-M, KALE-S)</li>
+                      <li>Adding prefixes (SCRAP-KALE)</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1183,6 +1380,13 @@ export default function ScrapCreation() {
         columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
         maxHeight="60vh"
       />
+      
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

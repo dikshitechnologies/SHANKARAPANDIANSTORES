@@ -202,6 +202,7 @@ const SaleInvoice = () => {
       const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getNextBillNo("001");
       
       const response = await axiosInstance.get(endpoint);
+      console.log("Next Bill No Response:", response);
       
       if (response) {
         let nextBillNo = '';
@@ -217,12 +218,12 @@ const SaleInvoice = () => {
         
         setBillDetails(prev => ({
           ...prev,
-          billNo: nextBillNo || 'SI000001'
+          billNo: nextBillNo || ''
         }));
       }
     } catch (err) {
       console.error("API Error fetching next bill number:", err);
-      setBillDetails(prev => ({ ...prev, billNo: 'SI000001' }));
+      setError("Failed to fetch next bill number");
     } finally {
       setIsLoading(false);
     }
