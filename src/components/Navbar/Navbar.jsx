@@ -74,6 +74,7 @@ const Navbar = () => {
   }, [isMobile, isMenuOpen]);
 
   const masterItems = [
+    { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined /> },
     { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined /> },
     { name: 'Size Creation', path: '/masters/size-creation', icon: <TeamOutlined /> },
