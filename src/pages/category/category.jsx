@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 
 // --- Inline SVG icons (matching BrandPage style) ---
 const Icon = {
@@ -97,6 +98,12 @@ export default function CategoryPage() {
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Confirmation popup states
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions ----------
   const fetchCategories = async () => {
@@ -290,9 +297,11 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Category Code and Category Name." });
       return;
     }
+    setConfirmEditOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to update category "${form.catName}"?`)) return;
-
+  const confirmEdit = async () => {
+    setIsLoading(true);
     try {
       const categoryData = { 
         catCode: form.catCode, 
@@ -303,8 +312,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Category updated successfully." });
       resetForm();
+      setConfirmEditOpen(false);
     } catch (err) {
       // Error message already set in updateCategory
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -313,15 +325,18 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please select a category to delete." });
       return;
     }
+    setConfirmDeleteOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to delete category "${form.catName}"?`)) return;
-
+  const confirmDelete = async () => {
+    setIsLoading(true);
     try {
       await deleteCategory(form.catCode);
       await loadInitial();
       
       setMessage({ type: "success", text: "Category deleted successfully." });
       resetForm();
+      setConfirmDeleteOpen(false);
     } catch (err) {
       // Special handling for referenced categories
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
@@ -330,6 +345,8 @@ useEffect(() => {
           text: `Cannot delete category "${form.catName}". It is referenced in other tables and cannot be removed.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -346,8 +363,11 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to create category "${form.catName}"?`)) return;
+    setConfirmSaveOpen(true);
+  };
 
+  const confirmSave = async () => {
+    setIsLoading(true);
     try {
       const categoryData = { 
         catCode: form.catCode, 
@@ -358,8 +378,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Category created successfully." });
       resetForm(true);
+      setConfirmSaveOpen(false);
     } catch (err) {
       // Error message already set in createCategory
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1239,6 +1262,75 @@ useEffect(() => {
         headerNames={[ 'Category Name', 'Code' ]}
         columnWidths={{ catName: '70%', catCode: '30%' }}
         maxHeight="60vh"
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Category"
+        message={`Are you sure you want to create category "${form.catName}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Category"
+        message={`Are you sure you want to update category "${form.catName}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Category"
+        message={`Are you sure you want to delete category "${form.catName}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );

@@ -2,32 +2,32 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
-const AUTH_STORAGE_KEY = 'auth_data'; // Key for localStorage persistence
+const AUTH_STORAGE_KEY = 'auth_data'; // Key for sessionStorage persistence
 
 export const AuthProvider = ({ children }) => {
-  // Initialize state from localStorage
+  // Initialize state from sessionStorage (clears on browser/tab close)
   const [userData, setUserData] = useState(() => {
     try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      const stored = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         return parsed.userData || null;
       }
     } catch (err) {
-      console.warn('Failed to restore auth data from localStorage:', err);
+      console.warn('Failed to restore auth data from sessionStorage:', err);
     }
     return null;
   });
 
   const [permissions, setPermissions] = useState(() => {
     try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      const stored = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         return parsed.permissions || [];
       }
     } catch (err) {
-      console.warn('Failed to restore permissions from localStorage:', err);
+      console.warn('Failed to restore permissions from sessionStorage:', err);
     }
     return [];
   });
@@ -37,20 +37,23 @@ export const AuthProvider = ({ children }) => {
       username: data.userName,
       role: data.role,
       companyCode: data.fCompCode,
+      companyName: data.fCompName,
+      userCode: data.fUcode || '', // fUcode may not exist for Admin
+      images: data.images || '',
     };
     const newPermissions = data.permissions || [];
 
     setUserData(newUserData);
     setPermissions(newPermissions);
 
-    // Persist to localStorage
+    // Persist to sessionStorage (clears on browser/tab close)
     try {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+      sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
         userData: newUserData,
         permissions: newPermissions,
       }));
     } catch (err) {
-      console.warn('Failed to persist auth data to localStorage:', err);
+      console.warn('Failed to persist auth data to sessionStorage:', err);
     }
   };
 
@@ -58,11 +61,11 @@ export const AuthProvider = ({ children }) => {
     setUserData(null);
     setPermissions([]);
     
-    // Remove from localStorage
+    // Remove from sessionStorage
     try {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
+      sessionStorage.removeItem(AUTH_STORAGE_KEY);
     } catch (err) {
-      console.warn('Failed to remove auth data from localStorage:', err);
+      console.warn('Failed to remove auth data from sessionStorage:', err);
     }
   };
 

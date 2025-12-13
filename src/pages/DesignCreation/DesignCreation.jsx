@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 // --- Inline SVG icons (matching UnitCreation style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
@@ -79,6 +80,12 @@ export default function DesignCreation() {
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Confirmation popup states
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions ----------
   const fetchNextDesignCode = async () => {
@@ -226,9 +233,11 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Design Code and Design Name." });
       return;
     }
+    setConfirmEditOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to update design "${form.designName}"?`)) return;
-
+  const confirmEdit = async () => {
+    setIsLoading(true);
     try {
       const designData = { 
         designCode: form.designCode, 
@@ -239,8 +248,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Design updated successfully." });
       resetForm();
+      setConfirmEditOpen(false);
     } catch (err) {
       // Error message already set in updateDesign
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -249,15 +261,18 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please select a design to delete." });
       return;
     }
+    setConfirmDeleteOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to delete design "${form.designName}"?`)) return;
-
+  const confirmDelete = async () => {
+    setIsLoading(true);
     try {
       await deleteDesign(form.designCode);
       await loadInitial();
       
       setMessage({ type: "success", text: "Design deleted successfully." });
       resetForm();
+      setConfirmDeleteOpen(false);
     } catch (err) {
       // Special handling for referenced designs
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
@@ -266,6 +281,8 @@ useEffect(() => {
           text: `Cannot delete design "${form.designName}". It is referenced in other tables and cannot be removed.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -274,9 +291,11 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Design Code and Design Name." });
       return;
     }
+    setConfirmSaveOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to create design "${form.designName}"?`)) return;
-
+  const confirmSave = async () => {
+    setIsLoading(true);
     try {
       const designData = { 
         designCode: form.designCode, 
@@ -287,8 +306,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Design created successfully." });
       resetForm(true);
+      setConfirmSaveOpen(false);
     } catch (err) {
       // Error message already set in createDesign
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1176,6 +1198,75 @@ useEffect(() => {
         headerNames={[ 'Design Name', 'Code' ]}
         columnWidths={{ designName: '70%', designCode: '30%' }}
         maxHeight="60vh"
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Design"
+        message={`Are you sure you want to create design "${form.designName}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Design"
+        message={`Are you sure you want to update design "${form.designName}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Design"
+        message={`Are you sure you want to delete design "${form.designName}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-
 import PopupListSelector from '../components/Listpopup/PopupListSelector.jsx';
 import { 
   ActionButtons, 
@@ -8,11 +7,14 @@ import {
   DeleteButton,
   ActionButtons1
 } from '../components/Buttons/ActionButtons.jsx';
-
+import ConfirmationPopup from '../components/ConfirmationPopup/ConfirmationPopup.jsx';
+import { toast } from "react-toastify";
 const ExampleUsage = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-const [activeButton, setActiveButton] = useState("add");
+  const [activeButton, setActiveButton] = useState("add");
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
 
   // Mock API function with proper pagination
   const fetchItems = async (page, search) => {
@@ -61,25 +63,48 @@ const [activeButton, setActiveButton] = useState("add");
   };
 
   const handleSave = () => {
-  
+    // Your save logic here
   };
 
   const handlePrint = () => {
-   
+    // Your print logic here
+  };
+
+  // Function to handle confirmation popup action with loading
+  const handleConfirmAction = async () => {
+    setIsLoading(true); // Start loading
+    
+    try {
+      // Simulate API call or async operation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Your actual save logic here
+      console.log('Changes saved successfully!');
+      
+      // Close the popup after successful save
+      setIsConfirmationOpen(false);
+    } catch (error) {
+      console.error('Error saving changes:', error);
+    } finally {
+      setIsLoading(false); // Stop loading
+    }
   };
 
   return (
     <div>
-        <div style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 'bold',width:'300px' }}>
-    <ActionButtons 
-      activeButton={activeButton}
-  onButtonClick={(type) => setActiveButton(type)}
-    >
-    <AddButton buttonType="add" />
-    <EditButton buttonType="edit" />
-    <DeleteButton buttonType="delete" />
-    </ActionButtons>
-</div>
+      <div style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 'bold', width: '300px' }}>
+        <ActionButtons 
+          activeButton={activeButton}
+          onButtonClick={(type) => setActiveButton(type)}
+        >
+          <AddButton buttonType="add" />
+          <EditButton buttonType="edit" />
+          <DeleteButton buttonType="delete" />
+        </ActionButtons>
+      </div>
+      <button onClick={() => toast.success("Data saved successfully!")}>
+  Success Alert
+</button>
 
       <button 
         variant="contained" 
@@ -96,6 +121,23 @@ const [activeButton, setActiveButton] = useState("add");
         }}
       >
         Open Item Selector
+      </button>
+      <br />
+      <button 
+        variant="contained" 
+        onClick={() => setIsConfirmationOpen(true)}
+        style={{
+          background: 'linear-gradient(135deg, #53c830ff 0%, #0eea06ff 100%)',
+          marginBottom: '16px',
+          color: 'white',
+          border: 'none',
+          padding: '10px 20px',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontSize: '16px'
+        }}
+      >
+        Open ConfirmationPopup
       </button>
       
       <div style={{ marginTop: '12px', marginBottom: '20px', width: '300px' }}>
@@ -143,10 +185,70 @@ const [activeButton, setActiveButton] = useState("add");
         maxHeight="60vh"
         searchPlaceholder="Search customers by name, email, phone, or address..."
         responsiveBreakpoint={768}
-     
       />
+
+      <ConfirmationPopup
+        isOpen={isConfirmationOpen}
+        onClose={() => setIsConfirmationOpen(false)}
+        onConfirm={handleConfirmAction}
+        title="Save Changes"
+        message="Are you sure you want to save these changes? This action cannot be undone."
+        type="success"
+        confirmText={isLoading ? "Saving..." : "Save"} 
+        showLoading={isLoading} 
+        disableBackdropClose={isLoading} 
+        defaultFocusedButton="cancel"
+        borderColor="#8b5cf6"
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #ec488cff'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #ec489dff, #f186c2ff)'
+            }
+          }
+        }}
+      />
+      
     </div>
   );
 };
 
 export default ExampleUsage;
+
+
+//# For confirmation dialogs:
+// ✅ "success" - Successful operations
+// ❌ "danger"  - Destructive actions
+// ⚠️  "warning" - Warning messages
+// ℹ️  "info"    - Information messages
+// ❓ "question" - Help/assistance
+
+// # For user interactions:
+// ❤️  "heart"    - Favorite/like actions
+// ⭐  "star"     - Rating/feedback
+// 🔒  "lock"     - Security actions
+// ⚙️  "settings" - Configuration changes
+
+// # For file operations:
+// ⬇️  "download" - Download actions
+// ⬆️  "upload"   - Upload actions
+// 📄  "document" - File/document actions
+
+// # For notifications/alerts:
+// 🔔  "bell"     - Notifications
+// 📧  "mail"     - Email/messages
+// 👥  "users"    - Team/people actions
+
+// # For scheduling:
+// 📅  "calendar" - Events/scheduling
+// ⏰  "clock"    - Time-related actions
+
+// # For security:
+// 🛡️  "shield"   - Security alerts
+// 🔑  "key"      - Access/permissions
+
+// # For transactions:
+// 💳  "creditCard" - Payments/billing
+// 🎁  "gift"       - Rewards/gifts

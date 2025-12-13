@@ -273,20 +273,12 @@ createSales: (isSave = true) =>
   // 12) Get customers
   getCustomers: () =>
     `Salesinvoices/GetPartyByParent`,
-}
+},
 
-
-
-
-
-
-
-
-
-
-
-
-
+  TENDER: {
+    opening: "Tender/opening",
+    closing: "Tender/closing",
+  },
 
 };
 
