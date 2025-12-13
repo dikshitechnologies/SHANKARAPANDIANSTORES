@@ -11,7 +11,7 @@ const SaleInvoice = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Save confirmation popup
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
@@ -202,7 +202,6 @@ const SaleInvoice = () => {
       const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getNextBillNo("001");
       
       const response = await axiosInstance.get(endpoint);
-      console.log("Next Bill No Response:", response);
       
       if (response) {
         let nextBillNo = '';
@@ -218,12 +217,12 @@ const SaleInvoice = () => {
         
         setBillDetails(prev => ({
           ...prev,
-          billNo: nextBillNo || ''
+          billNo: nextBillNo || 'SI000001'
         }));
       }
     } catch (err) {
       console.error("API Error fetching next bill number:", err);
-      setError("Failed to fetch next bill number");
+      setBillDetails(prev => ({ ...prev, billNo: 'SI000001' }));
     } finally {
       setIsLoading(false);
     }
@@ -1604,6 +1603,7 @@ const SaleInvoice = () => {
     setSaveConfirmationOpen(true);
   };
 
+
   // Function to handle confirmed save
   const handleConfirmedSave = async () => {
     setSaveConfirmationOpen(false);
@@ -2843,6 +2843,7 @@ const SaleInvoice = () => {
         loading={loadingInvoices}
         formatRow={getPopupConfig('deleteInvoice').formatRow}
       />
+      
     </div>
   );
 };

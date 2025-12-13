@@ -198,7 +198,7 @@ export default function SalesmanCreation() {
 
   // Focus on first input
   useEffect(() => {
-    if (salesmanCodeRef.current) salesmanCodeRef.current.focus();
+    if (salesmanNameRef.current) salesmanNameRef.current.focus();
   }, []);
 
   // ---------- handlers ----------
@@ -995,7 +995,7 @@ export default function SalesmanCreation() {
                   onKeyDown={onSalesmanCodeKeyDown}
                   disabled={loading}
                   aria-label="Salesman Code"
-                  readOnly={actionType === "edit" || actionType === "delete"}
+                  readOnly={true}
                 />
               </div>
             </div>
