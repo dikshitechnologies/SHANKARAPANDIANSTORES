@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 
 // --- Inline SVG icons (matching Category/Brand style) ---
 const Icon = {
@@ -87,6 +88,12 @@ export default function ProductPage() {
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Confirmation popup states
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions ----------
   const fetchProducts = async () => {
@@ -277,9 +284,11 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
       return;
     }
+    setConfirmEditOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to update product "${form.fproductname}"?`)) return;
-
+  const confirmEdit = async () => {
+    setIsLoading(true);
     try {
       const productData = { 
         fproductcode: form.fproductcode, 
@@ -290,8 +299,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Product updated successfully." });
       resetForm();
+      setConfirmEditOpen(false);
     } catch (err) {
       // Error message already set in updateProduct
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -300,15 +312,18 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please select a product to delete." });
       return;
     }
+    setConfirmDeleteOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to delete product "${form.fproductname}"?`)) return;
-
+  const confirmDelete = async () => {
+    setIsLoading(true);
     try {
       await deleteProduct(form.fproductcode);
       await loadInitial();
       
       setMessage({ type: "success", text: "Product deleted successfully." });
       resetForm();
+      setConfirmDeleteOpen(false);
     } catch (err) {
       // Special handling for referenced products
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
@@ -317,6 +332,8 @@ useEffect(() => {
           text: `Cannot delete product "${form.fproductname}". It is referenced in other tables and cannot be removed.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -333,8 +350,11 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to create product "${form.fproductname}"?`)) return;
+    setConfirmSaveOpen(true);
+  };
 
+  const confirmSave = async () => {
+    setIsLoading(true);
     try {
       const productData = { 
         fproductcode: form.fproductcode, 
@@ -345,8 +365,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Product created successfully." });
       resetForm(true);
+      setConfirmSaveOpen(false);
     } catch (err) {
       // Error message already set in createProduct
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1226,6 +1249,75 @@ useEffect(() => {
         headerNames={[ 'Product Name', 'Code' ]}
         columnWidths={{ fproductname: '70%', fproductcode: '30%' }}
         maxHeight="60vh"
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Product"
+        message={`Are you sure you want to create product "${form.fproductname}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Product"
+        message={`Are you sure you want to update product "${form.fproductname}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Product"
+        message={`Are you sure you want to delete product "${form.fproductname}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );

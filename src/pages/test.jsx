@@ -8,7 +8,7 @@ import {
   ActionButtons1
 } from '../components/Buttons/ActionButtons.jsx';
 import ConfirmationPopup from '../components/ConfirmationPopup/ConfirmationPopup.jsx';
-
+import { toast } from "react-toastify";
 const ExampleUsage = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -76,7 +76,7 @@ const ExampleUsage = () => {
     
     try {
       // Simulate API call or async operation
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Your actual save logic here
       console.log('Changes saved successfully!');
@@ -102,6 +102,9 @@ const ExampleUsage = () => {
           <DeleteButton buttonType="delete" />
         </ActionButtons>
       </div>
+      <button onClick={() => toast.success("Data saved successfully!")}>
+  Success Alert
+</button>
 
       <button 
         variant="contained" 
@@ -194,17 +197,20 @@ const ExampleUsage = () => {
         confirmText={isLoading ? "Saving..." : "Save"} 
         showLoading={isLoading} 
         disableBackdropClose={isLoading} 
+        defaultFocusedButton="cancel"
+        borderColor="#8b5cf6"
         customStyles={{
           modal: {
-            borderTop: '4px solid #48e6ecff'
+            borderTop: '4px solid #ec488cff'
           },
           confirmButton: {
             style: {
-              background: 'linear-gradient(90deg, #9fec48ff, #6c27dbff)'
+              background: 'linear-gradient(90deg, #ec489dff, #f186c2ff)'
             }
           }
         }}
       />
+      
     </div>
   );
 };

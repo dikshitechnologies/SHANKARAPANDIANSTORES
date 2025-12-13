@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 // --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
@@ -79,6 +80,10 @@ export default function UnitCreation() {
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Base URL for API
 
@@ -218,17 +223,24 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to update unit "${form.unitName}"?`)) return;
+    setConfirmEditOpen(true);
+  };
 
+  const confirmEdit = async () => {
     try {
+      setIsLoading(true);
       const unitData = { fuCode: form.fuCode, unitName: form.unitName };
       await updateUnit(unitData);
       await loadInitial();
       
       setMessage({ type: "success", text: "Unit updated successfully." });
+      setConfirmEditOpen(false);
       resetForm();
     } catch (err) {
+      setConfirmEditOpen(false);
       // Error message already set in updateUnit
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -238,15 +250,20 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to delete unit "${form.unitName}"?`)) return;
+    setConfirmDeleteOpen(true);
+  };
 
+  const confirmDelete = async () => {
     try {
+      setIsLoading(true);
       await deleteUnit(form.fuCode);
       await loadInitial();
       
       setMessage({ type: "success", text: "Unit deleted successfully." });
+      setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
+      setConfirmDeleteOpen(false);
       // Special handling for referenced units
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
@@ -254,6 +271,8 @@ useEffect(() => {
           text: `Cannot delete unit "${form.unitName}". It is referenced in other tables and cannot be removed.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -263,17 +282,24 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to create unit "${form.unitName}"?`)) return;
+    setConfirmSaveOpen(true);
+  };
 
+  const confirmSave = async () => {
     try {
+      setIsLoading(true);
       const unitData = { fuCode: form.fuCode, unitName: form.unitName };
       await createUnit(unitData);
       await loadInitial();
       
       setMessage({ type: "success", text: "Unit created successfully." });
+      setConfirmSaveOpen(false);
       resetForm(true);
     } catch (err) {
+      setConfirmSaveOpen(false);
       // Error message already set in createUnit
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1157,6 +1183,75 @@ useEffect(() => {
         headerNames={[ 'Unit Name', 'Code' ]}
         columnWidths={{ unitName: '70%', uCode: '30%' }}
         maxHeight="60vh"
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Unit"
+        message={`Are you sure you want to create unit "${form.unitName}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Unit"
+        message={`Are you sure you want to update unit "${form.unitName}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Unit"
+        message={`Are you sure you want to delete unit "${form.unitName}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );

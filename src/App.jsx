@@ -1,4 +1,6 @@
 import './App.css'
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Home from './pages/Home/Home'
 import Navbar from './components/Navbar/Navbar'
@@ -64,6 +66,7 @@ function App() {
   const location = useLocation();
 
   return (
+    <>
     <Routes>
       {/* Root Route - Redirect based on authentication */}
       <Route 
@@ -114,7 +117,20 @@ function App() {
           <Route path="/masters/SalesmanCreation" element={<ProtectedRoute><LayoutWithNavbar><SalesmanCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/transactions/amount-issue" element={<ProtectedRoute><LayoutWithNavbar><AmountIssue /></LayoutWithNavbar></ProtectedRoute>} />
           {/* <Route path="/transactions/cash-management" element={<ProtectedRoute><LayoutWithNavbar><CashManagement /></LayoutWithNavbar></ProtectedRoute>} /> */}
+   
+   
     </Routes>
+     <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
+    </>
   );
 }
 

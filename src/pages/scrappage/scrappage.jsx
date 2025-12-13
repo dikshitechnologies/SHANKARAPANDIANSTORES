@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 
 // --- Inline SVG icons (matching DesignCreation style) ---
 const Icon = {
@@ -95,6 +96,12 @@ export default function ScrapPage() {
 
   // Track original scrap name when editing
   const [originalScrapName, setOriginalScrapName] = useState("");
+
+  // Confirmation popup states
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions ----------
   const fetchNextScrapCode = async () => {
@@ -248,8 +255,11 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to update scrap item "${form.scrapName}"?`)) return;
+    setConfirmEditOpen(true);
+  };
 
+  const confirmEdit = async () => {
+    setIsLoading(true);
     try {
       const scrapData = { 
         scrapCode: form.scrapCode, 
@@ -260,8 +270,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Scrap item updated successfully." });
       resetForm();
+      setConfirmEditOpen(false);
     } catch (err) {
       // Error message already set in updateScrap
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -270,15 +283,18 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please select a scrap item to delete." });
       return;
     }
+    setConfirmDeleteOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to delete scrap item "${form.scrapName}"?`)) return;
-
+  const confirmDelete = async () => {
+    setIsLoading(true);
     try {
       await deleteScrap(form.scrapCode);
       await loadInitial();
       
       setMessage({ type: "success", text: "Scrap item deleted successfully." });
       resetForm();
+      setConfirmDeleteOpen(false);
     } catch (err) {
       // Special handling for referenced scrap items
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
@@ -287,6 +303,8 @@ useEffect(() => {
           text: `Cannot delete scrap item "${form.scrapName}". It is referenced in other tables and cannot be removed.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -295,9 +313,11 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
       return;
     }
+    setConfirmSaveOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to create scrap item "${form.scrapName}"?`)) return;
-
+  const confirmSave = async () => {
+    setIsLoading(true);
     try {
       const scrapData = { 
         scrapCode: form.scrapCode, 
@@ -308,8 +328,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Scrap item created successfully." });
       resetForm(true);
+      setConfirmSaveOpen(false);
     } catch (err) {
       // Error message already set in createScrap
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1195,6 +1218,75 @@ useEffect(() => {
         headerNames={[ 'Scrap Name', 'Code' ]}
         columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
         maxHeight="60vh"
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Scrap Item"
+        message={`Are you sure you want to create scrap item "${form.scrapName}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Scrap Item"
+        message={`Are you sure you want to update scrap item "${form.scrapName}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Scrap Item"
+        message={`Are you sure you want to delete scrap item "${form.scrapName}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );
