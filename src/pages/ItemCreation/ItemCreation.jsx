@@ -119,12 +119,9 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
 
 // Type options for dropdown
 const TYPE_OPTIONS = [
-  { value: "Scrap Product", label: "Scrap Product" },
-  { value: "Finished Product", label: "Finished Product" },
-  { value: "Raw Material", label: "Raw Material" },
-  { value: "Semi-Finished", label: "Semi-Finished" },
-  { value: "Component", label: "Component" },
-  { value: "Accessory", label: "Accessory" },
+  { value: "SC", label: "Scrap Product" },
+  { value: "FG", label: "Finished Product" },
+
 ];
 
 // GST percentage options
@@ -524,7 +521,7 @@ const ItemCreation = ({ onCreated }) => {
         manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
         hsnCode: formData.hsnCode || '',
         pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
-        ftype: 'sc',
+        ftype: formData.type || '',
         fSellPrice: formData.sellingPrice || '',
         fCostPrice: formData.costPrice || '',
         fUnits: formData.unit || '',
@@ -544,7 +541,7 @@ const ItemCreation = ({ onCreated }) => {
           if (duplicateCheck.data && duplicateCheck.data.length > 0) {
             // Handle duplicate
           }
-          
+         
           response = await apiService.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
           break;
           
