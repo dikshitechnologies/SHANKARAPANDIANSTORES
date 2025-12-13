@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from "react";
+
 
 const ConfirmationPopup = ({
   isOpen,
@@ -7,6 +8,8 @@ const ConfirmationPopup = ({
   title = "Confirm Action",
   message = "Are you sure you want to proceed?",
   confirmText = "Confirm",
+   defaultFocusedButton = "confirm",
+     borderColor = "black",
   cancelText = "Cancel",
   type = "default", // "default", "warning", "danger", "success", "info", "question", "lock", "star", "heart", "download", "upload", "settings"
   showIcon = true,
@@ -17,6 +20,71 @@ const ConfirmationPopup = ({
   hideCancelButton = false
 }) => {
   if (!isOpen) return null;
+const confirmRef = useRef(null);
+const cancelRef = useRef(null);
+
+const [focusedBtn, setFocusedBtn] = useState(defaultFocusedButton);
+
+useEffect(() => {
+  if (!isOpen) return;
+
+  setFocusedBtn(defaultFocusedButton);
+
+  setTimeout(() => {
+    if (defaultFocusedButton === "cancel") {
+      cancelRef.current?.focus();
+    } else {
+      confirmRef.current?.focus();
+    }
+  }, 0);
+}, [isOpen, defaultFocusedButton]);
+
+
+useEffect(() => {
+  if (!isOpen) return;
+
+const handleKeyDown = (e) => {
+  switch (e.key) {
+    case "ArrowLeft":
+    case "ArrowUp":           // ✅ ADD
+      e.preventDefault();
+      if (!hideCancelButton) {
+        setFocusedBtn("cancel");
+        cancelRef.current?.focus();
+      }
+      break;
+
+    case "ArrowRight":
+    case "ArrowDown":         // ✅ ADD
+      e.preventDefault();
+      setFocusedBtn("confirm");
+      confirmRef.current?.focus();
+      break;
+
+    case "Enter":
+      e.preventDefault();
+      if (focusedBtn === "confirm") {
+        handleConfirm();
+      } else {
+        onClose();
+      }
+      break;
+
+    case "Escape":
+      e.preventDefault();
+      if (!disableBackdropClose) onClose();
+      break;
+
+    default:
+      break;
+  }
+};
+
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [isOpen, focusedBtn, showLoading]);
+
 
   // Enhanced SVG Icons with more types
   const Icons = {
@@ -174,6 +242,7 @@ const ConfirmationPopup = ({
       padding: '30px',
       animation: 'slideUp 0.3s ease',
       overflow: 'hidden',
+       border: `1px solid ${borderColor || typeStyles.border}`,
       ...customStyles.modal
     },
     
@@ -288,7 +357,8 @@ const ConfirmationPopup = ({
         iconBg: '#f0fdf4',
         iconColor: '#10b981',
         buttonBg: '#10b981',
-        buttonHover: '#059669'
+        buttonHover: '#059669',
+         border: '#10b981'
       },
       info: {
         icon: Icons.info,
@@ -505,6 +575,8 @@ const ConfirmationPopup = ({
                 style={{
                   ...styles.buttonBase,
                   ...styles.cancelButton,
+                   outline: focusedBtn === "cancel"? `1px solid ${borderColor || typeStyles.border}`: "none",
+
                   ...(customStyles.cancelButton?.style || {})
                 }}
                 disabled={showLoading}
@@ -540,7 +612,9 @@ const ConfirmationPopup = ({
                 animation: showLoading ? 'shimmer 2s linear infinite' : 'none',
                 ...(customStyles.confirmButton?.style || {}),
                 opacity: showLoading ? 0.9 : 1,
-                cursor: showLoading ? 'not-allowed' : 'pointer'
+                cursor: showLoading ? 'not-allowed' : 'pointer',
+                 outline: focusedBtn === "confirm"? `1px solid ${borderColor || typeStyles.border}`: "none"
+
               }}
               disabled={showLoading}
               onMouseEnter={(e) => {
