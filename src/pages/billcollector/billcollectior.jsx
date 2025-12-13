@@ -129,53 +129,71 @@ function BillCollector() {
   };
 
   const tableContainer = {
-    margin: isMobile ? "0 16px 100px" : "0 32px 100px",
-    backgroundColor: "white",
-    borderRadius: isMobile ? "0 0 6px 6px" : "0 0 6px 6px",
-    overflow: "hidden",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-    maxHeight: isMobile ? "calc(100vh - 240px)" : isMobile && window.innerWidth < 600 ? "calc(100vh - 220px)" : "calc(100vh - 280px)",
-    overflowY: "auto",
-    overflowX: "auto",
-    border: "1px solid #e5e7eb",
-    borderTop: "none",
-    flex: 1,
-    WebkitOverflowScrolling: "touch",
-    scrollBehavior: "smooth"
+    backgroundColor: 'white',
+    borderRadius: 10,
+    overflowX: 'auto',
+    overflowY: 'auto',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    border: '1px solid #e0e0e0',
+    margin: isMobile ? '6px' : '16px',
+    marginTop: isMobile ? '6px' : '16px',
+    marginBottom: isMobile ? '70px' : '90px',
+    WebkitOverflowScrolling: 'touch',
+    width: isMobile ? 'calc(100% - 12px)' : 'calc(100% - 32px)',
+    boxSizing: 'border-box',
+    flex: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    maxHeight: isMobile ? '300px' : '400px',
+    minHeight: '70%',
   };
 
   const tableStyle = {
-    width: "100%",
-    borderCollapse: "collapse",
-    fontSize: isMobile ? "11px" : "13px",
-    tableLayout: "fixed"
+    width: 'max-content',
+    minWidth: '100%',
+    borderCollapse: 'collapse',
+    tableLayout: 'fixed',
   };
 
   const thStyle = {
-    padding: isMobile ? "10px 6px" : "14px 12px",
-    background: "linear-gradient(135deg, #307AC8 0%, #1B91DA 100%)",
-    fontWeight: "700",
-    color: "#ffffff",
-    textAlign: "center",
-    borderBottom: "2px solid #06A7EA",
-    position: "sticky",
-    top: "0",
-    zIndex: "10",
+    fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
     fontSize: isMobile ? "10px" : "13px",
-    wordWrap: "break-word",
-    overflowWrap: "break-word",
-    boxShadow: "0 2px 8px rgba(48, 122, 200, 0.15)"
+    fontWeight: "700",
+    lineHeight: "1.2",
+    backgroundColor: '#1B91DA',
+    color: 'white',
+    padding: isMobile ? '7px 3px' : '10px 6px',
+    textAlign: 'center',
+    letterSpacing: '0.5px',
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    border: '1px solid white',
+    borderBottom: '2px solid white',
+    minWidth: isMobile ? '50px' : '70px',
+    whiteSpace: 'nowrap',
+    width: isMobile ? '50px' : '70px',
+    maxWidth: isMobile ? '50px' : '70px',
+    minHeight: isMobile ? '28px' : '35px',
+    height: isMobile ? '28px' : '35px',
+    verticalAlign: 'middle',
   };
 
   const tdStyle = {
-    padding: isMobile ? "8px 6px" : "12px 12px",
-    textAlign: "center",
-    borderBottom: "1px solid #f3f4f6",
-    color: "#374151",
-    transition: "all 0.15s",
+    fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
     fontSize: isMobile ? "11px" : "13px",
-    wordWrap: "break-word",
-    overflowWrap: "break-word"
+    fontWeight: "500",
+    lineHeight: "1.4",
+    padding: isMobile ? '6px 3px' : '10px 6px',
+    textAlign: 'center',
+    border: '1px solid #ccc',
+    color: '#333',
+    minWidth: isMobile ? '50px' : '70px',
+    width: isMobile ? '50px' : '70px',
+    maxWidth: isMobile ? '50px' : '70px',
+    minHeight: isMobile ? '28px' : '35px',
+    height: isMobile ? '28px' : '35px',
+    verticalAlign: 'middle',
   };
 
   const tdHoverStyle = {
@@ -186,8 +204,7 @@ function BillCollector() {
 
   const selectedRowStyle = {
     ...tdHoverStyle,
-    backgroundColor: "#dbeafe",
-    // borderLeft: "4px solid #307AC8"
+    backgroundColor: "#dbeafe"
   };
 
   const footer = {
@@ -564,14 +581,14 @@ function BillCollector() {
                 key={i} 
                 onClick={() => setSelectedRow(i)}
                 style={{ 
-                  backgroundColor: selectedRow === i ? "#e0e7ff" : "white",
+                  backgroundColor: selectedRow === i ? "#dbeafe" : i % 2 === 0 ? '#f9f9f9' : '#ffffff',
                   transition: "all 0.2s"
                 }}
                 onMouseEnter={(e) => {
                   if (selectedRow !== i) e.currentTarget.style.backgroundColor = "#f8fafc";
                 }}
                 onMouseLeave={(e) => {
-                  if (selectedRow !== i) e.currentTarget.style.backgroundColor = "white";
+                  if (selectedRow !== i) e.currentTarget.style.backgroundColor = i % 2 === 0 ? "#f9f9f9" : "#ffffff";
                 }}
               >
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{i + 1}</td>
