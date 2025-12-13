@@ -133,6 +133,9 @@ const SaleInvoice = () => {
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
 
+  // Track UOM field focus for visual feedback
+  const [focusedUomField, setFocusedUomField] = useState(null);
+
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('all');
 
@@ -199,6 +202,7 @@ const SaleInvoice = () => {
       const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getNextBillNo("001");
       
       const response = await axiosInstance.get(endpoint);
+      console.log("Next Bill No Response:", response);
       
       if (response) {
         let nextBillNo = '';
@@ -214,12 +218,12 @@ const SaleInvoice = () => {
         
         setBillDetails(prev => ({
           ...prev,
-          billNo: nextBillNo || 'SI000001'
+          billNo: nextBillNo || ''
         }));
       }
     } catch (err) {
       console.error("API Error fetching next bill number:", err);
-      setBillDetails(prev => ({ ...prev, billNo: 'SI000001' }));
+      setError("Failed to fetch next bill number");
     } finally {
       setIsLoading(false);
     }
@@ -322,7 +326,7 @@ const SaleInvoice = () => {
               barcode: item.barcode || item.Barcode || item.itemCode || code,
               stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
               mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
-              uom: item.uom || item.UOM || item.unit || item.Unit || "",
+              uom: item.uom || item.UOM || item.unit || item.Unit || "P",
               hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
               tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
               sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
@@ -1036,20 +1040,39 @@ const SaleInvoice = () => {
     }
   };
 
-  // Handle keydown with / key support
+  // Handle keydown with / key support for popup toggle
   const handleKeyDown = (e, nextRef, fieldName = '') => {
     if (e.key === '/' || e.key === '?') {
       e.preventDefault();
       
       if (fieldName === 'salesman') {
-        openSalesmanPopup();
+        if (salesmanPopupOpen) {
+          setSalesmanPopupOpen(false);
+        } else {
+          openSalesmanPopup();
+        }
       } else if (fieldName === 'custName') {
-        openCustomerPopup();
+        if (customerPopupOpen) {
+          setCustomerPopupOpen(false);
+        } else {
+          openCustomerPopup();
+        }
       }
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
+      }
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      // Handle arrow key navigation
+      e.preventDefault();
+      const allInputs = document.querySelectorAll('input:not([readonly]), select');
+      const currentIndex = Array.from(allInputs).indexOf(e.target);
+      
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        allInputs[currentIndex - 1].focus();
+      } else if (e.key === 'ArrowRight' && currentIndex < allInputs.length - 1) {
+        allInputs[currentIndex + 1].focus();
       }
     }
   };
@@ -1074,13 +1097,14 @@ const SaleInvoice = () => {
     }
   };
 
-  // Handle UOM spacebar cycling
-  const handleUomSpacebar = (e, id) => {
+  // Handle UOM spacebar cycling - Now shows only P/K
+  const handleUomSpacebar = (e, id, index) => {
     if (e.key === ' ') {
       e.preventDefault();
       
-      const uomValues = ['K', 'P'];
-      const currentUom = items.find(item => item.id === id)?.uom || '';
+      const uomValues = ['P', 'K'];
+      const currentItem = items.find(item => item.id === id);
+      const currentUom = currentItem?.uom || 'P';
       const currentIndex = uomValues.indexOf(currentUom.toUpperCase());
       
       let nextIndex;
@@ -1091,49 +1115,126 @@ const SaleInvoice = () => {
       }
       
       const nextUom = uomValues[nextIndex];
-      handleItemChange(id, 'uom', nextUom);
-    }
-  };
-
-  // Handle table keydown
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    if ((e.key === '/' || e.key === '?') && currentField === 'itemName') {
-      e.preventDefault();
-      openItemPopup(currentRowIndex);
+      
+      // Update with visual feedback
+      setItems(items.map(item => {
+        if (item.id === id) {
+          return {
+            ...item,
+            uom: nextUom
+          };
+        }
+        return item;
+      }));
+      
+      // Add visual feedback
+      setFocusedUomField(id);
+      setTimeout(() => {
+        setFocusedUomField(null);
+      }, 300);
+      
       return;
     }
     
     if (e.key === 'Enter') {
       e.preventDefault();
+      // Navigate to HSN field
+      const hsnInput = document.querySelector(`input[data-row="${index}"][data-field="hsn"]`);
+      if (hsnInput) {
+        hsnInput.focus();
+        return;
+      }
+    }
+  };
 
-      const fields = [
-        'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'
-      ];
+  // Handle table keydown with improved navigation - UPDATED FOR PROPER NAVIGATION
+  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    // Handle / key for item popup toggle
+    if ((e.key === '/' || e.key === '?') && currentField === 'itemName') {
+      e.preventDefault();
+      if (itemPopupOpen) {
+        setItemPopupOpen(false);
+      } else {
+        openItemPopup(currentRowIndex);
+      }
+      return;
+    }
+    
+    // Handle arrow key navigation in table
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'];
+      const currentFieldIndex = fields.indexOf(currentField);
+      
+      if (e.key === 'ArrowLeft' && currentFieldIndex > 0) {
+        const prevField = fields[currentFieldIndex - 1];
+        const prevInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${prevField}"]`);
+        if (prevInput) {
+          prevInput.focus();
+          return;
+        }
+      } else if (e.key === 'ArrowRight' && currentFieldIndex < fields.length - 1) {
+        const nextField = fields[currentFieldIndex + 1];
+        // Special handling for UOM field (which is a div, not input)
+        if (nextField === 'uom') {
+          const uomDiv = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
+          if (uomDiv) {
+            uomDiv.focus();
+            return;
+          }
+        } else {
+          const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+          if (nextInput) {
+            nextInput.focus();
+            return;
+          }
+        }
+      }
+    }
+    
+    // Handle Enter key navigation
+    if (e.key === 'Enter') {
+      e.preventDefault();
 
+      const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'];
       const currentFieldIndex = fields.indexOf(currentField);
 
+      // If we're not at the last field, go to next field
       if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
         const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-        if (nextInput) {
-          nextInput.focus();
-          return;
+        
+        // Special handling for UOM field (which is a div, not input)
+        if (nextField === 'uom') {
+          const uomDiv = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
+          if (uomDiv) {
+            uomDiv.focus();
+            return;
+          }
+        } else {
+          const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+          if (nextInput) {
+            nextInput.focus();
+            return;
+          }
         }
       }
 
-      if (currentRowIndex < items.length - 1) {
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-        if (nextInput) {
-          nextInput.focus();
-          return;
+      // If at last field (qty), go to next row or add new row
+      if (currentField === 'qty') {
+        if (currentRowIndex < items.length - 1) {
+          const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
+          if (nextInput) {
+            nextInput.focus();
+            return;
+          }
+        } else {
+          handleAddRow();
+          setTimeout(() => {
+            const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
+            if (newRowInput) newRowInput.focus();
+          }, 60);
         }
       }
-
-      handleAddRow();
-      setTimeout(() => {
-        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
-        if (newRowInput) newRowInput.focus();
-      }, 60);
     }
   };
 
@@ -1558,6 +1659,9 @@ const SaleInvoice = () => {
       overflowX: 'hidden',
       overflowY: 'hidden',
       position: 'fixed',
+      // Smooth scrollbar styling
+      scrollbarWidth: 'thin',
+      scrollbarColor: '#1B91DA #f0f0f0',
     },
     headerSection: {
       flex: '0 0 auto',
@@ -1577,6 +1681,22 @@ const SaleInvoice = () => {
       minHeight: 0,
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
+      // Smooth scrollbar for webkit browsers
+      '&::-webkit-scrollbar': {
+        width: '8px',
+        height: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: '#f0f0f0',
+        borderRadius: '4px',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#1B91DA',
+        borderRadius: '4px',
+        '&:hover': {
+          backgroundColor: '#1479c0',
+        }
+      },
     },
     formRow: {
       display: 'flex',
@@ -1609,12 +1729,29 @@ const SaleInvoice = () => {
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
+    },
+    inlineInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     inlineInputClickable: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1625,7 +1762,7 @@ const SaleInvoice = () => {
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
@@ -1633,6 +1770,25 @@ const SaleInvoice = () => {
       minWidth: screenSize.isMobile ? '80px' : '100px',
       cursor: 'pointer',
       backgroundColor: 'white',
+    },
+    inlineInputClickableFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      cursor: 'pointer',
+      backgroundColor: 'white',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     gridRow: {
       display: 'grid',
@@ -1657,6 +1813,9 @@ const SaleInvoice = () => {
       flexDirection: 'column',
       maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
       minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
+      // Smooth scrollbar styling
+      scrollbarWidth: 'thin',
+      scrollbarColor: '#1B91DA #f0f0f0',
     },
     table: {
       width: 'max-content',
@@ -1715,6 +1874,25 @@ const SaleInvoice = () => {
       outline: 'none',
       transition: 'border-color 0.2s ease',
     },
+    editableInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      boxSizing: 'border-box',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      outline: 'none',
+      transition: 'border-color 0.2s ease',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
     editableInputClickable: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.xs,
@@ -1733,6 +1911,26 @@ const SaleInvoice = () => {
       outline: 'none',
       transition: 'border-color 0.2s ease',
       cursor: 'pointer',
+    },
+    editableInputClickableFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      boxSizing: 'border-box',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      outline: 'none',
+      transition: 'border-color 0.2s ease',
+      cursor: 'pointer',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     itemNameContainer: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1858,6 +2056,21 @@ const SaleInvoice = () => {
       boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
       transition: 'border-color 0.2s, box-shadow 0.2s'
     },
+    addLessInputFocused: {
+      width: screenSize.isMobile ? '120px' : '150px',
+      border: '2px solid #1B91DA',
+      borderRadius: '4px',
+      padding: screenSize.isMobile ? '6px 10px' : '8px 12px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      outline: 'none',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      color: '#333',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+      transition: 'border-color 0.2s, box-shadow 0.2s'
+    },
     errorContainer: {
       background: '#fff1f2',
       color: '#9f1239',
@@ -1890,8 +2103,119 @@ const SaleInvoice = () => {
       borderRadius: '8px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
-    }
+    },
+    // UOM specific styles
+    uomContainer: {
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+    },
+    uomDisplay: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#333',
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+    },
+    uomDisplayActive: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#1B91DA',
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      backgroundColor: '#e6f7ff',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+    },
+    uomHint: {
+      position: 'absolute',
+      top: '-25px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      padding: '3px 8px',
+      borderRadius: '3px',
+      fontSize: '10px',
+      fontWeight: 'bold',
+      whiteSpace: 'nowrap',
+      zIndex: 100,
+      pointerEvents: 'none',
+      opacity: 0,
+      transition: 'opacity 0.2s ease',
+    },
+    uomHintVisible: {
+      position: 'absolute',
+      top: '-25px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      padding: '3px 8px',
+      borderRadius: '3px',
+      fontSize: '10px',
+      fontWeight: 'bold',
+      whiteSpace: 'nowrap',
+      zIndex: 100,
+      pointerEvents: 'none',
+      opacity: 1,
+      transition: 'opacity 0.2s ease',
+    },
   };
+
+  // Add smooth scrollbar styles to global CSS
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Smooth scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background-color: #f0f0f0;
+        border-radius: 4px;
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background-color: #1B91DA;
+        border-radius: 4px;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: #1479c0;
+      }
+      
+      /* For Firefox */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: #1B91DA #f0f0f0;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const getGridColumns = () => {
     if (screenSize.isMobile) {
@@ -1926,7 +2250,7 @@ const SaleInvoice = () => {
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={focusedField === 'billNo' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.billNo}
               name="billNo"
               onChange={handleInputChange}
@@ -1944,7 +2268,7 @@ const SaleInvoice = () => {
             <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
-              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
+              style={focusedField === 'billDate' ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' } : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
               value={billDetails.billDate}
               name="billDate"
               onChange={handleInputChange}
@@ -1960,7 +2284,7 @@ const SaleInvoice = () => {
             <label style={styles.inlineLabel}>Mobile No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.mobileNo}
               name="mobileNo"
               onChange={handleInputChange}
@@ -1977,7 +2301,7 @@ const SaleInvoice = () => {
             <label style={styles.inlineLabel}>Type:</label>
             <select
               name="type"
-              style={styles.inlineInput}
+              style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.type}
               onChange={handleInputChange}
               ref={typeRef}
@@ -2000,7 +2324,7 @@ const SaleInvoice = () => {
             <label style={styles.inlineLabel}>Salesman:</label>
             <input
               type="text"
-              style={styles.inlineInputClickable}
+              style={focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
               value={billDetails.salesman}
               name="salesman"
               onChange={handleInputChange}
@@ -2021,7 +2345,7 @@ const SaleInvoice = () => {
             <label style={styles.inlineLabel}>Customer:</label>
             <input
               type="text"
-              style={styles.inlineInputClickable}
+              style={focusedField === 'custName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
               value={billDetails.custName}
               name="custName"
               onChange={handleInputChange}
@@ -2042,7 +2366,7 @@ const SaleInvoice = () => {
             <label style={styles.inlineLabel}>Barcode:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={focusedField === 'barcodeInput' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.barcodeInput}
               name="barcodeInput"
               onChange={handleInputChange}
@@ -2051,6 +2375,8 @@ const SaleInvoice = () => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   handleAddItem();
+                } else {
+                  handleKeyDown(e, addLessRef);
                 }
               }}
               onFocus={() => setFocusedField('barcodeInput')}
@@ -2087,17 +2413,19 @@ const SaleInvoice = () => {
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.barcode}
                       data-row={index}
                       data-field="barcode"
                       onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
+                      onFocus={() => setFocusedField(`barcode-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
                     <input
-                      style={styles.editableInputClickable}
+                      style={focusedField === `itemName-${item.id}` ? styles.editableInputClickableFocused : styles.editableInputClickable}
                       value={item.itemName}
                       placeholder="Click to select item"
                       data-row={index}
@@ -2105,6 +2433,8 @@ const SaleInvoice = () => {
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
                       onClick={() => openItemPopup(index)}
+                      onFocus={() => setFocusedField(`itemName-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={styles.td}>
@@ -2120,71 +2450,112 @@ const SaleInvoice = () => {
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.mrp}
                       data-row={index}
                       data-field="mrp"
                       onChange={(e) => handleItemChange(item.id, 'mrp', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'mrp')}
+                      onFocus={() => setFocusedField(`mrp-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
-                      value={item.uom}
-                      data-row={index}
-                      data-field="uom"
-                      onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === ' ') {
-                          handleUomSpacebar(e, item.id);
-                        } else {
-                          handleTableKeyDown(e, index, 'uom');
-                        }
-                      }}
-                      placeholder="Press Space to toggle P/K"
-                    />
+                    <div style={styles.uomContainer}>
+                      <div 
+                        style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
+                        onClick={() => {
+                          // Toggle UOM on click as well
+                          const uomValues = ['P', 'K'];
+                          const currentUom = item.uom || 'P';
+                          const currentIndex = uomValues.indexOf(currentUom.toUpperCase());
+                          const nextIndex = (currentIndex + 1) % uomValues.length;
+                          const nextUom = uomValues[nextIndex];
+                          
+                          setItems(items.map(i => {
+                            if (i.id === item.id) {
+                              return {
+                                ...i,
+                                uom: nextUom
+                              };
+                            }
+                            return i;
+                          }));
+                          
+                          setFocusedUomField(item.id);
+                          setTimeout(() => {
+                            setFocusedUomField(null);
+                          }, 300);
+                        }}
+                        onKeyDown={(e) => handleUomSpacebar(e, item.id, index)}
+                        tabIndex={0}
+                        onFocus={() => {
+                          setFocusedField(`uom-${item.id}`);
+                          setFocusedUomField(item.id);
+                        }}
+                        onBlur={() => {
+                          setFocusedField('');
+                          setFocusedUomField(null); // Hide hint on blur
+                        }}
+                        title="Press Space or Click to toggle between P/K"
+                        data-row={index}
+                        data-field="uom"
+                      >
+                        {item.uom || 'P'}
+                      </div>
+                      <div style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomHintVisible : styles.uomHint}>
+                        Press Space or Click to toggle
+                      </div>
+                    </div>
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `hsn-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.hsn}
                       data-row={index}
                       data-field="hsn"
                       onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
+                      onFocus={() => setFocusedField(`hsn-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `tax-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.tax}
                       data-row={index}
                       data-field="tax"
                       onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'tax')}
+                      onFocus={() => setFocusedField(`tax-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `sRate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.sRate}
                       data-row={index}
                       data-field="sRate"
                       onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
+                      onFocus={() => setFocusedField(`sRate-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={{ ...styles.editableInput, fontWeight: 'bold' }}
+                      style={focusedField === `qty-${item.id}` ? { ...styles.editableInputFocused, fontWeight: 'bold' } : { ...styles.editableInput, fontWeight: 'bold' }}
                       value={item.qty}
                       data-row={index}
                       data-field="qty"
                       onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
+                      onFocus={() => setFocusedField(`qty-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
@@ -2272,21 +2643,15 @@ const SaleInvoice = () => {
           <span style={styles.addLessLabel}>Add/Less:</span>
           <input
             type="number"
-            style={styles.addLessInput}
+            style={focusedField === 'addLess' ? styles.addLessInputFocused : styles.addLessInput}
             value={addLessAmount}
             onChange={handleAddLessChange}
             onKeyDown={handleAddLessKeyDown}
             ref={addLessRef}
             placeholder="Enter amount"
             step="0.01"
-            onFocus={(e) => {
-              e.target.style.borderColor = '#1479c0';
-              e.target.style.boxShadow = '0 0 0 2px rgba(27, 145, 218, 0.2)';
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = '#1B91DA';
-              e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-            }}
+            onFocus={() => setFocusedField('addLess')}
+            onBlur={() => setFocusedField('')}
           />
         </div>
         

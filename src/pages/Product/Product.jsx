@@ -496,7 +496,7 @@ useEffect(() => {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 18px;
+          font-size: 14px;
           box-sizing: border-box;
         }
 
@@ -532,13 +532,13 @@ useEffect(() => {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 24px;
+          font-size: 18px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
         .subtitle {
           color: var(--muted);
-          font-size: 16px;
+          font-size: 14px;
         }
 
         /* action pills */
@@ -558,8 +558,8 @@ useEffect(() => {
           border: 1px solid var(--glass-border);
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
-          font-weight: 600;
-          font-size: 18px;
+          font-weight: 700;
+          font-size: 14px;
           transition: all 0.2s;
           white-space: nowrap;
         }
@@ -598,7 +598,7 @@ useEffect(() => {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:18px;
+          font-size:14px;
           text-align: left;
           width: 100%;
         }
@@ -623,7 +623,7 @@ useEffect(() => {
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
-          font-size:18px;
+          font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
@@ -676,7 +676,7 @@ useEffect(() => {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:15px; }
+        .muted { color: var(--muted); font-size:14px; }
 
         /* message */
         .message {
@@ -684,7 +684,7 @@ useEffect(() => {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 16px;
+          font-size: 14px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -709,7 +709,7 @@ useEffect(() => {
           cursor:pointer;
           min-width: 120px;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
@@ -727,7 +727,7 @@ useEffect(() => {
           border-radius:10px;
           cursor:pointer;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 14px;
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
@@ -746,7 +746,7 @@ useEffect(() => {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 16px;
+          font-size: 14px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -790,7 +790,7 @@ useEffect(() => {
         .products-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 18px;
+          font-size: 14px;
         }
 
         .products-table th {
@@ -802,7 +802,7 @@ useEffect(() => {
           font-weight: 700;
           color: var(--accent);
           border-bottom: 2px solid var(--accent);
-          font-size: 18px;
+          font-size: 14px;
           z-index: 1;
         }
 
@@ -810,6 +810,7 @@ useEffect(() => {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
+          font-size: 14px;
         }
 
         .products-table tr:hover {
@@ -863,6 +864,7 @@ useEffect(() => {
           gap:4px; 
           text-align: left;
           transition: all 0.2s;
+          font-size: 14px;
         }
         .dropdown-item:hover { 
           background: linear-gradient(90deg, rgba(245,158,11,0.04), rgba(245,158,11,0.01)); 
@@ -1145,28 +1147,28 @@ useEffect(() => {
           <div className="side" aria-live="polite">
             <div className="stat">
               <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
                 {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Product" : "Delete Product"}
               </div>
             </div>
 
             <div className="stat">
               <div className="muted">Product Code</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.fproductcode || "Auto-generated"}
               </div>
             </div>
 
             <div className="stat">
               <div className="muted">Product Name</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.fproductname || "Not set"}
               </div>
             </div>
 
             <div className="stat">
               <div className="muted">Existing Products</div>
-              <div style={{ fontWeight: 700, fontSize: 24, color: "var(--accent-2)" }}>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
                 {products.length}
               </div>
             </div>
@@ -1177,7 +1179,7 @@ useEffect(() => {
                 <div style={{ fontWeight: 700 }}>Quick Tips</div>
               </div>
               
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
+              <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
                   <span>Product code is auto-generated from API</span>
