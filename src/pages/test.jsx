@@ -8,7 +8,7 @@ import {
   ActionButtons1
 } from '../components/Buttons/ActionButtons.jsx';
 import ConfirmationPopup from '../components/ConfirmationPopup/ConfirmationPopup.jsx';
-
+import { toast } from "react-toastify";
 const ExampleUsage = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -102,6 +102,9 @@ const ExampleUsage = () => {
           <DeleteButton buttonType="delete" />
         </ActionButtons>
       </div>
+      <button onClick={() => toast.success("Data saved successfully!")}>
+  Success Alert
+</button>
 
       <button 
         variant="contained" 
@@ -194,6 +197,8 @@ const ExampleUsage = () => {
         confirmText={isLoading ? "Saving..." : "Save"} 
         showLoading={isLoading} 
         disableBackdropClose={isLoading} 
+        defaultFocusedButton="cancel"
+        borderColor="#8b5cf6"
         customStyles={{
           modal: {
             borderTop: '4px solid #ec488cff'
@@ -205,6 +210,7 @@ const ExampleUsage = () => {
           }
         }}
       />
+      
     </div>
   );
 };
