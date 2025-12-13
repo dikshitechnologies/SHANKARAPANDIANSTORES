@@ -67,16 +67,24 @@ function App() {
   return (
     <>
     <Routes>
+      {/* Root Route - Redirect based on authentication */}
+      <Route 
+        path="/" 
+        element={
+          userData ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />
+        } 
+      />
+
       {/* Public Route - Login */}
       <Route 
         path="/login" 
         element={
-          userData ? <Navigate to="/" replace /> : <Login />
+          userData ? <Navigate to="/home" replace /> : <Login />
         } 
       />
 
       {/* Protected Routes with Navbar */}
-      <Route path="/" element={<ProtectedRoute><LayoutWithNavbar><Home /></LayoutWithNavbar></ProtectedRoute>} />
+      <Route path="/home" element={<ProtectedRoute><LayoutWithNavbar><Home /></LayoutWithNavbar></ProtectedRoute>} />
       <Route path="/test" element={<ProtectedRoute><LayoutWithNavbar><TestPage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/company-creation" element={<ProtectedRoute><LayoutWithNavbar><Company /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/sales-invoice" element={<ProtectedRoute><LayoutWithNavbar><SalesInvoice /></LayoutWithNavbar></ProtectedRoute>} />
