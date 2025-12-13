@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 
 // --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
@@ -80,6 +81,10 @@ export default function ModelCreation() {
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions ----------
   const fetchNextModelCode = async () => {
@@ -231,17 +236,25 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to update model "${form.modelName}"?`)) return;
+    setConfirmEditOpen(true);
+  };
+
+  const confirmEdit = async () => {
     try {
+      setIsLoading(true);
       const modelData = { fCode: form.fuCode, modelName: form.modelName };
       await updateModel(modelData);
       await loadInitial();
       
       setMessage({ type: "success", text: "Model updated successfully." });
+      setConfirmEditOpen(false);
       resetForm(true);
     } catch (err) {
+      setConfirmEditOpen(false);
       console.error("Edit error:", err);
       // Error message already set in updateModel
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -251,14 +264,20 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to delete model "${form.modelName}"?`)) return;
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
     try {
+      setIsLoading(true);
       await deleteModel(form.fuCode);
       await loadInitial();
       
       setMessage({ type: "success", text: "Model deleted successfully." });
+      setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
+      setConfirmDeleteOpen(false);
       console.error("Delete error:", err);
       // Special handling for referenced models
       if (err.message.includes("used in related tables") || 
@@ -270,6 +289,8 @@ useEffect(() => {
           text: `Cannot delete model "${form.modelName}". It is referenced in other tables and cannot be removed.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -279,18 +300,23 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to create model "${form.modelName}"?`)) return;
+    setConfirmSaveOpen(true);
+  };
 
+  const confirmSave = async () => {
     try {
+      setIsLoading(true);
       const modelData = { fCode: form.fuCode, modelName: form.modelName };
-      console.log("Handling add with:", modelData); // Debug log
+      console.log("Handling save with:", modelData); // Debug log
       await createModel(modelData);
       await loadInitial();
       
       setMessage({ type: "success", text: "Model created successfully." });
+      setConfirmSaveOpen(false);
       resetForm(true);
     } catch (err) {
-      console.error("Add error:", err);
+      setConfirmSaveOpen(false);
+      console.error("Save error:", err);
       // Check for duplicate entry
       if (err.message.includes("already exists") || 
           err.message.includes("duplicate") ||
@@ -300,6 +326,8 @@ useEffect(() => {
           text: `Model "${form.modelName}" already exists. Please use a different name.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1219,6 +1247,75 @@ useEffect(() => {
         headerNames={['Code', 'Name']}
         columnWidths={{ modelName: '70%', fCode: '30%' }}
         maxHeight="60vh"
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Model"
+        message={`Are you sure you want to create model "${form.modelName}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Model"
+        message={`Are you sure you want to update model "${form.modelName}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Model"
+        message={`Are you sure you want to delete model "${form.modelName}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );
