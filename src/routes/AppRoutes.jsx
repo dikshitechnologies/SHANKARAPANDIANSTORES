@@ -10,6 +10,7 @@ import ItemGroupCreation from '../pages/ItemGroupCreation/ItemGroupCreation';
 import BillCollector from '../pages/billcollector/billcollectior';
 import DesignCreation from '../pages/DesignCreation/DesignCreation';
 import CashManagement from '../pages/CashManagement/CashManagement';
+import AmountIssue from '../pages/AmountIssue/AmountIssue';
 import { useAuth } from '../context/AuthContext';
 
 const AppRoutes = () => {
@@ -29,6 +30,7 @@ const AppRoutes = () => {
         <Route path="/item-group-creation" element={<ProtectedRoute><ItemGroupCreation /></ProtectedRoute>} />
         <Route path="/bill-collector" element={<ProtectedRoute><BillCollector /></ProtectedRoute>} />
         <Route path="/design-creation" element={<ProtectedRoute><DesignCreation /></ProtectedRoute>} />
+        <Route path="/amount-issue" element={<ProtectedRoute><AmountIssue /></ProtectedRoute>} />
         {/* Add more routes here */}
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         {/* <Route path="/products" element={<Products />} /> */}
@@ -137,6 +139,7 @@ const HomePage = () => {
           { path: '/ledger-creation', label: '📊 Ledger Creation', color: '#FFA502' },
           { path: '/ledger-group-creation', label: '📇 Ledger Group', color: '#F7B731' },
           { path: '/bill-collector', label: '💳 Bill Collector', color: '#5F27CD' },
+          { path: '/amount-issue', label: '💵 Amount Issue', color: '#26de81' },
           // { path: '/transactions/cash-management', label: '💰 Cash Management', color: '#26de81' }
         ].map((item, idx) => (
           <a

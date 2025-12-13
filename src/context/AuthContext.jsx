@@ -37,6 +37,9 @@ export const AuthProvider = ({ children }) => {
       username: data.userName,
       role: data.role,
       companyCode: data.fCompCode,
+      companyName: data.fCompName,
+      userCode: data.fUcode || '', // fUcode may not exist for Admin
+      images: data.images || '',
     };
     const newPermissions = data.permissions || [];
 
