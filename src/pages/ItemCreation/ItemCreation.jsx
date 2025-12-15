@@ -119,12 +119,9 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
 
 // Type options for dropdown
 const TYPE_OPTIONS = [
-  { value: "Scrap Product", label: "Scrap Product" },
-  { value: "Finished Product", label: "Finished Product" },
-  { value: "Raw Material", label: "Raw Material" },
-  { value: "Semi-Finished", label: "Semi-Finished" },
-  { value: "Component", label: "Component" },
-  { value: "Accessory", label: "Accessory" },
+  { value: "SC", label: "Scrap Product" },
+  { value: "FG", label: "Finished Product" },
+
 ];
 
 // GST percentage options
@@ -240,6 +237,7 @@ const ItemCreation = ({ onCreated }) => {
   const sellingPriceRef = useRef(null);
   const costPriceRef = useRef(null);
   const unitRef = useRef(null);
+  const isInitialFocusRef = useRef(true);
 
   // Get permissions for this form
   const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
@@ -524,7 +522,7 @@ const ItemCreation = ({ onCreated }) => {
         manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
         hsnCode: formData.hsnCode || '',
         pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
-        ftype: 'sc',
+        ftype: formData.type || '',
         fSellPrice: formData.sellingPrice || '',
         fCostPrice: formData.costPrice || '',
         fUnits: formData.unit || '',
@@ -544,7 +542,7 @@ const ItemCreation = ({ onCreated }) => {
           if (duplicateCheck.data && duplicateCheck.data.length > 0) {
             // Handle duplicate
           }
-          
+         
           response = await apiService.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
           break;
           
@@ -1830,7 +1828,12 @@ const ItemCreation = ({ onCreated }) => {
                     className="input"
                     value={mainGroup}
                     onChange={(e) => setMainGroup(e.target.value)}
-                    onFocus={() => setIsTreeOpen(true)}
+                    onFocus={() => {
+                      if (!isInitialFocusRef.current) {
+                        setIsTreeOpen(true);
+                      }
+                      isInitialFocusRef.current = false;
+                    }}
                     placeholder="Select Group Name"
                     disabled={isSubmitting}
                     aria-label="Group Name"

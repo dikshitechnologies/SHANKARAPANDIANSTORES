@@ -122,7 +122,7 @@ export const API_ENDPOINTS = {
       getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
        getCustomers: "Salesinvoices/GetPartyByParent",
        createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
-    updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true', // Same endpoint for both
+    updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=false', // Same endpoint for both
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
   },
@@ -266,20 +266,18 @@ CATEGORY: {
   // 12) Get customers
   getCustomers: () =>
     `Salesinvoices/GetPartyByParent`,
-}
+},
+
+  TENDER: {
+    opening: "Tender/opening",
+    closing: "Tender/closing",
+  },
 
 
 
-
-
-
-
-
-
-
-
-
-
+  BILLCOLLECTOR:{
+    GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
+  }
 
 };
 

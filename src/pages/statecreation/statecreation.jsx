@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 
 // --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
@@ -93,6 +94,12 @@ export default function StateCreation() {
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Confirmation popup states
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions ----------
   const fetchNextStateCode = async () => {
@@ -441,8 +448,11 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to update state "${form.originalStateName}" to "${form.stateName}"?`)) return;
+    setConfirmEditOpen(true);
+  };
 
+  const confirmEdit = async () => {
+    setIsLoading(true);
     try {
       const stateData = { 
         fuCode: form.fuCode, 
@@ -455,8 +465,11 @@ useEffect(() => {
         setMessage({ type: "success", text: "State updated successfully." });
       }
       resetForm(true);
+      setConfirmEditOpen(false);
     } catch (err) {
       // Error message already set in updateState
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -465,16 +478,21 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please select a state to delete." });
       return;
     }
+    setConfirmDeleteOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to permanently delete state "${form.stateName}" (Code: ${form.fuCode})? This action cannot be undone.`)) return;
-
+  const confirmDelete = async () => {
+    setIsLoading(true);
     try {
       await deleteState(form.fuCode);
       await loadInitial();
       setMessage({ type: "success", text: "State deleted successfully." });
       resetForm();
+      setConfirmDeleteOpen(false);
     } catch (err) {
       // Error message already set in deleteState
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -483,9 +501,11 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill State Code and State Name." });
       return;
     }
+    setConfirmSaveOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to create new state "${form.stateName}" with code ${form.fuCode}?`)) return;
-
+  const confirmSave = async () => {
+    setIsLoading(true);
     try {
       const stateData = { 
         fuCode: form.fuCode, 
@@ -495,8 +515,11 @@ useEffect(() => {
       await loadInitial();
       setMessage({ type: "success", text: "State created successfully." });
       resetForm(true);
+      setConfirmSaveOpen(false);
     } catch (err) {
       // Error message already set in createState
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1437,6 +1460,75 @@ const handleDeleteRowClick = (s) => {
         columnWidths={{ stateName: '70%', fuCode: '30%' }}
         maxHeight="60vh"
         warningText="Deleting a state cannot be undone. Make sure the state is not referenced elsewhere."
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create State"
+        message={`Are you sure you want to create state "${form.stateName}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update State"
+        message={`Are you sure you want to update state "${form.stateName}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete State"
+        message={`Are you sure you want to delete state "${form.stateName}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );

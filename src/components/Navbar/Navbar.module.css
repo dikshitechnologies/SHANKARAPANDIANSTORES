@@ -506,7 +506,9 @@
 }
 
 .mobile-dropdown-items.open {
-  max-height: 500px; /* Adjust based on content */
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+  overflow-x: hidden;
   margin-top: 8px;
   margin-bottom: 8px;
 }
