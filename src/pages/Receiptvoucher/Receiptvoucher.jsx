@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton } from '../../components/Buttons/ActionButtons';
+import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
@@ -191,16 +191,34 @@ const ReceiptVoucher = () => {
   const fetchSavedVouchers = useCallback(async (page = 1, search = '') => {
     try {
       setLoadingVouchers(true);
-      // TODO: Add receipt vouchers endpoint to endpoints.js
-      // const params = { page, limit: 10 };
-      // if (search) params.search = search;
-      // const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_RECEIPT_VOUCHERS(), { params });
-      // if (response.data?.vouchers) {
-      //   setSavedVouchers(response.data.vouchers);
-      // }
+      const endpoint = API_ENDPOINTS.RECEIPTVOUCHER.GET_RECEIPT_VOUCHER_LIST('001', page, 10);
+      console.log('Fetching vouchers from endpoint:', endpoint);
+      const data = await apiService.get(endpoint);
+      console.log('Receipt vouchers response:', data);
+      
+      // Handle response with data array
+      if (data?.data && Array.isArray(data.data)) {
+        let voucherList = data.data;
+        
+        // Apply search filter if search term provided
+        if (search && search.trim()) {
+          voucherList = voucherList.filter(voucher =>
+            (voucher.voucherNo && voucher.voucherNo.toLowerCase().includes(search.toLowerCase())) ||
+            (voucher.accountName && voucher.accountName.toLowerCase().includes(search.toLowerCase())) ||
+            (voucher.date && voucher.date.includes(search))
+          );
+        }
+        
+        setSavedVouchers(voucherList);
+        console.log('Set saved vouchers:', voucherList);
+      } else {
+        console.warn('No vouchers found in response:', data);
+        setSavedVouchers([]);
+      }
     } catch (err) {
       console.error('Error fetching saved vouchers:', err);
       setError('Failed to load vouchers');
+      setSavedVouchers([]);
     } finally {
       setLoadingVouchers(false);
     }
@@ -386,27 +404,49 @@ const ReceiptVoucher = () => {
 
   // Get popup configuration
   const getPopupConfig = (type) => {
+    const fetchAccountsData = async (page, search) => {
+      // Return mock data for now - will be implemented with real API
+      return accountList.filter(item =>
+        !search || 
+        item.accountName?.toLowerCase().includes(search.toLowerCase()) ||
+        item.accountCode?.toLowerCase().includes(search.toLowerCase())
+      );
+    };
+
+    const fetchVouchersData = async (page, search) => {
+      // Filter saved vouchers based on search
+      return savedVouchers.filter(item =>
+        !search ||
+        item.voucherNo?.toLowerCase().includes(search.toLowerCase()) ||
+        item.accountName?.toLowerCase().includes(search.toLowerCase()) ||
+        item.date?.includes(search)
+      );
+    };
+
     const configs = {
       account: {
         title: 'Select Account',
-        columns: ['accountCode', 'accountName'],
-        searchField: 'accountName',
-        data: accountList,
-        loading: isLoading
+        fetchItems: fetchAccountsData,
+        displayFieldKeys: ['accountCode', 'accountName'],
+        searchFields: ['accountCode', 'accountName'],
+        headerNames: ['Code', 'Account Name'],
+        columnWidths: { accountCode: '30%', accountName: '70%' }
       },
       editVoucher: {
-        title: 'Edit Payment Voucher',
-        columns: ['voucherNo', 'date', 'accountName'],
-        searchField: 'voucherNo',
-        data: savedVouchers,
-        loading: loadingVouchers
+        title: 'Edit Receipt Voucher',
+        fetchItems: fetchVouchersData,
+        displayFieldKeys: ['voucherNo', 'date', 'accountName'],
+        searchFields: ['voucherNo', 'date', 'accountName'],
+        headerNames: ['Voucher No', 'Date', 'Account Name'],
+        columnWidths: { voucherNo: '30%', date: '25%', accountName: '45%' }
       },
       deleteVoucher: {
-        title: 'Delete Payment Voucher',
-        columns: ['voucherNo', 'date', 'accountName'],
-        searchField: 'voucherNo',
-        data: savedVouchers,
-        loading: loadingVouchers
+        title: 'Delete Receipt Voucher',
+        fetchItems: fetchVouchersData,
+        displayFieldKeys: ['voucherNo', 'date', 'accountName'],
+        searchFields: ['voucherNo', 'date', 'accountName'],
+        headerNames: ['Voucher No', 'Date', 'Account Name'],
+        columnWidths: { voucherNo: '30%', date: '25%', accountName: '45%' }
       }
     };
     return configs[type];
@@ -1541,81 +1581,108 @@ const ReceiptVoucher = () => {
         </div>
       </div>
 
-      {/* FOOTER SECTION */}
+      {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
-        <div style={styles.leftColumn}>
-          <div style={styles.footerButtons}>
-            <AddButton 
-              onClick={handleClear}
-              disabled={isSaving}
-              activeButton={activeFooterAction}
-            />
-            <EditButton 
-              onClick={openEditVoucherPopup}
-              disabled={isSaving || loadingVouchers}
-              activeButton={activeFooterAction}
-            />
-            <DeleteButton 
-              onClick={openDeleteVoucherPopup}
-              disabled={isSaving || loadingVouchers}
-              activeButton={activeFooterAction}
-            />
-          
-          </div>
+        <div style={styles.rightColumn}>
+          <ActionButtons
+            activeButton={activeFooterAction}
+            onButtonClick={(type) => {
+              setActiveFooterAction(type);
+              if (type === 'add') handleAddReceiptRow();
+              else if (type === 'edit') openEditVoucherPopup();
+              else if (type === 'delete') openDeleteVoucherPopup();
+            }}
+          >
+            <AddButton buttonType="add" />
+            <EditButton buttonType="edit" />
+            <DeleteButton buttonType="delete" />
+          </ActionButtons>
         </div>
-
         <div style={styles.totalsContainer}>
           <div style={styles.totalItem}>
-            <div style={styles.totalLabel}>Total Amount</div>
-            <div style={styles.totalValue}>{totalAmount.toFixed(2)}</div>
+            <span style={styles.totalLabel}>Total Amount</span>
+            <span style={styles.totalValue}>₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           <div style={styles.totalItem}>
-            <div style={styles.totalLabel}>Bill Total</div>
-            <div style={styles.totalValue}>{billTotalAmount.toFixed(2)}</div>
+            <span style={styles.totalLabel}>Bill Total</span>
+            <span style={styles.totalValue}>₹{billTotalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
-
-        <div style={styles.rightColumn}>
-          <div style={styles.footerButtons}>
-            <ClearButton 
-              onClick={handleClear} 
-              disabled={isSaving}
-              activeButton={activeFooterAction}
-            />
-            <SaveButton 
-              onClick={handleSave} 
-              disabled={isSaving}
-              activeButton={activeFooterAction}
-            />
-          </div>
+        <div style={styles.footerButtons}>
+          <ActionButtons1
+            onClear={handleClear}
+            onSave={handleSave}
+            onPrint={() => console.log('Print functionality')}
+            activeButton={activeFooterAction}
+            onButtonClick={(type) => setActiveFooterAction(type)}
+          />
         </div>
       </div>
 
       {/* POPUPS */}
       {accountPopupOpen && (
         <PopupListSelector
-          {...getPopupConfig('account')}
-          isOpen={accountPopupOpen}
+          open={accountPopupOpen}
           onClose={() => setAccountPopupOpen(false)}
           onSelect={handleAccountSelect}
+          fetchItems={getPopupConfig('account').fetchItems}
+          title={getPopupConfig('account').title}
+          displayFieldKeys={getPopupConfig('account').displayFieldKeys}
+          searchFields={getPopupConfig('account').searchFields}
+          headerNames={getPopupConfig('account').headerNames}
+          columnWidths={getPopupConfig('account').columnWidths}
+          tableStyles={{
+            headerBackground: 'linear-gradient(135deg, #307AC8 0%, #06A7EA 100%)',
+            itemHoverBackground: 'rgba(48, 122, 200, 0.1)',
+            itemSelectedBackground: 'rgba(48, 122, 200, 0.2)',
+          }}
+          maxHeight="60vh"
+          searchPlaceholder="Search accounts..."
+          responsiveBreakpoint={768}
         />
       )}
 
       {editVoucherPopupOpen && (
         <PopupListSelector
-          {...getPopupConfig('editVoucher')}
-          isOpen={editVoucherPopupOpen}
+          open={editVoucherPopupOpen}
           onClose={() => setEditVoucherPopupOpen(false)}
           onSelect={handleVoucherSelect}
+          fetchItems={getPopupConfig('editVoucher').fetchItems}
+          title={getPopupConfig('editVoucher').title}
+          displayFieldKeys={getPopupConfig('editVoucher').displayFieldKeys}
+          searchFields={getPopupConfig('editVoucher').searchFields}
+          headerNames={getPopupConfig('editVoucher').headerNames}
+          columnWidths={getPopupConfig('editVoucher').columnWidths}
+          tableStyles={{
+            headerBackground: 'linear-gradient(135deg, #307AC8 0%, #06A7EA 100%)',
+            itemHoverBackground: 'rgba(48, 122, 200, 0.1)',
+            itemSelectedBackground: 'rgba(48, 122, 200, 0.2)',
+          }}
+          maxHeight="60vh"
+          searchPlaceholder="Search receipt vouchers..."
+          responsiveBreakpoint={768}
         />
       )}
 
       {deleteVoucherPopupOpen && (
         <PopupListSelector
-          {...getPopupConfig('deleteVoucher')}
-          isOpen={deleteVoucherPopupOpen}
+          open={deleteVoucherPopupOpen}
           onClose={() => setDeleteVoucherPopupOpen(false)}
           onSelect={handleVoucherDelete}
+          fetchItems={getPopupConfig('deleteVoucher').fetchItems}
+          title={getPopupConfig('deleteVoucher').title}
+          displayFieldKeys={getPopupConfig('deleteVoucher').displayFieldKeys}
+          searchFields={getPopupConfig('deleteVoucher').searchFields}
+          headerNames={getPopupConfig('deleteVoucher').headerNames}
+          columnWidths={getPopupConfig('deleteVoucher').columnWidths}
+          tableStyles={{
+            headerBackground: 'linear-gradient(135deg, #307AC8 0%, #06A7EA 100%)',
+            itemHoverBackground: 'rgba(48, 122, 200, 0.1)',
+            itemSelectedBackground: 'rgba(48, 122, 200, 0.2)',
+          }}
+          maxHeight="60vh"
+          searchPlaceholder="Search receipt vouchers..."
+          responsiveBreakpoint={768}
         />
       )}
 
