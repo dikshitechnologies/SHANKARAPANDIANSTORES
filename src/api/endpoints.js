@@ -125,15 +125,8 @@ export const API_ENDPOINTS = {
     updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=false', // Same endpoint for both
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
-        
-  
- 
   },
   
-
-
-  
-
   SCRAP_RATE_FIXING: {
     GET_FULL_SCRAP_RATES: 'ScrapRateFixing/getFullScrapRateFixing',
     UPDATE_FULL_SCRAP_RATES: 'ScrapRateFixing/updateFullScrapRateFixing',
@@ -220,9 +213,9 @@ CATEGORY: {
     `Salesinvoices/salesnextbillNo/${compCode}`,
 
 
-// In API_ENDPOINTS.js - SALES_INVOICE_ENDPOINTS
-createSales: (isSave = true) => 
-  `Salesinvoices/CreateSales/${isSave}`,
+   CREATE_SALES: "Salesinvoices/CreateSales/true",   // Insert
+   UPDATE_SALES: "Salesinvoices/CreateSales/false",  // Update
+
 
 
   // 3) Get sales bill list
@@ -279,6 +272,12 @@ createSales: (isSave = true) =>
     opening: "Tender/opening",
     closing: "Tender/closing",
   },
+
+
+
+  BILLCOLLECTOR:{
+    GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
+  }
 
 };
 
