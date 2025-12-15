@@ -26,78 +26,39 @@ const SaleInvoice = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [originalInvoiceNo, setOriginalInvoiceNo] = useState('');
 
-  // 1. Header Details State - LOAD FROM LOCALSTORAGE ON INIT
-  const [billDetails, setBillDetails] = useState(() => {
-    const savedData = localStorage.getItem('saleInvoiceData');
-    if (savedData) {
-      const parsed = JSON.parse(savedData);
-      return {
-        billNo: parsed.billNo || '',
-        billDate: parsed.billDate || new Date().toISOString().substring(0, 10),
-        mobileNo: parsed.mobileNo || '',
-        type: parsed.type || 'Retail',
-        salesman: parsed.salesman || '',
-        salesmanCode: parsed.salesmanCode || '',
-        custName: parsed.custName || '',
-        custCode: parsed.custCode || '',
-        barcodeInput: parsed.barcodeInput || '',
-        partyCode: parsed.partyCode || '',
-        transType: 'SALES INVOICE'
-      };
-    }
-    return {
-      billNo: '',
-      billDate: new Date().toISOString().substring(0, 10),
-      mobileNo: '',
-      type: 'Retail',
-      salesman: '',
-      salesmanCode: '',
-      custName: '',
-      custCode: '',
-      barcodeInput: '',
-      partyCode: '',
-      transType: 'SALES INVOICE'
-    };
+  // 1. Header Details State
+  const [billDetails, setBillDetails] = useState({
+    billNo: '',
+    billDate: new Date().toISOString().substring(0, 10),
+    mobileNo: '',
+    type: 'Retail',
+    salesman: '',
+    salesmanCode: '',
+    custName: '',
+    custCode: '',
+    barcodeInput: '',
+    partyCode: '',
+    transType: 'SALES INVOICE'
   });
 
-  // 2. Table Items State - LOAD FROM LOCALSTORAGE ON INIT
-  const [items, setItems] = useState(() => {
-    const savedData = localStorage.getItem('saleInvoiceData');
-    if (savedData && savedData.items) {
-      return JSON.parse(savedData).items || [{
-        id: 1, 
-        sNo: 1,
-        barcode: '', 
-        itemName: '', 
-        itemCode: '',
-        stock: '', 
-        mrp: '', 
-        uom: 'P',
-        hsn: '', 
-        tax: '', 
-        sRate: '', 
-        qty: '',
-        amount: '0.00'
-      }];
+  // 2. Table Items State
+  const [items, setItems] = useState([
+    { 
+      id: 1, 
+      sNo: 1,
+      barcode: '', 
+      itemName: '', 
+      itemCode: '',
+      stock: '', 
+      mrp: '', 
+      uom: 'pcs',
+      hsn: '', 
+      tax: '', 
+      sRate: '', 
+      qty: '',
+      amount: '0.00'
     }
-    return [
-      { 
-        id: 1, 
-        sNo: 1,
-        barcode: '', 
-        itemName: '', 
-        itemCode: '',
-        stock: '', 
-        mrp: '', 
-        uom: 'P',
-        hsn: '', 
-        tax: '', 
-        sRate: '', 
-        qty: '',
-        amount: '0.00'
-      }
-    ];
-  });
+  ]);
 
   // 3. Totals State
   const [totalQty, setTotalQty] = useState(0);
@@ -171,30 +132,15 @@ const SaleInvoice = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ---------- SAVE TO LOCALSTORAGE ----------
-  useEffect(() => {
-    const saveToLocalStorage = () => {
-      const dataToSave = {
-        ...billDetails,
-        items: items,
-        addLessAmount: addLessAmount,
-        totalQty: totalQty,
-        totalAmount: totalAmount,
-        lastSaved: new Date().toISOString(),
-        isEditing: isEditing,
-        originalInvoiceNo: originalInvoiceNo
-      };
-      localStorage.setItem('saleInvoiceData', JSON.stringify(dataToSave));
-    };
-
-    const timeoutId = setTimeout(saveToLocalStorage, 500);
-    return () => clearTimeout(timeoutId);
-  }, [billDetails, items, addLessAmount, totalQty, totalAmount, isEditing, originalInvoiceNo]);
-
   // ---------- API FUNCTIONS ----------
   
   // Fetch next bill number from API
   const fetchNextBillNo = useCallback(async () => {
+    if (isEditing && billDetails.billNo) {
+      console.log("Skipping bill number fetch - editing existing invoice:", billDetails.billNo);
+      return;
+    }
+    
     try {
       setIsLoading(true);
       setError("");
@@ -215,10 +161,12 @@ const SaleInvoice = () => {
           nextBillNo = response.data.nextCode;
         }
         
-        setBillDetails(prev => ({
-          ...prev,
-          billNo: nextBillNo || 'SI000001'
-        }));
+        if (!isEditing) {
+          setBillDetails(prev => ({
+            ...prev,
+            billNo: nextBillNo || ''
+          }));
+        }
       }
     } catch (err) {
       console.error("API Error fetching next bill number:", err);
@@ -226,7 +174,7 @@ const SaleInvoice = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isEditing, billDetails.billNo]);
 
   // Fetch customers from backend API
   const fetchCustomers = useCallback(async () => {
@@ -311,25 +259,30 @@ const SaleInvoice = () => {
         
         if (itemsArray.length > 0) {
           const formattedItems = itemsArray.map(item => {
+            const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
             const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-            const code = item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
+            const units = item.fUnits || item.units || item.Units || item.uom || item.UOM || item.unit || item.Unit || "pcs";
             
             return {
               ...item,
-              id: code || Math.random(),
+              id: itemCode || Math.random(),
+              fItemcode: itemCode,
               fItemName: itemName,
+              fUnits: units,
+              itemCode: itemCode,
               itemName: itemName,
               name: itemName,
-              code: code,
-              originalCode: code,
-              barcode: item.barcode || item.Barcode || item.itemCode || code,
+              code: itemCode,
+              originalCode: itemCode,
+              barcode: item.barcode || item.Barcode || itemCode,
               stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
               mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
-              uom: item.uom || item.UOM || item.unit || item.Unit || "P",
+              uom: units,
               hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
               tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
               sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-              displayName: itemName
+              displayName: `${itemCode} - ${itemName}`,
+              popupDisplay: `${itemCode} - ${itemName}`
             };
           });
           
@@ -367,30 +320,45 @@ const SaleInvoice = () => {
         }
       }
       
-      const formattedInvoices = invoiceData.map((invoice, index) => {
-        const voucherNo = invoice.billNo || invoice.voucherNo || invoice.invoiceNo || '';
-        const customerName = invoice.customerName || 'Unknown Customer';
-        const salesmanName = invoice.salesmanName || '';
-        const invoiceDate = invoice.voucherDate || invoice.billDate || new Date().toISOString().substring(0, 10);
-        const totalAmount = invoice.billAmt || invoice.totalAmount || 0;
-        const customerCode = invoice.customerCode || invoice.customercode || '';
-        const salesmanCode = invoice.sManCode || invoice.salesmanCode || '';
-        
-        return {
-          id: voucherNo,
-          code: voucherNo,
-          name: voucherNo,
-          voucherNo: voucherNo,
-          customerName: customerName,
-          customerCode: customerCode,
-          salesmanName: salesmanName,
-          salesmanCode: salesmanCode,
-          date: invoiceDate,
-          totalAmount: parseFloat(totalAmount) || 0,
-          displayName: voucherNo,
-          rawData: invoice
-        };
-      }).filter(invoice => invoice.voucherNo && invoice.voucherNo.trim() !== '');
+      const uniqueInvoiceNumbers = new Set();
+      
+      const formattedInvoices = invoiceData
+        .map((invoice, index) => {
+          const voucherNo = invoice.billNo || invoice.voucherNo || invoice.invoiceNo || '';
+          const customerName = invoice.customerName || 'Unknown Customer';
+          const salesmanName = invoice.salesmanName || '';
+          const invoiceDate = invoice.voucherDate || invoice.billDate || new Date().toISOString().substring(0, 10);
+          const totalAmount = invoice.billAmt || invoice.totalAmount || 0;
+          const customerCode = invoice.customerCode || invoice.customercode || '';
+          const salesmanCode = invoice.sManCode || invoice.salesmanCode || '';
+          
+          return {
+            id: voucherNo,
+            code: voucherNo,
+            name: voucherNo,
+            voucherNo: voucherNo,
+            customerName: customerName,
+            customerCode: customerCode,
+            salesmanName: salesmanName,
+            salesmanCode: salesmanCode,
+            date: invoiceDate,
+            totalAmount: parseFloat(totalAmount) || 0,
+            displayName: voucherNo,
+            rawData: invoice
+          };
+        })
+        .filter(invoice => {
+          if (!invoice.voucherNo || invoice.voucherNo.trim() === '') {
+            return false;
+          }
+          
+          if (uniqueInvoiceNumbers.has(invoice.voucherNo)) {
+            return false;
+          }
+          
+          uniqueInvoiceNumbers.add(invoice.voucherNo);
+          return true;
+        });
       
       if (page === 1) {
         setSavedInvoices(formattedInvoices);
@@ -442,15 +410,24 @@ const SaleInvoice = () => {
         const header = invoiceData.header || invoiceData;
         const itemsArray = invoiceData.items || invoiceData.details || [];
         
-        // Set editing mode
         setIsEditing(true);
         setOriginalInvoiceNo(voucherNo);
         
-        // Set bill details - use billNo (voucherNo) as the invoice number
+        let billDate = header.voucherDate || new Date().toISOString().substring(0,10);
+        
+        if (billDate.includes('-')) {
+          const parts = billDate.split('-');
+          if (parts.length === 3) {
+            if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+              billDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+          }
+        }
+        
         setBillDetails(prev => ({
           ...prev,
-          billNo: header.voucherNo || voucherNo,
-          billDate: header.voucherDate?.split(" ")[0] || new Date().toISOString().substring(0,10),
+          billNo: voucherNo,
+          billDate: billDate,
           mobileNo: header.mobileNO || header.mobileNumber || header.mobileNo || "",
           type: header.selesType === "W" || header.salesType === "W" ? "Wholesale" : "Retail",
           salesman: header.salesmanName || header.sManName || header.salesman || "",
@@ -469,18 +446,8 @@ const SaleInvoice = () => {
         if (itemsArray.length > 0) {
           const formattedItems = itemsArray.map((item, index) => {
             const itemCode = item.itemcode || item.fItemcode || item.itemCode || item.code || '';
-            let itemName = item.itemName || item.fitemNme || '';
-            
-            if (!itemName && itemList.length > 0) {
-              const foundItem = itemList.find(i => 
-                i.itemCode === itemCode || 
-                i.code === itemCode ||
-                i.barcode === itemCode
-              );
-              if (foundItem) {
-                itemName = foundItem.itemName || foundItem.name || '';
-              }
-            }
+            const itemName = item.itemName || item.fitemNme || item.fItemName || '';
+            const units = item.fUnit || item.uom || 'pcs';
             
             return {
               id: index + 1,
@@ -490,7 +457,7 @@ const SaleInvoice = () => {
               itemName: itemName || itemCode,
               stock: (item.stock || item.fstock || 0).toString(),
               mrp: (item.mrp || 0).toString(),
-              uom: item.uom || item.fUnit || 'P',
+              uom: units,
               hsn: item.hsn || item.fHSN || '',
               tax: (item.tax || item.fTax || 0).toString(),
               sRate: (item.rate || item.fRate || item.sRate || 0).toString(),
@@ -509,7 +476,7 @@ const SaleInvoice = () => {
             itemName: '',
             stock: '',
             mrp: '',
-            uom: 'P',
+            uom: 'pcs',
             hsn: '',
             tax: '',
             sRate: '',
@@ -548,38 +515,52 @@ const SaleInvoice = () => {
       setIsLoading(true);
       setError("");
       
+      // Use the correct delete endpoint
       const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.deleteBillNumber(voucherNo, "001");
       
       const response = await axiosInstance.delete(endpoint);
       
-      if (response && response.data && response.data.success !== false) {
-        // Clear all data if we're deleting the current invoice
-        if (voucherNo === billDetails.billNo) {
-          resetForm();
-        }
+      if (response && response.data) {
+        // Check if delete was successful
+        const success = response.data.success !== false && 
+                       response.data.message !== "Delete failed" &&
+                       !response.data.error;
         
-        // Refresh the invoice list
-        await fetchSavedInvoices(1, '');
-        return response.data;
+        if (success) {
+          // Clear all data if we're deleting the current invoice
+          if (voucherNo === billDetails.billNo) {
+            resetForm();
+          }
+          
+          // Refresh the invoice list
+          await fetchSavedInvoices(1, '');
+          return { success: true, message: "Invoice deleted successfully" };
+        } else {
+          const errorMsg = response.data.message || response.data.error || "Delete failed";
+          throw new Error(errorMsg);
+        }
+      } else {
+        throw new Error("No response from server");
       }
-      return null;
     } catch (err) {
       console.error("API Error deleting invoice:", err);
-      setError("Failed to delete invoice");
-      throw err;
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || "Failed to delete invoice";
+      setError(errorMsg);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Get stock by item name
+  // Get stock by item code
   const getStockByItemName = async (itemCode) => {
     if (!itemCode || itemCode.trim() === '') {
       return { 
         stock: 0,
         itemName: '',
         mrp: '0',
-        uom: 'P',
+        uom: 'pcs',
+        fUnits: 'pcs',
         hsn: '',
         tax: '0',
         rate: '0'
@@ -590,14 +571,22 @@ const SaleInvoice = () => {
       const response = await axiosInstance.get(
         API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getStockByItemName1(itemCode)
       );
-      return response.data || {};
+      
+      const data = response.data || {};
+      
+      return {
+        ...data,
+        uom: data.fUnits || data.uom || data.unit || 'pcs',
+        fUnits: data.fUnits || data.uom || data.unit || 'pcs'
+      };
     } catch (err) {
       console.warn('Error fetching stock:', err.message);
       return { 
         stock: 0,
         itemName: '',
         mrp: '0',
-        uom: 'P',
+        uom: 'pcs',
+        fUnits: 'pcs',
         hsn: '',
         tax: '0',
         rate: '0'
@@ -608,7 +597,6 @@ const SaleInvoice = () => {
   // Initial data fetch
   useEffect(() => {
     const fetchInitialData = async () => {
-      // Only fetch next bill number if not editing and not already loaded
       if (!billDetails.billNo && !isEditing) {
         await fetchNextBillNo();
       }
@@ -620,7 +608,7 @@ const SaleInvoice = () => {
     };
     
     fetchInitialData();
-  }, [fetchNextBillNo, fetchCustomers, fetchItems, fetchSalesmen, fetchSavedInvoices]);
+  }, [fetchNextBillNo, fetchCustomers, fetchItems, fetchSalesmen, fetchSavedInvoices, isEditing, billDetails.billNo]);
 
   // Calculate Totals whenever items change
   useEffect(() => {
@@ -663,7 +651,7 @@ const SaleInvoice = () => {
         itemName: '',
         stock: '',
         mrp: '',
-        uom: 'P',
+        uom: 'pcs',
         hsn: '',
         tax: '',
         sRate: '',
@@ -675,6 +663,9 @@ const SaleInvoice = () => {
     setAddLessAmount('');
     setIsEditing(false);
     setOriginalInvoiceNo('');
+    
+    // Fetch next bill number for new invoice
+    fetchNextBillNo();
   };
 
   // --- POPUP HANDLERS ---
@@ -788,7 +779,17 @@ const SaleInvoice = () => {
         });
       }
       
-      const formattedForPopup = filtered.map(invoice => ({
+      const uniqueInvoices = [];
+      const seenVoucherNos = new Set();
+      
+      filtered.forEach(invoice => {
+        if (!seenVoucherNos.has(invoice.voucherNo)) {
+          seenVoucherNos.add(invoice.voucherNo);
+          uniqueInvoices.push(invoice);
+        }
+      });
+      
+      const formattedForPopup = uniqueInvoices.map(invoice => ({
         ...invoice,
         name: invoice.voucherNo,
         displayName: invoice.voucherNo
@@ -869,19 +870,20 @@ const SaleInvoice = () => {
       const updatedItems = [...items];
       const currentItem = updatedItems[currentItemRowIndex];
       
-      const itemCode = item.itemCode || item.code || '';
-      const itemName = item.itemName || item.name || '';
+      const itemCode = item.fItemcode || item.itemCode || item.code || '';
+      const itemName = item.fItemName || item.itemName || item.name || '';
+      const units = item.fUnits || item.uom || 'pcs';
       
       const stockInfo = await getStockByItemName(itemCode);
       
       updatedItems[currentItemRowIndex] = {
         ...currentItem,
         itemName: itemName,
-        itemCode: item.originalCode || itemCode,
+        itemCode: itemCode,
         barcode: item.barcode || itemCode,
         mrp: (item.mrp || stockInfo.mrp || 0).toString(),
         stock: (item.stock || stockInfo.stock || 0).toString(),
-        uom: item.uom || stockInfo.uom || "P",
+        uom: units || stockInfo.uom || stockInfo.fUnits || "pcs",
         hsn: item.hsn || stockInfo.hsn || "",
         tax: (item.tax || stockInfo.tax || 0).toString(),
         sRate: (item.sRate || stockInfo.rate || 0).toString(),
@@ -912,11 +914,11 @@ const SaleInvoice = () => {
         searchPlaceholder: 'Search salesmen by name...'
       },
       item: {
-        displayFieldKeys: ['name'],
-        searchFields: ['name'],
-        headerNames: ['Item Name'],
-        columnWidths: { name: '100%' },
-        searchPlaceholder: 'Search items by name...'
+        displayFieldKeys: ['popupDisplay'],
+        searchFields: ['fItemcode', 'fItemName', 'itemCode', 'itemName'],
+        headerNames: ['Item Code - Name'],
+        columnWidths: { popupDisplay: '100%' },
+        searchPlaceholder: 'Search by item code or name...'
       },
       editInvoice: {
         displayFieldKeys: ['voucherNo'],
@@ -974,10 +976,14 @@ const SaleInvoice = () => {
         case 'item':
           itemsData = itemList.map((item, index) => ({
             id: item.id || index,
-            code: item.code,
-            name: item.itemName || item.name,
-            itemName: item.itemName || item.name,
-            originalCode: item.code,
+            fItemcode: item.fItemcode || item.itemCode,
+            fItemName: item.fItemName || item.itemName,
+            fUnits: item.fUnits || item.uom,
+            itemCode: item.fItemcode || item.itemCode,
+            itemName: item.fItemName || item.itemName,
+            code: item.fItemcode || item.itemCode,
+            name: item.fItemName || item.itemName,
+            originalCode: item.fItemcode || item.itemCode,
             barcode: item.barcode,
             stock: item.stock,
             mrp: item.mrp,
@@ -985,7 +991,8 @@ const SaleInvoice = () => {
             hsn: item.hsn,
             tax: item.tax,
             sRate: item.sRate,
-            displayName: item.itemName || item.name
+            displayName: item.fItemName || item.itemName,
+            popupDisplay: `${item.fItemcode || item.itemCode} - ${item.fItemName || item.itemName}`
           }));
           break;
           
@@ -997,13 +1004,31 @@ const SaleInvoice = () => {
           itemsData = [];
       }
       
+      if (type === 'customer' || type === 'salesman' || type === 'item') {
+        const uniqueItems = [];
+        const seenIds = new Set();
+        
+        itemsData.forEach(item => {
+          const itemId = item.id || item.code;
+          if (!seenIds.has(itemId)) {
+            seenIds.add(itemId);
+            uniqueItems.push(item);
+          }
+        });
+        
+        itemsData = uniqueItems;
+      }
+      
       let filtered = itemsData;
       if (search) {
         const searchLower = search.toLowerCase();
         filtered = itemsData.filter(item => {
           return (
             (item.name && item.name.toLowerCase().includes(searchLower)) ||
-            (item.displayName && item.displayName.toLowerCase().includes(searchLower))
+            (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
+            (item.fItemcode && item.fItemcode.toLowerCase().includes(searchLower)) ||
+            (item.itemCode && item.itemCode.toLowerCase().includes(searchLower)) ||
+            (item.popupDisplay && item.popupDisplay.toLowerCase().includes(searchLower))
           );
         });
       }
@@ -1021,6 +1046,12 @@ const SaleInvoice = () => {
   // --- HANDLERS ---
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'billNo' && isEditing) {
+      alert("Cannot change invoice number when editing. Please create a new invoice for a different number.");
+      return;
+    }
+    
     setBillDetails(prev => ({ ...prev, [name]: value }));
   };
 
@@ -1063,7 +1094,6 @@ const SaleInvoice = () => {
         nextRef.current.focus();
       }
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      // Handle arrow key navigation
       e.preventDefault();
       const allInputs = document.querySelectorAll('input:not([readonly]), select');
       const currentIndex = Array.from(allInputs).indexOf(e.target);
@@ -1096,15 +1126,15 @@ const SaleInvoice = () => {
     }
   };
 
-  // Handle UOM spacebar cycling - Now shows only P/K
+  // Handle UOM spacebar cycling
   const handleUomSpacebar = (e, id, index) => {
     if (e.key === ' ') {
       e.preventDefault();
       
-      const uomValues = ['P', 'K'];
+      const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
       const currentItem = items.find(item => item.id === id);
-      const currentUom = currentItem?.uom || 'P';
-      const currentIndex = uomValues.indexOf(currentUom.toUpperCase());
+      const currentUom = currentItem?.uom || 'pcs';
+      const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
       
       let nextIndex;
       if (currentIndex === -1) {
@@ -1115,7 +1145,6 @@ const SaleInvoice = () => {
       
       const nextUom = uomValues[nextIndex];
       
-      // Update with visual feedback
       setItems(items.map(item => {
         if (item.id === id) {
           return {
@@ -1126,7 +1155,6 @@ const SaleInvoice = () => {
         return item;
       }));
       
-      // Add visual feedback
       setFocusedUomField(id);
       setTimeout(() => {
         setFocusedUomField(null);
@@ -1137,7 +1165,6 @@ const SaleInvoice = () => {
     
     if (e.key === 'Enter') {
       e.preventDefault();
-      // Navigate to HSN field
       const hsnInput = document.querySelector(`input[data-row="${index}"][data-field="hsn"]`);
       if (hsnInput) {
         hsnInput.focus();
@@ -1146,9 +1173,8 @@ const SaleInvoice = () => {
     }
   };
 
-  // Handle table keydown with improved navigation - UPDATED FOR PROPER NAVIGATION
+  // Handle table keydown with improved navigation
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    // Handle / key for item popup toggle
     if ((e.key === '/' || e.key === '?') && currentField === 'itemName') {
       e.preventDefault();
       if (itemPopupOpen) {
@@ -1159,7 +1185,6 @@ const SaleInvoice = () => {
       return;
     }
     
-    // Handle arrow key navigation in table
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
       const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'];
@@ -1174,7 +1199,6 @@ const SaleInvoice = () => {
         }
       } else if (e.key === 'ArrowRight' && currentFieldIndex < fields.length - 1) {
         const nextField = fields[currentFieldIndex + 1];
-        // Special handling for UOM field (which is a div, not input)
         if (nextField === 'uom') {
           const uomDiv = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
           if (uomDiv) {
@@ -1191,18 +1215,15 @@ const SaleInvoice = () => {
       }
     }
     
-    // Handle Enter key navigation
     if (e.key === 'Enter') {
       e.preventDefault();
 
       const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'];
       const currentFieldIndex = fields.indexOf(currentField);
 
-      // If we're not at the last field, go to next field
       if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
         const nextField = fields[currentFieldIndex + 1];
         
-        // Special handling for UOM field (which is a div, not input)
         if (nextField === 'uom') {
           const uomDiv = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
           if (uomDiv) {
@@ -1218,7 +1239,6 @@ const SaleInvoice = () => {
         }
       }
 
-      // If at last field (qty), go to next row or add new row
       if (currentField === 'qty') {
         if (currentRowIndex < items.length - 1) {
           const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
@@ -1264,7 +1284,7 @@ const SaleInvoice = () => {
             itemName: stockInfo.itemName,
             stock: stockInfo.stock || '0',
             mrp: stockInfo.mrp || '0',
-            uom: stockInfo.uom || 'P',
+            uom: stockInfo.fUnits || stockInfo.uom || 'pcs',
             hsn: stockInfo.hsn || '',
             tax: stockInfo.tax || '0',
             sRate: stockInfo.rate || '0',
@@ -1311,11 +1331,11 @@ const SaleInvoice = () => {
         id: items.length + 1,
         sNo: items.length + 1,
         barcode: itemData.barcode || itemData.itemCode || itemData.code,
-        itemName: itemData.itemName || itemData.name,
-        itemCode: itemData.itemCode || itemData.code,
+        itemName: itemData.fItemName || itemData.itemName || itemData.name,
+        itemCode: itemData.fItemcode || itemData.itemCode || itemData.code,
         stock: (itemData.stock || itemData.stockQty || itemData.quantity || 0).toString(),
         mrp: (itemData.mrp || itemData.sellingPrice || itemData.price || 0).toString(),
-        uom: itemData.uom || "P",
+        uom: itemData.fUnits || itemData.uom || "pcs",
         hsn: itemData.hsnCode || itemData.hsn || "",
         tax: (itemData.taxRate || itemData.tax || 0).toString(),
         sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
@@ -1339,7 +1359,7 @@ const SaleInvoice = () => {
       itemName: '',
       stock: '',
       mrp: '',
-      uom: 'P',
+      uom: 'pcs',
       hsn: '',
       tax: '',
       sRate: '',
@@ -1387,7 +1407,7 @@ const SaleInvoice = () => {
           itemName: '',
           stock: '',
           mrp: '',
-          uom: 'P',
+          uom: 'pcs',
           hsn: '',
           tax: '',
           sRate: '',
@@ -1403,18 +1423,41 @@ const SaleInvoice = () => {
   const handleClear = () => {
     if (window.confirm('Are you sure you want to clear current unsaved data?')) {
       resetForm();
-      // Fetch new bill number for new invoice
-      fetchNextBillNo();
     }
   };
 
-  // Save sales invoice to API
+  // Helper function to format date to yyyy-MM-dd
+  const formatDateToYYYYMMDD = (dateString) => {
+    try {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      
+      const date = new Date(dateString);
+      
+      if (isNaN(date.getTime())) {
+        const today = new Date();
+        return today.toISOString().substring(0, 10);
+      }
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch (err) {
+      console.error('Error formatting date:', err);
+      const today = new Date();
+      return today.toISOString().substring(0, 10);
+    }
+  };
+
+  // ========== SAVE FUNCTION ==========
   const saveSalesInvoice = async () => {
     if (isSaving) {
       console.log('Save already in progress');
       return;
     }
-    
+
     try {
       setIsSaving(true);
       setIsLoading(true);
@@ -1437,75 +1480,67 @@ const SaleInvoice = () => {
         throw new Error('Please add at least one item with quantity');
       }
 
-      // Format date
-      let voucherDate = billDetails.billDate;
-      try {
-        const dateObj = new Date(billDetails.billDate);
-        if (!isNaN(dateObj.getTime())) {
-          const year = dateObj.getFullYear();
-          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-          const day = String(dateObj.getDate()).padStart(2, '0');
-          voucherDate = `${year}-${month}-${day}`;
-        } else {
-          const today = new Date();
-          const year = today.getFullYear();
-          const month = String(today.getMonth() + 1).padStart(2, '0');
-          const day = String(today.getDate()).padStart(2, '0');
-          voucherDate = `${year}-${month}-${day}`;
-        }
-      } catch (dateErr) {
-        console.error('Error formatting date:', dateErr);
-        const today = new Date();
-        voucherDate = today.toISOString().substring(0, 10);
-      }
+      // Format date to yyyy-MM-dd
+      const voucherDate = formatDateToYYYYMMDD(billDetails.billDate);
 
-      // Prepare header data - billNo is the voucher number
+      // Prepare header data - Using the field names that match your API
       const headerData = {
-        voucherNo: billDetails.billNo || '',
-        voucherDate: voucherDate,
-        mobileNumber: billDetails.mobileNo || '',
-        salesmanName: billDetails.salesman || '',
-        salesCode: billDetails.salesmanCode || '001',
-        selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
-        customerName: billDetails.custName || '',
-        customercode: billDetails.custCode || billDetails.partyCode || '',
-        compCode: '001',
-        billAmount: parseFloat(totalAmount) || 0,
-        balanceAmount: 0,
-        userCode: '001',
-        addLess: addLessAmount || '0.00'
-      };
+  voucherNo: billDetails.billNo || "",
+  voucherDate: voucherDate,
+
+  mobileNumber: billDetails.mobileNo || "",
+  salesmanName: billDetails.salesman || "",
+  salesCode: billDetails.salesmanCode || "",
+
+  selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
+
+  customerName: billDetails.custName || "",
+  customercode: billDetails.custCode || "",
+
+  compCode: "001",
+
+  billAmount: Number(totalAmount) || 0,
+  balanceAmount: 0,
+
+  userCode: "001",
+  addLess: (addLessAmount ?? "0").toString()
+};
+
 
       // Prepare items data
-      const itemsData = validItems.map(item => {
-        const qty = parseFloat(item.qty || 0) || 0;
-        const rate = parseFloat(item.sRate || 0) || 0;
-        const amount = parseFloat(item.amount || 0) || 0;
-        const mrp = parseFloat(item.mrp || 0) || 0;
-        const tax = parseFloat(item.tax || 0) || 0;
-        const stock = parseFloat(item.stock || 0) || 0;
-        
-        return {
-          barcode: item.barcode || '',
-          itemName: item.itemName || '',
-          itemcode: item.itemCode || item.barcode || '',
-          mrp: mrp.toFixed(2),
-          stock: stock.toString(),
-          uom: item.uom || 'P',
-          hsn: item.hsn || '',
-          tax: tax,
-          rate: rate,
-          qty: qty,
-          amount: amount
-        };
-      });
+    const itemsData = validItems.map(item => ({
+  barcode: item.barcode || "",
+  itemName: item.itemName || "",
+  itemcode: item.itemCode || "",
+
+  mrp: (Number(item.mrp) || 0).toFixed(2),   // string
+  stock: (item.stock ?? "0").toString(),    // string
+  uom: item.uom || "pcs",
+
+  hsn: item.hsn || "",
+  tax: Number(item.tax) || 0,
+  rate: Number(item.sRate) || 0,
+  qty: Number(item.qty) || 0,
+  amount: Number(item.amount) || 0
+}));
+
 
       const requestData = {
         header: headerData,
         items: itemsData
       };
 
-      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.createSales(true);
+      console.log('Saving invoice data:', JSON.stringify(requestData, null, 2));
+      
+      // Determine if this is an insert or update
+      const isInsert = !isEditing;
+      
+      // Use the correct endpoint based on insert/update
+      const endpoint = isInsert 
+        ? API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.CREATE_SALES  // Insert endpoint
+        : API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.UPDATE_SALES; // Update endpoint
+      
+      console.log('Using endpoint:', endpoint, 'isInsert:', isInsert);
       
       const response = await axiosInstance.post(endpoint, requestData, {
         headers: {
@@ -1515,7 +1550,7 @@ const SaleInvoice = () => {
       });
       
       if (response && response.data) {
-        const message = response.data.message || 'Invoice saved successfully';
+        const message = response.data.message || `Invoice ${isEditing ? 'updated' : 'saved'} successfully`;
         const savedBillNo = response.data.voucherNo || billDetails.billNo;
         
         alert(`${message}\nInvoice No: ${savedBillNo}`);
@@ -1526,23 +1561,29 @@ const SaleInvoice = () => {
         // Reset form completely after save
         resetForm();
         
-        // Fetch next bill number for new invoice
-        await fetchNextBillNo();
-        
         return response.data;
       }
     } catch (err) {
       console.error('=== SAVE ERROR DETAILS ===');
       console.error('Error:', err);
+      console.error('Error response:', err.response);
       
-      let errorMsg = 'Failed to save sales invoice';
+      let errorMsg = `Failed to ${isEditing ? 'update' : 'save'} sales invoice`;
       
       if (err.response) {
+        console.error('Response data:', err.response.data);
+        console.error('Response status:', err.response.status);
+        
         if (err.response.data) {
           if (err.response.data.message) {
             errorMsg = err.response.data.message;
           } else if (err.response.data.error) {
             errorMsg = err.response.data.error;
+          } else if (typeof err.response.data === 'string') {
+            errorMsg = err.response.data;
+          } else if (err.response.data.errors) {
+            const errors = Object.values(err.response.data.errors).flat();
+            errorMsg = errors.join(', ');
           }
         }
         errorMsg = `${errorMsg} (Status: ${err.response.status})`;
@@ -1550,6 +1591,10 @@ const SaleInvoice = () => {
         errorMsg = 'No response from server. Please check your connection.';
       } else {
         errorMsg = err.message || errorMsg;
+      }
+      
+      if (errorMsg.toLowerCase().includes('duplicate') || errorMsg.toLowerCase().includes('already exists')) {
+        errorMsg = `Invoice number ${billDetails.billNo} already exists. Please use a different number or edit the existing invoice.`;
       }
       
       setError(errorMsg);
@@ -1592,11 +1637,13 @@ const SaleInvoice = () => {
     
     // Set confirmation data
     setSaveConfirmationData({
-      invoiceNo: billDetails.billNo,
+      invoiceNo: isEditing ? originalInvoiceNo : billDetails.billNo,
       customer: billDetails.custName,
+      billDate: billDetails.billDate,
       totalAmount: totalAmount.toFixed(2),
       addLessAmount: addLessAmount,
-      finalAmount: finalAmount.toFixed(2)
+      finalAmount: finalAmount.toFixed(2),
+      isEditing: isEditing
     });
     
     // Open confirmation popup
@@ -1659,7 +1706,6 @@ const SaleInvoice = () => {
       overflowX: 'hidden',
       overflowY: 'hidden',
       position: 'fixed',
-      // Smooth scrollbar styling
       scrollbarWidth: 'thin',
       scrollbarColor: '#1B91DA #f0f0f0',
     },
@@ -1681,7 +1727,6 @@ const SaleInvoice = () => {
       minHeight: 0,
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
-      // Smooth scrollbar for webkit browsers
       '&::-webkit-scrollbar': {
         width: '8px',
         height: '8px',
@@ -1813,7 +1858,6 @@ const SaleInvoice = () => {
       flexDirection: 'column',
       maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
       minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
-      // Smooth scrollbar styling
       scrollbarWidth: 'thin',
       scrollbarColor: '#1B91DA #f0f0f0',
     },
@@ -2184,7 +2228,6 @@ const SaleInvoice = () => {
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      /* Smooth scrollbar styling */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -2204,10 +2247,27 @@ const SaleInvoice = () => {
         background-color: #1479c0;
       }
       
-      /* For Firefox */
       * {
         scrollbar-width: thin;
         scrollbar-color: #1B91DA #f0f0f0;
+      }
+      
+      input[data-row]:hover {
+        border: none !important;
+        box-shadow: none !important;
+      }
+      
+      .header-input:hover,
+      input:not([data-row]):hover,
+      select:hover {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+      }
+      
+      input:focus, 
+      select:focus {
+        border: 2px solid #1B91DA !important;
+        box-shadow: 0 0 0 2px rgba(27, 145, 218, 0.2) !important;
       }
     `;
     document.head.appendChild(style);
@@ -2245,7 +2305,7 @@ const SaleInvoice = () => {
           ...styles.gridRow,
           gridTemplateColumns: getGridColumns(),
         }}>
-          {/* Bill No - This is the voucher number */}
+          {/* Bill No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
@@ -2259,7 +2319,8 @@ const SaleInvoice = () => {
               onFocus={() => setFocusedField('billNo')}
               onBlur={() => setFocusedField('')}
               placeholder="Auto-generated"
-              readOnly
+              readOnly={isEditing}
+              title={isEditing ? "Cannot change invoice number when editing" : ""}
             />
           </div>
 
@@ -2435,6 +2496,7 @@ const SaleInvoice = () => {
                       onClick={() => openItemPopup(index)}
                       onFocus={() => setFocusedField(`itemName-${item.id}`)}
                       onBlur={() => setFocusedField('')}
+                      title={`Item Code: ${item.itemCode || 'Not selected'}`}
                     />
                   </td>
                   <td style={styles.td}>
@@ -2465,10 +2527,9 @@ const SaleInvoice = () => {
                       <div 
                         style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
                         onClick={() => {
-                          // Toggle UOM on click as well
-                          const uomValues = ['P', 'K'];
-                          const currentUom = item.uom || 'P';
-                          const currentIndex = uomValues.indexOf(currentUom.toUpperCase());
+                          const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
+                          const currentUom = item.uom || 'pcs';
+                          const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
                           const nextIndex = (currentIndex + 1) % uomValues.length;
                           const nextUom = uomValues[nextIndex];
                           
@@ -2495,13 +2556,13 @@ const SaleInvoice = () => {
                         }}
                         onBlur={() => {
                           setFocusedField('');
-                          setFocusedUomField(null); // Hide hint on blur
+                          setFocusedUomField(null);
                         }}
-                        title="Press Space or Click to toggle between P/K"
+                        title="Press Space or Click to toggle units"
                         data-row={index}
                         data-field="uom"
                       >
-                        {item.uom || 'P'}
+                        {item.uom || 'pcs'}
                       </div>
                       <div style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomHintVisible : styles.uomHint}>
                         Press Space or Click to toggle
@@ -2701,18 +2762,40 @@ const SaleInvoice = () => {
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
           }}>
             <h3 style={{ marginBottom: '20px', color: '#1B91DA', textAlign: 'center' }}>
-              Confirm Save Invoice
+              {saveConfirmationData.isEditing ? 'Confirm UPDATE Invoice' : 'Confirm SAVE Invoice'}
             </h3>
             <div style={{ marginBottom: '30px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <span style={{ fontWeight: 'bold', color: '#666' }}>Invoice No:</span>
-                <span>{saveConfirmationData.invoiceNo}</span>
+                <span style={{ fontWeight: 'bold', color: saveConfirmationData.isEditing ? '#dc3545' : '#28a745' }}>
+                  {saveConfirmationData.invoiceNo}
+                </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 'bold', color: '#666' }}>Operation:</span>
+                <span style={{ 
+                  fontWeight: 'bold', 
+                  color: saveConfirmationData.isEditing ? '#dc3545' : '#28a745',
+                  backgroundColor: saveConfirmationData.isEditing ? '#f8d7da' : '#d4edda',
+                  padding: '2px 8px',
+                  borderRadius: '4px'
+                }}>
+                  {saveConfirmationData.isEditing ? 'UPDATE' : 'INSERT'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontWeight: 'bold', color: '#666' }}>Customer:</span>
                 <span>{saveConfirmationData.customer}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 'bold', color: '#666' }}>Date:</span>
+                <span>{saveConfirmationData.billDate}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 'bold', color: '#666' }}>Items:</span>
+                <span>{items.filter(item => item.itemName && item.itemName.trim()).length} items</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
                 <span style={{ fontWeight: 'bold', color: '#666' }}>Total Amount:</span>
                 <span style={{ fontWeight: 'bold', color: '#1B91DA' }}>₹{saveConfirmationData.totalAmount}</span>
               </div>
@@ -2750,16 +2833,30 @@ const SaleInvoice = () => {
                   padding: '12px 24px',
                   borderRadius: '6px',
                   border: 'none',
-                  backgroundColor: '#1B91DA',
-                  color: 'white',
+                  backgroundColor: saveConfirmationData.isEditing ? '#ffc107' : '#1B91DA',
+                  color: saveConfirmationData.isEditing ? '#212529' : 'white',
                   cursor: 'pointer',
                   minWidth: '120px',
+                  fontWeight: 'bold'
                 }}
                 onClick={handleConfirmedSave}
                 disabled={isSaving}
               >
-                {isSaving ? 'Saving...' : 'Confirm Save'}
+                {isSaving ? 'Processing...' : (saveConfirmationData.isEditing ? 'CONFIRM UPDATE' : 'CONFIRM SAVE')}
               </button>
+            </div>
+            <div style={{ 
+              marginTop: '15px', 
+              padding: '10px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '5px',
+              fontSize: '12px',
+              color: '#6c757d',
+              textAlign: 'center'
+            }}>
+              Endpoint: {saveConfirmationData.isEditing ? 
+                API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.UPDATE_SALES : 
+                API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.CREATE_SALES}
             </div>
           </div>
         </div>
