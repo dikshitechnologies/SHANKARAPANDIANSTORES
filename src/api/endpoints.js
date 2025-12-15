@@ -213,7 +213,16 @@ CATEGORY: {
   getCustomers: () => `Salesinvoices/GetPartyByParent`,
 },
 
-  TENDER: {
+  Scrap_Procurement: {
+    GET_VOUCHER_NO : "ScrapProcurement/GetMaxVoucherNo?compCode=001",
+    SAVE_SCRAP_PROCUREMENT: (saveType) => 
+    `ScrapProcurement/SCRAPCREATE?selecttype=${saveType === 'create' ? 'true' : 'false'}`,
+    GET_SALESiNVOICE_ITEMS: "Salesinvoices/GetItemsByType?type=SC",
+    GET_BILL_LIST:"ScrapProcurement/GetVouchersBillNoList?compCode=001&pageNumber=1&pageSize=10",
+    GET_VOUCHER_BY_NO: (voucherNo) => `ScrapProcurement/GetSCRAPDETAILS/${voucherNo}/001`,
+    DELETE_SCRAP_PROCUREMENT: (voucherNo) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/001`,
+  },
+    TENDER: {
     opening: "Tender/opening",
     closing: "Tender/closing",
   },
@@ -222,7 +231,10 @@ CATEGORY: {
 
   BILLCOLLECTOR:{
     GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
-  }
+  },
 
+  SALESRETURN: {
+  GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
+}
 };
 

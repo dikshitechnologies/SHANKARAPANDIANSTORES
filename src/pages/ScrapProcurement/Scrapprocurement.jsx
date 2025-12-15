@@ -12,28 +12,27 @@ const Scrapprocurement = () => {
 
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
-    billNo: 'SC00001AA',
+    billNo: '',
     billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
     empName: '',
     salesman: '',
+    salesmanCode: '', 
     custName: '',
-    returnReason: '',
+    custCode: '', 
     scrapProductInput: '',
-    partyCode: '',
-    gstno: '',
-    city: '',
-    type: 'Retail',
-    transType: 'SCRAP PROCUREMENT'
+    scrapCode: '',
   });
 
-  // 2. Table Items State
+  // 2. Table Items State - Store both scrap and item info
   const [items, setItems] = useState([
     {
       id: 1,
       sNo: 1,
-      scrapProductName: '',
-      itemName: '',
+      scrapProductName: '', // This is for scrap (scrpName)
+      scrapCode: '', // This is for scrap code (scrpCode)
+      itemName: '', // This is itemName from item popup
+      itemCode: '', // This is itemCode from item popup
       uom: '',
       tax: '',
       sRate: '',
@@ -53,17 +52,33 @@ const Scrapprocurement = () => {
   const empNameRef = useRef(null);
   const salesmanRef = useRef(null);
   const custNameRef = useRef(null);
-  const returnReasonRef = useRef(null);
   const scrapProductRef = useRef(null);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
   const [showSalesmanPopup, setShowSalesmanPopup] = useState(false);
-  const [itemSearchTerm, setItemSearchTerm] = useState(''); // Track search term for item popup
-  const [closedByUser, setClosedByUser] = useState(false); // Track if user closed the popup
+  const [showCustomerPopup, setShowCustomerPopup] = useState(false);
+  const [showScrapPopup, setShowScrapPopup] = useState(false);
+  const [showItemPopup, setShowItemPopup] = useState(false);
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [allItems, setAllItems] = useState([]);
+  const [selectedRowForItem, setSelectedRowForItem] = useState(null);
+  const [closedItemByUser, setClosedItemByUser] = useState(false);
   
-  // Store all fetched salesmen for filtering
+  // Separate search terms for each popup
+  const [salesmanSearchTerm, setSalesmanSearchTerm] = useState('');
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [scrapSearchTerm, setScrapSearchTerm] = useState('');
+  
+  const [closedByUser, setClosedByUser] = useState(false);
+  
+  // Store all fetched data for filtering
   const [allSalesmen, setAllSalesmen] = useState([]);
+  const [allCustomers, setAllCustomers] = useState([]);
+  const [allScrapItems, setAllScrapItems] = useState([]);
+
+  // Track which field is currently being searched
+  const [activeSearchField, setActiveSearchField] = useState(null);
 
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('all');
@@ -79,6 +94,42 @@ const Scrapprocurement = () => {
 
   // Auth context for company code
   const { userData } = useAuth() || {};
+
+  // NEW STATES FOR VOUCHER POPUPS
+  const [showVoucherListPopup, setShowVoucherListPopup] = useState(false);
+  const [voucherSearchTerm, setVoucherSearchTerm] = useState('');
+  const [voucherList, setVoucherList] = useState([]);
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
+  const [popupMode, setPopupMode] = useState(''); // 'edit' or 'delete'
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false); // Track if in edit mode
+
+  // Fetch next bill number
+  const fetchNextBillNo = async () => {
+    try {
+      const response = await axiosInstance.get(API_ENDPOINTS.Scrap_Procurement.GET_VOUCHER_NO);
+      
+      // Try to get voucherNo from response
+      const voucherNo = response?.data?.voucherNo;
+      
+      if (voucherNo) {
+        setBillDetails(prev => ({ 
+          ...prev, 
+          billNo: voucherNo 
+        }));
+      } 
+    } catch (err) {
+      console.error('Failed to fetch voucher number:', err);
+      setBillDetails(prev => ({ 
+        ...prev, 
+        billNo: 'SC00001AA' 
+      }));
+    }
+  };
+
+  useEffect(() => {
+    fetchNextBillNo();
+  }, [userData]);
 
   // Update screen size on resize
   useEffect(() => {
@@ -98,7 +149,7 @@ const Scrapprocurement = () => {
       });
     };
 
-    handleResize(); // Initial call
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -111,6 +162,23 @@ const Scrapprocurement = () => {
     setTotalQty(qtyTotal);
     setTotalAmount(amountTotal);
   }, [items]);
+
+  // Fetch all items when component mounts
+  useEffect(() => {
+    const fetchAllItems = async () => {
+      try {
+        const url = API_ENDPOINTS.Scrap_Procurement.GET_SALESiNVOICE_ITEMS;
+        const res = await axiosInstance.get(url);
+        const data = res?.data || [];
+        setAllItems(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching items:', error);
+        setAllItems([]);
+      }
+    };
+
+    fetchAllItems();
+  }, []);
 
   // Fetch all salesmen when component mounts
   useEffect(() => {
@@ -129,64 +197,273 @@ const Scrapprocurement = () => {
     fetchAllSalesmen();
   }, []);
 
-  // Handle popup auto-open when typing in salesman field
+  // Fetch all customers when component mounts
   useEffect(() => {
-    // If salesman field has value and user hasn't closed the popup manually
+    const fetchAllCustomer = async () => {
+      try {
+        const url = API_ENDPOINTS.sales_return.getCustomers;
+        const res = await axiosInstance.get(url);
+        const data = res?.data || [];
+        setAllCustomers(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+        setAllCustomers([]);
+      }
+    };
+
+    fetchAllCustomer();
+  }, []);
+
+  // Fetch all scrap items when component mounts
+  useEffect(() => {
+    const fetchAllScrapItems = async () => {
+      try {
+        const url = API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_ITEMS;
+        const res = await axiosInstance.get(url);
+        const data = res?.data || [];
+        setAllScrapItems(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching scrap items:', error);
+        setAllScrapItems([]);
+      }
+    };
+
+    fetchAllScrapItems();
+  }, []);
+
+  // Handle salesman popup auto-open
+  useEffect(() => {
     if (billDetails.salesman.length > 0 && !showSalesmanPopup && !closedByUser) {
-      setItemSearchTerm(billDetails.salesman);
-      // Delay opening to prevent flickering
+      if (showCustomerPopup || showScrapPopup) return;
+      
+      setSalesmanSearchTerm(billDetails.salesman);
+      setActiveSearchField('salesman');
+      
       const timer = setTimeout(() => {
         setShowSalesmanPopup(true);
       }, 500);
+      
       return () => clearTimeout(timer);
     }
-  }, [billDetails.salesman, showSalesmanPopup, closedByUser]);
+  }, [billDetails.salesman, showSalesmanPopup, closedByUser, showCustomerPopup, showScrapPopup]);
+
+  // Handle customer popup auto-open
+  useEffect(() => {
+    if (billDetails.custName.length > 0 && !showCustomerPopup && !closedByUser) {
+      if (showSalesmanPopup || showScrapPopup) return;
+      
+      setCustomerSearchTerm(billDetails.custName);
+      setActiveSearchField('customer');
+      
+      const timer = setTimeout(() => {
+        setShowCustomerPopup(true);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [billDetails.custName, showCustomerPopup, closedByUser, showSalesmanPopup, showScrapPopup]);
+
+  // Handle scrap popup auto-open
+  useEffect(() => {
+    if (billDetails.scrapProductInput.length > 0 && !showScrapPopup && !closedByUser) {
+      if (showSalesmanPopup || showCustomerPopup) return;
+      
+      setScrapSearchTerm(billDetails.scrapProductInput);
+      setActiveSearchField('scrap');
+      
+      const timer = setTimeout(() => {
+        setShowScrapPopup(true);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [billDetails.scrapProductInput, showScrapPopup, closedByUser, showSalesmanPopup, showCustomerPopup]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       setShowSalesmanPopup(false);
+      setShowCustomerPopup(false);
+      setShowScrapPopup(false);
+      setShowItemPopup(false);
       setClosedByUser(false);
+      setClosedItemByUser(false);
+      setActiveSearchField(null);
+      setSelectedRowForItem(null);
+      setSalesmanSearchTerm('');
+      setCustomerSearchTerm('');
+      setScrapSearchTerm('');
       setItemSearchTerm('');
     };
   }, []);
 
-  // Fetch salesmen list for popup
-  const fetchSalesManList = async (pageNum = 1, search = '') => {
+  // NEW: Fetch voucher list for popup
+  const fetchVoucherList = async (pageNum = 1, search = '') => {
     try {
-      console.log('Fetching salesmen with search:', search || itemSearchTerm);
+      setIsLoadingVouchers(true);
+      const searchTerm = search || voucherSearchTerm || '';
       
-      const searchTerm = search || itemSearchTerm || '';
+      const url = API_ENDPOINTS.Scrap_Procurement.GET_BILL_LIST;
+      const response = await axiosInstance.get(url);
       
-      // If we have all salesmen stored, filter them locally for faster response
-      if (allSalesmen.length > 0 && searchTerm) {
+      let dataArray = [];
+      if (response?.data?.data && Array.isArray(response.data.data)) {
+        dataArray = response.data.data;
+      } else if (Array.isArray(response?.data)) {
+        dataArray = response.data;
+      }
+      
+      if (!Array.isArray(dataArray)) {
+        console.warn('Voucher data is not an array:', dataArray);
+        return [];
+      }
+      
+      let filteredData = dataArray;
+      if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
-        const filtered = allSalesmen.filter(salesman => {
-          const fullName = `${salesman.fname || ''} ${salesman.lname || ''}`.toLowerCase();
-          const code = (salesman.code || '').toLowerCase();
-          const fname = (salesman.fname || '').toLowerCase();
-          const lname = (salesman.lname || '').toLowerCase();
-          
-          return fullName.includes(searchLower) || 
-                 code.includes(searchLower) ||
-                 fname.includes(searchLower) ||
-                 lname.includes(searchLower);
+        filteredData = dataArray.filter(voucher => {
+          const voucherNo = (voucher.voucher || voucher.voucherNo || '').toLowerCase();
+          return voucherNo.includes(searchLower);
+        });
+      }
+      
+      const uniqueVouchers = new Map();
+      
+      filteredData.forEach((item, index) => {
+        const voucherNo = item.voucher || item.voucherNo || '';
+        if (voucherNo && !uniqueVouchers.has(voucherNo)) {
+          uniqueVouchers.set(voucherNo, {
+            id: item.id || voucherNo || `voucher-${index}`,
+            voucherNo: voucherNo,
+          });
+        }
+      });
+      
+      return Array.from(uniqueVouchers.values());
+      
+    } catch (error) {
+      console.error('Error fetching vouchers:', error);
+      return [];
+    } finally {
+      setIsLoadingVouchers(false);
+    }
+  };
+
+  // NEW: Function to load a voucher for editing
+  const loadVoucherForEditing = async (voucherNo) => {
+    try {
+      const url = API_ENDPOINTS.Scrap_Procurement.GET_VOUCHER_BY_NO(voucherNo);
+      const response = await axiosInstance.get(url);
+      
+      const voucherData = response?.data?.data || response?.data;
+      
+      if (voucherData) {
+        setBillDetails({
+          billNo: voucherData.voucherNo || '',
+          billDate: voucherData.voucherDate || new Date().toISOString().substring(0, 10),
+          mobileNo: voucherData.mobileNo || '',
+          empName: voucherData.empName || '',
+          salesman: voucherData.salesmanName || '',
+          salesmanCode: voucherData.salesmancode || '', 
+          custName: voucherData.customerName || '',
+          custCode: voucherData.customercode || '', 
+          scrapProductInput: voucherData.scrpName || '',
+          scrapCode: voucherData.scrpCode || '',
         });
         
-        return filtered.map((salesman, index) => ({
-          id: salesman.id || salesman.code || `salesman-${index}`,
-          code: salesman.code || '',
-          fname: salesman.fname || '',
-          lname: salesman.lname || '',
-          fullName: `${salesman.fname || ''} ${salesman.lname || ''}`.trim(),
-          mobile: salesman.mobile || '',
+        if (voucherData.items && Array.isArray(voucherData.items)) {
+          const formattedItems = voucherData.items.map((item, index) => ({
+            id: index + 1,
+            sNo: index + 1,
+            scrapProductName: voucherData.scrpName || '',
+            scrapCode: voucherData.scrpCode || '',
+            itemName: item.itemName || '',
+            itemCode: item.itemCode || '',
+            uom: item.uom || 'KG',
+            tax: item.tax?.toString() || '',
+            sRate: item.rate?.toString() || '',
+            qty: item.qty?.toString() || '',
+            amount: item.amount?.toString() || '0.00'
+          }));
+          setItems(formattedItems);
+        }
+        
+        alert(`Voucher ${voucherNo} loaded successfully for editing.`);
+        setIsEditMode(true);
+      } else {
+        alert(`No voucher data found for ${voucherNo}`);
+      }
+    } catch (error) {
+      console.error('Error loading voucher:', error);
+      alert(`Failed to load voucher: ${error.message}`);
+    }
+  };
+
+  // NEW: Function to delete a voucher
+  const deleteVoucher = async (voucherNo) => {
+    if (window.confirm(`Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`)) {
+      try {
+        const response = await axiosInstance.delete(
+          API_ENDPOINTS.Scrap_Procurement.DELETE_SCRAP_PROCUREMENT(voucherNo)
+        );
+        
+        if (response.status === 200 || response.status === 201) {
+          alert(`Voucher ${voucherNo} deleted successfully.`);
+          handleClear();
+          fetchNextBillNo();
+        } else {
+          alert('Failed to delete voucher. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error deleting voucher:', error);
+        alert(`Failed to delete voucher: ${error.response?.data?.message || error.message}`);
+      }
+    }
+  };
+
+  // NEW: Handle Edit button click
+  const handleEditClick = () => {
+    setPopupMode('edit');
+    setVoucherSearchTerm('');
+    setShowVoucherListPopup(true);
+  };
+
+  // NEW: Handle Delete button click
+  const handleDeleteClick = () => {
+    setPopupMode('delete');
+    setVoucherSearchTerm('');
+    setShowVoucherListPopup(true);
+  };
+
+  // Fetch items list for popup
+  const fetchItemList = async (pageNum = 1, search = '') => {
+    try {
+      const searchTerm = search || itemSearchTerm || '';
+      
+      if (allItems.length > 0) {
+        const searchLower = searchTerm.toLowerCase();
+        const filtered = allItems.filter(item => {
+          const code = (item.itemCode || '').toLowerCase();
+          const name = (item.itemName || '').toLowerCase();
+          return code.includes(searchLower) || name.includes(searchLower);
+        });
+        
+        return filtered.map((item, index) => ({
+          id: item.itemCode || `item-${index}`,
+          itemCode: item.itemCode || '',
+          itemName: item.itemName || '',
+          brand: item.brand || '',
+          category: item.category || '',
+          model: item.model || '',
+          size: item.size || '',
+          hsn: item.hsn || '',
+          preRate: item.preRate || '0',
+          type: item.type || '',
         }));
       }
       
-      // Fallback: fetch from API
-      const url = API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.getSalesmen + 
-                  (searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '');
-      
+      const url = API_ENDPOINTS.Scrap_Procurement.GET_ITEMS_BY_TYPE +
+                (searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '');
       const response = await axiosInstance.get(url);
       const data = response?.data || [];
       
@@ -194,14 +471,90 @@ const Scrapprocurement = () => {
         return [];
       }
       
-      // Format data for the popup
-      return data.map((salesman, index) => ({
+      return data.map((item, index) => ({
+        id: item.itemCode || `item-${index}`,
+        itemCode: item.itemCode || '',
+        itemName: item.itemName || '',
+        brand: item.brand || '',
+        category: item.category || '',
+        model: item.model || '',
+        size: item.size || '',
+        hsn: item.hsn || '',
+        preRate: item.preRate || '0',
+        type: item.type || '',
+      }));
+      
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      return [];
+    }
+  };
+
+  // Fetch salesmen list for popup
+  const fetchSalesManList = async (pageNum = 1, search = '') => {
+    try {
+      const searchTerm = search || salesmanSearchTerm || '';
+      
+      if (allSalesmen.length > 0) {
+        const searchLower = searchTerm.toLowerCase();
+        const filtered = allSalesmen.filter(salesman => {
+          const code = (salesman.code || salesman.fcode || salesman.salesmanCode || '').toLowerCase();
+          const firstName = (salesman.fname || salesman.firstName || salesman.name || '').toLowerCase();
+          const lastName = (salesman.lname || salesman.lastName || '').toLowerCase();
+          const fullName = `${firstName} ${lastName}`.toLowerCase();
+          
+          return code.includes(searchLower) || 
+                 firstName.includes(searchLower) ||
+                 lastName.includes(searchLower) ||
+                 fullName.includes(searchLower);
+        });
+        
+        return filtered.map((salesman, index) => ({
+          id: salesman.id || salesman.code || `salesman-${index}`,
+          code: salesman.code || salesman.fcode || salesman.salesmanCode || '',
+          fcode: salesman.fcode || salesman.code || '',
+          fname: salesman.fname || salesman.firstName || salesman.name || '',
+          lname: salesman.lname || salesman.lastName || '',
+          fullName: `${salesman.fname || salesman.firstName || salesman.name || ''} ${salesman.lname || salesman.lastName || ''}`.trim(),
+          mobile: salesman.mobile || salesman.phone || '',
+          salesmanCode: salesman.code || salesman.fcode || salesman.salesmanCode || '',
+        }));
+      }
+      
+      const url = API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.getSalesmen;
+      const response = await axiosInstance.get(url);
+      const data = response?.data || [];
+      
+      if (!Array.isArray(data)) {
+        return [];
+      }
+      
+      setAllSalesmen(data);
+      
+      let filteredData = data;
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        filteredData = data.filter(salesman => {
+          const code = (salesman.code || salesman.fcode || salesman.salesmanCode || '').toLowerCase();
+          const firstName = (salesman.fname || salesman.firstName || salesman.name || '').toLowerCase();
+          const lastName = (salesman.lname || salesman.lastName || '').toLowerCase();
+          const fullName = `${firstName} ${lastName}`.toLowerCase();
+          
+          return code.includes(searchLower) || 
+                 firstName.includes(searchLower) ||
+                 lastName.includes(searchLower) ||
+                 fullName.includes(searchLower);
+        });
+      }
+      
+      return filteredData.map((salesman, index) => ({
         id: salesman.id || salesman.code || `salesman-${index}`,
-        code: salesman.code || '',
-        fname: salesman.fname || '',
-        lname: salesman.lname || '',
-        fullName: `${salesman.fname || ''} ${salesman.lname || ''}`.trim(),
-        mobile: salesman.mobile || '',
+        code: salesman.code || salesman.fcode || salesman.salesmanCode || '',
+        fcode: salesman.fcode || salesman.code || '',
+        fname: salesman.fname || salesman.firstName || salesman.name || '',
+        lname: salesman.lname || salesman.lastName || '',
+        fullName: `${salesman.fname || salesman.firstName || salesman.name || ''} ${salesman.lname || salesman.lastName || ''}`.trim(),
+        mobile: salesman.mobile || salesman.phone || '',
       }));
       
     } catch (error) {
@@ -210,6 +563,91 @@ const Scrapprocurement = () => {
     }
   };
 
+  // Fetch customer list for popup
+  const fetchCustomerList = async (pageNum = 1, search = '') => {
+    try {
+      const searchTerm = search || customerSearchTerm || '';
+      
+      if (allCustomers.length > 0 && searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const filtered = allCustomers.filter(customer => {
+          const code = (customer.code || '').toLowerCase();
+          const name = (customer.name || '').toLowerCase();
+          return code.includes(searchLower) || name.includes(searchLower);
+        });
+        
+        return filtered.map((customer, index) => ({
+          id: customer.id || customer.code || `customer-${index}`,
+          code: customer.code || '',
+          name: customer.name || '',
+          custName: customer.name || '',
+        }));
+      }
+      
+      const url = API_ENDPOINTS.sales_return.getCustomers + 
+                  (searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '');
+      const response = await axiosInstance.get(url);
+      const data = response?.data || [];
+      
+      if (!Array.isArray(data)) {
+        return [];
+      }
+      
+      return data.map((customer, index) => ({
+        id: customer.id || customer.code || `customer-${index}`,
+        code: customer.code || '',
+        name: customer.name || '',
+        custName: customer.name || '',
+      }));
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      return [];
+    }
+  };
+
+  // Fetch scrap items list for popup
+  const fetchScrapItemList = async (pageNum = 1, search = '') => {
+    try {
+      const searchTerm = search || scrapSearchTerm || '';
+      
+      if (allScrapItems.length > 0 && searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const filtered = allScrapItems.filter(scrap => {
+          const name = (scrap.scrapName || '').toLowerCase();
+          const code = (scrap.scrapCode || '').toLowerCase();
+          return name.includes(searchLower) || code.includes(searchLower);
+        });
+        
+        return filtered.map((scrap, index) => ({
+          id: scrap.scrapCode || `scrap-${index}`,
+          scrapCode: scrap.scrapCode || '',
+          scrapName: scrap.scrapName || '',
+          scrapProductName: scrap.scrapName || '',
+        }));
+      }
+      
+      const url = API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_ITEMS +
+                (searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '');
+      const response = await axiosInstance.get(url);
+      const data = response?.data || [];
+      
+      if (!Array.isArray(data)) {
+        return [];
+      }
+      
+      return data.map((scrap, index) => ({
+        id: scrap.scrapCode || `scrap-${index}`,
+        scrapCode: scrap.scrapCode || '',
+        scrapName: scrap.scrapName || '',
+        scrapProductName: scrap.scrapName || '',
+      }));
+      
+    } catch (error) {
+      console.error('Error fetching scrap items:', error);
+      return [];
+    }
+  };
+  
   // Calculate amount when qty or sRate changes
   const calculateAmount = (qty, sRate) => {
     const qtyNum = parseFloat(qty || 0);
@@ -235,14 +673,22 @@ const Scrapprocurement = () => {
   };
 
   const handleAddItem = () => {
-    if (!billDetails.scrapProductInput) {
+    const scrapName = billDetails.scrapProductInput;
+    
+    if (!scrapName) {
       alert("Please enter scrap product name");
       return;
     }
-
+    
+    // Find the scrap item in allScrapItems
+    const scrapItem = allScrapItems.find(item => 
+      item.scrapName === scrapName || item.scrapProductName === scrapName
+    );
+    
     // Check if scrap product already exists in items
     const existingItemIndex = items.findIndex(item =>
-      item.scrapProductName === billDetails.scrapProductInput && item.scrapProductName !== ''
+      item.scrapProductName.toLowerCase() === scrapName.toLowerCase() && 
+      item.scrapProductName !== ''
     );
 
     if (existingItemIndex !== -1) {
@@ -264,8 +710,10 @@ const Scrapprocurement = () => {
       const newItem = {
         id: items.length + 1,
         sNo: items.length + 1,
-        scrapProductName: billDetails.scrapProductInput,
-        itemName: 'Scrap Item', // Mock data
+        scrapProductName: scrapName,
+        scrapCode: scrapItem ? scrapItem.scrapCode : '',
+        itemName: '', // Empty - user will select item from popup
+        itemCode: '', // Empty - user will select item from popup
         uom: 'KG',
         tax: '5',
         sRate: '50',
@@ -286,7 +734,9 @@ const Scrapprocurement = () => {
       id: items.length + 1,
       sNo: items.length + 1,
       scrapProductName: '',
+      scrapCode: '',
       itemName: '',
+      itemCode: '',
       uom: '',
       tax: '',
       sRate: '',
@@ -315,6 +765,16 @@ const Scrapprocurement = () => {
   };
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    // Handle / key for item search popup
+    if (e.key === '/') {
+      e.preventDefault();
+      setSelectedRowForItem(currentRowIndex);
+      setItemSearchTerm('');
+      setClosedItemByUser(false);
+      setShowItemPopup(true);
+      return;
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
 
@@ -325,63 +785,49 @@ const Scrapprocurement = () => {
 
       const currentFieldIndex = fields.indexOf(currentField);
 
+      // Always move to next field if available, don't create rows
       if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
         const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"], select[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
         if (nextInput) {
           nextInput.focus();
           return;
         }
       }
 
-      if (currentRowIndex < items.length - 1) {
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="scrapProductName"]`);
-        if (nextInput) {
-          nextInput.focus();
-          return;
-        }
+      // Only add new row if Enter is pressed in the qty field (last field)
+      if (currentField === 'qty') {
+        handleAddRow();
+        setTimeout(() => {
+          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
+          if (newRowInput) newRowInput.focus();
+        }, 60);
       }
-
-      handleAddRow();
-      setTimeout(() => {
-        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
-        if (newRowInput) newRowInput.focus();
-      }, 60);
-    }
-  };
-
-  const handleDelete = () => {
-    // Show confirmation for bulk delete
-    if (window.confirm('Are you sure you want to delete the last item?')) {
-      // Removes the last item for demo purposes
-      if (items.length > 0) {
-        setItems(items.slice(0, -1));
-      }
+      
+      return;
     }
   };
 
   const handleDeleteRow = (id) => {
-    // Get the item to be deleted for the confirmation message
     const itemToDelete = items.find(item => item.id === id);
     const itemName = itemToDelete?.scrapProductName || 'this scrap product';
 
-    // Show confirmation dialog
     if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
       if (items.length > 1) {
         const filteredItems = items.filter(item => item.id !== id);
-        // Update serial numbers
         const updatedItems = filteredItems.map((item, index) => ({
           ...item,
           sNo: index + 1
         }));
         setItems(updatedItems);
       } else {
-        // Don't delete the last row, just clear it
         const clearedItem = {
           id: 1,
           sNo: 1,
           scrapProductName: '',
+          scrapCode: '',
           itemName: '',
+          itemCode: '',
           uom: '',
           tax: '',
           sRate: '',
@@ -394,49 +840,131 @@ const Scrapprocurement = () => {
   };
 
   const handleClear = () => {
-    // Show confirmation before clearing
-    if (window.confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-      // Reset form
-      setBillDetails({
-        billNo: 'SC00001AA',
-        billDate: new Date().toISOString().substring(0, 10),
-        mobileNo: '',
-        empName: '',
-        salesman: '',
-        custName: '',
-        returnReason: '',
-        scrapProductInput: '',
-        partyCode: '',
-        gstno: '',
-        city: '',
-        type: 'Retail',
-        transType: 'SCRAP PROCUREMENT'
-      });
+    if (isEditMode) {
+      if (window.confirm('Are you sure you want to clear all data? This will exit edit mode.')) {
+        setIsEditMode(false);
+      } else {
+        return;
+      }
+    }
+    
+    setBillDetails({
+      billNo: '',
+      billDate: new Date().toISOString().substring(0, 10),
+      mobileNo: '',
+      empName: '',
+      salesman: '',
+      salesmanCode: '', 
+      custName: '',
+      custCode: '', 
+      scrapProductInput: '',
+      scrapCode: '',
+    });
 
-      // Keep a single empty row after clearing
-      setItems([
-        {
-          id: 1,
-          sNo: 1,
-          scrapProductName: '',
-          itemName: '',
-          uom: '',
-          tax: '',
-          sRate: '',
-          qty: '',
-          amount: '0.00'
-        }
-      ]);
+    setItems([
+      {
+        id: 1,
+        sNo: 1,
+        scrapProductName: '',
+        scrapCode: '',
+        itemName: '',
+        itemCode: '',
+        uom: '',
+        tax: '',
+        sRate: '',
+        qty: '',
+        amount: '0.00'
+      }
+    ]);
+    
+    // Fetch next bill number
+    fetchNextBillNo();
+  };
+
+  const handleSave = async () => {
+    try {
+      // Use isEditMode to determine if this is edit (true) or create (false)
+      const isCreate = !isEditMode;
+      
+      // Validate required fields
+      if (!billDetails.salesman || !billDetails.custName) {
+        alert('Please fill in required fields: Salesman and Customer');
+        return;
+      }
+      
+      // Check if we have items with item names
+      const validItems = items.filter(item => 
+        item.itemName && item.itemName.trim() !== '' && 
+        item.itemCode && item.itemCode.trim() !== ''
+      );
+      
+      if (validItems.length === 0) {
+        alert('Please add at least one item with item name selected from the popup');
+        return;
+      }
+      
+      // Get scrap details from the first item with scrap or from header
+      const firstScrapItem = items.find(item => item.scrapProductName && item.scrapProductName.trim() !== '');
+      
+      // Prepare items array for API - only include items with itemName and itemCode
+      const itemsForAPI = validItems.map(item => ({
+        itemCode: item.itemCode || '',
+        itemName: item.itemName || '',
+        qty: parseFloat(item.qty) || 0,
+        rate: parseFloat(item.sRate) || 0,
+        tax: parseFloat(item.tax) || 0,
+        amount: parseFloat(item.amount) || 0,
+        uom: item.uom || 'KG',
+        barcode: ''
+      }));
+      
+      // Prepare the payload according to your API format
+      const payload = {
+        compCode: userData?.companyCode || '001',
+        usercode: userData?.userCode || '001',
+        voucherNo: billDetails.billNo,
+        voucherDate: billDetails.billDate,
+        salesmanName: billDetails.salesman,
+        salesmancode: billDetails.salesmanCode || '',
+        customercode: billDetails.custCode || '',
+        customerName: billDetails.custName,
+        netAmount: totalAmount,
+        scrpName: firstScrapItem?.scrapProductName || billDetails.scrapProductInput || '',
+        scrpCode: firstScrapItem?.scrapCode || billDetails.scrapCode || '',
+        empName: billDetails.empName,
+        empCode: billDetails.empCode || '', // You need employee code if available
+        mobileNo: billDetails.mobileNo,
+        items: itemsForAPI
+      };
+
+      // Log the payload for debugging
+      console.log('Saving payload with isCreate =', isCreate, ':', payload);
+      
+      // Make the API call with isCreate as boolean parameter
+      const response = await axiosInstance.post(
+        API_ENDPOINTS.Scrap_Procurement.SAVE_SCRAP_PROCUREMENT(isCreate),
+        payload
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        const mode = isCreate ? 'created' : 'updated';
+        alert(`Scrap Procurement data ${mode} successfully!\n\nVoucher No: ${billDetails.billNo}\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+        
+        // Clear the form and fetch next bill number
+        handleClear();
+        fetchNextBillNo();
+        setIsEditMode(false);
+      } else {
+        alert('Failed to save data. Please try again.');
+      }
+
+    } catch (error) {
+      console.error('Error saving scrap procurement:', error);
+      alert(`Error saving data: ${error.response?.data?.message || error.message}`);
     }
   };
 
-  const handleSave = () => {
-    // Save logic here
-    alert(`Scrap Procurement data saved successfully!\n\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-  };
-
   const handlePrint = () => {
-    // Print logic here
     alert('Print functionality to be implemented');
   };
 
@@ -726,13 +1254,6 @@ const Scrapprocurement = () => {
       justifyContent: screenSize.isMobile ? 'center' : 'flex-start',
       marginTop: screenSize.isMobile ? '12px' : '0',
     },
-    totalsRow: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      backgroundColor: '#e8f4fc',
-      borderTop: '2px solid #1B91DA',
-    },
   };
 
   // Determine grid columns based on screen size
@@ -831,19 +1352,26 @@ const Scrapprocurement = () => {
           {/* Salesman */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Salesman:</label>
-            <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
+            <div style={{ position: 'relative', flex: 1 }}>
               <input
                 type="text"
-                style={{ ...styles.inlineInput, flex: 1 }}
+                style={{
+                  ...styles.inlineInput,
+                  flex: 1,
+                  paddingRight: '40px',
+                }}
                 value={billDetails.salesman}
                 name="salesman"
                 onChange={(e) => {
                   const value = e.target.value;
                   handleInputChange(e);
-                  setItemSearchTerm(value);
+                  setSalesmanSearchTerm(value);
                   
                   if (value.length > 0) {
                     setClosedByUser(false);
+                    setActiveSearchField('salesman');
+                    setShowCustomerPopup(false);
+                    setShowScrapPopup(false);
                     setTimeout(() => setShowSalesmanPopup(true), 300);
                   }
                 }}
@@ -851,7 +1379,7 @@ const Scrapprocurement = () => {
                 onKeyDown={(e) => {
                   if (e.key === '/' || e.key === 'F2') {
                     e.preventDefault();
-                    setItemSearchTerm(billDetails.salesman);
+                    setSalesmanSearchTerm(billDetails.salesman);
                     setShowSalesmanPopup(true);
                   } else if (e.key === 'Enter') {
                     handleKeyDown(e, custNameRef);
@@ -859,14 +1387,16 @@ const Scrapprocurement = () => {
                 }}
                 onFocus={() => {
                   setFocusedField('salesman');
+                  setActiveSearchField('salesman');
+                  
                   if (billDetails.salesman.length > 0 && !showSalesmanPopup && !closedByUser) {
-                    setItemSearchTerm(billDetails.salesman);
+                    setSalesmanSearchTerm(billDetails.salesman);
+                    setShowCustomerPopup(false);
+                    setShowScrapPopup(false);
                     setTimeout(() => setShowSalesmanPopup(true), 100);
                   }
                 }}
-                onBlur={() => {
-                  setFocusedField('');
-                }}
+                onBlur={() => setFocusedField('')}
                 placeholder="Type name or press / to search"
               />
               <button
@@ -874,65 +1404,201 @@ const Scrapprocurement = () => {
                 aria-label="Search salesman"
                 title="Search salesman"
                 onClick={() => {
-                  setItemSearchTerm(billDetails.salesman);
+                  setSalesmanSearchTerm(billDetails.salesman);
+                  setActiveSearchField('salesman');
                   setShowSalesmanPopup(true);
                 }}
                 style={{
-                  height: screenSize.isMobile ? '32px' : '40px',
-                  minWidth: '40px',
-                  border: '1px solid #1B91DA',
-                  background: '#e8f4fc',
+                  position: 'absolute',
+                  right: '4px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  height: screenSize.isMobile ? '24px' : '28px',
+                  width: screenSize.isMobile ? '24px' : '28px',
+                  border: 'none',
+                  background: 'transparent',
                   color: '#1B91DA',
-                  borderRadius: screenSize.isMobile ? '3px' : '4px',
+                  borderRadius: '3px',
                   cursor: 'pointer',
-                  fontSize: '18px',
+                  fontSize: screenSize.isMobile ? '14px' : '16px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  padding: 0,
+                  zIndex: 1,
                 }}
               >
                 🔎
               </button>
             </div>
           </div>
-        
+
           {/* Customer Name */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Customer:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.custName}
-              name="custName"
-              onChange={handleInputChange}
-              ref={custNameRef}
-              onKeyDown={(e) => handleKeyDown(e, returnReasonRef)}
-              onFocus={() => setFocusedField('custName')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Customer Name"
-            />
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                type="text"
+                style={{ ...styles.inlineInput, flex: 1,paddingRight: '40px', }}
+                value={billDetails.custName}
+                name="custName"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleInputChange(e);
+                  setCustomerSearchTerm(value);
+                  
+                  if (value.length > 0) {
+                    setClosedByUser(false);
+                    setActiveSearchField('customer');
+                    setShowSalesmanPopup(false);
+                    setShowScrapPopup(false);
+                    setTimeout(() => setShowCustomerPopup(true), 300);
+                  }
+                }}
+                ref={custNameRef}
+                onKeyDown={(e) => {
+                  if (e.key === '/' || e.key === 'F2') {
+                    e.preventDefault();
+                    setCustomerSearchTerm(billDetails.custName);
+                    setShowCustomerPopup(true);
+                  } else if (e.key === 'Enter') {
+                    handleKeyDown(e, scrapProductRef);
+                  }
+                }}
+                onFocus={() => {
+                  setFocusedField('custName');
+                  setActiveSearchField('customer');
+                  
+                  if (billDetails.custName.length > 0 && !showCustomerPopup && !closedByUser) {
+                    setCustomerSearchTerm(billDetails.custName);
+                    setShowSalesmanPopup(false);
+                    setShowScrapPopup(false);
+                    setTimeout(() => setShowCustomerPopup(true), 100);
+                  }
+                }}
+                onBlur={() => setFocusedField('')}
+                placeholder="Type customer name or press / to search"
+                
+              />
+              <button
+                type="button"
+                aria-label="Search customer"
+                title="Search customer"
+                onClick={() => {
+                  setCustomerSearchTerm(billDetails.custName);
+                  setActiveSearchField('customer');
+                  setShowCustomerPopup(true);
+                }}
+                style={{
+                  position: 'absolute',
+                  right: '4px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  height: screenSize.isMobile ? '24px' : '28px',
+                  width: screenSize.isMobile ? '24px' : '28px',
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#1B91DA',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: screenSize.isMobile ? '14px' : '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  zIndex: 1,
+
+                }}
+              >
+                🔎
+              </button>
+            </div>
           </div>
 
-          {/* Scrap Product Name */}
+          {/* Scrap Product Input */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Scrap Product:</label>
-            <input
-              type="text"
-              style={styles.inlineInput}
-              value={billDetails.scrapProductInput}
-              name="scrapProductInput"
-              onChange={handleInputChange}
-              ref={scrapProductRef}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddItem();
-                }
-              }}
-              onFocus={() => setFocusedField('scrapProductInput')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Scrap Product Name"
-            />
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                type="text"
+                style={{ ...styles.inlineInput, flex: 1 }}
+                value={billDetails.scrapProductInput}
+                name="scrapProductInput"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleInputChange(e);
+                  setScrapSearchTerm(value);
+                  
+                  if (value.length > 0) {
+                    setClosedByUser(false);
+                    setActiveSearchField('scrap');
+                    setShowSalesmanPopup(false);
+                    setShowCustomerPopup(false);
+                    setTimeout(() => setShowScrapPopup(true), 300);
+                  }
+                }}
+                ref={scrapProductRef}
+                onKeyDown={(e) => {
+                  if (e.key === '/' || e.key === 'F2') {
+                    e.preventDefault();
+                    setScrapSearchTerm(billDetails.scrapProductInput);
+                    setShowScrapPopup(true);
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Move focus to the first barcode field in the table
+                    const firstBarcodeInput = document.querySelector('input[data-row="0"][data-field="scrapProductName"]');
+                    if (firstBarcodeInput) {
+                      firstBarcodeInput.focus();
+                    }
+                  }
+                }}
+                onFocus={() => {
+                  setFocusedField('scrapProductInput');
+                  setActiveSearchField('scrap');
+                  
+                  if (billDetails.scrapProductInput.length > 0 && !showScrapPopup && !closedByUser) {
+                    setScrapSearchTerm(billDetails.scrapProductInput);
+                    setShowSalesmanPopup(false);
+                    setShowCustomerPopup(false);
+                    setTimeout(() => setShowScrapPopup(true), 100);
+                  }
+                }}
+                onBlur={() => setFocusedField('')}
+                placeholder="Type scrap product or press / to search"
+              />
+              <button
+                type="button"
+                aria-label="Search scrap product"
+                title="Search scrap product"
+                onClick={() => {
+                  setScrapSearchTerm(billDetails.scrapProductInput);
+                  setActiveSearchField('scrap');
+                  setShowScrapPopup(true);
+                }}
+                style={{
+                  position: 'absolute',
+                  right: '4px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  height: screenSize.isMobile ? '24px' : '28px',
+                  width: screenSize.isMobile ? '24px' : '28px',
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#1B91DA',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: screenSize.isMobile ? '14px' : '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  zIndex: 1,
+
+                }}
+              >
+                🔎
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -944,7 +1610,7 @@ const Scrapprocurement = () => {
             <thead>
               <tr>
                 <th style={styles.th}>S.No</th>
-                <th style={{ ...styles.th, ...styles.scrapProductNameContainer, textAlign: 'left' }}>Scrap Product Name</th>
+                <th style={{ ...styles.th}}>Barcode</th>
                 <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Item Name</th>
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>TAX (%)</th>
@@ -958,22 +1624,22 @@ const Scrapprocurement = () => {
               {items.map((item, index) => (
                 <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
                   <td style={styles.td}>{item.sNo}</td>
-                  <td style={{ ...styles.td, ...styles.scrapProductNameContainer }}>
+                  <td style={styles.td}>
                     <input
-                      style={{ ...styles.editableInput, textAlign: 'left' }}
+                      style={styles.editableInput}
                       value={item.scrapProductName}
-                      placeholder="Scrap Product Name"
                       data-row={index}
                       data-field="scrapProductName"
                       onChange={(e) => handleItemChange(item.id, 'scrapProductName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'scrapProductName')}
+                      placeholder="Barcode"
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
                     <input
                       style={{ ...styles.editableInput, textAlign: 'left' }}
                       value={item.itemName}
-                      placeholder="Item Name"
+                      placeholder="Press / to search items"
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
@@ -981,14 +1647,22 @@ const Scrapprocurement = () => {
                     />
                   </td>
                   <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
+                    <select
+                      style={{
+                        ...styles.editableInput,
+                        textAlign: 'center',
+                        appearance: 'auto',
+                        cursor: 'pointer',
+                      }}
                       value={item.uom}
                       data-row={index}
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                    />
+                    >
+                      <option value="KG">KG</option>
+                      <option value="PCS">PCS</option>
+                    </select>
                   </td>
                   <td style={styles.td}>
                     <input
@@ -1090,18 +1764,18 @@ const Scrapprocurement = () => {
         onClose={() => { 
           setShowSalesmanPopup(false);
           setClosedByUser(true);
-          setItemSearchTerm('');
+          setSalesmanSearchTerm('');
+          setActiveSearchField(null);
         }}
         title="Select Salesman"
-        fetchItems={(pageNum = 1, search = '') => fetchSalesManList(pageNum, search || itemSearchTerm)}
-        displayFieldKeys={['fname']}
-        headerNames={['First Name']}
-        searchFields={['fname']}
-        columnWidths={['100%']}
+        fetchItems={fetchSalesManList}
+        displayFieldKeys={['code','fullName']}
+        headerNames={['Code','Salesman Name']}
+        searchFields={['code','fname']}
+        columnWidths={['30%','70%']}
         searchPlaceholder="Search salesman by name..."
-        initialSearchText={itemSearchTerm}
+        initialSearchText={salesmanSearchTerm}
         onSelect={(selectedSalesman) => {
-          // Format the name for display
           const fullName = selectedSalesman.fullName || 
                           `${selectedSalesman.fname || ''} ${selectedSalesman.lname || ''}`.trim() ||
                           selectedSalesman.code || '';
@@ -1109,18 +1783,168 @@ const Scrapprocurement = () => {
           setBillDetails(prev => ({
             ...prev,
             salesman: fullName,
+            salesmanCode: selectedSalesman.code || selectedSalesman.salesmanCode || '',
           }));
           setShowSalesmanPopup(false);
           setClosedByUser(false);
-          setItemSearchTerm('');
+          setSalesmanSearchTerm('');
+          setActiveSearchField(null);
           
-          // Move focus to next field
           if (custNameRef.current) {
             custNameRef.current.focus();
           }
         }}
       />
       
+      {/* Customer Popup */}
+      <PopupListSelector
+        open={showCustomerPopup}
+        onClose={() => {
+          setShowCustomerPopup(false);
+          setClosedByUser(true);
+          setCustomerSearchTerm('');
+          setActiveSearchField(null);
+        }}
+        title="Select Customer"
+        fetchItems={fetchCustomerList}
+        displayFieldKeys={['code', 'name']}
+        headerNames={['Code', 'Customer Name']}
+        searchFields={['name', 'code']}
+        columnWidths={['40%', '60%']}
+        searchPlaceholder="Search customer by name or code..."
+        initialSearchText={customerSearchTerm}
+        onSelect={(selectedCustomer) => {
+          setBillDetails(prev => ({
+            ...prev,
+            custName: selectedCustomer.name || '',
+            custCode: selectedCustomer.code || '',
+          }));
+          setShowCustomerPopup(false);
+          setClosedByUser(false);
+          setCustomerSearchTerm('');
+          setActiveSearchField(null);
+          
+          if (scrapProductRef.current) {
+            scrapProductRef.current.focus();
+          }
+        }}
+      />
+
+      {/* Scrap Product Popup */}
+      <PopupListSelector
+        open={showScrapPopup}
+        onClose={() => {
+          setShowScrapPopup(false);
+          setClosedByUser(true);
+          setScrapSearchTerm('');
+          setActiveSearchField(null);
+        }}
+        title="Select Scrap Product"
+        fetchItems={fetchScrapItemList}
+        displayFieldKeys={['scrapCode', 'scrapName']}
+        headerNames={['Code', 'Scrap Name']}
+        searchFields={['scrapName', 'scrapCode']}
+        columnWidths={['30%', '70%']}
+        searchPlaceholder="Search scrap by name or code..."
+        initialSearchText={scrapSearchTerm}
+        onSelect={(selectedScrap) => {
+          const scrapName = selectedScrap.scrapName || selectedScrap.scrapProductName || '';
+          
+          setBillDetails(prev => ({
+            ...prev,
+            scrapProductInput: scrapName,
+            scrapCode: selectedScrap.scrapCode || selectedScrap.code || '',
+          }));
+          setShowScrapPopup(false);
+          setClosedByUser(false);
+          setScrapSearchTerm('');
+          setActiveSearchField(null);
+          
+          setTimeout(() => {
+            if (scrapProductRef.current) {
+              scrapProductRef.current.focus();
+            }
+          }, 100);
+        }}
+      />
+
+      {/* Item Popup */}
+      <PopupListSelector
+        open={showItemPopup}
+        onClose={() => {
+          setShowItemPopup(false);
+          setClosedItemByUser(true);
+          setItemSearchTerm('');
+          setSelectedRowForItem(null);
+        }}
+        title="Select Item"
+        fetchItems={fetchItemList}
+        displayFieldKeys={['itemCode', 'itemName']}
+        headerNames={['Item Code', 'Item Name']}
+        searchFields={['itemName', 'itemCode']}
+        columnWidths={['30%', '70%']}
+        searchPlaceholder="Search item by name or code..."
+        initialSearchText={itemSearchTerm}
+        onSelect={(selectedItem) => {
+          if (selectedRowForItem !== null && items[selectedRowForItem]) {
+            const updatedItems = [...items];
+            const itemId = updatedItems[selectedRowForItem].id;
+            
+            const itemIndex = updatedItems.findIndex(item => item.id === itemId);
+            if (itemIndex !== -1) {
+              updatedItems[itemIndex] = {
+                ...updatedItems[itemIndex],
+                itemName: selectedItem.itemName || '',
+                itemCode: selectedItem.itemCode || '',
+              };
+              
+              setItems(updatedItems);
+            }
+          }
+          
+          setShowItemPopup(false);
+          setClosedItemByUser(false);
+          setItemSearchTerm('');
+          setSelectedRowForItem(null);
+          
+          setTimeout(() => {
+            const itemInput = document.querySelector(`input[data-row="${selectedRowForItem}"][data-field="itemName"]`);
+            if (itemInput) {
+              itemInput.focus();
+            }
+          }, 100);
+        }}
+      />
+
+      {/* NEW: Voucher List Popup for Edit/Delete */}
+      <PopupListSelector
+        open={showVoucherListPopup}
+        onClose={() => {
+          setShowVoucherListPopup(false);
+          setVoucherSearchTerm('');
+          setPopupMode('');
+        }}
+        title={popupMode === 'edit' ? 'Select Voucher to Edit' : 'Select Voucher to Delete'}
+        fetchItems={fetchVoucherList}
+        displayFieldKeys={['voucherNo']}
+        headerNames={['Voucher No']}
+        searchFields={['voucherNo']}
+        columnWidths={['100%']}
+        searchPlaceholder="Search by voucher number..."
+        initialSearchText={voucherSearchTerm}
+        onSelect={(selectedVoucher) => {
+          if (popupMode === 'edit') {
+            loadVoucherForEditing(selectedVoucher.voucherNo);
+          } else if (popupMode === 'delete') {
+            deleteVoucher(selectedVoucher.voucherNo);
+          }
+          
+          setShowVoucherListPopup(false);
+          setVoucherSearchTerm('');
+          setPopupMode('');
+        }}
+      />
+
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
@@ -1128,12 +1952,12 @@ const Scrapprocurement = () => {
             activeButton={activeTopAction}
             onButtonClick={(type) => {
               setActiveTopAction(type);
-              if (type === 'add') handleAddRow();
-              else if (type === 'edit') alert('Edit action: select a row to edit');
-              else if (type === 'delete') {
-                if (window.confirm('Are you sure you want to delete the last item?')) {
-                  handleDelete();
-                }
+              if (type === 'add') {
+                handleClear();
+              } else if (type === 'edit') {
+                handleEditClick();
+              } else if (type === 'delete') {
+                handleDeleteClick();
               }
             }}
           >
