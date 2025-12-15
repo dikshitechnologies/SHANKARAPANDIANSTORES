@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton } from '../../components/Buttons/ActionButtons';
+import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, PrintButton } from '../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
+import { useAuth } from '../../context/AuthContext';
+import { API_ENDPOINTS } from '../../api/endpoints';
 
 const PaymentVoucher = () => {
   // --- STATE MANAGEMENT ---
@@ -30,7 +32,7 @@ const PaymentVoucher = () => {
     costCenter: '',
     accountName: '',
     accountCode: '',
-    balance: '0.00',
+    balance: '',
     crDr: 'CR'
   });
 
@@ -45,7 +47,7 @@ const PaymentVoucher = () => {
       chqNo: '',
       chqDt: '',
       narration: '',
-      amount: '0.00'
+      amount: ''
     }
   ]);
 
@@ -57,10 +59,10 @@ const PaymentVoucher = () => {
       refNo: '',
       billNo: '',
       date: '',
-      billAmount: '0.00',
-      paidAmount: '0.00',
-      balanceAmount: '0.00',
-      amount: '0.00'
+      billAmount: '',
+      paidAmount: '',
+      balanceAmount: '',
+      amount: ''
     }
   ]);
 
@@ -69,15 +71,24 @@ const PaymentVoucher = () => {
   const [billTotalAmount, setBillTotalAmount] = useState(0);
 
   // 5. Popup States
-  const [accountPopupOpen, setAccountPopupOpen] = useState(false);
   const [editVoucherPopupOpen, setEditVoucherPopupOpen] = useState(false);
   const [deleteVoucherPopupOpen, setDeleteVoucherPopupOpen] = useState(false);
   const [currentRowIndex, setCurrentRowIndex] = useState(0);
 
   // 6. Data state
-  const [accountList, setAccountList] = useState([]);
   const [savedVouchers, setSavedVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
+  const [allParties, setAllParties] = useState([]);
+  const [showPartyPopup, setShowPartyPopup] = useState(false);
+  
+  // Pagination state for parties
+  const [partyCurrentPage, setPartyCurrentPage] = useState(1);
+  const [partyTotalPages, setPartyTotalPages] = useState(0);
+  const [isLoadingMoreParties, setIsLoadingMoreParties] = useState(false);
+  const [hasReachedEndOfParties, setHasReachedEndOfParties] = useState(false);
+
+  // Auth context for company code
+  const { userData } = useAuth() || {};
 
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const voucherNoRef = useRef(null);
@@ -90,7 +101,10 @@ const PaymentVoucher = () => {
   const [focusedField, setFocusedField] = useState('');
 
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('add');
+
+  // Top action active state
+  const [activeTopAction, setActiveTopAction] = useState('add');
 
   // Screen size state
   const [screenSize, setScreenSize] = useState({
@@ -124,55 +138,124 @@ const PaymentVoucher = () => {
   // Fetch next voucher number from API
   const fetchNextVoucherNo = useCallback(async () => {
     try {
+      if (!userData?.companyCode || !userData?.username) {
+        console.warn('userData not available yet');
+        return;
+      }
       setIsLoading(true);
-      // Replace with your actual API endpoint
-      const response = await apiService.get('/api/payment-voucher/next-voucher-no');
-      if (response.data?.voucherNo) {
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.GETNEXTVNUMBER(userData.companyCode, '001');
+      const response = await apiService.get(url);
+      console.log('Voucher response:', response);
+      if (response.voucherNo) {
         setVoucherDetails(prev => ({
           ...prev,
-          voucherNo: response.data.voucherNo
+          voucherNo: response.voucherNo
         }));
       }
     } catch (err) {
       console.error('Error fetching voucher number:', err);
+      setError('Failed to fetch voucher number');
     } finally {
       setIsLoading(false);
     }
-  }, [isEditing, voucherDetails.voucherNo]);
+  }, [userData?.companyCode, userData?.username]);
 
-  // Fetch accounts from backend API
-  const fetchAccounts = useCallback(async () => {
+
+
+  // Fetch pending bills for selected party
+  const fetchPendingBills = useCallback(async (partyCode) => {
     try {
+      if (!partyCode || !userData?.companyCode) return;
+      
       setIsLoading(true);
-      const response = await apiService.get('/api/accounts');
-      if (response.data?.accounts) {
-        setAccountList(response.data.accounts);
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.GETPENDINGBILLS(partyCode, userData.companyCode);
+      const response = await apiService.get(url);
+      
+      // API returns array directly, not wrapped in .data
+      const bills = Array.isArray(response) ? response : (response?.data || []);
+      
+      if (Array.isArray(bills) && bills.length > 0) {
+        // Map pending bills to table 2 (Reference Bill Details)
+        const mappedBills = bills.map((bill, idx) => ({
+          id: idx + 1,
+          sNo: idx + 1,
+          refNo: bill.invoiceNo || '',
+          billNo: bill.vrNo || '',
+          date: bill.invoiceDate ? bill.invoiceDate.substring(0, 10) : '',
+          billAmount: (bill.netAmount || 0).toString(),
+          paidAmount: (bill.paidAmount || 0).toString(),
+          balanceAmount: (bill.balanceAmount || 0).toString(),
+          amount: ''
+        }));
+        setBillDetails(mappedBills);
+      } else {
+        setBillDetails([
+          {
+            id: 1,
+            sNo: 1,
+            refNo: '',
+            billNo: '',
+            date: '',
+            billAmount: '',
+            paidAmount: '',
+            balanceAmount: '',
+            amount: ''
+          }
+        ]);
       }
     } catch (err) {
-      console.error('Error fetching accounts:', err);
-      setError('Failed to load accounts');
+      console.error('Error fetching pending bills:', err);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userData?.companyCode]);
 
   // Fetch saved vouchers for Edit/Delete popups
   const fetchSavedVouchers = useCallback(async (page = 1, search = '') => {
     try {
+      if (!userData?.companyCode) return;
       setLoadingVouchers(true);
-      const params = { page, limit: 10 };
-      if (search) params.search = search;
-      const response = await apiService.get('/api/payment-vouchers', { params });
-      if (response.data?.vouchers) {
-        setSavedVouchers(response.data.vouchers);
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.GETBILLNUMLIST(userData.companyCode);
+      const response = await apiService.get(url);
+      
+      // Handle different response formats
+      let voucherList = [];
+      if (Array.isArray(response)) {
+        // API returns array directly
+        voucherList = response;
+      } else if (Array.isArray(response?.data)) {
+        // API returns data in .data property
+        voucherList = response.data;
+      } else if (response?.data?.data && Array.isArray(response.data.data)) {
+        // API returns data in .data.data property
+        voucherList = response.data.data;
+      }
+      
+      if (Array.isArray(voucherList) && voucherList.length > 0) {
+        // Map API response to expected format (ensure invoiceNo field exists)
+        const mappedVouchers = voucherList.map(v => ({
+          ...v,
+          // Ensure invoiceNo exists for display
+          invoiceNo: v.invoiceNo || v.voucherNo || v.billNo || ''
+        }));
+        
+        const filtered = search 
+          ? mappedVouchers.filter(v => 
+              (v.invoiceNo || '').toLowerCase().includes(search.toLowerCase())
+            )
+          : mappedVouchers;
+        setSavedVouchers(filtered);
+      } else {
+        setSavedVouchers([]);
       }
     } catch (err) {
       console.error('Error fetching saved vouchers:', err);
       setError('Failed to load vouchers');
+      setSavedVouchers([]);
     } finally {
       setLoadingVouchers(false);
     }
-  }, []);
+  }, [userData?.companyCode]);
 
   // Fetch voucher details for editing
   const fetchVoucherDetails = async (voucherNo) => {
@@ -201,7 +284,7 @@ const PaymentVoucher = () => {
             chqNo: item.chqNo || '',
             chqDt: item.chqDt || '',
             narration: item.narration || '',
-            amount: item.amount || '0.00'
+            amount: item.amount || ''
           })));
         }
 
@@ -243,24 +326,80 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Initial data fetch
-//   useEffect(() => {
-//     fetchNextVoucherNo();
-//     fetchAccounts();
-//     fetchSavedVouchers();
-//   }, [fetchNextVoucherNo, fetchAccounts, fetchSavedVouchers, isEditing, voucherDetails.voucherNo]);
+  // Function to fetch parties with pagination
+  const fetchPartiesWithPagination = useCallback(async (page = 1) => {
+    if (page === 1) {
+      setIsLoading(true);
+      setHasReachedEndOfParties(false);
+    } else {
+      setIsLoadingMoreParties(true);
+    }
+    try {
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.GETPARTYLIST(
+        encodeURIComponent(''),
+        page,
+        20
+      );
+      const response = await apiService.get(url);
+      const data = response?.data?.data || response?.data || [];
+      
+      if (Array.isArray(data) && data.length > 0) {
+        const formattedData = data.map((party, index) => ({
+          id: party.code || `party-${page}-${index}`,
+          code: party.code || '',
+          name: party.name || '',
+          accountName: party.name || '',
+          phone: party.phone || '',
+        }));
+        
+        // Accumulate data - replace if page 1, append otherwise
+        if (page === 1) {
+          setAllParties(formattedData);
+          setPartyCurrentPage(1);
+        } else {
+          setAllParties(prev => [...prev, ...formattedData]);
+          setPartyCurrentPage(page);
+        }
+        
+        // If we got less than 20 items, we've reached the end
+        if (data.length < 20) {
+          setHasReachedEndOfParties(true);
+        }
+      } else if (page > 1) {
+        // No data returned, we've reached the end
+        setHasReachedEndOfParties(true);
+      }
+    } catch (err) {
+      console.error(`Error loading party list for page ${page}:`, err);
+    } finally {
+      if (page === 1) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMoreParties(false);
+      }
+    }
+  }, [userData?.companyCode, userData?.username]);
 
-//   // Calculate Totals whenever items change
-//   useEffect(() => {
-//     const total = paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-//     setTotalAmount(total);
-//   }, [paymentItems]);
+  // Initial data fetch on component mount and when userData changes
+  useEffect(() => {
+    if (userData?.companyCode && userData?.username) {
+      fetchNextVoucherNo();
+      // Load first batch of parties (page 1)
+      fetchPartiesWithPagination(1);     
+    }
+  }, [userData?.companyCode, userData?.username, fetchNextVoucherNo, fetchPartiesWithPagination]);
 
-//   // Calculate Bill Totals
-//   useEffect(() => {
-//     const total = billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0);
-//     setBillTotalAmount(total);
-//   }, [billDetails]);
+  // Calculate Payment Details Totals whenever items change
+  useEffect(() => {
+    const total = paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    setTotalAmount(total);
+  }, [paymentItems]);
+
+  // Calculate Bill Details Totals
+  useEffect(() => {
+    const total = billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0);
+    setBillTotalAmount(total);
+  }, [billDetails]);
 
   // Reset form to empty state
   const resetForm = () => {
@@ -271,7 +410,7 @@ const PaymentVoucher = () => {
       costCenter: '',
       accountName: '',
       accountCode: '',
-      balance: '0.00',
+      balance: '',
       crDr: 'CR'
     });
     setPaymentItems([
@@ -284,7 +423,7 @@ const PaymentVoucher = () => {
         chqNo: '',
         chqDt: '',
         narration: '',
-        amount: '0.00'
+        amount: ''
       }
     ]);
     setBillDetails([
@@ -294,16 +433,17 @@ const PaymentVoucher = () => {
         refNo: '',
         billNo: '',
         date: '',
-        billAmount: '0.00',
-        paidAmount: '0.00',
-        balanceAmount: '0.00',
-        amount: '0.00'
+        billAmount: '',
+        paidAmount: '',
+        balanceAmount: '',
+        amount: ''
       }
     ]);
     setError(null);
     setIsEditing(false);
     setOriginalVoucherNo('');
     setFocusedField('');
+    fetchNextVoucherNo();
   };
 
   // --- POPUP HANDLERS ---
@@ -340,8 +480,10 @@ const PaymentVoucher = () => {
   const handleVoucherSelect = async (selectedVoucher) => {
     try {
       setIsEditing(true);
-      setOriginalVoucherNo(selectedVoucher.voucherNo);
-      await fetchVoucherDetails(selectedVoucher.voucherNo);
+      // Use invoiceNo if available, otherwise fall back to voucherNo
+      const voucherNo = selectedVoucher.invoiceNo || selectedVoucher.voucherNo;
+      setOriginalVoucherNo(voucherNo);
+      await fetchVoucherDetails(voucherNo);
       setEditVoucherPopupOpen(false);
     } catch (err) {
       console.error('Error selecting voucher:', err);
@@ -352,7 +494,9 @@ const PaymentVoucher = () => {
   // Handle voucher deletion
   const handleVoucherDelete = async (selectedVoucher) => {
     try {
-      await deleteVoucher(selectedVoucher.voucherNo);
+      // Use invoiceNo if available, otherwise fall back to voucherNo
+      const voucherNo = selectedVoucher.invoiceNo || selectedVoucher.voucherNo;
+      await deleteVoucher(voucherNo);
       setDeleteVoucherPopupOpen(false);
     } catch (err) {
       console.error('Error deleting voucher:', err);
@@ -360,43 +504,105 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Open account popup
-  const openAccountPopup = () => {
-    setAccountPopupOpen(true);
+  // Open account/party popup
+  const openAccountPopup = async () => {
+    try {
+      if (allParties.length === 0) {
+        setIsLoading(true);
+        const url = API_ENDPOINTS.PAYMENTVOUCHER.GETPARTYLIST(
+          encodeURIComponent(''),
+          1,
+          20
+        );
+        const response = await apiService.get(url);
+        const data = response?.data?.data || response?.data || [];
+        if (Array.isArray(data) && data.length > 0) {
+          // Format the data for popup display
+          const formattedData = data.map((party, index) => ({
+            id: party.code || `party-${index}`,
+            code: party.code || '',
+            name: party.name || '',
+            accountName: party.name || '',
+            phone: party.phone || '',
+          }));
+          setAllParties(formattedData);
+        }
+        setIsLoading(false);
+      }
+      setShowPartyPopup(true);
+    } catch (err) {
+      console.error('Error opening party popup:', err);
+      setError('Failed to load parties');
+      setIsLoading(false);
+    }
   };
 
-  // Handle account selection
-  const handleAccountSelect = (account) => {
-    setVoucherDetails(prev => ({
-      ...prev,
-      accountName: account.accountName || '',
-      accountCode: account.accountCode || ''
-    }));
-    setAccountPopupOpen(false);
+  // Handle party/account selection
+  const handleAccountSelect = async (account) => {
+    try {
+      setVoucherDetails(prev => ({
+        ...prev,
+        accountName: account.name || account.accountName || '',
+        accountCode: account.code || account.accountCode || ''
+      }));
+      
+      // Fetch pending bills for this party using the code field
+      const partyCode = account.code || account.accountCode;
+      
+      if (partyCode) {
+        await fetchPendingBills(partyCode);
+      }
+      
+      setShowPartyPopup(false);
+    } catch (err) {
+      console.error('Error selecting party:', err);
+    }
   };
 
   // Get popup configuration
   const getPopupConfig = (type) => {
     const configs = {
       account: {
-        title: 'Select Account',
-        columns: ['accountCode', 'accountName'],
-        searchField: 'accountName',
-        data: accountList,
-        loading: isLoading
+        title: 'Select Party/Account',
+        displayFieldKeys: ['code', 'name'],
+        searchFields: ['name', 'code'],
+        headerNames: ['Code', 'Name'],
+        columnWidths: { code: '100px', name: '300px' },
+        data: allParties.length > 0 ? allParties : [],
+        fetchItems: async () => {
+          // Check if we need to load more batches (only if we haven't reached the end)
+          if (!hasReachedEndOfParties && !isLoadingMoreParties) {
+            await fetchPartiesWithPagination(partyCurrentPage + 1);
+          }
+          return allParties;
+        },
+        loading: isLoading || isLoadingMoreParties,
+        hasMoreData: !hasReachedEndOfParties,
+        onLoadMore: () => {
+          // Only load more if we haven't reached the end
+          if (!hasReachedEndOfParties && !isLoadingMoreParties) {
+            fetchPartiesWithPagination(partyCurrentPage + 1);
+          }
+        }
       },
       editVoucher: {
         title: 'Edit Payment Voucher',
-        columns: ['voucherNo', 'date', 'accountName'],
-        searchField: 'voucherNo',
+        displayFieldKeys: ['invoiceNo'],
+        searchFields: ['invoiceNo'],
+        headerNames: ['Voucher No'],
+        columnWidths: { invoiceNo: '200px' },
         data: savedVouchers,
+        fetchItems: async () => savedVouchers,
         loading: loadingVouchers
       },
       deleteVoucher: {
         title: 'Delete Payment Voucher',
-        columns: ['voucherNo', 'date', 'accountName'],
-        searchField: 'voucherNo',
+        displayFieldKeys: ['invoiceNo'],
+        searchFields: ['invoiceNo'],
+        headerNames: ['Voucher No'],
+        columnWidths: { invoiceNo: '200px' },
         data: savedVouchers,
+        fetchItems: async () => savedVouchers,
         loading: loadingVouchers
       }
     };
@@ -612,6 +818,16 @@ const PaymentVoucher = () => {
       });
       setAmountPopupOpen(true);
     }
+  };
+
+  // Handle edit click - opens edit voucher popup
+  const handleEditClick = () => {
+    openEditVoucherPopup();
+  };
+
+  // Handle delete click - opens delete voucher popup
+  const handleDeleteClick = () => {
+    openDeleteVoucherPopup();
   };
 
   // Handle clear - clears current form
@@ -893,23 +1109,23 @@ const PaymentVoucher = () => {
       border: '1px solid #e0e0e0',
       margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
       marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
-      marginBottom: screenSize.isMobile ? '250px' : screenSize.isTablet ? '120px' : '90px',
+      marginBottom: screenSize.isMobile ? '250px' : screenSize.isTablet ? '150px' : '90px',
       WebkitOverflowScrolling: 'touch',
       width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
       boxSizing: 'border-box',
       flex: '1 1 auto',
       display: 'flex',
       flexDirection: 'column',
-      maxHeight: screenSize.isMobile ? '250px' : screenSize.isTablet ? '300px' : '360px',
-      minHeight: screenSize.isMobile ? '250px' : screenSize.isTablet ? '300px' : '360px',
+      maxHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '280px' : '360px',
+      minHeight: screenSize.isMobile ? '180px' : screenSize.isTablet ? '260px' : '360px',
       scrollbarWidth: 'thin',
       scrollbarColor: '#1B91DA #f0f0f0',
     },
     table: {
-      width: 'max-content',
+      width: screenSize.isMobile ? '100%' : screenSize.isTablet ? '100%' : 'max-content',
       minWidth: '100%',
       borderCollapse: 'collapse',
-      tableLayout: 'fixed',
+      tableLayout: screenSize.isMobile ? 'auto' : screenSize.isTablet ? 'auto' : 'fixed',
     },
     th: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1219,19 +1435,19 @@ const PaymentVoucher = () => {
       {/* TABLE SECTION */}
       <div style={styles.tableSection}>
         {/* PAYMENT DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginBottom: 0, marginTop: 0, margin: 0, marginLeft: 0, marginRight: 0, width: '100%', maxHeight: screenSize.isMobile ? '375px' : screenSize.isTablet ? '450px' : '415px',minHeight: screenSize.isMobile ? '375px' : screenSize.isTablet ? '450px' : '415px'}}>
+        <div style={{...styles.tableContainer, marginBottom: 0, marginTop: 0, margin: 0, marginLeft: 0, marginRight: 0, width: '100%', maxHeight: screenSize.isMobile ? '180px' : screenSize.isTablet ? '260px' : '415px', minHeight: screenSize.isMobile ? '160px' : screenSize.isTablet ? '240px' : '415px'}}>
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{...styles.th, minWidth: '60px', width: '60px'}}>No</th>
-                <th style={{...styles.th, minWidth: '300px', width: '300px'}}>Cash/Bank</th>
-                <th style={{...styles.th, minWidth: '90px', width: '90px'}}>Cr/Dr</th>
-                <th style={{...styles.th, minWidth: '90px', width: '90px'}}>Type</th>
-                <th style={{...styles.th, minWidth: '90px', width: '90px'}}>Chq No</th>
-                <th style={{...styles.th, minWidth: '60px', width: '60px'}}>Chq Dt</th>
-                <th style={{...styles.th, minWidth: '200px', width: '200px'}}>Narration</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Amount</th>
-                <th style={{...styles.th, minWidth: '60px', width: '60px'}}>Remove</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '35px' : '60px', width: screenSize.isMobile ? '35px' : '60px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>No</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '120px' : '300px', width: screenSize.isMobile ? '120px' : '300px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Cash/Bank</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '50px' : '90px', width: screenSize.isMobile ? '50px' : '90px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Cr/Dr</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '50px' : '90px', width: screenSize.isMobile ? '50px' : '90px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Type</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '50px' : '90px', width: screenSize.isMobile ? '50px' : '90px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Chq No</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '50px' : '60px', width: screenSize.isMobile ? '50px' : '60px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Chq Dt</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '80px' : '200px', width: screenSize.isMobile ? '80px' : '200px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Narration</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '60px' : '100px', width: screenSize.isMobile ? '60px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Amount</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '35px' : '60px', width: screenSize.isMobile ? '35px' : '60px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Remove</th>
               </tr>
             </thead>
             <tbody>
@@ -1403,14 +1619,14 @@ const PaymentVoucher = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>No</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Ref No</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Bill No</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Date</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Bill Amount</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Paid Amount</th>
-                <th style={{...styles.th, minWidth: '120px', width: '120px'}}>Balance Amount</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Amount</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '35px' : '100px', width: screenSize.isMobile ? '35px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>No</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '70px' : '100px', width: screenSize.isMobile ? '70px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Ref No</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '70px' : '100px', width: screenSize.isMobile ? '70px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Bill No</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '60px' : '100px', width: screenSize.isMobile ? '60px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Date</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '70px' : '100px', width: screenSize.isMobile ? '70px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Bill Amt</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '70px' : '100px', width: screenSize.isMobile ? '70px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Paid Amt</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '80px' : '120px', width: screenSize.isMobile ? '80px' : '120px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Balance</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '60px' : '100px', width: screenSize.isMobile ? '60px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -1422,11 +1638,8 @@ const PaymentVoucher = () => {
                       id={`bill_${bill.id}_refNo`}
                       type="text"
                       value={bill.refNo}
-                      onChange={(e) => handleBillItemChange(bill.id, 'refNo', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'refNo', false)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
-                      onBlur={(e) => (e.target.style.border = 'none')}
+                      readOnly
+                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
                   <td style={styles.td}>
@@ -1434,11 +1647,8 @@ const PaymentVoucher = () => {
                       id={`bill_${bill.id}_billNo`}
                       type="text"
                       value={bill.billNo}
-                      onChange={(e) => handleBillItemChange(bill.id, 'billNo', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'billNo', false)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
-                      onBlur={(e) => (e.target.style.border = 'none')}
+                      readOnly
+                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
                   <td style={styles.td}>
@@ -1446,53 +1656,37 @@ const PaymentVoucher = () => {
                       id={`bill_${bill.id}_date`}
                       type="date"
                       value={bill.date}
-                      onChange={(e) => handleBillItemChange(bill.id, 'date', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'date', false)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
-                      onBlur={(e) => (e.target.style.border = 'none')}
+                      readOnly
+                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_billAmount`}
-                       
                       value={bill.billAmount}
-                      onChange={(e) => handleBillItemChange(bill.id, 'billAmount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'billAmount', false)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
-                      onBlur={(e) => (e.target.style.border = 'none')}
+                      readOnly
+                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_paidAmount`}
-                      
                       value={bill.paidAmount}
-                      onChange={(e) => handleBillItemChange(bill.id, 'paidAmount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'paidAmount', false)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
-                      onBlur={(e) => (e.target.style.border = 'none')}
+                      readOnly
+                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
                   <td style={{...styles.td, minWidth: '120px', width: '120px'}}>
                     <input
                       id={`bill_${bill.id}_balanceAmount`}
-                      
                       value={bill.balanceAmount}
-                      onChange={(e) => handleBillItemChange(bill.id, 'balanceAmount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'balanceAmount', false)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
-                      onBlur={(e) => (e.target.style.border = 'none')}
+                      readOnly
+                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_amount`}
-                      
                       value={bill.amount}
                       onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', false)}
@@ -1528,24 +1722,23 @@ const PaymentVoucher = () => {
       {/* FOOTER SECTION */}
       <div style={styles.footerSection}>
         <div style={styles.leftColumn}>
-          <div style={styles.footerButtons}>
-            <AddButton 
-              onClick={handleClear}
-              disabled={isSaving}
-              activeButton={activeFooterAction}
-            />
-            <EditButton 
-              onClick={openEditVoucherPopup}
-              disabled={isSaving || loadingVouchers}
-              activeButton={activeFooterAction}
-            />
-            <DeleteButton 
-              onClick={openDeleteVoucherPopup}
-              disabled={isSaving || loadingVouchers}
-              activeButton={activeFooterAction}
-            />
-          
-          </div>
+          <ActionButtons
+            activeButton={activeTopAction}
+            onButtonClick={(type) => {
+              setActiveTopAction(type);
+              if (type === 'add') {
+                handleClear();
+              } else if (type === 'edit') {
+                handleEditClick();
+              } else if (type === 'delete') {
+                handleDeleteClick();
+              }
+            }}
+          >
+            <AddButton buttonType="add" />
+            <EditButton buttonType="edit" />
+            <DeleteButton buttonType="delete" />
+          </ActionButtons>
         </div>
 
         <div style={styles.totalsContainer}>
@@ -1564,23 +1757,28 @@ const PaymentVoucher = () => {
             <ClearButton 
               onClick={handleClear} 
               disabled={isSaving}
-              activeButton={activeFooterAction}
+              isActive={true}
             />
             <SaveButton 
               onClick={handleSave} 
               disabled={isSaving}
-              activeButton={activeFooterAction}
+              isActive={true}
+            />
+            <PrintButton 
+              onClick={() => console.log('Print clicked')} 
+              disabled={false}
+              isActive={true}
             />
           </div>
         </div>
       </div>
 
       {/* POPUPS */}
-      {accountPopupOpen && (
+      {showPartyPopup && (
         <PopupListSelector
           {...getPopupConfig('account')}
-          isOpen={accountPopupOpen}
-          onClose={() => setAccountPopupOpen(false)}
+          open={showPartyPopup}
+          onClose={() => setShowPartyPopup(false)}
           onSelect={handleAccountSelect}
         />
       )}
@@ -1588,7 +1786,7 @@ const PaymentVoucher = () => {
       {editVoucherPopupOpen && (
         <PopupListSelector
           {...getPopupConfig('editVoucher')}
-          isOpen={editVoucherPopupOpen}
+          open={editVoucherPopupOpen}
           onClose={() => setEditVoucherPopupOpen(false)}
           onSelect={handleVoucherSelect}
         />
@@ -1597,7 +1795,7 @@ const PaymentVoucher = () => {
       {deleteVoucherPopupOpen && (
         <PopupListSelector
           {...getPopupConfig('deleteVoucher')}
-          isOpen={deleteVoucherPopupOpen}
+          open={deleteVoucherPopupOpen}
           onClose={() => setDeleteVoucherPopupOpen(false)}
           onSelect={handleVoucherDelete}
         />
