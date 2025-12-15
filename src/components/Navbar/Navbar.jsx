@@ -105,6 +105,7 @@ const Navbar = () => {
     { name: 'Amount Issue', path: '/transactions/amount-issue', icon: <MoneyCollectOutlined /> },
     { name: 'Payment Voucher', path: '/payment-voucher', icon: <MoneyCollectOutlined /> },
     // { name: 'Cash Management', path: '/transactions/cash-management', icon: <MoneyCollectOutlined /> },
+    { name: 'Receipt Voucher', path: '/transactions/receipt-voucher', icon: <MoneyCollectOutlined /> },
 
 
 
