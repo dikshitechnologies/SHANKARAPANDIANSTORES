@@ -280,5 +280,11 @@ createSales: (isSave = true) =>
     closing: "Tender/closing",
   },
 
+
+
+  BILLCOLLECTOR:{
+    GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
+  }
+
 };
 
