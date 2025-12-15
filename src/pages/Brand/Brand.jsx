@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 
 // --- Inline SVG icons (matching DesignCreation style) ---
 const Icon = {
@@ -91,6 +92,12 @@ export default function BrandPage() {
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Confirmation popup states
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions ----------
   const fetchBrands = async () => {
@@ -257,9 +264,11 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
       return;
     }
+    setConfirmEditOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to update brand "${form.brandName}"?`)) return;
-
+  const confirmEdit = async () => {
+    setIsLoading(true);
     try {
       const brandData = { 
         brandCode: form.brandCode, 
@@ -270,8 +279,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Brand updated successfully." });
       resetForm();
+      setConfirmEditOpen(false);
     } catch (err) {
       // Error message already set in updateBrand
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -280,15 +292,18 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please select a brand to delete." });
       return;
     }
+    setConfirmDeleteOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to delete brand "${form.brandName}"?`)) return;
-
+  const confirmDelete = async () => {
+    setIsLoading(true);
     try {
       await deleteBrand(form.brandCode);
       await loadInitial();
       
       setMessage({ type: "success", text: "Brand deleted successfully." });
       resetForm();
+      setConfirmDeleteOpen(false);
     } catch (err) {
       // Special handling for referenced brands
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
@@ -297,6 +312,8 @@ useEffect(() => {
           text: `Cannot delete brand "${form.brandName}". It is referenced in other tables and cannot be removed.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -313,8 +330,11 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to create brand "${form.brandName}"?`)) return;
+    setConfirmSaveOpen(true);
+  };
 
+  const confirmSave = async () => {
+    setIsLoading(true);
     try {
       const brandData = { 
         brandCode: form.brandCode, 
@@ -325,8 +345,11 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Brand created successfully." });
       resetForm(true);
+      setConfirmSaveOpen(false);
     } catch (err) {
       // Error message already set in createBrand
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -539,7 +562,7 @@ const resetForm = (keepAction = false) => {
           border: 1px solid var(--glass-border);
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
-          font-weight: 600;
+          font-weight: 700;
           font-size: 14px;
           transition: all 0.2s;
           white-space: nowrap;
@@ -657,7 +680,7 @@ const resetForm = (keepAction = false) => {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { color: var(--muted); font-size:14px; }
 
         /* message */
         .message {
@@ -727,7 +750,7 @@ const resetForm = (keepAction = false) => {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 14px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -791,6 +814,7 @@ const resetForm = (keepAction = false) => {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
+          font-size: 14px;
         }
 
         .brands-table tr:hover {
@@ -844,6 +868,7 @@ const resetForm = (keepAction = false) => {
           gap:4px; 
           text-align: left;
           transition: all 0.2s;
+          font-size: 14px;
         }
         .dropdown-item:hover { 
           background: linear-gradient(90deg, rgba(139,92,246,0.04), rgba(139,92,246,0.01)); 
@@ -1161,7 +1186,7 @@ const resetForm = (keepAction = false) => {
                 <div style={{ fontWeight: 700 }}>Quick Tips</div>
               </div>
               
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
+              <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
                   <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
                   <span>Brand code is auto-generated for new brands</span>
@@ -1208,6 +1233,75 @@ const resetForm = (keepAction = false) => {
         headerNames={[ 'Brand Name', 'Code' ]}
         columnWidths={{ brandName: '70%', brandCode: '30%' }}
         maxHeight="60vh"
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Brand"
+        message={`Are you sure you want to create brand "${form.brandName}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Brand"
+        message={`Are you sure you want to update brand "${form.brandName}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Brand"
+        message={`Are you sure you want to delete brand "${form.brandName}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );

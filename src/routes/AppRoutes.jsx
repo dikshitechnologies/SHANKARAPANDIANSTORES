@@ -1,5 +1,7 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import Login from '../pages/Login/Login';
+import ProtectedRoute from '../components/ProtectedRoute/ProtectedRoute';
 import TestPage from '../pages/TestPage/TestPage';
 import LedgerCreation from '../pages/Ledgercreation/Ledgercreation';
 import ItemCreation from '../pages/ItemCreation/ItemCreation';
@@ -7,20 +9,28 @@ import LedgerGroupCreation from '../pages/Ledgergroupcreation/Ledgergroupcreatio
 import ItemGroupCreation from '../pages/ItemGroupCreation/ItemGroupCreation';
 import BillCollector from '../pages/billcollector/billcollectior';
 import DesignCreation from '../pages/DesignCreation/DesignCreation';
+import CashManagement from '../pages/CashManagement/CashManagement';
+import AmountIssue from '../pages/AmountIssue/AmountIssue';
+import { useAuth } from '../context/AuthContext';
 
 const AppRoutes = () => {
   return (
     <Router>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/test" element={<TestPage />} />
-        <Route path="/ledger-creation" element={<LedgerCreation />} />
-        <Route path="/item-creation" element={<ItemCreation />} />
-        <Route path="/ledger-group-creation" element={<LedgerGroupCreation />} />
-        <Route path="/item-group-creation" element={<ItemGroupCreation />} />
-        <Route path="/bill-collector" element={<BillCollector />} />
-        <Route path="/design-creation" element={<DesignCreation />} />
+        <Route path="/login" element={<Login />} />
+        
+        {/* Protected Routes */}
+        <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+        <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+        <Route path="/test" element={<ProtectedRoute><TestPage /></ProtectedRoute>} />
+        <Route path="/ledger-creation" element={<ProtectedRoute><LedgerCreation /></ProtectedRoute>} />
+        <Route path="/item-creation" element={<ProtectedRoute><ItemCreation /></ProtectedRoute>} />
+        <Route path="/ledger-group-creation" element={<ProtectedRoute><LedgerGroupCreation /></ProtectedRoute>} />
+        <Route path="/item-group-creation" element={<ProtectedRoute><ItemGroupCreation /></ProtectedRoute>} />
+        <Route path="/bill-collector" element={<ProtectedRoute><BillCollector /></ProtectedRoute>} />
+        <Route path="/design-creation" element={<ProtectedRoute><DesignCreation /></ProtectedRoute>} />
+        <Route path="/amount-issue" element={<ProtectedRoute><AmountIssue /></ProtectedRoute>} />
         {/* Add more routes here */}
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         {/* <Route path="/products" element={<Products />} /> */}
@@ -41,25 +51,80 @@ const NotFound = () => (
   </div>
 );
 
-const HomePage = () => (
-  <div style={{
-    width: '100%',
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    padding: '40px 20px',
-    fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif'
-  }}>
+const HomePage = () => {
+  const { userData, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  return (
     <div style={{
-      maxWidth: '1000px',
-      margin: '0 auto',
-      color: 'white'
+      width: '100%',
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: '40px 20px',
+      fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif'
     }}>
-      <h1 style={{ fontSize: '48px', marginBottom: '10px', textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
-        Shankara Pandian Stores
-      </h1>
-      <p style={{ fontSize: '18px', marginBottom: '40px', opacity: 0.9 }}>
-        Modern Business Management System
-      </p>
+      <div style={{
+        maxWidth: '1000px',
+        margin: '0 auto',
+        color: 'white'
+      }}>
+        {/* User Info Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '30px',
+          background: 'rgba(255, 255, 255, 0.1)',
+          padding: '20px',
+          borderRadius: '12px',
+          backdropFilter: 'blur(10px)',
+          border: '2px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div>
+            <p style={{ margin: '0 0 5px 0', fontSize: '14px', opacity: 0.9 }}>Welcome back,</p>
+            <h2 style={{ margin: 0, fontSize: '24px' }}>{userData?.username || 'User'}</h2>
+            <p style={{ margin: '5px 0 0 0', fontSize: '14px', opacity: 0.8 }}>
+              Role: {userData?.role || 'N/A'} | Company: {userData?.companyCode || 'N/A'}
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '12px 24px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '8px',
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              backdropFilter: 'blur(10px)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            🚪 Logout
+          </button>
+        </div>
+
+        <h1 style={{ fontSize: '48px', marginBottom: '10px', textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
+          Shankara Pandian Stores
+        </h1>
+        <p style={{ fontSize: '18px', marginBottom: '40px', opacity: 0.9 }}>
+          Modern Business Management System
+        </p>
 
       <div style={{
         display: 'grid',
@@ -73,7 +138,9 @@ const HomePage = () => (
           { path: '/item-group-creation', label: '📂 Item Group', color: '#45B7D1' },
           { path: '/ledger-creation', label: '📊 Ledger Creation', color: '#FFA502' },
           { path: '/ledger-group-creation', label: '📇 Ledger Group', color: '#F7B731' },
-          { path: '/bill-collector', label: '💳 Bill Collector', color: '#5F27CD' }
+          { path: '/bill-collector', label: '💳 Bill Collector', color: '#5F27CD' },
+          { path: '/amount-issue', label: '💵 Amount Issue', color: '#26de81' },
+          // { path: '/transactions/cash-management', label: '💰 Cash Management', color: '#26de81' }
         ].map((item, idx) => (
           <a
             key={idx}
@@ -123,11 +190,13 @@ const HomePage = () => (
           <li>✅ <strong>Item Group:</strong> Organize items into categories</li>
           <li>✅ <strong>Ledger Management:</strong> Track financial accounts</li>
           <li>✅ <strong>Bill Collector:</strong> Process payment collections</li>
+          <li>✅ <strong>Cash Management:</strong> Opening and closing cash tracking</li>
           <li>✅ <strong>Test Page:</strong> Try out sample features</li>
         </ul>
       </div>
     </div>
   </div>
 );
+};
 
 export default AppRoutes;

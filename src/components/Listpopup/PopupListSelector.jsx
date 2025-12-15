@@ -26,8 +26,7 @@ const PopupListSelector = ({
   tableStyles = {},
   maxHeight = '70vh',
   searchPlaceholder = 'Search...',
-  responsiveBreakpoint = 768,
-  initialSearchText = '' // New prop for initial search value
+  responsiveBreakpoint = 768 
 }) => {
   const [searchText, setSearchText] = useState('');
   const [data, setData] = useState([]);
@@ -66,14 +65,8 @@ const PopupListSelector = ({
       setInitialLoading(true);
       setPage(1);
       setHasMore(true);
-      
-      // Set initial search text if provided
-      if (initialSearchText && initialSearchText.trim().length > 0) {
-        setSearchText(initialSearchText);
-        loadData(1, initialSearchText, true);
-      } else {
-        loadData(1, '', true);
-      }
+
+      loadData(1, '', true);
 
       setTimeout(() => {
         if (searchInputRef.current) searchInputRef.current.focus();
@@ -105,20 +98,28 @@ const PopupListSelector = ({
 
     try {
       const items = await fetchItems(pageNum, search);
+      
+      // Ensure items is an array
+      const itemsArray = Array.isArray(items) ? items : [];
 
       if (reset) {
-        setData(items);
-        setFilteredData(filterItems(items, searchText));
+        setData(itemsArray);
+        setFilteredData(filterItems(itemsArray, searchText));
       } else {
-        setData(prev => [...prev, ...items]);
-        setFilteredData(prev => [...prev, ...filterItems(items, searchText)]);
+        setData(prev => [...prev, ...itemsArray]);
+        setFilteredData(prev => [...prev, ...filterItems(itemsArray, searchText)]);
       }
 
-      if (items.length < 20) {
+      if (itemsArray.length < 20) {
         setHasMore(false);
       }
     } catch (err) {
       console.error("Error loading items:", err);
+      // Set empty arrays on error to prevent undefined errors
+      if (reset) {
+        setData([]);
+        setFilteredData([]);
+      }
     } finally {
       setLoading(false);
       setInitialLoading(false);
@@ -318,7 +319,7 @@ const PopupListSelector = ({
               <Spin size="large" />
               <div className={styles.loadingText}>Loading items...</div>
             </div>
-          ) : filteredData.length === 0 ? (
+          ) : (filteredData && filteredData.length === 0) ? (
             <div className={styles.emptyState}>
               <div>No items found</div>
             </div>

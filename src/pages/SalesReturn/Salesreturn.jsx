@@ -15,15 +15,20 @@ const SalesReturn = () => {
     billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
     empName: '',
+    empCode: '14789',
     salesman: '',
+    salesmanCode: '002',
     custName: '',
+    customerCode: '',
     returnReason: '',
     barcodeInput: '',
     partyCode: '',
     gstno: '',
     city: '',
     type: 'Retail',
-    transType: 'SALES RETURN'
+    transType: 'SALES RETURN',
+    billAMT: '0',
+    newBillNo: '' // NEW FIELD: For the new Bill No input near barcode
   });
 
   // 2. Table Items State
@@ -41,7 +46,8 @@ const SalesReturn = () => {
       sRate: '',
       rate: '',
       qty: '',
-      amount: '0.00'
+      amount: '0.00',
+      itemCode: '00001'
     }
   ]);
 
@@ -56,6 +62,13 @@ const SalesReturn = () => {
   const [popupData, setPopupData] = useState([]);
   const [selectedRowIndex, setSelectedRowIndex] = useState(null);
   const [selectedAction, setSelectedAction] = useState("");
+  const [selectedBillNumber, setSelectedBillNumber] = useState(null); // New state for selected bill number
+  
+  // NEW STATE: For custom bill number popup
+  const [billNoPopupOpen, setBillNoPopupOpen] = useState(false);
+  const [billNoPopupData, setBillNoPopupData] = useState([]);
+  const [selectedBillNo, setSelectedBillNo] = useState(null);
+  const [billNoSearchText, setBillNoSearchText] = useState("");
 
   // 5. API Data State
   const [customers, setCustomers] = useState([]);
@@ -74,6 +87,7 @@ const SalesReturn = () => {
   const custNameRef = useRef(null);
   const returnReasonRef = useRef(null);
   const barcodeRef = useRef(null);
+  const newBillNoRef = useRef(null); // NEW REF: For the new Bill No input
 
   const [focusedField, setFocusedField] = useState('');
   const [activeFooterAction, setActiveFooterAction] = useState('all');
@@ -94,60 +108,52 @@ const SalesReturn = () => {
     try {
       setLoading(true);
       setError("");
-      const response = await apiService.get(API_ENDPOINTS.sales_return.getMaxVoucherNo('001'));
+      const companyCode = '001';
+      const response = await apiService.get(API_ENDPOINTS.sales_return.getMaxVoucherNo(companyCode));
       console.log("Max Voucher No Response:", response);
       
       if (response && response.maxVoucherNo) {
         setBillDetails(prev => ({ ...prev, billNo: response.maxVoucherNo }));
+      } else if (response && response.voucherNo) {
+        setBillDetails(prev => ({ ...prev, billNo: response.voucherNo }));
       }
     } catch (err) {
       console.error("API Error fetching voucher:", err);
-      setBillDetails(prev => ({ ...prev, billNo: 'SR0000001' }));
+      const nextNum = Math.floor(Math.random() * 1000) + 1;
+      setBillDetails(prev => ({ ...prev, billNo: `SR${String(nextNum).padStart(7, '0')}` }));
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch customers from backend API
   const fetchCustomers = async () => {
     try {
       setLoading(true);
       setError("");
       console.log("Fetching customers...");
       
-      if (API_ENDPOINTS.getCustomers) {
-        const response = await apiService.get(API_ENDPOINTS.getCustomers);
-        console.log("Customers Response:", response);
-        
-        if (response && Array.isArray(response)) {
-          setCustomers(response);
-          console.log(`Loaded ${response.length} customers from API`);
-        } else {
-          console.warn("Customers response is not an array:", response);
-          setCustomers([]);
-        }
+      const endpoint = API_ENDPOINTS.sales_return?.getCustomers || "Salesinvoices/GetPartyByParent";
+      const response = await apiService.get(endpoint);
+      console.log("Customers Response:", response);
+      
+      if (response && Array.isArray(response)) {
+        setCustomers(response);
+        console.log(`Loaded ${response.length} customers from API`);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        setCustomers(response.data);
+        console.log(`Loaded ${response.data.length} customers from API`);
       } else {
-        console.log("API_ENDPOINTS.getCustomers not found, trying direct endpoint...");
-        const response = await apiService.get("Salesinvoices/GetPartyByParent");
-        console.log("Direct Customers Response:", response);
-        
-        if (response && Array.isArray(response)) {
-          setCustomers(response);
-          console.log(`Loaded ${response.length} customers from direct API`);
-        } else {
-          setCustomers([]);
-        }
+        console.warn("Customers response is not an array:", response);
+        setCustomers([]);
       }
     } catch (err) {
       console.error("API Error fetching customers:", err);
-      console.error("Error details:", err.message);
       setCustomers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch salesmen from backend API
   const fetchSalesmen = async () => {
     try {
       setLoading(true);
@@ -172,7 +178,6 @@ const SalesReturn = () => {
     }
   };
 
-  // Fetch item dropdown list from backend API
   const fetchItems = async () => {
     try {
       setLoading(true);
@@ -183,36 +188,14 @@ const SalesReturn = () => {
       const response = await apiService.get("ItemCreation/GetItemCreationdropdowslist");
       console.log("Items Dropdown Response:", response);
       
+      let itemsArray = [];
+      
       if (response && Array.isArray(response)) {
         console.log("Response is an array, length:", response.length);
-        
-        const formattedItems = response.map(item => {
-          const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-          const code = item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
-          
-          return {
-            ...item,
-            fItemName: itemName,
-            itemName: itemName,
-            name: itemName,
-            code: code,
-            barcode: item.barcode || item.Barcode || item.itemCode || code,
-            stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
-            mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
-            uom: item.uom || item.UOM || item.unit || item.Unit || "",
-            hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
-            tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
-            sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-          };
-        });
-        
-        setItemList(formattedItems);
-        console.log(`Loaded ${formattedItems.length} items from API`);
+        itemsArray = response;
       } else if (response && typeof response === 'object') {
         console.log("Response is an object");
         console.log("Object keys:", Object.keys(response));
-        
-        let itemsArray = [];
         
         if (response.items && Array.isArray(response.items)) {
           itemsArray = response.items;
@@ -223,36 +206,28 @@ const SalesReturn = () => {
         } else {
           itemsArray = Object.values(response);
         }
-        
-        if (Array.isArray(itemsArray) && itemsArray.length > 0) {
-          const formattedItems = itemsArray.map(item => {
-            const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-            const code = item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
-            
-            return {
-              ...item,
-              fItemName: itemName,
-              itemName: itemName,
-              name: itemName,
-              code: code,
-              barcode: item.barcode || item.Barcode || item.itemCode || code,
-              stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
-              mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
-              uom: item.uom || item.UOM || item.unit || item.Unit || "",
-              hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
-              tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
-              sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-            };
-          });
+      }
+      
+      if (Array.isArray(itemsArray) && itemsArray.length > 0) {
+        const formattedItems = itemsArray.map((item, index) => {
+          const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
+          const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
           
-          setItemList(formattedItems);
-          console.log(`Loaded ${formattedItems.length} items from API`);
-        } else {
-          console.warn("Could not extract items from response:", response);
-          setItemList([]);
-        }
+          return {
+            id: itemCode || `item-${index}`,
+            itemCode: itemCode,
+            itemName: itemName,
+            code: itemCode,
+            name: itemName,
+            fItemcode: itemCode,
+            fItemName: itemName
+          };
+        });
+        
+        setItemList(formattedItems);
+        console.log(`Loaded ${formattedItems.length} items from API (only name and code)`);
       } else {
-        console.warn("Items response is not an array or object:", response);
+        console.warn("Could not extract items from response:", response);
         setItemList([]);
       }
     } catch (err) {
@@ -264,7 +239,6 @@ const SalesReturn = () => {
     }
   };
 
-  // Fetch voucher list from backend API
   const fetchVoucherList = async (companyCode = '001') => {
     try {
       setLoading(true);
@@ -285,6 +259,8 @@ const SalesReturn = () => {
         voucherData = response.data;
       } else if (response && Array.isArray(response)) {
         voucherData = response;
+      } else if (response && response.vouchers && Array.isArray(response.vouchers)) {
+        voucherData = response.vouchers;
       }
       
       console.log("Extracted voucher data:", voucherData);
@@ -293,8 +269,6 @@ const SalesReturn = () => {
       
     } catch (err) {
       console.error("API Error fetching voucher list:", err);
-      console.error("Error details:", err.message);
-      
       setVoucherList([]);
       return [];
     } finally {
@@ -308,226 +282,368 @@ const SalesReturn = () => {
       setError("");
       
       const foundItem = itemList.find(item => 
-        item.barcode === barcode || 
-        item.itemCode === barcode ||
-        item.code === barcode
+        item.itemCode === barcode || 
+        item.code === barcode ||
+        item.fItemcode === barcode
       );
       
       if (foundItem) {
-        console.log("Item found in local list:", foundItem);
+        console.log("Item found in local list by barcode:", foundItem);
         return foundItem;
       }
       
-      if (API_ENDPOINTS.sales_return?.getItemByBarcode) {
-        const response = await apiService.get(API_ENDPOINTS.sales_return.getItemByBarcode(barcode));
-        console.log("Item by Barcode Response:", response);
+      console.log("Item not found locally by barcode, trying API...");
+      const response = await apiService.get(`ItemCreation/GetItemByBarcode/${barcode}`);
+      if (response) {
+        console.log("Item found via API by barcode:", response);
         return response;
-      } else {
-        console.log("Item by barcode endpoint not configured");
-        return null;
       }
+      
+      return null;
     } catch (err) {
-      console.error("API Error fetching item by barcode:", err);
+      console.error("Error fetching item by barcode:", err);
       return null;
     } finally {
       setLoading(false);
     }
   };
 
-  // ==================== SALES RETURN POST API CONNECTION ====================
-  const createSalesReturn = async (salesReturnData) => {
+  // ==================== CREATE SALES RETURN ====================
+  const createSalesReturn = async () => {
     try {
       setLoading(true);
       setError("");
-      console.log("Creating sales return with data:", JSON.stringify(salesReturnData, null, 2));
       
-      // Prepare data in the exact format your backend expects
       const requestData = {
         header: {
-          voucherNo: salesReturnData.voucherNo,
-          voucherDate: salesReturnData.voucherDate,
-          mobileNo: salesReturnData.mobileNo || "",
-          empName: salesReturnData.empName || "",
-          empcode: "14789", // You need to get this from your system/user context
-          customerCode: salesReturnData.customerCode,
-          customerName: salesReturnData.customerName,
-          salesMansName: salesReturnData.salesman || "",
-          salesMansCode: "002", // You need to map salesman name to code
-          compCode: "001", // Company code
-          userCode: "001", // User code from your auth context
-          billAMT: salesReturnData.totalAmount.toString()
-        },
-        items: salesReturnData.items.map((item, index) => ({
-          barcode: item.barcode || "",
-          itemName: item.itemName || item.fItemName || "",
-          itemCode: `0000${index + 1}`, // You need to get actual item code from your item list
-          stock: item.stock || "0",
-          mrp: item.mrp || "0",
-          uom: item.uom || "PCS",
-          hsn: item.hsn || "",
-          tax: item.tax || "0",
-          srate: item.rate || item.sRate || "0",
-          wrate: item.rate || "0", // Assuming wholesale rate is same as selling rate
-          qty: item.qty || "0",
-          amount: item.amount || "0"
-        }))
-      };
-
-      console.log("Final POST data structure:", JSON.stringify(requestData, null, 2));
-      
-      // POST request to your backend endpoint
-      const response = await apiService.post(
-        "http://dikshiserver/spstorewebapi/api/SalesReturn/SalesReturnCreate?SelectType=true",
-        requestData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-      
-      console.log("Create Sales Return Response:", response);
-      
-      if (response && response.success) {
-        console.log("Sales Return created successfully. Voucher No:", response.voucherNo);
-        return {
-          success: true,
-          message: response.message || "Sales Return Created Successfully",
-          voucherNo: response.voucherNo || salesReturnData.voucherNo
-        };
-      } else {
-        throw new Error(response?.message || "Failed to create sales return");
-      }
-      
-    } catch (err) {
-      setError(err.message || "Failed to create sales return");
-      console.error("API Error:", err);
-      console.error("Error details:", err.response?.data || err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateSalesReturn = async (salesReturnData) => {
-    try {
-      setLoading(true);
-      setError("");
-      console.log("Updating sales return with data:", salesReturnData);
-      
-      // Prepare update data similar to create
-      const requestData = {
-        header: {
-          voucherNo: salesReturnData.voucherNo,
-          voucherDate: salesReturnData.voucherDate,
-          mobileNo: salesReturnData.mobileNo || "",
-          empName: salesReturnData.empName || "",
-          empcode: "14789",
-          customerCode: salesReturnData.customerCode,
-          customerName: salesReturnData.customerName,
-          salesMansName: salesReturnData.salesman || "",
-          salesMansCode: "002",
+          voucherNo: billDetails.billNo,
+          voucherDate: billDetails.billDate,
+          mobileNo: billDetails.mobileNo || "",
+          empName: billDetails.empName || "",
+          empcode: billDetails.empCode || "14789",
+          customerCode: billDetails.customerCode || "02154",
+          customerName: billDetails.custName || "",
+          salesMansName: billDetails.salesman || "",
+          salesMansCode: billDetails.salesmanCode || "002",
           compCode: "001",
           userCode: "001",
-          billAMT: salesReturnData.totalAmount.toString()
+          billAMT: totalAmount.toString()
         },
-        items: salesReturnData.items.map((item, index) => ({
+        items: items.filter(item => item.itemName && item.qty).map((item, index) => ({
           barcode: item.barcode || "",
-          itemName: item.itemName || item.fItemName || "",
-          itemCode: `0000${index + 1}`,
+          itemName: item.itemName || "",
+          itemCode: item.itemCode || `0000${index + 1}`,
           stock: item.stock || "0",
           mrp: item.mrp || "0",
           uom: item.uom || "PCS",
           hsn: item.hsn || "",
           tax: item.tax || "0",
-          srate: item.rate || item.sRate || "0",
+          srate: item.sRate || "0",
           wrate: item.rate || "0",
           qty: item.qty || "0",
           amount: item.amount || "0"
         }))
       };
 
-      // For update, you might need a different endpoint
-      // If using same endpoint, backend should handle update based on existing voucherNo
-      const response = await apiService.post(
-        "http://dikshiserver/spstorewebapi/api/SalesReturn/SalesReturnCreate?SelectType=true",
-        requestData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          }
+      console.log("Creating Sales Return with data:", JSON.stringify(requestData, null, 2));
+
+      const endpoint = API_ENDPOINTS.sales_return?.createSalesReturn || 
+        "SalesReturn/SalesReturnCreate?SelectType=true";
+      
+      const response = await apiService.post(endpoint, requestData);
+      
+      console.log("Create Sales Return Response:", response);
+      
+      if (response && response.success) {
+        alert(`Sales Return Created Successfully!\nVoucher No: ${response.voucherNo}`);
+        
+        if (response.voucherNo) {
+          setBillDetails(prev => ({ ...prev, billNo: response.voucherNo }));
         }
-      );
+        
+        await fetchVoucherList();
+        
+        return response;
+      } else {
+        throw new Error(response?.message || "Failed to create sales return");
+      }
+      
+    } catch (err) {
+      const errorMsg = err.message || "Failed to create sales return";
+      setError(errorMsg);
+      console.error("API Error:", err);
+      alert(`Error: ${errorMsg}`);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==================== UPDATE SALES RETURN ====================
+  const updateSalesReturn = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const requestData = {
+        header: {
+          voucherNo: billDetails.billNo,
+          voucherDate: billDetails.billDate,
+          mobileNo: billDetails.mobileNo || "",
+          empName: billDetails.empName || "",
+          empcode: billDetails.empCode || "14789",
+          customerCode: billDetails.customerCode || "02154",
+          customerName: billDetails.custName || "",
+          salesMansName: billDetails.salesman || "",
+          salesMansCode: billDetails.salesmanCode || "002",
+          compCode: "001",
+          userCode: "001",
+          billAMT: totalAmount.toString()
+        },
+        items: items.filter(item => item.itemName && item.qty).map((item, index) => ({
+          barcode: item.barcode || "",
+          itemName: item.itemName || "",
+          itemCode: item.itemCode || `0000${index + 1}`,
+          stock: item.stock || "0",
+          mrp: item.mrp || "0",
+          uom: item.uom || "PCS",
+          hsn: item.hsn || "",
+          tax: item.tax || "0",
+          srate: item.sRate || "0",
+          wrate: item.rate || "0",
+          qty: item.qty || "0",
+          amount: item.amount || "0"
+        }))
+      };
+
+      console.log("Updating Sales Return with data:", JSON.stringify(requestData, null, 2));
+
+      const endpoint = API_ENDPOINTS.sales_return?.updateSalesReturn || 
+        "SalesReturn/SalesReturnCreate?SelectType=true";
+      
+      const response = await apiService.post(endpoint, requestData);
       
       console.log("Update Sales Return Response:", response);
       
       if (response && response.success) {
-        return {
-          success: true,
-          message: response.message || "Sales Return Updated Successfully",
-          voucherNo: response.voucherNo || salesReturnData.voucherNo
-        };
+        alert(`Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo}`);
+        await fetchVoucherList();
+        return response;
       } else {
         throw new Error(response?.message || "Failed to update sales return");
       }
       
     } catch (err) {
-      setError(err.message || "Failed to update sales return");
+      const errorMsg = err.message || "Failed to update sales return";
+      setError(errorMsg);
       console.error("API Error:", err);
+      alert(`Error: ${errorMsg}`);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  // ==================== DELETE SALES RETURN (FIXED) ====================
   const deleteSalesReturn = async (voucherNo) => {
     try {
       setLoading(true);
       setError("");
+      
+      if (!voucherNo) {
+        throw new Error("Voucher number is required");
+      }
+      
       console.log("Deleting sales return:", voucherNo);
       
-      // You need to implement delete endpoint
-      const response = await apiService.delete(
-        `http://dikshiserver/spstorewebapi/api/SalesReturn/DeleteSalesReturn/${voucherNo}`
-      );
+      const companyCode = '001';
+      const endpoint = `SalesReturn/DeleteSalesReturn/${voucherNo}?compCode=${companyCode}`;
+      
+      console.log("Delete endpoint:", endpoint);
+      
+      let response;
+      
+      if (apiService && typeof apiService.delete === 'function') {
+        response = await apiService.delete(endpoint);
+      } else if (apiService && typeof apiService.del === 'function') {
+        response = await apiService.del(endpoint);
+      } else if (apiService && typeof apiService.request === 'function') {
+        response = await apiService.request({
+          method: 'DELETE',
+          url: endpoint
+        });
+      } else {
+        const baseUrl = '';
+        const fullUrl = baseUrl ? `${baseUrl}/api/${endpoint}` : `/api/${endpoint}`;
+        
+        console.log("Using fetch for DELETE:", fullUrl);
+        
+        const fetchResponse = await fetch(fullUrl, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        
+        response = await fetchResponse.json();
+      }
       
       console.log("Delete Sales Return Response:", response);
       
       if (response && response.success) {
+        alert(`Sales Return ${voucherNo} deleted successfully!`);
+        await fetchVoucherList();
+        handleClear();
+        
         return response;
       } else {
         throw new Error(response?.message || "Failed to delete sales return");
       }
+      
     } catch (err) {
-      setError(err.message || "Failed to delete sales return");
+      const errorMsg = err.message || "Failed to delete sales return";
+      setError(errorMsg);
       console.error("API Error:", err);
+      alert(`Error: ${errorMsg}`);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchSalesReturnDetails = async (voucherNo) => {
+  // ==================== GET SALES RETURN DETAILS ====================
+  const fetchSalesReturnDetails = async (voucherNo, companyCode = '001') => {
     try {
       setLoading(true);
       setError("");
+      
+      if (!voucherNo) {
+        throw new Error("Voucher number is required");
+      }
+      
       console.log("Fetching sales return details for:", voucherNo);
       
-      // You need to implement get details endpoint
-      const response = await apiService.get(
-        `http://dikshiserver/spstorewebapi/api/SalesReturn/GetSalesReturnDetails/${voucherNo}`
-      );
+      let endpoint = `SalesReturn/GetSalesReturn/${voucherNo}/${companyCode}`;
+      console.log("Trying endpoint:", endpoint);
       
-      console.log("Sales Return Details:", response);
+      const response = await apiService.get(endpoint);
+      console.log("Sales Return Details Response:", response);
       
-      if (response && response.success) {
-        return response.data || response;
+      if (response) {
+        console.log("Full response structure:", response);
+        
+        if (response.success && response.header) {
+          return response;
+        } else if (response.success && response.data) {
+          return response.data;
+        } else if (response.voucherNo) {
+          return response;
+        } else {
+          return response;
+        }
       } else {
-        throw new Error(response?.message || "Failed to fetch details");
+        throw new Error("No response received");
       }
+      
     } catch (err) {
       console.error("API Error fetching sales return details:", err);
+      alert(`Error fetching details: ${err.message}`);
       return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==================== LOAD VOUCHER FOR EDITING ====================
+  const loadVoucherForEditing = async (voucherNo) => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      alert(`Loading voucher ${voucherNo} for editing...`);
+      
+      const voucherDetails = await fetchSalesReturnDetails(voucherNo);
+      
+      if (!voucherDetails) {
+        alert(`Could not load details for voucher ${voucherNo}.`);
+        return;
+      }
+      
+      console.log("Voucher details to load:", voucherDetails);
+      
+      const header = voucherDetails.header || voucherDetails;
+      const itemsArray = voucherDetails.items || [];
+      
+      let formattedDate = billDetails.billDate;
+      if (header.voucherDate) {
+        const dateParts = header.voucherDate.split(' ')[0].split('-');
+        if (dateParts.length === 3) {
+          formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+        }
+      }
+      
+      setBillDetails(prev => ({
+        ...prev,
+        billNo: header.voucherNo || voucherNo,
+        billDate: formattedDate,
+        mobileNo: header.mobileNo || "",
+        empName: header.empName || "",
+        empCode: header.empcode || "14789",
+        salesman: header.salesMansName || "",
+        salesmanCode: header.salesMansCode || "002",
+        custName: header.customerName || "",
+        customerCode: header.customerCode || "",
+        partyCode: header.customerCode || "",
+        billAMT: header.billAMT || "0"
+      }));
+      
+      if (itemsArray && itemsArray.length > 0) {
+        const updatedItems = itemsArray.map((item, index) => {
+          return {
+            id: index + 1,
+            sNo: index + 1,
+            barcode: item.barcode || "",
+            itemName: item.itemName || "",
+            stock: item.stock || "0",
+            mrp: item.mrp || "0",
+            uom: item.uom || "PCS",
+            hsn: item.hsn || "",
+            tax: item.tax || "0",
+            sRate: item.srate || item.sRate || "0",
+            rate: item.wrate || item.rate || item.srate || "0",
+            qty: item.qty || "0",
+            amount: item.amount || "0",
+            itemCode: item.itemCode || `0000${index + 1}`
+          };
+        });
+        
+        console.log("Updated items for table:", updatedItems);
+        setItems(updatedItems);
+      } else {
+        setItems([{
+          id: 1,
+          sNo: 1,
+          barcode: '',
+          itemName: '',
+          stock: '',
+          mrp: '',
+          uom: '',
+          hsn: '',
+          tax: '',
+          sRate: '',
+          rate: '',
+          qty: '',
+          amount: '0.00',
+          itemCode: '00001'
+        }]);
+      }
+      
+      alert(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
+      
+    } catch (err) {
+      console.error("Error loading voucher for editing:", err);
+      alert(`Error loading voucher: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -560,12 +676,20 @@ const SalesReturn = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       console.log("Fetching initial data...");
-      
-      await fetchMaxVoucherNo();
-      await fetchCustomers();
-      await fetchItems();
-      await fetchVoucherList();
-      await fetchSalesmen();
+      setLoading(true);
+      try {
+        await Promise.all([
+          fetchMaxVoucherNo(),
+          fetchCustomers(),
+          fetchItems(),
+          fetchVoucherList(),
+          fetchSalesmen()
+        ]);
+      } catch (err) {
+        console.error("Error fetching initial data:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     
     fetchInitialData();
@@ -578,6 +702,8 @@ const SalesReturn = () => {
 
     setTotalQty(qtyTotal);
     setTotalAmount(amountTotal);
+    
+    setBillDetails(prev => ({ ...prev, billAMT: amountTotal.toString() }));
   }, [items]);
 
   // Calculate amount when qty or sRate changes
@@ -598,7 +724,10 @@ const SalesReturn = () => {
       id: customer.code || customer.id,
       code: customer.code,
       name: customer.name,
-      displayName: `${customer.code} - ${customer.name}`
+      displayName: `${customer.code} - ${customer.name}`,
+      customerCode: customer.code,
+      customerName: customer.name,
+      mobileNo: customer.mobile || customer.phone || ""
     }));
     
     setPopupData(customerData);
@@ -617,7 +746,9 @@ const SalesReturn = () => {
       id: salesman.fcode || salesman.code || salesman.id,
       code: salesman.fcode || salesman.code,
       name: salesman.fname || salesman.name,
-      displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`
+      displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`,
+      salesmanCode: salesman.fcode || salesman.code,
+      salesmanName: salesman.fname || salesman.name
     }));
     
     setPopupData(salesmanData);
@@ -626,45 +757,105 @@ const SalesReturn = () => {
     setPopupOpen(true);
   };
 
-  // Open item popup
+  // NEW FUNCTION: Open New Bill No popup - CUSTOM POPUP
+  const openNewBillNumberPopup = async () => {
+    try {
+      if (voucherList.length === 0) {
+        alert("No bill numbers available. Please try again later.");
+        return;
+      }
+      
+      const billNumberData = voucherList.map((voucher, index) => {
+        const voucherNo = voucher.voucherNo || voucher.voucherCode || voucher.code || 
+                         voucher.billNo || voucher.invoiceNo || voucher.id || 
+                         `VOUCHER-${index + 1}`;
+        
+        const customerName = voucher.customerName || voucher.customer || "";
+        const displayText = customerName ? `${voucherNo} - ${customerName}` : voucherNo;
+        
+        return {
+          id: voucherNo,
+          code: voucherNo,
+          name: displayText,
+          displayName: displayText,
+          customerName: customerName,
+          voucherDate: voucher.voucherDate || voucher.billDate || ""
+        };
+      });
+      
+      setBillNoPopupData(billNumberData);
+      setSelectedBillNo(null);
+      setBillNoSearchText("");
+      setBillNoPopupOpen(true);
+      console.log("Opened custom bill number popup with data:", billNumberData.length, "items");
+    } catch (error) {
+      console.error("Error opening bill number popup:", error);
+      alert("Error loading bill numbers. Please try again.");
+    }
+  };
+
+  // NEW FUNCTION: Apply selected bill number
+  const handleApplyBillNumber = () => {
+    if (!selectedBillNo) {
+      alert("Please select a bill number first.");
+      return;
+    }
+    
+    console.log("Applying new bill number:", selectedBillNo);
+    
+    setBillDetails(prev => ({ ...prev, newBillNo: selectedBillNo }));
+    
+    setBillNoPopupOpen(false);
+    setSelectedBillNo(null);
+    setBillNoSearchText("");
+  };
+
+  // NEW FUNCTION: Clear selected bill number
+  const handleClearBillNumber = () => {
+    setBillDetails(prev => ({ ...prev, newBillNo: '' }));
+    
+    setBillNoPopupOpen(false);
+    setSelectedBillNo(null);
+    setBillNoSearchText("");
+  };
+
+  // NEW FUNCTION: Filter bill numbers based on search
+  const getFilteredBillNumbers = () => {
+    if (!billNoSearchText.trim()) {
+      return billNoPopupData;
+    }
+    
+    const searchLower = billNoSearchText.toLowerCase();
+    return billNoPopupData.filter(item => {
+      return (
+        (item.code && item.code.toLowerCase().includes(searchLower)) ||
+        (item.name && item.name.toLowerCase().includes(searchLower)) ||
+        (item.customerName && item.customerName.toLowerCase().includes(searchLower))
+      );
+    });
+  };
+
   const openItemPopup = (rowIndex) => {
     if (itemList.length === 0) {
       alert("No items available. Please try again later or enter manually.");
       return;
     }
     
+    // UPDATED: Create item data showing both item name and item code in popup
     const itemData = itemList.map((item, index) => {
-      const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-      const actualCode = item.itemCode || item.code || item.ItemCode || item.Code || '';
+      const itemCode = item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
+      const itemName = item.fItemName || item.itemName || item.name || 'Unknown Item';
       
-      const isMockCode = !actualCode || 
-                        actualCode.startsWith('ITEM') || 
-                        actualCode.startsWith('Item ') ||
-                        /^Item\d+$/.test(actualCode) ||
-                        /^ITEM\d+$/.test(actualCode);
-      
-      const code = !isMockCode && actualCode ? actualCode : '';
-      const barcode = item.barcode || item.Barcode || item.itemCode || item.code || '';
-      const stock = item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0;
-      const mrp = item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0;
-      const sRate = item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0;
-      
-      const displayName = code ? `${code} - ${itemName}` : itemName;
+      // Create display name showing both code and name
+      const displayName = `${itemCode} - ${itemName}`;
       
       return {
-        id: item.id || index,
-        code: code || itemName,
+        id: itemCode || `item-${index}`,
+        code: itemCode,
         name: itemName,
-        fItemName: itemName,
-        barcode: barcode,
-        stock: stock,
-        mrp: mrp,
-        uom: item.uom || item.UOM || item.unit || item.Unit || "",
-        hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
-        tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
-        sRate: sRate,
-        displayName: displayName,
-        actualCode: code
+        displayName: displayName, // Show both code and name
+        itemCode: itemCode,
+        itemName: itemName
       };
     });
     
@@ -675,54 +866,38 @@ const SalesReturn = () => {
     setPopupOpen(true);
   };
 
-  // Open edit popup
   const openEditPopup = async () => {
     try {
       setLoading(true);
       console.log("Opening edit popup...");
       
-      let editData = [];
+      const freshVouchers = await fetchVoucherList();
+      console.log("Fresh vouchers for edit:", freshVouchers);
       
-      try {
-        const freshVouchers = await fetchVoucherList();
-        console.log("Fresh vouchers for edit:", freshVouchers);
-        
-        if (freshVouchers && freshVouchers.length > 0) {
-          editData = freshVouchers.map((voucher, index) => {
-            const voucherNo = voucher.voucherNo || voucher.voucherCode || voucher.code || 
-                             voucher.billNo || voucher.invoiceNo || voucher.id || 
-                             `SR${String(index + 1).padStart(5, '0')}`;
-            
-            return {
-              id: voucherNo,
-              code: voucherNo,
-              name: voucherNo,
-              userName: voucherNo,
-              date: '',
-              displayName: `${voucherNo}`
-            };
-          });
-        } else {
-          editData = [];
-          alert("No sales return vouchers available for editing.");
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        console.log("Error fetching from backend:", err);
-        editData = [];
-        alert("Error fetching voucher list. Please try again.");
-        setLoading(false);
-        return;
-      }
-      
-      console.log("Edit popup data:", editData);
-      
-      if (editData.length === 0) {
+      if (!freshVouchers || freshVouchers.length === 0) {
         alert("No sales return vouchers available for editing.");
         setLoading(false);
         return;
       }
+      
+      const editData = freshVouchers.map((voucher, index) => {
+        const voucherNo = voucher.voucherNo || voucher.voucherCode || voucher.code || 
+                         voucher.billNo || voucher.invoiceNo || voucher.id || 
+                         `VOUCHER-${index + 1}`;
+        
+        const customerName = voucher.customerName || voucher.customer || "";
+        const displayText = customerName ? `${voucherNo} - ${customerName}` : voucherNo;
+        
+        return {
+          id: voucherNo,
+          code: voucherNo,
+          name: displayText,
+          displayName: displayText,
+          customerName: customerName
+        };
+      });
+      
+      console.log("Edit popup data:", editData);
       
       setPopupData(editData);
       setPopupTitle("Select Sales Return to Edit");
@@ -738,54 +913,37 @@ const SalesReturn = () => {
     }
   };
 
-  // Open delete popup
   const openDeletePopup = async () => {
     try {
       setLoading(true);
       console.log("Opening delete popup...");
       
-      let deleteData = [];
+      const freshVouchers = await fetchVoucherList();
+      console.log("Fresh vouchers for delete:", freshVouchers);
       
-      try {
-        const freshVouchers = await fetchVoucherList();
-        console.log("Fresh vouchers for delete:", freshVouchers);
-        
-        if (freshVouchers && freshVouchers.length > 0) {
-          deleteData = freshVouchers.map((voucher, index) => {
-            const voucherNo = voucher.voucherNo || voucher.voucherCode || voucher.code || 
-                             voucher.billNo || voucher.invoiceNo || voucher.id || 
-                             `SR${String(index + 1).padStart(5, '0')}`;
-            
-            return {
-              id: voucherNo,
-              code: voucherNo,
-              name: voucherNo,
-              userName: voucherNo,
-              date: '',
-              displayName: `${voucherNo}`
-            };
-          });
-        } else {
-          deleteData = [];
-          alert("No sales return vouchers available for deletion.");
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        console.log("Error fetching from backend:", err);
-        deleteData = [];
-        alert("Error fetching voucher list. Please try again.");
-        setLoading(false);
-        return;
-      }
-      
-      console.log("Delete popup data:", deleteData);
-      
-      if (deleteData.length === 0) {
+      if (!freshVouchers || freshVouchers.length === 0) {
         alert("No sales return vouchers available for deletion.");
         setLoading(false);
         return;
       }
+      
+      const deleteData = freshVouchers.map((voucher, index) => {
+        const voucherNo = voucher.voucherNo || voucher.voucherCode || voucher.code || 
+                         voucher.billNo || voucher.invoiceNo || voucher.id || 
+                         `VOUCHER-${index + 1}`;
+        
+        const customerName = voucher.customerName || voucher.customer || "";
+        const displayText = customerName ? `${voucherNo} - ${customerName}` : voucherNo;
+        
+        return {
+          id: voucherNo,
+          code: voucherNo,
+          name: displayText,
+          displayName: displayText
+        };
+      });
+      
+      console.log("Delete popup data:", deleteData);
       
       setPopupData(deleteData);
       setPopupTitle("Select Sales Return to Delete");
@@ -801,170 +959,110 @@ const SalesReturn = () => {
     }
   };
 
-  // Handle popup selection
   const handlePopupSelect = async (selectedItem) => {
     console.log("Popup selected item:", selectedItem);
     console.log("Popup type:", popupType);
     
-    if (popupType === "customer") {
-      const selectedCustomer = customers.find(c => 
-        (c.code && c.code.toString() === selectedItem.id.toString())
-      );
-      
-      if (selectedCustomer) {
-        setBillDetails(prev => ({
-          ...prev,
-          custName: selectedCustomer.name || selectedCustomer.custName,
-          partyCode: selectedCustomer.code || selectedCustomer.custCode,
-        }));
-      }
-    } else if (popupType === "salesman") {
-      const selectedSalesman = salesmen.find(s => 
-        (s.fcode && s.fcode.toString() === selectedItem.id.toString()) ||
-        (s.code && s.code.toString() === selectedItem.id.toString())
-      );
-      
-      if (selectedSalesman) {
-        setBillDetails(prev => ({
-          ...prev,
-          salesman: selectedSalesman.fname || selectedSalesman.name
-        }));
-      }
-    } else if (popupType === "item") {
-      console.log("Item popup selection for row:", selectedRowIndex);
-      console.log("Selected item data:", selectedItem);
-      
-      if (selectedRowIndex !== null) {
-        const selectedItemFromList = itemList.find(item => {
-          const itemCode = item.itemCode || item.code || item.ItemCode || item.Code || item.id;
-          const itemName = item.fItemName || item.itemName || item.name;
-          
-          if (selectedItem.code && itemCode) {
-            return itemCode.toString() === selectedItem.code.toString();
-          } else {
-            return itemName === selectedItem.name;
-          }
-        });
+    try {
+      if (popupType === "customer") {
+        const selectedCustomer = customers.find(c => 
+          (c.code && c.code.toString() === selectedItem.id.toString())
+        );
         
-        console.log("Selected item from list:", selectedItemFromList);
-        
-        const itemData = selectedItemFromList || selectedItem;
-        
-        const itemName = itemData.fItemName || itemData.itemName || itemData.name || 
-                        selectedItem.name || selectedItem.fItemName || 'Unknown Item';
-        
-        const barcode = itemData.barcode || itemData.Barcode || itemData.itemCode || 
-                       itemData.code || selectedItem.code || '';
-        const mrp = itemData.mrp || itemData.MRP || itemData.sellingPrice || 
-                   itemData.SellingPrice || itemData.price || itemData.Price || 0;
-        const stock = itemData.stockQty || itemData.stock || itemData.StockQty || 
-                     itemData.Stock || itemData.quantity || itemData.Quantity || 0;
-        const uom = itemData.uom || itemData.UOM || itemData.unit || itemData.Unit || "";
-        const hsn = itemData.hsnCode || itemData.hsn || itemData.HsnCode || itemData.HSN || "";
-        const tax = itemData.taxRate || itemData.tax || itemData.TaxRate || itemData.Tax || 0;
-        const sRate = itemData.sellingPrice || itemData.sRate || itemData.SellingPrice || 
-                     itemData.SRate || itemData.price || itemData.Price || mrp;
-        
-        console.log("Item name to set:", itemName);
-        console.log("Barcode to set:", barcode);
-        
-        const updatedItems = [...items];
-        
-        if (updatedItems[selectedRowIndex]) {
-          updatedItems[selectedRowIndex] = {
-            ...updatedItems[selectedRowIndex],
-            itemName: itemName,
-            barcode: barcode,
-            mrp: mrp.toString(),
-            stock: stock.toString(),
-            uom: uom,
-            hsn: hsn,
-            tax: tax.toString(),
-            sRate: sRate.toString(),
-            rate: sRate.toString(),
-            qty: "1",
-            amount: calculateAmount("1", sRate)
-          };
-          
-          console.log("Updated item row:", updatedItems[selectedRowIndex]);
-          
-          setItems(updatedItems);
-        } else {
-          console.error("Row index out of bounds:", selectedRowIndex);
-        }
-      }
-    } else if (popupType === "edit") {
-      alert(`Edit selected voucher: ${selectedItem.code}\n\nLoading data for voucher ${selectedItem.code}...`);
-      
-      try {
-        const voucherDetails = await fetchSalesReturnDetails(selectedItem.code);
-        
-        if (voucherDetails) {
+        if (selectedCustomer) {
           setBillDetails(prev => ({
             ...prev,
-            billNo: voucherDetails.voucherNo || selectedItem.code,
-            billDate: voucherDetails.voucherDate || voucherDetails.billDate || new Date().toISOString().substring(0, 10),
-            mobileNo: voucherDetails.mobileNo || '',
-            empName: voucherDetails.empName || '',
-            salesman: voucherDetails.salesman || '',
-            custName: voucherDetails.customerName || voucherDetails.custName || '',
-            returnReason: voucherDetails.returnReason || '',
-            partyCode: voucherDetails.customerCode || voucherDetails.partyCode || ''
+            custName: selectedCustomer.name || selectedCustomer.custName,
+            partyCode: selectedCustomer.code || selectedCustomer.custCode,
+            customerCode: selectedCustomer.code || selectedCustomer.custCode,
           }));
+        }
+        
+      } else if (popupType === "salesman") {
+        const selectedSalesman = salesmen.find(s => 
+          (s.fcode && s.fcode.toString() === selectedItem.id.toString()) ||
+          (s.code && s.code.toString() === selectedItem.id.toString())
+        );
+        
+        if (selectedSalesman) {
+          setBillDetails(prev => ({
+            ...prev,
+            salesman: selectedSalesman.fname || selectedSalesman.name,
+            salesmanCode: selectedSalesman.fcode || selectedSalesman.code || "002"
+          }));
+        }
+        
+      } else if (popupType === "item") {
+        console.log("Item popup selection for row:", selectedRowIndex);
+        console.log("Selected item data:", selectedItem);
+        
+        if (selectedRowIndex !== null) {
+          const selectedItemFromList = itemList.find(item => {
+            const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id;
+            
+            if (selectedItem.code && itemCode) {
+              return itemCode.toString() === selectedItem.code.toString();
+            }
+            return false;
+          });
           
-          if (voucherDetails.items && Array.isArray(voucherDetails.items)) {
-            const updatedItems = voucherDetails.items.map((item, index) => ({
-              id: index + 1,
-              sNo: index + 1,
-              barcode: item.barcode || '',
-              itemName: item.itemName || item.fItemName || '',
-              stock: item.stock || item.stockQty || '',
-              mrp: item.mrp || '',
-              uom: item.uom || '',
-              hsn: item.hsn || item.hsnCode || '',
-              tax: item.tax || item.taxRate || '',
-              sRate: item.sRate || item.rate || '',
-              rate: item.rate || item.sRate || '',
-              qty: item.qty || '',
-              amount: calculateAmount(item.qty || '0', item.sRate || item.rate || '0')
-            }));
+          console.log("Selected item from list:", selectedItemFromList);
+          
+          const itemData = selectedItemFromList || selectedItem;
+          
+          const itemName = itemData.fItemName || itemData.itemName || itemData.name || 
+                          selectedItem.name || selectedItem.fItemName || 'Unknown Item';
+          const itemCode = itemData.fItemcode || itemData.itemCode || itemData.code || 
+                          selectedItem.code || `0000${selectedRowIndex + 1}`;
+          
+          console.log("Item name to display:", itemName);
+          console.log("Item code to store:", itemCode);
+          
+          const updatedItems = [...items];
+          
+          if (updatedItems[selectedRowIndex]) {
+            updatedItems[selectedRowIndex] = {
+              ...updatedItems[selectedRowIndex],
+              itemName: itemName,
+              itemCode: itemCode,
+            };
+            
+            console.log("Updated item row:", updatedItems[selectedRowIndex]);
+            
             setItems(updatedItems);
+          } else {
+            console.error("Row index out of bounds:", selectedRowIndex);
           }
-          
-          alert(`Voucher ${selectedItem.code} loaded successfully!`);
-        } else {
-          alert(`Could not load details for voucher ${selectedItem.code}. Please try again.`);
         }
-      } catch (err) {
-        console.error("Error loading voucher details:", err);
-        alert(`Failed to load voucher details: ${err.message}`);
-      }
-      
-    } else if (popupType === "delete") {
-      const confirmDelete = window.confirm(
-        `Are you sure you want to delete Sales Return?\n\n` +
-        `Voucher No: ${selectedItem.code}\n\n` +
-        `This action cannot be undone!`
-      );
-      
-      if (confirmDelete) {
-        try {
-          await handleDeleteSalesReturn(selectedItem.code);
-          alert(`Sales Return ${selectedItem.code} deleted successfully!`);
-        } catch (err) {
-          console.error("Error deleting:", err);
-          alert(`Failed to delete Sales Return ${selectedItem.code}: ${err.message}`);
+        
+      } else if (popupType === "edit") {
+        const voucherNo = selectedItem.code || selectedItem.id;
+        console.log("Loading voucher for editing:", voucherNo);
+        
+        await loadVoucherForEditing(voucherNo);
+        
+      } else if (popupType === "delete") {
+        const voucherNo = selectedItem.code || selectedItem.id;
+        const confirmDelete = window.confirm(
+          `Are you sure you want to delete Sales Return?\n\n` +
+          `Voucher No: ${voucherNo}\n\n` +
+          `This action cannot be undone!`
+        );
+        
+        if (confirmDelete) {
+          await deleteSalesReturn(voucherNo);
         }
-      } else {
-        return;
       }
+    } catch (err) {
+      console.error("Error in popup selection:", err);
+      alert(`Error: ${err.message}`);
+    } finally {
+      setPopupOpen(false);
+      setPopupType("");
+      setPopupData([]);
+      setSelectedRowIndex(null);
+      setSelectedAction("");
     }
-    
-    setPopupOpen(false);
-    setPopupType("");
-    setPopupData([]);
-    setSelectedRowIndex(null);
-    setSelectedAction("");
   };
 
   const fetchItemsForPopup = async (pageNum, search) => {
@@ -974,9 +1072,8 @@ const SalesReturn = () => {
       return (
         (item.code && item.code.toString().toLowerCase().includes(searchLower)) ||
         (item.name && item.name.toLowerCase().includes(searchLower)) ||
-        (item.userName && item.userName.toLowerCase().includes(searchLower)) ||
-        (item.barcode && item.barcode.toString().toLowerCase().includes(searchLower)) ||
         (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
+        (item.itemName && item.itemName.toLowerCase().includes(searchLower)) ||
         (item.fItemName && item.fItemName.toLowerCase().includes(searchLower))
       );
     });
@@ -993,35 +1090,41 @@ const SalesReturn = () => {
         searchFields: ['code', 'name'],
         headerNames: ['Code', 'Customer Name'],
         columnWidths: { code: '30%', name: '70%' },
-        searchPlaceholder: 'Search customers...'
+        searchPlaceholder: 'Search customers...',
+        showApplyButton: false
       },
       salesman: {
         displayFieldKeys: ['code', 'name'],
         searchFields: ['code', 'name'],
         headerNames: ['Code', 'Salesman Name'],
         columnWidths: { code: '30%', name: '70%' },
-        searchPlaceholder: 'Search salesmen...'
+        searchPlaceholder: 'Search salesmen...',
+        showApplyButton: false
       },
+      // UPDATED: Show both Item Code and Item Name in the popup
       item: {
-        displayFieldKeys: ['name'],
-        searchFields: ['name', 'fItemName', 'code'],
-        headerNames: ['Item Name'],
-        columnWidths: { name: '100%' },
-        searchPlaceholder: 'Search items by name...'
+        displayFieldKeys: ['displayName'], // Use displayName which shows both code and name
+        searchFields: ['displayName', 'name', 'itemName', 'code'], // Search by both
+        headerNames: ['Item (Code - Name)'],
+        columnWidths: { displayName: '100%' },
+        searchPlaceholder: 'Search items by code or name...',
+        showApplyButton: false
       },
       edit: {
-        displayFieldKeys: ['code'],
-        searchFields: ['code', 'name'],
+        displayFieldKeys: ['name'],
+        searchFields: ['code', 'name', 'customerName'],
         headerNames: ['Voucher No'],
-        columnWidths: { code: '100%' },
-        searchPlaceholder: 'Search voucher number...'
+        columnWidths: { name: '100%' },
+        searchPlaceholder: 'Search voucher number...',
+        showApplyButton: false
       },
       delete: {
-        displayFieldKeys: ['code'],
-        searchFields: ['code', 'name'],
+        displayFieldKeys: ['name'],
+        searchFields: ['code', 'name', 'customerName'],
         headerNames: ['Voucher No'],
-        columnWidths: { code: '100%' },
-        searchPlaceholder: 'Search voucher number...'
+        columnWidths: { name: '100%' },
+        searchPlaceholder: 'Search voucher number...',
+        showApplyButton: false
       }
     };
     
@@ -1042,6 +1145,8 @@ const SalesReturn = () => {
         openSalesmanPopup();
       } else if (fieldName === 'custName') {
         openCustomerPopup();
+      } else if (fieldName === 'newBillNo') {
+        openNewBillNumberPopup();
       }
     } else if (e.key === 'Enter') {
       e.preventDefault();
@@ -1119,9 +1224,9 @@ const SalesReturn = () => {
 
     try {
       const existingItemInList = itemList.find(item => 
-        item.barcode === billDetails.barcodeInput || 
         item.itemCode === billDetails.barcodeInput ||
-        item.code === billDetails.barcodeInput
+        item.code === billDetails.barcodeInput ||
+        item.fItemcode === billDetails.barcodeInput
       );
 
       if (existingItemInList) {
@@ -1142,9 +1247,7 @@ const SalesReturn = () => {
 
   const handleAddItemFromLocal = (itemData) => {
     const existingItemIndex = items.findIndex(item =>
-      (item.barcode === itemData.barcode || 
-       item.barcode === itemData.itemCode ||
-       item.barcode === itemData.code) && 
+      (item.barcode === billDetails.barcodeInput) && 
       item.barcode !== ''
     );
 
@@ -1165,17 +1268,18 @@ const SalesReturn = () => {
       const newItem = {
         id: items.length + 1,
         sNo: items.length + 1,
-        barcode: itemData.barcode || itemData.itemCode || itemData.code,
-        itemName: itemData.fItemName || itemData.itemName || itemData.name,
-        stock: (itemData.stockQty || itemData.stock || itemData.quantity || 0).toString(),
-        mrp: (itemData.mrp || itemData.sellingPrice || itemData.price || 0).toString(),
-        uom: itemData.uom || itemData.unit || "",
-        hsn: itemData.hsnCode || itemData.hsn || "",
-        tax: (itemData.taxRate || itemData.tax || 0).toString(),
-        sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
-        rate: (itemData.sellingPrice || itemData.rate || itemData.price || 0).toString(),
+        barcode: billDetails.barcodeInput,
+        itemName: itemData.fItemName || itemData.itemName || itemData.name || '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        sRate: '',
+        rate: '',
+        itemCode: itemData.fItemcode || itemData.itemCode || itemData.code || `0000${items.length + 1}`,
         qty: '1',
-        amount: (itemData.sellingPrice || itemData.price || 0).toFixed(2)
+        amount: '0.00'
       };
 
       setItems([...items, newItem]);
@@ -1189,17 +1293,18 @@ const SalesReturn = () => {
     const newItem = {
       id: items.length + 1,
       sNo: items.length + 1,
-      barcode: itemData.barcode || itemData.itemCode || itemData.code,
-      itemName: itemData.fItemName || itemData.itemName || itemData.name,
-      stock: (itemData.stockQty || itemData.stock || itemData.quantity || 0).toString(),
-      mrp: (itemData.mrp || itemData.sellingPrice || itemData.price || 0).toString(),
-      uom: itemData.uom || itemData.unit || "",
-      hsn: itemData.hsnCode || itemData.hsn || "",
-      tax: (itemData.taxRate || itemData.tax || 0).toString(),
-      sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
-      rate: (itemData.sellingPrice || itemData.rate || itemData.price || 0).toString(),
+      barcode: billDetails.barcodeInput,
+      itemName: itemData.fItemName || itemData.itemName || itemData.name || '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      itemCode: itemData.fItemcode || itemData.itemCode || itemData.code || `0000${items.length + 1}`,
       qty: '1',
-      amount: (itemData.sellingPrice || itemData.price || 0).toFixed(2)
+      amount: '0.00'
     };
 
     setItems([...items, newItem]);
@@ -1222,7 +1327,8 @@ const SalesReturn = () => {
       sRate: '',
       rate: '',
       qty: '',
-      amount: '0.00'
+      amount: '0.00',
+      itemCode: `0000${items.length + 1}`
     };
     setItems([...items, newRow]);
   };
@@ -1246,14 +1352,6 @@ const SalesReturn = () => {
       }
       return item;
     }));
-  };
-
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete the last item?')) {
-      if (items.length > 0) {
-        setItems(items.slice(0, -1));
-      }
-    }
   };
 
   const handleDeleteRow = (id) => {
@@ -1283,21 +1381,11 @@ const SalesReturn = () => {
           sRate: '',
           rate: '',
           qty: '',
-          amount: '0.00'
+          amount: '0.00',
+          itemCode: '00001'
         };
         setItems([clearedItem]);
       }
-    }
-  };
-
-  const handleDeleteSalesReturn = async (voucherNo) => {
-    try {
-      await deleteSalesReturn(voucherNo);
-      alert(`Sales return ${voucherNo} deleted successfully.`);
-      await fetchVoucherList();
-    } catch (err) {
-      alert(`Failed to delete sales return: ${err.message}`);
-      throw err;
     }
   };
 
@@ -1308,15 +1396,20 @@ const SalesReturn = () => {
         billDate: new Date().toISOString().substring(0, 10),
         mobileNo: '',
         empName: '',
+        empCode: '14789',
         salesman: '',
+        salesmanCode: '002',
         custName: '',
+        customerCode: '',
         returnReason: '',
         barcodeInput: '',
         partyCode: '',
         gstno: '',
         city: '',
         type: 'Retail',
-        transType: 'SALES RETURN'
+        transType: 'SALES RETURN',
+        billAMT: '0',
+        newBillNo: ''
       });
 
       setItems([
@@ -1333,7 +1426,8 @@ const SalesReturn = () => {
           sRate: '',
           rate: '',
           qty: '',
-          amount: '0.00'
+          amount: '0.00',
+          itemCode: '00001'
         }
       ]);
       
@@ -1341,9 +1435,8 @@ const SalesReturn = () => {
     }
   };
 
-  // ==================== SAVE FUNCTION WITH POST API ====================
+  // ==================== SAVE FUNCTION ====================
   const handleSave = async () => {
-    // Validation
     if (!billDetails.custName) {
       alert("Please select a customer.");
       return;
@@ -1354,7 +1447,6 @@ const SalesReturn = () => {
       return;
     }
 
-    // Validate each item has required fields
     const invalidItems = items.filter(item => 
       item.itemName && (!item.qty || parseFloat(item.qty) <= 0)
     );
@@ -1365,68 +1457,20 @@ const SalesReturn = () => {
     }
 
     try {
-      // Prepare data for API
-      const salesReturnData = {
-        voucherNo: billDetails.billNo,
-        voucherDate: billDetails.billDate,
-        customerCode: billDetails.partyCode,
-        customerName: billDetails.custName,
-        mobileNo: billDetails.mobileNo || "",
-        salesman: billDetails.salesman || "",
-        empName: billDetails.empName || "",
-        returnReason: billDetails.returnReason || "",
-        totalQty: totalQty,
-        totalAmount: totalAmount,
-        items: items.filter(item => item.itemName).map(item => ({
-          barcode: item.barcode || "",
-          itemName: item.itemName || "",
-          fItemName: item.itemName || "",
-          qty: parseFloat(item.qty) || 0,
-          rate: parseFloat(item.sRate) || 0,
-          amount: parseFloat(item.amount) || 0,
-          mrp: parseFloat(item.mrp) || 0,
-          uom: item.uom || "PCS",
-          hsn: item.hsn || "",
-          tax: parseFloat(item.tax) || 0
-        })),
-        type: billDetails.type,
-        transType: billDetails.transType
-      };
-
-      console.log("Saving sales return data:", salesReturnData);
-      
-      // Check if this is an update or create
       const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
-                                billDetails.billNo !== 'Auto' &&
                                 !billDetails.billNo.startsWith('SR000000');
       
-      let response;
       if (isExistingVoucher) {
-        response = await updateSalesReturn(salesReturnData);
-        alert(`Sales Return ${billDetails.billNo} updated successfully!`);
+        await updateSalesReturn();
       } else {
-        response = await createSalesReturn(salesReturnData);
-        alert(`Sales Return ${response.voucherNo} saved successfully!`);
-        
-        // Update the bill number with the one returned from server
-        if (response.voucherNo) {
-          setBillDetails(prev => ({ ...prev, billNo: response.voucherNo }));
-        }
+        await createSalesReturn();
       }
       
-      console.log("Save response:", response);
-      
-      // Refresh voucher list
-      await fetchVoucherList();
-      
-      // Clear form for next entry
-      handleClear();
-      
-      // Get new voucher number for next entry
-      await fetchMaxVoucherNo();
+      if (!isExistingVoucher) {
+        handleClear();
+      }
       
     } catch (err) {
-      alert(`Failed to save sales return: ${err.message}`);
       console.error("Save error:", err);
     }
   };
@@ -1754,6 +1798,156 @@ const SalesReturn = () => {
       margin: screenSize.isMobile ? '0 10px' : '0 16px',
       marginTop: screenSize.isMobile ? '10px' : '12px',
     },
+    customPopupOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+      padding: screenSize.isMobile ? '10px' : '20px',
+    },
+    customPopupContainer: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+      width: '100%',
+      maxWidth: screenSize.isMobile ? '95vw' : screenSize.isTablet ? '80vw' : '70vw',
+      maxHeight: '80vh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      fontFamily: TYPOGRAPHY.fontFamily,
+    },
+    customPopupHeader: {
+      padding: screenSize.isMobile ? '12px 16px' : '16px 20px',
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    },
+    customPopupTitle: {
+      fontSize: screenSize.isMobile ? '16px' : '18px',
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      margin: 0,
+    },
+    customPopupCloseButton: {
+      background: 'transparent',
+      border: 'none',
+      color: 'white',
+      fontSize: '24px',
+      cursor: 'pointer',
+      padding: '0',
+      width: '30px',
+      height: '30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '4px',
+      transition: 'background-color 0.2s',
+    },
+    customPopupSearchContainer: {
+      padding: screenSize.isMobile ? '12px 16px' : '16px 20px',
+      borderBottom: '1px solid #e0e0e0',
+      backgroundColor: '#f8f9fa',
+    },
+    customPopupSearchInput: {
+      width: '100%',
+      padding: screenSize.isMobile ? '8px 12px' : '10px 16px',
+      border: '1px solid #ddd',
+      borderRadius: '6px',
+      fontSize: screenSize.isMobile ? '14px' : '16px',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      outline: 'none',
+      transition: 'border-color 0.2s',
+      boxSizing: 'border-box',
+    },
+    customPopupContent: {
+      flex: 1,
+      overflowY: 'auto',
+      maxHeight: '50vh',
+    },
+    customPopupTable: {
+      width: '100%',
+      borderCollapse: 'collapse',
+    },
+    customPopupTableHeader: {
+      backgroundColor: '#f5f5f5',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10,
+    },
+    customPopupTableHeaderCell: {
+      padding: screenSize.isMobile ? '8px 12px' : '12px 16px',
+      textAlign: 'left',
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      fontSize: screenSize.isMobile ? '13px' : '14px',
+      color: '#333',
+      borderBottom: '2px solid #ddd',
+      backgroundColor: '#f5f5f5',
+    },
+    customPopupTableRow: {
+      cursor: 'pointer',
+      transition: 'background-color 0.2s',
+      borderBottom: '1px solid #eee',
+    },
+    customPopupTableRowSelected: {
+      backgroundColor: '#e3f2fd',
+    },
+    customPopupTableCell: {
+      padding: screenSize.isMobile ? '10px 12px' : '12px 16px',
+      fontSize: screenSize.isMobile ? '13px' : '14px',
+      color: '#333',
+    },
+    customPopupFooter: {
+      padding: screenSize.isMobile ? '12px 16px' : '16px 20px',
+      borderTop: '1px solid #e0e0e0',
+      backgroundColor: '#f8f9fa',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: '10px',
+      borderRadius: '0 0 8px 8px',
+    },
+    customPopupFooterButton: {
+      padding: screenSize.isMobile ? '8px 16px' : '10px 20px',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: screenSize.isMobile ? '14px' : '15px',
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      transition: 'background-color 0.2s, transform 0.1s',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      minWidth: '80px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    customPopupClearButton: {
+      backgroundColor: '#6c757d',
+      color: 'white',
+    },
+    customPopupApplyButton: {
+      backgroundColor: '#1B91DA',
+      color: 'white',
+    },
+    customPopupApplyButtonDisabled: {
+      backgroundColor: '#cccccc',
+      color: '#666666',
+      cursor: 'not-allowed',
+    },
+    noDataMessage: {
+      padding: '40px 20px',
+      textAlign: 'center',
+      color: '#666',
+      fontSize: '16px',
+    },
   };
 
   const getGridColumns = () => {
@@ -1803,7 +1997,7 @@ const SalesReturn = () => {
           ...styles.gridRow,
           gridTemplateColumns: getGridColumns(),
         }}>
-          {/* Bill No */}
+          {/* Bill No (EXISTING - Auto-generated) */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
@@ -1907,7 +2101,7 @@ const SalesReturn = () => {
               onChange={handleInputChange}
               ref={custNameRef}
               onClick={openCustomerPopup}
-              onKeyDown={(e) => handleKeyDown(e, returnReasonRef, 'custName')}
+              onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'custName')}
               onFocus={() => setFocusedField('custName')}
               onBlur={() => setFocusedField('')}
               placeholder="Click or press /"
@@ -1915,20 +2109,22 @@ const SalesReturn = () => {
             />
           </div>
 
-          {/* Return Reason */}
+          {/* NEW Bill No Field (Near Barcode) - Custom Popup */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Return Reason:</label>
+            <label style={styles.inlineLabel}>Bill No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
-              value={billDetails.returnReason}
-              name="returnReason"
+              style={styles.inlineInputClickable}
+              value={billDetails.newBillNo}
+              name="newBillNo"
               onChange={handleInputChange}
-              ref={returnReasonRef}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-              onFocus={() => setFocusedField('returnReason')}
+              ref={newBillNoRef}
+              onClick={openNewBillNumberPopup}
+              onKeyDown={(e) => handleKeyDown(e, barcodeRef, 'newBillNo')}
+              onFocus={() => setFocusedField('newBillNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Return Reason"
+              placeholder="Click to select"
+              readOnly
             />
           </div>
 
@@ -1939,7 +2135,7 @@ const SalesReturn = () => {
               type="text"
               style={styles.inlineInput}
               value={billDetails.barcodeInput}
-              name="barcode"
+              name="barcodeInput"
               onChange={handleInputChange}
               ref={barcodeRef}
               onKeyDown={(e) => {
@@ -2195,28 +2391,118 @@ const SalesReturn = () => {
         </div>
       </div>
 
-      {/* PopupListSelector */}
-      <PopupListSelector
-        open={popupOpen}
-        onClose={() => {
-          setPopupOpen(false);
-          setPopupType("");
-          setPopupData([]);
-          setSelectedRowIndex(null);
-          setSelectedAction("");
-        }}
-        onSelect={handlePopupSelect}
-        fetchItems={fetchItemsForPopup}
-        title={popupTitle}
-        displayFieldKeys={getPopupConfig().displayFieldKeys}
-        searchFields={getPopupConfig().searchFields}
-        headerNames={getPopupConfig().headerNames}
-        columnWidths={getPopupConfig().columnWidths}
-        searchPlaceholder={getPopupConfig().searchPlaceholder}
-        maxHeight="70vh"
-      />
+      {/* CUSTOM POPUP for Bill Number */}
+      {billNoPopupOpen && (
+        <div style={styles.customPopupOverlay}>
+          <div style={styles.customPopupContainer}>
+            <div style={styles.customPopupHeader}>
+              <h3 style={styles.customPopupTitle}>Select Bill Number</h3>
+              <button
+                style={styles.customPopupCloseButton}
+                onClick={() => {
+                  setBillNoPopupOpen(false);
+                  setSelectedBillNo(null);
+                  setBillNoSearchText("");
+                }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.customPopupSearchContainer}>
+              <input
+                type="text"
+                style={styles.customPopupSearchInput}
+                placeholder="Search bill number or customer..."
+                value={billNoSearchText}
+                onChange={(e) => setBillNoSearchText(e.target.value)}
+              />
+            </div>
+            
+            <div style={styles.customPopupContent}>
+              {getFilteredBillNumbers().length > 0 ? (
+                <table style={styles.customPopupTable}>
+                  <thead style={styles.customPopupTableHeader}>
+                    <tr>
+                      <th style={styles.customPopupTableHeaderCell}>Bill No</th>
+                      <th style={styles.customPopupTableHeaderCell}>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getFilteredBillNumbers().map((item, index) => (
+                      <tr
+                        key={item.id}
+                        style={{
+                          ...styles.customPopupTableRow,
+                          ...(selectedBillNo === item.code ? styles.customPopupTableRowSelected : {}),
+                        }}
+                        onClick={() => setSelectedBillNo(item.code)}
+                      >
+                        <td style={styles.customPopupTableCell}>{item.code}</td>
+                        <td style={styles.customPopupTableCell}>{item.name}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div style={styles.noDataMessage}>
+                  {billNoSearchText ? "No matching bill numbers found" : "No bill numbers available"}
+                </div>
+              )}
+            </div>
+            
+            <div style={styles.customPopupFooter}>
+              <button
+                style={{
+                  ...styles.customPopupFooterButton,
+                  ...styles.customPopupClearButton,
+                }}
+                onClick={handleClearBillNumber}
+              >
+                Clear
+              </button>
+              <button
+                style={{
+                  ...styles.customPopupFooterButton,
+                  ...styles.customPopupApplyButton,
+                  ...(!selectedBillNo ? styles.customPopupApplyButtonDisabled : {}),
+                }}
+                onClick={handleApplyBillNumber}
+                disabled={!selectedBillNo}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Regular PopupListSelector for other popups */}
+      {popupOpen && popupType !== "newBillNumber" && (
+        <PopupListSelector
+          open={popupOpen}
+          onClose={() => {
+            setPopupOpen(false);
+            setPopupType("");
+            setPopupData([]);
+            setSelectedRowIndex(null);
+            setSelectedAction("");
+          }}
+          onSelect={handlePopupSelect}
+          fetchItems={fetchItemsForPopup}
+          title={popupTitle}
+          displayFieldKeys={getPopupConfig().displayFieldKeys}
+          searchFields={getPopupConfig().searchFields}
+          headerNames={getPopupConfig().headerNames}
+          columnWidths={getPopupConfig().columnWidths}
+          searchPlaceholder={getPopupConfig().searchPlaceholder}
+          maxHeight="70vh"
+        />
+      )}
     </div>
   );
 };
 
-export default SalesReturn;
+export default SalesReturn; 
+

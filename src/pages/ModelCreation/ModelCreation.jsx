@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 
 // --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
@@ -80,6 +81,10 @@ export default function ModelCreation() {
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions ----------
   const fetchNextModelCode = async () => {
@@ -231,17 +236,25 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to update model "${form.modelName}"?`)) return;
+    setConfirmEditOpen(true);
+  };
+
+  const confirmEdit = async () => {
     try {
+      setIsLoading(true);
       const modelData = { fCode: form.fuCode, modelName: form.modelName };
       await updateModel(modelData);
       await loadInitial();
       
       setMessage({ type: "success", text: "Model updated successfully." });
+      setConfirmEditOpen(false);
       resetForm(true);
     } catch (err) {
+      setConfirmEditOpen(false);
       console.error("Edit error:", err);
       // Error message already set in updateModel
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -251,14 +264,20 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to delete model "${form.modelName}"?`)) return;
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
     try {
+      setIsLoading(true);
       await deleteModel(form.fuCode);
       await loadInitial();
       
       setMessage({ type: "success", text: "Model deleted successfully." });
+      setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
+      setConfirmDeleteOpen(false);
       console.error("Delete error:", err);
       // Special handling for referenced models
       if (err.message.includes("used in related tables") || 
@@ -270,6 +289,8 @@ useEffect(() => {
           text: `Cannot delete model "${form.modelName}". It is referenced in other tables and cannot be removed.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -279,18 +300,23 @@ useEffect(() => {
       return;
     }
 
-    if (!window.confirm(`Do you want to create model "${form.modelName}"?`)) return;
+    setConfirmSaveOpen(true);
+  };
 
+  const confirmSave = async () => {
     try {
+      setIsLoading(true);
       const modelData = { fCode: form.fuCode, modelName: form.modelName };
-      console.log("Handling add with:", modelData); // Debug log
+      console.log("Handling save with:", modelData); // Debug log
       await createModel(modelData);
       await loadInitial();
       
       setMessage({ type: "success", text: "Model created successfully." });
+      setConfirmSaveOpen(false);
       resetForm(true);
     } catch (err) {
-      console.error("Add error:", err);
+      setConfirmSaveOpen(false);
+      console.error("Save error:", err);
       // Check for duplicate entry
       if (err.message.includes("already exists") || 
           err.message.includes("duplicate") ||
@@ -300,6 +326,8 @@ useEffect(() => {
           text: `Model "${form.modelName}" already exists. Please use a different name.` 
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -487,7 +515,7 @@ useEffect(() => {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 14px; /* match other pages */
+          font-size: 12px; /* increased base font size */
           box-sizing: border-box;
         }
 
@@ -523,10 +551,9 @@ useEffect(() => {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 18px; /* match Product.jsx title size */
-          color: #0c1a3bff;
+          font-size: 20px; /* slightly larger title */
+          color: #0f172a;
           letter-spacing: -0.2px;
-          font-weight: 700;
         }
         .subtitle {
           color: var(--muted);
@@ -590,7 +617,7 @@ useEffect(() => {
 
         label.field-label {
           display:block;
-          margin-bottom:2px;
+          margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
           font-size:14px;
@@ -616,14 +643,13 @@ useEffect(() => {
           min-width: 0;
           padding:10px 12px;
           border-radius:10px;
-          border: 2px solid rgba(15,23,42,0.06);
+          border: 1px solid rgba(15,23,42,0.06);
           background: linear-gradient(180deg, #fff, #fbfdff);
           font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
-          margin: 0 10px;
         }
         .input:focus, .search:focus { 
           outline:none; 
@@ -671,7 +697,7 @@ useEffect(() => {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { color: var(--muted); font-size:15px; }
 
         /* message */
         .message {
@@ -679,7 +705,7 @@ useEffect(() => {
           padding:12px;
           border-radius:10px;
           font-weight:600;
-          font-size: 14px;
+          font-size: 12px;
         }
         .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
@@ -1096,7 +1122,7 @@ useEffect(() => {
                     type="button"
                     aria-label="Clear search"
                   >
-                    <Icon.Close size={19} />
+                    <Icon.Close size={16} />
                   </button>
                 )}
               </div>
@@ -1221,6 +1247,75 @@ useEffect(() => {
         headerNames={['Code', 'Name']}
         columnWidths={{ modelName: '70%', fCode: '30%' }}
         maxHeight="60vh"
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Model"
+        message={`Are you sure you want to create model "${form.modelName}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Model"
+        message={`Are you sure you want to update model "${form.modelName}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Model"
+        message={`Are you sure you want to delete model "${form.modelName}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );

@@ -1,4 +1,10 @@
 export const API_ENDPOINTS = {
+  // Login Endpoint
+  LOGIN: {
+    getUserInfo: (username, password) => 
+      `Login/GetCompanyUserInfo?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+  },
+
   LEDGER_CREATION_ENDPOINTS: {
     getTree: "LedgerGroupCreation/LedgerGroupCreationGet",
     getDropdown: "LedgerCreation/GetledgerCreationdropdowslist",
@@ -115,53 +121,12 @@ export const API_ENDPOINTS = {
      getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
       getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
        getCustomers: "Salesinvoices/GetPartyByParent",
-        SALES_RETURN: {
-    // Create Sales Return (POST)
-    CREATE_SALES_RETURN: (selectType = true) => 
-      `SalesReturn/SalesReturnCreate?SelectType=${selectType}`,
-    
-    // Update Sales Return (PUT) - if available
-    UPDATE_SALES_RETURN: (selectType = true) => 
-      `SalesReturn/SalesReturnUpdate?SelectType=${selectType}`,
-    
-    // Delete Sales Return (DELETE)
-    DELETE_SALES_RETURN: (voucherNo) => 
-      `SalesReturn/DeleteSalesReturn/${voucherNo}`,
-    
-    // Get Sales Return Details
-    GET_SALES_RETURN_DETAILS: (voucherNo) => 
-      `SalesReturn/GetSalesReturnByVoucherNo/${voucherNo}`,
-    
-    // Get Max Voucher Number
-    GET_MAX_VOUCHER_NO: (companyCode) => 
-      `SalesReturn/GetMaxVoucherNo/${companyCode}`,
-    
-    // Get Voucher List
-    GET_VOUCHER_LIST: (companyCode) => 
-      `SalesReturn/VoucherList/${companyCode}`,
-    
-    // Get Item by Barcode
-    GET_ITEM_BY_BARCODE: (barcode) => 
-      `ItemCreation/GetItemByBarcode/${barcode}`,
+       createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
+    updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=false', // Same endpoint for both
+    deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
+    getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
   },
   
-  // Customer Endpoints
-  GET_CUSTOMERS: "Salesinvoices/GetPartyByParent",
-  
-  // Item Endpoints
-  GET_ITEM_DROPDOWN: "ItemCreation/GetItemCreationdropdowslist",
-  
-  // Salesman Endpoints
-  GET_SALESMEN: "SalesmanCreation/GetSalesman",
-  
-  // Scrap Creation Endpoints (keep existing)
- 
-  },
-  
-
-
-  
-
   SCRAP_RATE_FIXING: {
     GET_FULL_SCRAP_RATES: 'ScrapRateFixing/getFullScrapRateFixing',
     UPDATE_FULL_SCRAP_RATES: 'ScrapRateFixing/updateFullScrapRateFixing',
@@ -238,54 +203,70 @@ CATEGORY: {
 
 
 
+
+
+
   SALES_INVOICE_ENDPOINTS: {
-    // 1) Get next bill number
-    getNextBillNo: (compCode) => 
-      `Salesinvoices/salesnextbillNo/${compCode}`,
 
-    // 2) Create Sales Invoice
-    // isSave → true/false
-    createSales: (isSave = true) => 
-      `Salesinvoices/CreateSales/${isSave}`,
+  // 1) Get next bill number
+  getNextBillNo: (compCode) =>
+    `Salesinvoices/salesnextbillNo/${compCode}`,
 
-    // 3) Get sales bill list (paginated)
-    getBillList: (compCode, page = 1, pageSize = 20) => 
-      `Salesinvoices/salesbillList/${compCode}?page=${page}&pageSize=${pageSize}`,
 
-    // 4) Delete sales bill number
-    // Requires voucher & compCode as query params
-    deleteBillNumber: (voucher, compCode) => 
-      `Salesinvoices/salesbillnumber?voucher=${voucher}&compCode=${compCode}`,
+   CREATE_SALES: "Salesinvoices/CreateSales/true",   // Insert
+   UPDATE_SALES: "Salesinvoices/CreateSales/false",  // Update
 
-    // 5) Get stock by item name
-    getStockByItemName: (billType, itemcode) => 
-      `Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
 
-    // 6) Get voucher details
-    getVoucherDetails: (voucherNo) => 
-      `Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`,
 
-    // 7) Get item types
-    getItemTypes: () => 
-      `Salesinvoices/GetItemTypes`,
+  // 3) Get sales bill list
+  getBillList: (compCode, page = 1, pageSize = 20) =>
+    `Salesinvoices/salesbillList/${compCode}?page=${page}&pageSize=${pageSize}`,
 
-    // 8) Get items by type
-    getItemsByType: (type) => 
-      `Salesinvoices/GetItemsByType?type=${type}`,
 
-    // 9) Get stock by itemcode (alternate endpoint)
-    getStockByItemName1: (itemcode) => 
-      `Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
+  // 4) Delete sales bill number
+  deleteBillNumber: (voucher, compCode) =>
+    `Salesinvoices/salesbillnumber?voucher=${voucher}&compCode=${compCode}`,
 
-    // 10) Get salesman list
-    getSalesman: () => `SalesmanCreation/GetSalesman`,
 
-    getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>
-      `ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
+  // 5) Get stock by item
+  getStockByItemName: (billType, itemcode) =>
+    `Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
 
-      getCustomers: () => 
-      `Salesinvoices/GetPartyByParent`,
-  },
+
+  // 6) Get voucher details
+  getVoucherDetails: (voucherNo) =>
+    `Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`,
+
+
+  // 7) Get item types
+  getItemTypes: () =>
+    `Salesinvoices/GetItemTypes`,
+
+
+  // 8) Get items by type
+  getItemsByType: (type) =>
+    `Salesinvoices/GetItemsByType?type=${type}`,
+
+
+  // 9) Stock by itemcode (alternative)
+  getStockByItemName1: (itemcode) =>
+    `Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
+
+
+  // 10) Get salesman list
+  getSalesman: () =>
+    `SalesmanCreation/GetSalesman`,
+
+
+  // 11) Item dropdown
+  getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>
+    `ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
+
+
+  // 12) Get customers
+  getCustomers: () =>
+    `Salesinvoices/GetPartyByParent`,
+},
 
   Scrap_Procurement: {
     GET_VOUCHER_NO : "ScrapProcurement/GetMaxVoucherNo?compCode=001",
@@ -295,20 +276,20 @@ CATEGORY: {
     GET_BILL_LIST:"ScrapProcurement/GetVouchersBillNoList?compCode=001&pageNumber=1&pageSize=10",
     GET_VOUCHER_BY_NO: (voucherNo) => `ScrapProcurement/GetSCRAPDETAILS/${voucherNo}/001`,
     DELETE_SCRAP_PROCUREMENT: (voucherNo) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/001`,
-  }
-  
+  },
+    TENDER: {
+    opening: "Tender/opening",
+    closing: "Tender/closing",
+  },
 
 
 
+  BILLCOLLECTOR:{
+    GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
+  },
 
-
-
-
-
-
-
-
-
-
+  SALESRETURN: {
+  GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
+}
 };
 

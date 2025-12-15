@@ -17,6 +17,7 @@ import {
   UpOutlined, MoneyCollectOutlined,
 } from '@ant-design/icons';
 import { Button, Dropdown, Space, Modal } from 'antd';
+import { useAuth } from '../../context/AuthContext';
 import DropdownMenu from './DropdownMenu';
 import styles from './Navbar.module.css';
 
@@ -31,6 +32,7 @@ const Navbar = () => {
   });
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // Check screen size
   useEffect(() => {
@@ -72,11 +74,7 @@ const Navbar = () => {
   }, [isMobile, isMenuOpen]);
 
   const masterItems = [
-    // { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <AppstoreOutlined /> },
     { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
-    { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined /> },
-    // { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <ShopOutlined /> },
-    // { name: 'Item Creation', path: '/masters/item-creation', icon: <BuildOutlined /> },
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined /> },
     { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined /> },
     { name: 'Size Creation', path: '/masters/size-creation', icon: <TeamOutlined /> },
@@ -91,22 +89,21 @@ const Navbar = () => {
     { name: 'Category Creation', path: '/masters/category-creation', icon: <BuildOutlined /> },
     { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined /> },
     { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined /> },
-    { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined /> }
-
-
-
+    { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined /> },
   ];
 
   const transactionItems = [
-    { name: 'Sales Invoice', path: 'sales-invoice', icon: <FileTextOutlined /> },
+    { name: 'Sales Invoice', path: '/sales-invoice', icon: <FileTextOutlined /> },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
     { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
     { name: 'Purchase Return', path: '/transactions/Purchasereturn', icon: <DollarOutlined /> },
     { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined /> },
-    { name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> },
+    // { name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> },
     { name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined /> },
     { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
     { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined /> },
+    { name: 'Amount Issue', path: '/transactions/amount-issue', icon: <MoneyCollectOutlined /> },
+    // { name: 'Cash Management', path: '/transactions/cash-management', icon: <MoneyCollectOutlined /> },
 
 
 
@@ -154,10 +151,13 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    console.log('Logging out...');
-    navigate('/login');
+    // Clear authentication data
+    logout();
+    // Close modal and mobile menu
     setLogoutModalOpen(false);
     closeMobileMenu();
+    // Navigate to login page
+    navigate('/login');
   };
 
   const handleExit = () => {
@@ -179,6 +179,39 @@ const Navbar = () => {
             <span className={styles['logo-text']}>Sankarapandian</span>
             <span className={styles['logo-subtext']}>Store</span>
           </Link>
+  {!isMobile && (
+  <div className={styles['nav-screen-title']}>
+    {(() => {
+      const path = location.pathname || '/';
+
+      // Simple mapping for common routes
+      const map = {
+        '/': 'Home',
+        '/masters': 'Masters',
+        '/transactions': 'Transactions',
+        '/masters/ledger-creation': 'Ledger Creation',
+        '/masters/unit-creation': 'Unit Creation',
+        '/masters/color-creation': 'Color Creation',
+        '/masters/size-creation': 'Size Creation',
+        '/masters/model-creation': 'Model Creation',
+        '/masters/user-creation': 'User Creation',
+        '/administration': 'Administration',
+      };
+
+      // if path is predefined in map
+      if (map[path]) return map[path];
+
+      // derive a friendly title from last part of path
+      const parts = path.split('/').filter(Boolean);
+      if (parts.length === 0) return 'Home';
+
+      const last = parts[parts.length - 1];
+      return last
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+    })()}
+  </div>
+)}
 
           {/* Center: Navigation Menu (Desktop) */}
           {!isMobile && (
@@ -205,7 +238,7 @@ const Navbar = () => {
                     </span>
                   </button>
                   {activeDropdown === 'masters' && (
-                    <div className={styles['dropdown-container']}>
+                    <div className={`${styles['dropdown-container']} ${styles.masters}`}>
                       <DropdownMenu
                         items={masterItems}
                         onItemClick={() => setActiveDropdown(null)}
@@ -272,7 +305,7 @@ const Navbar = () => {
                   }}
                   placement="bottomRight"
                 >
-                  <Button type="text" icon={<UserOutlined />} className={styles['user-menu']}>
+                  <Button type="text" icon={<UserOutlined />} className={styles['user-menu']}   style={{ marginRight: '-120px' }}>
                     Admin
                   </Button>
                 </Dropdown>

@@ -1,0 +1,255 @@
+.container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  padding: 20px;
+  padding-bottom: 80px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dateDisplay {
+  font-size: 16px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.formSection {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.inputRow {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.inputGroup {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.inputField {
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.inputField:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.mainContent {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.tableContainer {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.tableHeader {
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tableRow {
+  transition: background-color 0.2s;
+}
+
+.tableRow:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.tableRow:hover {
+  background-color: #f3f4f6;
+}
+
+.tableCell {
+  padding: 12px;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+  font-weight: 500;
+  color: #374151;
+}
+
+.tableInput {
+  width: 100px;
+  padding: 8px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tableInput:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.tableInput::-webkit-inner-spin-button,
+.tableInput::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+.totalRow {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.totalCell {
+  padding: 14px 12px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.highlight {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.totalRow .highlight {
+  color: #fde047;
+}
+
+.actionSection {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.saveButton {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+}
+
+.saveButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+}
+
+.saveButton:active {
+  transform: translateY(0);
+}
+
+.footerButtons {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+@media print {
+  .footerButtons,
+  .actionSection {
+    display: none;
+  }
+
+  .container {
+    padding-bottom: 20px;
+  }
+
+  .tableInput {
+    border: none;
+    text-align: center;
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 768px) {
+  .inputRow {
+    flex-direction: column;
+  }
+
+  .tableContainer {
+    font-size: 12px;
+  }
+
+  .tableInput {
+    width: 80px;
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .saveButton {
+    padding: 10px 24px;
+    font-size: 14px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+}
