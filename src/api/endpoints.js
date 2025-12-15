@@ -284,7 +284,10 @@ createSales: (isSave = true) =>
 
   BILLCOLLECTOR:{
     GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
-  }
+  },
 
+  SALESRETURN: {
+  GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
+}
 };
 
