@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { axiosInstance } from '../../api/apiService';
 
@@ -74,6 +75,12 @@ export default function SalesmanCreation() {
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Confirmation popup states
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions ----------
   const fetchSalesmen = async () => {
@@ -196,10 +203,25 @@ export default function SalesmanCreation() {
     fetchNextCode();
   }, []);
 
-  // Focus on first input
+  // Focus on salesman name field on initial load/reload
   useEffect(() => {
-    if (salesmanNameRef.current) salesmanNameRef.current.focus();
-  }, []);
+    const timer = setTimeout(() => {
+      if (salesmanNameRef.current) {
+        salesmanNameRef.current.focus();
+      }
+    }, 100); // Small delay to ensure DOM is ready
+    return () => clearTimeout(timer);
+  }, []); // Empty dependency array = runs once on mount
+
+  // Additional focus for when actionType changes
+  useEffect(() => {
+    if (actionType === "edit" || actionType === "Add") {
+      const timer = setTimeout(() => {
+        if (salesmanNameRef.current) salesmanNameRef.current.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = () => {
@@ -211,11 +233,12 @@ export default function SalesmanCreation() {
       setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
+    setConfirmEditOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to update salesman "${form.salesmanName}"?`)) return;
-
+  const confirmEdit = async () => {
+    setIsLoading(true);
     try {
-      setLoading(true);
       const result = await updateSalesman(form);
       
       if (result && result.message) {
@@ -227,12 +250,13 @@ export default function SalesmanCreation() {
       // Refresh the list
       await fetchSalesmen();
       resetForm(true);
+      setConfirmEditOpen(false);
     } catch (err) {
       console.error('Update error:', err.response?.data || err.message);
       const errorMsg = err.response?.data?.message || "Failed to update salesman.";
       setMessage({ type: "error", text: errorMsg });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -241,11 +265,12 @@ export default function SalesmanCreation() {
       setMessage({ type: "error", text: "Please select a salesman to delete." });
       return;
     }
+    setConfirmDeleteOpen(true);
+  };
 
-    if (!window.confirm(`Do you want to delete salesman "${form.salesmanName}"?`)) return;
-
+  const confirmDelete = async () => {
+    setIsLoading(true);
     try {
-      setLoading(true);
       const result = await deleteSalesman(form.salesmanCode);
       
       if (result && result.message) {
@@ -257,12 +282,20 @@ export default function SalesmanCreation() {
       // Refresh the list
       await fetchSalesmen();
       resetForm();
+      setConfirmDeleteOpen(false);
     } catch (err) {
       console.error('Delete error:', err.response?.data || err.message);
-      const errorMsg = err.response?.data?.message || "Failed to delete salesman.";
-      setMessage({ type: "error", text: errorMsg });
+      if (err.message.includes("used in related tables") || err.message.includes("409")) {
+        setMessage({ 
+          type: "error", 
+          text: `Cannot delete salesman "${form.salesmanName}". It is referenced in other tables and cannot be removed.` 
+        });
+      } else {
+        const errorMsg = err.response?.data?.message || "Failed to delete salesman.";
+        setMessage({ type: "error", text: errorMsg });
+      }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -279,10 +312,12 @@ export default function SalesmanCreation() {
       return;
     }
 
-    if (!window.confirm(`Do you want to create salesman "${form.salesmanName}"?`)) return;
+    setConfirmSaveOpen(true);
+  };
 
+  const confirmSave = async () => {
+    setIsLoading(true);
     try {
-      setLoading(true);
       // Helper function to limit string length to prevent truncation errors
       const limitString = (str, maxLength = 50) => {
         if (!str) return '';
@@ -306,6 +341,7 @@ export default function SalesmanCreation() {
       await fetchSalesmen();
       await fetchNextCode();
       resetForm(true);
+      setConfirmSaveOpen(false);
     } catch (err) {
       console.error('Create error:', err.response?.data || err.message);
       let errorMsg = "Failed to create salesman.";
@@ -320,7 +356,7 @@ export default function SalesmanCreation() {
       
       setMessage({ type: "error", text: errorMsg });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -1188,6 +1224,75 @@ export default function SalesmanCreation() {
         headerNames={[ 'Salesman Name', 'Code' ]}
         columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
         maxHeight="60vh"
+      />
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Salesman"
+        message={`Are you sure you want to create salesman "${form.salesmanName}"? This action cannot be undone.`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Create"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Edit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Salesman"
+        message={`Are you sure you want to update salesman "${form.salesmanName}"? This action cannot be undone.`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Update"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Salesman"
+        message={`Are you sure you want to delete salesman "${form.salesmanName}"? This action cannot be undone.`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Delete"}
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
     </div>
   );
