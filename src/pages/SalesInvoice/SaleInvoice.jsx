@@ -8,9 +8,29 @@ import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { axiosInstance } from '../../api/apiService';
 
+
+
+const SearchIcon = ({ size = 16, color = "#6b7280" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
+
 const SaleInvoice = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('all');
+  const [activeTopAction, setActiveTopAction] = useState('null');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -109,7 +129,7 @@ const SaleInvoice = () => {
   const [focusedUomField, setFocusedUomField] = useState(null);
 
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('null');
 
   // Screen size state
   const [screenSize, setScreenSize] = useState({
@@ -1700,6 +1720,23 @@ setTimeout(() => {
       lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
       xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
     },
+    inputWithIconWrapper: {
+  position: "relative",
+  width: "100%",
+  flex: 1,
+},
+
+searchIconInside: {
+  position: "absolute",
+  right: "10px",
+  top: "50%",
+  transform: "translateY(-50%)",
+  pointerEvents: "none",
+  display: "flex",
+  alignItems: "center",
+  opacity: 0.7,
+},
+
     fontWeight: {
       normal: 400,
       medium: 500,
@@ -2394,46 +2431,95 @@ setTimeout(() => {
           gridTemplateColumns: getGridColumns(),
         }}>
           {/* Salesman */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Salesman:</label>
-            <input
-              type="text"
-              style={focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-              value={billDetails.salesman}
-              name="salesman"
-              onChange={handleInputChange}
-              ref={salesmanRef}
-              onClick={openSalesmanPopup}
-              onKeyDown={(e) => {
-                handleKeyDown(e, custNameRef, 'salesman');
-                handleBackspace(e, 'salesman');
-              }}
-              onFocus={() => setFocusedField('salesman')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Click to select or type name"
-            />
-          </div>
+     <div style={styles.formField}>
+  <label style={styles.inlineLabel}>Salesman:</label>
+
+  <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+    <input
+      type="text"
+      style={{
+        ...(focusedField === 'salesman'
+          ? styles.inlineInputClickableFocused
+          : styles.inlineInputClickable),
+        paddingRight: '34px', // space for icon
+      }}
+      value={billDetails.salesman}
+      name="salesman"
+      onChange={handleInputChange}
+      ref={salesmanRef}
+      onClick={openSalesmanPopup}
+      onKeyDown={(e) => {
+        handleKeyDown(e, custNameRef, 'salesman');
+        handleBackspace(e, 'salesman');
+      }}
+      onFocus={() => setFocusedField('salesman')}
+      onBlur={() => setFocusedField('')}
+      placeholder="Search salesman"
+    />
+
+    {/* 🔍 Search Icon */}
+    <div
+      style={{
+        position: 'absolute',
+        right: '10px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        pointerEvents: 'none',
+        opacity: 0.65,
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <SearchIcon />
+    </div>
+  </div>
+</div>
 
           {/* Customer Name */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Customer:</label>
-            <input
-              type="text"
-              style={focusedField === 'custName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-              value={billDetails.custName}
-              name="custName"
-              onChange={handleInputChange}
-              ref={custNameRef}
-              onClick={openCustomerPopup}
-              onKeyDown={(e) => {
-                handleKeyDown(e, barcodeRef, 'custName');
-                handleBackspace(e, 'custName');
-              }}
-              onFocus={() => setFocusedField('custName')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Click to select or type name"
-            />
-          </div>
+<div style={styles.formField}>
+  <label style={styles.inlineLabel}>Customer:</label>
+
+  <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+    <input
+      type="text"
+      style={{
+        ...(focusedField === 'custName'
+          ? styles.inlineInputClickableFocused
+          : styles.inlineInputClickable),
+        paddingRight: '34px', // space for icon
+      }}
+      value={billDetails.custName}
+      name="custName"
+      onChange={handleInputChange}
+      ref={custNameRef}
+      onClick={openCustomerPopup}
+      onKeyDown={(e) => {
+        handleKeyDown(e, barcodeRef, 'custName');
+        handleBackspace(e, 'custName');
+      }}
+      onFocus={() => setFocusedField('custName')}
+      onBlur={() => setFocusedField('')}
+      placeholder="Search customer"
+    />
+
+    {/* 🔍 Search Icon */}
+    <div
+      style={{
+        position: 'absolute',
+        right: '10px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        pointerEvents: 'none',
+        opacity: 0.65,
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <SearchIcon />
+    </div>
+  </div>
+</div>
+
 
           {/* Barcode */}
           <div style={styles.formField}>
@@ -2475,7 +2561,7 @@ setTimeout(() => {
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>HSN</th>
                 <th style={styles.th}>Tax (%)</th>
-                <th style={styles.th}>Rate</th>
+                <th style={styles.th}>SRate</th>
                 <th style={styles.th}>Qty</th>
                 <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th>
                 <th style={styles.th}>Action</th>
@@ -2498,20 +2584,45 @@ setTimeout(() => {
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
-                    <input
-                      style={focusedField === `itemName-${item.id}` ? styles.editableInputClickableFocused : styles.editableInputClickable}
-                      value={item.itemName}
-                      placeholder="Click to select item"
-                      data-row={index}
-                      data-field="itemName"
-                      onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
-                      onClick={() => openItemPopup(index)}
-                      onFocus={() => setFocusedField(`itemName-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                      title={`Item Code: ${item.itemCode || 'Not selected'}`}
-                    />
-                  </td>
+  <div style={{ position: 'relative', width: '100%' }}>
+    <input
+      style={{
+        ...(focusedField === `itemName-${item.id}`
+          ? styles.editableInputClickableFocused
+          : styles.editableInputClickable),
+        paddingRight: '26px',
+        textAlign: 'left',
+      }}
+      value={item.itemName}
+      placeholder="Search item"
+      data-row={index}
+      data-field="itemName"
+      onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
+      onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
+      onClick={() => openItemPopup(index)}
+      onFocus={() => setFocusedField(`itemName-${item.id}`)}
+      onBlur={() => setFocusedField('')}
+      title={`Item Code: ${item.itemCode || 'Not selected'}`}
+    />
+
+    {/* 🔍 Search Icon */}
+    <div
+      style={{
+        position: 'absolute',
+        right: '6px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        pointerEvents: 'none',
+        opacity: 0.6,
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <SearchIcon size={14} />
+    </div>
+  </div>
+</td>
+
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
@@ -2708,14 +2819,16 @@ setTimeout(() => {
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
           <ActionButtons
-            activeButton={activeTopAction}
-            onButtonClick={(type) => {
-              setActiveTopAction(type);
-              if (type === 'add') handleAddRow();
-              else if (type === 'edit') openEditInvoicePopup();
-              else if (type === 'delete') openDeleteInvoicePopup();
-            }}
-          >
+  activeButton={activeTopAction}
+  onButtonClick={(type) => {
+    setActiveTopAction(type); // ✅ only on click
+
+    if (type === 'add') handleAddRow();
+    if (type === 'edit') openEditInvoicePopup();
+    if (type === 'delete') openDeleteInvoicePopup();
+  }}
+>
+
             <AddButton buttonType="add" />
             <EditButton buttonType="edit" />
             <DeleteButton buttonType="delete" />
