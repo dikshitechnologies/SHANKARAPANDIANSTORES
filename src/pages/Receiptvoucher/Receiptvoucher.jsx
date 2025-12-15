@@ -3,6 +3,7 @@ import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton } from '..
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
+import { API_ENDPOINTS } from '../../api/endpoints';
 
 const ReceiptVoucher = () => {
   // --- STATE MANAGEMENT ---
@@ -125,16 +126,45 @@ const ReceiptVoucher = () => {
   const fetchNextVoucherNo = useCallback(async () => {
     try {
       setIsLoading(true);
-      // Replace with your actual API endpoint
-      const response = await apiService.get('/api/payment-voucher/next-voucher-no');
-      if (response.data?.voucherNo) {
+      const endpoint = API_ENDPOINTS.RECEIPTVOUCHER.GET_NEXT_RECEIPT_VOUCHER();
+      console.log('Fetching voucher from endpoint:', endpoint);
+      const data = await apiService.get(endpoint);
+      console.log('Voucher response data:', data);
+      
+      let voucherNo = null;
+      
+      // apiService.get() already unwraps response.data, so 'data' is already the response payload
+      // Handle different response formats
+      if (typeof data === 'string' && data.trim()) {
+        // If response is a direct string
+        voucherNo = data.trim();
+      } else if (data?.nextVoucher) {
+        // If field is nextVoucher
+        voucherNo = data.nextVoucher;
+      } else if (data?.nextReceiptVoucher) {
+        // Alternative field name
+        voucherNo = data.nextReceiptVoucher;
+      } else if (data?.voucherNo) {
+        // Another alternative
+        voucherNo = data.voucherNo;
+      } else if (data?.value) {
+        // Generic value field
+        voucherNo = data.value;
+      }
+      
+      if (voucherNo) {
+        console.log('Setting voucher number to:', voucherNo);
         setVoucherDetails(prev => ({
           ...prev,
-          voucherNo: response.data.voucherNo
+          voucherNo: voucherNo
         }));
+      } else {
+        console.warn('No voucher number found in response:', data);
+        setError('Failed to fetch voucher number - unexpected response format');
       }
     } catch (err) {
-      console.error('Error fetching voucher number:', err);
+      console.error('Error fetching receipt voucher number:', err);
+      setError('Failed to fetch next voucher number: ' + (err.message || 'Unknown error'));
     } finally {
       setIsLoading(false);
     }
@@ -144,10 +174,11 @@ const ReceiptVoucher = () => {
   const fetchAccounts = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.get('/api/accounts');
-      if (response.data?.accounts) {
-        setAccountList(response.data.accounts);
-      }
+      // TODO: Add accounts endpoint to endpoints.js
+      // const response = await apiService.get('Accounts/GetAccounts');
+      // if (response.data?.accounts) {
+      //   setAccountList(response.data.accounts);
+      // }
     } catch (err) {
       console.error('Error fetching accounts:', err);
       setError('Failed to load accounts');
@@ -160,12 +191,13 @@ const ReceiptVoucher = () => {
   const fetchSavedVouchers = useCallback(async (page = 1, search = '') => {
     try {
       setLoadingVouchers(true);
-      const params = { page, limit: 10 };
-      if (search) params.search = search;
-      const response = await apiService.get('/api/payment-vouchers', { params });
-      if (response.data?.vouchers) {
-        setSavedVouchers(response.data.vouchers);
-      }
+      // TODO: Add receipt vouchers endpoint to endpoints.js
+      // const params = { page, limit: 10 };
+      // if (search) params.search = search;
+      // const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_RECEIPT_VOUCHERS(), { params });
+      // if (response.data?.vouchers) {
+      //   setSavedVouchers(response.data.vouchers);
+      // }
     } catch (err) {
       console.error('Error fetching saved vouchers:', err);
       setError('Failed to load vouchers');
@@ -178,47 +210,22 @@ const ReceiptVoucher = () => {
   const fetchVoucherDetails = async (voucherNo) => {
     try {
       setIsLoading(true);
-      const response = await apiService.get(`/api/payment-vouchers/${voucherNo}`);
-      if (response.data?.voucher) {
-        const voucher = response.data.voucher;
-        setVoucherDetails({
-          voucherNo: voucher.voucherNo || '',
-          gstType: voucher.gstType || 'CGST/SGST',
-          date: voucher.date || new Date().toISOString().substring(0, 10),
-          costCenter: voucher.costCenter || '',
-          accountName: voucher.accountName || '',
-          accountCode: voucher.accountCode || '',
-          balance: voucher.balance || '0.00'
-        });
-
-        if (voucher.receiptItems) {
-          setReceiptItems(voucher.receiptItems.map((item, idx) => ({
-            id: idx + 1,
-            sNo: idx + 1,
-            cashBank: item.cashBank || '',
-            crDr: item.crDr || 'CR',
-            type: item.type || '',
-            chqNo: item.chqNo || '',
-            chqDt: item.chqDt || '',
-            narration: item.narration || '',
-            amount: item.amount || '0.00'
-          })));
-        }
-
-        if (voucher.billDetails) {
-          setBillDetails(voucher.billDetails.map((bill, idx) => ({
-            id: idx + 1,
-            sNo: idx + 1,
-            refNo: bill.refNo || '',
-            billNo: bill.billNo || '',
-            date: bill.date || '',
-            billAmount: bill.billAmount || '0.00',
-            paidAmount: bill.paidAmount || '0.00',
-            balanceAmount: bill.balanceAmount || '0.00',
-            amount: bill.amount || '0.00'
-          })));
-        }
-      }
+      // TODO: Add get receipt voucher details endpoint
+      // const response = await apiService.get(`ReceiptVoucher/GetReceiptVoucherDetails/${voucherNo}`);
+      // if (response.data?.voucher) {
+      //   const voucher = response.data.voucher;
+      //   setVoucherDetails({
+      //     voucherNo: voucher.voucherNo || '',
+      //     gstType: voucher.gstType || 'CGST/SGST',
+      //     date: voucher.date || new Date().toISOString().substring(0, 10),
+      //     costCenter: voucher.costCenter || '',
+      //     accountName: voucher.accountName || '',
+      //     accountCode: voucher.accountCode || '',
+      //     balance: voucher.balance || '0.00'
+      //   });
+      //   setReceiptItems(...);
+      //   setBillDetails(...);
+      // }
     } catch (err) {
       console.error('Error fetching voucher details:', err);
       setError('Failed to load voucher details');
@@ -231,7 +238,8 @@ const ReceiptVoucher = () => {
   const deleteVoucher = async (voucherNo) => {
     try {
       setIsLoading(true);
-      await apiService.delete(`/api/payment-vouchers/${voucherNo}`);
+      // TODO: Add delete receipt voucher endpoint
+      // await apiService.delete(`ReceiptVoucher/DeleteReceiptVoucher/${voucherNo}`);
       setError(null);
       resetForm();
       await fetchSavedVouchers();
@@ -244,23 +252,24 @@ const ReceiptVoucher = () => {
   };
 
   // Initial data fetch
-//   useEffect(() => {
-//     fetchNextVoucherNo();
-//     fetchAccounts();
-//     fetchSavedVouchers();
-//   }, [fetchNextVoucherNo, fetchAccounts, fetchSavedVouchers, isEditing, voucherDetails.voucherNo]);
+  useEffect(() => {
+    fetchNextVoucherNo();
+    // TODO: Uncomment when endpoints are available in endpoints.js
+    // fetchAccounts();
+    // fetchSavedVouchers();
+  }, [fetchNextVoucherNo, fetchAccounts, fetchSavedVouchers, isEditing, voucherDetails.voucherNo]);
 
-//   // Calculate Totals whenever items change
-//   useEffect(() => {
-//     const total = paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-//     setTotalAmount(total);
-//   }, [paymentItems]);
+  // Calculate Totals whenever items change
+  useEffect(() => {
+    const total = receiptItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    setTotalAmount(total);
+  }, [receiptItems]);
 
-//   // Calculate Bill Totals
-//   useEffect(() => {
-//     const total = billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0);
-//     setBillTotalAmount(total);
-//   }, [billDetails]);
+  // Calculate Bill Totals
+  useEffect(() => {
+    const total = billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0);
+    setBillTotalAmount(total);
+  }, [billDetails]);
 
   // Reset form to empty state
   const resetForm = () => {
@@ -627,6 +636,7 @@ const ReceiptVoucher = () => {
   };
 
   // ========== SAVE FUNCTION ==========
+  // TODO: Add save receipt voucher endpoint to endpoints.js and implement this function
   const savePaymentVoucher = async () => {
     try {
       if (!voucherDetails.voucherNo) {
@@ -673,22 +683,28 @@ const ReceiptVoucher = () => {
         }))
       };
 
-      let response;
-      if (isEditing) {
-        response = await apiService.put(
-          `/api/payment-vouchers/${originalVoucherNo}`,
-          payload
-        );
-      } else {
-        response = await apiService.post('/api/payment-vouchers', payload);
-      }
+      // TODO: Uncomment when endpoint is available
+      // let response;
+      // if (isEditing) {
+      //   response = await apiService.put(
+      //     API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(originalVoucherNo),
+      //     payload
+      //   );
+      // } else {
+      //   response = await apiService.post(
+      //     API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(),
+      //     payload
+      //   );
+      // }
 
-      if (response.data?.voucherNo) {
-        setError(null);
-        resetForm();
-        await fetchNextVoucherNo();
-        await fetchSavedVouchers();
-      }
+      // if (response.data?.voucherNo) {
+      //   setError(null);
+      //   resetForm();
+      //   await fetchNextVoucherNo();
+      //   await fetchSavedVouchers();
+      // }
+
+      setError('Save functionality coming soon - waiting for backend endpoints');
     } catch (err) {
       console.error('Error saving voucher:', err);
       setError(err.response?.data?.message || 'Failed to save voucher');

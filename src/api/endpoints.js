@@ -234,7 +234,11 @@ CATEGORY: {
   },
 
   SALESRETURN: {
-  GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
-}
+    GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
+  },
+
+  RECEIPTVOUCHER: {
+    GET_NEXT_RECEIPT_VOUCHER: (compCode = '001') => `ReceiptVoucher/GetNextReceiptVoucher?compCode=${compCode}`,
+  }
 };
 
