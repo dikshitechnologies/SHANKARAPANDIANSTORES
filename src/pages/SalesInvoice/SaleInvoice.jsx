@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { axiosInstance } from '../../api/apiService';
 
@@ -16,6 +19,14 @@ const SaleInvoice = () => {
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
   
+  // Edit confirmation popup
+  const [editConfirmationOpen, setEditConfirmationOpen] = useState(false);
+  const [editConfirmationData, setEditConfirmationData] = useState(null);
+  
+  // Delete confirmation popup
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deleteConfirmationData, setDeleteConfirmationData] = useState(null);
+  
   // State for tracking if customer selection message was shown
   const [customerMessageShown, setCustomerMessageShown] = useState(false);
   
@@ -29,7 +40,7 @@ const SaleInvoice = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: '',
-    billDate: new Date().toISOString().substring(0, 10),
+    billDate: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
     mobileNo: '',
     type: 'Retail',
     salesman: '',
@@ -51,7 +62,7 @@ const SaleInvoice = () => {
       itemCode: '',
       stock: '', 
       mrp: '', 
-      uom: 'pcs',
+      uom: '', // Changed from 'pcs' to empty string
       hsn: '', 
       tax: '', 
       sRate: '', 
@@ -137,7 +148,6 @@ const SaleInvoice = () => {
   // Fetch next bill number from API
   const fetchNextBillNo = useCallback(async () => {
     if (isEditing && billDetails.billNo) {
-      console.log("Skipping bill number fetch - editing existing invoice:", billDetails.billNo);
       return;
     }
     
@@ -169,7 +179,6 @@ const SaleInvoice = () => {
         }
       }
     } catch (err) {
-      console.error("API Error fetching next bill number:", err);
       setBillDetails(prev => ({ ...prev, billNo: 'SI000001' }));
     } finally {
       setIsLoading(false);
@@ -200,7 +209,6 @@ const SaleInvoice = () => {
         setCustomerList([]);
       }
     } catch (err) {
-      console.error("API Error fetching customers:", err);
       setCustomerList([]);
     } finally {
       setIsLoading(false);
@@ -231,7 +239,6 @@ const SaleInvoice = () => {
         setSalesmanList([]);
       }
     } catch (err) {
-      console.error("API Error fetching salesmen:", err);
       setSalesmanList([]);
     } finally {
       setIsLoading(false);
@@ -281,8 +288,8 @@ const SaleInvoice = () => {
               hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
               tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
               sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-              displayName: `${itemCode} - ${itemName}`,
-              popupDisplay: `${itemCode} - ${itemName}`
+              displayName: itemName, // Changed: Show only item name, not code
+              popupDisplay: itemName // Changed: Show only item name, not code
             };
           });
           
@@ -294,7 +301,6 @@ const SaleInvoice = () => {
         setItemList([]);
       }
     } catch (err) {
-      console.error("Error fetching items dropdown:", err);
       setItemList([]);
     } finally {
       setIsLoading(false);
@@ -327,7 +333,7 @@ const SaleInvoice = () => {
           const voucherNo = invoice.billNo || invoice.voucherNo || invoice.invoiceNo || '';
           const customerName = invoice.customerName || 'Unknown Customer';
           const salesmanName = invoice.salesmanName || '';
-          const invoiceDate = invoice.voucherDate || invoice.billDate || new Date().toISOString().substring(0, 10);
+          const invoiceDate = invoice.voucherDate || invoice.billDate || new Date().toISOString().split('T')[0];
           const totalAmount = invoice.billAmt || invoice.totalAmount || 0;
           const customerCode = invoice.customerCode || invoice.customercode || '';
           const salesmanCode = invoice.sManCode || invoice.salesmanCode || '';
@@ -381,7 +387,6 @@ const SaleInvoice = () => {
       return paginated;
       
     } catch (err) {
-      console.error("API Error fetching saved invoices:", err);
       return [];
     } finally {
       setLoadingInvoices(false);
@@ -413,13 +418,18 @@ const SaleInvoice = () => {
         setIsEditing(true);
         setOriginalInvoiceNo(voucherNo);
         
-        let billDate = header.voucherDate || new Date().toISOString().substring(0,10);
+        let billDate = header.voucherDate || new Date().toISOString().split('T')[0];
         
+        // Convert date format to yyyy-MM-dd
         if (billDate.includes('-')) {
           const parts = billDate.split('-');
           if (parts.length === 3) {
             if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+              // dd-MM-yyyy to yyyy-MM-dd
               billDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            } else if (parts[0].length === 4 && parts[1].length === 2 && parts[2].length === 2) {
+              // yyyy-MM-dd (already correct)
+              billDate = billDate;
             }
           }
         }
@@ -447,14 +457,14 @@ const SaleInvoice = () => {
           const formattedItems = itemsArray.map((item, index) => {
             const itemCode = item.itemcode || item.fItemcode || item.itemCode || item.code || '';
             const itemName = item.itemName || item.fitemNme || item.fItemName || '';
-            const units = item.fUnit || item.uom || 'pcs';
+            const units = item.fUnit || item.uom || '';
             
             return {
               id: index + 1,
               sNo: index + 1,
-              barcode: item.barcode || itemCode,
+              barcode: '',
               itemCode: itemCode,
-              itemName: itemName || itemCode,
+              itemName: itemName || '',
               stock: (item.stock || item.fstock || 0).toString(),
               mrp: (item.mrp || 0).toString(),
               uom: units,
@@ -476,7 +486,7 @@ const SaleInvoice = () => {
             itemName: '',
             stock: '',
             mrp: '',
-            uom: 'pcs',
+            uom: '',
             hsn: '',
             tax: '',
             sRate: '',
@@ -491,8 +501,6 @@ const SaleInvoice = () => {
         return null;
       }
     } catch (err) {
-      console.error("API Error fetching invoice details:", err);
-      
       let errorMsg = `Failed to fetch invoice details for ${voucherNo}`;
       if (err.response?.status === 404) {
         errorMsg = `Invoice ${voucherNo} not found`;
@@ -515,24 +523,20 @@ const SaleInvoice = () => {
       setIsLoading(true);
       setError("");
       
-      // Use the correct delete endpoint
       const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.deleteBillNumber(voucherNo, "001");
       
       const response = await axiosInstance.delete(endpoint);
       
       if (response && response.data) {
-        // Check if delete was successful
         const success = response.data.success !== false && 
                        response.data.message !== "Delete failed" &&
                        !response.data.error;
         
         if (success) {
-          // Clear all data if we're deleting the current invoice
           if (voucherNo === billDetails.billNo) {
             resetForm();
           }
           
-          // Refresh the invoice list
           await fetchSavedInvoices(1, '');
           return { success: true, message: "Invoice deleted successfully" };
         } else {
@@ -543,7 +547,6 @@ const SaleInvoice = () => {
         throw new Error("No response from server");
       }
     } catch (err) {
-      console.error("API Error deleting invoice:", err);
       const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || "Failed to delete invoice";
       setError(errorMsg);
       throw new Error(errorMsg);
@@ -559,8 +562,8 @@ const SaleInvoice = () => {
         stock: 0,
         itemName: '',
         mrp: '0',
-        uom: 'pcs',
-        fUnits: 'pcs',
+        uom: '',
+        fUnits: '',
         hsn: '',
         tax: '0',
         rate: '0'
@@ -576,17 +579,16 @@ const SaleInvoice = () => {
       
       return {
         ...data,
-        uom: data.fUnits || data.uom || data.unit || 'pcs',
-        fUnits: data.fUnits || data.uom || data.unit || 'pcs'
+        uom: data.fUnits || data.uom || data.unit || '',
+        fUnits: data.fUnits || data.uom || data.unit || ''
       };
     } catch (err) {
-      console.warn('Error fetching stock:', err.message);
       return { 
         stock: 0,
         itemName: '',
         mrp: '0',
-        uom: 'pcs',
-        fUnits: 'pcs',
+        uom: '',
+        fUnits: '',
         hsn: '',
         tax: '0',
         rate: '0'
@@ -630,7 +632,7 @@ const SaleInvoice = () => {
   const resetForm = () => {
     setBillDetails({
       billNo: '',
-      billDate: new Date().toISOString().substring(0, 10),
+      billDate: new Date().toISOString().split('T')[0],
       mobileNo: '',
       type: 'Retail',
       salesman: '',
@@ -651,7 +653,7 @@ const SaleInvoice = () => {
         itemName: '',
         stock: '',
         mrp: '',
-        uom: 'pcs',
+        uom: '', // Changed from 'pcs' to empty string
         hsn: '',
         tax: '',
         sRate: '',
@@ -664,7 +666,6 @@ const SaleInvoice = () => {
     setIsEditing(false);
     setOriginalInvoiceNo('');
     
-    // Fetch next bill number for new invoice
     fetchNextBillNo();
   };
 
@@ -685,7 +686,6 @@ const SaleInvoice = () => {
       setEditInvoicePopupOpen(true);
       
     } catch (err) {
-      console.error("Error opening edit popup:", err);
       setEditInvoicePopupOpen(true);
     } finally {
       setIsLoading(false);
@@ -707,7 +707,6 @@ const SaleInvoice = () => {
       setDeleteInvoicePopupOpen(true);
       
     } catch (err) {
-      console.error("Error opening delete popup:", err);
       setDeleteInvoicePopupOpen(true);
     } finally {
       setIsLoading(false);
@@ -727,41 +726,72 @@ const SaleInvoice = () => {
       const invoiceData = await fetchInvoiceDetails(selectedInvoice.voucherNo);
       
       if (invoiceData) {
-        alert(`Invoice ${selectedInvoice.voucherNo} loaded successfully!`);
+        // Show edit confirmation popup
+        const addLessValue = parseFloat(addLessAmount || 0);
+        const finalAmount = totalAmount + addLessValue;
+        
+        setEditConfirmationData({
+          invoiceNo: selectedInvoice.voucherNo,
+          customer: billDetails.custName,
+          billDate: billDetails.billDate,
+          totalAmount: totalAmount.toFixed(2),
+          addLessAmount: addLessAmount,
+          finalAmount: finalAmount.toFixed(2),
+          itemCount: items.filter(item => item.itemName && item.itemName.trim()).length
+        });
+        
+        setEditConfirmationOpen(true);
         setEditInvoicePopupOpen(false);
       } else {
         alert(`Could not load invoice details for ${selectedInvoice.voucherNo}`);
       }
     } catch (error) {
-      console.error("Error loading invoice details:", error);
       alert(`Error loading invoice: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle invoice deletion
+  // Handle invoice deletion with confirmation popup
   const handleInvoiceDelete = async (selectedInvoice) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete this invoice?\n\n` +
-      `Invoice No: ${selectedInvoice.voucherNo}\n\n` +
-      `This action cannot be undone!`
-    );
+    if (!selectedInvoice || !selectedInvoice.voucherNo) {
+      alert("Invalid invoice selected");
+      return;
+    }
     
-    if (confirmDelete) {
-      try {
-        await deleteInvoice(selectedInvoice.voucherNo);
-        alert(`Invoice ${selectedInvoice.voucherNo} deleted successfully!`);
-        setDeleteInvoicePopupOpen(false);
-        
-        // Reset form if we deleted the current invoice
-        if (selectedInvoice.voucherNo === billDetails.billNo) {
-          resetForm();
-        }
-      } catch (err) {
-        console.error("Error deleting invoice:", err);
-        alert(`Failed to delete invoice: ${err.message}`);
-      }
+    // Set confirmation data for delete popup
+    setDeleteConfirmationData({
+      invoiceNo: selectedInvoice.voucherNo,
+      customer: selectedInvoice.customerName || "Unknown Customer",
+      billDate: selectedInvoice.date || new Date().toISOString().split('T')[0],
+      totalAmount: selectedInvoice.totalAmount || 0
+    });
+    
+    setDeleteInvoicePopupOpen(false);
+    setDeleteConfirmationOpen(true);
+  };
+
+  // Handle confirmed delete
+  const handleConfirmedDelete = async () => {
+    if (!deleteConfirmationData) return;
+    
+    try {
+      await deleteInvoice(deleteConfirmationData.invoiceNo);
+      toast.success(
+  `Invoice ${deleteConfirmationData.invoiceNo} deleted successfully`,
+  { autoClose: 2500 }
+);
+
+setDeleteConfirmationOpen(false);
+
+// 🔄 FULL PAGE REFRESH AFTER DELETE
+setTimeout(() => {
+  window.location.reload();
+}, 1200);
+
+    } catch (err) {
+      alert(`Failed to delete invoice: ${err.message}`);
+      setDeleteConfirmationOpen(false);
     }
   };
 
@@ -803,7 +833,6 @@ const SaleInvoice = () => {
       return paginated;
       
     } catch (err) {
-      console.error("Error fetching invoice items:", err);
       return [];
     }
   };
@@ -864,7 +893,7 @@ const SaleInvoice = () => {
     setSalesmanPopupOpen(false);
   };
 
-  // Handle item selection
+  // Handle item selection - MODIFIED: Don't fetch barcode to item name field, only update item name
   const handleItemSelect = async (item) => {
     if (item && currentItemRowIndex !== null) {
       const updatedItems = [...items];
@@ -878,17 +907,18 @@ const SaleInvoice = () => {
       
       updatedItems[currentItemRowIndex] = {
         ...currentItem,
-        itemName: itemName,
+        itemName: itemName, // Only update item name, not code
         itemCode: itemCode,
-        barcode: item.barcode || itemCode,
+        // Don't update barcode field - leave it as is or empty
+        barcode: '',
         mrp: (item.mrp || stockInfo.mrp || 0).toString(),
         stock: (item.stock || stockInfo.stock || 0).toString(),
-        uom: units || stockInfo.uom || stockInfo.fUnits || "pcs",
+        uom: units || stockInfo.uom || stockInfo.fUnits || "",
         hsn: item.hsn || stockInfo.hsn || "",
         tax: (item.tax || stockInfo.tax || 0).toString(),
         sRate: (item.sRate || stockInfo.rate || 0).toString(),
-        qty: "1",
-        amount: calculateAmount("1", item.sRate || stockInfo.rate || 0)
+        qty: currentItem.qty || "1",
+        amount: calculateAmount(currentItem.qty || "1", item.sRate || stockInfo.rate || 0)
       };
       
       setItems(updatedItems);
@@ -916,7 +946,7 @@ const SaleInvoice = () => {
       item: {
         displayFieldKeys: ['popupDisplay'],
         searchFields: ['fItemcode', 'fItemName', 'itemCode', 'itemName'],
-        headerNames: ['Item Code - Name'],
+        headerNames: ['Item Name'], // Changed header name
         columnWidths: { popupDisplay: '100%' },
         searchPlaceholder: 'Search by item code or name...'
       },
@@ -992,7 +1022,7 @@ const SaleInvoice = () => {
             tax: item.tax,
             sRate: item.sRate,
             displayName: item.fItemName || item.itemName,
-            popupDisplay: `${item.fItemcode || item.itemCode} - ${item.fItemName || item.itemName}`
+            popupDisplay: item.fItemName || item.itemName // Changed: Show only item name
           }));
           break;
           
@@ -1038,7 +1068,6 @@ const SaleInvoice = () => {
       return filtered.slice(startIndex, endIndex);
       
     } catch (err) {
-      console.error("Error fetching popup items:", err);
       return [];
     }
   };
@@ -1061,16 +1090,17 @@ const SaleInvoice = () => {
     setAddLessAmount(value);
   };
 
-  // Handle add/less key down
+  // Handle add/less key down - MODIFIED: Don't trigger save on Enter
   const handleAddLessKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      // Just move focus to Save button, don't trigger save
       const saveButton = document.querySelector('button[data-action="save"]');
       if (saveButton) saveButton.focus();
     }
   };
 
-  // Handle keydown with / key support for popup toggle
+  // Handle keydown with / key support for popup toggle - MODIFIED: Don't trigger save on Enter
   const handleKeyDown = (e, nextRef, fieldName = '') => {
     if (e.key === '/' || e.key === '?') {
       e.preventDefault();
@@ -1090,6 +1120,7 @@ const SaleInvoice = () => {
       }
     } else if (e.key === 'Enter') {
       e.preventDefault();
+      // Only move focus, don't trigger any save action
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
       }
@@ -1133,17 +1164,20 @@ const SaleInvoice = () => {
       
       const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
       const currentItem = items.find(item => item.id === id);
-      const currentUom = currentItem?.uom || 'pcs';
-      const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
+      const currentUom = currentItem?.uom || '';
+      let nextUom = 'pcs';
       
-      let nextIndex;
-      if (currentIndex === -1) {
-        nextIndex = 0;
+      if (currentUom && currentUom.trim() !== '') {
+        const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
+        if (currentIndex !== -1) {
+          const nextIndex = (currentIndex + 1) % uomValues.length;
+          nextUom = uomValues[nextIndex];
+        } else {
+          nextUom = 'pcs';
+        }
       } else {
-        nextIndex = (currentIndex + 1) % uomValues.length;
+        nextUom = 'pcs';
       }
-      
-      const nextUom = uomValues[nextIndex];
       
       setItems(items.map(item => {
         if (item.id === id) {
@@ -1173,7 +1207,7 @@ const SaleInvoice = () => {
     }
   };
 
-  // Handle table keydown with improved navigation
+  // Handle table keydown with improved navigation - MODIFIED: Don't trigger save on Enter
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if ((e.key === '/' || e.key === '?') && currentField === 'itemName') {
       e.preventDefault();
@@ -1284,7 +1318,7 @@ const SaleInvoice = () => {
             itemName: stockInfo.itemName,
             stock: stockInfo.stock || '0',
             mrp: stockInfo.mrp || '0',
-            uom: stockInfo.fUnits || stockInfo.uom || 'pcs',
+            uom: stockInfo.fUnits || stockInfo.uom || '',
             hsn: stockInfo.hsn || '',
             tax: stockInfo.tax || '0',
             sRate: stockInfo.rate || '0',
@@ -1300,7 +1334,6 @@ const SaleInvoice = () => {
         }
       }
     } catch (err) {
-      console.error("Error adding item:", err);
       alert("Failed to add item. Please try again.");
     }
   };
@@ -1335,7 +1368,7 @@ const SaleInvoice = () => {
         itemCode: itemData.fItemcode || itemData.itemCode || itemData.code,
         stock: (itemData.stock || itemData.stockQty || itemData.quantity || 0).toString(),
         mrp: (itemData.mrp || itemData.sellingPrice || itemData.price || 0).toString(),
-        uom: itemData.fUnits || itemData.uom || "pcs",
+        uom: itemData.fUnits || itemData.uom || "",
         hsn: itemData.hsnCode || itemData.hsn || "",
         tax: (itemData.taxRate || itemData.tax || 0).toString(),
         sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
@@ -1359,7 +1392,7 @@ const SaleInvoice = () => {
       itemName: '',
       stock: '',
       mrp: '',
-      uom: 'pcs',
+      uom: '',
       hsn: '',
       tax: '',
       sRate: '',
@@ -1407,7 +1440,7 @@ const SaleInvoice = () => {
           itemName: '',
           stock: '',
           mrp: '',
-          uom: 'pcs',
+          uom: '',
           hsn: '',
           tax: '',
           sRate: '',
@@ -1429,15 +1462,23 @@ const SaleInvoice = () => {
   // Helper function to format date to yyyy-MM-dd
   const formatDateToYYYYMMDD = (dateString) => {
     try {
+      // Check if already in yyyy-MM-dd format
       if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
         return dateString;
       }
       
+      // Check if in dd-MM-yyyy format
+      if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+        const parts = dateString.split('-');
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      
+      // Try parsing as date
       const date = new Date(dateString);
       
       if (isNaN(date.getTime())) {
         const today = new Date();
-        return today.toISOString().substring(0, 10);
+        return today.toISOString().split('T')[0];
       }
       
       const year = date.getFullYear();
@@ -1445,16 +1486,14 @@ const SaleInvoice = () => {
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     } catch (err) {
-      console.error('Error formatting date:', err);
       const today = new Date();
-      return today.toISOString().substring(0, 10);
+      return today.toISOString().split('T')[0];
     }
   };
 
   // ========== SAVE FUNCTION ==========
   const saveSalesInvoice = async () => {
     if (isSaving) {
-      console.log('Save already in progress');
       return;
     }
 
@@ -1480,67 +1519,55 @@ const SaleInvoice = () => {
         throw new Error('Please add at least one item with quantity');
       }
 
-      // Format date to yyyy-MM-dd
+      // Format date to yyyy-MM-dd (without time)
       const voucherDate = formatDateToYYYYMMDD(billDetails.billDate);
 
-      // Prepare header data - Using the field names that match your API
+      // Prepare header data
       const headerData = {
-  voucherNo: billDetails.billNo || "",
-  voucherDate: voucherDate,
-
-  mobileNumber: billDetails.mobileNo || "",
-  salesmanName: billDetails.salesman || "",
-  salesCode: billDetails.salesmanCode || "",
-
-  selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
-
-  customerName: billDetails.custName || "",
-  customercode: billDetails.custCode || "",
-
-  compCode: "001",
-
-  billAmount: Number(totalAmount) || 0,
-  balanceAmount: 0,
-
-  userCode: "001",
-  addLess: (addLessAmount ?? "0").toString()
-};
-
+        voucherNo: billDetails.billNo || "",
+        voucherDate: voucherDate, // Only date, no time
+        mobileNumber: billDetails.mobileNo || "",
+        salesmanName: billDetails.salesman || "",
+        salesCode: billDetails.salesmanCode || "",
+        selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
+        customerName: billDetails.custName || "",
+        customercode: billDetails.custCode || "",
+        compCode: "001",
+        billAmount: Number(totalAmount) || 0,
+        balanceAmount: 0,
+        userCode: "001",
+        addLess: (addLessAmount ?? "0").toString()
+      };
 
       // Prepare items data
-    const itemsData = validItems.map(item => ({
-  barcode: item.barcode || "",
-  itemName: item.itemName || "",
-  itemcode: item.itemCode || "",
-
-  mrp: (Number(item.mrp) || 0).toFixed(2),   // string
-  stock: (item.stock ?? "0").toString(),    // string
-  uom: item.uom || "pcs",
-
-  hsn: item.hsn || "",
-  tax: Number(item.tax) || 0,
-  rate: Number(item.sRate) || 0,
-  qty: Number(item.qty) || 0,
-  amount: Number(item.amount) || 0
-}));
-
-
+      const itemsData = validItems.map(item => ({
+        barcode: item.barcode || "",
+        itemName: item.itemName || "",
+        itemcode: item.itemCode || "",
+        mrp: (Number(item.mrp) || 0).toFixed(2),
+        stock: (item.stock ?? "0").toString(),
+        uom: item.uom || "pcs",
+        hsn: item.hsn || "",
+        tax: Number(item.tax) || 0,
+        rate: Number(item.sRate) || 0,
+        qty: Number(item.qty) || 0,
+        amount: Number(item.amount) || 0
+      }));
+      
       const requestData = {
         header: headerData,
         items: itemsData
       };
-
-      console.log('Saving invoice data:', JSON.stringify(requestData, null, 2));
+      
+      console.log("Sending data to server:", JSON.stringify(requestData, null, 2));
       
       // Determine if this is an insert or update
       const isInsert = !isEditing;
       
       // Use the correct endpoint based on insert/update
       const endpoint = isInsert 
-        ? API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.CREATE_SALES  // Insert endpoint
-        : API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.UPDATE_SALES; // Update endpoint
-      
-      console.log('Using endpoint:', endpoint, 'isInsert:', isInsert);
+        ? API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.CREATE_SALES
+        : API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.UPDATE_SALES;
       
       const response = await axiosInstance.post(endpoint, requestData, {
         headers: {
@@ -1553,7 +1580,11 @@ const SaleInvoice = () => {
         const message = response.data.message || `Invoice ${isEditing ? 'updated' : 'saved'} successfully`;
         const savedBillNo = response.data.voucherNo || billDetails.billNo;
         
-        alert(`${message}\nInvoice No: ${savedBillNo}`);
+       toast.success(
+  `Invoice ${isEditing ? "updated" : "saved"} successfully\nInvoice No: ${savedBillNo}`,
+  { autoClose: 3000 }
+);
+
         
         // Refresh saved invoices list
         await fetchSavedInvoices(1, '');
@@ -1564,16 +1595,10 @@ const SaleInvoice = () => {
         return response.data;
       }
     } catch (err) {
-      console.error('=== SAVE ERROR DETAILS ===');
-      console.error('Error:', err);
-      console.error('Error response:', err.response);
-      
       let errorMsg = `Failed to ${isEditing ? 'update' : 'save'} sales invoice`;
       
       if (err.response) {
-        console.error('Response data:', err.response.data);
-        console.error('Response status:', err.response.status);
-        
+        console.error("Server error response:", err.response);
         if (err.response.data) {
           if (err.response.data.message) {
             errorMsg = err.response.data.message;
@@ -1607,14 +1632,13 @@ const SaleInvoice = () => {
   };
 
   // Handle save with confirmation
-  const handleSave = async () => {
+  const handleSave = () => {
     showSaveConfirmation();
   };
 
   // Function to show save confirmation popup
   const showSaveConfirmation = () => {
     if (isSaving) {
-      console.log('Save already in progress');
       return;
     }
     
@@ -1650,17 +1674,16 @@ const SaleInvoice = () => {
     setSaveConfirmationOpen(true);
   };
 
-
   // Function to handle confirmed save
   const handleConfirmedSave = async () => {
     setSaveConfirmationOpen(false);
     await saveSalesInvoice();
   };
 
-  // Function to cancel save
-  const handleCancelSave = () => {
-    setSaveConfirmationOpen(false);
-    setSaveConfirmationData(null);
+  // Function to handle confirmed edit
+  const handleConfirmedEdit = async () => {
+    setEditConfirmationOpen(false);
+    await saveSalesInvoice();
   };
 
   const handlePrint = () => {
@@ -1706,8 +1729,6 @@ const SaleInvoice = () => {
       overflowX: 'hidden',
       overflowY: 'hidden',
       position: 'fixed',
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#1B91DA #f0f0f0',
     },
     headerSection: {
       flex: '0 0 auto',
@@ -1727,21 +1748,6 @@ const SaleInvoice = () => {
       minHeight: 0,
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
-      '&::-webkit-scrollbar': {
-        width: '8px',
-        height: '8px',
-      },
-      '&::-webkit-scrollbar-track': {
-        backgroundColor: '#f0f0f0',
-        borderRadius: '4px',
-      },
-      '&::-webkit-scrollbar-thumb': {
-        backgroundColor: '#1B91DA',
-        borderRadius: '4px',
-        '&:hover': {
-          backgroundColor: '#1479c0',
-        }
-      },
     },
     formRow: {
       display: 'flex',
@@ -1858,8 +1864,6 @@ const SaleInvoice = () => {
       flexDirection: 'column',
       maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
       minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#1B91DA #f0f0f0',
     },
     table: {
       width: 'max-content',
@@ -2228,26 +2232,26 @@ const SaleInvoice = () => {
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      ::-webkit-scrollbar {
+      .sale-invoice-scrollable::-webkit-scrollbar {
         width: 8px;
         height: 8px;
       }
       
-      ::-webkit-scrollbar-track {
+      .sale-invoice-scrollable::-webkit-scrollbar-track {
         background-color: #f0f0f0;
         border-radius: 4px;
       }
       
-      ::-webkit-scrollbar-thumb {
+      .sale-invoice-scrollable::-webkit-scrollbar-thumb {
         background-color: #1B91DA;
         border-radius: 4px;
       }
       
-      ::-webkit-scrollbar-thumb:hover {
+      .sale-invoice-scrollable::-webkit-scrollbar-thumb:hover {
         background-color: #1479c0;
       }
       
-      * {
+      .sale-invoice-scrollable {
         scrollbar-width: thin;
         scrollbar-color: #1B91DA #f0f0f0;
       }
@@ -2288,7 +2292,16 @@ const SaleInvoice = () => {
   };
 
   return (
-    <div style={styles.container}>
+    <div
+      style={styles.container}
+      className="sale-invoice-scrollable"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+    >
       {error && <div style={styles.errorContainer}>Error: {error}</div>}
       
       {(isLoading || loadingInvoices) && (
@@ -2449,8 +2462,8 @@ const SaleInvoice = () => {
       </div>
 
       {/* --- TABLE SECTION --- */}
-      <div style={styles.tableSection}>
-        <div style={styles.tableContainer}>
+      <div style={styles.tableSection} className="sale-invoice-scrollable">
+        <div style={styles.tableContainer} className="sale-invoice-scrollable">
           <table style={styles.table}>
             <thead>
               <tr>
@@ -2528,10 +2541,20 @@ const SaleInvoice = () => {
                         style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
                         onClick={() => {
                           const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
-                          const currentUom = item.uom || 'pcs';
-                          const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
-                          const nextIndex = (currentIndex + 1) % uomValues.length;
-                          const nextUom = uomValues[nextIndex];
+                          const currentUom = item.uom || '';
+                          let nextUom = 'pcs';
+                          
+                          if (currentUom && currentUom.trim() !== '') {
+                            const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
+                            if (currentIndex !== -1) {
+                              const nextIndex = (currentIndex + 1) % uomValues.length;
+                              nextUom = uomValues[nextIndex];
+                            } else {
+                              nextUom = 'pcs';
+                            }
+                          } else {
+                            nextUom = 'pcs';
+                          }
                           
                           setItems(items.map(i => {
                             if (i.id === item.id) {
@@ -2562,7 +2585,7 @@ const SaleInvoice = () => {
                         data-row={index}
                         data-field="uom"
                       >
-                        {item.uom || 'pcs'}
+                        {item.uom || ''}
                       </div>
                       <div style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomHintVisible : styles.uomHint}>
                         Press Space or Click to toggle
@@ -2740,127 +2763,52 @@ const SaleInvoice = () => {
       </div>
 
       {/* Save Confirmation Popup */}
-      {saveConfirmationOpen && saveConfirmationData && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '30px',
-            maxWidth: '500px',
-            width: '90%',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
-          }}>
-            <h3 style={{ marginBottom: '20px', color: '#1B91DA', textAlign: 'center' }}>
-              {saveConfirmationData.isEditing ? 'Confirm UPDATE Invoice' : 'Confirm SAVE Invoice'}
-            </h3>
-            <div style={{ marginBottom: '30px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Invoice No:</span>
-                <span style={{ fontWeight: 'bold', color: saveConfirmationData.isEditing ? '#dc3545' : '#28a745' }}>
-                  {saveConfirmationData.invoiceNo}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Operation:</span>
-                <span style={{ 
-                  fontWeight: 'bold', 
-                  color: saveConfirmationData.isEditing ? '#dc3545' : '#28a745',
-                  backgroundColor: saveConfirmationData.isEditing ? '#f8d7da' : '#d4edda',
-                  padding: '2px 8px',
-                  borderRadius: '4px'
-                }}>
-                  {saveConfirmationData.isEditing ? 'UPDATE' : 'INSERT'}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Customer:</span>
-                <span>{saveConfirmationData.customer}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Date:</span>
-                <span>{saveConfirmationData.billDate}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Items:</span>
-                <span>{items.filter(item => item.itemName && item.itemName.trim()).length} items</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Total Amount:</span>
-                <span style={{ fontWeight: 'bold', color: '#1B91DA' }}>₹{saveConfirmationData.totalAmount}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Add/Less:</span>
-                <span style={{ 
-                  fontWeight: 'bold', 
-                  color: parseFloat(saveConfirmationData.addLessAmount || 0) >= 0 ? '#28a745' : '#dc3545' 
-                }}>
-                  {parseFloat(saveConfirmationData.addLessAmount || 0) >= 0 ? '+' : ''}₹{parseFloat(saveConfirmationData.addLessAmount || 0).toFixed(2)}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', paddingTop: '15px', borderTop: '2px solid #1B91DA' }}>
-                <span style={{ fontWeight: 'bold', color: '#666', fontSize: '16px' }}>Final Amount:</span>
-                <span style={{ fontWeight: 'bold', color: '#1B91DA', fontSize: '18px' }}>₹{saveConfirmationData.finalAmount}</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-              <button
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: '#f5f5f5',
-                  color: '#666',
-                  cursor: 'pointer',
-                  minWidth: '120px',
-                }}
-                onClick={handleCancelSave}
-              >
-                Cancel
-              </button>
-              <button
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: saveConfirmationData.isEditing ? '#ffc107' : '#1B91DA',
-                  color: saveConfirmationData.isEditing ? '#212529' : 'white',
-                  cursor: 'pointer',
-                  minWidth: '120px',
-                  fontWeight: 'bold'
-                }}
-                onClick={handleConfirmedSave}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Processing...' : (saveConfirmationData.isEditing ? 'CONFIRM UPDATE' : 'CONFIRM SAVE')}
-              </button>
-            </div>
-            <div style={{ 
-              marginTop: '15px', 
-              padding: '10px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '5px',
-              fontSize: '12px',
-              color: '#6c757d',
-              textAlign: 'center'
-            }}>
-              Endpoint: {saveConfirmationData.isEditing ? 
-                API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.UPDATE_SALES : 
-                API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.CREATE_SALES}
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationPopup
+        isOpen={saveConfirmationOpen}
+        onClose={() => setSaveConfirmationOpen(false)}
+        onConfirm={handleConfirmedSave}
+        title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
+        message={
+          saveConfirmationData ? 
+          `Invoice No: ${saveConfirmationData.invoiceNo}\n` +
+          `Customer: ${saveConfirmationData.customer}\n` +
+          `Date: ${saveConfirmationData.billDate}\n` +
+          `Total Amount: ₹${saveConfirmationData.totalAmount}\n` +
+          `Add/Less: ${parseFloat(saveConfirmationData.addLessAmount || 0) >= 0 ? '+' : ''}₹${parseFloat(saveConfirmationData.addLessAmount || 0).toFixed(2)}\n` +
+          `Final Amount: ₹${saveConfirmationData.finalAmount}`
+          : "Are you sure you want to save this invoice?"
+        }
+        confirmText={saveConfirmationData?.isEditing ? "CONFIRM UPDATE" : "CONFIRM SAVE"}
+        cancelText="Cancel"
+        type={saveConfirmationData?.isEditing ? "warning" : "success"}
+        showIcon={true}
+        showLoading={isSaving}
+        borderColor={saveConfirmationData?.isEditing ? "#ffc107" : "#1B91DA"}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={deleteConfirmationOpen}
+        onClose={() => setDeleteConfirmationOpen(false)}
+        onConfirm={handleConfirmedDelete}
+        title="Confirm DELETE Invoice"
+        message={
+          deleteConfirmationData ? 
+          `Invoice No: ${deleteConfirmationData.invoiceNo}\n` +
+          `Customer: ${deleteConfirmationData.customer}\n` +
+          `Date: ${deleteConfirmationData.billDate}\n` +
+          `Total Amount: ₹${parseFloat(deleteConfirmationData.totalAmount || 0).toFixed(2)}\n\n` +
+          `WARNING: This action cannot be undone!`
+          : "Are you sure you want to delete this invoice?"
+        }
+        confirmText="CONFIRM DELETE"
+        cancelText="Cancel"
+        type="danger"
+        showIcon={true}
+        showLoading={isLoading}
+        borderColor="#dc3545"
+        confirmButtonStyle={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
+      />
 
       {/* Customer Popup */}
       <PopupListSelector

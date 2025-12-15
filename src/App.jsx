@@ -38,6 +38,7 @@ import SalesmanCreation from './pages/SalesmanCreation/SalesmanCreation'
 import CashManagement from './pages/CashManagement/CashManagement'
 import AmountIssue from './pages/AmountIssue/AmountIssue'
 import Receiptvoucher from './pages/Receiptvoucher/Receiptvoucher'
+import PaymentVoucher from './pages/PaymentVoucher/PaymentVoucher'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -117,6 +118,7 @@ function App() {
           <Route path="/masters/ItemCreation" element={<ProtectedRoute><LayoutWithNavbar><ItemCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/SalesmanCreation" element={<ProtectedRoute><LayoutWithNavbar><SalesmanCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/transactions/amount-issue" element={<ProtectedRoute><LayoutWithNavbar><AmountIssue /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/payment-voucher" element={<ProtectedRoute><LayoutWithNavbar><PaymentVoucher /></LayoutWithNavbar></ProtectedRoute>} />
           {/* <Route path="/transactions/cash-management" element={<ProtectedRoute><LayoutWithNavbar><CashManagement /></LayoutWithNavbar></ProtectedRoute>} /> */}
           <Route path="/transactions/receipt-voucher" element={<ProtectedRoute><LayoutWithNavbar><Receiptvoucher /></LayoutWithNavbar></ProtectedRoute>} />
    
