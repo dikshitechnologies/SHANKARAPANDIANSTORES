@@ -453,9 +453,9 @@ useEffect(() => {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
-          padding: 20px;
+          padding: 12px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
@@ -529,9 +529,11 @@ useEffect(() => {
         /* grid layout */
         .grid {
           display:grid;
-          grid-template-columns: 1fr 360px;
+          grid-template-columns: 1fr;
           gap:18px;
           align-items:start;
+          max-width: 750px;
+          margin: 0 auto;
         }
 
         /* left card (form) */
@@ -615,7 +617,7 @@ useEffect(() => {
 
         /* right side panel */
         .side {
-          display:flex;
+          display: none;
           flex-direction:column;
           gap:12px;
         }
@@ -1103,34 +1105,34 @@ useEffect(() => {
 
           {/* Right side panel */}
           <div className="side" aria-live="polite">
-            <div className="stat">
+            {/* <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
                 {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Unit" : "Delete Unit"}
               </div>
-            </div>
+            </div> */}
 
-            <div className="stat">
+            {/* <div className="stat">
               <div className="muted">Unit Code</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.fuCode || "Auto-generated"}
               </div>
-            </div>
-
+            </div> */}
+{/* 
             <div className="stat">
               <div className="muted">Unit Name</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.unitName || "Not set"}
               </div>
-            </div>
+            </div> */}
 
-            <div className="stat">
+            {/* <div className="stat">
               <div className="muted">Existing Units</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
                 {units.length}
               </div>
-            </div>
-
+            </div> */}
+{/* 
             <div className="stat tips-panel">
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                 <Icon.Info />
@@ -1151,9 +1153,9 @@ useEffect(() => {
                   <span>Common units: KG, M.T, PCS, LTR, MTR</span>
                 </div>
               </div>
-            </div>
+            </div> */}
 
-            {/* Existing Units Table */}
+            
          
           </div>
         </div>

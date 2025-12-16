@@ -109,14 +109,21 @@ export const API_ENDPOINTS = {
     DELETE_STATE: (code) => `/StateCreation/deleteState/${code}`,
   },
 
-  SCRAP_CREATION: {
-    GET_SCRAP_ITEMS: '/ScrapCreation/getScrapItem',
-    GET_NEXT_SCRAP_CODE: '/ScrapCreation/getNextScrapFcode',
-    CREATE_SCRAP: '/ScrapCreation/createScrap',
-    UPDATE_SCRAP: '/ScrapCreation/updateScrap',
-    DELETE_SCRAP: (scrapCode) => `/ScrapCreation/deleteScrap/${scrapCode}`,
-    GET_SCRAP_BY_CODE: (scrapCode) => `/ScrapCreation/getScrapByCode/${scrapCode}`,
+// In your api/endpoints.js
+
+  sales_return: {
+    getMaxVoucherNo: (companyCode) => `/SalesReturn/getMaxVoucherNo/${companyCode}`,
+    getCustomers: 'SalesReturn/GetPartyByParent',
+    getBillList: (companyCode, page, pageSize) => `SalesReturn/GetSalesInvoiceBillList/${companyCode}?page=${page}&pageSize=${pageSize}`,
+    getVoucherDetails: (voucherNo) => `SalesReturn/GetSalesInvoiceVoucherDetails?voucherNo=${voucherNo}`,
+    getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
+    createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
+    // Note: No separate update endpoint - use create endpoint with SelectType=false
+    deleteSalesReturn: (voucherNo, companyCode) => `SalesReturn/DeleteSalesReturn/${voucherNo}?compCode=${companyCode}`,
+    getSalesReturnDetails: (voucherNo, companyCode) => `SalesReturn/GetSalesReturn/${voucherNo}/${companyCode}`,
   },
+ 
+
   sales_return:{
      getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
       getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
@@ -234,7 +241,6 @@ CATEGORY: {
   },
 
   SALESRETURN: {
-
   GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
 },
 
@@ -251,7 +257,13 @@ PAYMENTVOUCHER: {
   RECEIPTVOUCHER: {
     GETNEXTVNUMBER: (compCode) => `ReceiptVoucher/GetNextReceiptVoucher?compCode=${compCode}`,
     GETBILLNUMLIST: (compCode, pageNumber = 1, pageSize = 10) => `ReceiptVoucher/GetReceiptVoucherList?compCode=${compCode}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
-    DELETE: (voucherNo, compCode) => `ReceiptVoucher/DeleteReceiptVoucher?voucherNo=${voucherNo}&compCode=${compCode}`
+    POST_RECEIPT_VOUCHER: (selectType = true) => `ReceiptVoucher/ReceiptVoucherPost?selectType=${selectType}`,
+    PUT_RECEIPT_VOUCHER: (selectType = false) => `ReceiptVoucher/ReceiptVoucherPost?selectType=${selectType}`,
+    DELETE: (voucherNo, compCode) => `ReceiptVoucher/DeleteReceiptVoucher?voucherNo=${voucherNo}&compCode=${compCode}`,
+    PARTY_LIST: (pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    GET_VOUCHER_DETAILS: (voucherNo) => `ReceiptVoucher/GetVoucherDetails?voucherNo=${voucherNo}`,
+    GETPENDINGBILLS: (partyCode, compCode) => `ReceiptVoucher/GetPendingBills?fcode=${partyCode}&fCompCode=${compCode}`,
+    GETPARTYLIST: (search = '', pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?search=${encodeURIComponent(search)}&pageNumber=${pageNumber}&pageSize=${pageSize}`
   }
 
 };

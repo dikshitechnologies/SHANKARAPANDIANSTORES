@@ -1036,9 +1036,9 @@ const ItemCreation = ({ onCreated }) => {
         }
 
         /* Main dashboard card (glass) */
-             .dashboard {
-          width: auto; /* CHANGED from 100% to auto */
-          display: inline-block; /* ADD THIS - fits content */
+        .dashboard {
+          width: 100%;
+          max-width: 700px;
           border-radius: 16px;
           padding: 20px; /* Keep or adjust */
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -1128,12 +1128,11 @@ const ItemCreation = ({ onCreated }) => {
           border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
-        /* grid layout */
-           .grid {
-          display: flex; /* Changed from grid to flex */
-          justify-content: center; /* Center the form */
-          align-items: start;
-        }
+        .grid {
+  display: block;
+  width: 100%;
+}
+
 
         /* left card (form) */
           .card {
@@ -2510,7 +2509,6 @@ const ItemCreation = ({ onCreated }) => {
               </button>
             </div>
           </div>
-
 
           
         </div>
