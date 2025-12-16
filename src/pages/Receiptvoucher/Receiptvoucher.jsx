@@ -359,11 +359,16 @@ const ReceiptVoucher = () => {
       }
       setIsLoading(true);
       const url = API_ENDPOINTS.RECEIPTVOUCHER.DELETE(voucherNo, userData.companyCode);
-      await apiService.del(url);
-      setError(null);
-      resetForm();
-      await fetchNextVoucherNo();
-      await fetchSavedVouchers();
+      try {
+        await apiService.del(url);
+        setError(null);
+        resetForm();
+        await fetchNextVoucherNo();
+        await fetchSavedVouchers();
+      } catch (apiErr) {
+        console.error('Delete API error:', apiErr);
+        setError('Failed to delete voucher');
+      }
     } catch (err) {
       console.error('Error deleting voucher:', err);
       setError('Failed to delete voucher');
@@ -393,6 +398,7 @@ const ReceiptVoucher = () => {
 
   // Reset form to empty state
   const resetForm = () => {
+    console.log('Resetting form...');
     setVoucherDetails({
       voucherNo: '',
       gstType: 'CGST/SGST',
@@ -787,6 +793,7 @@ const ReceiptVoucher = () => {
 
   // Handle clear - clears current form
   const handleClear = () => {
+    console.log('Clear button clicked');
     resetForm();
   };
 
@@ -801,6 +808,8 @@ const ReceiptVoucher = () => {
   // TODO: Add save receipt voucher endpoint to endpoints.js and implement this function
   const savePaymentVoucher = async () => {
     try {
+      console.log('Save button clicked');
+      
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
         return;
@@ -851,26 +860,38 @@ const ReceiptVoucher = () => {
         referenceBills: referenceBills
       };
 
-      let response;
-      if (isEditing) {
-        response = await apiService.putSilent(
-          API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(false),
-          payload
-        );
-      } else {
-        response = await apiService.postSilent(
-          API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(true),
-          payload
-        );
-      }
+      console.log('Payload:', payload);
+      console.log('Is Editing:', isEditing);
 
-      if (response?.status && response?.voucherNo) {
-        setError(null);
-        resetForm();
-        await fetchNextVoucherNo();
-        await fetchSavedVouchers();
-      } else {
-        setError(response?.message || 'Failed to save voucher');
+      let response;
+      try {
+        if (isEditing) {
+          console.log('Calling PUT endpoint:', API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(false));
+          response = await apiService.put(
+            API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(false),
+            payload
+          );
+        } else {
+          console.log('Calling POST endpoint:', API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(true));
+          response = await apiService.post(
+            API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(true),
+            payload
+          );
+        }
+
+        console.log('API Response:', response);
+
+        if (response?.voucherNo) {
+          setError(null);
+          resetForm();
+          await fetchNextVoucherNo();
+          await fetchSavedVouchers();
+        } else {
+          setError(response?.message || 'Failed to save voucher');
+        }
+      } catch (apiErr) {
+        console.error('API call error:', apiErr);
+        setError(apiErr.response?.data?.message || 'Failed to save voucher');
       }
     } catch (err) {
       console.error('Error saving voucher:', err);
