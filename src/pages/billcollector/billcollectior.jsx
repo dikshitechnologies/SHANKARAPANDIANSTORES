@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
+import TenderModal from '../../components/TenderModal/TenderModal';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 function BillCollector() {
@@ -12,6 +13,10 @@ function BillCollector() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [activeFooterAction, setActiveFooterAction] = useState('all');
+  
+  // Tender Modal state
+  const [isTenderModalOpen, setIsTenderModalOpen] = useState(false);
+  const [selectedBillData, setSelectedBillData] = useState(null);
   
   // API and data management
   const [bills, setBills] = useState([]);
@@ -50,12 +55,21 @@ function BillCollector() {
     }
   };
 
+  // Handle row click to open Tender Modal
+  const handleRowClick = (billRow) => {
+    setSelectedBillData(billRow);
+    setIsTenderModalOpen(true);
+  };
+
+  const handleCloseTenderModal = () => {
+    setIsTenderModalOpen(false);
+    setSelectedBillData(null);
+  };
+
   // Fetch bills on component mount and when search changes
   useEffect(() => {
     fetchBills(1, searchInput);
   }, [searchInput]);
-
-  // Handle pagination
   const handleNextPage = () => {
     const nextPage = pageNumber + 1;
     if (nextPage * pageSize <= totalCount + pageSize) {
@@ -619,10 +633,14 @@ function BillCollector() {
             {bills.map((row, i) => (
               <tr 
                 key={i} 
-                onClick={() => setSelectedRow(i)}
+                onClick={() => {
+                  setSelectedRow(i);
+                  handleRowClick(row);
+                }}
                 style={{ 
                   backgroundColor: selectedRow === i ? "#dbeafe" : i % 2 === 0 ? '#f9f9f9' : '#ffffff',
-                  transition: "all 0.2s"
+                  transition: "all 0.2s",
+                  cursor: "pointer"
                 }}
                 onMouseEnter={(e) => {
                   if (selectedRow !== i) e.currentTarget.style.backgroundColor = "#f8fafc";
@@ -656,6 +674,13 @@ function BillCollector() {
 
       {/* Print Confirmation Modal */}
      
+
+      {/* Tender Modal */}
+      <TenderModal 
+        isOpen={isTenderModalOpen} 
+        onClose={handleCloseTenderModal}
+        billData={selectedBillData}
+      />
 
       {/* <div style={footer}>
         <ActionButtons1

@@ -77,6 +77,9 @@ export default function SizeCreation() {
   // refs for step-by-step Enter navigation
   const sizeCodeRef = useRef(null);
   const sizeNameRef = useRef(null);
+  const createButtonRef = useRef(null);
+  const editButtonRef = useRef(null);
+  const deleteButtonRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -224,6 +227,7 @@ useEffect(() => {
   const confirmEdit = async () => {
     try {
       setIsLoading(true);
+      handleEdit();
       const sizeData = { fCode: form.fuCode, sizeName: form.sizeName };
       await updateSize(sizeData);
       await loadInitial();
@@ -251,6 +255,7 @@ useEffect(() => {
   const confirmDelete = async () => {
     try {
       setIsLoading(true);
+      handleDelete();
       await deleteSize(form.fuCode);
       await loadInitial();
       
@@ -304,7 +309,7 @@ useEffect(() => {
     else if (actionType === "delete") await handleDelete();
   };
 
- const resetForm = (keepAction = false) => {
+const resetForm = (keepAction = false) => {
   fetchNextSizeCode();
   setForm(prev => ({ ...prev, sizeName: "" }));
   setEditingId(null);
@@ -315,8 +320,15 @@ useEffect(() => {
   setMessage(null);
   if (!keepAction) setActionType("Add");
   
-  // This line already focuses on sizeName field after reset - GOOD
-  setTimeout(() => sizeNameRef.current?.focus(), 60);
+  // Focus back to sizeName field after reset
+  setTimeout(() => {
+    sizeNameRef.current?.focus();
+    
+    // Also blur any focused button
+    createButtonRef.current?.blur();
+    editButtonRef.current?.blur();
+    deleteButtonRef.current?.blur();
+  }, 60);
 };
 
   const openEditModal = () => {
@@ -332,7 +344,9 @@ useEffect(() => {
   setActionType("edit");
   setEditingId(size.fcode || size.fCode);
   setEditModalOpen(false);
-  setTimeout(() => sizeNameRef.current?.focus(), 60); // GOOD
+  
+  // Focus on edit button after selecting item to edit
+  setTimeout(() => editButtonRef.current?.focus(), 60);
 };
 
   const openDeleteModal = () => {
@@ -362,9 +376,12 @@ useEffect(() => {
   setActionType("delete");
   setDeleteTargetId(size.fcode || size.fCode);
   setDeleteModalOpen(false);
-  setTimeout(() => sizeNameRef.current?.focus(), 60); // GOOD
-};
+  
+  // Focus on delete button after selecting item to delete
+handleDelete();
 
+  // setTimeout(() => deleteButtonRef.current?.focus(), 60);
+};
   const onSizeCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -372,12 +389,23 @@ useEffect(() => {
     }
   };
 
-  const onSizeNameKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
+ const onSizeNameKeyDown = (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    
+    // Auto-submit when Enter is pressed
+    
+    
+    // Also focus the button for visual feedback
+    if (actionType === "Add") {     
+      setTimeout(() => createButtonRef.current?.focus(), 10);
+    } else if (actionType === "edit") {
+      setTimeout(() => editButtonRef.current?.focus(), 10);
+    } else if (actionType === "delete") {
+      setTimeout(() => deleteButtonRef.current?.focus(), 10);
     }
-  };
+  }
+};
 
   const stopEnterPropagation = (e) => {
     if (e.key === "Enter") {
@@ -1024,24 +1052,26 @@ useEffect(() => {
               )}
 
               {/* Submit controls */}
-              <div className="submit-row">
-                <button
-                  className="submit-primary"
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  type="button"
-                >
-                  {loading ? "Processing..." : actionType === "Add" ? "Create" : actionType}
-                </button>
-                <button
-                  className="submit-clear"
-                  onClick={resetForm}
-                  disabled={loading}
-                  type="button"
-                >
-                  Clear
-                </button>
-              </div>
+              {/* Submit controls */}
+<div className="submit-row">
+  <button
+    ref={actionType === "Add" ? createButtonRef : actionType === "edit" ? editButtonRef : deleteButtonRef}
+    className="submit-primary"
+    onClick={handleSubmit}
+    disabled={loading}
+    type="button"
+  >
+    {loading ? "Processing..." : actionType === "Add" ? "Create" : actionType}
+  </button>
+  <button
+    className="submit-clear"
+    onClick={resetForm}
+    disabled={loading}
+    type="button"
+  >
+    Clear
+  </button>
+</div>
             </div>
 
             {/* Existing Sizes Table */}

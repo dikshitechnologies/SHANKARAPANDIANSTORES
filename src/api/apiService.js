@@ -103,6 +103,9 @@ const showAlertForStatus = (status, responseData, fallbackMessage) => {
     case 404:
       msg = "Resource not found.";
       break;
+    case 409:
+      msg = responseData?.message || "Conflict. Data already exists.";
+      break;
     case 422:
       msg = responseData?.message || "Validation error.";
       break;
