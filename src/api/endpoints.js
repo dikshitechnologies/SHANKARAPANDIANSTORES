@@ -121,8 +121,8 @@ export const API_ENDPOINTS = {
      getMaxVoucherNo: (companyCode) => `SalesReturn/GetMaxVoucherNo/${companyCode}`,
       getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
        getCustomers: "Salesinvoices/GetPartyByParent",
-       createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
-    updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=false', // Same endpoint for both
+      createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=false',
+  updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
   },
