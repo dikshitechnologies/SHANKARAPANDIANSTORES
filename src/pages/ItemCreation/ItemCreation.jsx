@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
-import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import axios from 'axios';
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
@@ -122,6 +121,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
 const TYPE_OPTIONS = [
   { value: "SC", label: "Scrap Product" },
   { value: "FG", label: "Finished Product" },
+
 ];
 
 // GST percentage options
@@ -141,11 +141,6 @@ const ItemCreation = ({ onCreated }) => {
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [message, setMessage] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
-  
-  // Confirmation Popup States
-  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [confirmData, setConfirmData] = useState(null);
   
   // Checkbox states
   const [gstChecked, setGstChecked] = useState(false);
@@ -479,23 +474,13 @@ const ItemCreation = ({ onCreated }) => {
     return true;
   };
 
-  // Show confirmation popup
-  const showConfirmationPopup = (action, data = null) => {
-    setConfirmAction(action);
-    setConfirmData(data);
-    setShowConfirmPopup(true);
+  const showConfirmation = (message, onConfirm) => {
+    if (window.confirm(message)) {
+      onConfirm();
+    }
   };
 
-  // Handle confirmation from popup
-  const handleConfirmAction = async () => {
-    setShowConfirmPopup(false);
-    
-    if (confirmAction === 'clear') {
-      handleClear();
-      return;
-    }
-    
-    // For save, update, delete actions, proceed with validation and submission
+  const handleSubmit = async () => {
     if (!validateForm()) {
       return;
     }
@@ -1017,57 +1002,6 @@ const ItemCreation = ({ onCreated }) => {
     return fetchUnits(page, effectiveSearch);
   }, [fetchUnits, simulatePopupTyping.unit, popupInitialSearch.unit]);
 
-  // Get confirmation popup configuration based on action
-  const getConfirmationConfig = () => {
-    switch (confirmAction) {
-      case 'save':
-        return {
-          title: 'Save Item',
-          message: 'Are you sure you want to save this item?',
-          confirmText: 'Save',
-          type: 'success',
-          iconSize: 24,
-          showIcon: true
-        };
-      case 'update':
-        return {
-          title: 'Update Item',
-          message: 'Are you sure you want to update this item?',
-          confirmText: 'Update',
-          type: 'success',
-          iconSize: 24,
-          showIcon: true
-        };
-      case 'delete':
-        return {
-          title: 'Delete Item',
-          message: 'Are you sure you want to delete this item? This action cannot be undone.',
-          confirmText: 'Delete',
-          type: 'danger',
-          iconSize: 24,
-          showIcon: true
-        };
-      case 'clear':
-        return {
-          title: 'Clear Form',
-          message: 'Are you sure you want to clear all fields? All unsaved changes will be lost.',
-          confirmText: 'Clear',
-          type: 'warning',
-          iconSize: 24,
-          showIcon: true
-        };
-      default:
-        return {
-          title: 'Confirm Action',
-          message: 'Are you sure you want to proceed?',
-          confirmText: 'Confirm',
-          type: 'default',
-          iconSize: 24,
-          showIcon: true
-        };
-    }
-  };
-
   return (
     <div className="lg-root" role="region" aria-labelledby="item-title">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
@@ -1090,45 +1024,50 @@ const ItemCreation = ({ onCreated }) => {
         }
 
         /* Page layout */
-        .lg-root {
+         .lg-root {
           min-height: 100vh;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px 16px;
+          padding: 20px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
           box-sizing: border-box;
         }
 
         /* Main dashboard card (glass) */
-        .dashboard {
-          width: 100%;
-          max-width: 1100px;
+             .dashboard {
+          width: auto; /* CHANGED from 100% to auto */
+          display: inline-block; /* ADD THIS - fits content */
           border-radius: 16px;
-          padding: 20px;
+          padding: 20px; /* Keep or adjust */
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          margin: 20px; /* ADD for spacing from screen edges */
         }
         .dashboard:hover { transform: translateY(-6px); }
 
         /* header */
-        .top-row {
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:12px;
-          margin-bottom: 18px;
-          flex-wrap: wrap;
-        }
-        .title-block {
-          display:flex;
+         .top-row {
+          display: flex;
           align-items: center;
-          gap:12px;
+          justify-content: flex-start; /* Changed from space-between to flex-start */
+          gap: 12px;
+          margin-bottom: 18px;
+          flex-wrap: nowrap;
+        }
+        
+        .title-block {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-shrink: 0;
+        }
+        
         }
         .title-block h2 {
           margin:0;
@@ -1147,7 +1086,7 @@ const ItemCreation = ({ onCreated }) => {
           display:flex;
           gap:10px;
           align-items:center;
-          flex-wrap:wrap;
+          flex-wrap:nowrap;
         }
         .action-pill {
           display:inline-flex;
@@ -1190,20 +1129,22 @@ const ItemCreation = ({ onCreated }) => {
         }
 
         /* grid layout */
-        .grid {
-          display:grid;
-          grid-template-columns: 1fr 360px;
-          gap:18px;
-          align-items:start;
+           .grid {
+          display: flex; /* Changed from grid to flex */
+          justify-content: center; /* Center the form */
+          align-items: start;
         }
 
         /* left card (form) */
-        .card {
+          .card {
           background: rgba(255,255,255,0.85);
           border-radius: 12px;
           padding: 16px;
           border: 1px solid rgba(15,23,42,0.04);
           box-shadow: 0 6px 20px rgba(12,18,35,0.06);
+          width: 700px; /* FIXED WIDTH - form size */
+          max-width: 100%;
+          box-sizing: border-box;
         }
 
         label.field-label {
@@ -1717,17 +1658,16 @@ const ItemCreation = ({ onCreated }) => {
         }
 
         /* Responsive styles */
-        /* Large tablets and small laptops */
+               /* Large tablets and small laptops */
+               /* Large tablets and small laptops */
         @media (max-width: 1024px) {
           .grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-          .side {
-            order: 2;
+            display: flex;
+            justify-content: center;
           }
           .card {
-            order: 1;
+            width: 95%; 
+             max-width: 100%;/* Slightly smaller on tablets */
           }
         }
 
@@ -1737,6 +1677,7 @@ const ItemCreation = ({ onCreated }) => {
             padding: 16px 12px;
           }
           .dashboard {
+              margin: 16px;
             padding: 16px;
           }
           .top-row {
@@ -2545,10 +2486,12 @@ const ItemCreation = ({ onCreated }) => {
                     return;
                   }
 
-                  // Show confirmation popup based on action type
-                  const action = actionType === 'create' ? 'save' : 
-                                actionType === 'edit' ? 'update' : 'delete';
-                  showConfirmationPopup(action);
+                  const confirmationMessage = 
+                    actionType === 'create' ? 'Do You Want Save?' :
+                    actionType === 'edit' ? 'Do You Want Modify?' :
+                    'Do You Want Delete?';
+
+                  showConfirmation(confirmationMessage, handleSubmit);
                 }}
                 disabled={isSubmitting}
                 type="button"
@@ -2559,7 +2502,7 @@ const ItemCreation = ({ onCreated }) => {
               </button>
               <button
                 className="submit-clear"
-                onClick={() => showConfirmationPopup('clear')}
+                onClick={handleClear}
                 disabled={isSubmitting}
                 type="button"
               >
@@ -2568,156 +2511,10 @@ const ItemCreation = ({ onCreated }) => {
             </div>
           </div>
 
-          {/* Right side panel */}
-          <div className="side" aria-live="polite">
-            <div className="stat">
-              <div className="muted">Current Action</div>
-              <div className="stat-value">
-                {actionType === 'create' ? 'Create New Item' : 
-                 actionType === 'edit' ? 'Edit Item' : 'Delete Item'}
-              </div>
-            </div>
 
-            <div className="stat">
-              <div className="muted">Group Name</div>
-              <div className="stat-value">{mainGroup || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Item Name</div>
-              <div className="stat-value">{formData.itemName || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Short Name</div>
-              <div className="stat-value">{formData.shortName || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Brand</div>
-              <div className="stat-value">{formData.brand || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Category</div>
-              <div className="stat-value">{formData.category || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Product</div>
-              <div className="stat-value">{formData.product || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Model</div>
-              <div className="stat-value">{formData.model || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Size</div>
-              <div className="stat-value">{formData.size || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Units</div>
-              <div className="stat-value">{formData.unit || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Max</div>
-              <div className="stat-value">{formData.max || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Min</div>
-              <div className="stat-value">{formData.min || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">HSN Code</div>
-              <div className="stat-value">{formData.hsnCode || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Piece Rate</div>
-              <div className="stat-value">{pieceRateChecked ? 'Yes' : 'No'}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">GST%</div>
-              <div className="stat-value">{formData.gstin ? `${formData.gstin}%` : ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Prefix</div>
-              <div className="stat-value">{formData.prefix || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Selling Price</div>
-              <div className="stat-value">{formData.sellingPrice ? `₹${formData.sellingPrice}` : ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Cost Price</div>
-              <div className="stat-value">{formData.costPrice ? `₹${formData.costPrice}` : ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Type</div>
-              <div className="stat-value">{formData.type || ""}</div>
-            </div>
-
-            <div className="stat tips-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--accent)"/>
-                </svg>
-                <div style={{ fontWeight: 700 }}>Quick Tips</div>
-              </div>
-              
-              <div className="muted" style={{ fontSize: "13px", lineHeight: "1.5" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>Use the tree to quickly select groups</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>Search groups by name in the search box</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>For editing/deleting, items will be listed automatically</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>Click search icons to browse available options</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span><strong>New:</strong> Type any letter in popup fields to open search with that letter</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span><strong>GST Feature:</strong> Check GST to auto-fill 3%</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span><strong>Enter Key:</strong> Press Enter in Type field to open dropdown, press again to go to Save button</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </div>
-
-      {/* Confirmation Popup */}
-      <ConfirmationPopup
-        isOpen={showConfirmPopup}
-        onClose={() => setShowConfirmPopup(false)}
-        onConfirm={handleConfirmAction}
-        {...getConfirmationConfig()}
-      />
 
       {/* PopupListSelector for Brand Selection */}
       <PopupListSelector
