@@ -250,7 +250,8 @@ PAYMENTVOUCHER: {
 
   RECEIPTVOUCHER: {
     GETNEXTVNUMBER: (compCode) => `ReceiptVoucher/GetNextReceiptVoucher?compCode=${compCode}`,
-    GETBILLNUMLIST: (compCode, pageNumber = 1, pageSize = 10) => `ReceiptVoucher/GetReceiptVoucherList?compCode=${compCode}&pageNumber=${pageNumber}&pageSize=${pageSize}`
+    GETBILLNUMLIST: (compCode, pageNumber = 1, pageSize = 10) => `ReceiptVoucher/GetReceiptVoucherList?compCode=${compCode}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    DELETE: (voucherNo, compCode) => `ReceiptVoucher/DeleteReceiptVoucher?voucherNo=${voucherNo}&compCode=${compCode}`
   }
 
 };

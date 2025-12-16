@@ -327,9 +327,13 @@ const ReceiptVoucher = () => {
   // Delete voucher from database
   const deleteVoucher = async (voucherNo) => {
     try {
+      if (!userData?.companyCode) {
+        setError('Company code not available');
+        return;
+      }
       setIsLoading(true);
-      // TODO: Add delete receipt voucher endpoint
-      // await apiService.delete(`ReceiptVoucher/DeleteReceiptVoucher/${voucherNo}`);
+      const url = API_ENDPOINTS.RECEIPTVOUCHER.DELETE(voucherNo, userData.companyCode);
+      await apiService.delete(url);
       setError(null);
       resetForm();
       await fetchSavedVouchers();
