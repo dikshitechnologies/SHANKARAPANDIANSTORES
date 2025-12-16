@@ -784,7 +784,7 @@ const handleDeleteRowClick = (s) => {
           display:grid;
           grid-template-columns: 1fr 360px;
           gap:18px;
-          align-items:start;
+          
         }
 
         .card {
