@@ -827,8 +827,8 @@ const ReceiptVoucher = () => {
 
       // Prepare item details list
       const itemDetailsList = receiptItems.map(item => ({
-        accountCode: item.cashBank, // Using cashBank as accountCode
-        accountName: item.accountName || item.cashBank,
+        accountCode: item.accountCode || '',
+        accountName: item.accountName || item.cashBank || '',
         crdr: item.crDr,
         type: item.type,
         amount: parseFloat(item.amount) || 0,
@@ -856,6 +856,7 @@ const ReceiptVoucher = () => {
         totalAmt: totalAmount,
         compcode: userData?.companyCode || '001',
         usercode: userData?.userCode || '001',
+        salesTransaction: [], // Empty array as per API spec
         itemDetailsList: itemDetailsList,
         referenceBills: referenceBills
       };
@@ -1855,7 +1856,7 @@ const ReceiptVoucher = () => {
           title={saveConfirmationData?.title}
           message={saveConfirmationData?.message}
           onConfirm={handleConfirmedSave}
-          onCancel={handleCancelSave}
+          onClose={handleCancelSave}
           confirmText={saveConfirmationData?.confirmText}
           cancelText={saveConfirmationData?.cancelText}
         />
