@@ -504,7 +504,7 @@ export default function SalesmanCreation() {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
           padding: 20px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -577,13 +577,11 @@ export default function SalesmanCreation() {
         .action-pill.warn { color:white; background: linear-gradient(180deg, var(--warning), #f97316); }
         .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
 
-        /* grid layout */
         .grid {
-          display:grid;
-          grid-template-columns: 1fr 360px;
-          gap:18px;
-          align-items:start;
-        }
+  display: block;
+  width: 100%;
+}
+
 
         /* left card (form) */
         .card {
@@ -1145,58 +1143,7 @@ export default function SalesmanCreation() {
             </div>
           </div>
 
-          {/* Right side panel */}
-          <div className="side" aria-live="polite">
-            <div className="stat">
-              <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Salesman" : "Delete Salesman"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Salesman Code</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.salesmanCode || "Auto-generated"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Salesman Name</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.salesmanName || "Not set"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Existing Salesmen</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {salesmen.length}
-              </div>
-            </div>
-
-            <div className="stat tips-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <Icon.Info />
-                <div style={{ fontWeight: 700 }}>Quick Tips</div>
-              </div>
-              
-              <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Salesman code is auto-generated from API</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Keep salesman name under 50 characters to avoid errors</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Salesmen manage customer relationships and sales</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        
         </div>
       </div>
 

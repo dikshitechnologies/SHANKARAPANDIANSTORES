@@ -1104,7 +1104,7 @@ const ItemCreation = ({ onCreated }) => {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
           padding: 20px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -1189,13 +1189,11 @@ const ItemCreation = ({ onCreated }) => {
           border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
-        /* grid layout */
         .grid {
-          display:grid;
-          grid-template-columns: 1fr 360px;
-          gap:18px;
-          align-items:start;
-        }
+  display: block;
+  width: 100%;
+}
+
 
         /* left card (form) */
         .card {
@@ -2568,146 +2566,7 @@ const ItemCreation = ({ onCreated }) => {
             </div>
           </div>
 
-          {/* Right side panel */}
-          <div className="side" aria-live="polite">
-            <div className="stat">
-              <div className="muted">Current Action</div>
-              <div className="stat-value">
-                {actionType === 'create' ? 'Create New Item' : 
-                 actionType === 'edit' ? 'Edit Item' : 'Delete Item'}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Group Name</div>
-              <div className="stat-value">{mainGroup || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Item Name</div>
-              <div className="stat-value">{formData.itemName || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Short Name</div>
-              <div className="stat-value">{formData.shortName || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Brand</div>
-              <div className="stat-value">{formData.brand || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Category</div>
-              <div className="stat-value">{formData.category || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Product</div>
-              <div className="stat-value">{formData.product || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Model</div>
-              <div className="stat-value">{formData.model || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Size</div>
-              <div className="stat-value">{formData.size || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Units</div>
-              <div className="stat-value">{formData.unit || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Max</div>
-              <div className="stat-value">{formData.max || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Min</div>
-              <div className="stat-value">{formData.min || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">HSN Code</div>
-              <div className="stat-value">{formData.hsnCode || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Piece Rate</div>
-              <div className="stat-value">{pieceRateChecked ? 'Yes' : 'No'}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">GST%</div>
-              <div className="stat-value">{formData.gstin ? `${formData.gstin}%` : ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Prefix</div>
-              <div className="stat-value">{formData.prefix || ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Selling Price</div>
-              <div className="stat-value">{formData.sellingPrice ? `₹${formData.sellingPrice}` : ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Cost Price</div>
-              <div className="stat-value">{formData.costPrice ? `₹${formData.costPrice}` : ""}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Type</div>
-              <div className="stat-value">{formData.type || ""}</div>
-            </div>
-
-            <div className="stat tips-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--accent)"/>
-                </svg>
-                <div style={{ fontWeight: 700 }}>Quick Tips</div>
-              </div>
-              
-              <div className="muted" style={{ fontSize: "13px", lineHeight: "1.5" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>Use the tree to quickly select groups</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>Search groups by name in the search box</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>For editing/deleting, items will be listed automatically</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span>Click search icons to browse available options</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span><strong>New:</strong> Type any letter in popup fields to open search with that letter</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span><strong>GST Feature:</strong> Check GST to auto-fill 3%</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: "bold" }}>•</span>
-                  <span><strong>Enter Key:</strong> Press Enter in Type field to open dropdown, press again to go to Save button</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </div>
 
