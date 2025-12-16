@@ -1422,14 +1422,15 @@ const ItemCreation = ({ onCreated }) => {
           border: 1px solid #bbf7d0; 
         }
 
-        /* submit row */
-        .submit-row { 
-          display:flex; 
-          gap:12px; 
-          margin-top:14px; 
-          align-items:center; 
-          flex-wrap:wrap; 
-        }
+       .submit-row { 
+  display: flex; 
+  gap: 12px; 
+  margin-top: 14px; 
+  align-items: center; 
+  justify-content: flex-end;   /* ✅ RIGHT ALIGN */
+  width: 100%;
+}
+
         .submit-primary {
           padding:12px 16px;
           background: linear-gradient(180deg,var(--accent),var(--accent-2));
