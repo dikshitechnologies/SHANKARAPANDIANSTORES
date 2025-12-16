@@ -95,6 +95,10 @@ const SaleInvoice = () => {
   const [totalQty, setTotalQty] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
 
+  // Row delete confirmation popup
+const [rowDeleteConfirmationOpen, setRowDeleteConfirmationOpen] = useState(false);
+const [rowToDelete, setRowToDelete] = useState(null);
+
   // 4. Popup States
   const [customerPopupOpen, setCustomerPopupOpen] = useState(false);
   const [itemPopupOpen, setItemPopupOpen] = useState(false);
@@ -1399,6 +1403,7 @@ const handleSalesmanSelect = (salesman) => {
 
     }
   };
+  
 
   const handleAddItem = async () => {
     if (!billDetails.barcodeInput) {
@@ -1537,38 +1542,52 @@ const handleAddRow = () => {
     }));
   };
 
-  const handleDeleteRow = (id) => {
-    const itemToDelete = items.find(item => item.id === id);
-    const itemName = itemToDelete?.itemName || 'this item';
+const handleDeleteRow = (id) => {
+  const itemToDelete = items.find(item => item.id === id);
+  const itemName = itemToDelete?.itemName || 'this item';
+  const barcode = itemToDelete?.barcode ? `(Barcode: ${itemToDelete.barcode})` : '';
+  
+  // Set the item to delete and show confirmation popup
+  setRowToDelete({ id, itemName, barcode });
+  setRowDeleteConfirmationOpen(true);
+};
 
-    if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
-      if (items.length > 1) {
-        const filteredItems = items.filter(item => item.id !== id);
-        const updatedItems = filteredItems.map((item, index) => ({
-          ...item,
-          sNo: index + 1
-        }));
-        setItems(updatedItems);
-      } else {
-        const clearedItem = {
-          id: 1,
-          sNo: 1,
-          barcode: '',
-          itemCode: '',
-          itemName: '',
-          stock: '',
-          mrp: '',
-          uom: '',
-          hsn: '',
-          tax: '',
-          sRate: '',
-          qty: '',
-          amount: '0.00'
-        };
-        setItems([clearedItem]);
-      }
-    }
-  };
+// Handle confirmed row deletion
+const handleConfirmedRowDelete = () => {
+  if (!rowToDelete) return;
+  
+  const { id } = rowToDelete;
+  
+  if (items.length > 1) {
+    const filteredItems = items.filter(item => item.id !== id);
+    const updatedItems = filteredItems.map((item, index) => ({
+      ...item,
+      sNo: index + 1
+    }));
+    setItems(updatedItems);
+  } else {
+    const clearedItem = {
+      id: 1,
+      sNo: 1,
+      barcode: '',
+      itemCode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      qty: '',
+      amount: '0.00'
+    };
+    setItems([clearedItem]);
+  }
+  
+  // Close popup and reset
+  setRowDeleteConfirmationOpen(false);
+  setRowToDelete(null);
+};
 
   // Handle clear - clears current form
   const handleClear = () => {
@@ -2893,50 +2912,56 @@ searchIconInside: {
                       readOnly
                     />
                   </td>
-                  <td style={styles.td}>
-                    <button
-                      aria-label="Delete row"
-                      title="Delete row"
-                      style={{
-                        backgroundColor: 'transparent',
-                        color: '#dc3545',
-                        border: 'none',
-                        padding: 0,
-                        borderRadius: '2px',
-                        width: '100%',
-                        height: '100%',
-                        cursor: 'pointer',
-                        fontSize: screenSize.isMobile ? '12px' : '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'color 0.15s ease',
-                        minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
-                      }}
-                      onClick={() => handleDeleteRow(item.id)}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width={screenSize.isMobile ? "16" : "18"}
-                        height={screenSize.isMobile ? "16" : "18"}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#dc3545"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        focusable="false"
-                        style={{ display: 'block', margin: 'auto' }}
-                      >
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                        <path d="M10 11v6"></path>
-                        <path d="M14 11v6"></path>
-                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </td>
+                <td style={styles.td}>
+  <button
+    aria-label="Delete row"
+    title="Delete row"
+    style={{
+      backgroundColor: 'transparent',
+      color: '#dc3545',
+      border: 'none',
+      padding: 0,
+      borderRadius: '2px',
+      width: '100%',
+      height: '100%',
+      cursor: 'pointer',
+      fontSize: screenSize.isMobile ? '12px' : '14px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'color 0.15s ease, background-color 0.15s ease',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+    }}
+    onClick={() => handleDeleteRow(item.id)}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.backgroundColor = '#fee';
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.backgroundColor = 'transparent';
+    }}
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={screenSize.isMobile ? "16" : "18"}
+      height={screenSize.isMobile ? "16" : "18"}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#dc3545"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      style={{ display: 'block', margin: 'auto' }}
+    >
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+      <path d="M10 11v6"></path>
+      <path d="M14 11v6"></path>
+      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+    </svg>
+  </button>
+</td>
                 </tr>
               ))}
             </tbody>
@@ -2952,7 +2977,7 @@ searchIconInside: {
   onButtonClick={(type) => {
     setActiveTopAction(type); // ✅ only on click
 
-    if (type === 'add') handleAddRow();
+    if (type === 'add') ;
     if (type === 'edit') openEditInvoicePopup();
     if (type === 'delete') openDeleteInvoicePopup();
   }}
@@ -3130,6 +3155,28 @@ searchIconInside: {
         loading={loadingInvoices}
         formatRow={getPopupConfig('deleteInvoice').formatRow}
       />
+      {/* Row Delete Confirmation Popup */}
+<ConfirmationPopup
+  isOpen={rowDeleteConfirmationOpen}
+  onClose={() => {
+    setRowDeleteConfirmationOpen(false);
+    setRowToDelete(null);
+  }}
+  onConfirm={handleConfirmedRowDelete}
+  title="Delete Item Row"
+  message={
+    rowToDelete 
+    ? `Are you sure you want to delete "${rowToDelete.itemName}" ${rowToDelete.barcode}?\n\nThis action cannot be undone!`
+    : "Are you sure you want to delete this item?"
+  }
+  confirmText="DELETE"
+  cancelText="Cancel"
+  type="danger"
+  showIcon={true}
+  showLoading={false}
+  borderColor="#dc3545"
+  confirmButtonStyle={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
+/>
       
     </div>
   );
