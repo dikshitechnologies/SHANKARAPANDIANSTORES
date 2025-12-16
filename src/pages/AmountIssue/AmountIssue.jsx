@@ -1,376 +1,379 @@
+// AmountIssue.jsx
 import React, { useState } from 'react';
+import { SaveButton, ClearButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import styles from './AmountIssue.module.css';
-import { AddButton, EditButton, DeleteButton, ClearButton, SaveButton, PrintButton } from '../../components/Buttons/ActionButtons';
-import Notiflix from 'notiflix';
 
 const AmountIssue = () => {
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
   const [formData, setFormData] = useState({
     expenseDate: new Date().toISOString().split('T')[0],
     type: '',
-    expenseCategory: '',
+    expensesCategory: '',
     paymentToWhom: '',
-    expenseDescription: '',
-    expensePaymode: 'CASH',
-    refNo: '11093',
+    expensesDescription: '',
+    expensesPaymode: 'UPI',
+    expensesAmount: '',
     issuedAmount: '',
-    paymentIssuedBy: '',
+    paymentIssuedBy: ''
   });
 
-  const [denominations, setDenominations] = useState({
-    500: { available: 10, issue: '' },
-    200: { available: 1, issue: '' },
-    100: { available: 40, issue: '' },
-    50: { available: 1, issue: '' },
-    20: { available: 4, issue: '' },
-    10: { available: 143, issue: '' },
-    5: { available: 10, issue: '' },
-    2: { available: 93, issue: '' },
-    1: { available: 97, issue: '' },
-  });
+  const [errors, setErrors] = useState({});
 
-  const denominationKeys = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-
-  const calculateBalance = (denom) => {
-    const available = Number(denominations[denom].available) || 0;
-    const issue = Number(denominations[denom].issue) || 0;
-    return available - issue;
-  };
-
-  const handleDenominationChange = (denom, value) => {
-    const numValue = value === '' ? '' : Number(value) || 0;
-    const available = Number(denominations[denom].available) || 0;
-    
-    if (numValue > available) {
-      Notiflix.Notify.warning(`Issue amount cannot exceed available amount for ₹${denom}`);
-      return;
-    }
-
-    setDenominations(prev => ({
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
       ...prev,
-      [denom]: { ...prev[denom], issue: value }
+      [name]: value
     }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.expensesCategory.trim()) {
+      newErrors.expensesCategory = 'Expenses category is required';
+    }
+    
+    if (!formData.paymentToWhom.trim()) {
+      newErrors.paymentToWhom = 'Payment recipient is required';
+    }
+    
+    if (!formData.expensesAmount || parseFloat(formData.expensesAmount) <= 0) {
+      newErrors.expensesAmount = 'Valid expense amount is required';
+    }
+    
+    if (!formData.issuedAmount || parseFloat(formData.issuedAmount) <= 0) {
+      newErrors.issuedAmount = 'Valid issued amount is required';
+    }
+    
+    if (!formData.paymentIssuedBy.trim()) {
+      newErrors.paymentIssuedBy = 'Issued by is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const calculateTotalIssued = () => {
-    return denominationKeys.reduce((total, denom) => {
-      const issue = Number(denominations[denom].issue) || 0;
-      return total + (issue * denom);
-    }, 0);
-  };
-
-  const handleSave = () => {
-    if (!formData.expenseCategory) {
-      Notiflix.Notify.warning('Please enter Expense Category');
+  const handleSave = (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
-    if (!formData.paymentToWhom) {
-      Notiflix.Notify.warning('Please enter Payment To Whom');
-      return;
-    }
-    if (!formData.issuedAmount) {
-      Notiflix.Notify.warning('Please enter Issued Amount');
-      return;
-    }
-
-    const totalIssued = calculateTotalIssued();
-    const enteredAmount = Number(formData.issuedAmount) || 0;
-
-    if (totalIssued !== enteredAmount) {
-      Notiflix.Notify.warning(`Total issued from denominations (₹${totalIssued}) does not match entered amount (₹${enteredAmount})`);
-      return;
-    }
-
-    const payload = {
-      ...formData,
-      denominations: denominations,
-      totalIssued: totalIssued
-    };
-
-    console.log('Save payload:', JSON.stringify(payload, null, 2));
-    Notiflix.Notify.success('Amount Issue saved successfully!');
-  };
-
-  const handleEdit = () => {
-    console.log('Edit mode activated');
-    Notiflix.Notify.info('Edit mode activated');
-  };
-
-  const handleDelete = () => {
-    Notiflix.Confirm.show(
-      'Delete Confirmation',
-      'Are you sure you want to delete this record?',
-      'Yes',
-      'No',
-      () => {
-        console.log('Record deleted');
-        Notiflix.Notify.success('Record deleted successfully!');
-        handleClear();
-      },
-      () => {
-        console.log('Delete cancelled');
-      }
-    );
+    
+    console.log('Saving:', formData);
+    
+    // Simulate API call
+    setTimeout(() => {
+      alert('Record Saved Successfully!');
+      // Reset form after successful save
+      handleClear();
+    }, 500);
   };
 
   const handleClear = () => {
     setFormData({
       expenseDate: new Date().toISOString().split('T')[0],
       type: '',
-      expenseCategory: '',
+      expensesCategory: '',
       paymentToWhom: '',
-      expenseDescription: '',
-      expensePaymode: 'CASH',
-      refNo: '11093',
+      expensesDescription: '',
+      expensesPaymode: 'UPI',
+      expensesAmount: '',
       issuedAmount: '',
-      paymentIssuedBy: '',
+      paymentIssuedBy: ''
     });
-
-    setDenominations({
-      500: { available: 10, issue: '' },
-      200: { available: 1, issue: '' },
-      100: { available: 40, issue: '' },
-      50: { available: 1, issue: '' },
-      20: { available: 4, issue: '' },
-      10: { available: 143, issue: '' },
-      5: { available: 10, issue: '' },
-      2: { available: 93, issue: '' },
-      1: { available: 97, issue: '' },
-    });
-
-    Notiflix.Notify.success('Form cleared successfully!');
+    setErrors({});
   };
 
-  const handlePrint = () => {
-    console.log('Printing...');
-    window.print();
-  };
-
-  const handleAddType = () => {
-    Notiflix.Notify.info('Add Type functionality - To be implemented');
+  const handleExit = () => {
+    if (window.confirm("Are you sure you want to exit? Unsaved changes will be lost.")) {
+      console.log("Exiting...");
+      // Add navigation logic here if needed
+      window.history.back();
+    }
   };
 
   const handleAddCategory = () => {
-    Notiflix.Notify.info('Add Category functionality - To be implemented');
+    const category = prompt("Enter new expenses category:");
+    if (category) {
+      setFormData(prev => ({ ...prev, expensesCategory: category }));
+    }
   };
 
   const handleAddPayee = () => {
-    Notiflix.Notify.info('Add Payee functionality - To be implemented');
+    const payee = prompt("Enter new payment recipient:");
+    if (payee) {
+      setFormData(prev => ({ ...prev, paymentToWhom: payee }));
+    }
+  };
+
+  const handleAddType = () => {
+    const type = prompt("Enter new type (Official/Personal):");
+    if (type && ['Official', 'Personal'].includes(type)) {
+      setFormData(prev => ({ ...prev, type }));
+    } else if (type) {
+      alert('Type must be either "Official" or "Personal"');
+    }
   };
 
   return (
     <div className={styles.container}>
-      
+      <div className={styles.formCard}>
+        {/* Header */}
+  
+        
+        
+        <form className={styles.form} onSubmit={handleSave}>
+          <div className={styles.formGrid}>
+            {/* Left Column */}
+            <div className={styles.leftColumn}>
+              {/* Expense Date */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Expense Date <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="date"
+                  name="expenseDate"
+                  value={formData.expenseDate}
+                  onChange={handleChange}
+                  className={`${styles.input} ${errors.expenseDate ? styles.error : ''}`}
+                  required
+                />
+                {errors.expenseDate && <span className={styles.errorText}>{errors.expenseDate}</span>}
+              </div>
 
-      <div className={styles.formSection}>
-        <div className={styles.inputRow}>
-          <div className={styles.inputGroup}>
-            <label>Expense Date</label>
-            <input
-              type="date"
-              value={formData.expenseDate}
-              onChange={(e) => handleInputChange('expenseDate', e.target.value)}
-              className={styles.input}
-            />
-          </div>
+              {/* Type */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Type <span className={styles.required}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleChange}
+                    className={`${styles.input} ${errors.type ? styles.error : ''}`}
+                    style={{ flex: 1 }}
+                    required
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Official">Official</option>
+                    <option value="Personal">Personal</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAddType}
+                    style={{
+                      padding: '10px 16px',
+                      background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      transition: 'transform 0.2s ease',
+                      minWidth: '44px'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    +
+                  </button>
+                </div>
+                {errors.type && <span className={styles.errorText}>{errors.type}</span>}
+              </div>
 
-          <div className={styles.inputGroup}>
-            <label>Type</label>
-            <div className={styles.inputWithButton}>
-              <select
-                value={formData.type}
-                onChange={(e) => handleInputChange('type', e.target.value)}
-                className={styles.select}
-              >
-                <option value="">Select Type</option>
-                <option value="Petty Cash">Petty Cash</option>
-                <option value="Office Expense">Office Expense</option>
-                <option value="Travel">Travel</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Others">Others</option>
-              </select>
-              <button className={styles.addButton} onClick={handleAddType}>+</button>
+              {/* Expenses Category */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Expenses Category <span className={styles.required}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    name="expensesCategory"
+                    value={formData.expensesCategory}
+                    onChange={handleChange}
+                    className={`${styles.input} ${errors.expensesCategory ? styles.error : ''}`}
+                    placeholder="Enter expenses category"
+                    style={{ flex: 1 }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCategory}
+                    style={{
+                      padding: '10px 16px',
+                      background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      transition: 'transform 0.2s ease',
+                      minWidth: '44px'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    +
+                  </button>
+                </div>
+                {errors.expensesCategory && <span className={styles.errorText}>{errors.expensesCategory}</span>}
+              </div>
+
+              {/* Payment To Whom */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Payment To Whom <span className={styles.required}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    name="paymentToWhom"
+                    value={formData.paymentToWhom}
+                    onChange={handleChange}
+                    className={`${styles.input} ${errors.paymentToWhom ? styles.error : ''}`}
+                    placeholder="Enter recipient name"
+                    style={{ flex: 1 }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddPayee}
+                    style={{
+                      padding: '10px 16px',
+                      background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      transition: 'transform 0.2s ease',
+                      minWidth: '44px'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    +
+                  </button>
+                </div>
+                {errors.paymentToWhom && <span className={styles.errorText}>{errors.paymentToWhom}</span>}
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className={styles.inputRow}>
-          <div className={styles.inputGroup}>
-            <label>Expenses Category</label>
-            <div className={styles.inputWithButton}>
-              <input
-                type="text"
-                value={formData.expenseCategory}
-                onChange={(e) => handleInputChange('expenseCategory', e.target.value)}
-                className={styles.input}
-                placeholder="Enter category"
-              />
-              <button className={styles.addButton} onClick={handleAddCategory}>+</button>
-            </div>
-          </div>
+            {/* Right Column */}
+            <div className={styles.rightColumn}>
+              {/* Expenses Description */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Expenses Description</label>
+                <textarea
+                  name="expensesDescription"
+                  value={formData.expensesDescription}
+                  onChange={handleChange}
+                  className={styles.textarea}
+                  placeholder="Enter detailed description of expenses"
+                  rows={4}
+                />
+              </div>
 
-          <div className={styles.inputGroup}>
-            <label>Payment To Whom</label>
-            <div className={styles.inputWithButton}>
-              <input
-                type="text"
-                value={formData.paymentToWhom}
-                onChange={(e) => handleInputChange('paymentToWhom', e.target.value)}
-                className={styles.input}
-                placeholder="Enter payee name"
-              />
-              <button className={styles.addButton} onClick={handleAddPayee}>+</button>
-            </div>
-          </div>
-        </div>
+              {/* Expenses Paymode */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Expenses Paymode <span className={styles.required}>*</span>
+                </label>
+                <select
+                  name="expensesPaymode"
+                  value={formData.expensesPaymode}
+                  onChange={handleChange}
+                  className={styles.input}
+                  required
+                >
+                  <option value="UPI">UPI</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Debit Card">Debit Card</option>
+                </select>
+              </div>
 
-        <div className={styles.inputRow}>
-          <div className={styles.inputGroup}>
-            <label>Expenses Description</label>
-            <textarea
-              value={formData.expenseDescription}
-              onChange={(e) => handleInputChange('expenseDescription', e.target.value)}
-              className={styles.textarea}
-              placeholder="Enter description"
-              rows="3"
-            />
-          </div>
+              {/* Expenses Amount */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Expenses Amount (₹) <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="number"
+                  name="expensesAmount"
+                  value={formData.expensesAmount}
+                  onChange={handleChange}
+                  className={`${styles.input} ${errors.expensesAmount ? styles.error : ''}`}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+                {errors.expensesAmount && <span className={styles.errorText}>{errors.expensesAmount}</span>}
+              </div>
 
-          <div className={styles.inputGroup}>
-            <label>Expenses Paymode</label>
-            <div className={styles.paymodeGroup}>
-              <select
-                value={formData.expensePaymode}
-                onChange={(e) => handleInputChange('expensePaymode', e.target.value)}
-                className={styles.select}
-              >
-                <option value="CASH">CASH</option>
-                <option value="UPI">UPI</option>
-                <option value="CARD">CARD</option>
-                <option value="CHEQUE">CHEQUE</option>
-                <option value="NEFT">NEFT</option>
-              </select>
-              <div className={styles.refNoGroup}>
-                <span className={styles.refLabel}>Ref No:</span>
+              {/* Issued Amount */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Issued Amount (₹) <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="number"
+                  name="issuedAmount"
+                  value={formData.issuedAmount}
+                  onChange={handleChange}
+                  className={`${styles.input} ${errors.issuedAmount ? styles.error : ''}`}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+                {errors.issuedAmount && <span className={styles.errorText}>{errors.issuedAmount}</span>}
+              </div>
+
+              {/* Payment Issued By */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Payment Issued By <span className={styles.required}>*</span>
+                </label>
                 <input
                   type="text"
-                  value={formData.refNo}
-                  onChange={(e) => handleInputChange('refNo', e.target.value)}
-                  className={styles.refInput}
+                  name="paymentIssuedBy"
+                  value={formData.paymentIssuedBy}
+                  onChange={handleChange}
+                  className={`${styles.input} ${errors.paymentIssuedBy ? styles.error : ''}`}
+                  placeholder="Enter issuer name"
+                  required
                 />
+                {errors.paymentIssuedBy && <span className={styles.errorText}>{errors.paymentIssuedBy}</span>}
               </div>
             </div>
           </div>
-        </div>
 
-        <div className={styles.inputRow}>
-          <div className={styles.inputGroup}>
-            <label>Issued Amount</label>
-            <input
-              type="number"
-              value={formData.issuedAmount}
-              onChange={(e) => handleInputChange('issuedAmount', e.target.value)}
-              className={styles.input}
-              placeholder="Enter amount"
-              min="0"
-              step="0.01"
-            />
+          {/* Action Buttons */}
+          <div className={styles.buttonGroup}>
+            <SaveButton onClick={handleSave} />
+            <ClearButton onClick={handleClear} />
+            <DeleteButton onClick={handleExit} label="Exit" variant="outline" />
           </div>
-
-          <div className={styles.inputGroup}>
-            <label>Payment Issued By</label>
-            <input
-              type="text"
-              value={formData.paymentIssuedBy}
-              onChange={(e) => handleInputChange('paymentIssuedBy', e.target.value)}
-              className={styles.input}
-              placeholder="Enter issuer name"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.denominationSection}>
-        <h3 className={styles.sectionTitle}>Denomination Details</h3>
-        <div className={styles.denominationTable}>
-          <table>
-            <thead>
-              <tr>
-                <th>Desc</th>
-                {denominationKeys.map(denom => (
-                  <th key={denom}>₹{denom}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr className={styles.availableRow}>
-                <td className={styles.rowLabel}>Available</td>
-                {denominationKeys.map(denom => (
-                  <td key={denom}>{denominations[denom].available}</td>
-                ))}
-              </tr>
-              <tr className={styles.issueRow}>
-                <td className={styles.rowLabel}>Issue</td>
-                {denominationKeys.map(denom => (
-                  <td key={denom}>
-                    <input
-                      type="number"
-                      value={denominations[denom].issue}
-                      onChange={(e) => handleDenominationChange(denom, e.target.value)}
-                      className={styles.denomInput}
-                      min="0"
-                      max={denominations[denom].available}
-                    />
-                  </td>
-                ))}
-              </tr>
-              <tr className={styles.balanceRow}>
-                <td className={styles.rowLabel}>Balance</td>
-                {denominationKeys.map(denom => (
-                  <td key={denom} className={styles.balanceCell}>
-                    {calculateBalance(denom)}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className={styles.totalSection}>
-          <div className={styles.totalItem}>
-            <span className={styles.totalLabel}>Total Issued from Denominations:</span>
-            <span className={styles.totalValue}>₹{calculateTotalIssued().toFixed(2)}</span>
-          </div>
-          <div className={styles.totalItem}>
-            <span className={styles.totalLabel}>Entered Issued Amount:</span>
-            <span className={styles.totalValue}>₹{(Number(formData.issuedAmount) || 0).toFixed(2)}</span>
-          </div>
-          <div className={styles.totalItem}>
-            <span className={styles.totalLabel}>Difference:</span>
-            <span className={`${styles.totalValue} ${
-              calculateTotalIssued() !== (Number(formData.issuedAmount) || 0) ? styles.errorValue : styles.successValue
-            }`}>
-              ₹{(calculateTotalIssued() - (Number(formData.issuedAmount) || 0)).toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.footerSection}>
-        <div className={styles.leftButtons}>
-          <AddButton onClick={() => Notiflix.Notify.info('Add functionality')} isActive={activeFooterAction === 'all' || activeFooterAction === 'add'} />
-          <EditButton onClick={handleEdit} isActive={activeFooterAction === 'all' || activeFooterAction === 'edit'} />
-          <DeleteButton onClick={handleDelete} isActive={activeFooterAction === 'all' || activeFooterAction === 'delete'} />
-        </div>
-        <div className={styles.rightButtons}>
-          <ClearButton onClick={handleClear} isActive={activeFooterAction === 'all' || activeFooterAction === 'clear'} />
-          <SaveButton onClick={handleSave} isActive={activeFooterAction === 'all' || activeFooterAction === 'save'} />
-          <PrintButton onClick={handlePrint} isActive={activeFooterAction === 'all' || activeFooterAction === 'print'} />
-        </div>
+        </form>
       </div>
     </div>
   );

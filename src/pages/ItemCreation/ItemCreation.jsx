@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import axios from 'axios';
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
@@ -121,7 +122,6 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
 const TYPE_OPTIONS = [
   { value: "SC", label: "Scrap Product" },
   { value: "FG", label: "Finished Product" },
-
 ];
 
 // GST percentage options
@@ -141,6 +141,11 @@ const ItemCreation = ({ onCreated }) => {
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [message, setMessage] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
+  
+  // Confirmation Popup States
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmData, setConfirmData] = useState(null);
   
   // Checkbox states
   const [gstChecked, setGstChecked] = useState(false);
@@ -474,13 +479,23 @@ const ItemCreation = ({ onCreated }) => {
     return true;
   };
 
-  const showConfirmation = (message, onConfirm) => {
-    if (window.confirm(message)) {
-      onConfirm();
-    }
+  // Show confirmation popup
+  const showConfirmationPopup = (action, data = null) => {
+    setConfirmAction(action);
+    setConfirmData(data);
+    setShowConfirmPopup(true);
   };
 
-  const handleSubmit = async () => {
+  // Handle confirmation from popup
+  const handleConfirmAction = async () => {
+    setShowConfirmPopup(false);
+    
+    if (confirmAction === 'clear') {
+      handleClear();
+      return;
+    }
+    
+    // For save, update, delete actions, proceed with validation and submission
     if (!validateForm()) {
       return;
     }
@@ -1001,6 +1016,57 @@ const ItemCreation = ({ onCreated }) => {
     console.log('Fetching units with search:', effectiveSearch);
     return fetchUnits(page, effectiveSearch);
   }, [fetchUnits, simulatePopupTyping.unit, popupInitialSearch.unit]);
+
+  // Get confirmation popup configuration based on action
+  const getConfirmationConfig = () => {
+    switch (confirmAction) {
+      case 'save':
+        return {
+          title: 'Save Item',
+          message: 'Are you sure you want to save this item?',
+          confirmText: 'Save',
+          type: 'success',
+          iconSize: 24,
+          showIcon: true
+        };
+      case 'update':
+        return {
+          title: 'Update Item',
+          message: 'Are you sure you want to update this item?',
+          confirmText: 'Update',
+          type: 'success',
+          iconSize: 24,
+          showIcon: true
+        };
+      case 'delete':
+        return {
+          title: 'Delete Item',
+          message: 'Are you sure you want to delete this item? This action cannot be undone.',
+          confirmText: 'Delete',
+          type: 'danger',
+          iconSize: 24,
+          showIcon: true
+        };
+      case 'clear':
+        return {
+          title: 'Clear Form',
+          message: 'Are you sure you want to clear all fields? All unsaved changes will be lost.',
+          confirmText: 'Clear',
+          type: 'warning',
+          iconSize: 24,
+          showIcon: true
+        };
+      default:
+        return {
+          title: 'Confirm Action',
+          message: 'Are you sure you want to proceed?',
+          confirmText: 'Confirm',
+          type: 'default',
+          iconSize: 24,
+          showIcon: true
+        };
+    }
+  };
 
   return (
     <div className="lg-root" role="region" aria-labelledby="item-title">
@@ -2479,12 +2545,10 @@ const ItemCreation = ({ onCreated }) => {
                     return;
                   }
 
-                  const confirmationMessage = 
-                    actionType === 'create' ? 'Do You Want Save?' :
-                    actionType === 'edit' ? 'Do You Want Modify?' :
-                    'Do You Want Delete?';
-
-                  showConfirmation(confirmationMessage, handleSubmit);
+                  // Show confirmation popup based on action type
+                  const action = actionType === 'create' ? 'save' : 
+                                actionType === 'edit' ? 'update' : 'delete';
+                  showConfirmationPopup(action);
                 }}
                 disabled={isSubmitting}
                 type="button"
@@ -2495,7 +2559,7 @@ const ItemCreation = ({ onCreated }) => {
               </button>
               <button
                 className="submit-clear"
-                onClick={handleClear}
+                onClick={() => showConfirmationPopup('clear')}
                 disabled={isSubmitting}
                 type="button"
               >
@@ -2646,6 +2710,14 @@ const ItemCreation = ({ onCreated }) => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showConfirmPopup}
+        onClose={() => setShowConfirmPopup(false)}
+        onConfirm={handleConfirmAction}
+        {...getConfirmationConfig()}
+      />
 
       {/* PopupListSelector for Brand Selection */}
       <PopupListSelector

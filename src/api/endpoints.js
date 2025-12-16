@@ -251,7 +251,10 @@ PAYMENTVOUCHER: {
   RECEIPTVOUCHER: {
     GETNEXTVNUMBER: (compCode) => `ReceiptVoucher/GetNextReceiptVoucher?compCode=${compCode}`,
     GETBILLNUMLIST: (compCode, pageNumber = 1, pageSize = 10) => `ReceiptVoucher/GetReceiptVoucherList?compCode=${compCode}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
-    DELETE: (voucherNo, compCode) => `ReceiptVoucher/DeleteReceiptVoucher?voucherNo=${voucherNo}&compCode=${compCode}`
+    POST_RECEIPT_VOUCHER: (selectType = true) => `ReceiptVoucher/ReceiptVoucherPost?selectType=${selectType}`,
+    PUT_RECEIPT_VOUCHER: (selectType = false) => `ReceiptVoucher/ReceiptVoucherPost?selectType=${selectType}`,
+    DELETE: (voucherNo, compCode) => `ReceiptVoucher/DeleteReceiptVoucher?voucherNo=${voucherNo}&compCode=${compCode}`,
+    PARTY_LIST: (pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?pageNumber=${pageNumber}&pageSize=${pageSize}`
   }
 
 };

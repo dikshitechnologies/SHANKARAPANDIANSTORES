@@ -79,6 +79,12 @@ const ReceiptVoucher = () => {
   const [savedVouchers, setSavedVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
 
+  // 7. Account popup state
+  const [accountPopupOpen, setAccountPopupOpen] = useState(false);
+  const [partyList, setPartyList] = useState([]);
+  const [loadingParties, setLoadingParties] = useState(false);
+  const [accountPopupContext, setAccountPopupContext] = useState(null); // 'header' or { itemId, field }
+
   // Auth context for company code
   const { userData } = useAuth() || {};
 
@@ -467,18 +473,47 @@ const ReceiptVoucher = () => {
   };
 
   // Open account popup
-  const openAccountPopup = async () => {
-    // Placeholder - functionality can be added later when backend APIs are available
-    console.log('Account selection feature coming soon');
+  const openAccountPopup = async (context = 'header') => {
+    try {
+      setLoadingParties(true);
+      const response = await apiService.getSilent(
+        API_ENDPOINTS.RECEIPTVOUCHER.PARTY_LIST(1, 100)
+      );
+      if (response?.data) {
+        setPartyList(response.data);
+        setAccountPopupContext(context);
+        setAccountPopupOpen(true);
+      }
+    } catch (err) {
+      console.error('Error fetching party list:', err);
+      setError('Failed to load account list');
+    } finally {
+      setLoadingParties(false);
+    }
   };
 
   // Handle account selection
   const handleAccountSelect = (account) => {
-    setVoucherDetails(prev => ({
-      ...prev,
-      accountName: account.accountName || '',
-      accountCode: account.accountCode || ''
-    }));
+    if (accountPopupContext === 'header') {
+      // Header section account selection
+      setVoucherDetails(prev => ({
+        ...prev,
+        accountName: account.name || '',
+        accountCode: account.code || ''
+      }));
+    } else if (accountPopupContext?.itemId) {
+      // Receipt item row selection
+      const { itemId } = accountPopupContext;
+      setReceiptItems(prev => 
+        prev.map(item => 
+          item.id === itemId 
+            ? { ...item, cashBank: account.name, accountName: account.name, accountCode: account.code }
+            : item
+        )
+      );
+    }
+    setAccountPopupOpen(false);
+    setAccountPopupContext(null);
   };
 
   // Get popup configuration
@@ -503,6 +538,16 @@ const ReceiptVoucher = () => {
         data: savedVouchers,
         fetchItems: async () => savedVouchers,
         loading: loadingVouchers
+      },
+      selectAccount: {
+        title: 'Select Account',
+        displayFieldKeys: ['code', 'name'],
+        searchFields: ['code', 'name'],
+        headerNames: ['Code', 'Account Name'],
+        columnWidths: { code: '100px', name: '400px' },
+        data: partyList,
+        fetchItems: async () => partyList,
+        loading: loadingParties
       }
     };
     return configs[type];
@@ -750,60 +795,69 @@ const ReceiptVoucher = () => {
 
       setIsSaving(true);
 
+      // Prepare item details list
+      const itemDetailsList = receiptItems.map(item => ({
+        accountCode: item.cashBank, // Using cashBank as accountCode
+        accountName: item.accountName || item.cashBank,
+        crdr: item.crDr,
+        type: item.type,
+        amount: parseFloat(item.amount) || 0,
+        chequeNo: item.chqNo || '',
+        chequeDate: item.chqDt ? formatDateToYYYYMMDD(item.chqDt) : '',
+        narration: item.narration
+      }));
+
+      // Prepare reference bills
+      const referenceBills = billDetails
+        .filter(bill => bill.refNo) // Only include bills with refNo
+        .map(bill => ({
+          refNo: bill.refNo,
+          date: bill.date ? formatDateToYYYYMMDD(bill.date) : '',
+          amount: (parseFloat(bill.amount) || 0).toString()
+        }));
+
       const payload = {
         voucherNo: voucherDetails.voucherNo,
+        voucherDate: formatDateToYYYYMMDD(voucherDetails.date),
+        customerCode: voucherDetails.accountCode,
+        customerName: voucherDetails.accountName,
         gstType: voucherDetails.gstType,
-        date: formatDateToYYYYMMDD(voucherDetails.date),
-        costCenter: voucherDetails.costCenter,
-        accountName: voucherDetails.accountName,
-        accountCode: voucherDetails.accountCode,
-        balance: voucherDetails.balance,
-        crDr: voucherDetails.crDr,
-        receiptItems: receiptItems.map(item => ({
-          cashBank: item.cashBank,
-          crDr: item.crDr,
-          type: item.type,
-          chqNo: item.chqNo,
-          chqDt: item.chqDt,
-          narration: item.narration,
-          amount: parseFloat(item.amount) || 0
-        })),
-        billDetails: billDetails.map(bill => ({
-          refNo: bill.refNo,
-          billNo: bill.billNo,
-          date: formatDateToYYYYMMDD(bill.date),
-          billAmount: parseFloat(bill.billAmount) || 0,
-          paidAmount: parseFloat(bill.paidAmount) || 0,
-          balanceAmount: parseFloat(bill.balanceAmount) || 0,
-          amount: parseFloat(bill.amount) || 0
-        }))
+        partyBalance: parseFloat(voucherDetails.balance) || 0,
+        totalAmt: totalAmount,
+        compcode: userData?.compCode || '001',
+        usercode: userData?.userCode || '001',
+        itemDetailsList: itemDetailsList,
+        referenceBills: referenceBills
       };
 
-      // TODO: Uncomment when endpoint is available
-      // let response;
-      // if (isEditing) {
-      //   response = await apiService.put(
-      //     API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(originalVoucherNo),
-      //     payload
-      //   );
-      // } else {
-      //   response = await apiService.post(
-      //     API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(),
-      //     payload
-      //   );
-      // }
+      let response;
+      if (isEditing) {
+        response = await apiService.putSilent(
+          API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(false),
+          payload
+        );
+      } else {
+        response = await apiService.postSilent(
+          API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(true),
+          payload
+        );
+      }
 
-      // if (response.data?.voucherNo) {
-      //   setError(null);
-      //   resetForm();
-      //   await fetchNextVoucherNo();
-      //   await fetchSavedVouchers();
-      // }
-
-      setError('Save functionality coming soon - waiting for backend endpoints');
+      if (response?.status && response?.voucherNo) {
+        setError(null);
+        resetForm();
+        await fetchNextVoucherNo();
+        await fetchSavedVouchers();
+      } else {
+        setError(response?.message || 'Failed to save voucher');
+      }
     } catch (err) {
       console.error('Error saving voucher:', err);
-      setError(err.response?.data?.message || 'Failed to save voucher');
+      if (err.response?.status === 409) {
+        setError('Voucher number already exists');
+      } else {
+        setError(err.response?.data?.message || 'Failed to save voucher');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -1265,10 +1319,16 @@ const ReceiptVoucher = () => {
                 type="text"
                 name="accountName"
                 value={voucherDetails.accountName}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  // Open popup if value is entered
+                  if (e.target.value.length > 0) {
+                    openAccountPopup('header');
+                  }
+                }}
                 onFocus={() => setFocusedField('accountName')}
                 onBlur={() => setFocusedField('')}
-                onClick={openAccountPopup}
+                onClick={() => openAccountPopup('header')}
                 onKeyDown={(e) => handleKeyDown(e, null, 'accountName')}
                 onKeyUp={(e) => handleBackspace(e, 'accountName')}
                 style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
@@ -1355,7 +1415,13 @@ const ReceiptVoucher = () => {
                       id={`receipt_${item.id}_cashBank`}
                       type="text"
                       value={item.cashBank}
-                      onChange={(e) => handleReceiptItemChange(item.id, 'cashBank', e.target.value)}
+                      onChange={(e) => {
+                        handleReceiptItemChange(item.id, 'cashBank', e.target.value);
+                        // Open popup if value is entered
+                        if (e.target.value.length > 0) {
+                          openAccountPopup({ itemId: item.id });
+                        }
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'cashBank', true)}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
@@ -1715,6 +1781,28 @@ const ReceiptVoucher = () => {
           }}
           maxHeight="60vh"
           searchPlaceholder="Search receipt vouchers..."
+          responsiveBreakpoint={768}
+        />
+      )}
+
+      {accountPopupOpen && (
+        <PopupListSelector
+          open={accountPopupOpen}
+          onClose={() => setAccountPopupOpen(false)}
+          onSelect={handleAccountSelect}
+          fetchItems={getPopupConfig('selectAccount').fetchItems}
+          title={getPopupConfig('selectAccount').title}
+          displayFieldKeys={getPopupConfig('selectAccount').displayFieldKeys}
+          searchFields={getPopupConfig('selectAccount').searchFields}
+          headerNames={getPopupConfig('selectAccount').headerNames}
+          columnWidths={getPopupConfig('selectAccount').columnWidths}
+          tableStyles={{
+            headerBackground: 'linear-gradient(135deg, #307AC8 0%, #06A7EA 100%)',
+            itemHoverBackground: 'rgba(48, 122, 200, 0.1)',
+            itemSelectedBackground: 'rgba(48, 122, 200, 0.2)',
+          }}
+          maxHeight="60vh"
+          searchPlaceholder="Search accounts..."
           responsiveBreakpoint={768}
         />
       )}
