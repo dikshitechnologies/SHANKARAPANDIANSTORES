@@ -249,9 +249,8 @@ PAYMENTVOUCHER: {
 
 
   RECEIPTVOUCHER: {
-    GET_NEXT_RECEIPT_VOUCHER: (compCode = '001') => `ReceiptVoucher/GetNextReceiptVoucher?compCode=${compCode}`,
-    GET_RECEIPT_VOUCHER_LIST: (compCode = '001', pageNumber = 1, pageSize = 10) => 
-      `ReceiptVoucher/GetReceiptVoucherList?compCode=${compCode}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    GETNEXTVNUMBER: (compCode) => `ReceiptVoucher/GetNextReceiptVoucher?compCode=${compCode}`,
+    GETBILLNUMLIST: (compCode, pageNumber = 1, pageSize = 10) => `ReceiptVoucher/GetReceiptVoucherList?compCode=${compCode}&pageNumber=${pageNumber}&pageSize=${pageSize}`
   }
 
 };

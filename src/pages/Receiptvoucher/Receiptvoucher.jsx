@@ -4,6 +4,7 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPo
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 
 const ReceiptVoucher = () => {
   // --- STATE MANAGEMENT ---
@@ -70,15 +71,16 @@ const ReceiptVoucher = () => {
   const [billTotalAmount, setBillTotalAmount] = useState(0);
 
   // 5. Popup States
-  const [accountPopupOpen, setAccountPopupOpen] = useState(false);
   const [editVoucherPopupOpen, setEditVoucherPopupOpen] = useState(false);
   const [deleteVoucherPopupOpen, setDeleteVoucherPopupOpen] = useState(false);
   const [currentRowIndex, setCurrentRowIndex] = useState(0);
 
   // 6. Data state
-  const [accountList, setAccountList] = useState([]);
   const [savedVouchers, setSavedVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
+
+  // Auth context for company code
+  const { userData } = useAuth() || {};
 
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const voucherNoRef = useRef(null);
@@ -125,50 +127,27 @@ const ReceiptVoucher = () => {
   // Fetch next voucher number from API
   const fetchNextVoucherNo = useCallback(async () => {
     try {
-      setIsLoading(true);
-      const endpoint = API_ENDPOINTS.RECEIPTVOUCHER.GET_NEXT_RECEIPT_VOUCHER();
-      console.log('Fetching voucher from endpoint:', endpoint);
-      const data = await apiService.get(endpoint);
-      console.log('Voucher response data:', data);
-      
-      let voucherNo = null;
-      
-      // apiService.get() already unwraps response.data, so 'data' is already the response payload
-      // Handle different response formats
-      if (typeof data === 'string' && data.trim()) {
-        // If response is a direct string
-        voucherNo = data.trim();
-      } else if (data?.nextVoucher) {
-        // If field is nextVoucher
-        voucherNo = data.nextVoucher;
-      } else if (data?.nextReceiptVoucher) {
-        // Alternative field name
-        voucherNo = data.nextReceiptVoucher;
-      } else if (data?.voucherNo) {
-        // Another alternative
-        voucherNo = data.voucherNo;
-      } else if (data?.value) {
-        // Generic value field
-        voucherNo = data.value;
+      if (!userData?.companyCode) {
+        console.warn('userData not available yet');
+        return;
       }
-      
-      if (voucherNo) {
-        console.log('Setting voucher number to:', voucherNo);
+      setIsLoading(true);
+      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETNEXTVNUMBER(userData.companyCode);
+      const response = await apiService.get(url);
+      console.log('Receipt Voucher response:', response);
+      if (response.nextVoucher) {
         setVoucherDetails(prev => ({
           ...prev,
-          voucherNo: voucherNo
+          voucherNo: response.nextVoucher
         }));
-      } else {
-        console.warn('No voucher number found in response:', data);
-        setError('Failed to fetch voucher number - unexpected response format');
       }
     } catch (err) {
-      console.error('Error fetching receipt voucher number:', err);
-      setError('Failed to fetch next voucher number: ' + (err.message || 'Unknown error'));
+      console.error('Error fetching voucher number:', err);
+      setError('Failed to fetch voucher number');
     } finally {
       setIsLoading(false);
     }
-  }, [isEditing, voucherDetails.voucherNo]);
+  }, [userData?.companyCode]);
 
   // Fetch accounts from backend API
   const fetchAccounts = useCallback(async () => {
@@ -190,29 +169,22 @@ const ReceiptVoucher = () => {
   // Fetch saved vouchers for Edit/Delete popups
   const fetchSavedVouchers = useCallback(async (page = 1, search = '') => {
     try {
+      if (!userData?.companyCode) return;
       setLoadingVouchers(true);
-      const endpoint = API_ENDPOINTS.RECEIPTVOUCHER.GET_RECEIPT_VOUCHER_LIST('001', page, 10);
-      console.log('Fetching vouchers from endpoint:', endpoint);
-      const data = await apiService.get(endpoint);
-      console.log('Receipt vouchers response:', data);
+      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETBILLNUMLIST(userData.companyCode, page, 10);
+      const response = await apiService.get(url);
       
-      // Handle response with data array
-      if (data?.data && Array.isArray(data.data)) {
-        let voucherList = data.data;
-        
-        // Apply search filter if search term provided
-        if (search && search.trim()) {
-          voucherList = voucherList.filter(voucher =>
-            (voucher.voucherNo && voucher.voucherNo.toLowerCase().includes(search.toLowerCase())) ||
-            (voucher.accountName && voucher.accountName.toLowerCase().includes(search.toLowerCase())) ||
-            (voucher.date && voucher.date.includes(search))
-          );
-        }
-        
-        setSavedVouchers(voucherList);
-        console.log('Set saved vouchers:', voucherList);
+      // API returns data in the .data property
+      const voucherList = response?.data || [];
+      
+      if (Array.isArray(voucherList) && voucherList.length > 0) {
+        const filtered = search 
+          ? voucherList.filter(v => 
+              (v.voucherNo || '').toLowerCase().includes(search.toLowerCase())
+            )
+          : voucherList;
+        setSavedVouchers(filtered);
       } else {
-        console.warn('No vouchers found in response:', data);
         setSavedVouchers([]);
       }
     } catch (err) {
@@ -222,9 +194,109 @@ const ReceiptVoucher = () => {
     } finally {
       setLoadingVouchers(false);
     }
-  }, []);
+  }, [userData?.companyCode]);
 
-  // Fetch voucher details for editing
+  // Fetch pending bills for selected party
+  const fetchPendingBills = useCallback(async (partyCode) => {
+    try {
+      if (!partyCode || !userData?.companyCode) return;
+      
+      setIsLoading(true);
+      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETPENDINGBILLS(partyCode, userData.companyCode);
+      const response = await apiService.get(url);
+      
+      // API returns array directly, not wrapped in .data
+      const bills = Array.isArray(response) ? response : (response?.data || []);
+      
+      if (Array.isArray(bills) && bills.length > 0) {
+        // Map pending bills to table 2 (Reference Bill Details)
+        const mappedBills = bills.map((bill, idx) => ({
+          id: idx + 1,
+          sNo: idx + 1,
+          refNo: bill.invoiceNo || '',
+          billNo: bill.vrNo || '',
+          date: bill.invoiceDate ? bill.invoiceDate.substring(0, 10) : '',
+          billAmount: (bill.netAmount || 0).toString(),
+          paidAmount: (bill.paidAmount || 0).toString(),
+          balanceAmount: (bill.balanceAmount || 0).toString(),
+          amount: ''
+        }));
+        setBillDetails(mappedBills);
+      } else {
+        setBillDetails([
+          {
+            id: 1,
+            sNo: 1,
+            refNo: '',
+            billNo: '',
+            date: '',
+            billAmount: '',
+            paidAmount: '',
+            balanceAmount: '',
+            amount: ''
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error('Error fetching pending bills:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userData?.companyCode]);
+
+  // Function to fetch parties with pagination
+  const fetchPartiesWithPagination = useCallback(async (page = 1) => {
+    if (page === 1) {
+      setIsLoading(true);
+      setHasReachedEndOfParties(false);
+    } else {
+      setIsLoadingMoreParties(true);
+    }
+    try {
+      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETPARTYLIST(
+        encodeURIComponent(''),
+        page,
+        20
+      );
+      const response = await apiService.get(url);
+      const data = response?.data?.data || response?.data || [];
+      
+      if (Array.isArray(data) && data.length > 0) {
+        const formattedData = data.map((party, index) => ({
+          id: party.code || `party-${page}-${index}`,
+          code: party.code || '',
+          name: party.name || '',
+          accountName: party.name || '',
+          phone: party.phone || '',
+        }));
+        
+        // Accumulate data - replace if page 1, append otherwise
+        if (page === 1) {
+          setAllParties(formattedData);
+          setPartyCurrentPage(1);
+        } else {
+          setAllParties(prev => [...prev, ...formattedData]);
+          setPartyCurrentPage(page);
+        }
+        
+        // If we got less than 20 items, we've reached the end
+        if (data.length < 20) {
+          setHasReachedEndOfParties(true);
+        }
+      } else if (page > 1) {
+        // No data returned, we've reached the end
+        setHasReachedEndOfParties(true);
+      }
+    } catch (err) {
+      console.error(`Error loading party list for page ${page}:`, err);
+    } finally {
+      if (page === 1) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMoreParties(false);
+      }
+    }
+  }, [userData?.companyCode, userData?.username]);
   const fetchVoucherDetails = async (voucherNo) => {
     try {
       setIsLoading(true);
@@ -269,13 +341,12 @@ const ReceiptVoucher = () => {
     }
   };
 
-  // Initial data fetch
+  // Initial data fetch on component mount and when userData changes
   useEffect(() => {
-    fetchNextVoucherNo();
-    // TODO: Uncomment when endpoints are available in endpoints.js
-    // fetchAccounts();
-    // fetchSavedVouchers();
-  }, [fetchNextVoucherNo, fetchAccounts, fetchSavedVouchers, isEditing, voucherDetails.voucherNo]);
+    if (userData?.companyCode) {
+      fetchNextVoucherNo();
+    }
+  }, [userData?.companyCode, fetchNextVoucherNo]);
 
   // Calculate Totals whenever items change
   useEffect(() => {
@@ -367,8 +438,10 @@ const ReceiptVoucher = () => {
   const handleVoucherSelect = async (selectedVoucher) => {
     try {
       setIsEditing(true);
-      setOriginalVoucherNo(selectedVoucher.voucherNo);
-      await fetchVoucherDetails(selectedVoucher.voucherNo);
+      // Use voucherNo if available
+      const voucherNo = selectedVoucher.voucherNo;
+      setOriginalVoucherNo(voucherNo);
+      await fetchVoucherDetails(voucherNo);
       setEditVoucherPopupOpen(false);
     } catch (err) {
       console.error('Error selecting voucher:', err);
@@ -379,7 +452,9 @@ const ReceiptVoucher = () => {
   // Handle voucher deletion
   const handleVoucherDelete = async (selectedVoucher) => {
     try {
-      await deleteVoucher(selectedVoucher.voucherNo);
+      // Use voucherNo if available
+      const voucherNo = selectedVoucher.voucherNo;
+      await deleteVoucher(voucherNo);
       setDeleteVoucherPopupOpen(false);
     } catch (err) {
       console.error('Error deleting voucher:', err);
@@ -388,8 +463,9 @@ const ReceiptVoucher = () => {
   };
 
   // Open account popup
-  const openAccountPopup = () => {
-    setAccountPopupOpen(true);
+  const openAccountPopup = async () => {
+    // Placeholder - functionality can be added later when backend APIs are available
+    console.log('Account selection feature coming soon');
   };
 
   // Handle account selection
@@ -399,54 +475,30 @@ const ReceiptVoucher = () => {
       accountName: account.accountName || '',
       accountCode: account.accountCode || ''
     }));
-    setAccountPopupOpen(false);
   };
 
   // Get popup configuration
   const getPopupConfig = (type) => {
-    const fetchAccountsData = async (page, search) => {
-      // Return mock data for now - will be implemented with real API
-      return accountList.filter(item =>
-        !search || 
-        item.accountName?.toLowerCase().includes(search.toLowerCase()) ||
-        item.accountCode?.toLowerCase().includes(search.toLowerCase())
-      );
-    };
-
-    const fetchVouchersData = async (page, search) => {
-      // Filter saved vouchers based on search
-      return savedVouchers.filter(item =>
-        !search ||
-        item.voucherNo?.toLowerCase().includes(search.toLowerCase()) ||
-        item.accountName?.toLowerCase().includes(search.toLowerCase()) ||
-        item.date?.includes(search)
-      );
-    };
-
     const configs = {
-      account: {
-        title: 'Select Account',
-        fetchItems: fetchAccountsData,
-        displayFieldKeys: ['accountCode', 'accountName'],
-        searchFields: ['accountCode', 'accountName'],
-        headerNames: ['Code', 'Account Name'],
-        columnWidths: { accountCode: '30%', accountName: '70%' }
-      },
       editVoucher: {
         title: 'Edit Receipt Voucher',
-        fetchItems: fetchVouchersData,
-        displayFieldKeys: ['voucherNo', 'date', 'accountName'],
-        searchFields: ['voucherNo', 'date', 'accountName'],
-        headerNames: ['Voucher No', 'Date', 'Account Name'],
-        columnWidths: { voucherNo: '30%', date: '25%', accountName: '45%' }
+        displayFieldKeys: ['voucherNo'],
+        searchFields: ['voucherNo'],
+        headerNames: ['Voucher No'],
+        columnWidths: { voucherNo: '200px' },
+        data: savedVouchers,
+        fetchItems: async () => savedVouchers,
+        loading: loadingVouchers
       },
       deleteVoucher: {
         title: 'Delete Receipt Voucher',
-        fetchItems: fetchVouchersData,
-        displayFieldKeys: ['voucherNo', 'date', 'accountName'],
-        searchFields: ['voucherNo', 'date', 'accountName'],
-        headerNames: ['Voucher No', 'Date', 'Account Name'],
-        columnWidths: { voucherNo: '30%', date: '25%', accountName: '45%' }
+        displayFieldKeys: ['voucherNo'],
+        searchFields: ['voucherNo'],
+        headerNames: ['Voucher No'],
+        columnWidths: { voucherNo: '200px' },
+        data: savedVouchers,
+        fetchItems: async () => savedVouchers,
+        loading: loadingVouchers
       }
     };
     return configs[type];
@@ -1618,30 +1670,7 @@ const ReceiptVoucher = () => {
           />
         </div>
       </div>
-
       {/* POPUPS */}
-      {accountPopupOpen && (
-        <PopupListSelector
-          open={accountPopupOpen}
-          onClose={() => setAccountPopupOpen(false)}
-          onSelect={handleAccountSelect}
-          fetchItems={getPopupConfig('account').fetchItems}
-          title={getPopupConfig('account').title}
-          displayFieldKeys={getPopupConfig('account').displayFieldKeys}
-          searchFields={getPopupConfig('account').searchFields}
-          headerNames={getPopupConfig('account').headerNames}
-          columnWidths={getPopupConfig('account').columnWidths}
-          tableStyles={{
-            headerBackground: 'linear-gradient(135deg, #307AC8 0%, #06A7EA 100%)',
-            itemHoverBackground: 'rgba(48, 122, 200, 0.1)',
-            itemSelectedBackground: 'rgba(48, 122, 200, 0.2)',
-          }}
-          maxHeight="60vh"
-          searchPlaceholder="Search accounts..."
-          responsiveBreakpoint={768}
-        />
-      )}
-
       {editVoucherPopupOpen && (
         <PopupListSelector
           open={editVoucherPopupOpen}
