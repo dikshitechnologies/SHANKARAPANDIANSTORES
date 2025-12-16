@@ -84,6 +84,10 @@ const ReceiptVoucher = () => {
   const [partyList, setPartyList] = useState([]);
   const [loadingParties, setLoadingParties] = useState(false);
   const [accountPopupContext, setAccountPopupContext] = useState(null); // 'header' or { itemId, field }
+  const [allParties, setAllParties] = useState([]);
+  const [partyCurrentPage, setPartyCurrentPage] = useState(1);
+  const [hasReachedEndOfParties, setHasReachedEndOfParties] = useState(false);
+  const [isLoadingMoreParties, setIsLoadingMoreParties] = useState(false);
 
   // Auth context for company code
   const { userData } = useAuth() || {};
@@ -306,22 +310,38 @@ const ReceiptVoucher = () => {
   const fetchVoucherDetails = async (voucherNo) => {
     try {
       setIsLoading(true);
-      // TODO: Add get receipt voucher details endpoint
-      // const response = await apiService.get(`ReceiptVoucher/GetReceiptVoucherDetails/${voucherNo}`);
-      // if (response.data?.voucher) {
-      //   const voucher = response.data.voucher;
-      //   setVoucherDetails({
-      //     voucherNo: voucher.voucherNo || '',
-      //     gstType: voucher.gstType || 'CGST/SGST',
-      //     date: voucher.date || new Date().toISOString().substring(0, 10),
-      //     costCenter: voucher.costCenter || '',
-      //     accountName: voucher.accountName || '',
-      //     accountCode: voucher.accountCode || '',
-      //     balance: voucher.balance || '0.00'
-      //   });
-      //   setReceiptItems(...);
-      //   setBillDetails(...);
-      // }
+      const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_VOUCHER_DETAILS(voucherNo));
+      
+      if (response?.bledger) {
+        const ledger = response.bledger;
+        setVoucherDetails({
+          voucherNo: ledger.fVouchno || '',
+          gstType: ledger.fGSTTYPE || 'CGST/SGST',
+          date: ledger.fVouchdt ? ledger.fVouchdt.substring(0, 10) : new Date().toISOString().substring(0, 10),
+          costCenter: '',
+          accountName: ledger.customerName || '',
+          accountCode: ledger.fCucode || '',
+          balance: (ledger.fBillAmt || 0).toString()
+        });
+        
+        // Map ledger details to receipt items
+        if (response?.ledgers && Array.isArray(response.ledgers)) {
+          const items = response.ledgers.map((item, idx) => ({
+            id: idx + 1,
+            sNo: idx + 1,
+            cashBank: item.accountName || '',
+            accountCode: item.faccode || '',
+            accountName: item.accountName || '',
+            crDr: item.fCrDb || 'CR',
+            type: item.type || '',
+            chqNo: item.fchqno || '',
+            chqDt: item.fchqdt ? item.fchqdt.substring(0, 10) : '',
+            narration: '',
+            amount: (item.fvrAmount || 0).toString()
+          }));
+          setReceiptItems(items);
+        }
+      }
     } catch (err) {
       console.error('Error fetching voucher details:', err);
       setError('Failed to load voucher details');
@@ -339,9 +359,10 @@ const ReceiptVoucher = () => {
       }
       setIsLoading(true);
       const url = API_ENDPOINTS.RECEIPTVOUCHER.DELETE(voucherNo, userData.companyCode);
-      await apiService.delete(url);
+      await apiService.del(url);
       setError(null);
       resetForm();
+      await fetchNextVoucherNo();
       await fetchSavedVouchers();
     } catch (err) {
       console.error('Error deleting voucher:', err);
@@ -760,7 +781,7 @@ const ReceiptVoucher = () => {
         gstAmount: gstAmount.toFixed(2),
         billTotal: billTotal.toFixed(2)
       });
-      setAmountPopupOpen(true);
+      // setAmountPopupOpen(true); // REMOVED - Popup disabled
     }
   };
 
@@ -824,7 +845,7 @@ const ReceiptVoucher = () => {
         gstType: voucherDetails.gstType,
         partyBalance: parseFloat(voucherDetails.balance) || 0,
         totalAmt: totalAmount,
-        compcode: userData?.compCode || '001',
+        compcode: userData?.companyCode || '001',
         usercode: userData?.userCode || '001',
         itemDetailsList: itemDetailsList,
         referenceBills: referenceBills
@@ -1847,223 +1868,6 @@ const ReceiptVoucher = () => {
               fontSize: screenSize.isMobile ? '18px' : '20px',
               fontWeight: 'bold'
             }}>GST & Bill Details</h2>
-
-            {/* GST & Bill Section */}
-            <div style={{
-              backgroundColor: '#f9f9f9',
-              padding: '16px',
-              borderRadius: '6px',
-              borderLeft: '4px solid #1B91DA'
-            }}>
-              <h3 style={{
-                margin: '0 0 12px 0',
-                color: '#333',
-                fontSize: '14px',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>GST & Bill Details</h3>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: screenSize.isMobile ? '1fr' : '1fr 1fr',
-                gap: '12px'
-              }}>
-                {/* GST Type */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST Type</label>
-                  <select
-                    value={amountPopupData?.gstType || voucherDetails?.gstType || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box',
-                      cursor: 'default',
-                      appearance: 'none'
-                    }}
-                  >
-                    <option value="">-- Select --</option>
-                    <option value="CGST/SGST">CGST/SGST</option>
-                    <option value="IGST">IGST</option>
-                  </select>
-                </div>
-
-                {/* HSN/SAC */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>HSN/SAC</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.hsnSac || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Ref Bill No */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Ref Bill No</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.refBillNo || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Ref Bill Date */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Ref Bill Date</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.refBillDate || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* GST % */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST %</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.gstPercent || '0'}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* GST Amount */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST Amount</label>
-                  <input
-                    type="text"
-                    value={`₹${amountPopupData?.gstAmount || '0.00'}`}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Bill Total */}
-                <div style={{ gridColumn: screenSize.isMobile ? '1' : '1 / -1' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#1B91DA',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Bill Total</label>
-                  <input
-                    type="text"
-                    value={`₹${amountPopupData?.billTotal || '0.00'}`}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '2px solid #1B91DA',
-                      borderRadius: '4px',
-                      fontSize: '15px',
-                      fontWeight: 'bold',
-                      backgroundColor: '#f0f8ff',
-                      color: '#1B91DA',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Buttons */}
             <div style={{
