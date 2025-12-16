@@ -30,7 +30,7 @@ const SearchIcon = ({ size = 16, color = "#6b7280" }) => (
 
 const SaleInvoice = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('null');
+  const [activeTopAction, setActiveTopAction] = useState('add');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -111,6 +111,7 @@ const SaleInvoice = () => {
   // 6. State for saved invoices for edit/delete popups
   const [savedInvoices, setSavedInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const ignoreNextEnterRef = useRef(false);
 
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const billNoRef = useRef(null);
@@ -305,7 +306,7 @@ const SaleInvoice = () => {
               stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
               mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
               uom: units,
-              hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
+             hsn: item.fhsn || item.hsn || item.hsnCode || "",
               tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
               sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
               displayName: itemName, // Changed: Show only item name, not code
@@ -575,46 +576,54 @@ const SaleInvoice = () => {
     }
   };
 
-  // Get stock by item code
-  const getStockByItemName = async (itemCode) => {
-    if (!itemCode || itemCode.trim() === '') {
-      return { 
-        stock: 0,
-        itemName: '',
-        mrp: '0',
-        uom: '',
-        fUnits: '',
-        hsn: '',
-        tax: '0',
-        rate: '0'
-      };
-    }
-    
-    try {
-      const response = await axiosInstance.get(
-        API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getStockByItemName1(itemCode)
-      );
-      
-      const data = response.data || {};
-      
-      return {
-        ...data,
-        uom: data.fUnits || data.uom || data.unit || '',
-        fUnits: data.fUnits || data.uom || data.unit || ''
-      };
-    } catch (err) {
-      return { 
-        stock: 0,
-        itemName: '',
-        mrp: '0',
-        uom: '',
-        fUnits: '',
-        hsn: '',
-        tax: '0',
-        rate: '0'
-      };
-    }
-  };
+ // ✅ CORRECT: Get stock using FULL itemCode and read finalStock properly
+const getStockByItemName = async (itemCode) => {
+  if (!itemCode || itemCode.trim() === '') {
+    return { 
+      stock: '0',
+      itemName: '',
+      mrp: '0',
+      uom: '',
+      fUnits: '',
+      hsn: '',
+      tax: '0',
+      rate: '0'
+    };
+  }
+
+  try {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getStockByItemName1(itemCode.trim())
+    );
+
+    const data = response?.data;
+    const item = data?.items?.[0]; // ✅ API returns array
+
+    return {
+      stock: (item?.finalStock ?? 0).toString(), // ✅ FIXED
+      itemName: item?.itemName || '',
+      mrp: item?.preRate || '0',
+      uom: item?.units || '',
+      fUnits: item?.units || '',
+      hsn: item?.hsn || '',
+      tax: item?.tax || '0',
+      rate: item?.preRate || '0'
+    };
+  } catch (err) {
+    console.error("Stock API failed:", err);
+    return { 
+      stock: '0',
+      itemName: '',
+      mrp: '0',
+      uom: '',
+      fUnits: '',
+      hsn: '',
+      tax: '0',
+      rate: '0'
+    };
+  }
+};
+
 
   // Initial data fetch
   useEffect(() => {
@@ -792,28 +801,31 @@ const SaleInvoice = () => {
   };
 
   // Handle confirmed delete
-  const handleConfirmedDelete = async () => {
-    if (!deleteConfirmationData) return;
-    
-    try {
-      await deleteInvoice(deleteConfirmationData.invoiceNo);
-      toast.success(
-  `Invoice ${deleteConfirmationData.invoiceNo} deleted successfully`,
-  { autoClose: 2500 }
-);
+const handleConfirmedDelete = async () => {
+  if (!deleteConfirmationData) return;
 
-setDeleteConfirmationOpen(false);
+  try {
+    await deleteInvoice(deleteConfirmationData.invoiceNo);
 
-// 🔄 FULL PAGE REFRESH AFTER DELETE
-setTimeout(() => {
-  window.location.reload();
-}, 1200);
+    toast.success(
+      `Invoice ${deleteConfirmationData.invoiceNo} deleted successfully`,
+      { autoClose: 2500 }
+    );
 
-    } catch (err) {
-      alert(`Failed to delete invoice: ${err.message}`);
-      setDeleteConfirmationOpen(false);
-    }
-  };
+    setDeleteConfirmationOpen(false);
+
+    // ✅ RESET FORM (clears data)
+    resetForm();
+
+    // ✅ FETCH ONLY NEXT BILL NUMBER
+    await fetchNextBillNo();
+
+  } catch (err) {
+    alert(`Failed to delete invoice: ${err.message}`);
+    setDeleteConfirmationOpen(false);
+  }
+};
+
 
   // Fetch items for invoice popup
   const fetchInvoiceItemsForPopup = async (pageNum, search) => {
@@ -889,62 +901,119 @@ setTimeout(() => {
   };
 
   // Handle customer selection
-  const handleCustomerSelect = (customer) => {
-    if (customer) {
-      setBillDetails(prev => ({
-        ...prev,
-        custName: customer.name,
-        custCode: customer.originalCode || customer.code,
-        partyCode: customer.originalCode || customer.code
-      }));
-    }
-    setCustomerPopupOpen(false);
-  };
+const handleCustomerSelect = (customer) => {
+  ignoreNextEnterRef.current = true;
+
+  if (customer) {
+    setBillDetails(prev => ({
+      ...prev,
+      custName: customer.name,
+      custCode: customer.originalCode || customer.code,
+      partyCode: customer.originalCode || customer.code
+    }));
+  }
+
+  setCustomerPopupOpen(false);
+
+  setTimeout(() => {
+    ignoreNextEnterRef.current = false;
+  }, 200);
+};
+
 
   // Handle salesman selection
-  const handleSalesmanSelect = (salesman) => {
-    if (salesman) {
-      setBillDetails(prev => ({
-        ...prev,
-        salesman: salesman.name,
-        salesmanCode: salesman.originalCode || salesman.code
-      }));
-    }
-    setSalesmanPopupOpen(false);
-  };
+const handleSalesmanSelect = (salesman) => {
+  ignoreNextEnterRef.current = true; // 🔴 ADD THIS
+
+  if (salesman) {
+    setBillDetails(prev => ({
+      ...prev,
+      salesman: salesman.name,
+      salesmanCode: salesman.originalCode || salesman.code
+    }));
+  }
+
+  setSalesmanPopupOpen(false);
+
+  // 🔁 reset after popup closes
+  setTimeout(() => {
+    ignoreNextEnterRef.current = false;
+  }, 200);
+};
+
 
   // Handle item selection - MODIFIED: Don't fetch barcode to item name field, only update item name
-  const handleItemSelect = async (item) => {
-    if (item && currentItemRowIndex !== null) {
-      const updatedItems = [...items];
-      const currentItem = updatedItems[currentItemRowIndex];
-      
-      const itemCode = item.fItemcode || item.itemCode || item.code || '';
-      const itemName = item.fItemName || item.itemName || item.name || '';
-      const units = item.fUnits || item.uom || 'pcs';
-      
-      const stockInfo = await getStockByItemName(itemCode);
-      
-      updatedItems[currentItemRowIndex] = {
-        ...currentItem,
-        itemName: itemName, // Only update item name, not code
-        itemCode: itemCode,
-        // Don't update barcode field - leave it as is or empty
-        barcode: '',
-        mrp: (item.mrp || stockInfo.mrp || 0).toString(),
-        stock: (item.stock || stockInfo.stock || 0).toString(),
-        uom: units || stockInfo.uom || stockInfo.fUnits || "",
-        hsn: item.hsn || stockInfo.hsn || "",
-        tax: (item.tax || stockInfo.tax || 0).toString(),
-        sRate: (item.sRate || stockInfo.rate || 0).toString(),
-        qty: currentItem.qty || "1",
-        amount: calculateAmount(currentItem.qty || "1", item.sRate || stockInfo.rate || 0)
-      };
-      
-      setItems(updatedItems);
-    }
+ const handleItemSelect = async (item) => {
+  ignoreNextEnterRef.current = true;
+
+  if (!item || currentItemRowIndex === null) return;
+
+  try {
+    const updatedItems = [...items];
+    const currentItem = updatedItems[currentItemRowIndex];
+
+    const itemCode =
+      item.fItemcode ||
+      item.itemCode ||
+      item.code ||
+      item.originalCode ||
+      '';
+
+    const itemName =
+      item.fItemName ||
+      item.itemName ||
+      item.name ||
+      '';
+
+    const units =
+      item.fUnits ||
+      item.uom ||
+      'pcs';
+
+    // 🔥 Fetch stock details (backup source for HSN)
+    const stockInfo = await getStockByItemName(itemCode);
+
+    // ✅ BULLETPROOF HSN RESOLUTION
+    const resolvedHsn =
+      item.hsn ||
+      item.hsnCode ||
+      item.HsnCode ||
+      item.HSN ||
+      stockInfo.hsn ||
+      stockInfo.hsnCode ||
+      stockInfo.HSN ||
+      '';
+
+    updatedItems[currentItemRowIndex] = {
+      ...currentItem,
+      itemName,
+      itemCode,
+      barcode: '',
+      stock: (item.stock || stockInfo.stock || 0).toString(),
+      mrp: (item.mrp || stockInfo.mrp || 0).toString(),
+      uom: units || stockInfo.uom || stockInfo.fUnits || '',
+      hsn: resolvedHsn, // ✅ FIXED HERE
+      tax: (item.tax || stockInfo.tax || 0).toString(),
+      sRate: (item.sRate || stockInfo.rate || 0).toString(),
+      qty: currentItem.qty || '1',
+      amount: calculateAmount(
+        currentItem.qty || '1',
+        item.sRate || stockInfo.rate || 0
+      )
+    };
+
+    setItems(updatedItems);
+  } catch (err) {
+    console.error("Item select failed:", err);
+  } finally {
     setItemPopupOpen(false);
-  };
+
+    setTimeout(() => {
+      ignoreNextEnterRef.current = false;
+    }, 200);
+  }
+};
+
 
   // Get popup configuration
   const getPopupConfig = (type) => {
@@ -1033,12 +1102,13 @@ setTimeout(() => {
             itemName: item.fItemName || item.itemName,
             code: item.fItemcode || item.itemCode,
             name: item.fItemName || item.itemName,
+             hsn: item.hsn || item.fhsn || "",
             originalCode: item.fItemcode || item.itemCode,
             barcode: item.barcode,
             stock: item.stock,
             mrp: item.mrp,
             uom: item.uom,
-            hsn: item.hsn,
+            
             tax: item.tax,
             sRate: item.sRate,
             displayName: item.fItemName || item.itemName,
@@ -1138,12 +1208,21 @@ setTimeout(() => {
           openCustomerPopup();
         }
       }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      // Only move focus, don't trigger any save action
-      if (nextRef && nextRef.current) {
-        nextRef.current.focus();
-      }
+    
+      } else if (e.key === 'Enter') {
+  // ✅ Do NOT block native select behavior
+  if (e.target.tagName !== 'SELECT') {
+    e.preventDefault();
+  }
+
+  // Move focus after a tiny delay (important for SELECT)
+  if (nextRef?.current) {
+    setTimeout(() => {
+      nextRef.current.focus();
+    }, 0);
+  }
+
+
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
       const allInputs = document.querySelectorAll('input:not([readonly]), select');
@@ -1293,21 +1372,31 @@ setTimeout(() => {
         }
       }
 
-      if (currentField === 'qty') {
-        if (currentRowIndex < items.length - 1) {
-          const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-          if (nextInput) {
-            nextInput.focus();
-            return;
-          }
-        } else {
-          handleAddRow();
-          setTimeout(() => {
-            const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
-            if (newRowInput) newRowInput.focus();
-          }, 60);
-        }
-      }
+     if (currentField === 'qty') {
+  const currentItem = items[currentRowIndex];
+
+  // 🚫 BLOCK if item name not selected
+  if (!currentItem.itemName || currentItem.itemName.trim() === '') {
+    toast.warning("Select item before moving to next row");
+    return;
+  }
+
+  if (currentRowIndex < items.length - 1) {
+    const nextInput = document.querySelector(
+      `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+    );
+    if (nextInput) nextInput.focus();
+  } else {
+    handleAddRow();
+    setTimeout(() => {
+      const newRowInput = document.querySelector(
+        `input[data-row="${items.length}"][data-field="barcode"]`
+      );
+      if (newRowInput) newRowInput.focus();
+    }, 80);
+  }
+}
+
     }
   };
 
@@ -1403,24 +1492,33 @@ setTimeout(() => {
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
-  const handleAddRow = () => {
-    const newRow = {
-      id: items.length + 1,
-      sNo: items.length + 1,
-      barcode: '',
-      itemCode: '',
-      itemName: '',
-      stock: '',
-      mrp: '',
-      uom: '',
-      hsn: '',
-      tax: '',
-      sRate: '',
-      qty: '',
-      amount: '0.00'
-    };
-    setItems([...items, newRow]);
+const handleAddRow = () => {
+  const lastItem = items[items.length - 1];
+
+  // 🚫 BLOCK adding row if item name is empty
+  if (!lastItem.itemName || lastItem.itemName.trim() === '') {
+    toast.warning("Please select an item before adding a new row");
+    return;
+  }
+
+  const newRow = {
+    id: items.length + 1,
+    sNo: items.length + 1,
+    barcode: '',
+    itemCode: '',
+    itemName: '',
+    stock: '',
+    mrp: '',
+    uom: '',
+    hsn: '',
+    tax: '',
+    sRate: '',
+    qty: '',
+    amount: '0.00'
   };
+
+  setItems(prev => [...prev, newRow]);
+};
 
   const handleItemChange = (id, field, value) => {
     setItems(items.map(item => {
@@ -1579,7 +1677,7 @@ setTimeout(() => {
         items: itemsData
       };
       
-      console.log("Sending data to server:", JSON.stringify(requestData, null, 2));
+
       
       // Determine if this is an insert or update
       const isInsert = !isEditing;
@@ -1813,7 +1911,10 @@ searchIconInside: {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
@@ -1829,7 +1930,10 @@ searchIconInside: {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '2px solid #1B91DA',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
@@ -1846,7 +1950,10 @@ searchIconInside: {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
@@ -1864,7 +1971,10 @@ searchIconInside: {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '2px solid #1B91DA',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
@@ -2329,16 +2439,35 @@ searchIconInside: {
   };
 
   return (
-    <div
-      style={styles.container}
-      className="sale-invoice-scrollable"
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      }}
-    >
+   <div
+  style={styles.container}
+  className="sale-invoice-scrollable"
+  onKeyDown={(e) => {
+    // 🚫 block Enter that comes from popup selection
+    if (ignoreNextEnterRef.current && e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // 🚫 block Enter everywhere else (no auto save)
+    if (
+      e.key === 'Enter' &&
+      !customerPopupOpen &&
+      !salesmanPopupOpen &&
+      !itemPopupOpen &&
+      !editInvoicePopupOpen &&
+      !deleteInvoicePopupOpen &&
+      !saveConfirmationOpen &&
+      !editConfirmationOpen &&
+      !deleteConfirmationOpen
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }}
+>
+
       {error && <div style={styles.errorContainer}>Error: {error}</div>}
       
       {(isLoading || loadingInvoices) && (
