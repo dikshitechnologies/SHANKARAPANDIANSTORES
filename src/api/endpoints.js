@@ -242,6 +242,29 @@ CATEGORY: {
 
   SALESRETURN: {
   GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
-}
+},
+
+PAYMENTVOUCHER: {
+  GETNEXTVNUMBER: (compCode,user) => `PaymentVoucher/GetNextVoucher?compCode=${compCode}&user=${user}`,
+  GETPENDINGBILLS: (partyCode,compCode) => `PaymentVoucher/GetPendingBills?fcode=${partyCode}&fCompCode=${compCode}`,
+  GETBILLNUMLIST: (compCode)=>`PaymentVoucher/BillNumberList/${compCode}`,
+  GETPARTYLIST: (search,pageNumber,pageSize) => `PaymentVoucher/PartyList?search=${search}&pageNumber=${pageNumber}&pageSize=${pageSize}`
+},
+
+
+
+
+  RECEIPTVOUCHER: {
+    GETNEXTVNUMBER: (compCode) => `ReceiptVoucher/GetNextReceiptVoucher?compCode=${compCode}`,
+    GETBILLNUMLIST: (compCode, pageNumber = 1, pageSize = 10) => `ReceiptVoucher/GetReceiptVoucherList?compCode=${compCode}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    POST_RECEIPT_VOUCHER: (selectType = true) => `ReceiptVoucher/ReceiptVoucherPost?selectType=${selectType}`,
+    PUT_RECEIPT_VOUCHER: (selectType = false) => `ReceiptVoucher/ReceiptVoucherPost?selectType=${selectType}`,
+    DELETE: (voucherNo, compCode) => `ReceiptVoucher/DeleteReceiptVoucher?voucherNo=${voucherNo}&compCode=${compCode}`,
+    PARTY_LIST: (pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    GET_VOUCHER_DETAILS: (voucherNo) => `ReceiptVoucher/GetVoucherDetails?voucherNo=${voucherNo}`,
+    GETPENDINGBILLS: (partyCode, compCode) => `ReceiptVoucher/GetPendingBills?fcode=${partyCode}&fCompCode=${compCode}`,
+    GETPARTYLIST: (search = '', pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?search=${encodeURIComponent(search)}&pageNumber=${pageNumber}&pageSize=${pageSize}`
+  }
+
 };
 
