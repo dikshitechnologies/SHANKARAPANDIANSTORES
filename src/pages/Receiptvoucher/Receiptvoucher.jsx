@@ -1319,10 +1319,16 @@ const ReceiptVoucher = () => {
                 type="text"
                 name="accountName"
                 value={voucherDetails.accountName}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  // Open popup if value is entered
+                  if (e.target.value.length > 0) {
+                    openAccountPopup('header');
+                  }
+                }}
                 onFocus={() => setFocusedField('accountName')}
                 onBlur={() => setFocusedField('')}
-                onClick={openAccountPopup}
+                onClick={() => openAccountPopup('header')}
                 onKeyDown={(e) => handleKeyDown(e, null, 'accountName')}
                 onKeyUp={(e) => handleBackspace(e, 'accountName')}
                 style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
