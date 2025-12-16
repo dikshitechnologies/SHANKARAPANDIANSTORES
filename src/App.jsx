@@ -1,4 +1,6 @@
 import './App.css'
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Home from './pages/Home/Home'
 import Navbar from './components/Navbar/Navbar'
@@ -33,6 +35,10 @@ import PurchaseInvoice from './pages/PurchaseInvoice/PurchaseInvoice'
 import Statecreation from './pages/statecreation/statecreation'
 import Purchasereturn from './pages/Purchasereturn/Purchasereturn'
 import SalesmanCreation from './pages/SalesmanCreation/SalesmanCreation'
+import CashManagement from './pages/CashManagement/CashManagement'
+import AmountIssue from './pages/AmountIssue/AmountIssue'
+import Receiptvoucher from './pages/Receiptvoucher/Receiptvoucher'
+import PaymentVoucher from './pages/PaymentVoucher/PaymentVoucher'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -62,17 +68,26 @@ function App() {
   const location = useLocation();
 
   return (
+    <>
     <Routes>
+      {/* Root Route - Redirect based on authentication */}
+      <Route 
+        path="/" 
+        element={
+          userData ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />
+        } 
+      />
+
       {/* Public Route - Login */}
       <Route 
         path="/login" 
         element={
-          userData ? <Navigate to="/" replace /> : <Login />
+          userData ? <Navigate to="/home" replace /> : <Login />
         } 
       />
 
       {/* Protected Routes with Navbar */}
-      <Route path="/" element={<ProtectedRoute><LayoutWithNavbar><Home /></LayoutWithNavbar></ProtectedRoute>} />
+      <Route path="/home" element={<ProtectedRoute><LayoutWithNavbar><Home /></LayoutWithNavbar></ProtectedRoute>} />
       <Route path="/test" element={<ProtectedRoute><LayoutWithNavbar><TestPage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/company-creation" element={<ProtectedRoute><LayoutWithNavbar><Company /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/sales-invoice" element={<ProtectedRoute><LayoutWithNavbar><SalesInvoice /></LayoutWithNavbar></ProtectedRoute>} />
@@ -102,7 +117,24 @@ function App() {
           <Route path="/transactions/Purchasereturn" element={<ProtectedRoute><LayoutWithNavbar><Purchasereturn /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/ItemCreation" element={<ProtectedRoute><LayoutWithNavbar><ItemCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/SalesmanCreation" element={<ProtectedRoute><LayoutWithNavbar><SalesmanCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/transactions/amount-issue" element={<ProtectedRoute><LayoutWithNavbar><AmountIssue /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/payment-voucher" element={<ProtectedRoute><LayoutWithNavbar><PaymentVoucher /></LayoutWithNavbar></ProtectedRoute>} />
+          {/* <Route path="/transactions/cash-management" element={<ProtectedRoute><LayoutWithNavbar><CashManagement /></LayoutWithNavbar></ProtectedRoute>} /> */}
+          <Route path="/transactions/receipt-voucher" element={<ProtectedRoute><LayoutWithNavbar><Receiptvoucher /></LayoutWithNavbar></ProtectedRoute>} />
+   
+   
     </Routes>
+     <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
+    </>
   );
 }
 

@@ -122,18 +122,11 @@ export const API_ENDPOINTS = {
       getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
        getCustomers: "Salesinvoices/GetPartyByParent",
        createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
-    updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true', // Same endpoint for both
+    updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=false', // Same endpoint for both
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
-        
-  
- 
   },
   
-
-
-  
-
   SCRAP_RATE_FIXING: {
     GET_FULL_SCRAP_RATES: 'ScrapRateFixing/getFullScrapRateFixing',
     UPDATE_FULL_SCRAP_RATES: 'ScrapRateFixing/updateFullScrapRateFixing',
@@ -194,8 +187,6 @@ CATEGORY: {
   GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
 },
 
-
-
  SALESMAN_CREATION_ENDPOINTS: {
     getSalesmen: "SalesmanCreation/GetSalesman",
     getNextCode: "SalesmanCreation/SalesmanNextFcode",
@@ -205,88 +196,66 @@ CATEGORY: {
     getSalesmenPaged: (page = 1, pageSize = 20, searchText = '') => `SalesmanCreation/GetSalesmanPaged/${page}/${pageSize}?searchText=${encodeURIComponent(searchText)}`
   },
 
-
-
-
-
-
-
-
-
   SALES_INVOICE_ENDPOINTS: {
-
-  // 1) Get next bill number
   getNextBillNo: (compCode) =>
     `Salesinvoices/salesnextbillNo/${compCode}`,
+  CREATE_SALES: "Salesinvoices/CreateSales/true",   // Insert
+  UPDATE_SALES: "Salesinvoices/CreateSales/false",  // Update
+  getBillList: (compCode, page = 1, pageSize = 20) =>`Salesinvoices/salesbillList/${compCode}?page=${page}&pageSize=${pageSize}`,
+  deleteBillNumber: (voucher, compCode) =>`Salesinvoices/salesbillnumber?voucher=${voucher}&compCode=${compCode}`,
+  getStockByItemName: (billType, itemcode) =>`Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
+  getVoucherDetails: (voucherNo) =>`Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`,
+  getItemTypes: () =>`Salesinvoices/GetItemTypes`,
+  getItemsByType: (type) =>`Salesinvoices/GetItemsByType?type=${type}`,
+  getStockByItemName1: (itemcode) =>`Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
+  getSalesman: () =>`SalesmanCreation/GetSalesman`,
+  getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>`ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
+  getCustomers: () => `Salesinvoices/GetPartyByParent`,
+},
+
+  Scrap_Procurement: {
+    GET_VOUCHER_NO : "ScrapProcurement/GetMaxVoucherNo?compCode=001",
+    SAVE_SCRAP_PROCUREMENT: (saveType) => 
+    `ScrapProcurement/SCRAPCREATE?selecttype=${saveType === 'create' ? 'true' : 'false'}`,
+    GET_SALESiNVOICE_ITEMS: "Salesinvoices/GetItemsByType?type=SC",
+    GET_BILL_LIST:"ScrapProcurement/GetVouchersBillNoList?compCode=001&pageNumber=1&pageSize=10",
+    GET_VOUCHER_BY_NO: (voucherNo) => `ScrapProcurement/GetSCRAPDETAILS/${voucherNo}/001`,
+    DELETE_SCRAP_PROCUREMENT: (voucherNo) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/001`,
+  },
+    TENDER: {
+    opening: "Tender/opening",
+    closing: "Tender/closing",
+  },
 
 
-// In API_ENDPOINTS.js - SALES_INVOICE_ENDPOINTS
-createSales: (isSave = true) => 
-  `Salesinvoices/CreateSales/${isSave}`,
 
+  BILLCOLLECTOR:{
+    GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
+  },
 
-  // 3) Get sales bill list
-  getBillList: (compCode, page = 1, pageSize = 20) =>
-    `Salesinvoices/salesbillList/${compCode}?page=${page}&pageSize=${pageSize}`,
+  SALESRETURN: {
 
+  GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
+},
 
-  // 4) Delete sales bill number
-  deleteBillNumber: (voucher, compCode) =>
-    `Salesinvoices/salesbillnumber?voucher=${voucher}&compCode=${compCode}`,
-
-
-  // 5) Get stock by item
-  getStockByItemName: (billType, itemcode) =>
-    `Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
-
-
-  // 6) Get voucher details
-  getVoucherDetails: (voucherNo) =>
-    `Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`,
-
-
-  // 7) Get item types
-  getItemTypes: () =>
-    `Salesinvoices/GetItemTypes`,
-
-
-  // 8) Get items by type
-  getItemsByType: (type) =>
-    `Salesinvoices/GetItemsByType?type=${type}`,
-
-
-  // 9) Stock by itemcode (alternative)
-  getStockByItemName1: (itemcode) =>
-    `Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
-
-
-  // 10) Get salesman list
-  getSalesman: () =>
-    `SalesmanCreation/GetSalesman`,
-
-
-  // 11) Item dropdown
-  getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>
-    `ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
-
-
-  // 12) Get customers
-  getCustomers: () =>
-    `Salesinvoices/GetPartyByParent`,
-}
+PAYMENTVOUCHER: {
+  GETNEXTVNUMBER: (compCode,user) => `PaymentVoucher/GetNextVoucher?compCode=${compCode}&user=${user}`,
+  GETPENDINGBILLS: (partyCode,compCode) => `PaymentVoucher/GetPendingBills?fcode=${partyCode}&fCompCode=${compCode}`,
+  GETBILLNUMLIST: (compCode)=>`PaymentVoucher/BillNumberList/${compCode}`,
+  GETPARTYLIST: (search,pageNumber,pageSize) => `PaymentVoucher/PartyList?search=${search}&pageNumber=${pageNumber}&pageSize=${pageSize}`
+},
 
 
 
 
-
-
-
-
-
-
-
-
-
+  RECEIPTVOUCHER: {
+    GETNEXTVNUMBER: (compCode) => `ReceiptVoucher/GetNextReceiptVoucher?compCode=${compCode}`,
+    GETBILLNUMLIST: (compCode, pageNumber = 1, pageSize = 10) => `ReceiptVoucher/GetReceiptVoucherList?compCode=${compCode}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    POST_RECEIPT_VOUCHER: (selectType = true) => `ReceiptVoucher/ReceiptVoucherPost?selectType=${selectType}`,
+    PUT_RECEIPT_VOUCHER: (selectType = false) => `ReceiptVoucher/ReceiptVoucherPost?selectType=${selectType}`,
+    DELETE: (voucherNo, compCode) => `ReceiptVoucher/DeleteReceiptVoucher?voucherNo=${voucherNo}&compCode=${compCode}`,
+    PARTY_LIST: (pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?pageNumber=${pageNumber}&pageSize=${pageSize}`
+  }
 
 };
 

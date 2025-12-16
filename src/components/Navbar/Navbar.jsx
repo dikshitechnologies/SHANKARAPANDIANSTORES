@@ -102,6 +102,10 @@ const Navbar = () => {
     { name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined /> },
     { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
     { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined /> },
+    { name: 'Amount Issue', path: '/transactions/amount-issue', icon: <MoneyCollectOutlined /> },
+    { name: 'Payment Voucher', path: '/payment-voucher', icon: <MoneyCollectOutlined /> },
+    // { name: 'Cash Management', path: '/transactions/cash-management', icon: <MoneyCollectOutlined /> },
+    { name: 'Receipt Voucher', path: '/transactions/receipt-voucher', icon: <MoneyCollectOutlined /> },
 
 
 

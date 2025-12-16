@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
-
+import TenderModal from '../../components/TenderModal/TenderModal';
+import apiService from '../../api/apiService';
+import { API_ENDPOINTS } from '../../api/endpoints';
 function BillCollector() {
   const [selectedRow, setSelectedRow] = useState(null);
   const [searchInput, setSearchInput] = useState("");
@@ -11,6 +13,18 @@ function BillCollector() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [activeFooterAction, setActiveFooterAction] = useState('all');
+  
+  // Tender Modal state
+  const [isTenderModalOpen, setIsTenderModalOpen] = useState(false);
+  const [selectedBillData, setSelectedBillData] = useState(null);
+  
+  // API and data management
+  const [bills, setBills] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
+  const fCompCode = "001";
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -19,6 +33,55 @@ function BillCollector() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Fetch bills from API
+  const fetchBills = async (page = 1, search = "") => {
+    try {
+      setLoading(true);
+      
+      const data = await apiService.get(API_ENDPOINTS.BILLCOLLECTOR.GET_BILLCOLLECTOR_ITEMS(fCompCode, search, page, pageSize));
+      console.log("API Response:", data);
+      
+      if (data && data.data) {
+        setBills(data.data);
+        setTotalCount(data.totalCount);
+        setPageNumber(page);
+      }
+    } catch (error) {
+      console.error("Error fetching bills:", error);
+      alert("Failed to load bills. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle row click to open Tender Modal
+  const handleRowClick = (billRow) => {
+    setSelectedBillData(billRow);
+    setIsTenderModalOpen(true);
+  };
+
+  const handleCloseTenderModal = () => {
+    setIsTenderModalOpen(false);
+    setSelectedBillData(null);
+  };
+
+  // Fetch bills on component mount and when search changes
+  useEffect(() => {
+    fetchBills(1, searchInput);
+  }, [searchInput]);
+  const handleNextPage = () => {
+    const nextPage = pageNumber + 1;
+    if (nextPage * pageSize <= totalCount + pageSize) {
+      fetchBills(nextPage, searchInput);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (pageNumber > 1) {
+      fetchBills(pageNumber - 1, searchInput);
+    }
+  };
 
   const container = {
     width: "100%",
@@ -305,7 +368,7 @@ function BillCollector() {
     right: 0,
     bottom: 0,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
-    display: showPrintConfirm || showSaveConfirm || showClearConfirm || showExitConfirm ? "flex" : "none",
+    // display: showPrintConfirm || showSaveConfirm || showClearConfirm || showExitConfirm ? "flex" : "none",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1000,
@@ -399,21 +462,6 @@ function BillCollector() {
     // Add actual exit logic here
   };
 
-  const sampleData = Array.from({ length: 8 }).map((_, i) => ({
-    id: i,
-    date: "10-Nov-2025",
-    billNo: `RS/INV/25-26/100${i}`,
-    salesman: ["Dharani", "Arun", "Priya", "Kumar"][i % 4],
-    customer: `Customer ${i + 1}`,
-    mobile: `98765${43210 - i}`,
-    items: Math.floor(Math.random() * 5) + 1,
-    qty: Math.floor(Math.random() * 10) + 1,
-    gross: (Math.random() * 5000 + 1000).toFixed(0),
-    discount: (Math.random() * 200).toFixed(0),
-    amount: (Math.random() * 5000 + 1000).toFixed(0),
-    status: i % 3 === 0 ? "Pending" : "Paid"
-  }));
-
   const handlePrint = () => {
     setShowPrintConfirm(true);
   };
@@ -421,10 +469,7 @@ function BillCollector() {
   const confirmPrint = () => {
     setShowPrintConfirm(false);
     const printWindow = window.open('', '', 'height=500,width=800');
-    const filteredData = sampleData.filter(bill =>
-      bill.billNo.toLowerCase().includes(searchInput.toLowerCase())
-    );
-    const totalAmount = filteredData.reduce((sum, bill) => sum + parseInt(bill.amount), 0);
+    const totalAmount = bills.reduce((sum, bill) => sum + (bill.amount || 0), 0);
     
     const printContent = `
       <!DOCTYPE html>
@@ -458,31 +503,31 @@ function BillCollector() {
               <th>Items</th>
               <th>Qty</th>
               <th>Amount</th>
-              <th>Status</th>
+              <th>Discount</th>
             </tr>
           </thead>
           <tbody>
-            ${filteredData.map((row, i) => `
+            ${bills.map((row, i) => `
               <tr>
-                <td>${i + 1}</td>
-                <td>${row.date}</td>
+                <td>${(pageNumber - 1) * pageSize + i + 1}</td>
+                <td>${new Date(row.date).toLocaleDateString('en-IN')}</td>
                 <td>${row.billNo}</td>
                 <td>${row.salesman}</td>
                 <td>${row.customer}</td>
-                <td>${row.mobile}</td>
+                <td>${row.mobile || '-'}</td>
                 <td>${row.items}</td>
                 <td>${row.qty}</td>
-                <td>₹${row.amount}</td>
-                <td><strong>${row.status}</strong></td>
+                <td>₹${row.amount.toLocaleString('en-IN')}</td>
+                <td>₹${row.damt.toLocaleString('en-IN')}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
         
         <div class="summary">
-          <p><strong>Total Bills:</strong> ${filteredData.length}</p>
+          <p><strong>Total Bills:</strong> ${bills.length}</p>
           <p><strong>Total Amount:</strong> ₹${totalAmount.toLocaleString('en-IN')}</p>
-          <p><strong>Total Discount:</strong> ₹${filteredData.reduce((sum, b) => sum + parseInt(b.discount), 0).toLocaleString('en-IN')}</p>
+          <p><strong>Total Discount:</strong> ₹${bills.reduce((sum, b) => sum + (b.damt || 0), 0).toLocaleString('en-IN')}</p>
         </div>
         
         <div class="footer">
@@ -548,17 +593,26 @@ function BillCollector() {
         />
         <div style={{ marginLeft: "auto", display: "flex", gap: "12px" }}>
           <div style={statCard}>
-            <div style={statValue}>{sampleData.length}</div>
+            <div style={statValue}>{totalCount}</div>
             <div style={statLabel}>Total Bills</div>
           </div>
           <div style={statCard}>
-            <div style={{...statValue, color: "#307AC8"}}>₹45,600</div>
+            <div style={{...statValue, color: "#307AC8"}}>₹{bills.reduce((sum, bill) => sum + (bill.amount || 0), 0).toLocaleString('en-IN')}</div>
             <div style={statLabel}>Total Amount</div>
           </div>
         </div>
       </div>
 
       <div style={tableContainer}>
+        {loading ? (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", color: "#6b7280" }}>
+            Loading bills...
+          </div>
+        ) : bills.length === 0 ? (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", color: "#6b7280" }}>
+            No bills found
+          </div>
+        ) : (
         <table style={tableStyle}>
           <thead>
             <tr>
@@ -571,18 +625,22 @@ function BillCollector() {
               <th style={thStyle}>Items</th>
               <th style={thStyle}>Qty</th>
               <th style={thStyle}>Amount</th>
-              <th style={thStyle}>Status</th>
+              <th style={thStyle}>Discount</th>
             </tr>
           </thead>
 
           <tbody>
-            {sampleData.map((row, i) => (
+            {bills.map((row, i) => (
               <tr 
                 key={i} 
-                onClick={() => setSelectedRow(i)}
+                onClick={() => {
+                  setSelectedRow(i);
+                  handleRowClick(row);
+                }}
                 style={{ 
                   backgroundColor: selectedRow === i ? "#dbeafe" : i % 2 === 0 ? '#f9f9f9' : '#ffffff',
-                  transition: "all 0.2s"
+                  transition: "all 0.2s",
+                  cursor: "pointer"
                 }}
                 onMouseEnter={(e) => {
                   if (selectedRow !== i) e.currentTarget.style.backgroundColor = "#f8fafc";
@@ -591,144 +649,40 @@ function BillCollector() {
                   if (selectedRow !== i) e.currentTarget.style.backgroundColor = i % 2 === 0 ? "#f9f9f9" : "#ffffff";
                 }}
               >
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{i + 1}</td>
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.date}</td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{(pageNumber - 1) * pageSize + i + 1}</td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{new Date(row.date).toLocaleDateString('en-IN')}</td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
                   <div style={{ color: "#06A7EA", fontWeight: "500" }}>{row.billNo}</div>
                 </td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.salesman}</td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.customer}</td>
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.mobile}</td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.mobile || "-"}</td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.items}</td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.qty}</td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
-                  <div style={{ fontWeight: "600", color: "#059669" }}>₹{row.amount}</div>
+                  <div style={{ fontWeight: "600", color: "#059669" }}>₹{row.amount.toLocaleString('en-IN')}</div>
                 </td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
-                  <span style={row.status === "Paid" ? paidBadge : pendingBadge}>
-                    {row.status}
-                  </span>
+                  <div style={{ fontWeight: "600", color: "#d97706" }}>₹{row.damt.toLocaleString('en-IN')}</div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* Print Confirmation Modal */}
-      <div style={modalOverlay}>
-        <div style={modalContent}>
-          {showPrintConfirm && (
-            <>
-              <div style={modalTitle}>🖨️ Print Bill Report?</div>
-              <div style={modalMessage}>
-                Are you sure you want to print the bill collection report?
-              </div>
-              <div style={modalButtons}>
-                <button
-                  style={modalYesBtn}
-                  onClick={confirmPrint}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = "#047857"}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = "#059669"}
-                >
-                  ✓ Yes, Print
-                </button>
-                <button
-                  style={modalNoBtn}
-                  onClick={cancelPrint}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = "#dc2626"}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = "#ef4444"}
-                >
-                  ✕ No, Cancel
-                </button>
-              </div>
-            </>
-          )}
+     
 
-          {showSaveConfirm && (
-            <>
-              <div style={modalTitle}>💾 Save Bills?</div>
-              <div style={modalMessage}>
-                Do you want to save all the bills to the system?
-              </div>
-              <div style={modalButtons}>
-                <button
-                  style={modalYesBtn}
-                  onClick={confirmSave}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = "#047857"}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = "#059669"}
-                >
-                  ✓ Yes, Save
-                </button>
-                <button
-                  style={modalNoBtn}
-                  onClick={() => setShowSaveConfirm(false)}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = "#dc2626"}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = "#ef4444"}
-                >
-                  ✕ No, Cancel
-                </button>
-              </div>
-            </>
-          )}
+      {/* Tender Modal */}
+      <TenderModal 
+        isOpen={isTenderModalOpen} 
+        onClose={handleCloseTenderModal}
+        billData={selectedBillData}
+      />
 
-          {showClearConfirm && (
-            <>
-              <div style={modalTitle}>🔄 Clear Search?</div>
-              <div style={modalMessage}>
-                Do you want to clear the search filter?
-              </div>
-              <div style={modalButtons}>
-                <button
-                  style={modalYesBtn}
-                  onClick={confirmClear}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = "#047857"}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = "#059669"}
-                >
-                  ✓ Yes, Clear
-                </button>
-                <button
-                  style={modalNoBtn}
-                  onClick={() => setShowClearConfirm(false)}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = "#dc2626"}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = "#ef4444"}
-                >
-                  ✕ No, Cancel
-                </button>
-              </div>
-            </>
-          )}
-
-          {showExitConfirm && (
-            <>
-              <div style={modalTitle}>❌ Exit Application?</div>
-              <div style={modalMessage}>
-                Are you sure you want to exit the Bill Collector?
-              </div>
-              <div style={modalButtons}>
-                <button
-                  style={modalYesBtn}
-                  onClick={confirmExit}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = "#047857"}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = "#059669"}
-                >
-                  ✓ Yes, Exit
-                </button>
-                <button
-                  style={modalNoBtn}
-                  onClick={() => setShowExitConfirm(false)}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = "#dc2626"}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = "#ef4444"}
-                >
-                  ✕ No, Cancel
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div style={footer}>
+      {/* <div style={footer}>
         <ActionButtons1
           onClear={handleClear}
           onSave={handleSave}
@@ -736,7 +690,7 @@ function BillCollector() {
           activeButton={activeFooterAction}
           onButtonClick={(type) => setActiveFooterAction(type)}
         />
-      </div>
+      </div> */}
     </div>
   );
 }

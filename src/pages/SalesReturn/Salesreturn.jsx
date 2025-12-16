@@ -3,6 +3,7 @@ import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } fr
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const SalesReturn = () => {
@@ -27,7 +28,8 @@ const SalesReturn = () => {
     city: '',
     type: 'Retail',
     transType: 'SALES RETURN',
-    billAMT: '0'
+    billAMT: '0',
+    newBillNo: ''
   });
 
   // 2. Table Items State
@@ -61,14 +63,47 @@ const SalesReturn = () => {
   const [popupData, setPopupData] = useState([]);
   const [selectedRowIndex, setSelectedRowIndex] = useState(null);
   const [selectedAction, setSelectedAction] = useState("");
+  const [selectedBillNumber, setSelectedBillNumber] = useState(null);
+  
+  // 5. Confirmation Popup States
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmPopupConfig, setConfirmPopupConfig] = useState({
+    title: "",
+    message: "",
+    type: "default",
+    onConfirm: null,
+    confirmText: "Confirm",
+    cancelText: "Cancel"
+  });
+  
+  // 6. State for pending actions
+  const [pendingVoucherNo, setPendingVoucherNo] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null);
 
-  // 5. API Data State
+  // NEW STATE: For custom bill number popups
+  const [billDetailsPopupOpen, setBillDetailsPopupOpen] = useState(false);
+  const [checkedBills, setCheckedBills] = useState({});
+  const [billDetailsData, setBillDetailsData] = useState({});
+  const [isLoadingDetails, setIsLoadingDetails] = useState({});
+  const [selectedBillForDetails, setSelectedBillForDetails] = useState(null);
+  const [billDetailsSearchText, setBillDetailsSearchText] = useState("");
+
+  // 7. API Data State
   const [customers, setCustomers] = useState([]);
   const [itemList, setItemList] = useState([]);
   const [voucherList, setVoucherList] = useState([]);
   const [salesmen, setSalesmen] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // NEW STATE: For sales invoice bill list (pagination)
+  const [salesInvoiceBills, setSalesInvoiceBills] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoadingBills, setIsLoadingBills] = useState(false);
+
+  // NEW STATE: For save button validation
+  const [isFormValid, setIsFormValid] = useState(false);
 
   // --- REFS ---
   const billNoRef = useRef(null);
@@ -79,6 +114,7 @@ const SalesReturn = () => {
   const custNameRef = useRef(null);
   const returnReasonRef = useRef(null);
   const barcodeRef = useRef(null);
+  const newBillNoRef = useRef(null);
 
   const [focusedField, setFocusedField] = useState('');
   const [activeFooterAction, setActiveFooterAction] = useState('all');
@@ -91,17 +127,377 @@ const SalesReturn = () => {
     isDesktop: true
   });
 
-  // UOM cycling values - only K and P
-  const uomValues = ['K', 'P'];
+  // REMOVED: UOM cycling values - no more K and P
+
+  // ---------- CONFIRMATION POPUP HANDLERS ----------
+  const showConfirmation = (config) => {
+    setConfirmPopupConfig(config);
+    setShowConfirmPopup(true);
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmPopupConfig.onConfirm) {
+      confirmPopupConfig.onConfirm();
+    }
+    setShowConfirmPopup(false);
+  };
+
+  const handleCancelAction = () => {
+    setShowConfirmPopup(false);
+    setPendingVoucherNo(null);
+    setPendingAction(null);
+  };
+
+  // ---------- VALIDATION FUNCTIONS ----------
+  const checkFormValidity = useRef(() => {
+    const hasCustomer = !!billDetails.custName.trim();
+    const hasBillDate = !!billDetails.billDate;
+    const hasMobile = !!billDetails.mobileNo.trim();
+    const hasEmpName = !!billDetails.empName.trim();
+    const hasSalesman = !!billDetails.salesman.trim();
+    
+    // Check if at least one item has quantity > 0
+    const hasValidItems = items.some(item => {
+      const hasItemName = !!item.itemName.trim();
+      const hasQuantity = parseFloat(item.qty || 0) > 0;
+      return hasItemName && hasQuantity;
+    });
+
+    // All fields must be filled
+    const isValid = hasCustomer && hasBillDate && hasMobile && hasEmpName && hasSalesman && hasValidItems;
+    return isValid;
+  }).current;
+
+  // Update validation when form fields change
+  useEffect(() => {
+    const isValid = checkFormValidity();
+    setIsFormValid(isValid);
+  }, [billDetails, items, checkFormValidity]);
 
   // ---------- API FUNCTIONS ----------
+  // Fetch sales invoice bill list with pagination
+  const fetchSalesInvoiceBillList = async (page = 1, pageSize = 20) => {
+    try {
+      setIsLoadingBills(true);
+      const companyCode = '001';
+      const endpoint = API_ENDPOINTS.sales_return?.getBillList ? 
+        API_ENDPOINTS.sales_return.getBillList(companyCode, page, pageSize) : 
+        `Salesinvoices/salesbillList/${companyCode}?page=${page}&pageSize=${pageSize}`;
+      
+      const response = await apiService.get(endpoint);
+      
+      if (response) {
+        let bills = [];
+        let totalCount = 0;
+        
+        if (response.data && Array.isArray(response.data)) {
+          bills = response.data;
+          totalCount = response.totalCount || response.total || bills.length;
+        } else if (Array.isArray(response)) {
+          bills = response;
+          totalCount = bills.length;
+        } else if (response.bills && Array.isArray(response.bills)) {
+          bills = response.bills;
+          totalCount = response.totalCount || response.total || bills.length;
+        }
+        
+        setSalesInvoiceBills(bills);
+        setTotalPages(Math.ceil(totalCount / pageSize));
+        return bills;
+      }
+      
+      return [];
+    } catch (err) {
+      console.error("API Error fetching sales invoice bill list:", err);
+      setSalesInvoiceBills([]);
+      return [];
+    } finally {
+      setIsLoadingBills(false);
+    }
+  };
+
+  // Fetch voucher details from sales invoice
+  const fetchSalesInvoiceVoucherDetails = async (voucherNo) => {
+    try {
+      setLoading(true);
+      const endpoint = API_ENDPOINTS.sales_return?.getVoucherDetails ? 
+        API_ENDPOINTS.sales_return.getVoucherDetails(voucherNo) : 
+        `Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`;
+      
+      const response = await apiService.get(endpoint);
+      
+      if (response) {
+        return response;
+      }
+      
+      return null;
+    } catch (err) {
+      console.error("API Error fetching sales invoice voucher details:", err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch details for specific bill
+  const fetchBillDetailsForPopup = async (billNo) => {
+    try {
+      setIsLoadingDetails(prev => ({ ...prev, [billNo]: true }));
+      
+      const details = await fetchSalesInvoiceVoucherDetails(billNo);
+      
+      setBillDetailsData(prev => ({
+        ...prev,
+        [billNo]: details
+      }));
+      
+      setIsLoadingDetails(prev => ({ ...prev, [billNo]: false }));
+      
+      return details;
+    } catch (error) {
+      console.error(`Error fetching details for ${billNo}:`, error);
+      setIsLoadingDetails(prev => ({ ...prev, [billNo]: false }));
+      return null;
+    }
+  };
+
+  // Open First Popup - Bill Numbers Only using common PopupListSelector
+  const openBillNumberPopup = async () => {
+    try {
+      const bills = await fetchSalesInvoiceBillList(1, 20);
+      
+      if (!bills || bills.length === 0) {
+        alert("No sales invoice bills available. Please try again later.");
+        return;
+      }
+      
+      const billNumberData = bills.map((bill, index) => {
+        const billNo = bill.voucherNo || bill.billNo || bill.invoiceNo || 
+                      bill.code || bill.id || `BILL-${index + 1}`;
+        
+        const customerName = bill.customerName || bill.customer || bill.partyName || "";
+        const displayText = customerName ? `${billNo} - ${customerName}` : billNo;
+        
+        return {
+          id: billNo,
+          code: billNo,
+          name: displayText,
+          displayName: displayText,
+          customerName: customerName,
+          voucherDate: bill.voucherDate || bill.billDate || bill.date || "",
+          originalData: bill,
+        };
+      });
+      
+      setPopupData(billNumberData);
+      setPopupTitle("Select Bill Number");
+      setPopupType("billNumber");
+      setPopupOpen(true);
+      
+    } catch (error) {
+      console.error("Error opening bill number popup:", error);
+      alert("Error loading sales invoice bills. Please try again.");
+    }
+  };
+
+  // Open Second Popup - Bill Details with Checkboxes
+  const openBillDetailsPopup = async (billNo) => {
+    try {
+      setSelectedBillForDetails(billNo);
+      setBillDetailsSearchText(""); // Reset search text
+      setCheckedBills({}); // Reset checked items
+      
+      // Close the first popup
+      setPopupOpen(false);
+      setPopupType("");
+      setPopupData([]);
+      
+      // Fetch bill details
+      const details = await fetchBillDetailsForPopup(billNo);
+      
+      if (!details) {
+        alert(`Could not fetch details for bill ${billNo}. Please try again.`);
+        return;
+      }
+      
+      setBillDetailsPopupOpen(true);
+      
+    } catch (error) {
+      console.error("Error opening bill details popup:", error);
+      alert("Error loading bill details. Please try again.");
+    }
+  };
+
+  // Apply selected bill number from details popup
+  const handleApplyBillNumber = async () => {
+    // Get the checked items
+    const checkedItems = Object.keys(checkedBills).filter(key => checkedBills[key]);
+    
+    if (!checkedItems || checkedItems.length === 0) {
+      alert("Please select at least one item by checking the checkbox.");
+      return;
+    }
+    
+    const voucherNo = selectedBillForDetails;
+    
+    try {
+      setLoading(true);
+      const voucherDetails = billDetailsData[voucherNo];
+      
+      if (voucherDetails) {
+        // Set the bill number in the form
+        setBillDetails(prev => ({ ...prev, newBillNo: voucherNo }));
+        
+        const header = voucherDetails.header || voucherDetails;
+        const itemsArray = voucherDetails.items || voucherDetails.details || [];
+        
+        if (header) {
+          setBillDetails(prev => ({
+            ...prev,
+            custName: header.customerName || header.customer || "",
+            customerCode: header.customerCode || header.customerId || "",
+            partyCode: header.customerCode || header.customerId || "",
+            mobileNo: header.mobileNO || header.mobileNo || header.mobile || header.phone || "",
+            gstno: header.gstNo || header.gstNumber || header.gst || "",
+            salesman: header.sManName || header.salesMansName || "",
+            salesmanCode: header.sManCode || header.salesMansCode || "002",
+            empName: header.empName || "",
+            empCode: header.empCode || "14789"
+          }));
+        }
+        
+        if (itemsArray && itemsArray.length > 0) {
+          // Filter only checked items
+          const checkedItemCodes = checkedItems;
+          const filteredItems = itemsArray.filter(item => {
+            const itemCode = item.fItemcode || item.itemCode || item.productCode || "";
+            return checkedItemCodes.includes(itemCode);
+          });
+          
+          if (filteredItems.length > 0) {
+            const transformedItems = filteredItems.map((item, index) => {
+              const itemCode = item.fItemcode || item.itemCode || item.productCode || "";
+              const itemName = item.fitemNme || item.itemName || item.productName || "";
+              const originalQty = parseFloat(item.fTotQty || item.qty || item.quantity || 0);
+              
+              const returnQty = originalQty > 0 ? -Math.abs(originalQty) : originalQty;
+              
+              return {
+                id: index + 1,
+                sNo: index + 1,
+                barcode: itemCode,
+                itemName: itemName,
+                stock: item.fstock || item.stock || "0",
+                mrp: item.mrp || item.maxRetailPrice || "0.00",
+                uom: item.fUnit || item.uom || item.unit || "",
+                hsn: item.fHSN || item.hsn || item.hsnCode || "",
+                tax: item.fTax || item.tax || item.taxRate || "0",
+                sRate: item.fRate || item.sellingRate || item.rate || "0",
+                rate: item.fRate || item.costPrice || item.purchaseRate || "0",
+                qty: returnQty.toString(),
+                amount: (returnQty * parseFloat(item.fRate || item.rate || item.sellingRate || 0)).toFixed(2),
+                itemCode: itemCode || `0000${index + 1}`
+              };
+            });
+            
+            setItems(transformedItems);
+            
+            alert(`Selected items from ${voucherNo} applied successfully!\n\n${filteredItems.length} items loaded for return.\nCustomer: ${header.customerName || 'N/A'}`);
+          } else {
+            alert("No items selected. Please check at least one item checkbox.");
+          }
+        } else {
+          alert(`Bill number ${voucherNo} selected, but no items found to apply.`);
+        }
+      } else {
+        alert(`Bill number ${voucherNo} selected, but could not fetch voucher details.`);
+      }
+    } catch (error) {
+      console.error("Error applying voucher details:", error);
+      alert(`Error applying voucher details: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+    
+    // Close the popups
+    setBillDetailsPopupOpen(false);
+    setSelectedBillForDetails(null);
+    setCheckedBills({});
+    setBillDetailsSearchText("");
+  };
+
+  // Clear selected bill number
+  const handleClearBillNumber = () => {
+    setBillDetails(prev => ({ ...prev, newBillNo: '' }));
+    
+    setBillDetailsPopupOpen(false);
+    setSelectedBillForDetails(null);
+    setCheckedBills({});
+    setBillDetailsSearchText("");
+  };
+
+  // Load more bills for pagination in first popup
+  const handleLoadMoreBills = async (pageNum, search) => {
+    if (popupType === "billNumber") {
+      const moreBills = await fetchSalesInvoiceBillList(pageNum, 20);
+      
+      if (moreBills && moreBills.length > 0) {
+        const moreBillData = moreBills.map((bill, index) => {
+          const billNo = bill.voucherNo || bill.billNo || bill.invoiceNo || 
+                        bill.code || bill.id || `BILL-${((pageNum-1) * 20) + index + 1}`;
+          
+          const customerName = bill.customerName || bill.customer || bill.partyName || "";
+          const displayText = customerName ? `${billNo} - ${customerName}` : billNo;
+          
+          return {
+            id: billNo,
+            code: billNo,
+            name: displayText,
+            displayName: displayText,
+            customerName: customerName,
+            voucherDate: bill.voucherDate || bill.billDate || bill.date || "",
+            originalData: bill,
+          };
+        });
+        
+        return moreBillData;
+      }
+    }
+    return [];
+  };
+
+  // Filter items for bill details popup based on search
+  const getFilteredBillItems = () => {
+    const billNo = selectedBillForDetails;
+    if (!billNo) return [];
+    
+    const details = billDetailsData[billNo];
+    if (!details) return [];
+    
+    const itemsArray = details.items || details.details || [];
+    
+    if (!billDetailsSearchText.trim()) {
+      return itemsArray;
+    }
+    
+    const searchLower = billDetailsSearchText.toLowerCase();
+    return itemsArray.filter(item => {
+      const itemCode = item.fItemcode || item.itemCode || item.productCode || "";
+      const itemName = item.fitemNme || item.itemName || item.productName || "";
+      
+      return (
+        (itemCode && itemCode.toLowerCase().includes(searchLower)) ||
+        (itemName && itemName.toLowerCase().includes(searchLower))
+      );
+    });
+  };
+
   const fetchMaxVoucherNo = async () => {
     try {
       setLoading(true);
       setError("");
       const companyCode = '001';
       const response = await apiService.get(API_ENDPOINTS.sales_return.getMaxVoucherNo(companyCode));
-      console.log("Max Voucher No Response:", response);
       
       if (response && response.maxVoucherNo) {
         setBillDetails(prev => ({ ...prev, billNo: response.maxVoucherNo }));
@@ -121,20 +517,15 @@ const SalesReturn = () => {
     try {
       setLoading(true);
       setError("");
-      console.log("Fetching customers...");
       
       const endpoint = API_ENDPOINTS.sales_return?.getCustomers || "Salesinvoices/GetPartyByParent";
       const response = await apiService.get(endpoint);
-      console.log("Customers Response:", response);
       
       if (response && Array.isArray(response)) {
         setCustomers(response);
-        console.log(`Loaded ${response.length} customers from API`);
       } else if (response && response.data && Array.isArray(response.data)) {
         setCustomers(response.data);
-        console.log(`Loaded ${response.data.length} customers from API`);
       } else {
-        console.warn("Customers response is not an array:", response);
         setCustomers([]);
       }
     } catch (err) {
@@ -149,16 +540,12 @@ const SalesReturn = () => {
     try {
       setLoading(true);
       setError("");
-      console.log("Fetching salesmen...");
       
       const response = await apiService.get("SalesmanCreation/GetSalesman");
-      console.log("Salesmen Response:", response);
       
       if (response && Array.isArray(response)) {
         setSalesmen(response);
-        console.log(`Loaded ${response.length} salesmen from API`);
       } else {
-        console.warn("Salesmen response is not an array:", response);
         setSalesmen([]);
       }
     } catch (err) {
@@ -173,44 +560,14 @@ const SalesReturn = () => {
     try {
       setLoading(true);
       setError("");
-      console.log("Fetching items dropdown...");
       
-      console.log("Fetching from: ItemCreation/GetItemCreationdropdowslist");
       const response = await apiService.get("ItemCreation/GetItemCreationdropdowslist");
-      console.log("Items Dropdown Response:", response);
+      
+      let itemsArray = [];
       
       if (response && Array.isArray(response)) {
-        console.log("Response is an array, length:", response.length);
-        
-        const formattedItems = response.map(item => {
-          const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-          const code = item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
-          
-          return {
-            ...item,
-            fItemName: itemName,
-            itemName: itemName,
-            name: itemName,
-            code: code,
-            barcode: item.barcode || item.Barcode || item.itemCode || code,
-            stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
-            mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
-            uom: item.uom || item.UOM || item.unit || item.Unit || "",
-            hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
-            tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
-            sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-            rate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-          };
-        });
-        
-        setItemList(formattedItems);
-        console.log(`Loaded ${formattedItems.length} items from API`);
+        itemsArray = response;
       } else if (response && typeof response === 'object') {
-        console.log("Response is an object");
-        console.log("Object keys:", Object.keys(response));
-        
-        let itemsArray = [];
-        
         if (response.items && Array.isArray(response.items)) {
           itemsArray = response.items;
         } else if (response.data && Array.isArray(response.data)) {
@@ -220,42 +577,30 @@ const SalesReturn = () => {
         } else {
           itemsArray = Object.values(response);
         }
-        
-        if (Array.isArray(itemsArray) && itemsArray.length > 0) {
-          const formattedItems = itemsArray.map(item => {
-            const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-            const code = item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
-            
-            return {
-              ...item,
-              fItemName: itemName,
-              itemName: itemName,
-              name: itemName,
-              code: code,
-              barcode: item.barcode || item.Barcode || item.itemCode || code,
-              stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
-              mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
-              uom: item.uom || item.UOM || item.unit || item.Unit || "",
-              hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
-              tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
-              sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-              rate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-            };
-          });
+      }
+      
+      if (Array.isArray(itemsArray) && itemsArray.length > 0) {
+        const formattedItems = itemsArray.map((item, index) => {
+          const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
+          const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
           
-          setItemList(formattedItems);
-          console.log(`Loaded ${formattedItems.length} items from API`);
-        } else {
-          console.warn("Could not extract items from response:", response);
-          setItemList([]);
-        }
+          return {
+            id: itemCode || `item-${index}`,
+            itemCode: itemCode,
+            itemName: itemName,
+            code: itemCode,
+            name: itemName,
+            fItemcode: itemCode,
+            fItemName: itemName
+          };
+        });
+        
+        setItemList(formattedItems);
       } else {
-        console.warn("Items response is not an array or object:", response);
         setItemList([]);
       }
     } catch (err) {
       console.error("Error fetching items dropdown:", err);
-      console.error("Error details:", err.message);
       setItemList([]);
     } finally {
       setLoading(false);
@@ -266,15 +611,12 @@ const SalesReturn = () => {
     try {
       setLoading(true);
       setError("");
-      console.log("Fetching voucher list...");
       
       const endpoint = API_ENDPOINTS.sales_return?.getVoucherList ? 
         API_ENDPOINTS.sales_return.getVoucherList(companyCode) : 
         `SalesReturn/VoucherList/${companyCode}`;
       
-      console.log("Fetching from endpoint:", endpoint);
       const response = await apiService.get(endpoint);
-      console.log("Voucher List Response:", response);
       
       let voucherData = [];
       
@@ -286,7 +628,6 @@ const SalesReturn = () => {
         voucherData = response.vouchers;
       }
       
-      console.log("Extracted voucher data:", voucherData);
       setVoucherList(voucherData);
       return voucherData;
       
@@ -305,20 +646,17 @@ const SalesReturn = () => {
       setError("");
       
       const foundItem = itemList.find(item => 
-        item.barcode === barcode || 
-        item.itemCode === barcode ||
-        item.code === barcode
+        item.itemCode === barcode || 
+        item.code === barcode ||
+        item.fItemcode === barcode
       );
       
       if (foundItem) {
-        console.log("Item found in local list:", foundItem);
         return foundItem;
       }
       
-      console.log("Item not found locally, trying API...");
       const response = await apiService.get(`ItemCreation/GetItemByBarcode/${barcode}`);
       if (response) {
-        console.log("Item found via API:", response);
         return response;
       }
       
@@ -358,7 +696,7 @@ const SalesReturn = () => {
           itemCode: item.itemCode || `0000${index + 1}`,
           stock: item.stock || "0",
           mrp: item.mrp || "0",
-          uom: item.uom || "PCS",
+          uom: item.uom || "",
           hsn: item.hsn || "",
           tax: item.tax || "0",
           srate: item.sRate || "0",
@@ -368,14 +706,10 @@ const SalesReturn = () => {
         }))
       };
 
-      console.log("Creating Sales Return with data:", JSON.stringify(requestData, null, 2));
-
       const endpoint = API_ENDPOINTS.sales_return?.createSalesReturn || 
         "SalesReturn/SalesReturnCreate?SelectType=true";
       
       const response = await apiService.post(endpoint, requestData);
-      
-      console.log("Create Sales Return Response:", response);
       
       if (response && response.success) {
         alert(`Sales Return Created Successfully!\nVoucher No: ${response.voucherNo}`);
@@ -429,7 +763,7 @@ const SalesReturn = () => {
           itemCode: item.itemCode || `0000${index + 1}`,
           stock: item.stock || "0",
           mrp: item.mrp || "0",
-          uom: item.uom || "PCS",
+          uom: item.uom || "",
           hsn: item.hsn || "",
           tax: item.tax || "0",
           srate: item.sRate || "0",
@@ -439,14 +773,10 @@ const SalesReturn = () => {
         }))
       };
 
-      console.log("Updating Sales Return with data:", JSON.stringify(requestData, null, 2));
-
       const endpoint = API_ENDPOINTS.sales_return?.updateSalesReturn || 
         "SalesReturn/SalesReturnCreate?SelectType=true";
       
       const response = await apiService.post(endpoint, requestData);
-      
-      console.log("Update Sales Return Response:", response);
       
       if (response && response.success) {
         alert(`Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo}`);
@@ -477,18 +807,40 @@ const SalesReturn = () => {
         throw new Error("Voucher number is required");
       }
       
-      console.log("Deleting sales return:", voucherNo);
+      const companyCode = '001';
+      const endpoint = `SalesReturn/DeleteSalesReturn/${voucherNo}?compCode=${companyCode}`;
       
-      const endpoint = API_ENDPOINTS.sales_return?.deleteSalesReturn?.(voucherNo) || 
-        `SalesReturn/DeleteSalesReturn/${voucherNo}`;
+      let response;
       
-      const response = await apiService.delete(endpoint);
-      
-      console.log("Delete Sales Return Response:", response);
+      if (apiService && typeof apiService.delete === 'function') {
+        response = await apiService.delete(endpoint);
+      } else if (apiService && typeof apiService.del === 'function') {
+        response = await apiService.del(endpoint);
+      } else if (apiService && typeof apiService.request === 'function') {
+        response = await apiService.request({
+          method: 'DELETE',
+          url: endpoint
+        });
+      } else {
+        const baseUrl = '';
+        const fullUrl = baseUrl ? `${baseUrl}/api/${endpoint}` : `/api/${endpoint}`;
+        
+        const fetchResponse = await fetch(fullUrl, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        
+        response = await fetchResponse.json();
+      }
       
       if (response && response.success) {
         alert(`Sales Return ${voucherNo} deleted successfully!`);
         await fetchVoucherList();
+        handleClear();
+        
         return response;
       } else {
         throw new Error(response?.message || "Failed to delete sales return");
@@ -515,18 +867,11 @@ const SalesReturn = () => {
         throw new Error("Voucher number is required");
       }
       
-      console.log("Fetching sales return details for:", voucherNo);
-      
-      // Try the endpoint from your response example: /api/SalesReturn/GetSalesReturn/SR0001936/001
       let endpoint = `SalesReturn/GetSalesReturn/${voucherNo}/${companyCode}`;
-      console.log("Trying endpoint:", endpoint);
       
       const response = await apiService.get(endpoint);
-      console.log("Sales Return Details Response:", response);
       
       if (response) {
-        console.log("Full response structure:", response);
-        
         if (response.success && response.header) {
           return response;
         } else if (response.success && response.data) {
@@ -555,8 +900,6 @@ const SalesReturn = () => {
       setLoading(true);
       setError("");
       
-      alert(`Loading voucher ${voucherNo} for editing...`);
-      
       const voucherDetails = await fetchSalesReturnDetails(voucherNo);
       
       if (!voucherDetails) {
@@ -564,22 +907,17 @@ const SalesReturn = () => {
         return;
       }
       
-      console.log("Voucher details to load:", voucherDetails);
-      
       const header = voucherDetails.header || voucherDetails;
       const itemsArray = voucherDetails.items || [];
       
-      // Format date from "DD-MM-YYYY HH:mm:ss" to "YYYY-MM-DD"
-      let formattedDate = billDetails.billDate; // Default to current date
+      let formattedDate = billDetails.billDate;
       if (header.voucherDate) {
         const dateParts = header.voucherDate.split(' ')[0].split('-');
         if (dateParts.length === 3) {
-          // Convert DD-MM-YYYY to YYYY-MM-DD
           formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
         }
       }
       
-      // Update header details
       setBillDetails(prev => ({
         ...prev,
         billNo: header.voucherNo || voucherNo,
@@ -595,7 +933,6 @@ const SalesReturn = () => {
         billAMT: header.billAMT || "0"
       }));
       
-      // Update items
       if (itemsArray && itemsArray.length > 0) {
         const updatedItems = itemsArray.map((item, index) => {
           return {
@@ -605,7 +942,7 @@ const SalesReturn = () => {
             itemName: item.itemName || "",
             stock: item.stock || "0",
             mrp: item.mrp || "0",
-            uom: item.uom || "PCS",
+            uom: item.uom || "",
             hsn: item.hsn || "",
             tax: item.tax || "0",
             sRate: item.srate || item.sRate || "0",
@@ -616,7 +953,6 @@ const SalesReturn = () => {
           };
         });
         
-        console.log("Updated items for table:", updatedItems);
         setItems(updatedItems);
       } else {
         setItems([{
@@ -673,7 +1009,6 @@ const SalesReturn = () => {
   // Initial data fetch
   useEffect(() => {
     const fetchInitialData = async () => {
-      console.log("Fetching initial data...");
       setLoading(true);
       try {
         await Promise.all([
@@ -762,39 +1097,18 @@ const SalesReturn = () => {
     }
     
     const itemData = itemList.map((item, index) => {
-      const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-      const actualCode = item.itemCode || item.code || item.ItemCode || item.Code || '';
+      const itemCode = item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
+      const itemName = item.fItemName || item.itemName || item.name || 'Unknown Item';
       
-      const isMockCode = !actualCode || 
-                        actualCode.startsWith('ITEM') || 
-                        actualCode.startsWith('Item ') ||
-                        /^Item\d+$/.test(actualCode) ||
-                        /^ITEM\d+$/.test(actualCode);
-      
-      const code = !isMockCode && actualCode ? actualCode : '';
-      const barcode = item.barcode || item.Barcode || item.itemCode || item.code || '';
-      const stock = item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0;
-      const mrp = item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0;
-      const sRate = item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0;
-      
-      const displayName = code ? `${code} - ${itemName}` : itemName;
+      const displayName = `${itemCode} - ${itemName}`;
       
       return {
-        id: item.id || index,
-        code: code || itemName,
+        id: itemCode || `item-${index}`,
+        code: itemCode,
         name: itemName,
-        fItemName: itemName,
-        barcode: barcode,
-        stock: stock,
-        mrp: mrp,
-        uom: item.uom || item.UOM || item.unit || item.Unit || "",
-        hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
-        tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
-        sRate: sRate,
-        rate: sRate,
         displayName: displayName,
-        actualCode: code,
-        itemCode: item.itemCode || item.code || code
+        itemCode: itemCode,
+        itemName: itemName
       };
     });
     
@@ -808,10 +1122,8 @@ const SalesReturn = () => {
   const openEditPopup = async () => {
     try {
       setLoading(true);
-      console.log("Opening edit popup...");
       
       const freshVouchers = await fetchVoucherList();
-      console.log("Fresh vouchers for edit:", freshVouchers);
       
       if (!freshVouchers || freshVouchers.length === 0) {
         alert("No sales return vouchers available for editing.");
@@ -836,8 +1148,6 @@ const SalesReturn = () => {
         };
       });
       
-      console.log("Edit popup data:", editData);
-      
       setPopupData(editData);
       setPopupTitle("Select Sales Return to Edit");
       setPopupType("edit");
@@ -855,10 +1165,8 @@ const SalesReturn = () => {
   const openDeletePopup = async () => {
     try {
       setLoading(true);
-      console.log("Opening delete popup...");
       
       const freshVouchers = await fetchVoucherList();
-      console.log("Fresh vouchers for delete:", freshVouchers);
       
       if (!freshVouchers || freshVouchers.length === 0) {
         alert("No sales return vouchers available for deletion.");
@@ -882,8 +1190,6 @@ const SalesReturn = () => {
         };
       });
       
-      console.log("Delete popup data:", deleteData);
-      
       setPopupData(deleteData);
       setPopupTitle("Select Sales Return to Delete");
       setPopupType("delete");
@@ -899,9 +1205,6 @@ const SalesReturn = () => {
   };
 
   const handlePopupSelect = async (selectedItem) => {
-    console.log("Popup selected item:", selectedItem);
-    console.log("Popup type:", popupType);
-    
     try {
       if (popupType === "customer") {
         const selectedCustomer = customers.find(c => 
@@ -932,42 +1235,22 @@ const SalesReturn = () => {
         }
         
       } else if (popupType === "item") {
-        console.log("Item popup selection for row:", selectedRowIndex);
-        console.log("Selected item data:", selectedItem);
-        
         if (selectedRowIndex !== null) {
           const selectedItemFromList = itemList.find(item => {
-            const itemCode = item.itemCode || item.code || item.ItemCode || item.Code || item.id;
-            const itemName = item.fItemName || item.itemName || item.name;
+            const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id;
             
             if (selectedItem.code && itemCode) {
               return itemCode.toString() === selectedItem.code.toString();
-            } else {
-              return itemName === selectedItem.name;
             }
+            return false;
           });
-          
-          console.log("Selected item from list:", selectedItemFromList);
           
           const itemData = selectedItemFromList || selectedItem;
           
           const itemName = itemData.fItemName || itemData.itemName || itemData.name || 
                           selectedItem.name || selectedItem.fItemName || 'Unknown Item';
-          
-          const barcode = itemData.barcode || itemData.Barcode || itemData.itemCode || 
-                         itemData.code || selectedItem.code || '';
-          const mrp = itemData.mrp || itemData.MRP || itemData.sellingPrice || 
-                     itemData.SellingPrice || itemData.price || itemData.Price || 0;
-          const stock = itemData.stockQty || itemData.stock || itemData.StockQty || 
-                       itemData.Stock || itemData.quantity || itemData.Quantity || 0;
-          const uom = itemData.uom || itemData.UOM || itemData.unit || itemData.Unit || "";
-          const hsn = itemData.hsnCode || itemData.hsn || itemData.HsnCode || itemData.HSN || "";
-          const tax = itemData.taxRate || itemData.tax || itemData.TaxRate || itemData.Tax || 0;
-          const sRate = itemData.sellingPrice || itemData.sRate || itemData.SellingPrice || 
-                       itemData.SRate || itemData.price || itemData.Price || mrp;
-          
-          console.log("Item name to set:", itemName);
-          console.log("Barcode to set:", barcode);
+          const itemCode = itemData.fItemcode || itemData.itemCode || itemData.code || 
+                          selectedItem.code || `0000${selectedRowIndex + 1}`;
           
           const updatedItems = [...items];
           
@@ -975,71 +1258,109 @@ const SalesReturn = () => {
             updatedItems[selectedRowIndex] = {
               ...updatedItems[selectedRowIndex],
               itemName: itemName,
-              barcode: barcode,
-              mrp: mrp.toString(),
-              stock: stock.toString(),
-              uom: uom,
-              hsn: hsn,
-              tax: tax.toString(),
-              sRate: sRate.toString(),
-              rate: sRate.toString(),
-              qty: "1",
-              amount: calculateAmount("1", sRate),
-              itemCode: itemData.itemCode || itemData.code || `0000${selectedRowIndex + 1}`
+              itemCode: itemCode,
             };
             
-            console.log("Updated item row:", updatedItems[selectedRowIndex]);
-            
             setItems(updatedItems);
-          } else {
-            console.error("Row index out of bounds:", selectedRowIndex);
           }
         }
         
+      } else if (popupType === "billNumber") {
+        // For bill number popup, open second popup with details
+        const billNo = selectedItem.code || selectedItem.id;
+        await openBillDetailsPopup(billNo);
+        
       } else if (popupType === "edit") {
         const voucherNo = selectedItem.code || selectedItem.id;
-        console.log("Loading voucher for editing:", voucherNo);
         
-        await loadVoucherForEditing(voucherNo);
+        showConfirmation({
+          title: "Confirm Edit",
+          message: `Are you sure you want to edit Sales Return ${voucherNo}?\n\nCurrent form data will be replaced.`,
+          type: "warning",
+          confirmText: "Edit",
+          cancelText: "Cancel",
+          onConfirm: async () => {
+            await loadVoucherForEditing(voucherNo);
+            setPopupOpen(false);
+            setPopupType("");
+            setPopupData([]);
+            setSelectedRowIndex(null);
+            setSelectedAction("");
+          }
+        });
         
       } else if (popupType === "delete") {
         const voucherNo = selectedItem.code || selectedItem.id;
-        const confirmDelete = window.confirm(
-          `Are you sure you want to delete Sales Return?\n\n` +
-          `Voucher No: ${voucherNo}\n\n` +
-          `This action cannot be undone!`
-        );
         
-        if (confirmDelete) {
-          await deleteSalesReturn(voucherNo);
-          handleClear();
-        }
+        showConfirmation({
+          title: "Confirm Delete",
+          message: `Are you sure you want to delete Sales Return ${voucherNo}?\n\nThis action cannot be undone!`,
+          type: "danger",
+          confirmText: "Delete",
+          cancelText: "Cancel",
+          onConfirm: async () => {
+            await deleteSalesReturn(voucherNo);
+            setPopupOpen(false);
+            setPopupType("");
+            setPopupData([]);
+            setSelectedRowIndex(null);
+            setSelectedAction("");
+          }
+        });
       }
     } catch (err) {
       console.error("Error in popup selection:", err);
       alert(`Error: ${err.message}`);
-    } finally {
-      setPopupOpen(false);
-      setPopupType("");
-      setPopupData([]);
-      setSelectedRowIndex(null);
-      setSelectedAction("");
     }
   };
 
   const fetchItemsForPopup = async (pageNum, search) => {
-    const filtered = popupData.filter(item => {
-      if (!search) return true;
-      const searchLower = search.toLowerCase();
-      return (
-        (item.code && item.code.toString().toLowerCase().includes(searchLower)) ||
-        (item.name && item.name.toLowerCase().includes(searchLower)) ||
-        (item.userName && item.userName.toLowerCase().includes(searchLower)) ||
-        (item.barcode && item.barcode.toString().toLowerCase().includes(searchLower)) ||
-        (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
-        (item.fItemName && item.fItemName.toLowerCase().includes(searchLower))
-      );
-    });
+    let filtered = [];
+    
+    if (popupType === "billNumber") {
+      const bills = await fetchSalesInvoiceBillList(pageNum, 20);
+      
+      filtered = bills.map((bill, index) => {
+        const billNo = bill.voucherNo || bill.billNo || bill.invoiceNo || 
+                      bill.code || bill.id || `BILL-${((pageNum-1) * 20) + index + 1}`;
+        
+        const customerName = bill.customerName || bill.customer || bill.partyName || "";
+        const displayText = customerName ? `${billNo} - ${customerName}` : billNo;
+        
+        return {
+          id: billNo,
+          code: billNo,
+          name: displayText,
+          displayName: displayText,
+          customerName: customerName,
+          voucherDate: bill.voucherDate || bill.billDate || bill.date || "",
+          originalData: bill,
+        };
+      });
+      
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filtered = filtered.filter(item => {
+          return (
+            (item.code && item.code.toLowerCase().includes(searchLower)) ||
+            (item.name && item.name.toLowerCase().includes(searchLower)) ||
+            (item.customerName && item.customerName.toLowerCase().includes(searchLower))
+          );
+        });
+      }
+    } else {
+      filtered = popupData.filter(item => {
+        if (!search) return true;
+        const searchLower = search.toLowerCase();
+        return (
+          (item.code && item.code.toString().toLowerCase().includes(searchLower)) ||
+          (item.name && item.name.toLowerCase().includes(searchLower)) ||
+          (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
+          (item.itemName && item.itemName.toLowerCase().includes(searchLower)) ||
+          (item.fItemName && item.fItemName.toLowerCase().includes(searchLower))
+        );
+      });
+    }
     
     const startIndex = (pageNum - 1) * 20;
     const endIndex = startIndex + 20;
@@ -1053,35 +1374,48 @@ const SalesReturn = () => {
         searchFields: ['code', 'name'],
         headerNames: ['Code', 'Customer Name'],
         columnWidths: { code: '30%', name: '70%' },
-        searchPlaceholder: 'Search customers...'
+        searchPlaceholder: 'Search customers...',
+        showApplyButton: false
       },
       salesman: {
         displayFieldKeys: ['code', 'name'],
         searchFields: ['code', 'name'],
         headerNames: ['Code', 'Salesman Name'],
         columnWidths: { code: '30%', name: '70%' },
-        searchPlaceholder: 'Search salesmen...'
+        searchPlaceholder: 'Search salesmen...',
+        showApplyButton: false
       },
       item: {
-        displayFieldKeys: ['name'],
-        searchFields: ['name', 'fItemName', 'code'],
-        headerNames: ['Item Name'],
-        columnWidths: { name: '100%' },
-        searchPlaceholder: 'Search items by name...'
+        displayFieldKeys: ['displayName'],
+        searchFields: ['displayName', 'name', 'itemName', 'code'],
+        headerNames: ['Item (Code - Name)'],
+        columnWidths: { displayName: '100%' },
+        searchPlaceholder: 'Search items by code or name...',
+        showApplyButton: false
+      },
+      billNumber: {
+        displayFieldKeys: ['code', 'customerName', 'voucherDate'],
+        searchFields: ['code', 'customerName'],
+        headerNames: ['Bill No', 'Customer', 'Date'],
+        columnWidths: { code: '30%', customerName: '50%', voucherDate: '20%' },
+        searchPlaceholder: 'Search bill number or customer...',
+        showApplyButton: false
       },
       edit: {
         displayFieldKeys: ['name'],
         searchFields: ['code', 'name', 'customerName'],
         headerNames: ['Voucher No'],
         columnWidths: { name: '100%' },
-        searchPlaceholder: 'Search voucher number...'
+        searchPlaceholder: 'Search voucher number...',
+        showApplyButton: false
       },
       delete: {
         displayFieldKeys: ['name'],
         searchFields: ['code', 'name', 'customerName'],
         headerNames: ['Voucher No'],
         columnWidths: { name: '100%' },
-        searchPlaceholder: 'Search voucher number...'
+        searchPlaceholder: 'Search voucher number...',
+        showApplyButton: false
       }
     };
     
@@ -1102,6 +1436,8 @@ const SalesReturn = () => {
         openSalesmanPopup();
       } else if (fieldName === 'custName') {
         openCustomerPopup();
+      } else if (fieldName === 'newBillNo') {
+        openBillNumberPopup();
       }
     } else if (e.key === 'Enter') {
       e.preventDefault();
@@ -1111,24 +1447,7 @@ const SalesReturn = () => {
     }
   };
 
-  const handleUomSpacebar = (e, id) => {
-    if (e.key === ' ') {
-      e.preventDefault();
-      
-      const currentUom = items.find(item => item.id === id)?.uom || '';
-      const currentIndex = uomValues.indexOf(currentUom.toUpperCase());
-      
-      let nextIndex;
-      if (currentIndex === -1) {
-        nextIndex = 0;
-      } else {
-        nextIndex = (currentIndex + 1) % uomValues.length;
-      }
-      
-      const nextUom = uomValues[nextIndex];
-      handleItemChange(id, 'uom', nextUom);
-    }
-  };
+  // REMOVED: handleUomSpacebar function - no more K/P cycling
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if (e.key === '/' && currentField === 'itemName') {
@@ -1179,9 +1498,9 @@ const SalesReturn = () => {
 
     try {
       const existingItemInList = itemList.find(item => 
-        item.barcode === billDetails.barcodeInput || 
         item.itemCode === billDetails.barcodeInput ||
-        item.code === billDetails.barcodeInput
+        item.code === billDetails.barcodeInput ||
+        item.fItemcode === billDetails.barcodeInput
       );
 
       if (existingItemInList) {
@@ -1202,9 +1521,7 @@ const SalesReturn = () => {
 
   const handleAddItemFromLocal = (itemData) => {
     const existingItemIndex = items.findIndex(item =>
-      (item.barcode === itemData.barcode || 
-       item.barcode === itemData.itemCode ||
-       item.barcode === itemData.code) && 
+      (item.barcode === billDetails.barcodeInput) && 
       item.barcode !== ''
     );
 
@@ -1225,18 +1542,18 @@ const SalesReturn = () => {
       const newItem = {
         id: items.length + 1,
         sNo: items.length + 1,
-        barcode: itemData.barcode || itemData.itemCode || itemData.code,
-        itemName: itemData.fItemName || itemData.itemName || itemData.name,
-        stock: (itemData.stockQty || itemData.stock || itemData.quantity || 0).toString(),
-        mrp: (itemData.mrp || itemData.sellingPrice || itemData.price || 0).toString(),
-        uom: itemData.uom || itemData.unit || "",
-        hsn: itemData.hsnCode || itemData.hsn || "",
-        tax: (itemData.taxRate || itemData.tax || 0).toString(),
-        sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
-        rate: (itemData.sellingPrice || itemData.rate || itemData.price || 0).toString(),
-        itemCode: itemData.itemCode || itemData.code || `0000${items.length + 1}`,
+        barcode: billDetails.barcodeInput,
+        itemName: itemData.fItemName || itemData.itemName || itemData.name || '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        sRate: '',
+        rate: '',
+        itemCode: itemData.fItemcode || itemData.itemCode || itemData.code || `0000${items.length + 1}`,
         qty: '1',
-        amount: (itemData.sellingPrice || itemData.price || 0).toFixed(2)
+        amount: '0.00'
       };
 
       setItems([...items, newItem]);
@@ -1250,18 +1567,18 @@ const SalesReturn = () => {
     const newItem = {
       id: items.length + 1,
       sNo: items.length + 1,
-      barcode: itemData.barcode || itemData.itemCode || itemData.code,
-      itemName: itemData.fItemName || itemData.itemName || itemData.name,
-      stock: (itemData.stockQty || itemData.stock || itemData.quantity || 0).toString(),
-      mrp: (itemData.mrp || itemData.sellingPrice || itemData.price || 0).toString(),
-      uom: itemData.uom || itemData.unit || "",
-      hsn: itemData.hsnCode || itemData.hsn || "",
-      tax: (itemData.taxRate || itemData.tax || 0).toString(),
-      sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
-      rate: (itemData.sellingPrice || itemData.rate || itemData.price || 0).toString(),
-      itemCode: itemData.itemCode || itemData.code || `0000${items.length + 1}`,
+      barcode: billDetails.barcodeInput,
+      itemName: itemData.fItemName || itemData.itemName || itemData.name || '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      itemCode: itemData.fItemcode || itemData.itemCode || itemData.code || `0000${items.length + 1}`,
       qty: '1',
-      amount: (itemData.sellingPrice || itemData.price || 0).toFixed(2)
+      amount: '0.00'
     };
 
     setItems([...items, newItem]);
@@ -1316,79 +1633,94 @@ const SalesReturn = () => {
     const itemName = itemToDelete?.itemName || 'this item';
     const barcode = itemToDelete?.barcode ? `(Barcode: ${itemToDelete.barcode})` : '';
 
-    if (window.confirm(`Are you sure you want to delete "${itemName}" ${barcode}?`)) {
-      if (items.length > 1) {
-        const filteredItems = items.filter(item => item.id !== id);
-        const updatedItems = filteredItems.map((item, index) => ({
-          ...item,
-          sNo: index + 1
-        }));
-        setItems(updatedItems);
-      } else {
-        const clearedItem = {
-          id: 1,
-          sNo: 1,
-          barcode: '',
-          itemName: '',
-          stock: '',
-          mrp: '',
-          uom: '',
-          hsn: '',
-          tax: '',
-          sRate: '',
-          rate: '',
-          qty: '',
-          amount: '0.00',
-          itemCode: '00001'
-        };
-        setItems([clearedItem]);
+    showConfirmation({
+      title: "Delete Item",
+      message: `Are you sure you want to delete "${itemName}" ${barcode}?`,
+      type: "danger",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        if (items.length > 1) {
+          const filteredItems = items.filter(item => item.id !== id);
+          const updatedItems = filteredItems.map((item, index) => ({
+            ...item,
+            sNo: index + 1
+          }));
+          setItems(updatedItems);
+        } else {
+          const clearedItem = {
+            id: 1,
+            sNo: 1,
+            barcode: '',
+            itemName: '',
+            stock: '',
+            mrp: '',
+            uom: '',
+            hsn: '',
+            tax: '',
+            sRate: '',
+            rate: '',
+            qty: '',
+            amount: '0.00',
+            itemCode: '00001'
+          };
+          setItems([clearedItem]);
+        }
       }
-    }
+    });
   };
 
   const handleClear = () => {
-    if (window.confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-      setBillDetails({
-        billNo: 'SR0000001',
-        billDate: new Date().toISOString().substring(0, 10),
-        mobileNo: '',
-        empName: '',
-        empCode: '14789',
-        salesman: '',
-        salesmanCode: '002',
-        custName: '',
-        customerCode: '',
-        returnReason: '',
-        barcodeInput: '',
-        partyCode: '',
-        gstno: '',
-        city: '',
-        type: 'Retail',
-        transType: 'SALES RETURN',
-        billAMT: '0'
-      });
+    showConfirmation({
+      title: "Clear All Data",
+      message: "Are you sure you want to clear all data? This action cannot be undone.",
+      type: "warning",
+      confirmText: "Clear",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        setBillDetails({
+          billNo: 'SR0000001',
+          billDate: new Date().toISOString().substring(0, 10),
+          mobileNo: '',
+          empName: '',
+          empCode: '14789',
+          salesman: '',
+          salesmanCode: '002',
+          custName: '',
+          customerCode: '',
+          returnReason: '',
+          barcodeInput: '',
+          partyCode: '',
+          gstno: '',
+          city: '',
+          type: 'Retail',
+          transType: 'SALES RETURN',
+          billAMT: '0',
+          newBillNo: ''
+        });
 
-      setItems([
-        {
-          id: 1,
-          sNo: 1,
-          barcode: '',
-          itemName: '',
-          stock: '',
-          mrp: '',
-          uom: '',
-          hsn: '',
-          tax: '',
-          sRate: '',
-          rate: '',
-          qty: '',
-          amount: '0.00',
-          itemCode: '00001'
-        }
-      ]);
-      
-      fetchMaxVoucherNo();
-    }
+        setItems([
+          {
+            id: 1,
+            sNo: 1,
+            barcode: '',
+            itemName: '',
+            stock: '',
+            mrp: '',
+            uom: '',
+            hsn: '',
+            tax: '',
+            sRate: '',
+            rate: '',
+            qty: '',
+            amount: '0.00',
+            itemCode: '00001'
+          }
+        ]);
+        
+        fetchMaxVoucherNo();
+      }
+    });
   };
 
   // ==================== SAVE FUNCTION ====================
@@ -1412,23 +1744,72 @@ const SalesReturn = () => {
       return;
     }
 
-    try {
-      const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
-                                !billDetails.billNo.startsWith('SR000000');
-      
-      if (isExistingVoucher) {
-        await updateSalesReturn();
-      } else {
-        await createSalesReturn();
+    showConfirmation({
+      title: "Save Sales Return",
+      message: `Are you sure you want to save this sales return?\n\nTotal Amount: ₹${totalAmount.toFixed(2)}`,
+      type: "success",
+      confirmText: "Save",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        try {
+          const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
+                                    !billDetails.billNo.startsWith('SR000000');
+          
+          if (isExistingVoucher) {
+            await updateSalesReturn();
+          } else {
+            await createSalesReturn();
+          }
+          
+          if (!isExistingVoucher) {
+            setBillDetails({
+              billNo: 'SR0000001',
+              billDate: new Date().toISOString().substring(0, 10),
+              mobileNo: '',
+              empName: '',
+              empCode: '14789',
+              salesman: '',
+              salesmanCode: '002',
+              custName: '',
+              customerCode: '',
+              returnReason: '',
+              barcodeInput: '',
+              partyCode: '',
+              gstno: '',
+              city: '',
+              type: 'Retail',
+              transType: 'SALES RETURN',
+              billAMT: '0',
+              newBillNo: ''
+            });
+
+            setItems([
+              {
+                id: 1,
+                sNo: 1,
+                barcode: '',
+                itemName: '',
+                stock: '',
+                mrp: '',
+                uom: '',
+                hsn: '',
+                tax: '',
+                sRate: '',
+                rate: '',
+                qty: '',
+                amount: '0.00',
+                itemCode: '00001'
+              }
+            ]);
+            
+            fetchMaxVoucherNo();
+          }
+          
+        } catch (err) {
+          console.error("Save error:", err);
+        }
       }
-      
-      if (!isExistingVoucher) {
-        handleClear();
-      }
-      
-    } catch (err) {
-      console.error("Save error:", err);
-    }
+    });
   };
 
   const handlePrint = () => {
@@ -1504,6 +1885,7 @@ const SalesReturn = () => {
       alignItems: 'center',
       gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       flexWrap: 'wrap',
+      position: 'relative',
     },
     inlineLabel: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1531,6 +1913,7 @@ const SalesReturn = () => {
       height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
+      paddingRight: '30px',
     },
     inlineInputClickable: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1548,6 +1931,16 @@ const SalesReturn = () => {
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
       cursor: 'pointer',
+      paddingRight: '30px',
+    },
+    searchIcon: {
+      position: 'absolute',
+      right: '8px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      color: '#1B91DA',
+      cursor: 'pointer',
+      zIndex: 2,
     },
     gridRow: {
       display: 'grid',
@@ -1754,6 +2147,209 @@ const SalesReturn = () => {
       margin: screenSize.isMobile ? '0 10px' : '0 16px',
       marginTop: screenSize.isMobile ? '10px' : '12px',
     },
+    customPopupOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+      padding: screenSize.isMobile ? '10px' : '20px',
+    },
+    customPopupContainer: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+      width: '100%',
+      maxWidth: screenSize.isMobile ? '95vw' : screenSize.isTablet ? '80vw' : '70vw',
+      maxHeight: '80vh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      fontFamily: TYPOGRAPHY.fontFamily,
+    },
+    customPopupHeader: {
+      padding: screenSize.isMobile ? '12px 16px' : '16px 20px',
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    },
+    customPopupTitle: {
+      fontSize: screenSize.isMobile ? '16px' : '18px',
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      margin: 0,
+    },
+    customPopupCloseButton: {
+      background: 'transparent',
+      border: 'none',
+      color: 'white',
+      fontSize: '24px',
+      cursor: 'pointer',
+      padding: '0',
+      width: '30px',
+      height: '30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '4px',
+      transition: 'background-color 0.2s',
+    },
+    customPopupSearchContainer: {
+      padding: screenSize.isMobile ? '12px 16px' : '16px 20px',
+      borderBottom: '1px solid #e0e0e0',
+      backgroundColor: '#f8f9fa',
+    },
+    customPopupSearchInput: {
+      width: '100%',
+      padding: screenSize.isMobile ? '8px 12px' : '10px 16px',
+      border: '1px solid #ddd',
+      borderRadius: '6px',
+      fontSize: screenSize.isMobile ? '14px' : '16px',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      outline: 'none',
+      transition: 'border-color 0.2s',
+      boxSizing: 'border-box',
+    },
+    customPopupContent: {
+      flex: 1,
+      overflowY: 'auto',
+      maxHeight: '50vh',
+    },
+    customPopupTable: {
+      width: '100%',
+      borderCollapse: 'collapse',
+    },
+    customPopupTableHeader: {
+      backgroundColor: '#f5f5f5',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10,
+    },
+    customPopupTableHeaderCell: {
+      padding: screenSize.isMobile ? '8px 12px' : '12px 16px',
+      textAlign: 'left',
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      fontSize: screenSize.isMobile ? '13px' : '14px',
+      color: '#333',
+      borderBottom: '2px solid #ddd',
+      backgroundColor: '#f5f5f5',
+    },
+    customPopupTableRow: {
+      cursor: 'pointer',
+      transition: 'background-color 0.2s',
+      borderBottom: '1px solid #eee',
+    },
+    customPopupTableRowSelected: {
+      backgroundColor: '#e3f2fd',
+    },
+    customPopupTableCell: {
+      padding: screenSize.isMobile ? '10px 12px' : '12px 16px',
+      fontSize: screenSize.isMobile ? '13px' : '14px',
+      color: '#333',
+    },
+    customPopupFooter: {
+      padding: screenSize.isMobile ? '12px 16px' : '16px 20px',
+      borderTop: '1px solid #e0e0e0',
+      backgroundColor: '#f8f9fa',
+      display: 'flex',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      gap: '10px',
+      borderRadius: '0 0 8px 8px',
+    },
+    customPopupFooterButton: {
+      padding: screenSize.isMobile ? '8px 16px' : '10px 20px',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: screenSize.isMobile ? '14px' : '15px',
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      transition: 'background-color 0.2s, transform 0.1s',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      minWidth: '80px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    customPopupClearButton: {
+      backgroundColor: '#1B91DA',
+      color: 'white',
+    },
+    customPopupApplyButton: {
+      backgroundColor: '#1B91DA',
+      color: 'white',
+    },
+    customPopupApplyButtonDisabled: {
+      backgroundColor: '#cccccc',
+      color: '#666666',
+      cursor: 'not-allowed',
+    },
+    noDataMessage: {
+      padding: '40px 20px',
+      textAlign: 'center',
+      color: '#666',
+      fontSize: '16px',
+    },
+    checkboxCell: {
+      padding: screenSize.isMobile ? '8px 8px' : '10px 12px',
+      textAlign: 'center',
+      width: '40px',
+    },
+    checkboxInput: {
+      width: '16px',
+      height: '16px',
+      cursor: 'pointer',
+    },
+    loadMoreButton: {
+      width: '100%',
+      padding: '10px',
+      textAlign: 'center',
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      marginTop: '10px',
+      fontSize: '14px',
+      color: '#1B91DA',
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+    },
+    loadMoreButtonDisabled: {
+      backgroundColor: '#f0f0f0',
+      color: '#999',
+      cursor: 'not-allowed',
+    },
+    itemDetailsTable: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      marginTop: '10px',
+      fontSize: '12px',
+    },
+    itemDetailsHeader: {
+      backgroundColor: '#f8f9fa',
+      fontWeight: 'bold',
+    },
+    itemDetailsHeaderCell: {
+      padding: '6px',
+      border: '1px solid #ddd',
+      textAlign: 'left',
+      fontSize: '11px',
+    },
+    itemDetailsRow: {
+      borderBottom: '1px solid #eee',
+    },
+    itemDetailsCell: {
+      padding: '6px',
+      border: '1px solid #ddd',
+      textAlign: 'left',
+      fontSize: '11px',
+    },
   };
 
   const getGridColumns = () => {
@@ -1764,6 +2360,110 @@ const SalesReturn = () => {
     } else {
       return 'repeat(4, 1fr)';
     }
+  };
+
+  // Render bill details for second popup
+  const renderBillDetailsContent = () => {
+    const billNo = selectedBillForDetails;
+    if (!billNo) return null;
+    
+    const details = billDetailsData[billNo];
+    const isLoading = isLoadingDetails[billNo];
+    
+    if (isLoading) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          Loading bill details...
+        </div>
+      );
+    }
+    
+    if (!details) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          Details not available
+        </div>
+      );
+    }
+    
+    const filteredItems = getFilteredBillItems();
+    
+    return (
+      <div style={{ padding: '20px' }}>
+        {/* Search Box */}
+        <div style={{ marginBottom: '15px' }}>
+          <input
+            type="text"
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontFamily: TYPOGRAPHY.fontFamily,
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              boxSizing: 'border-box',
+            }}
+            placeholder="Search items by code or name..."
+            value={billDetailsSearchText}
+            onChange={(e) => setBillDetailsSearchText(e.target.value)}
+          />
+        </div>
+        
+        {/* Items Table with Checkboxes */}
+        <h4 style={{ marginBottom: '15px', color: '#1B91DA' }}>Items - Select items to return</h4>
+        <table style={styles.itemDetailsTable}>
+          <thead style={styles.itemDetailsHeader}>
+            <tr>
+              <th style={styles.checkboxCell}></th>
+              <th style={styles.itemDetailsHeaderCell}>Item Code</th>
+              <th style={styles.itemDetailsHeaderCell}>Item Name</th>
+              <th style={styles.itemDetailsHeaderCell}>Quantity</th>
+              <th style={styles.itemDetailsHeaderCell}>Unit</th>
+              <th style={styles.itemDetailsHeaderCell}>Rate</th>
+              <th style={styles.itemDetailsHeaderCell}>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredItems.map((item, index) => {
+              const itemKey = item.fItemcode || item.itemCode || index;
+              const isChecked = checkedBills[itemKey] || false;
+              
+              return (
+                <tr key={index} style={styles.itemDetailsRow}>
+                  <td style={styles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      style={styles.checkboxInput}
+                      checked={isChecked}
+                      onChange={(e) => {
+                        setCheckedBills(prev => ({
+                          ...prev,
+                          [itemKey]: e.target.checked
+                        }));
+                      }}
+                    />
+                  </td>
+                  <td style={styles.itemDetailsCell}>{item.fItemcode || item.itemCode || 'N/A'}</td>
+                  <td style={styles.itemDetailsCell}>{item.fitemNme || item.itemName || 'N/A'}</td>
+                  <td style={styles.itemDetailsCell}>{item.fTotQty || item.qty || '0'}</td>
+                  <td style={styles.itemDetailsCell}>{item.fUnit || item.uom || 'N/A'}</td>
+                  <td style={styles.itemDetailsCell}>₹{item.fRate || item.rate || '0.00'}</td>
+                  <td style={styles.itemDetailsCell}>₹{item.fAmount || item.amount || '0.00'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        
+        {filteredItems.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+            {billDetailsSearchText ? "No matching items found" : "No items found in this bill"}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -1796,6 +2496,24 @@ const SalesReturn = () => {
         </div>
       )}
 
+      {/* Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showConfirmPopup}
+        onClose={handleCancelAction}
+        onConfirm={handleConfirmAction}
+        title={confirmPopupConfig.title}
+        message={confirmPopupConfig.message}
+        confirmText={confirmPopupConfig.confirmText}
+        cancelText={confirmPopupConfig.cancelText}
+        type={confirmPopupConfig.type}
+        showIcon={true}
+        disableBackdropClose={false}
+        showLoading={false}
+        defaultFocusedButton="confirm"
+        borderColor="#1B91DA"
+        hideCancelButton={false}
+      />
+
       {/* --- HEADER SECTION --- */}
       <div style={styles.headerSection}>
         {/* ROW 1 */}
@@ -1803,7 +2521,7 @@ const SalesReturn = () => {
           ...styles.gridRow,
           gridTemplateColumns: getGridColumns(),
         }}>
-          {/* Bill No */}
+          {/* Bill No (EXISTING - Auto-generated) */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
@@ -1850,7 +2568,6 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, empNameRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Mobile No"
             />
           </div>
 
@@ -1867,7 +2584,6 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
               onFocus={() => setFocusedField('empName')}
               onBlur={() => setFocusedField('')}
-              placeholder="EMP Name"
             />
           </div>
         </div>
@@ -1891,9 +2607,18 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
               onFocus={() => setFocusedField('salesman')}
               onBlur={() => setFocusedField('')}
-              placeholder="Click or press /"
               readOnly
             />
+            <div 
+              style={styles.searchIcon}
+              onClick={openSalesmanPopup}
+              title="Click or press / to search"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B91DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
           </div>
 
           {/* Customer Name */}
@@ -1907,29 +2632,49 @@ const SalesReturn = () => {
               onChange={handleInputChange}
               ref={custNameRef}
               onClick={openCustomerPopup}
-              onKeyDown={(e) => handleKeyDown(e, returnReasonRef, 'custName')}
+              onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'custName')}
               onFocus={() => setFocusedField('custName')}
               onBlur={() => setFocusedField('')}
-              placeholder="Click or press /"
               readOnly
             />
+            <div 
+              style={styles.searchIcon}
+              onClick={openCustomerPopup}
+              title="Click or press / to search"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B91DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
           </div>
 
-          {/* Return Reason */}
+          {/* NEW Bill No Field (Near Barcode) - Custom Popup */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Return Reason:</label>
+            <label style={styles.inlineLabel}>Bill No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
-              value={billDetails.returnReason}
-              name="returnReason"
+              style={styles.inlineInputClickable}
+              value={billDetails.newBillNo}
+              name="newBillNo"
               onChange={handleInputChange}
-              ref={returnReasonRef}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
-              onFocus={() => setFocusedField('returnReason')}
+              ref={newBillNoRef}
+              onClick={openBillNumberPopup}
+              onKeyDown={(e) => handleKeyDown(e, barcodeRef, 'newBillNo')}
+              onFocus={() => setFocusedField('newBillNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Return Reason"
+              readOnly
             />
+            <div 
+              style={styles.searchIcon}
+              onClick={openBillNumberPopup}
+              title="Click or press / to search"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B91DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
           </div>
 
           {/* Barcode */}
@@ -1950,7 +2695,6 @@ const SalesReturn = () => {
               }}
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
-              placeholder="Scan or Enter Barcode"
             />
           </div>
         </div>
@@ -1995,13 +2739,31 @@ const SalesReturn = () => {
                     <input
                       style={styles.editableInputClickable}
                       value={item.itemName}
-                      placeholder="Click or press /"
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
                       onClick={() => openItemPopup(index)}
                     />
+                    {/* SEARCH ICON IN ITEM NAME */}
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#1B91DA',
+                        cursor: 'pointer',
+                        zIndex: 2,
+                      }}
+                      onClick={() => openItemPopup(index)}
+                      title="Click or press / to search"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1B91DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                    </div>
                   </td>
                   <td style={styles.td}>
                     <input
@@ -2030,14 +2792,7 @@ const SalesReturn = () => {
                       data-row={index}
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === ' ') {
-                          handleUomSpacebar(e, item.id);
-                        } else {
-                          handleTableKeyDown(e, index, 'uom');
-                        }
-                      }}
-                      placeholder="Press space for K/P"
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
                     />
                   </td>
                   <td style={styles.td}>
@@ -2191,30 +2946,84 @@ const SalesReturn = () => {
             onPrint={handlePrint}
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
+            saveDisabled={!isFormValid}
           />
         </div>
       </div>
 
-      {/* PopupListSelector */}
-      <PopupListSelector
-        open={popupOpen}
-        onClose={() => {
-          setPopupOpen(false);
-          setPopupType("");
-          setPopupData([]);
-          setSelectedRowIndex(null);
-          setSelectedAction("");
-        }}
-        onSelect={handlePopupSelect}
-        fetchItems={fetchItemsForPopup}
-        title={popupTitle}
-        displayFieldKeys={getPopupConfig().displayFieldKeys}
-        searchFields={getPopupConfig().searchFields}
-        headerNames={getPopupConfig().headerNames}
-        columnWidths={getPopupConfig().columnWidths}
-        searchPlaceholder={getPopupConfig().searchPlaceholder}
-        maxHeight="70vh"
-      />
+      {/* SECOND POPUP: Bill Details with Checkboxes (Has Apply/Clear buttons) */}
+      {billDetailsPopupOpen && (
+        <div style={styles.customPopupOverlay}>
+          <div style={styles.customPopupContainer}>
+            <div style={styles.customPopupHeader}>
+              <h3 style={styles.customPopupTitle}>Bill Details - {selectedBillForDetails}</h3>
+              <button
+                style={styles.customPopupCloseButton}
+                onClick={() => {
+                  setBillDetailsPopupOpen(false);
+                  setSelectedBillForDetails(null);
+                  setCheckedBills({});
+                  setBillDetailsSearchText("");
+                }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.customPopupContent}>
+              {renderBillDetailsContent()}
+            </div>
+            
+            {/* FOOTER WITH APPLY/CLEAR BUTTONS (BLUE COLOR) */}
+            <div style={styles.customPopupFooter}>
+              <button
+                style={{
+                  ...styles.customPopupFooterButton,
+                  ...styles.customPopupClearButton,
+                }}
+                onClick={handleClearBillNumber}
+              >
+                Clear
+              </button>
+              <button
+                style={{
+                  ...styles.customPopupFooterButton,
+                  ...styles.customPopupApplyButton,
+                  ...(Object.keys(checkedBills).filter(key => checkedBills[key]).length === 0 ? styles.customPopupApplyButtonDisabled : {}),
+                }}
+                onClick={handleApplyBillNumber}
+                disabled={Object.keys(checkedBills).filter(key => checkedBills[key]).length === 0}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Common PopupListSelector for ALL popups including bill number */}
+      {popupOpen && (
+        <PopupListSelector
+          open={popupOpen}
+          onClose={() => {
+            setPopupOpen(false);
+            setPopupType("");
+            setPopupData([]);
+            setSelectedRowIndex(null);
+            setSelectedAction("");
+          }}
+          onSelect={handlePopupSelect}
+          fetchItems={fetchItemsForPopup}
+          title={popupTitle}
+          displayFieldKeys={getPopupConfig().displayFieldKeys}
+          searchFields={getPopupConfig().searchFields}
+          headerNames={getPopupConfig().headerNames}
+          columnWidths={getPopupConfig().columnWidths}
+          searchPlaceholder={getPopupConfig().searchPlaceholder}
+          maxHeight="70vh"
+        />
+      )}
     </div>
   );
 };

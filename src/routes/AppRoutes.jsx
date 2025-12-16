@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Login from '../pages/Login/Login';
 import ProtectedRoute from '../components/ProtectedRoute/ProtectedRoute';
 import TestPage from '../pages/TestPage/TestPage';
@@ -9,6 +9,10 @@ import LedgerGroupCreation from '../pages/Ledgergroupcreation/Ledgergroupcreatio
 import ItemGroupCreation from '../pages/ItemGroupCreation/ItemGroupCreation';
 import BillCollector from '../pages/billcollector/billcollectior';
 import DesignCreation from '../pages/DesignCreation/DesignCreation';
+import CashManagement from '../pages/CashManagement/CashManagement';
+import AmountIssue from '../pages/AmountIssue/AmountIssue';
+import PaymentVoucher from '../pages/PaymentVoucher/PaymentVoucher';
+import { useAuth } from '../context/AuthContext';
 
 const AppRoutes = () => {
   return (
@@ -27,6 +31,8 @@ const AppRoutes = () => {
         <Route path="/item-group-creation" element={<ProtectedRoute><ItemGroupCreation /></ProtectedRoute>} />
         <Route path="/bill-collector" element={<ProtectedRoute><BillCollector /></ProtectedRoute>} />
         <Route path="/design-creation" element={<ProtectedRoute><DesignCreation /></ProtectedRoute>} />
+        <Route path="/amount-issue" element={<ProtectedRoute><AmountIssue /></ProtectedRoute>} />
+        <Route path="/payment-voucher" element={<ProtectedRoute><PaymentVoucher /></ProtectedRoute>} />
         {/* Add more routes here */}
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         {/* <Route path="/products" element={<Products />} /> */}
@@ -134,7 +140,9 @@ const HomePage = () => {
           { path: '/item-group-creation', label: '📂 Item Group', color: '#45B7D1' },
           { path: '/ledger-creation', label: '📊 Ledger Creation', color: '#FFA502' },
           { path: '/ledger-group-creation', label: '📇 Ledger Group', color: '#F7B731' },
-          { path: '/bill-collector', label: '💳 Bill Collector', color: '#5F27CD' }
+          { path: '/bill-collector', label: '💳 Bill Collector', color: '#5F27CD' },
+          { path: '/amount-issue', label: '💵 Amount Issue', color: '#26de81' },
+          { path: '/payment-voucher', label: '💰 Payment Voucher', color: '#FF9FF3' },
         ].map((item, idx) => (
           <a
             key={idx}
@@ -184,6 +192,7 @@ const HomePage = () => {
           <li>✅ <strong>Item Group:</strong> Organize items into categories</li>
           <li>✅ <strong>Ledger Management:</strong> Track financial accounts</li>
           <li>✅ <strong>Bill Collector:</strong> Process payment collections</li>
+          <li>✅ <strong>Cash Management:</strong> Opening and closing cash tracking</li>
           <li>✅ <strong>Test Page:</strong> Try out sample features</li>
         </ul>
       </div>

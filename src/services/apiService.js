@@ -3,7 +3,7 @@
  * Provides get, post, put, del methods for HTTP requests
  */
 
-const API_BASE = "http://dikshiserver/spstores/api";
+const API_BASE = "http://dikshiserver/spstorewebapi/api";
 
 const apiService = {
   /**
