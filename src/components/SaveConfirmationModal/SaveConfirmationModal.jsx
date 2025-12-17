@@ -1,4 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
+import apiService from '../../api/apiService';
+import { API_ENDPOINTS } from '../../api/endpoints';
 
 const SaveConfirmationModal = ({
   isOpen,
@@ -13,13 +15,41 @@ const SaveConfirmationModal = ({
   const confirmRef = useRef(null);
   const [editableParticulars, setEditableParticulars] = useState(particulars);
   const fieldRefs = useRef({});
+  const [openingBalances, setOpeningBalances] = useState({});
 
   // Prepare table data based on particulars
   const denominations = ['500', '200', '100', '50', '20', '10', '5', '2', '1'];
 
+  // Fetch opening balance from API
+  const fetchOpeningBalance = async () => {
+    try {
+      const response = await apiService.getSilent(API_ENDPOINTS.RECEIPTVOUCHER.GET_OPENING_BALANCE);
+      if (response) {
+        // Map API response keys to denominations
+        // API response keys: returned1, returned2, returned5, returned10, returned20, returned50, returned100, returned200
+        const balances = {
+          '500': response.returned500 || 0,
+          '200': response.returned200 || 0,
+          '100': response.returned100 || 0,
+          '50': response.returned50 || 0,
+          '20': response.returned20 || 0,
+          '10': response.returned10 || 0,
+          '5': response.returned5 || 0,
+          '2': response.returned2 || 0,
+          '1': response.returned1 || 0
+        };
+        setOpeningBalances(balances);
+        console.log('Opening balances fetched:', balances);
+      }
+    } catch (err) {
+      console.error('Error fetching opening balance:', err);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       setEditableParticulars(particulars);
+      fetchOpeningBalance();
       // Focus first field (500) when modal opens
       setTimeout(() => {
         if (fieldRefs.current['500']) {
@@ -36,7 +66,8 @@ const SaveConfirmationModal = ({
   const collect = {};
 
   denominations.forEach(denom => {
-    available[denom] = editableParticulars[denom]?.available || 0;
+    // Use opening balances from API if available, otherwise use particulars
+    available[denom] = openingBalances[denom] !== undefined ? openingBalances[denom] : (editableParticulars[denom]?.available || 0);
     collect[denom] = editableParticulars[denom]?.collect || 0;
   });
 
