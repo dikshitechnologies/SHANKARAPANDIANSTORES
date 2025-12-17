@@ -1023,7 +1023,10 @@ useEffect(() => {
       <div className="dashboard" aria-labelledby="product-management-title">
         <div className="top-row">
           <div className="title-block">
-            <Icon.Product size={38} />
+           <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             <div>
               <h2 id="product-management-title">Product Management</h2>
               <div className="subtitle muted">Create, edit, or delete products.</div>

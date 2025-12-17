@@ -996,8 +996,7 @@ export default function SalesmanCreation() {
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
-              <path d="M18 16v-2a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v2" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
-              <circle cx="12" cy="7" r="4" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
               <h2 id="salesman-creation-title">Salesman Creation</h2>

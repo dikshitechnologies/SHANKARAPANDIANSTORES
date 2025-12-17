@@ -440,6 +440,7 @@ useEffect(() => {
         /* Page layout */
         .uc-root {
           min-height: 100vh;
+          
           display: flex;
           align-items: center;
           justify-content: center;
@@ -452,6 +453,7 @@ useEffect(() => {
 
         /* Main dashboard card (glass) */
         .dashboard {
+        
           width: 100%;
           max-width: 700px;
           border-radius: 16px;
@@ -471,11 +473,13 @@ useEffect(() => {
           align-items:center;
           justify-content:space-between;
           gap:12px;
+          
           margin-bottom: 18px;
           flex-wrap: wrap;
         }
         .title-block {
           display:flex;
+          
           align-items: center;
           gap:12px;
         }

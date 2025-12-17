@@ -3,6 +3,7 @@ import './Company.css';
 import apiService from "../../api/apiService";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
 
 // --- SVG Icons (keep the same) ---
 const CreateIcon = () => (
@@ -127,10 +128,23 @@ const Company = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [popupTitle, setPopupTitle] = useState("");
   const [popupMode, setPopupMode] = useState("");
+  
+  // Confirmation popup states
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: "",
+    message: "",
+    type: "default",
+    onConfirm: () => {},
+    onCancel: () => {},
+    confirmText: "Confirm",
+    cancelText: "Cancel"
+  });
+  // const [validationError, setValidationError] = useState("");
 
   const { canCreate, canEdit, canDelete } = useFormPermissions("COMPANY");
 
-  // Refs for keyboard navigation
+  // Refs for keyboard navigation (keeping all existing refs)
   const companyNameRef = useRef(null);
   const gstinRef = useRef(null);
   const phone1Ref = useRef(null);
@@ -183,7 +197,6 @@ const Company = () => {
   const cpCodeRef = useRef(null);
   const backupDbiRef = useRef(null);
   const desc1Ref = useRef(null);
-  
 
   // Create a refs array for easier navigation
   const inputRefs = [
@@ -198,7 +211,6 @@ const Company = () => {
     quantityFormatRef, barcodeRef, balInSalesRef, calculationRef, showStockRef,
     cpInSalesRef, backupPathRef, cpCodeRef, backupDbiRef, desc1Ref
   ];
-
 
   // ✅ Fetch next code
   const fetchNextCode = async () => {
@@ -280,7 +292,6 @@ const Company = () => {
         phone2: company.phonE2 || "",
         statecode: company.stateCode || company.statecode || "",
         phone3: company.phonE3 || "",
-        // phone4: company.phonE4 || "",        
         fcompadd1: company.address ||  "",
         fcompadd2: company.address2 || "",
         fcompadd3: company.address3 || "",
@@ -414,17 +425,12 @@ const Company = () => {
     setSelectedAction("edit");
   };
 
-  const handleKeyDown = (e, currentIndex) => {
+  // Handle Enter Key Navigation
+  const handleKeyDown = (e, nextRef) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      let nextIndex = currentIndex + 1;
-      while (nextIndex < inputRefs.length) {
-        const nextRef = inputRefs[nextIndex];
-        if (nextRef.current && !nextRef.current.disabled && nextRef.current.type !== 'color') {
-          nextRef.current.focus();
-          break;
-        }
-        nextIndex++;
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
       }
     }
   };
@@ -460,29 +466,125 @@ const Company = () => {
   };
 
   const validateForm = () => {
-    if (!formData.fcompname.trim()) {
-      alert("Please enter Company Name");
-      return false;
+  // Perform fresh validation on the current formData
+  if (!formData.fcompname.trim()) {
+    return { isValid: false, message: "Please enter Company Name" };
+  }
+  
+  if (!formData.fusername.trim()) {
+    return { isValid: false, message: "Please enter UserName" };
+  }
+  if (!formData.fpassword.trim()) {
+    return { isValid: false, message: "Please enter Password" };
+  }
+  if (formData.fpassword !== formData.fconfirmpass) {
+    return { isValid: false, message: "Password and Confirm Password do not match" };
+  }
+  
+  return { isValid: true, message: "" };
+};
+
+  // Show confirmation popup
+  const showConfirmation = (config) => {
+    setConfirmConfig(config);
+    setShowConfirmPopup(true);
+  };
+
+  // Handle save with confirmation
+  const handleSaveWithConfirmation = () => {
+  // Get fresh validation result
+  const validationResult = validateForm();
+  
+  if (!validationResult.isValid) {
+    // Use the message from the fresh validation result
+    showConfirmation({
+      title: "Validation Error",
+      message: validationResult.message, // ✅ Correct message now
+      type: "warning",
+      confirmText: "OK",
+      hideCancelButton: true,
+      onConfirm: () => setShowConfirmPopup(false),
+      onCancel: () => setShowConfirmPopup(false)
+    });
+    return;
+  }
+  
+  // ... rest of your success logic ...
+  showConfirmation({
+    title: "Create Company",
+    message: `Are you sure you want to create company "${formData.fcompname}"?`,
+    type: "success",
+    confirmText: "Create",
+    onConfirm: () => {
+      setShowConfirmPopup(false);
+      saveData();
+      clearForm();
+    },
+    onCancel: () => setShowConfirmPopup(false)
+  });
+};
+
+  // Handle update with confirmation
+const handleUpdateWithConfirmation = () => {
+  // Get fresh validation result
+  const validationResult = validateForm();
+  
+  if (!validationResult.isValid) {
+    // Use the message from the fresh validation result
+    showConfirmation({
+      title: "Validation Error",
+      message: validationResult.message,
+      type: "warning",
+      confirmText: "OK",
+      hideCancelButton: true,
+      onConfirm: () => setShowConfirmPopup(false),
+      onCancel: () => setShowConfirmPopup(false)
+    });
+    return;
+  }
+  
+  showConfirmation({
+    title: "Update Company",
+    message: `Are you sure you want to update company "${formData.fcompname}"?`,
+    type: "info",
+    confirmText: "Update",
+    onConfirm: () => {
+      setShowConfirmPopup(false);
+      updateData();
+    },
+    onCancel: () => setShowConfirmPopup(false)
+  });
+};
+
+  // Handle delete with confirmation
+  const handleDeleteWithConfirmation = () => {
+    if (!formData.fcompcode) {
+      showConfirmation({
+        title: "No Company Selected",
+        message: "Please select a company first",
+        type: "warning",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => setShowConfirmPopup(false),
+        onCancel: () => setShowConfirmPopup(false)
+      });
+      return;
     }
     
-    if (!formData.fusername.trim()) {
-      alert("Please enter UserName");
-      return false;
-    }
-    if (!formData.fpassword.trim()) {
-      alert("Please enter Password");
-      return false;
-    }
-    if (formData.fpassword !== formData.fconfirmpass) {
-      alert("Password and Confirm Password do not match");
-      return false;
-    }
-    return true;
+    showConfirmation({
+      title: "Delete Company",
+      message: `Are you sure you want to delete company "${formData.fcompname}" (${formData.fcompcode})? This action cannot be undone.`,
+      type: "danger",
+      confirmText: "Delete",
+      onConfirm: () => {
+        setShowConfirmPopup(false);
+        deleteData();
+      },
+      onCancel: () => setShowConfirmPopup(false)
+    });
   };
 
   const saveData = async () => {
-    if (!validateForm()) return;
-    
     setLoading(true);
     try {
       const payload = {
@@ -550,27 +652,48 @@ const Company = () => {
       );
 
       const successMessage = typeof response === 'object'
-        ? '✅ Company created successfully!'
-        : response || '✅ Company created successfully!';
+        ? 'Company created successfully!'
+        : response || 'Company created successfully!';
 
-      alert(successMessage);
-      fetchCompanyList();
-      clearForm();
+      showConfirmation({
+        title: "Success",
+        message: successMessage,
+        type: "success",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => {
+          setShowConfirmPopup(false);
+          fetchCompanyList();
+          clearForm();
+        },
+        onCancel: () => {
+          setShowConfirmPopup(false);
+          fetchCompanyList();
+          clearForm();
+        }
+      });
     } catch (err) {
       console.error("Failed to save company:", err);
       const errorMessage = err.response?.data?.message
         || err.response?.data
         || err.message
-        || '❌ Failed to save company';
-      alert(errorMessage);
+        || 'Failed to save company';
+      
+      showConfirmation({
+        title: "Error",
+        message: errorMessage,
+        type: "danger",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => setShowConfirmPopup(false),
+        onCancel: () => setShowConfirmPopup(false)
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const updateData = async () => {
-    if (!validateForm()) return;
-
     setLoading(true);
     try {
       const payload = {
@@ -631,35 +754,55 @@ const Company = () => {
         c: ""
       };
 
-      console.log("Save response:", JSON.stringify(payload));
+      console.log("Update response:", JSON.stringify(payload));
       const response = await apiService.post(
         API_ENDPOINTS.COMPANY_ENDPOINTS.UPDATE_COMPANY,
         payload
       );
 
       const successMessage = typeof response === 'object'
-        ? '✅ Company updated successfully!'
-        : response || '✅ Company updated successfully!';
+        ? 'Company updated successfully!'
+        : response || 'Company updated successfully!';
 
-      alert(successMessage);
-      fetchCompanyList();
-      clearForm();
+      showConfirmation({
+        title: "Success",
+        message: successMessage,
+        type: "success",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => {
+          setShowConfirmPopup(false);
+          fetchCompanyList();
+          clearForm();
+        },
+        onCancel: () => {
+          setShowConfirmPopup(false);
+          fetchCompanyList();
+          clearForm();
+        }
+      });
     } catch (err) {
       console.error("Failed to update company:", err);
       const errorMessage = err.response?.data?.message
         || err.response?.data
         || err.message
-        || '❌ Failed to update company';
-      alert(errorMessage);
+        || 'Failed to update company';
+      
+      showConfirmation({
+        title: "Error",
+        message: errorMessage,
+        type: "danger",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => setShowConfirmPopup(false),
+        onCancel: () => setShowConfirmPopup(false)
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const deleteData = async () => {
-    if (!formData.fcompcode) return alert("Select a company first");
-    if (!window.confirm("Are you sure you want to delete this company?")) return;
-
     setLoading(true);
     try {
       const response = await apiService.del(
@@ -667,29 +810,54 @@ const Company = () => {
       );
 
       const successMessage = typeof response === 'object'
-        ? '✅ Company deleted successfully!'
-        : response || '✅ Company deleted successfully!';
+        ? 'Company deleted successfully!'
+        : response || 'Company deleted successfully!';
 
-      alert(successMessage);
-      fetchCompanyList();
-      clearForm();
+      showConfirmation({
+        title: "Success",
+        message: successMessage,
+        type: "success",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => {
+          setShowConfirmPopup(false);
+          fetchCompanyList();
+          clearForm();
+        },
+        onCancel: () => {
+          setShowConfirmPopup(false);
+          fetchCompanyList();
+          clearForm();
+        }
+      });
     } catch (err) {
       console.error("Failed to delete company:", err);
       const errorMessage = err.response?.data?.message
         || err.response?.data
         || err.message
-        || '❌ Failed to delete company';
-      alert(errorMessage);
+        || 'Failed to delete company';
+      
+      showConfirmation({
+        title: "Error",
+        message: errorMessage,
+        type: "danger",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => setShowConfirmPopup(false),
+        onCancel: () => setShowConfirmPopup(false)
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = () => {
-    if (selectedAction === "create") saveData();
-    else if (selectedAction === "edit") updateData();
-    else if (selectedAction === "delete") deleteData();
-  };
+  const handleSubmit = (e) => {
+  if (e) e.preventDefault(); // Prevent default form submission
+  
+  if (selectedAction === "create") handleSaveWithConfirmation();
+  else if (selectedAction === "edit") handleUpdateWithConfirmation();
+  else if (selectedAction === "delete") handleDeleteWithConfirmation();
+};
 
   const filteredData = tableData.filter(
     (item) =>
@@ -733,789 +901,280 @@ const Company = () => {
               <div className="two-column-form">
                 {/* Left side form */}
                 <div className="form-column left-form">
-                  <h3 >Company Details</h3>
+                  <h3>Company Details</h3>
                   <div className="form">
                     <div className="row1">
-                  <div className="input-group">
-                    <label>Company Code</label>
-                    <input
-                      type="text"
-                      value={formData.fcompcode}
-                      onChange={(e) => handleInputChange('fcompcode', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      readOnly={true}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Company Name *</label>
-                    <input
-                      type="text"
-                      ref={companyNameRef}
-                      value={formData.fcompname}
-                      onChange={(e) => handleInputChange('fcompname', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 0)}
-                    />
-                  </div>
-                  </div>
-                  <div className="row2">
-                  <div className="input-group">
-                    <label>GSTIN</label>
-                    <input
-                      type="text"
-                      ref={gstinRef}
-                      value={formData.tngst}
-                      onChange={(e) => handleInputChange('tngst', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 1)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>State </label>
-                    <input
-                      type="text"
-                      ref={stateRef}
-                      value={formData.state}
-                      onChange={(e) => handleInputChange('state', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 2)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>State Code </label>
-                    <input
-                      type="text"
-                      ref={statecodeRef}
-                      value={formData.statecode}
-                      onChange={(e) => handleInputChange('statecode', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 3)}
-                    />
-                  </div>
-                  </div>
-                  <div className="row2">
-                  <div className="input-group">
-                    <label>Phone 1</label>
-                    <input
-                      type="text"
-                      ref={phone1Ref}
-                      value={formData.phone1}
-                      onChange={(e) => handleInputChange('phone1', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 4)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Phone 2</label>
-                    <input
-                      type="text"
-                      ref={phone2Ref}
-                      value={formData.phone2}
-                      onChange={(e) => handleInputChange('phone2', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 5)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Phone 3</label>
-                    <input
-                      type="text"
-                      ref={phone3Ref}
-                      value={formData.phone3}
-                      onChange={(e) => handleInputChange('phone3', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 6)}
-                    />
-                  </div>
-                  </div>
-                  <div className="row4">
-                  <div className="input-group">
-                    <label>Address 1</label>
-                    <input
-                      type="text"
-                      ref={addressRef}
-                      value={formData.fcompadd1}
-                      onChange={(e) => handleInputChange('fcompadd1', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 8)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Address 2</label>
-                    <input
-                      type="text"
-                      ref={address1Ref}
-                      value={formData.fcompadd2}
-                      onChange={(e) => handleInputChange('fcompadd2', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 9)}
-                    />
-                  </div>
-                  </div>
-                  <div className="row4">
-                  <div className="input-group">
-                    <label>Address 3</label>
-                    <input
-                      type="text"
-                      ref={address2Ref}
-                      value={formData.fcompadd3}
-                      onChange={(e) => handleInputChange('fcompadd3', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 10)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Print Name</label>
-                    <input
-                      type="text"
-                      ref={printerNameRef}
-                      value={formData.fprintname}
-                      onChange={(e) => handleInputChange('fprintname', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 11)}
-                    />
-                  </div>
-                  </div>
-                  <div className="row2">
-                  <div className="input-group">
-                    <label>User Name *</label>
-                    <input
-                      type="text"
-                      ref={usernameRef}
-                      value={formData.fusername}
-                      onChange={(e) => handleInputChange('fusername', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 12)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Password *</label>
-                    <input    
-                      type="password"
-                      ref={passwordRef}
-                      value={formData.fpassword}
-                      onChange={(e) => handleInputChange('fpassword', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 13)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Confirm Password *</label>
-                    <input  
-                      type="password"
-                      ref={confirmPasswordRef}
-                      value={formData.fconfirmpass}
-                      onChange={(e) => handleInputChange('fconfirmpass', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 14)}
-                    />
-                  </div>
-                  </div>
-                  <div className="row4">
-                    <div className="input-group">
-                  <label>Description</label>
-                  <input
-                    ref={descriptionRef} type ="text"
-                    value={formData.fdescription}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('fdescription', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('fdescription', formData.fdescription === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Print GAP</label>
-                  <input
-                    ref={printgapRef} type ="text"
-                    value={formData.fprintgap}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('fprintgap', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('fprintgap', formData.fprintgap === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                </div>
-                <div className="row2">
-                  <div className="input-group">
-                  <label>Prefix</label>
-                  <input
-                    type="text"
-                    ref={prefixRef}
-                    maxLength={2}
-                    value={formData.fprefix}
-                    onChange={(e) => handleInputChange('fprefix', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 15)}
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Default Mode</label>
-                  <input    
-                    type="text"
-                    value ={formData.fdefaultmode}
-                    ref={defaultModeRef}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "T" || v === "N") handleInputChange('fdefaultmode', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('fdefaultmode', formData.fdefaultmode === "N" ? "T" : "N");
-                      }
-                    }}
-                    placeholder="T or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-               
-                  <div className="input-group">
-                  <label> Bill Prefix</label>
-                  <input
-                    type="text"
-                    ref={billPrefixRef}
-                    maxLength={3}
-                    value={formData.billprefix}
-                    onChange={(e) => handleInputChange('billprefix', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 16)}
-                  />
-                
-                </div>
-                </div>
-                {/* <div className="row">
-                  <div className="input-group">
-                  <label>Note 1</label>
-                  <input  
-                    type="text"
-                    ref={note1Ref}
-                    value={formData.note1}
-                    onChange={(e) => handleInputChange('note1', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 17)}
-                  />  
-                </div>
-                </div>
-                <div className="row">
-                <div className="input-group">
-                  <label>Note 2</label> 
-                  <input
-                    type="text"
-                    ref={note2Ref}
-                    value={formData.note2}
-                    onChange={(e) => handleInputChange('note2', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 18)}
-                  />
-                  </div>
-                  </div>
-                  <div className="row">
-                  <div className="input-group">
-                  <label>Note 3</label>
-                  <input
-                    type="text"
-                    ref={note3Ref}
-                    value={formData.note3}
-                    onChange={(e) => handleInputChange('note3', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 19)}
-                  />
-                  </div>
-                  </div>
-                  <div className="row">
-                  <div className="input-group">
-                  <label>Note 4</label> 
-                  <input
-                    type="text"
-                    ref={note4Ref}
-                    value={formData.note4}
-                    onChange={(e) => handleInputChange('note4', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 20)}
-                  />
-                  </div>
-                  </div>
-                  <div className="row">
-                  <div className="input-group">
-                  <label>Note 5</label> 
-                  <input
-                    type="text"
-                    ref={note5Ref}
-                    value={formData.note5}
-                    onChange={(e) => handleInputChange('note5', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 21)}
-                  />
-                  </div>
-                  </div> */}
-                </div>
-                </div>
-
-                {/* Right side form */}
-                {/* <div className="form-column right-form">
-                  <h3 style={{textAlign:'center', marginBottom: '0'}}>Bank Details</h3>
-                  <div className="form">
+                      <div className="input-group">
+                        <label>Company Code</label>
+                        <input
+                          type="text"
+                          value={formData.fcompcode}
+                          onChange={(e) => handleInputChange('fcompcode', e.target.value)}
+                          onKeyDown={(e)=>handleKeyDown(e,companyNameRef)}
+                          disabled={selectedAction === "delete"}
+                          readOnly={true}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Company Name *</label>
+                        <input
+                          type="text"
+                          ref={companyNameRef}
+                          value={formData.fcompname}
+                          onChange={(e) => handleInputChange('fcompname', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, gstinRef)}
+                        />
+                      </div>
+                    </div>
+                    <div className="row2">
+                      <div className="input-group">
+                        <label>GSTIN</label>
+                        <input
+                          type="text"
+                          ref={gstinRef}
+                          value={formData.tngst}
+                          onChange={(e) => handleInputChange('tngst', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, stateRef)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>State </label>
+                        <input
+                          type="text"
+                          ref={stateRef}
+                          value={formData.state}
+                          onChange={(e) => handleInputChange('state', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, statecodeRef)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>State Code </label>
+                        <input
+                          type="text"
+                          ref={statecodeRef}
+                          value={formData.statecode}
+                          onChange={(e) => handleInputChange('statecode', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, phone1Ref)}
+                        />
+                      </div>
+                    </div>
+                    <div className="row2">
+                      <div className="input-group">
+                        <label>Phone 1</label>
+                        <input
+                          type="text"
+                          ref={phone1Ref}
+                          value={formData.phone1}
+                          onChange={(e) => handleInputChange('phone1', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, phone2Ref)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Phone 2</label>
+                        <input
+                          type="text"
+                          ref={phone2Ref}
+                          value={formData.phone2}
+                          onChange={(e) => handleInputChange('phone2', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, phone3Ref)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Phone 3</label>
+                        <input
+                          type="text"
+                          ref={phone3Ref}
+                          value={formData.phone3}
+                          onChange={(e) => handleInputChange('phone3', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, addressRef)}
+                        />
+                      </div>
+                    </div>
                     <div className="row4">
-                  <div className="input-group">
-                    <label>Bank Name</label>
-                    <input
-                      type="text"
-                      ref={bankNameRef}
-                      value={formData.bankname}
-                      onChange={(e) => handleInputChange('bankname', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 7)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Branch</label>
-                    <input
-                      type="text"
-                      ref={branchRef}
-                      value={formData.branch}
-                      onChange={(e) => handleInputChange('branch', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 8)}
-                    />
-                  </div>
-                  </div>
-                  <div className="row4">
-                  <div className="input-group">
-                    <label>IFSC Code</label>  
-                    <input
-                      type="text"
-                      ref={ifsCodeRef}
-                      value={formData.ifscode}
-                      onChange={(e) => handleInputChange('ifscode', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 9)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Account Number</label>
-                    <input
-                      type="text"
-                      ref={accountNumberRef}
-                      value={formData.accno}
-                      onChange={(e) => handleInputChange('accno', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 10)}
-                    />
-                  </div> 
-                  </div> 
-                  <div className="row2">                  
-                    <div className="input-group">
-                  <label>GST Mode</label>
-                  <input
-                    ref={gstModeRef} type ="text"
-                    value={formData.gstmode}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "I" || v === "E") handleInputChange('gstmode', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('gstmode', formData.gstmode === "I" ? "E" : "I");
-                      }
-                    }}
-                    placeholder="I or E"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Sales Rate</label>
-                  <input
-                    ref={salesRateRef} type ="text"
-                    value={formData.salesrate}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "I" || v === "P") handleInputChange('salesrate', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('salesrate', formData.salesrate === "P" ? "I" : "P");
-                      }
-                    }}
-                    placeholder="I or P"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                <div className="input-group">
-                      <label>Sales Type</label>
-                      <input
-                        ref={salesTypeRef}
-                        type="text"
-                        value={formData.salestype}
-                        onChange={(e) => {
-                          const v = e.target.value.toUpperCase();
-                          if (v === "W" || v === "R" || v === "A") handleInputChange('salestype', v);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === " ") {
-                            const current = formData.salestype;
-                            if (current === "W") handleInputChange('salestype', "R");
-                            else if (current === "R") handleInputChange('salestype', "A");
-                            else if (current === "A") handleInputChange('salestype', "W");
-                            else handleInputChange('salestype', "W"); // default
-                          }
-                        }}
-                        placeholder="W, R, or A"
-                        style={{ textAlign: "center" }}
-                      />
+                      <div className="input-group">
+                        <label>Address 1</label>
+                        <input
+                          type="text"
+                          ref={addressRef}
+                          value={formData.fcompadd1}
+                          onChange={(e) => handleInputChange('fcompadd1', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, address1Ref)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Address 2</label>
+                        <input
+                          type="text"
+                          ref={address1Ref}
+                          value={formData.fcompadd2}
+                          onChange={(e) => handleInputChange('fcompadd2', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, address2Ref)}
+                        />
+                      </div>
+                    </div>
+                    <div className="row4">
+                      <div className="input-group">
+                        <label>Address 3</label>
+                        <input
+                          type="text"
+                          ref={address2Ref}
+                          value={formData.fcompadd3}
+                          onChange={(e) => handleInputChange('fcompadd3', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, printerNameRef)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Print Name</label>
+                        <input
+                          type="text"
+                          ref={printerNameRef}
+                          value={formData.fprintname}
+                          onChange={(e) => handleInputChange('fprintname', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, usernameRef)}
+                        />
+                      </div>
+                    </div>
+                    <div className="row2">
+                      <div className="input-group">
+                        <label>User Name *</label>
+                        <input
+                          type="text"
+                          ref={usernameRef}
+                          value={formData.fusername}
+                          onChange={(e) => handleInputChange('fusername', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, passwordRef)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Password *</label>
+                        <input    
+                          type="password"
+                          ref={passwordRef}
+                          value={formData.fpassword}
+                          onChange={(e) => handleInputChange('fpassword', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, confirmPasswordRef)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Confirm Password *</label>
+                        <input  
+                          type="password"
+                          ref={confirmPasswordRef}
+                          value={formData.fconfirmpass}
+                          onChange={(e) => handleInputChange('fconfirmpass', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, descriptionRef)}
+                        />
+                      </div>
+                    </div>
+                    <div className="row4">
+                      <div className="input-group">
+                        <label>Description</label>
+                        <input
+                          ref={descriptionRef} type ="text"
+                          value={formData.fdescription}
+                          onChange={(e) => {
+                            const v = e.target.value.toUpperCase();
+                            if(v === "Y" || v === "N") handleInputChange('fdescription', v);
+                          }}
+                          onKeyDown={(e) => {
+                            handleKeyDown(e, printgapRef);
+                            if (e.key === " ") {
+                              handleInputChange('fdescription', formData.fdescription === "N" ? "Y" : "N");
+                            }
+                          }}
+                          placeholder="Y or N"
+                          style={{ textAlign: "center" }}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Print GAP</label>
+                        <input
+                          ref={printgapRef} type ="text"
+                          value={formData.fprintgap}
+                          onChange={(e) => {
+                            const v = e.target.value.toUpperCase();
+                            if(v === "Y" || v === "N") handleInputChange('fprintgap', v);
+                          }}
+                          onKeyDown={(e) => {
+                            handleKeyDown(e, prefixRef);  
+                            if (e.key === " ") {
+                              handleInputChange('fprintgap', formData.fprintgap === "N" ? "Y" : "N");
+                            }
+                          }}
+                          placeholder="Y or N"
+                          style={{ textAlign: "center" }}
+                        />
+                      </div>
+                    </div>
+                    <div className="row2">
+                      <div className="input-group">
+                        <label>Prefix</label>
+                        <input
+                          type="text"
+                          ref={prefixRef}
+                          maxLength={2}
+                          value={formData.fprefix}
+                          onChange={(e) => handleInputChange('fprefix', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, defaultModeRef)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Default Mode</label>
+                        <input    
+                          type="text"
+                          value ={formData.fdefaultmode}
+                          ref={defaultModeRef}
+                          onChange={(e) => {
+                            const v = e.target.value.toUpperCase();
+                            if(v === "T" || v === "N") handleInputChange('fdefaultmode', v);
+                          }}
+                          onKeyDown={(e) => {
+                            handleKeyDown(e, billPrefixRef);
+                            if (e.key === " ") {
+                              handleInputChange('fdefaultmode', formData.fdefaultmode === "N" ? "T" : "N");
+                            }
+                          }}
+                          placeholder="T or N"
+                          style={{ textAlign: "center" }}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Bill Prefix</label>
+                        <input
+                          type="text"
+                          ref={billPrefixRef}
+                          maxLength={3}
+                          value={formData.billprefix}
+                          onChange={(e) => handleInputChange('billprefix', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          // onKeyDown={(e) => handleKeyDown(e,)}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="row4">                    
-                    <div className="input-group">
-                    <label>Printing</label>
-                    <input
-                      type="text"
-                      ref={printingRef}
-                      value={formData.printing}
-                      onChange={(e) => handleInputChange('printing', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 11)}
-                    />
-                    </div>
-                    <div className="input-group">
-                      <label>Tag Print</label>
-                      <input  
-                        type="text"
-                        ref={tagPrintRef}
-                        value={formData.tagprint}
-                        onChange={(e) => handleInputChange('tagprint', e.target.value)}
-                        disabled={selectedAction === "delete"}
-                        onKeyDown={(e) => handleKeyDown(e, 12)}
-                      />
-                    </div>
-                    </div>
-                    <div className="row1">
-                    <div className="input-group">
-                      <label>Bill Prefix</label>
-                      <input
-                        ref={billPrefixRef} type ="text"
-                        value={formData.billprefix}
-                        onChange={(e) => {
-                          const v = e.target.value.toUpperCase();
-                          if(v === "Y" || v === "N") handleInputChange('billprefix', v);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === " ") {
-                            handleInputChange('billprefix', formData.billprefix === "N" ? "Y" : "N");
-                          }
-                        }}
-                        placeholder="Y or N"
-                        style={{ textAlign: "center" }}
-                      />
-                    </div>                  
-                  
-                  <div className="input-group">
-                    <label>Template</label>
-                    <input  
-                      type="text"
-                      ref={templateRef}
-                      value={formData.template}
-                      onChange={(e) => handleInputChange('template', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 13)}
-                    />  
-                  </div>
-                  </div>
-                  <div className="row1">
-                  <div className="input-group">
-                    <label>No of Print</label>
-                    <input  
-                      type="text"
-                      ref={numberOfPrintRef}
-                      value={formData.noofprint}
-                      onChange={(e) => handleInputChange('noofprint', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 14)}
-                    />  
-                  </div>
-                  <div className="input-group">
-                    <label>Message</label>
-                    <input  
-                      type="text"
-                      ref={messageRef}
-                      value={formData.message}
-                      onChange={(e) => handleInputChange('message', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 15)}
-                    />
-                  </div>
-                  </div>
-                  <div className="row2">
-                    <div className="input-group">
-                  <label>Jewellery Sales</label>
-                  <input
-                    ref={jewellerySalesRef} type ="text"
-                    value={formData.jewellerysales}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('jewellerysales', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('jewellerysales', formData.jewellerysales === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
                 </div>
-                <div className="input-group">
-                  <label>Narration (Y/N)</label>
-                  <input
-                    ref={narrationRef}
-                    type="text"
-                    maxLength={1}
-                    value={narrationToggle}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if (v === "Y" || v === "N") setNarrationToggle(v);
-                    }}
-                    onKeyDown={(e) => {
-                    if (e.key === " ") setNarrationToggle(prev => prev === "N" ? "Y" : "N");
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div> 
-                <div className="input-group">
-                  <label>Less Qty</label>
-                  <input
-                    ref={lessQuantityRef} type ="text"
-                    value={formData.lessqty}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('lessqty', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('lessqty', formData.lessqty === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                </div>
-                <div className="row4">
-                  <div className="input-group">
-                  <label>Sender ID</label>
-                  <input
-                    type="text"
-                    ref={senderIdRef}
-                    value={formData.senderid}
-                    onChange={(e) => handleInputChange('senderid', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 16)}
-                  />
-                  </div>
-                  <div className="input-group">
-                    <label>Qty Format</label>
-                    <input
-                      type="text"
-                      ref={quantityFormatRef}
-                      value={formData.qtyformat}
-                      onChange={(e) => handleInputChange('qtyformat', e.target.value)}
-                      disabled={selectedAction === "delete"}
-                      onKeyDown={(e) => handleKeyDown(e, 17)}
-                    />
-                    </div>
-                  </div>
-                  <div className="row2">
-                    <div className="input-group">
-                  <label>Bar Code</label>
-                  <input
-                    ref={barcodeRef} type ="text"
-                    value={formData.barcode}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('barcode', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('barcode', formData.barcode === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Bal in Sales</label>
-                  <input
-                    ref={balInSalesRef} type ="text"
-                    value={formData.balinsales}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('balinsales', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('balinsales', formData.balinsales === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Calculation</label>
-                  <input
-                    ref={calculationRef} type ="text"
-                    value={formData.calculation}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Q" || v === "A") handleInputChange('calculation', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('calculation', formData.calculation === "A" ? "Q" : "A");
-                      }
-                    }}
-                    placeholder="Q or A"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                </div>
-                <div className="row4">
-                <div className="input-group">
-                  <label>Show Stock</label>
-                  <input
-                    ref={showStockRef} type ="text"
-                    value={formData.showstock}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('showstock', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('showstock', formData.showstock === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                <div className="input-group">
-                  <label>CP in Sales </label>
-                  <input
-                    ref={cpInSalesRef} type ="text"
-                    value={formData.cpinsales}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "Y" || v === "N") handleInputChange('cpinsales', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('cpinsales', formData.cpinsales === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="Y or N"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                </div>
-                <div className="row4">
-                  <div className="input-group">
-                  <label>DBI Path</label>
-                  <input
-                    type="text"
-                    ref={backupPathRef}
-                    value={formData.dbipath}
-                    onChange={(e) => handleInputChange('dbipath', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 21)}
-                  />
-                  </div>
-                <div className="input-group">
-                  <label>Backup DBI</label>
-                  <input
-                    type="text"
-                    ref={backupDbiRef}
-                    value={formData.backupdbi}
-                    onChange={(e) => handleInputChange('backupdbi', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 22)}
-                  />
-                  </div>
-                  </div>
-                  <div className="row4">
-                  <div className="input-group">
-                  <label>CP Code</label>
-                  <input
-                    type="text"
-                    ref = {cpCodeRef}
-                    value={formData.cpcode}
-                    onChange={(e) => handleInputChange('cpcode', e.target.value)}
-                    disabled={selectedAction === "delete"}
-                    onKeyDown={(e) => handleKeyDown(e, 23)}
-                  />
-                  </div>
-                  <div className="input-group">
-                  <label>Desc 1</label>
-                  <input
-                    ref={desc1Ref} type ="text"
-                    value={formData.desc1}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      if(v === "N" || v === "Y") handleInputChange('desc1', v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === " ") {
-                        handleInputChange('desc1', formData.desc1 === "N" ? "Y" : "N");
-                      }
-                    }}
-                    placeholder="N or Y"
-                    style={{ textAlign: "center" }}
-                  />
-                </div>
-                </div>
-                <div className="row4">
-                  <div className="input-group">
-                  <label>CompanyPrint Color</label>
-                  <input
-                    type="color"
-                    value={companycolor}
-                    onChange={(e) => setCompanyColor(e.target.value)}
-                    disabled={selectedAction === "delete"}
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Print Address Color</label>
-                  <input
-                    type="color"
-                    value={addresscolor}
-                    onChange={(e) => setAddressColor(e.target.value)}
-                    disabled={selectedAction === "delete"}
-                  />
-                </div>
-              </div>
-                </div>
-                </div> */}
               </div>
 
               <div className="button-row">
                 <button
                   className="submit-btn"
-                  onClick={handleSubmit}
+                  onClick={(e) => handleSubmit(e)} // Pass event
                   disabled={loading || (selectedAction === "create" ? !canCreate : selectedAction === "edit" ? !canEdit : !canDelete)}
-                  title={selectedAction === "create" ? (!canCreate ? "You don't have permission to create" : "") : selectedAction === "edit" ? (!canEdit ? "You don't have permission to edit" : "") : (!canDelete ? "You don't have permission to delete" : "")}
                 >
                   {loading ? "Processing..." :
                     selectedAction === "create" ? "Create Company" :
@@ -1549,17 +1208,17 @@ const Company = () => {
               </div>
               <div>
                 <p
-                style={{
-                  fontSize: "13px",
-                  color: "#666",
-                  marginBottom: "15px",
-                  flexShrink: 0,
-                  textAlign: "center"
-                }}
-              >
-                💡 Click a row to load company details for editing.
-                {tableData.length > 0 && ` Total: ${tableData.length} companies`}
-              </p>
+                  style={{
+                    fontSize: "13px",
+                    color: "#666",
+                    marginBottom: "15px",
+                    flexShrink: 0,
+                    textAlign: "center"
+                  }}
+                >
+                  💡 Click a row to load company details for editing.
+                  {tableData.length > 0 && ` Total: ${tableData.length} companies`}
+                </p>
               </div>
               <div className="table-wrapper compact-table">
                 <table className="table">
@@ -1596,6 +1255,7 @@ const Company = () => {
         </div>
       </div>
 
+      {/* Popup for selecting company */}
       <PopupListSelector
         open={showPopup}
         onClose={handlePopupClose}
@@ -1607,6 +1267,25 @@ const Company = () => {
         headerNames={['Code', 'Company Name']}
         columnWidths={{ code: '20%', name: '80%' }}
         searchPlaceholder="Search by code or name..."
+      />
+
+      {/* Confirmation Popup for all actions */}
+      <ConfirmationPopup
+        isOpen={showConfirmPopup}
+        onClose={() => setShowConfirmPopup(false)}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+        confirmText={confirmConfig.confirmText}
+        cancelText={confirmConfig.cancelText}
+        hideCancelButton={confirmConfig.hideCancelButton}
+        showLoading={loading}
+        defaultFocusedButton={confirmConfig.hideCancelButton ? "confirm" : "confirm"}
+        borderColor={confirmConfig.type === "danger" ? "#ef4444" : 
+                     confirmConfig.type === "success" ? "#10b981" : 
+                     confirmConfig.type === "warning" ? "#f59e0b" : 
+                     confirmConfig.type === "info" ? "#3b82f6" : "black"}
       />
     </>
   );
