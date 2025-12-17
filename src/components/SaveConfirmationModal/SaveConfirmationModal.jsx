@@ -12,20 +12,24 @@ const SaveConfirmationModal = ({
 }) => {
   const confirmRef = useRef(null);
   const [editableParticulars, setEditableParticulars] = useState(particulars);
+  const fieldRefs = useRef({});
+
+  // Prepare table data based on particulars
+  const denominations = ['500', '200', '100', '50', '20', '10', '5', '2', '1'];
 
   useEffect(() => {
     if (isOpen) {
       setEditableParticulars(particulars);
-      if (confirmRef.current) {
-        confirmRef.current.focus();
-      }
+      // Focus first field (500) when modal opens
+      setTimeout(() => {
+        if (fieldRefs.current['500']) {
+          fieldRefs.current['500'].focus();
+        }
+      }, 100);
     }
   }, [isOpen, particulars]);
 
   if (!isOpen) return null;
-
-  // Prepare table data based on particulars
-  const denominations = ['500', '200', '100', '50', '20', '10', '5', '2', '1'];
   
   // Initialize counters
   const available = {};
@@ -46,6 +50,26 @@ const SaveConfirmationModal = ({
         collect: numValue
       }
     }));
+  };
+
+  // Handle Enter key to move to next field
+  const handleKeyDown = (e, denom) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentIndex = denominations.indexOf(denom);
+      if (currentIndex < denominations.length - 1) {
+        // Move to next denomination
+        const nextDenom = denominations[currentIndex + 1];
+        if (fieldRefs.current[nextDenom]) {
+          fieldRefs.current[nextDenom].focus();
+        }
+      } else {
+        // Move to Save button
+        if (confirmRef.current) {
+          confirmRef.current.focus();
+        }
+      }
+    }
   };
 
   // Handle confirm with updated values
@@ -205,7 +229,7 @@ const SaveConfirmationModal = ({
                 >
                   COLLECT
                 </td>
-                {denominations.map((denom) => (
+                {denominations.map((denom, index) => (
                   <td
                     key={`collect-${denom}`}
                     style={{
@@ -215,11 +239,15 @@ const SaveConfirmationModal = ({
                     }}
                   >
                     <input
+                      ref={(el) => (fieldRefs.current[denom] = el)}
                       type="number"
                       value={collect[denom] === 0 ? '' : collect[denom]}
                       onChange={(e) => handleCollectChange(denom, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, denom)}
                       min="0"
                       placeholder="0"
+                      autoFocus={index === 0}
+                      tabIndex={index}
                       style={{
                         width: '50px',
                         padding: '6px 8px',
@@ -287,6 +315,7 @@ const SaveConfirmationModal = ({
             ref={confirmRef}
             onClick={handleConfirmClick}
             disabled={loading}
+            tabIndex={9}
             style={{
               padding: '10px 24px',
               background: loading
