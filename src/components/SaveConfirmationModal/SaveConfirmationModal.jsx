@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
+import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
 
 const SaveConfirmationModal = ({
   isOpen,
@@ -16,6 +17,8 @@ const SaveConfirmationModal = ({
   const [editableParticulars, setEditableParticulars] = useState(particulars);
   const fieldRefs = useRef({});
   const [openingBalances, setOpeningBalances] = useState({});
+  const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
+  const [saveConfirmationLoading, setSaveConfirmationLoading] = useState(false);
 
   // Prepare table data based on particulars
   const denominations = ['500', '200', '100', '50', '20', '10', '5', '2', '1'];
@@ -105,7 +108,21 @@ const SaveConfirmationModal = ({
 
   // Handle confirm with updated values
   const handleConfirmClick = () => {
-    onConfirm(editableParticulars);
+    setSaveConfirmationOpen(true);
+  };
+
+  // Handle the actual save after confirmation
+  const handleSaveConfirmation = async () => {
+    setSaveConfirmationLoading(true);
+    try {
+      // Call the parent's onConfirm callback with the particulars
+      onConfirm(editableParticulars);
+      setSaveConfirmationOpen(false);
+    } catch (err) {
+      console.error('Error during save confirmation:', err);
+    } finally {
+      setSaveConfirmationLoading(false);
+    }
   };
 
   return (
@@ -368,6 +385,19 @@ const SaveConfirmationModal = ({
           </button>
         </div>
       </div>
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={saveConfirmationOpen}
+        onClose={() => setSaveConfirmationOpen(false)}
+        onConfirm={handleSaveConfirmation}
+        title="Confirm Save"
+        message="Are you sure you want to save this voucher?"
+        type="success"
+        confirmText={saveConfirmationLoading ? 'Saving...' : 'Save'}
+        showLoading={saveConfirmationLoading}
+        disableBackdropClose={saveConfirmationLoading}
+      />
     </div>
   );
 };
