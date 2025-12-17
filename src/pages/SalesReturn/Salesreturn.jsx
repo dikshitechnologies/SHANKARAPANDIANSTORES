@@ -85,7 +85,8 @@ const SalesReturn = () => {
   const [selectedRowIndex, setSelectedRowIndex] = useState(null);
   const [selectedAction, setSelectedAction] = useState("");
   const [selectedBillNumber, setSelectedBillNumber] = useState(null);
-  
+  const [selectAllItems, setSelectAllItems] = useState(false);
+
   // 5. Confirmation Popup States
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [confirmPopupConfig, setConfirmPopupConfig] = useState({
@@ -122,6 +123,7 @@ const SalesReturn = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingBills, setIsLoadingBills] = useState(false);
+   const [isEditMode, setIsEditMode] = useState(false);
 
   // NEW STATE: For save button validation
   const [isFormValid, setIsFormValid] = useState(false);
@@ -969,6 +971,8 @@ const updateSalesReturn = async () => {
         );
         await fetchVoucherList();
         handleClear();
+        setIsEditMode(false);
+
         
         return response;
       } else {
@@ -1104,7 +1108,8 @@ const updateSalesReturn = async () => {
       }
       
       toast.success(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
-      
+      setIsEditMode(true); // ✅ IMPORTANT
+
     } catch (err) {
       console.error("Error loading voucher for editing:", err);
       toast.error(`Error loading voucher: ${err.message}`);
@@ -2507,7 +2512,7 @@ const handleSave = async () => {
       justifyContent: 'center',
     },
     customPopupClearButton: {
-      backgroundColor: '#1B91DA',
+      backgroundColor: '#da1b2be3',
       color: 'white',
     },
     customPopupApplyButton: {
@@ -2639,6 +2644,17 @@ const handleSave = async () => {
         border: 1px solid #ddd !important;
         box-shadow: none !important;
       }
+        @keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
       
       input:focus, 
       select:focus {
@@ -2663,109 +2679,114 @@ const handleSave = async () => {
     }
   };
 
-  // Render bill details for second popup
-  const renderBillDetailsContent = () => {
-    const billNo = selectedBillForDetails;
-    if (!billNo) return null;
-    
-    const details = billDetailsData[billNo];
-    const isLoading = isLoadingDetails[billNo];
-    
-    if (isLoading) {
-      return (
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          Loading bill details...
-        </div>
-      );
-    }
-    
-    if (!details) {
-      return (
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          Details not available
-        </div>
-      );
-    }
-    
-    const filteredItems = getFilteredBillItems();
-    
-    return (
-      <div style={{ padding: '20px' }}>
-        {/* Search Box */}
-        <div style={{ marginBottom: '15px' }}>
-          <input
-            type="text"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontFamily: TYPOGRAPHY.fontFamily,
-              outline: 'none',
-              transition: 'border-color 0.2s',
-              boxSizing: 'border-box',
-            }}
-            placeholder="Search items by code or name..."
-            value={billDetailsSearchText}
-            onChange={(e) => setBillDetailsSearchText(e.target.value)}
-          />
-        </div>
-        
-        {/* Items Table with Checkboxes */}
-        <h4 style={{ marginBottom: '15px', color: '#1B91DA' }}>Items - Select items to return</h4>
-        <table style={styles.itemDetailsTable}>
-          <thead style={styles.itemDetailsHeader}>
-            <tr>
-              <th style={styles.checkboxCell}></th>
-              
-              <th style={styles.itemDetailsHeaderCell}>Item Name</th>
-              <th style={styles.itemDetailsHeaderCell}>Quantity</th>
-              <th style={styles.itemDetailsHeaderCell}>Unit</th>
-              <th style={styles.itemDetailsHeaderCell}>Rate</th>
-              <th style={styles.itemDetailsHeaderCell}>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredItems.map((item, index) => {
-              const itemKey = item.fItemcode || item.itemCode || index;
-              const isChecked = checkedBills[itemKey] || false;
-              
-              return (
-                <tr key={index} style={styles.itemDetailsRow}>
-                  <td style={styles.checkboxCell}>
-                    <input
-                      type="checkbox"
-                      style={styles.checkboxInput}
-                      checked={isChecked}
-                      onChange={(e) => {
-                        setCheckedBills(prev => ({
-                          ...prev,
-                          [itemKey]: e.target.checked
-                        }));
-                      }}
-                    />
-                  </td>
-                
-                  <td style={styles.itemDetailsCell}>{item.fitemNme || item.itemName || 'N/A'}</td>
-                  <td style={styles.itemDetailsCell}>{item.fTotQty || item.qty || '0'}</td>
-                  <td style={styles.itemDetailsCell}>{item.fUnit || item.uom || 'N/A'}</td>
-                  <td style={styles.itemDetailsCell}>₹{item.fRate || item.rate || '0.00'}</td>
-                  <td style={styles.itemDetailsCell}>₹{item.fAmount || item.amount || '0.00'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        
-        {filteredItems.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-            {billDetailsSearchText ? "No matching items found" : "No items found in this bill"}
-          </div>
-        )}
-      </div>
-    );
+const renderBillDetailsContent = () => {
+  const billNo = selectedBillForDetails;
+  if (!billNo) return null;
+
+  const details = billDetailsData[billNo];
+  if (!details) {
+    return <div style={{ padding: 30, textAlign: "center" }}>No data</div>;
+  }
+
+  const itemsArray = details.items || details.details || [];
+
+  const handleSelectAll = (checked) => {
+    setSelectAllItems(checked);
+    const updated = {};
+    itemsArray.forEach(item => {
+      const key = item.fItemcode || item.itemCode;
+      updated[key] = checked;
+    });
+    setCheckedBills(updated);
   };
+
+  return (
+    <div style={{ padding: "20px", animation: "fadeSlide 0.3s ease" }}>
+      
+      <h4 style={{
+        marginBottom: 12,
+        fontWeight: 700,
+        color: "#1B91DA"
+      }}>
+        Items – Select items to return
+      </h4>
+
+      <table style={{
+        width: "100%",
+        borderCollapse: "collapse",
+        fontSize: "13px"
+      }}>
+        <thead>
+          <tr style={{ background: "#f0f6ff" }}>
+            <th style={{ padding: 8 }}>
+              <input
+                type="checkbox"
+                checked={selectAllItems}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+              />
+            </th>
+            <th style={thStyle}>Item Name</th>
+            <th style={thStyle}>Qty</th>
+            <th style={thStyle}>Unit</th>
+            <th style={thStyle}>Rate</th>
+            <th style={thStyle}>Amount</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {itemsArray.map((item, idx) => {
+            const key = item.fItemcode || item.itemCode;
+            return (
+              <tr
+                key={idx}
+                style={{
+                  transition: "background 0.2s",
+                  background: checkedBills[key] ? "#e3f2fd" : "#fff"
+                }}
+              >
+                <td style={tdStyle}>
+                  <input
+                    type="checkbox"
+                    checked={checkedBills[key] || false}
+                    onChange={(e) =>
+                      setCheckedBills(prev => ({
+                        ...prev,
+                        [key]: e.target.checked
+                      }))
+                    }
+                  />
+                </td>
+
+                <td style={{ ...tdStyle, fontWeight: 600 }}>
+                  {item.fitemNme || item.itemName}
+                </td>
+                <td style={tdStyle}>{item.fTotQty || item.qty}</td>
+                <td style={tdStyle}>{item.fUnit || item.uom}</td>
+                <td style={tdStyle}>₹{item.fRate || item.rate}</td>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>
+                  ₹{item.fAmount || item.amount}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const thStyle = {
+  padding: 8,
+  fontWeight: 700,
+  textAlign: "left",
+  borderBottom: "2px solid #ddd"
+};
+
+const tdStyle = {
+  padding: 8,
+  borderBottom: "1px solid #eee"
+};
+
 
   return (
     <div style={styles.container} className="sales-return-scrollable">
@@ -3248,8 +3269,13 @@ const handleSave = async () => {
 
       {/* SECOND POPUP: Bill Details with Checkboxes (Has Apply/Clear buttons) */}
       {billDetailsPopupOpen && (
-        <div style={styles.customPopupOverlay}>
-          <div style={styles.customPopupContainer}>
+      <div style={styles.customPopupOverlay} className="popup-overlay-slow">
+
+          <div
+  style={styles.customPopupContainer}
+  className="popup-container-slow"
+>
+
             <div style={styles.customPopupHeader}>
               <h3 style={styles.customPopupTitle}>Bill Details - {selectedBillForDetails}</h3>
               <button
@@ -3279,7 +3305,9 @@ const handleSave = async () => {
                 }}
                 onClick={handleClearBillNumber}
               >
-                Clear
+                cancel
+
+            
               </button>
               <button
                 style={{

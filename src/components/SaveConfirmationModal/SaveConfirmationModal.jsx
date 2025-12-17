@@ -1,4 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import apiService from '../../api/apiService';
+import { API_ENDPOINTS } from '../../api/endpoints';
+import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
 
 const SaveConfirmationModal = ({
   isOpen,
@@ -11,30 +14,116 @@ const SaveConfirmationModal = ({
   voucherDate = ""
 }) => {
   const confirmRef = useRef(null);
-
-  useEffect(() => {
-    if (isOpen && confirmRef.current) {
-      confirmRef.current.focus();
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+  const [editableParticulars, setEditableParticulars] = useState(particulars);
+  const fieldRefs = useRef({});
+  const [openingBalances, setOpeningBalances] = useState({});
+  const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
+  const [saveConfirmationLoading, setSaveConfirmationLoading] = useState(false);
 
   // Prepare table data based on particulars
   const denominations = ['500', '200', '100', '50', '20', '10', '5', '2', '1'];
+
+  // Fetch opening balance from API
+  const fetchOpeningBalance = async () => {
+    try {
+      const response = await apiService.getSilent(API_ENDPOINTS.RECEIPTVOUCHER.GET_OPENING_BALANCE);
+      if (response) {
+        // Map API response keys to denominations
+        // API response keys: returned1, returned2, returned5, returned10, returned20, returned50, returned100, returned200
+        const balances = {
+          '500': response.returned500 || 0,
+          '200': response.returned200 || 0,
+          '100': response.returned100 || 0,
+          '50': response.returned50 || 0,
+          '20': response.returned20 || 0,
+          '10': response.returned10 || 0,
+          '5': response.returned5 || 0,
+          '2': response.returned2 || 0,
+          '1': response.returned1 || 0
+        };
+        setOpeningBalances(balances);
+        console.log('Opening balances fetched:', balances);
+      }
+    } catch (err) {
+      console.error('Error fetching opening balance:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setEditableParticulars(particulars);
+      fetchOpeningBalance();
+      // Focus first field (500) when modal opens
+      setTimeout(() => {
+        if (fieldRefs.current['500']) {
+          fieldRefs.current['500'].focus();
+        }
+      }, 100);
+    }
+  }, [isOpen, particulars]);
+
+  if (!isOpen) return null;
   
   // Initialize counters
   const available = {};
   const collect = {};
-  const issue = {};
-  const closing = {};
 
   denominations.forEach(denom => {
-    available[denom] = particulars[denom]?.available || 0;
-    collect[denom] = particulars[denom]?.collect || 0;
-    issue[denom] = particulars[denom]?.issue || 0;
-    closing[denom] = (available[denom] + collect[denom] - issue[denom]) || 0;
+    // Use opening balances from API if available, otherwise use particulars
+    available[denom] = openingBalances[denom] !== undefined ? openingBalances[denom] : (editableParticulars[denom]?.available || 0);
+    collect[denom] = editableParticulars[denom]?.collect || 0;
   });
+
+  // Handle collect input change
+  const handleCollectChange = (denom, value) => {
+    const numValue = value === '' ? 0 : parseInt(value) || 0;
+    setEditableParticulars(prev => ({
+      ...prev,
+      [denom]: {
+        ...prev[denom],
+        collect: numValue
+      }
+    }));
+  };
+
+  // Handle Enter key to move to next field
+  const handleKeyDown = (e, denom) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentIndex = denominations.indexOf(denom);
+      if (currentIndex < denominations.length - 1) {
+        // Move to next denomination
+        const nextDenom = denominations[currentIndex + 1];
+        if (fieldRefs.current[nextDenom]) {
+          fieldRefs.current[nextDenom].focus();
+        }
+      } else {
+        // Move to Save button
+        if (confirmRef.current) {
+          confirmRef.current.focus();
+        }
+      }
+    }
+  };
+
+  // Handle confirm with updated values
+  const handleConfirmClick = () => {
+    setSaveConfirmationOpen(true);
+  };
+
+  // Handle the actual save after confirmation
+  const handleSaveConfirmation = async () => {
+    setSaveConfirmationLoading(true);
+    try {
+      // Call the parent's onConfirm callback with the particulars
+      onConfirm(editableParticulars);
+      setSaveConfirmationOpen(false);
+    } catch (err) {
+      console.error('Error during save confirmation:', err);
+    } finally {
+      setSaveConfirmationLoading(false);
+    }
+  };
 
   return (
     <div
@@ -66,6 +155,14 @@ const SaveConfirmationModal = ({
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type="number"] {
+          -moz-appearance: textfield;
         }
       `}</style>
 
@@ -159,10 +256,11 @@ const SaveConfirmationModal = ({
                       padding: '12px',
                       textAlign: 'center',
                       color: '#0f172a',
-                      borderRight: '1px solid #e5e7eb'
+                      borderRight: '1px solid #e5e7eb',
+                      fontWeight: 600
                     }}
                   >
-                    {available[denom]}
+                    {available[denom] + collect[denom]}
                   </td>
                 ))}
               </tr>
@@ -179,7 +277,7 @@ const SaveConfirmationModal = ({
                 >
                   COLLECT
                 </td>
-                {denominations.map((denom) => (
+                {denominations.map((denom, index) => (
                   <td
                     key={`collect-${denom}`}
                     style={{
@@ -189,88 +287,28 @@ const SaveConfirmationModal = ({
                     }}
                   >
                     <input
+                      ref={(el) => (fieldRefs.current[denom] = el)}
                       type="number"
-                      value={collect[denom]}
-                      readOnly
+                      value={collect[denom] === 0 ? '' : collect[denom]}
+                      onChange={(e) => handleCollectChange(denom, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, denom)}
+                      min="0"
+                      placeholder="0"
+                      autoFocus={index === 0}
+                      tabIndex={index}
                       style={{
                         width: '50px',
                         padding: '6px 8px',
-                        border: '1px solid #d1d5db',
+                        border: '2px solid #307AC8',
                         borderRadius: '6px',
                         textAlign: 'center',
                         fontSize: '13px',
-                        background: '#f3f4f6',
-                        color: '#0f172a'
+                        background: '#fff',
+                        color: '#0f172a',
+                        fontWeight: 600,
+                        cursor: 'text'
                       }}
                     />
-                  </td>
-                ))}
-              </tr>
-
-              {/* ISSUE Row */}
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
-                <td
-                  style={{
-                    padding: '12px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    borderRight: '1px solid #e5e7eb'
-                  }}
-                >
-                  ISSUE
-                </td>
-                {denominations.map((denom) => (
-                  <td
-                    key={`issue-${denom}`}
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      borderRight: '1px solid #e5e7eb'
-                    }}
-                  >
-                    <input
-                      type="number"
-                      value={issue[denom]}
-                      readOnly
-                      style={{
-                        width: '50px',
-                        padding: '6px 8px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        textAlign: 'center',
-                        fontSize: '13px',
-                        background: '#f3f4f6',
-                        color: '#0f172a'
-                      }}
-                    />
-                  </td>
-                ))}
-              </tr>
-
-              {/* CLOSING Row */}
-              <tr style={{ background: 'white', borderBottom: '1px solid #e5e7eb' }}>
-                <td
-                  style={{
-                    padding: '12px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    borderRight: '1px solid #e5e7eb'
-                  }}
-                >
-                  CLOSING
-                </td>
-                {denominations.map((denom) => (
-                  <td
-                    key={`closing-${denom}`}
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      color: '#0f172a',
-                      fontWeight: 600,
-                      borderRight: '1px solid #e5e7eb'
-                    }}
-                  >
-                    {closing[denom]}
                   </td>
                 ))}
               </tr>
@@ -323,8 +361,9 @@ const SaveConfirmationModal = ({
           </button>
           <button
             ref={confirmRef}
-            onClick={onConfirm}
+            onClick={handleConfirmClick}
             disabled={loading}
+            tabIndex={9}
             style={{
               padding: '10px 24px',
               background: loading
@@ -346,6 +385,19 @@ const SaveConfirmationModal = ({
           </button>
         </div>
       </div>
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={saveConfirmationOpen}
+        onClose={() => setSaveConfirmationOpen(false)}
+        onConfirm={handleSaveConfirmation}
+        title="Confirm Save"
+        message="Are you sure you want to save this voucher?"
+        type="success"
+        confirmText={saveConfirmationLoading ? 'Saving...' : 'Save'}
+        showLoading={saveConfirmationLoading}
+        disableBackdropClose={saveConfirmationLoading}
+      />
     </div>
   );
 };
