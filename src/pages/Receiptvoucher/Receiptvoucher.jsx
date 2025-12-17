@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import SaveConfirmationModal from '../../components/SaveConfirmationModal/SaveConfirmationModal';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
@@ -913,11 +914,25 @@ const ReceiptVoucher = () => {
 
   // Function to show save confirmation popup
   const showSaveConfirmation = () => {
+    // Build particulars data from receipt items
+    // This is placeholder data - adjust based on your actual receipt structure
+    const particulars = {
+      '500': { available: 0, collect: 0, issue: 0 },
+      '200': { available: 4, collect: 0, issue: 0 },
+      '100': { available: 116, collect: 0, issue: 0 },
+      '50': { available: 3, collect: 0, issue: 0 },
+      '20': { available: 2, collect: 0, issue: 0 },
+      '10': { available: 0, collect: 0, issue: 0 },
+      '5': { available: 0, collect: 0, issue: 0 },
+      '2': { available: 9, collect: 0, issue: 0 },
+      '1': { available: 6, collect: 0, issue: 0 }
+    };
+
     setSaveConfirmationData({
       title: `${isEditing ? 'Update' : 'Create'} Payment Voucher`,
-      message: `Are you sure you want to ${isEditing ? 'update' : 'create'} this payment voucher?`,
-      confirmText: 'Save',
-      cancelText: 'Cancel'
+      voucherNo: voucherDetails.voucherNo,
+      voucherDate: voucherDetails.date,
+      particulars: particulars
     });
     setSaveConfirmationOpen(true);
   };
@@ -1851,14 +1866,15 @@ const ReceiptVoucher = () => {
       )}
 
       {saveConfirmationOpen && (
-        <ConfirmationPopup
+        <SaveConfirmationModal
           isOpen={saveConfirmationOpen}
           title={saveConfirmationData?.title}
-          message={saveConfirmationData?.message}
+          particulars={saveConfirmationData?.particulars}
+          voucherNo={saveConfirmationData?.voucherNo}
+          voucherDate={saveConfirmationData?.voucherDate}
           onConfirm={handleConfirmedSave}
           onClose={handleCancelSave}
-          confirmText={saveConfirmationData?.confirmText}
-          cancelText={saveConfirmationData?.cancelText}
+          loading={isSaving}
         />
       )}
 
