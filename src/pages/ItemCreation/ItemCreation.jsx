@@ -608,62 +608,65 @@ const ItemCreation = ({ onCreated }) => {
   };
 
   // Fetch function used by PopupListSelector for Edit/Delete - UPDATED
-  const fetchPopupItems = useCallback(async (page = 1, search = '') => {
-    try {
-      const response = await apiService.get(
-        API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown
-      );
-      
-      if (response.data && Array.isArray(response.data)) {
-        // Filter by search term on frontend if needed
-        let filteredData = response.data;
-        if (search) {
-          filteredData = response.data.filter(item => 
-            (item.fItemName || '').toLowerCase().includes(search.toLowerCase()) ||
-            (item.fParent || '').toLowerCase().includes(search.toLowerCase())
-          );
-        }
-        
-        // Apply pagination on frontend
-        const startIndex = (page - 1) * 10;
-        const paginatedData = filteredData.slice(startIndex, startIndex + 10);
-        
-        // Map backend response to include all necessary fields
-        return paginatedData.map((it) => ({
-          fItemcode: it.fItemcode || '',
-          fItemName: it.fItemName || '',
-          fParent: it.fParent || '',
-          fShort: it.fShort || '',
-          fhsn: it.fhsn || '',
-          ftax: it.ftax || '',
-          fPrefix: it.fPrefix || '',
-          manualprefix: it.manualprefix || 'N',
-          fUnits: it.fUnits || '',
-          fCostPrice: it.fCostPrice || '',
-          fSellPrice: it.fSellPrice || '',
-          fbrand: it.fbrand || '',
-          fcategory: it.fcategory || '',
-          fmodel: it.fmodel || '',
-          fsize: it.fsize || '',
-          fmin: it.fmin || '',
-          fmax: it.fmax || '',
-          ftype: it.ftype || '',
-          fproduct: it.fproduct || '',
-          brand: it.brand || '',
-          category: it.category || '',
-          model: it.model || '',
-          size: it.size || '',
-          product: it.product || '',
-          gstcheckbox: it.gstcheckbox || (it.ftax && it.ftax !== '' ? 'Y' : 'N')
-        }));
+ const fetchPopupItems = useCallback(async (page = 1, search = '') => {
+  try {
+    const response = await apiService.get(
+      API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown
+    );
+    
+    if (response.data && Array.isArray(response.data)) {
+      // Filter by search term on frontend if needed
+      let filteredData = response.data;
+      if (search) {
+        filteredData = response.data.filter(item => 
+          (item.fItemName || '').toLowerCase().includes(search.toLowerCase()) ||
+          (item.fParent || '').toLowerCase().includes(search.toLowerCase())
+        );
       }
       
-      return [];
-    } catch (err) {
-      console.error('fetchPopupItems error', err);
-      return [];
+      // Apply pagination on frontend
+      const startIndex = (page - 1) * 10;
+      const paginatedData = filteredData.slice(startIndex, startIndex + 10);
+      
+      // Map backend response to include all necessary fields
+      return paginatedData.map((it) => ({
+        fItemcode: it.fItemcode || '',
+        fItemName: it.fItemName || '',
+        fParent: it.fParent || '',
+        fShort: it.fShort || '',
+        fhsn: it.fhsn || '',
+        ftax: it.ftax || '',
+        fPrefix: it.fPrefix || '',
+        manualprefix: it.manualprefix || 'N',
+        fUnits: it.fUnits || '',
+        fCostPrice: it.fCostPrice || '',
+        fSellPrice: it.fSellPrice || '',
+        fbrand: it.fbrand || '',
+        fcategory: it.fcategory || '',
+        fmodel: it.fmodel || '',
+        fsize: it.fsize || '',
+        fmin: it.fmin || '',
+        fmax: it.fmax || '',
+        ftype: it.ftype || '',
+        fproduct: it.fproduct || '',
+        // ADDED: Piece rate field
+        pieceRate: it.pieceRate || it.fPieceRate || 'N',
+        fPieceRate: it.fPieceRate || it.pieceRate || 'N',
+        brand: it.brand || '',
+        category: it.category || '',
+        model: it.model || '',
+        size: it.size || '',
+        product: it.product || '',
+        gstcheckbox: it.gstcheckbox || (it.ftax && it.ftax !== '' ? 'Y' : 'N')
+      }));
     }
-  }, []);
+    
+    return [];
+  } catch (err) {
+    console.error('fetchPopupItems error', err);
+    return [];
+  }
+}, []);
 
   // Fetch functions for popups (Brand, Category, Product, Model, Size, Unit)
   const fetchBrands = useCallback(async (page = 1, search = '') => {
@@ -1846,9 +1849,13 @@ const ItemCreation = ({ onCreated }) => {
       <div className="dashboard" aria-labelledby="item-title">
         <div className="top-row">
           <div className="title-block">
+            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             <div>
               <h2 id="item-title">Item Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete items — organized & fast.</div>
+              <div className="subtitle muted">Create, edit, or delete items </div>
             </div>
           </div>
 
@@ -2732,55 +2739,58 @@ const ItemCreation = ({ onCreated }) => {
       <PopupListSelector
         open={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
-        onSelect={(item) => {
-          // Map backend fields to form fields
-          console.log("✔️ RAW SELECTED ITEM:", item);
-          setFormData({
-            fitemCode: item.fItemcode || '',
-            itemName: item.fItemName || '',
-            groupName: item.fParent || '',
-            shortName: item.fShort || '',
-            brand: item.brand || '', // Use display name field
-            category: item.category || '', // Use display name field
-            product: item.product || '', // Use display name field
-            model: item.model || '', // Use display name field
-            size: item.size || '', // Use display name field
-            max: item.fmax || item.fMax || '',
-            min: item.fmin || item.fMin || '',
-            prefix: item.fPrefix || '',
-            gstin: item.ftax || '',
-            gst: (item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '')) ? 'Y' : 'N',
-            manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N',
-            hsnCode: item.fhsn || '',
-            pieceRate: 'N', // Default to 'N' if not provided
-            type: item.ftype || '',
-            sellingPrice: item.fSellPrice || '',
-            costPrice: item.fCostPrice || '',
-            unit: item.fUnits || '',
-            unitCode: item.funitcode || '',
-          });
-          
-          // Also set the field codes for backend submission
-          setFieldCodes({
-            brandCode: item.fbrand || '',
-            categoryCode: item.fcategory || '',
-            productCode: item.fproduct || '',
-            modelCode: item.fmodel || '',
-            sizeCode: item.fsize || '',
-            unitCode: item.funitcode || '',
-          });
-          
-          // Set checkbox states
-          const hasGst = item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '');
-          setGstChecked(hasGst);
-          setManualPrefixChecked(item.manualprefix === 'Y');
-          setPieceRateChecked(false); // Set to false since not in backend data
-          
-          // Set main group
-          setMainGroup(item.fParent || '');
-          
-          setIsPopupOpen(false);
-        }}
+       onSelect={(item) => {
+  // Map backend fields to form fields
+  console.log("✔️ RAW SELECTED ITEM:", item);
+  setFormData({
+    fitemCode: item.fItemcode || '',
+    itemName: item.fItemName || '',
+    groupName: item.fParent || '',
+    shortName: item.fShort || '',
+    brand: item.brand || '',
+    category: item.category || '',
+    product: item.product || '',
+    model: item.model || '',
+    size: item.size || '',
+    max: item.fmax || item.fMax || '',
+    min: item.fmin || item.fMin || '',
+    prefix: item.fPrefix || '',
+    gstin: item.ftax || '',
+    gst: (item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '')) ? 'Y' : 'N',
+    manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N',
+    hsnCode: item.fhsn || '',
+    // CHANGED: Fetch pieceRate from backend if available
+    pieceRate: item.pieceRate || item.fPieceRate || 'N',
+    type: item.ftype || '',
+    sellingPrice: item.fSellPrice || '',
+    costPrice: item.fCostPrice || '',
+    unit: item.fUnits || '',
+    unitCode: item.funitcode || '',
+  });
+  
+  // Also set the field codes for backend submission
+  setFieldCodes({
+    brandCode: item.fbrand || '',
+    categoryCode: item.fcategory || '',
+    productCode: item.fproduct || '',
+    modelCode: item.fmodel || '',
+    sizeCode: item.fsize || '',
+    unitCode: item.funitcode || '',
+  });
+  
+  // Set checkbox states
+  const hasGst = item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '');
+  setGstChecked(hasGst);
+  setManualPrefixChecked(item.manualprefix === 'Y');
+  // CHANGED: Set pieceRate checkbox based on backend data
+  const hasPieceRate = item.pieceRate === 'Y' || item.fPieceRate === 'Y';
+  setPieceRateChecked(hasPieceRate);
+  
+  // Set main group
+  setMainGroup(item.fParent || '');
+  
+  setIsPopupOpen(false);
+}}
         fetchItems={fetchPopupItems}
         title={`Select Item to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
         displayFieldKeys={['fItemName', 'fParent']}
