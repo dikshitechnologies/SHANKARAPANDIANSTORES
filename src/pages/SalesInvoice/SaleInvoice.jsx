@@ -1,13 +1,36 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { axiosInstance } from '../../api/apiService';
 
+
+
+const SearchIcon = ({ size = 16, color = "blue" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
+
 const SaleInvoice = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('all');
+  const [activeTopAction, setActiveTopAction] = useState('add');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -15,6 +38,14 @@ const SaleInvoice = () => {
   // Save confirmation popup
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
+  
+  // Edit confirmation popup
+  const [editConfirmationOpen, setEditConfirmationOpen] = useState(false);
+  const [editConfirmationData, setEditConfirmationData] = useState(null);
+  
+  // Delete confirmation popup
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deleteConfirmationData, setDeleteConfirmationData] = useState(null);
   
   // State for tracking if customer selection message was shown
   const [customerMessageShown, setCustomerMessageShown] = useState(false);
@@ -29,7 +60,7 @@ const SaleInvoice = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: '',
-    billDate: new Date().toISOString().substring(0, 10),
+    billDate: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
     mobileNo: '',
     type: 'Retail',
     salesman: '',
@@ -51,7 +82,7 @@ const SaleInvoice = () => {
       itemCode: '',
       stock: '', 
       mrp: '', 
-      uom: 'pcs',
+      uom: '', // Changed from 'pcs' to empty string
       hsn: '', 
       tax: '', 
       sRate: '', 
@@ -63,6 +94,10 @@ const SaleInvoice = () => {
   // 3. Totals State
   const [totalQty, setTotalQty] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
+
+  // Row delete confirmation popup
+const [rowDeleteConfirmationOpen, setRowDeleteConfirmationOpen] = useState(false);
+const [rowToDelete, setRowToDelete] = useState(null);
 
   // 4. Popup States
   const [customerPopupOpen, setCustomerPopupOpen] = useState(false);
@@ -80,6 +115,7 @@ const SaleInvoice = () => {
   // 6. State for saved invoices for edit/delete popups
   const [savedInvoices, setSavedInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const ignoreNextEnterRef = useRef(false);
 
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const billNoRef = useRef(null);
@@ -98,7 +134,7 @@ const SaleInvoice = () => {
   const [focusedUomField, setFocusedUomField] = useState(null);
 
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('null');
 
   // Screen size state
   const [screenSize, setScreenSize] = useState({
@@ -137,7 +173,6 @@ const SaleInvoice = () => {
   // Fetch next bill number from API
   const fetchNextBillNo = useCallback(async () => {
     if (isEditing && billDetails.billNo) {
-      console.log("Skipping bill number fetch - editing existing invoice:", billDetails.billNo);
       return;
     }
     
@@ -169,7 +204,6 @@ const SaleInvoice = () => {
         }
       }
     } catch (err) {
-      console.error("API Error fetching next bill number:", err);
       setBillDetails(prev => ({ ...prev, billNo: 'SI000001' }));
     } finally {
       setIsLoading(false);
@@ -200,7 +234,6 @@ const SaleInvoice = () => {
         setCustomerList([]);
       }
     } catch (err) {
-      console.error("API Error fetching customers:", err);
       setCustomerList([]);
     } finally {
       setIsLoading(false);
@@ -231,7 +264,6 @@ const SaleInvoice = () => {
         setSalesmanList([]);
       }
     } catch (err) {
-      console.error("API Error fetching salesmen:", err);
       setSalesmanList([]);
     } finally {
       setIsLoading(false);
@@ -278,11 +310,11 @@ const SaleInvoice = () => {
               stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
               mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
               uom: units,
-              hsn: item.hsnCode || item.hsn || item.HsnCode || item.HSN || "",
+             hsn: item.fhsn || item.hsn || item.hsnCode || "",
               tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
               sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-              displayName: `${itemCode} - ${itemName}`,
-              popupDisplay: `${itemCode} - ${itemName}`
+              displayName: itemName, // Changed: Show only item name, not code
+              popupDisplay: itemName // Changed: Show only item name, not code
             };
           });
           
@@ -294,7 +326,6 @@ const SaleInvoice = () => {
         setItemList([]);
       }
     } catch (err) {
-      console.error("Error fetching items dropdown:", err);
       setItemList([]);
     } finally {
       setIsLoading(false);
@@ -327,7 +358,7 @@ const SaleInvoice = () => {
           const voucherNo = invoice.billNo || invoice.voucherNo || invoice.invoiceNo || '';
           const customerName = invoice.customerName || 'Unknown Customer';
           const salesmanName = invoice.salesmanName || '';
-          const invoiceDate = invoice.voucherDate || invoice.billDate || new Date().toISOString().substring(0, 10);
+          const invoiceDate = invoice.voucherDate || invoice.billDate || new Date().toISOString().split('T')[0];
           const totalAmount = invoice.billAmt || invoice.totalAmount || 0;
           const customerCode = invoice.customerCode || invoice.customercode || '';
           const salesmanCode = invoice.sManCode || invoice.salesmanCode || '';
@@ -381,7 +412,6 @@ const SaleInvoice = () => {
       return paginated;
       
     } catch (err) {
-      console.error("API Error fetching saved invoices:", err);
       return [];
     } finally {
       setLoadingInvoices(false);
@@ -413,13 +443,18 @@ const SaleInvoice = () => {
         setIsEditing(true);
         setOriginalInvoiceNo(voucherNo);
         
-        let billDate = header.voucherDate || new Date().toISOString().substring(0,10);
+        let billDate = header.voucherDate || new Date().toISOString().split('T')[0];
         
+        // Convert date format to yyyy-MM-dd
         if (billDate.includes('-')) {
           const parts = billDate.split('-');
           if (parts.length === 3) {
             if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+              // dd-MM-yyyy to yyyy-MM-dd
               billDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            } else if (parts[0].length === 4 && parts[1].length === 2 && parts[2].length === 2) {
+              // yyyy-MM-dd (already correct)
+              billDate = billDate;
             }
           }
         }
@@ -447,14 +482,14 @@ const SaleInvoice = () => {
           const formattedItems = itemsArray.map((item, index) => {
             const itemCode = item.itemcode || item.fItemcode || item.itemCode || item.code || '';
             const itemName = item.itemName || item.fitemNme || item.fItemName || '';
-            const units = item.fUnit || item.uom || 'pcs';
+            const units = item.fUnit || item.uom || '';
             
             return {
               id: index + 1,
               sNo: index + 1,
-              barcode: item.barcode || itemCode,
+              barcode: '',
               itemCode: itemCode,
-              itemName: itemName || itemCode,
+              itemName: itemName || '',
               stock: (item.stock || item.fstock || 0).toString(),
               mrp: (item.mrp || 0).toString(),
               uom: units,
@@ -476,7 +511,7 @@ const SaleInvoice = () => {
             itemName: '',
             stock: '',
             mrp: '',
-            uom: 'pcs',
+            uom: '',
             hsn: '',
             tax: '',
             sRate: '',
@@ -491,8 +526,6 @@ const SaleInvoice = () => {
         return null;
       }
     } catch (err) {
-      console.error("API Error fetching invoice details:", err);
-      
       let errorMsg = `Failed to fetch invoice details for ${voucherNo}`;
       if (err.response?.status === 404) {
         errorMsg = `Invoice ${voucherNo} not found`;
@@ -515,24 +548,20 @@ const SaleInvoice = () => {
       setIsLoading(true);
       setError("");
       
-      // Use the correct delete endpoint
       const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.deleteBillNumber(voucherNo, "001");
       
       const response = await axiosInstance.delete(endpoint);
       
       if (response && response.data) {
-        // Check if delete was successful
         const success = response.data.success !== false && 
                        response.data.message !== "Delete failed" &&
                        !response.data.error;
         
         if (success) {
-          // Clear all data if we're deleting the current invoice
           if (voucherNo === billDetails.billNo) {
             resetForm();
           }
           
-          // Refresh the invoice list
           await fetchSavedInvoices(1, '');
           return { success: true, message: "Invoice deleted successfully" };
         } else {
@@ -543,7 +572,6 @@ const SaleInvoice = () => {
         throw new Error("No response from server");
       }
     } catch (err) {
-      console.error("API Error deleting invoice:", err);
       const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || "Failed to delete invoice";
       setError(errorMsg);
       throw new Error(errorMsg);
@@ -552,47 +580,54 @@ const SaleInvoice = () => {
     }
   };
 
-  // Get stock by item code
-  const getStockByItemName = async (itemCode) => {
-    if (!itemCode || itemCode.trim() === '') {
-      return { 
-        stock: 0,
-        itemName: '',
-        mrp: '0',
-        uom: 'pcs',
-        fUnits: 'pcs',
-        hsn: '',
-        tax: '0',
-        rate: '0'
-      };
-    }
-    
-    try {
-      const response = await axiosInstance.get(
-        API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getStockByItemName1(itemCode)
-      );
-      
-      const data = response.data || {};
-      
-      return {
-        ...data,
-        uom: data.fUnits || data.uom || data.unit || 'pcs',
-        fUnits: data.fUnits || data.uom || data.unit || 'pcs'
-      };
-    } catch (err) {
-      console.warn('Error fetching stock:', err.message);
-      return { 
-        stock: 0,
-        itemName: '',
-        mrp: '0',
-        uom: 'pcs',
-        fUnits: 'pcs',
-        hsn: '',
-        tax: '0',
-        rate: '0'
-      };
-    }
-  };
+ // ✅ CORRECT: Get stock using FULL itemCode and read finalStock properly
+const getStockByItemName = async (itemCode) => {
+  if (!itemCode || itemCode.trim() === '') {
+    return { 
+      stock: '0',
+      itemName: '',
+      mrp: '0',
+      uom: '',
+      fUnits: '',
+      hsn: '',
+      tax: '0',
+      rate: '0'
+    };
+  }
+
+  try {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getStockByItemName1(itemCode.trim())
+    );
+
+    const data = response?.data;
+    const item = data?.items?.[0]; // ✅ API returns array
+
+    return {
+      stock: (item?.finalStock ?? 0).toString(), // ✅ FIXED
+      itemName: item?.itemName || '',
+      mrp: item?.preRate || '0',
+      uom: item?.units || '',
+      fUnits: item?.units || '',
+      hsn: item?.hsn || '',
+      tax: item?.tax || '0',
+      rate: item?.preRate || '0'
+    };
+  } catch (err) {
+    console.error("Stock API failed:", err);
+    return { 
+      stock: '0',
+      itemName: '',
+      mrp: '0',
+      uom: '',
+      fUnits: '',
+      hsn: '',
+      tax: '0',
+      rate: '0'
+    };
+  }
+};
+
 
   // Initial data fetch
   useEffect(() => {
@@ -630,7 +665,7 @@ const SaleInvoice = () => {
   const resetForm = () => {
     setBillDetails({
       billNo: '',
-      billDate: new Date().toISOString().substring(0, 10),
+      billDate: new Date().toISOString().split('T')[0],
       mobileNo: '',
       type: 'Retail',
       salesman: '',
@@ -651,7 +686,7 @@ const SaleInvoice = () => {
         itemName: '',
         stock: '',
         mrp: '',
-        uom: 'pcs',
+        uom: '', // Changed from 'pcs' to empty string
         hsn: '',
         tax: '',
         sRate: '',
@@ -664,7 +699,6 @@ const SaleInvoice = () => {
     setIsEditing(false);
     setOriginalInvoiceNo('');
     
-    // Fetch next bill number for new invoice
     fetchNextBillNo();
   };
 
@@ -685,7 +719,6 @@ const SaleInvoice = () => {
       setEditInvoicePopupOpen(true);
       
     } catch (err) {
-      console.error("Error opening edit popup:", err);
       setEditInvoicePopupOpen(true);
     } finally {
       setIsLoading(false);
@@ -707,7 +740,6 @@ const SaleInvoice = () => {
       setDeleteInvoicePopupOpen(true);
       
     } catch (err) {
-      console.error("Error opening delete popup:", err);
       setDeleteInvoicePopupOpen(true);
     } finally {
       setIsLoading(false);
@@ -727,43 +759,77 @@ const SaleInvoice = () => {
       const invoiceData = await fetchInvoiceDetails(selectedInvoice.voucherNo);
       
       if (invoiceData) {
-        alert(`Invoice ${selectedInvoice.voucherNo} loaded successfully!`);
+        // Show edit confirmation popup
+        const addLessValue = parseFloat(addLessAmount || 0);
+        const finalAmount = totalAmount + addLessValue;
+        
+        setEditConfirmationData({
+          invoiceNo: selectedInvoice.voucherNo,
+          customer: billDetails.custName,
+          billDate: billDetails.billDate,
+          totalAmount: totalAmount.toFixed(2),
+          addLessAmount: addLessAmount,
+          finalAmount: finalAmount.toFixed(2),
+          itemCount: items.filter(item => item.itemName && item.itemName.trim()).length
+        });
+        
+        setEditConfirmationOpen(true);
         setEditInvoicePopupOpen(false);
       } else {
         alert(`Could not load invoice details for ${selectedInvoice.voucherNo}`);
       }
     } catch (error) {
-      console.error("Error loading invoice details:", error);
       alert(`Error loading invoice: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle invoice deletion
+  // Handle invoice deletion with confirmation popup
   const handleInvoiceDelete = async (selectedInvoice) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete this invoice?\n\n` +
-      `Invoice No: ${selectedInvoice.voucherNo}\n\n` +
-      `This action cannot be undone!`
-    );
-    
-    if (confirmDelete) {
-      try {
-        await deleteInvoice(selectedInvoice.voucherNo);
-        alert(`Invoice ${selectedInvoice.voucherNo} deleted successfully!`);
-        setDeleteInvoicePopupOpen(false);
-        
-        // Reset form if we deleted the current invoice
-        if (selectedInvoice.voucherNo === billDetails.billNo) {
-          resetForm();
-        }
-      } catch (err) {
-        console.error("Error deleting invoice:", err);
-        alert(`Failed to delete invoice: ${err.message}`);
-      }
+    if (!selectedInvoice || !selectedInvoice.voucherNo) {
+      alert("Invalid invoice selected");
+      return;
     }
+    
+    // Set confirmation data for delete popup
+    setDeleteConfirmationData({
+      invoiceNo: selectedInvoice.voucherNo,
+      customer: selectedInvoice.customerName || "Unknown Customer",
+      billDate: selectedInvoice.date || new Date().toISOString().split('T')[0],
+      totalAmount: selectedInvoice.totalAmount || 0
+    });
+    
+    setDeleteInvoicePopupOpen(false);
+    setDeleteConfirmationOpen(true);
   };
+
+  // Handle confirmed delete
+const handleConfirmedDelete = async () => {
+  if (!deleteConfirmationData) return;
+
+  try {
+    await deleteInvoice(deleteConfirmationData.invoiceNo);
+
+    toast.success(
+      `Invoice ${deleteConfirmationData.invoiceNo} deleted successfully`,
+      { autoClose: 2500 }
+    );
+
+    setDeleteConfirmationOpen(false);
+
+    // ✅ RESET FORM (clears data)
+    resetForm();
+
+    // ✅ FETCH ONLY NEXT BILL NUMBER
+    await fetchNextBillNo();
+
+  } catch (err) {
+    alert(`Failed to delete invoice: ${err.message}`);
+    setDeleteConfirmationOpen(false);
+  }
+};
+
 
   // Fetch items for invoice popup
   const fetchInvoiceItemsForPopup = async (pageNum, search) => {
@@ -803,7 +869,6 @@ const SaleInvoice = () => {
       return paginated;
       
     } catch (err) {
-      console.error("Error fetching invoice items:", err);
       return [];
     }
   };
@@ -840,61 +905,119 @@ const SaleInvoice = () => {
   };
 
   // Handle customer selection
-  const handleCustomerSelect = (customer) => {
-    if (customer) {
-      setBillDetails(prev => ({
-        ...prev,
-        custName: customer.name,
-        custCode: customer.originalCode || customer.code,
-        partyCode: customer.originalCode || customer.code
-      }));
-    }
-    setCustomerPopupOpen(false);
-  };
+const handleCustomerSelect = (customer) => {
+  ignoreNextEnterRef.current = true;
+
+  if (customer) {
+    setBillDetails(prev => ({
+      ...prev,
+      custName: customer.name,
+      custCode: customer.originalCode || customer.code,
+      partyCode: customer.originalCode || customer.code
+    }));
+  }
+
+  setCustomerPopupOpen(false);
+
+  setTimeout(() => {
+    ignoreNextEnterRef.current = false;
+  }, 200);
+};
+
 
   // Handle salesman selection
-  const handleSalesmanSelect = (salesman) => {
-    if (salesman) {
-      setBillDetails(prev => ({
-        ...prev,
-        salesman: salesman.name,
-        salesmanCode: salesman.originalCode || salesman.code
-      }));
-    }
-    setSalesmanPopupOpen(false);
-  };
+const handleSalesmanSelect = (salesman) => {
+  ignoreNextEnterRef.current = true; // 🔴 ADD THIS
 
-  // Handle item selection
-  const handleItemSelect = async (item) => {
-    if (item && currentItemRowIndex !== null) {
-      const updatedItems = [...items];
-      const currentItem = updatedItems[currentItemRowIndex];
-      
-      const itemCode = item.fItemcode || item.itemCode || item.code || '';
-      const itemName = item.fItemName || item.itemName || item.name || '';
-      const units = item.fUnits || item.uom || 'pcs';
-      
-      const stockInfo = await getStockByItemName(itemCode);
-      
-      updatedItems[currentItemRowIndex] = {
-        ...currentItem,
-        itemName: itemName,
-        itemCode: itemCode,
-        barcode: item.barcode || itemCode,
-        mrp: (item.mrp || stockInfo.mrp || 0).toString(),
-        stock: (item.stock || stockInfo.stock || 0).toString(),
-        uom: units || stockInfo.uom || stockInfo.fUnits || "pcs",
-        hsn: item.hsn || stockInfo.hsn || "",
-        tax: (item.tax || stockInfo.tax || 0).toString(),
-        sRate: (item.sRate || stockInfo.rate || 0).toString(),
-        qty: "1",
-        amount: calculateAmount("1", item.sRate || stockInfo.rate || 0)
-      };
-      
-      setItems(updatedItems);
-    }
+  if (salesman) {
+    setBillDetails(prev => ({
+      ...prev,
+      salesman: salesman.name,
+      salesmanCode: salesman.originalCode || salesman.code
+    }));
+  }
+
+  setSalesmanPopupOpen(false);
+
+  // 🔁 reset after popup closes
+  setTimeout(() => {
+    ignoreNextEnterRef.current = false;
+  }, 200);
+};
+
+
+  // Handle item selection - MODIFIED: Don't fetch barcode to item name field, only update item name
+ const handleItemSelect = async (item) => {
+  ignoreNextEnterRef.current = true;
+
+  if (!item || currentItemRowIndex === null) return;
+
+  try {
+    const updatedItems = [...items];
+    const currentItem = updatedItems[currentItemRowIndex];
+
+    const itemCode =
+      item.fItemcode ||
+      item.itemCode ||
+      item.code ||
+      item.originalCode ||
+      '';
+
+    const itemName =
+      item.fItemName ||
+      item.itemName ||
+      item.name ||
+      '';
+
+    const units =
+      item.fUnits ||
+      item.uom ||
+      'pcs';
+
+    // 🔥 Fetch stock details (backup source for HSN)
+    const stockInfo = await getStockByItemName(itemCode);
+
+    // ✅ BULLETPROOF HSN RESOLUTION
+    const resolvedHsn =
+      item.hsn ||
+      item.hsnCode ||
+      item.HsnCode ||
+      item.HSN ||
+      stockInfo.hsn ||
+      stockInfo.hsnCode ||
+      stockInfo.HSN ||
+      '';
+
+    updatedItems[currentItemRowIndex] = {
+      ...currentItem,
+      itemName,
+      itemCode,
+      barcode: '',
+      stock: (item.stock || stockInfo.stock || 0).toString(),
+      mrp: (item.mrp || stockInfo.mrp || 0).toString(),
+      uom: units || stockInfo.uom || stockInfo.fUnits || '',
+      hsn: resolvedHsn, // ✅ FIXED HERE
+      tax: (item.tax || stockInfo.tax || 0).toString(),
+      sRate: (item.sRate || stockInfo.rate || 0).toString(),
+      qty: currentItem.qty || '1',
+      amount: calculateAmount(
+        currentItem.qty || '1',
+        item.sRate || stockInfo.rate || 0
+      )
+    };
+
+    setItems(updatedItems);
+  } catch (err) {
+    console.error("Item select failed:", err);
+  } finally {
     setItemPopupOpen(false);
-  };
+
+    setTimeout(() => {
+      ignoreNextEnterRef.current = false;
+    }, 200);
+  }
+};
+
 
   // Get popup configuration
   const getPopupConfig = (type) => {
@@ -916,7 +1039,7 @@ const SaleInvoice = () => {
       item: {
         displayFieldKeys: ['popupDisplay'],
         searchFields: ['fItemcode', 'fItemName', 'itemCode', 'itemName'],
-        headerNames: ['Item Code - Name'],
+        headerNames: ['Item Name'], // Changed header name
         columnWidths: { popupDisplay: '100%' },
         searchPlaceholder: 'Search by item code or name...'
       },
@@ -983,16 +1106,17 @@ const SaleInvoice = () => {
             itemName: item.fItemName || item.itemName,
             code: item.fItemcode || item.itemCode,
             name: item.fItemName || item.itemName,
+             hsn: item.hsn || item.fhsn || "",
             originalCode: item.fItemcode || item.itemCode,
             barcode: item.barcode,
             stock: item.stock,
             mrp: item.mrp,
             uom: item.uom,
-            hsn: item.hsn,
+            
             tax: item.tax,
             sRate: item.sRate,
             displayName: item.fItemName || item.itemName,
-            popupDisplay: `${item.fItemcode || item.itemCode} - ${item.fItemName || item.itemName}`
+            popupDisplay: item.fItemName || item.itemName // Changed: Show only item name
           }));
           break;
           
@@ -1038,7 +1162,6 @@ const SaleInvoice = () => {
       return filtered.slice(startIndex, endIndex);
       
     } catch (err) {
-      console.error("Error fetching popup items:", err);
       return [];
     }
   };
@@ -1061,16 +1184,17 @@ const SaleInvoice = () => {
     setAddLessAmount(value);
   };
 
-  // Handle add/less key down
+  // Handle add/less key down - MODIFIED: Don't trigger save on Enter
   const handleAddLessKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      // Just move focus to Save button, don't trigger save
       const saveButton = document.querySelector('button[data-action="save"]');
       if (saveButton) saveButton.focus();
     }
   };
 
-  // Handle keydown with / key support for popup toggle
+  // Handle keydown with / key support for popup toggle - MODIFIED: Don't trigger save on Enter
   const handleKeyDown = (e, nextRef, fieldName = '') => {
     if (e.key === '/' || e.key === '?') {
       e.preventDefault();
@@ -1088,11 +1212,21 @@ const SaleInvoice = () => {
           openCustomerPopup();
         }
       }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (nextRef && nextRef.current) {
-        nextRef.current.focus();
-      }
+    
+      } else if (e.key === 'Enter') {
+  // ✅ Do NOT block native select behavior
+  if (e.target.tagName !== 'SELECT') {
+    e.preventDefault();
+  }
+
+  // Move focus after a tiny delay (important for SELECT)
+  if (nextRef?.current) {
+    setTimeout(() => {
+      nextRef.current.focus();
+    }, 0);
+  }
+
+
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
       const allInputs = document.querySelectorAll('input:not([readonly]), select');
@@ -1133,17 +1267,20 @@ const SaleInvoice = () => {
       
       const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
       const currentItem = items.find(item => item.id === id);
-      const currentUom = currentItem?.uom || 'pcs';
-      const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
+      const currentUom = currentItem?.uom || '';
+      let nextUom = 'pcs';
       
-      let nextIndex;
-      if (currentIndex === -1) {
-        nextIndex = 0;
+      if (currentUom && currentUom.trim() !== '') {
+        const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
+        if (currentIndex !== -1) {
+          const nextIndex = (currentIndex + 1) % uomValues.length;
+          nextUom = uomValues[nextIndex];
+        } else {
+          nextUom = 'pcs';
+        }
       } else {
-        nextIndex = (currentIndex + 1) % uomValues.length;
+        nextUom = 'pcs';
       }
-      
-      const nextUom = uomValues[nextIndex];
       
       setItems(items.map(item => {
         if (item.id === id) {
@@ -1173,7 +1310,7 @@ const SaleInvoice = () => {
     }
   };
 
-  // Handle table keydown with improved navigation
+  // Handle table keydown with improved navigation - MODIFIED: Don't trigger save on Enter
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if ((e.key === '/' || e.key === '?') && currentField === 'itemName') {
       e.preventDefault();
@@ -1239,23 +1376,34 @@ const SaleInvoice = () => {
         }
       }
 
-      if (currentField === 'qty') {
-        if (currentRowIndex < items.length - 1) {
-          const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-          if (nextInput) {
-            nextInput.focus();
-            return;
-          }
-        } else {
-          handleAddRow();
-          setTimeout(() => {
-            const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
-            if (newRowInput) newRowInput.focus();
-          }, 60);
-        }
-      }
+     if (currentField === 'qty') {
+  const currentItem = items[currentRowIndex];
+
+  // 🚫 BLOCK if item name not selected
+  if (!currentItem.itemName || currentItem.itemName.trim() === '') {
+    toast.warning("Select item before moving to next row");
+    return;
+  }
+
+  if (currentRowIndex < items.length - 1) {
+    const nextInput = document.querySelector(
+      `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+    );
+    if (nextInput) nextInput.focus();
+  } else {
+    handleAddRow();
+    setTimeout(() => {
+      const newRowInput = document.querySelector(
+        `input[data-row="${items.length}"][data-field="barcode"]`
+      );
+      if (newRowInput) newRowInput.focus();
+    }, 80);
+  }
+}
+
     }
   };
+  
 
   const handleAddItem = async () => {
     if (!billDetails.barcodeInput) {
@@ -1284,7 +1432,7 @@ const SaleInvoice = () => {
             itemName: stockInfo.itemName,
             stock: stockInfo.stock || '0',
             mrp: stockInfo.mrp || '0',
-            uom: stockInfo.fUnits || stockInfo.uom || 'pcs',
+            uom: stockInfo.fUnits || stockInfo.uom || '',
             hsn: stockInfo.hsn || '',
             tax: stockInfo.tax || '0',
             sRate: stockInfo.rate || '0',
@@ -1300,7 +1448,6 @@ const SaleInvoice = () => {
         }
       }
     } catch (err) {
-      console.error("Error adding item:", err);
       alert("Failed to add item. Please try again.");
     }
   };
@@ -1335,7 +1482,7 @@ const SaleInvoice = () => {
         itemCode: itemData.fItemcode || itemData.itemCode || itemData.code,
         stock: (itemData.stock || itemData.stockQty || itemData.quantity || 0).toString(),
         mrp: (itemData.mrp || itemData.sellingPrice || itemData.price || 0).toString(),
-        uom: itemData.fUnits || itemData.uom || "pcs",
+        uom: itemData.fUnits || itemData.uom || "",
         hsn: itemData.hsnCode || itemData.hsn || "",
         tax: (itemData.taxRate || itemData.tax || 0).toString(),
         sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
@@ -1350,24 +1497,33 @@ const SaleInvoice = () => {
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
-  const handleAddRow = () => {
-    const newRow = {
-      id: items.length + 1,
-      sNo: items.length + 1,
-      barcode: '',
-      itemCode: '',
-      itemName: '',
-      stock: '',
-      mrp: '',
-      uom: 'pcs',
-      hsn: '',
-      tax: '',
-      sRate: '',
-      qty: '',
-      amount: '0.00'
-    };
-    setItems([...items, newRow]);
+const handleAddRow = () => {
+  const lastItem = items[items.length - 1];
+
+  // 🚫 BLOCK adding row if item name is empty
+  if (!lastItem.itemName || lastItem.itemName.trim() === '') {
+    toast.warning("Please select an item before adding a new row");
+    return;
+  }
+
+  const newRow = {
+    id: items.length + 1,
+    sNo: items.length + 1,
+    barcode: '',
+    itemCode: '',
+    itemName: '',
+    stock: '',
+    mrp: '',
+    uom: '',
+    hsn: '',
+    tax: '',
+    sRate: '',
+    qty: '',
+    amount: '0.00'
   };
+
+  setItems(prev => [...prev, newRow]);
+};
 
   const handleItemChange = (id, field, value) => {
     setItems(items.map(item => {
@@ -1386,38 +1542,52 @@ const SaleInvoice = () => {
     }));
   };
 
-  const handleDeleteRow = (id) => {
-    const itemToDelete = items.find(item => item.id === id);
-    const itemName = itemToDelete?.itemName || 'this item';
+const handleDeleteRow = (id) => {
+  const itemToDelete = items.find(item => item.id === id);
+  const itemName = itemToDelete?.itemName || 'this item';
+  const barcode = itemToDelete?.barcode ? `(Barcode: ${itemToDelete.barcode})` : '';
+  
+  // Set the item to delete and show confirmation popup
+  setRowToDelete({ id, itemName, barcode });
+  setRowDeleteConfirmationOpen(true);
+};
 
-    if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
-      if (items.length > 1) {
-        const filteredItems = items.filter(item => item.id !== id);
-        const updatedItems = filteredItems.map((item, index) => ({
-          ...item,
-          sNo: index + 1
-        }));
-        setItems(updatedItems);
-      } else {
-        const clearedItem = {
-          id: 1,
-          sNo: 1,
-          barcode: '',
-          itemCode: '',
-          itemName: '',
-          stock: '',
-          mrp: '',
-          uom: 'pcs',
-          hsn: '',
-          tax: '',
-          sRate: '',
-          qty: '',
-          amount: '0.00'
-        };
-        setItems([clearedItem]);
-      }
-    }
-  };
+// Handle confirmed row deletion
+const handleConfirmedRowDelete = () => {
+  if (!rowToDelete) return;
+  
+  const { id } = rowToDelete;
+  
+  if (items.length > 1) {
+    const filteredItems = items.filter(item => item.id !== id);
+    const updatedItems = filteredItems.map((item, index) => ({
+      ...item,
+      sNo: index + 1
+    }));
+    setItems(updatedItems);
+  } else {
+    const clearedItem = {
+      id: 1,
+      sNo: 1,
+      barcode: '',
+      itemCode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      qty: '',
+      amount: '0.00'
+    };
+    setItems([clearedItem]);
+  }
+  
+  // Close popup and reset
+  setRowDeleteConfirmationOpen(false);
+  setRowToDelete(null);
+};
 
   // Handle clear - clears current form
   const handleClear = () => {
@@ -1429,15 +1599,23 @@ const SaleInvoice = () => {
   // Helper function to format date to yyyy-MM-dd
   const formatDateToYYYYMMDD = (dateString) => {
     try {
+      // Check if already in yyyy-MM-dd format
       if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
         return dateString;
       }
       
+      // Check if in dd-MM-yyyy format
+      if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+        const parts = dateString.split('-');
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      
+      // Try parsing as date
       const date = new Date(dateString);
       
       if (isNaN(date.getTime())) {
         const today = new Date();
-        return today.toISOString().substring(0, 10);
+        return today.toISOString().split('T')[0];
       }
       
       const year = date.getFullYear();
@@ -1445,16 +1623,14 @@ const SaleInvoice = () => {
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     } catch (err) {
-      console.error('Error formatting date:', err);
       const today = new Date();
-      return today.toISOString().substring(0, 10);
+      return today.toISOString().split('T')[0];
     }
   };
 
   // ========== SAVE FUNCTION ==========
   const saveSalesInvoice = async () => {
     if (isSaving) {
-      console.log('Save already in progress');
       return;
     }
 
@@ -1480,67 +1656,55 @@ const SaleInvoice = () => {
         throw new Error('Please add at least one item with quantity');
       }
 
-      // Format date to yyyy-MM-dd
+      // Format date to yyyy-MM-dd (without time)
       const voucherDate = formatDateToYYYYMMDD(billDetails.billDate);
 
-      // Prepare header data - Using the field names that match your API
+      // Prepare header data
       const headerData = {
-  voucherNo: billDetails.billNo || "",
-  voucherDate: voucherDate,
-
-  mobileNumber: billDetails.mobileNo || "",
-  salesmanName: billDetails.salesman || "",
-  salesCode: billDetails.salesmanCode || "",
-
-  selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
-
-  customerName: billDetails.custName || "",
-  customercode: billDetails.custCode || "",
-
-  compCode: "001",
-
-  billAmount: Number(totalAmount) || 0,
-  balanceAmount: 0,
-
-  userCode: "001",
-  addLess: (addLessAmount ?? "0").toString()
-};
-
+        voucherNo: billDetails.billNo || "",
+        voucherDate: voucherDate, // Only date, no time
+        mobileNumber: billDetails.mobileNo || "",
+        salesmanName: billDetails.salesman || "",
+        salesCode: billDetails.salesmanCode || "",
+        selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
+        customerName: billDetails.custName || "",
+        customercode: billDetails.custCode || "",
+        compCode: "001",
+        billAmount: Number(totalAmount) || 0,
+        balanceAmount: 0,
+        userCode: "001",
+        addLess: (addLessAmount ?? "0").toString()
+      };
 
       // Prepare items data
-    const itemsData = validItems.map(item => ({
-  barcode: item.barcode || "",
-  itemName: item.itemName || "",
-  itemcode: item.itemCode || "",
-
-  mrp: (Number(item.mrp) || 0).toFixed(2),   // string
-  stock: (item.stock ?? "0").toString(),    // string
-  uom: item.uom || "pcs",
-
-  hsn: item.hsn || "",
-  tax: Number(item.tax) || 0,
-  rate: Number(item.sRate) || 0,
-  qty: Number(item.qty) || 0,
-  amount: Number(item.amount) || 0
-}));
-
-
+      const itemsData = validItems.map(item => ({
+        barcode: item.barcode || "",
+        itemName: item.itemName || "",
+        itemcode: item.itemCode || "",
+        mrp: (Number(item.mrp) || 0).toFixed(2),
+        stock: (item.stock ?? "0").toString(),
+        uom: item.uom || "pcs",
+        hsn: item.hsn || "",
+        tax: Number(item.tax) || 0,
+        rate: Number(item.sRate) || 0,
+        qty: Number(item.qty) || 0,
+        amount: Number(item.amount) || 0
+      }));
+      
       const requestData = {
         header: headerData,
         items: itemsData
       };
+      
 
-      console.log('Saving invoice data:', JSON.stringify(requestData, null, 2));
       
       // Determine if this is an insert or update
       const isInsert = !isEditing;
       
       // Use the correct endpoint based on insert/update
       const endpoint = isInsert 
-        ? API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.CREATE_SALES  // Insert endpoint
-        : API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.UPDATE_SALES; // Update endpoint
-      
-      console.log('Using endpoint:', endpoint, 'isInsert:', isInsert);
+        ? API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.CREATE_SALES
+        : API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.UPDATE_SALES;
       
       const response = await axiosInstance.post(endpoint, requestData, {
         headers: {
@@ -1553,7 +1717,11 @@ const SaleInvoice = () => {
         const message = response.data.message || `Invoice ${isEditing ? 'updated' : 'saved'} successfully`;
         const savedBillNo = response.data.voucherNo || billDetails.billNo;
         
-        alert(`${message}\nInvoice No: ${savedBillNo}`);
+       toast.success(
+  `Invoice ${isEditing ? "updated" : "saved"} successfully\nInvoice No: ${savedBillNo}`,
+  { autoClose: 3000 }
+);
+
         
         // Refresh saved invoices list
         await fetchSavedInvoices(1, '');
@@ -1564,16 +1732,10 @@ const SaleInvoice = () => {
         return response.data;
       }
     } catch (err) {
-      console.error('=== SAVE ERROR DETAILS ===');
-      console.error('Error:', err);
-      console.error('Error response:', err.response);
-      
       let errorMsg = `Failed to ${isEditing ? 'update' : 'save'} sales invoice`;
       
       if (err.response) {
-        console.error('Response data:', err.response.data);
-        console.error('Response status:', err.response.status);
-        
+        console.error("Server error response:", err.response);
         if (err.response.data) {
           if (err.response.data.message) {
             errorMsg = err.response.data.message;
@@ -1607,14 +1769,13 @@ const SaleInvoice = () => {
   };
 
   // Handle save with confirmation
-  const handleSave = async () => {
+  const handleSave = () => {
     showSaveConfirmation();
   };
 
   // Function to show save confirmation popup
   const showSaveConfirmation = () => {
     if (isSaving) {
-      console.log('Save already in progress');
       return;
     }
     
@@ -1650,17 +1811,16 @@ const SaleInvoice = () => {
     setSaveConfirmationOpen(true);
   };
 
-
   // Function to handle confirmed save
   const handleConfirmedSave = async () => {
     setSaveConfirmationOpen(false);
     await saveSalesInvoice();
   };
 
-  // Function to cancel save
-  const handleCancelSave = () => {
-    setSaveConfirmationOpen(false);
-    setSaveConfirmationData(null);
+  // Function to handle confirmed edit
+  const handleConfirmedEdit = async () => {
+    setEditConfirmationOpen(false);
+    await saveSalesInvoice();
   };
 
   const handlePrint = () => {
@@ -1677,6 +1837,23 @@ const SaleInvoice = () => {
       lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
       xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
     },
+    inputWithIconWrapper: {
+  position: "relative",
+  width: "100%",
+  flex: 1,
+},
+
+searchIconInside: {
+  position: "absolute",
+  right: "10px",
+  top: "50%",
+  transform: "translateY(-50%)",
+  pointerEvents: "none",
+  display: "flex",
+  alignItems: "center",
+  opacity: 0.7,
+},
+
     fontWeight: {
       normal: 400,
       medium: 500,
@@ -1706,8 +1883,6 @@ const SaleInvoice = () => {
       overflowX: 'hidden',
       overflowY: 'hidden',
       position: 'fixed',
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#1B91DA #f0f0f0',
     },
     headerSection: {
       flex: '0 0 auto',
@@ -1727,21 +1902,6 @@ const SaleInvoice = () => {
       minHeight: 0,
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
-      '&::-webkit-scrollbar': {
-        width: '8px',
-        height: '8px',
-      },
-      '&::-webkit-scrollbar-track': {
-        backgroundColor: '#f0f0f0',
-        borderRadius: '4px',
-      },
-      '&::-webkit-scrollbar-thumb': {
-        backgroundColor: '#1B91DA',
-        borderRadius: '4px',
-        '&:hover': {
-          backgroundColor: '#1479c0',
-        }
-      },
     },
     formRow: {
       display: 'flex',
@@ -1770,7 +1930,10 @@ const SaleInvoice = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
@@ -1786,7 +1949,10 @@ const SaleInvoice = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '2px solid #1B91DA',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
@@ -1803,7 +1969,10 @@ const SaleInvoice = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
@@ -1821,7 +1990,10 @@ const SaleInvoice = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '2px solid #1B91DA',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
@@ -1858,8 +2030,6 @@ const SaleInvoice = () => {
       flexDirection: 'column',
       maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
       minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#1B91DA #f0f0f0',
     },
     table: {
       width: 'max-content',
@@ -2228,26 +2398,26 @@ const SaleInvoice = () => {
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      ::-webkit-scrollbar {
+      .sale-invoice-scrollable::-webkit-scrollbar {
         width: 8px;
         height: 8px;
       }
       
-      ::-webkit-scrollbar-track {
+      .sale-invoice-scrollable::-webkit-scrollbar-track {
         background-color: #f0f0f0;
         border-radius: 4px;
       }
       
-      ::-webkit-scrollbar-thumb {
+      .sale-invoice-scrollable::-webkit-scrollbar-thumb {
         background-color: #1B91DA;
         border-radius: 4px;
       }
       
-      ::-webkit-scrollbar-thumb:hover {
+      .sale-invoice-scrollable::-webkit-scrollbar-thumb:hover {
         background-color: #1479c0;
       }
       
-      * {
+      .sale-invoice-scrollable {
         scrollbar-width: thin;
         scrollbar-color: #1B91DA #f0f0f0;
       }
@@ -2288,7 +2458,35 @@ const SaleInvoice = () => {
   };
 
   return (
-    <div style={styles.container}>
+   <div
+  style={styles.container}
+  className="sale-invoice-scrollable"
+  onKeyDown={(e) => {
+    // 🚫 block Enter that comes from popup selection
+    if (ignoreNextEnterRef.current && e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // 🚫 block Enter everywhere else (no auto save)
+    if (
+      e.key === 'Enter' &&
+      !customerPopupOpen &&
+      !salesmanPopupOpen &&
+      !itemPopupOpen &&
+      !editInvoicePopupOpen &&
+      !deleteInvoicePopupOpen &&
+      !saveConfirmationOpen &&
+      !editConfirmationOpen &&
+      !deleteConfirmationOpen
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }}
+>
+
       {error && <div style={styles.errorContainer}>Error: {error}</div>}
       
       {(isLoading || loadingInvoices) && (
@@ -2381,46 +2579,95 @@ const SaleInvoice = () => {
           gridTemplateColumns: getGridColumns(),
         }}>
           {/* Salesman */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Salesman:</label>
-            <input
-              type="text"
-              style={focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-              value={billDetails.salesman}
-              name="salesman"
-              onChange={handleInputChange}
-              ref={salesmanRef}
-              onClick={openSalesmanPopup}
-              onKeyDown={(e) => {
-                handleKeyDown(e, custNameRef, 'salesman');
-                handleBackspace(e, 'salesman');
-              }}
-              onFocus={() => setFocusedField('salesman')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Click to select or type name"
-            />
-          </div>
+     <div style={styles.formField}>
+  <label style={styles.inlineLabel}>Salesman:</label>
+
+  <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+    <input
+      type="text"
+      style={{
+        ...(focusedField === 'salesman'
+          ? styles.inlineInputClickableFocused
+          : styles.inlineInputClickable),
+        paddingRight: '34px', // space for icon
+      }}
+      value={billDetails.salesman}
+      name="salesman"
+      onChange={handleInputChange}
+      ref={salesmanRef}
+      onClick={openSalesmanPopup}
+      onKeyDown={(e) => {
+        handleKeyDown(e, custNameRef, 'salesman');
+        handleBackspace(e, 'salesman');
+      }}
+      onFocus={() => setFocusedField('salesman')}
+      onBlur={() => setFocusedField('')}
+      placeholder="Search salesman"
+    />
+
+    {/* 🔍 Search Icon */}
+    <div
+      style={{
+        position: 'absolute',
+        right: '10px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        pointerEvents: 'none',
+        opacity: 0.65,
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <SearchIcon />
+    </div>
+  </div>
+</div>
 
           {/* Customer Name */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Customer:</label>
-            <input
-              type="text"
-              style={focusedField === 'custName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-              value={billDetails.custName}
-              name="custName"
-              onChange={handleInputChange}
-              ref={custNameRef}
-              onClick={openCustomerPopup}
-              onKeyDown={(e) => {
-                handleKeyDown(e, barcodeRef, 'custName');
-                handleBackspace(e, 'custName');
-              }}
-              onFocus={() => setFocusedField('custName')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Click to select or type name"
-            />
-          </div>
+<div style={styles.formField}>
+  <label style={styles.inlineLabel}>Customer:</label>
+
+  <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+    <input
+      type="text"
+      style={{
+        ...(focusedField === 'custName'
+          ? styles.inlineInputClickableFocused
+          : styles.inlineInputClickable),
+        paddingRight: '34px', // space for icon
+      }}
+      value={billDetails.custName}
+      name="custName"
+      onChange={handleInputChange}
+      ref={custNameRef}
+      onClick={openCustomerPopup}
+      onKeyDown={(e) => {
+        handleKeyDown(e, barcodeRef, 'custName');
+        handleBackspace(e, 'custName');
+      }}
+      onFocus={() => setFocusedField('custName')}
+      onBlur={() => setFocusedField('')}
+      placeholder="Search customer"
+    />
+
+    {/* 🔍 Search Icon */}
+    <div
+      style={{
+        position: 'absolute',
+        right: '10px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        pointerEvents: 'none',
+        opacity: 0.65,
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <SearchIcon />
+    </div>
+  </div>
+</div>
+
 
           {/* Barcode */}
           <div style={styles.formField}>
@@ -2449,8 +2696,8 @@ const SaleInvoice = () => {
       </div>
 
       {/* --- TABLE SECTION --- */}
-      <div style={styles.tableSection}>
-        <div style={styles.tableContainer}>
+      <div style={styles.tableSection} className="sale-invoice-scrollable">
+        <div style={styles.tableContainer} className="sale-invoice-scrollable">
           <table style={styles.table}>
             <thead>
               <tr>
@@ -2462,7 +2709,7 @@ const SaleInvoice = () => {
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>HSN</th>
                 <th style={styles.th}>Tax (%)</th>
-                <th style={styles.th}>Rate</th>
+                <th style={styles.th}>SRate</th>
                 <th style={styles.th}>Qty</th>
                 <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th>
                 <th style={styles.th}>Action</th>
@@ -2485,20 +2732,45 @@ const SaleInvoice = () => {
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
-                    <input
-                      style={focusedField === `itemName-${item.id}` ? styles.editableInputClickableFocused : styles.editableInputClickable}
-                      value={item.itemName}
-                      placeholder="Click to select item"
-                      data-row={index}
-                      data-field="itemName"
-                      onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
-                      onClick={() => openItemPopup(index)}
-                      onFocus={() => setFocusedField(`itemName-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                      title={`Item Code: ${item.itemCode || 'Not selected'}`}
-                    />
-                  </td>
+  <div style={{ position: 'relative', width: '100%' }}>
+    <input
+      style={{
+        ...(focusedField === `itemName-${item.id}`
+          ? styles.editableInputClickableFocused
+          : styles.editableInputClickable),
+        paddingRight: '26px',
+        textAlign: 'left',
+      }}
+      value={item.itemName}
+      placeholder="Search item"
+      data-row={index}
+      data-field="itemName"
+      onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
+      onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
+      onClick={() => openItemPopup(index)}
+      onFocus={() => setFocusedField(`itemName-${item.id}`)}
+      onBlur={() => setFocusedField('')}
+      title={`Item Code: ${item.itemCode || 'Not selected'}`}
+    />
+
+    {/* 🔍 Search Icon */}
+    <div
+      style={{
+        position: 'absolute',
+        right: '6px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        pointerEvents: 'none',
+        opacity: 0.6,
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <SearchIcon size={14} />
+    </div>
+  </div>
+</td>
+
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
@@ -2528,10 +2800,20 @@ const SaleInvoice = () => {
                         style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
                         onClick={() => {
                           const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
-                          const currentUom = item.uom || 'pcs';
-                          const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
-                          const nextIndex = (currentIndex + 1) % uomValues.length;
-                          const nextUom = uomValues[nextIndex];
+                          const currentUom = item.uom || '';
+                          let nextUom = 'pcs';
+                          
+                          if (currentUom && currentUom.trim() !== '') {
+                            const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
+                            if (currentIndex !== -1) {
+                              const nextIndex = (currentIndex + 1) % uomValues.length;
+                              nextUom = uomValues[nextIndex];
+                            } else {
+                              nextUom = 'pcs';
+                            }
+                          } else {
+                            nextUom = 'pcs';
+                          }
                           
                           setItems(items.map(i => {
                             if (i.id === item.id) {
@@ -2562,7 +2844,7 @@ const SaleInvoice = () => {
                         data-row={index}
                         data-field="uom"
                       >
-                        {item.uom || 'pcs'}
+                        {item.uom || ''}
                       </div>
                       <div style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomHintVisible : styles.uomHint}>
                         Press Space or Click to toggle
@@ -2630,50 +2912,56 @@ const SaleInvoice = () => {
                       readOnly
                     />
                   </td>
-                  <td style={styles.td}>
-                    <button
-                      aria-label="Delete row"
-                      title="Delete row"
-                      style={{
-                        backgroundColor: 'transparent',
-                        color: '#dc3545',
-                        border: 'none',
-                        padding: 0,
-                        borderRadius: '2px',
-                        width: '100%',
-                        height: '100%',
-                        cursor: 'pointer',
-                        fontSize: screenSize.isMobile ? '12px' : '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'color 0.15s ease',
-                        minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
-                      }}
-                      onClick={() => handleDeleteRow(item.id)}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width={screenSize.isMobile ? "16" : "18"}
-                        height={screenSize.isMobile ? "16" : "18"}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#dc3545"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        focusable="false"
-                        style={{ display: 'block', margin: 'auto' }}
-                      >
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                        <path d="M10 11v6"></path>
-                        <path d="M14 11v6"></path>
-                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </td>
+                <td style={styles.td}>
+  <button
+    aria-label="Delete row"
+    title="Delete row"
+    style={{
+      backgroundColor: 'transparent',
+      color: '#dc3545',
+      border: 'none',
+      padding: 0,
+      borderRadius: '2px',
+      width: '100%',
+      height: '100%',
+      cursor: 'pointer',
+      fontSize: screenSize.isMobile ? '12px' : '14px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'color 0.15s ease, background-color 0.15s ease',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+    }}
+    onClick={() => handleDeleteRow(item.id)}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.backgroundColor = '#fee';
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.backgroundColor = 'transparent';
+    }}
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={screenSize.isMobile ? "16" : "18"}
+      height={screenSize.isMobile ? "16" : "18"}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#dc3545"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      style={{ display: 'block', margin: 'auto' }}
+    >
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+      <path d="M10 11v6"></path>
+      <path d="M14 11v6"></path>
+      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+    </svg>
+  </button>
+</td>
                 </tr>
               ))}
             </tbody>
@@ -2685,14 +2973,16 @@ const SaleInvoice = () => {
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
           <ActionButtons
-            activeButton={activeTopAction}
-            onButtonClick={(type) => {
-              setActiveTopAction(type);
-              if (type === 'add') handleAddRow();
-              else if (type === 'edit') openEditInvoicePopup();
-              else if (type === 'delete') openDeleteInvoicePopup();
-            }}
-          >
+  activeButton={activeTopAction}
+  onButtonClick={(type) => {
+    setActiveTopAction(type); // ✅ only on click
+
+    if (type === 'add') ;
+    if (type === 'edit') openEditInvoicePopup();
+    if (type === 'delete') openDeleteInvoicePopup();
+  }}
+>
+
             <AddButton buttonType="add" />
             <EditButton buttonType="edit" />
             <DeleteButton buttonType="delete" />
@@ -2740,127 +3030,52 @@ const SaleInvoice = () => {
       </div>
 
       {/* Save Confirmation Popup */}
-      {saveConfirmationOpen && saveConfirmationData && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '30px',
-            maxWidth: '500px',
-            width: '90%',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
-          }}>
-            <h3 style={{ marginBottom: '20px', color: '#1B91DA', textAlign: 'center' }}>
-              {saveConfirmationData.isEditing ? 'Confirm UPDATE Invoice' : 'Confirm SAVE Invoice'}
-            </h3>
-            <div style={{ marginBottom: '30px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Invoice No:</span>
-                <span style={{ fontWeight: 'bold', color: saveConfirmationData.isEditing ? '#dc3545' : '#28a745' }}>
-                  {saveConfirmationData.invoiceNo}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Operation:</span>
-                <span style={{ 
-                  fontWeight: 'bold', 
-                  color: saveConfirmationData.isEditing ? '#dc3545' : '#28a745',
-                  backgroundColor: saveConfirmationData.isEditing ? '#f8d7da' : '#d4edda',
-                  padding: '2px 8px',
-                  borderRadius: '4px'
-                }}>
-                  {saveConfirmationData.isEditing ? 'UPDATE' : 'INSERT'}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Customer:</span>
-                <span>{saveConfirmationData.customer}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Date:</span>
-                <span>{saveConfirmationData.billDate}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Items:</span>
-                <span>{items.filter(item => item.itemName && item.itemName.trim()).length} items</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Total Amount:</span>
-                <span style={{ fontWeight: 'bold', color: '#1B91DA' }}>₹{saveConfirmationData.totalAmount}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <span style={{ fontWeight: 'bold', color: '#666' }}>Add/Less:</span>
-                <span style={{ 
-                  fontWeight: 'bold', 
-                  color: parseFloat(saveConfirmationData.addLessAmount || 0) >= 0 ? '#28a745' : '#dc3545' 
-                }}>
-                  {parseFloat(saveConfirmationData.addLessAmount || 0) >= 0 ? '+' : ''}₹{parseFloat(saveConfirmationData.addLessAmount || 0).toFixed(2)}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', paddingTop: '15px', borderTop: '2px solid #1B91DA' }}>
-                <span style={{ fontWeight: 'bold', color: '#666', fontSize: '16px' }}>Final Amount:</span>
-                <span style={{ fontWeight: 'bold', color: '#1B91DA', fontSize: '18px' }}>₹{saveConfirmationData.finalAmount}</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-              <button
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: '#f5f5f5',
-                  color: '#666',
-                  cursor: 'pointer',
-                  minWidth: '120px',
-                }}
-                onClick={handleCancelSave}
-              >
-                Cancel
-              </button>
-              <button
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: saveConfirmationData.isEditing ? '#ffc107' : '#1B91DA',
-                  color: saveConfirmationData.isEditing ? '#212529' : 'white',
-                  cursor: 'pointer',
-                  minWidth: '120px',
-                  fontWeight: 'bold'
-                }}
-                onClick={handleConfirmedSave}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Processing...' : (saveConfirmationData.isEditing ? 'CONFIRM UPDATE' : 'CONFIRM SAVE')}
-              </button>
-            </div>
-            <div style={{ 
-              marginTop: '15px', 
-              padding: '10px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '5px',
-              fontSize: '12px',
-              color: '#6c757d',
-              textAlign: 'center'
-            }}>
-              Endpoint: {saveConfirmationData.isEditing ? 
-                API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.UPDATE_SALES : 
-                API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.CREATE_SALES}
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationPopup
+        isOpen={saveConfirmationOpen}
+        onClose={() => setSaveConfirmationOpen(false)}
+        onConfirm={handleConfirmedSave}
+        title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
+        message={
+          saveConfirmationData ? 
+          `Invoice No: ${saveConfirmationData.invoiceNo}\n` +
+          `Customer: ${saveConfirmationData.customer}\n` +
+          `Date: ${saveConfirmationData.billDate}\n` +
+          `Total Amount: ₹${saveConfirmationData.totalAmount}\n` +
+          `Add/Less: ${parseFloat(saveConfirmationData.addLessAmount || 0) >= 0 ? '+' : ''}₹${parseFloat(saveConfirmationData.addLessAmount || 0).toFixed(2)}\n` +
+          `Final Amount: ₹${saveConfirmationData.finalAmount}`
+          : "Are you sure you want to save this invoice?"
+        }
+        confirmText={saveConfirmationData?.isEditing ? "CONFIRM UPDATE" : "CONFIRM SAVE"}
+        cancelText="Cancel"
+        type={saveConfirmationData?.isEditing ? "warning" : "success"}
+        showIcon={true}
+        showLoading={isSaving}
+        borderColor={saveConfirmationData?.isEditing ? "#ffc107" : "#1B91DA"}
+      />
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={deleteConfirmationOpen}
+        onClose={() => setDeleteConfirmationOpen(false)}
+        onConfirm={handleConfirmedDelete}
+        title="Confirm DELETE Invoice"
+        message={
+          deleteConfirmationData ? 
+          `Invoice No: ${deleteConfirmationData.invoiceNo}\n` +
+          `Customer: ${deleteConfirmationData.customer}\n` +
+          `Date: ${deleteConfirmationData.billDate}\n` +
+          `Total Amount: ₹${parseFloat(deleteConfirmationData.totalAmount || 0).toFixed(2)}\n\n` +
+          `WARNING: This action cannot be undone!`
+          : "Are you sure you want to delete this invoice?"
+        }
+        confirmText="CONFIRM DELETE"
+        cancelText="Cancel"
+        type="danger"
+        showIcon={true}
+        showLoading={isLoading}
+        borderColor="#dc3545"
+        confirmButtonStyle={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
+      />
 
       {/* Customer Popup */}
       <PopupListSelector
@@ -2940,6 +3155,28 @@ const SaleInvoice = () => {
         loading={loadingInvoices}
         formatRow={getPopupConfig('deleteInvoice').formatRow}
       />
+      {/* Row Delete Confirmation Popup */}
+<ConfirmationPopup
+  isOpen={rowDeleteConfirmationOpen}
+  onClose={() => {
+    setRowDeleteConfirmationOpen(false);
+    setRowToDelete(null);
+  }}
+  onConfirm={handleConfirmedRowDelete}
+  title="Delete Item Row"
+  message={
+    rowToDelete 
+    ? `Are you sure you want to delete "${rowToDelete.itemName}" ${rowToDelete.barcode}?\n\nThis action cannot be undone!`
+    : "Are you sure you want to delete this item?"
+  }
+  confirmText="DELETE"
+  cancelText="Cancel"
+  type="danger"
+  showIcon={true}
+  showLoading={false}
+  borderColor="#dc3545"
+  confirmButtonStyle={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
+/>
       
     </div>
   );

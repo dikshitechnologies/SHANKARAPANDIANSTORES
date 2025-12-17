@@ -1,0 +1,353 @@
+import React, { useRef, useEffect } from 'react';
+
+const SaveConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title = "Confirm Save",
+  particulars = [],
+  loading = false,
+  voucherNo = "",
+  voucherDate = ""
+}) => {
+  const confirmRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && confirmRef.current) {
+      confirmRef.current.focus();
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  // Prepare table data based on particulars
+  const denominations = ['500', '200', '100', '50', '20', '10', '5', '2', '1'];
+  
+  // Initialize counters
+  const available = {};
+  const collect = {};
+  const issue = {};
+  const closing = {};
+
+  denominations.forEach(denom => {
+    available[denom] = particulars[denom]?.available || 0;
+    collect[denom] = particulars[denom]?.collect || 0;
+    issue[denom] = particulars[denom]?.issue || 0;
+    closing[denom] = (available[denom] + collect[denom] - issue[denom]) || 0;
+  });
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(2, 6, 23, 0.46)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 1200,
+        padding: '20px',
+        animation: 'fadeIn 0.2s ease'
+      }}
+      onClick={onClose}
+    >
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideIn {
+          from { 
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '1000px',
+          maxHeight: '80vh',
+          overflow: 'auto',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,255,0.95))',
+          borderRadius: '12px',
+          padding: '24px',
+          boxShadow: '0 18px 50px rgba(2, 6, 23, 0.36)',
+          border: '1px solid rgba(255,255,255,0.5)',
+          backdropFilter: 'blur(8px)',
+          animation: 'slideIn 0.3s ease'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ marginBottom: '24px', borderBottom: '2px solid #307AC8', paddingBottom: '16px' }}>
+          <h2 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '20px', fontWeight: 700 }}>
+            {title}
+          </h2>
+          <div style={{ display: 'flex', gap: '24px', color: '#64748b', fontSize: '14px' }}>
+            <div>
+              <span style={{ fontWeight: 600 }}>Voucher No:</span> {voucherNo}
+            </div>
+            <div>
+              <span style={{ fontWeight: 600 }}>Date:</span> {voucherDate}
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div style={{ marginBottom: '24px', overflowX: 'auto' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '14px'
+            }}
+          >
+            <thead>
+              <tr style={{ background: 'linear-gradient(90deg, #307AC8, #1B91DA)' }}>
+                <th
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    color: 'white',
+                    fontWeight: 700,
+                    borderRight: '1px solid rgba(255,255,255,0.2)'
+                  }}
+                >
+                  PARTICULARS
+                </th>
+                {denominations.map((denom) => (
+                  <th
+                    key={denom}
+                    style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      color: 'white',
+                      fontWeight: 700,
+                      borderRight: '1px solid rgba(255,255,255,0.2)',
+                      minWidth: '70px'
+                    }}
+                  >
+                    {denom}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {/* AVAILABLE Row */}
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+                <td
+                  style={{
+                    padding: '12px',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    borderRight: '1px solid #e5e7eb'
+                  }}
+                >
+                  AVAILABLE
+                </td>
+                {denominations.map((denom) => (
+                  <td
+                    key={`avail-${denom}`}
+                    style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      color: '#0f172a',
+                      borderRight: '1px solid #e5e7eb'
+                    }}
+                  >
+                    {available[denom]}
+                  </td>
+                ))}
+              </tr>
+
+              {/* COLLECT Row */}
+              <tr style={{ background: 'white', borderBottom: '1px solid #e5e7eb' }}>
+                <td
+                  style={{
+                    padding: '12px',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    borderRight: '1px solid #e5e7eb'
+                  }}
+                >
+                  COLLECT
+                </td>
+                {denominations.map((denom) => (
+                  <td
+                    key={`collect-${denom}`}
+                    style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      borderRight: '1px solid #e5e7eb'
+                    }}
+                  >
+                    <input
+                      type="number"
+                      value={collect[denom]}
+                      readOnly
+                      style={{
+                        width: '50px',
+                        padding: '6px 8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        fontSize: '13px',
+                        background: '#f3f4f6',
+                        color: '#0f172a'
+                      }}
+                    />
+                  </td>
+                ))}
+              </tr>
+
+              {/* ISSUE Row */}
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+                <td
+                  style={{
+                    padding: '12px',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    borderRight: '1px solid #e5e7eb'
+                  }}
+                >
+                  ISSUE
+                </td>
+                {denominations.map((denom) => (
+                  <td
+                    key={`issue-${denom}`}
+                    style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      borderRight: '1px solid #e5e7eb'
+                    }}
+                  >
+                    <input
+                      type="number"
+                      value={issue[denom]}
+                      readOnly
+                      style={{
+                        width: '50px',
+                        padding: '6px 8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        fontSize: '13px',
+                        background: '#f3f4f6',
+                        color: '#0f172a'
+                      }}
+                    />
+                  </td>
+                ))}
+              </tr>
+
+              {/* CLOSING Row */}
+              <tr style={{ background: 'white', borderBottom: '1px solid #e5e7eb' }}>
+                <td
+                  style={{
+                    padding: '12px',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    borderRight: '1px solid #e5e7eb'
+                  }}
+                >
+                  CLOSING
+                </td>
+                {denominations.map((denom) => (
+                  <td
+                    key={`closing-${denom}`}
+                    style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      color: '#0f172a',
+                      fontWeight: 600,
+                      borderRight: '1px solid #e5e7eb'
+                    }}
+                  >
+                    {closing[denom]}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Message */}
+        <div
+          style={{
+            background: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '24px',
+            color: '#064e3b',
+            fontSize: '14px'
+          }}
+        >
+          ✓ Please verify the particulars above before confirming the save operation.
+        </div>
+
+        {/* Button Controls */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'flex-end'
+          }}
+        >
+          <button
+            onClick={onClose}
+            disabled={loading}
+            style={{
+              padding: '10px 20px',
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              color: '#0f172a',
+              transition: 'all 0.2s',
+              opacity: loading ? 0.6 : 1
+            }}
+            onMouseEnter={(e) => !loading && (e.target.style.background = '#f3f4f6')}
+            onMouseLeave={(e) => (e.target.style.background = '#fff')}
+          >
+            Cancel
+          </button>
+          <button
+            ref={confirmRef}
+            onClick={onConfirm}
+            disabled={loading}
+            style={{
+              padding: '10px 24px',
+              background: loading
+                ? 'rgba(48, 122, 200, 0.6)'
+                : 'linear-gradient(90deg, #307AC8, #06A7EA)',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: 700,
+              color: 'white',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              minWidth: '120px'
+            }}
+            onMouseEnter={(e) => !loading && (e.target.style.boxShadow = '0 8px 24px rgba(48, 122, 200, 0.25)')}
+            onMouseLeave={(e) => (e.target.style.boxShadow = 'none')}
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SaveConfirmationModal;

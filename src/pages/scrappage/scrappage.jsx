@@ -492,9 +492,9 @@ useEffect(() => {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
-          padding: 20px;
+          padding: 12px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,253,250,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
@@ -568,9 +568,11 @@ useEffect(() => {
         /* grid layout */
         .grid {
           display:grid;
-          grid-template-columns: 1fr 360px;
+          grid-template-columns: 1fr;
           gap:18px;
           align-items:start;
+          max-width: 750px;
+          margin: 0 auto;
         }
 
         /* left card (form) */
@@ -655,7 +657,7 @@ useEffect(() => {
 
         /* right side panel */
         .side {
-          display:flex;
+          display: none;
           flex-direction:column;
           gap:12px;
         }
@@ -988,8 +990,8 @@ useEffect(() => {
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#ffffffff" />
-              <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 8h8v2H8V8zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" fill="#307AC8" />
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
               <h2 id="scrap-creation-title">Scrap Management</h2>

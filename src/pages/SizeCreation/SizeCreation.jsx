@@ -490,7 +490,7 @@ handleDelete();
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 800px;
           border-radius: 16px;
           padding: 20px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -563,13 +563,11 @@ handleDelete();
         .action-pill.warn { color:white; background: linear-gradient(180deg, var(--warning), #f97316); }
         .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
 
-        /* grid layout */
-        .grid {
-          display:grid;
-          grid-template-columns: 1fr 360px;
-          gap:18px;
-          align-items:start;
-        }
+       .grid {
+  display: block;
+  width: 100%;
+}
+
 
         /* left card (form) */
         .card {
@@ -1138,58 +1136,7 @@ handleDelete();
             </div>
           </div>
 
-          {/* Right side panel */}
-          <div className="side" aria-live="polite">
-            <div className="stat">
-              <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Size" : "Delete Size"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Size Code</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Size Name</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.sizeName || "Not set"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Existing Sizes</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {sizes.length}
-              </div>
-            </div>
-
-            <div className="stat tips-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <Icon.Info />
-                <div style={{ fontWeight: 700 }}>Quick Tips</div>
-              </div>
-              
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Size code is auto-generated for new sizes</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find sizes</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common sizes: Large, Medium, Small, etc.</span>
-                </div>
-              </div>
-            </div>
-          </div>
+         
         </div>
       </div>
 
