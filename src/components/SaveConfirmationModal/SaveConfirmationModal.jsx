@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 const SaveConfirmationModal = ({
   isOpen,
@@ -11,12 +11,16 @@ const SaveConfirmationModal = ({
   voucherDate = ""
 }) => {
   const confirmRef = useRef(null);
+  const [editableParticulars, setEditableParticulars] = useState(particulars);
 
   useEffect(() => {
-    if (isOpen && confirmRef.current) {
-      confirmRef.current.focus();
+    if (isOpen) {
+      setEditableParticulars(particulars);
+      if (confirmRef.current) {
+        confirmRef.current.focus();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, particulars]);
 
   if (!isOpen) return null;
 
@@ -26,15 +30,28 @@ const SaveConfirmationModal = ({
   // Initialize counters
   const available = {};
   const collect = {};
-  const issue = {};
-  const closing = {};
 
   denominations.forEach(denom => {
-    available[denom] = particulars[denom]?.available || 0;
-    collect[denom] = particulars[denom]?.collect || 0;
-    issue[denom] = particulars[denom]?.issue || 0;
-    closing[denom] = (available[denom] + collect[denom] - issue[denom]) || 0;
+    available[denom] = editableParticulars[denom]?.available || 0;
+    collect[denom] = editableParticulars[denom]?.collect || 0;
   });
+
+  // Handle collect input change
+  const handleCollectChange = (denom, value) => {
+    const numValue = value === '' ? 0 : parseInt(value) || 0;
+    setEditableParticulars(prev => ({
+      ...prev,
+      [denom]: {
+        ...prev[denom],
+        collect: numValue
+      }
+    }));
+  };
+
+  // Handle confirm with updated values
+  const handleConfirmClick = () => {
+    onConfirm(editableParticulars);
+  };
 
   return (
     <div
@@ -66,6 +83,14 @@ const SaveConfirmationModal = ({
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type="number"] {
+          -moz-appearance: textfield;
         }
       `}</style>
 
@@ -159,10 +184,11 @@ const SaveConfirmationModal = ({
                       padding: '12px',
                       textAlign: 'center',
                       color: '#0f172a',
-                      borderRight: '1px solid #e5e7eb'
+                      borderRight: '1px solid #e5e7eb',
+                      fontWeight: 600
                     }}
                   >
-                    {available[denom]}
+                    {available[denom] + collect[denom]}
                   </td>
                 ))}
               </tr>
@@ -190,87 +216,23 @@ const SaveConfirmationModal = ({
                   >
                     <input
                       type="number"
-                      value={collect[denom]}
-                      readOnly
+                      value={collect[denom] === 0 ? '' : collect[denom]}
+                      onChange={(e) => handleCollectChange(denom, e.target.value)}
+                      min="0"
+                      placeholder="0"
                       style={{
                         width: '50px',
                         padding: '6px 8px',
-                        border: '1px solid #d1d5db',
+                        border: '2px solid #307AC8',
                         borderRadius: '6px',
                         textAlign: 'center',
                         fontSize: '13px',
-                        background: '#f3f4f6',
-                        color: '#0f172a'
+                        background: '#fff',
+                        color: '#0f172a',
+                        fontWeight: 600,
+                        cursor: 'text'
                       }}
                     />
-                  </td>
-                ))}
-              </tr>
-
-              {/* ISSUE Row */}
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
-                <td
-                  style={{
-                    padding: '12px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    borderRight: '1px solid #e5e7eb'
-                  }}
-                >
-                  ISSUE
-                </td>
-                {denominations.map((denom) => (
-                  <td
-                    key={`issue-${denom}`}
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      borderRight: '1px solid #e5e7eb'
-                    }}
-                  >
-                    <input
-                      type="number"
-                      value={issue[denom]}
-                      readOnly
-                      style={{
-                        width: '50px',
-                        padding: '6px 8px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        textAlign: 'center',
-                        fontSize: '13px',
-                        background: '#f3f4f6',
-                        color: '#0f172a'
-                      }}
-                    />
-                  </td>
-                ))}
-              </tr>
-
-              {/* CLOSING Row */}
-              <tr style={{ background: 'white', borderBottom: '1px solid #e5e7eb' }}>
-                <td
-                  style={{
-                    padding: '12px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    borderRight: '1px solid #e5e7eb'
-                  }}
-                >
-                  CLOSING
-                </td>
-                {denominations.map((denom) => (
-                  <td
-                    key={`closing-${denom}`}
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      color: '#0f172a',
-                      fontWeight: 600,
-                      borderRight: '1px solid #e5e7eb'
-                    }}
-                  >
-                    {closing[denom]}
                   </td>
                 ))}
               </tr>
@@ -323,7 +285,7 @@ const SaveConfirmationModal = ({
           </button>
           <button
             ref={confirmRef}
-            onClick={onConfirm}
+            onClick={handleConfirmClick}
             disabled={loading}
             style={{
               padding: '10px 24px',
