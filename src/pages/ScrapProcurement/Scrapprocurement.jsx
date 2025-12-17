@@ -91,7 +91,7 @@ const Scrapprocurement = () => {
   const [activeSearchField, setActiveSearchField] = useState(null);
 
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('null');
 
   // Screen size state for responsive adjustments
   const [screenSize, setScreenSize] = useState({

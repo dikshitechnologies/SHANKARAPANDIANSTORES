@@ -143,7 +143,7 @@ const PurchaseInvoice = () => {
   const [itemSearchTerm, setItemSearchTerm] = useState(''); // Track search term for item popup
   
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('null');
 
   // Screen size state for responsive adjustments
   const [screenSize, setScreenSize] = useState({
@@ -216,7 +216,7 @@ const PurchaseInvoice = () => {
       setIsEditMode(false);
       setEditingBillNo('');
       setActiveTopAction('create');
-      setActiveFooterAction('all');
+      setActiveFooterAction('null');
       setItemSearchTerm('');
       setFocusedField('');
       setShowSupplierPopup(false);
@@ -2392,6 +2392,7 @@ const PurchaseInvoice = () => {
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
+          
         </div>
       </div>
     </div>
