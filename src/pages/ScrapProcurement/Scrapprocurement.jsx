@@ -91,7 +91,7 @@ const Scrapprocurement = () => {
   const [activeSearchField, setActiveSearchField] = useState(null);
 
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('null');
 
   // Screen size state for responsive adjustments
   const [screenSize, setScreenSize] = useState({
@@ -261,7 +261,7 @@ const Scrapprocurement = () => {
 
   // Handle salesman popup auto-open
   useEffect(() => {
-    if (billDetails.salesman.length > 0 && !showSalesmanPopup && !closedByUser) {
+    if (billDetails.salesman.length > 0 && !showSalesmanPopup && !closedByUser && !isEditMode) {
       if (showCustomerPopup || showScrapPopup) return;
       
       setSalesmanSearchTerm(billDetails.salesman);
@@ -273,11 +273,11 @@ const Scrapprocurement = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [billDetails.salesman, showSalesmanPopup, closedByUser, showCustomerPopup, showScrapPopup]);
+  }, [billDetails.salesman, showSalesmanPopup, closedByUser, showCustomerPopup, showScrapPopup, isEditMode]);
 
   // Handle customer popup auto-open
   useEffect(() => {
-    if (billDetails.custName.length > 0 && !showCustomerPopup && !closedByUser) {
+    if (billDetails.custName.length > 0 && !showCustomerPopup && !closedByUser && !isEditMode) {
       if (showSalesmanPopup || showScrapPopup) return;
       
       setCustomerSearchTerm(billDetails.custName);
@@ -289,7 +289,7 @@ const Scrapprocurement = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [billDetails.custName, showCustomerPopup, closedByUser, showSalesmanPopup, showScrapPopup]);
+  }, [billDetails.custName, showCustomerPopup, closedByUser, showSalesmanPopup, showScrapPopup, isEditMode]);
 
   // Handle scrap popup auto-open
   useEffect(() => {
@@ -441,6 +441,9 @@ const Scrapprocurement = () => {
         setOriginalBillDetails({...newBillDetails});
         setOriginalItems([...newItems]);
         
+        // Set edit mode first to prevent popups from showing
+        setIsEditMode(true);
+        
         // Set current data
         setBillDetails(newBillDetails);
         setItems(newItems);
@@ -453,7 +456,6 @@ const Scrapprocurement = () => {
           showIcon: true,
           onConfirm: () => {
             setShowConfirmPopup(false);
-            setIsEditMode(true);
           }
         });
       } else {
@@ -739,7 +741,7 @@ const Scrapprocurement = () => {
         }));
       }
       
-      const url = API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_ITEMS +
+      const url = API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_ITEMS +
                 (searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '');
       const response = await axiosInstance.get(url);
       const data = response?.data || [];
@@ -1144,8 +1146,9 @@ const Scrapprocurement = () => {
             // Clear original data after successful save
             setOriginalBillDetails(null);
             setOriginalItems(null);
-            handleClear();
+            clearFormData();
             setIsEditMode(false);
+            fetchNextBillNo();
           }
         });
       } else {
@@ -1214,9 +1217,9 @@ const Scrapprocurement = () => {
           await performSave();
           setShowConfirmPopup(false);
           // Refresh the page after a short delay
-              // setTimeout(() => {
-              //   window.location.reload();
-              // }, 300);
+              setTimeout(() => {
+                window.location.reload();
+              }, 300);
             // },
             // showLoading: false
           // });
@@ -1714,7 +1717,7 @@ const Scrapprocurement = () => {
                   }
                 }}
                 onBlur={() => setFocusedField('')}
-                placeholder="Type name or press / to search"
+                placeholder="Search salesman"
               />
               <button
                 type="button"
@@ -1799,7 +1802,7 @@ const Scrapprocurement = () => {
                   }
                 }}
                 onBlur={() => setFocusedField('')}
-                placeholder="Type customer name or press / to search"
+                placeholder="Search customer"
               />
               <button
                 type="button"
@@ -1889,7 +1892,7 @@ const Scrapprocurement = () => {
                   }
                 }}
                 onBlur={() => setFocusedField('')}
-                placeholder="Type scrap product or press / to search"
+                placeholder="Search scrap product"
               />
               <button
                 type="button"
@@ -1957,7 +1960,7 @@ const Scrapprocurement = () => {
                       data-field="scrapProductName"
                       onChange={(e) => handleItemChange(item.id, 'scrapProductName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'scrapProductName')}
-                      placeholder="Barcode"
+                      // placeholder="Barcode"
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
@@ -1980,7 +1983,7 @@ const Scrapprocurement = () => {
                         height: '100%'
                       }}
                       value={item.itemName}
-                      placeholder="Press / to search items"
+                      placeholder="Search items"
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
@@ -1991,9 +1994,10 @@ const Scrapprocurement = () => {
                       aria-label="Search item details"
                       title="Search item details"
                       onClick={() => {
-                        setScrapSearchTerm(billDetails.scrapProductInput);
-                        setActiveSearchField('scrap');
-                        setShowScrapPopup(true);
+                        setSelectedRowForItem(index);
+                        setItemSearchTerm('');
+                        setClosedItemByUser(false);
+                        setShowItemPopup(true);
                       }}
                       style={{
                         position: 'absolute',
@@ -2025,7 +2029,7 @@ const Scrapprocurement = () => {
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                      placeholder="UOM"
+                      // placeholder="UOM"
                       readOnly
                     />
                   </td>
@@ -2244,10 +2248,10 @@ const Scrapprocurement = () => {
         }}
         title="Select Item"
         fetchItems={fetchItemList}
-        displayFieldKeys={['itemCode', 'itemName', 'barcode', 'uom']}
-        headerNames={['Item Code', 'Item Name', 'Barcode', 'UOM']}
+        displayFieldKeys={['itemCode', 'itemName', 'uom']}
+        headerNames={['Item Code', 'Item Name', 'UOM']}
         searchFields={['itemName', 'itemCode']}
-        columnWidths={['25%', '35%', '25%', '15%']}
+        columnWidths={['25%', '35%', '40%']}
         searchPlaceholder="Search item by name or code..."
         initialSearchText={itemSearchTerm}
         onSelect={(selectedItem) => {

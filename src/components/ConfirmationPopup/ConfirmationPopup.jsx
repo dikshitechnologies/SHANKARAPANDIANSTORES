@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import PropTypes from "prop-types";
 
 const ConfirmationPopup = ({
   isOpen,
@@ -8,10 +8,10 @@ const ConfirmationPopup = ({
   title = "Confirm Action",
   message = "Are you sure you want to proceed?",
   confirmText = "Confirm",
-   defaultFocusedButton = "confirm",
-     borderColor = "black",
+  defaultFocusedButton = "confirm",
+  borderColor = null,
   cancelText = "Cancel",
-  type = "default", // "default", "warning", "danger", "success", "info", "question", "lock", "star", "heart", "download", "upload", "settings"
+  type = "default",
   showIcon = true,
   customStyles = {},
   disableBackdropClose = false,
@@ -19,72 +19,9 @@ const ConfirmationPopup = ({
   iconSize = 24,
   hideCancelButton = false
 }) => {
-  if (!isOpen) return null;
-const confirmRef = useRef(null);
-const cancelRef = useRef(null);
-
-const [focusedBtn, setFocusedBtn] = useState(defaultFocusedButton);
-
-useEffect(() => {
-  if (!isOpen) return;
-
-  setFocusedBtn(defaultFocusedButton);
-
-  setTimeout(() => {
-    if (defaultFocusedButton === "cancel") {
-      cancelRef.current?.focus();
-    } else {
-      confirmRef.current?.focus();
-    }
-  }, 0);
-}, [isOpen, defaultFocusedButton]);
-
-
-useEffect(() => {
-  if (!isOpen) return;
-
-const handleKeyDown = (e) => {
-  switch (e.key) {
-    case "ArrowLeft":
-    case "ArrowUp":           // ✅ ADD
-      e.preventDefault();
-      if (!hideCancelButton) {
-        setFocusedBtn("cancel");
-        cancelRef.current?.focus();
-      }
-      break;
-
-    case "ArrowRight":
-    case "ArrowDown":         // ✅ ADD
-      e.preventDefault();
-      setFocusedBtn("confirm");
-      confirmRef.current?.focus();
-      break;
-
-    case "Enter":
-      e.preventDefault();
-      if (focusedBtn === "confirm") {
-        handleConfirm();
-      } else {
-        onClose();
-      }
-      break;
-
-    case "Escape":
-      e.preventDefault();
-      if (!disableBackdropClose) onClose();
-      break;
-
-    default:
-      break;
-  }
-};
-
-
-  window.addEventListener("keydown", handleKeyDown);
-  return () => window.removeEventListener("keydown", handleKeyDown);
-}, [isOpen, focusedBtn, showLoading]);
-
+  const confirmRef = useRef(null);
+  const cancelRef = useRef(null);
+  const [focusedBtn, setFocusedBtn] = useState(defaultFocusedButton);
 
   // Enhanced SVG Icons with more types
   const Icons = {
@@ -216,6 +153,254 @@ const handleKeyDown = (e) => {
     )
   };
 
+  // Get icon and colors based on type
+  const getTypeStyles = useCallback(() => {
+    const typeConfigs = {
+      warning: {
+        icon: Icons.warning,
+        iconBg: '#fffbeb',
+        iconColor: '#f59e0b',
+        buttonBg: '#f59e0b',
+        buttonHover: '#d97706',
+        border: '#f59e0b'
+      },
+      danger: {
+        icon: Icons.danger,
+        iconBg: '#fef2f2',
+        iconColor: '#ef4444',
+        buttonBg: '#ef4444',
+        buttonHover: '#dc2626',
+        border: '#ef4444'
+      },
+      success: {
+        icon: Icons.success,
+        iconBg: '#f0fdf4',
+        iconColor: '#10b981',
+        buttonBg: '#10b981',
+        buttonHover: '#059669',
+        border: '#10b981'
+      },
+      info: {
+        icon: Icons.info,
+        iconBg: '#eff6ff',
+        iconColor: '#3b82f6',
+        buttonBg: '#3b82f6',
+        buttonHover: '#2563eb',
+        border: '#3b82f6'
+      },
+      default: {
+        icon: Icons.default,
+        iconBg: '#f8fafc',
+        iconColor: '#64748b',
+        buttonBg: '#64748b',
+        buttonHover: '#475569',
+        border: '#64748b'
+      },
+      question: {
+        icon: Icons.question,
+        iconBg: '#f0f9ff',
+        iconColor: '#0ea5e9',
+        buttonBg: '#0ea5e9',
+        buttonHover: '#0284c7',
+        border: '#0ea5e9'
+      },
+      lock: {
+        icon: Icons.lock,
+        iconBg: '#f5f3ff',
+        iconColor: '#8b5cf6',
+        buttonBg: '#8b5cf6',
+        buttonHover: '#7c3aed',
+        border: '#8b5cf6'
+      },
+      star: {
+        icon: Icons.star,
+        iconBg: '#fefce8',
+        iconColor: '#eab308',
+        buttonBg: '#eab308',
+        buttonHover: '#ca8a04',
+        border: '#eab308'
+      },
+      heart: {
+        icon: Icons.heart,
+        iconBg: '#fdf2f8',
+        iconColor: '#ec4899',
+        buttonBg: '#ec4899',
+        buttonHover: '#db2777',
+        border: '#ec4899'
+      },
+      download: {
+        icon: Icons.download,
+        iconBg: '#f0fdfa',
+        iconColor: '#14b8a6',
+        buttonBg: '#14b8a6',
+        buttonHover: '#0d9488',
+        border: '#14b8a6'
+      },
+      upload: {
+        icon: Icons.upload,
+        iconBg: '#f0f9ff',
+        iconColor: '#0ea5e9',
+        buttonBg: '#0ea5e9',
+        buttonHover: '#0284c7',
+        border: '#0ea5e9'
+      },
+      settings: {
+        icon: Icons.settings,
+        iconBg: '#f8fafc',
+        iconColor: '#64748b',
+        buttonBg: '#64748b',
+        buttonHover: '#475569',
+        border: '#64748b'
+      },
+      calendar: {
+        icon: Icons.calendar,
+        iconBg: '#f0f9ff',
+        iconColor: '#0ea5e9',
+        buttonBg: '#0ea5e9',
+        buttonHover: '#0284c7',
+        border: '#0ea5e9'
+      },
+      bell: {
+        icon: Icons.bell,
+        iconBg: '#fef3c7',
+        iconColor: '#d97706',
+        buttonBg: '#d97706',
+        buttonHover: '#b45309',
+        border: '#d97706'
+      },
+      mail: {
+        icon: Icons.mail,
+        iconBg: '#e0f2fe',
+        iconColor: '#0369a1',
+        buttonBg: '#0369a1',
+        buttonHover: '#075985',
+        border: '#0369a1'
+      },
+      users: {
+        icon: Icons.users,
+        iconBg: '#f0f9ff',
+        iconColor: '#0ea5e9',
+        buttonBg: '#0ea5e9',
+        buttonHover: '#0284c7',
+        border: '#0ea5e9'
+      },
+      creditCard: {
+        icon: Icons.creditCard,
+        iconBg: '#f0fdf4',
+        iconColor: '#16a34a',
+        buttonBg: '#16a34a',
+        buttonHover: '#15803d',
+        border: '#16a34a'
+      },
+      shield: {
+        icon: Icons.shield,
+        iconBg: '#fef3c7',
+        iconColor: '#d97706',
+        buttonBg: '#d97706',
+        buttonHover: '#b45309',
+        border: '#d97706'
+      },
+      gift: {
+        icon: Icons.gift,
+        iconBg: '#fdf2f8',
+        iconColor: '#db2777',
+        buttonBg: '#db2777',
+        buttonHover: '#be185d',
+        border: '#db2777'
+      }
+    };
+
+    return typeConfigs[type] || typeConfigs.default;
+  }, [type, Icons]);
+
+  const typeStyles = getTypeStyles();
+
+  // Set focus on mount
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setFocusedBtn(defaultFocusedButton);
+
+    const timer = setTimeout(() => {
+      if (defaultFocusedButton === "cancel" && cancelRef.current) {
+        cancelRef.current.focus();
+      } else if (confirmRef.current) {
+        confirmRef.current.focus();
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [isOpen, defaultFocusedButton]);
+
+  // Keyboard navigation handler
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      switch (e.key) {
+        case "ArrowLeft":
+        case "ArrowUp":
+          e.preventDefault();
+          if (!hideCancelButton && cancelRef.current) {
+            setFocusedBtn("cancel");
+            cancelRef.current.focus();
+          }
+          break;
+
+        case "ArrowRight":
+        case "ArrowDown":
+          e.preventDefault();
+          if (confirmRef.current) {
+            setFocusedBtn("confirm");
+            confirmRef.current.focus();
+          }
+          break;
+
+        case "Enter":
+          e.preventDefault();
+          if (focusedBtn === "confirm" && !showLoading) {
+            handleConfirm();
+          } else if (focusedBtn === "cancel") {
+            onClose();
+          }
+          break;
+
+        case "Escape":
+          e.preventDefault();
+          if (!disableBackdropClose) {
+            onClose();
+          }
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, focusedBtn, showLoading, hideCancelButton, onClose, disableBackdropClose]);
+
+  // Handle overlay click
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget && !disableBackdropClose) {
+      onClose();
+    }
+  };
+
+  // Handle confirm with loading state
+  const handleConfirm = async () => {
+    if (showLoading) {
+      try {
+        await onConfirm();
+      } catch (error) {
+        console.error("Confirmation error:", error);
+      }
+    } else {
+      onConfirm();
+    }
+  };
+
   // Styles object
   const styles = {
     overlay: {
@@ -230,7 +415,8 @@ const handleKeyDown = (e) => {
       justifyContent: 'center',
       zIndex: 1000,
       animation: 'fadeIn 0.3s ease',
-      backdropFilter: 'blur(4px)'
+      backdropFilter: 'blur(4px)',
+      ...customStyles.overlay
     },
     
     modal: {
@@ -242,7 +428,7 @@ const handleKeyDown = (e) => {
       padding: '30px',
       animation: 'slideUp 0.3s ease',
       overflow: 'hidden',
-       border: `1px solid ${borderColor || typeStyles.border}`,
+      border: `1px solid ${borderColor || typeStyles.border}`,
       ...customStyles.modal
     },
     
@@ -262,6 +448,7 @@ const handleKeyDown = (e) => {
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
+      animation: 'iconPulse 0.6s ease',
       ...customStyles.iconContainer
     },
     
@@ -319,7 +506,7 @@ const handleKeyDown = (e) => {
     },
     
     confirmButton: {
-      backgroundColor: '#3b82f6',
+      backgroundColor: typeStyles.buttonBg,
       color: 'white',
       ...customStyles.confirmButton
     },
@@ -334,170 +521,7 @@ const handleKeyDown = (e) => {
     }
   };
 
-  // Get icon and colors based on type
-  const getTypeStyles = () => {
-    const typeConfigs = {
-      // Basic types
-      warning: {
-        icon: Icons.warning,
-        iconBg: '#fffbeb',
-        iconColor: '#f59e0b',
-        buttonBg: '#f59e0b',
-        buttonHover: '#d97706'
-      },
-      danger: {
-        icon: Icons.danger,
-        iconBg: '#fef2f2',
-        iconColor: '#ef4444',
-        buttonBg: '#ef4444',
-        buttonHover: '#dc2626'
-      },
-      success: {
-        icon: Icons.success,
-        iconBg: '#f0fdf4',
-        iconColor: '#10b981',
-        buttonBg: '#10b981',
-        buttonHover: '#059669',
-         border: '#10b981'
-      },
-      info: {
-        icon: Icons.info,
-        iconBg: '#eff6ff',
-        iconColor: '#3b82f6',
-        buttonBg: '#3b82f6',
-        buttonHover: '#2563eb'
-      },
-      default: {
-        icon: Icons.default,
-        iconBg: '#f8fafc',
-        iconColor: '#64748b',
-        buttonBg: '#64748b',
-        buttonHover: '#475569'
-      },
-      
-      // Additional types
-      question: {
-        icon: Icons.question,
-        iconBg: '#f0f9ff',
-        iconColor: '#0ea5e9',
-        buttonBg: '#0ea5e9',
-        buttonHover: '#0284c7'
-      },
-      lock: {
-        icon: Icons.lock,
-        iconBg: '#f5f3ff',
-        iconColor: '#8b5cf6',
-        buttonBg: '#8b5cf6',
-        buttonHover: '#7c3aed'
-      },
-      star: {
-        icon: Icons.star,
-        iconBg: '#fefce8',
-        iconColor: '#eab308',
-        buttonBg: '#eab308',
-        buttonHover: '#ca8a04'
-      },
-      heart: {
-        icon: Icons.heart,
-        iconBg: '#fdf2f8',
-        iconColor: '#ec4899',
-        buttonBg: '#ec4899',
-        buttonHover: '#db2777'
-      },
-      download: {
-        icon: Icons.download,
-        iconBg: '#f0fdfa',
-        iconColor: '#14b8a6',
-        buttonBg: '#14b8a6',
-        buttonHover: '#0d9488'
-      },
-      upload: {
-        icon: Icons.upload,
-        iconBg: '#f0f9ff',
-        iconColor: '#0ea5e9',
-        buttonBg: '#0ea5e9',
-        buttonHover: '#0284c7'
-      },
-      settings: {
-        icon: Icons.settings,
-        iconBg: '#f8fafc',
-        iconColor: '#64748b',
-        buttonBg: '#64748b',
-        buttonHover: '#475569'
-      },
-      calendar: {
-        icon: Icons.calendar,
-        iconBg: '#f0f9ff',
-        iconColor: '#0ea5e9',
-        buttonBg: '#0ea5e9',
-        buttonHover: '#0284c7'
-      },
-      bell: {
-        icon: Icons.bell,
-        iconBg: '#fef3c7',
-        iconColor: '#d97706',
-        buttonBg: '#d97706',
-        buttonHover: '#b45309'
-      },
-      mail: {
-        icon: Icons.mail,
-        iconBg: '#e0f2fe',
-        iconColor: '#0369a1',
-        buttonBg: '#0369a1',
-        buttonHover: '#075985'
-      },
-      users: {
-        icon: Icons.users,
-        iconBg: '#f0f9ff',
-        iconColor: '#0ea5e9',
-        buttonBg: '#0ea5e9',
-        buttonHover: '#0284c7'
-      },
-      creditCard: {
-        icon: Icons.creditCard,
-        iconBg: '#f0fdf4',
-        iconColor: '#16a34a',
-        buttonBg: '#16a34a',
-        buttonHover: '#15803d'
-      },
-      shield: {
-        icon: Icons.shield,
-        iconBg: '#fef3c7',
-        iconColor: '#d97706',
-        buttonBg: '#d97706',
-        buttonHover: '#b45309'
-      },
-      gift: {
-        icon: Icons.gift,
-        iconBg: '#fdf2f8',
-        iconColor: '#db2777',
-        buttonBg: '#db2777',
-        buttonHover: '#be185d'
-      }
-    };
-
-    return typeConfigs[type] || typeConfigs.default;
-  };
-
-  const typeStyles = getTypeStyles();
-
-  // Handle overlay click
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget && !disableBackdropClose) {
-      onClose();
-    }
-  };
-
-  // Handle confirm with loading state
-  const handleConfirm = async () => {
-    if (showLoading) {
-      await onConfirm();
-    } else {
-      onConfirm();
-    }
-  };
-
-  // Keyframes for animations
+  // Keyframes for animations (moved to separate style element)
   const keyframesStyle = `
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -531,6 +555,8 @@ const handleKeyDown = (e) => {
     }
   `;
 
+  if (!isOpen) return null;
+
   return (
     <>
       <style>{keyframesStyle}</style>
@@ -548,8 +574,7 @@ const handleKeyDown = (e) => {
                 style={{
                   ...styles.iconContainer,
                   backgroundColor: typeStyles.iconBg,
-                  color: typeStyles.iconColor,
-                  animation: 'iconPulse 0.6s ease'
+                  color: typeStyles.iconColor
                 }}
               >
                 {typeStyles.icon}
@@ -571,35 +596,33 @@ const handleKeyDown = (e) => {
           <div style={styles.footer}>
             {!hideCancelButton && cancelText && (
               <button
+                ref={cancelRef}
                 onClick={onClose}
                 style={{
                   ...styles.buttonBase,
                   ...styles.cancelButton,
-                   outline: focusedBtn === "cancel"? `1px solid ${borderColor || typeStyles.border}`: "none",
-
-                  ...(customStyles.cancelButton?.style || {})
+                  outline: focusedBtn === "cancel" ? `2px solid ${borderColor || typeStyles.border}` : "none",
+                  outlineOffset: '2px'
                 }}
                 disabled={showLoading}
                 onMouseEnter={(e) => {
-                  if (!customStyles.cancelButton?.style) {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                  }
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!customStyles.cancelButton?.style) {
-                    e.currentTarget.style.backgroundColor = '#f9fafb';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }
+                  e.currentTarget.style.backgroundColor = '#f9fafb';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
+                onFocus={() => setFocusedBtn("cancel")}
               >
                 {cancelText}
               </button>
             )}
             
             <button
+              ref={confirmRef}
               onClick={handleConfirm}
               style={{
                 ...styles.buttonBase,
@@ -610,27 +633,25 @@ const handleKeyDown = (e) => {
                   : 'none',
                 backgroundSize: showLoading ? '200% auto' : 'auto',
                 animation: showLoading ? 'shimmer 2s linear infinite' : 'none',
-                ...(customStyles.confirmButton?.style || {}),
                 opacity: showLoading ? 0.9 : 1,
                 cursor: showLoading ? 'not-allowed' : 'pointer',
-                 outline: focusedBtn === "confirm"? `1px solid ${borderColor || typeStyles.border}`: "none"
-
+                outline: focusedBtn === "confirm" ? `2px solid ${borderColor || typeStyles.border}` : "none",
+                outlineOffset: '2px'
               }}
               disabled={showLoading}
               onMouseEnter={(e) => {
-                if (!showLoading && !customStyles.confirmButton?.style) {
+                if (!showLoading) {
                   e.currentTarget.style.backgroundColor = typeStyles.buttonHover;
                   e.currentTarget.style.transform = 'translateY(-2px)';
                   e.currentTarget.style.boxShadow = `0 6px 20px ${typeStyles.buttonBg}40`;
                 }
               }}
               onMouseLeave={(e) => {
-                if (!customStyles.confirmButton?.style) {
-                  e.currentTarget.style.backgroundColor = typeStyles.buttonBg;
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }
+                e.currentTarget.style.backgroundColor = typeStyles.buttonBg;
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
+              onFocus={() => setFocusedBtn("confirm")}
             >
               {showLoading && (
                 <div style={styles.spinner}></div>
@@ -642,6 +663,41 @@ const handleKeyDown = (e) => {
       </div>
     </>
   );
+};
+
+ConfirmationPopup.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+  title: PropTypes.string,
+  message: PropTypes.string,
+  confirmText: PropTypes.string,
+  defaultFocusedButton: PropTypes.oneOf(["confirm", "cancel"]),
+  borderColor: PropTypes.string,
+  cancelText: PropTypes.string,
+  type: PropTypes.oneOf([
+    "default", "warning", "danger", "success", "info", 
+    "question", "lock", "star", "heart", "download", 
+    "upload", "settings", "calendar", "bell", "mail", 
+    "users", "creditCard", "shield", "gift"
+  ]),
+  showIcon: PropTypes.bool,
+  customStyles: PropTypes.shape({
+    overlay: PropTypes.object,
+    modal: PropTypes.object,
+    header: PropTypes.object,
+    iconContainer: PropTypes.object,
+    content: PropTypes.object,
+    title: PropTypes.object,
+    message: PropTypes.object,
+    footer: PropTypes.object,
+    cancelButton: PropTypes.object,
+    confirmButton: PropTypes.object
+  }),
+  disableBackdropClose: PropTypes.bool,
+  showLoading: PropTypes.bool,
+  iconSize: PropTypes.number,
+  hideCancelButton: PropTypes.bool
 };
 
 export default ConfirmationPopup;

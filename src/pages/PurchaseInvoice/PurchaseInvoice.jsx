@@ -6,7 +6,6 @@ import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
-import { hover } from 'framer-motion';
 
 const Icon = {
   Search: ({ size = 16 }) => (
@@ -20,7 +19,7 @@ const Icon = {
 const calculateTotals = (items = []) => {
   const subTotal = items.reduce((acc, it) => {
     const qty = parseFloat(it?.qty) || 0;
-    const rate = parseFloat(it?.rate) || 0;
+    const rate = parseFloat(it?.prate) || 0;
     return acc + qty * rate;
   }, 0);
   
@@ -36,7 +35,7 @@ const calculateTotals = (items = []) => {
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('add');
+  const [activeTopAction, setActiveTopAction] = useState('create');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingBillNo, setEditingBillNo] = useState('');
   
@@ -132,8 +131,7 @@ const PurchaseInvoice = () => {
   const transtypeRef = useRef(null); 
   const invoiceAmountRef = useRef(null);
   const gstNoRef = useRef(null);
-  // Add this with your other refs
-const firstRowNameRef = useRef(null);
+  const firstRowNameRef = useRef(null);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -145,7 +143,7 @@ const firstRowNameRef = useRef(null);
   const [itemSearchTerm, setItemSearchTerm] = useState(''); // Track search term for item popup
   
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('null');
 
   // Screen size state for responsive adjustments
   const [screenSize, setScreenSize] = useState({
@@ -190,15 +188,114 @@ const firstRowNameRef = useRef(null);
   // Helper: Fetch next invoice number
   const fetchNextInvNo = async () => {
     try {
+      setIsLoading(true);
       const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
       const endpoint = API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_INVOICES(compCode);
       const response = await axiosInstance.get(endpoint);
       const nextCode = response?.data?.nextCode ?? response?.nextCode;
       if (nextCode) {
-        setBillDetails((prev) => ({ ...prev, invNo: nextCode }));
+        setBillDetails(prev => ({ ...prev, invNo: nextCode }));
+      } else {
+        // If no next code, set a placeholder
+        setBillDetails(prev => ({ ...prev, invNo: '' }));
       }
     } catch (err) {
       console.warn('Failed to fetch next invoice number:', err);
+      setBillDetails(prev => ({ ...prev, invNo: '' }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // COMPLETE NEW FORM FUNCTION
+  const createNewForm = async () => {
+    try {
+      setIsLoading(true);
+      
+      // First, clear all states
+      setIsEditMode(false);
+      setEditingBillNo('');
+      setActiveTopAction('create');
+      setActiveFooterAction('null');
+      setItemSearchTerm('');
+      setFocusedField('');
+      setShowSupplierPopup(false);
+      setShowBillListPopup(false);
+      setShowItemCodePopup(false);
+      setPopupMode('');
+      setSelectedRowId(null);
+      
+      // Clear table items first
+      setItems([{
+        id: 1, 
+        barcode: '', 
+        name: '', 
+        sub: '', 
+        stock: '0', 
+        mrp: '0', 
+        uom: '', 
+        hsn: '', 
+        tax: '', 
+        rate: 0, 
+        qty: '1',
+        ovrwt: '',
+        avgwt: '',
+        prate: 0,
+        intax: '',
+        outtax: '',
+        acost: '',
+        sudo: '',
+        profitPercent: '',
+        preRT: '',
+        sRate: '',
+        asRate: '',
+        letProfPer: '',
+        ntCost: '',
+        wsPercent: '',
+        wsRate: '',
+        amt: '',
+        min: '',
+        max: ''
+      }]);
+      
+      // Clear header fields
+      const currentDate = new Date().toISOString().substring(0, 10);
+      setBillDetails({
+        invNo: '',
+        billDate: currentDate,
+        mobileNo: '',
+        customerName: '',
+        type: 'Retail',
+        barcodeInput: '',
+        entryDate: '',
+        amount: '',
+        partyCode: '',
+        gstno: '',
+        gstType: 'G',
+        purNo: '',
+        invoiceNo: '',
+        purDate: currentDate,
+        invoiceAmount: '',
+        transType: 'PURCHASE',
+        city: '',
+        isLedger: false,
+      });
+      
+      // Then fetch next invoice number
+      await fetchNextInvNo();
+      
+      // Force a state update
+      setTimeout(() => {
+        if (billNoRef.current) {
+          billNoRef.current.focus();
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error creating new form:', error);
+      showAlertConfirmation('Error refreshing form. Please try again.', null, 'danger');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -333,7 +430,7 @@ const firstRowNameRef = useRef(null);
         };
         
         console.log('Setting header details:', headerDetails);
-        setBillDetails(headerDetails);
+        setBillDetails(prev => ({ ...prev, ...headerDetails }));
 
         let itemsData = [];
         
@@ -380,39 +477,37 @@ const firstRowNameRef = useRef(null);
           setItems(formattedItems);
         } else {
           console.log('No items found, resetting to default');
-          setItems([
-            { 
-              id: 1, 
-              barcode: '', 
-              name: '', 
-              sub: '', 
-              stock: '0', 
-              mrp: '0', 
-              uom: '', 
-              hsn: '', 
-              tax: '', 
-              rate: 0, 
-              qty: '1',
-              ovrwt: '',
-              avgwt: '',
-              prate: 0,
-              intax: '',
-              outtax: '',
-              acost: '',
-              sudo: '',
-              profitPercent: '',
-              preRT: '',
-              sRate: '',
-              asRate: '',
-              letProfPer: '',
-              ntCost: '',
-              wsPercent: '',
-              wsRate: '',
-              amt: '',
-              min: '',
-              max: ''
-            }
-          ]);
+          setItems([{
+            id: 1, 
+            barcode: '', 
+            name: '', 
+            sub: '', 
+            stock: '0', 
+            mrp: '0', 
+            uom: '', 
+            hsn: '', 
+            tax: '', 
+            rate: 0, 
+            qty: '1',
+            ovrwt: '',
+            avgwt: '',
+            prate: 0,
+            intax: '',
+            outtax: '',
+            acost: '',
+            sudo: '',
+            profitPercent: '',
+            preRT: '',
+            sRate: '',
+            asRate: '',
+            letProfPer: '',
+            ntCost: '',
+            wsPercent: '',
+            wsRate: '',
+            amt: '',
+            min: '',
+            max: ''
+          }]);
         }
 
         setIsEditMode(true);
@@ -537,6 +632,7 @@ const firstRowNameRef = useRef(null);
       });
     } finally {
       setSelectedRowId(null);
+      setItemSearchTerm('');
     }
   };
 
@@ -570,8 +666,7 @@ const firstRowNameRef = useRef(null);
         showAlertConfirmation(
           `Purchase invoice ${voucherNo} deleted successfully`,
           () => {
-            resetForm();
-            fetchNextInvNo();
+            createNewForm();
           },
           'success'
         );
@@ -602,11 +697,6 @@ const firstRowNameRef = useRef(null);
   useEffect(() => {
     fetchNextInvNo();
   }, [userData]);
-
-  useEffect(() => {
-    const { net } = calculateTotals(items);
-    setNetTotal(net);
-  }, [items]);
 
   // Update screen size on resize
   useEffect(() => {
@@ -833,209 +923,115 @@ const firstRowNameRef = useRef(null);
     setItems(updatedItems);
   };
 
-// Replace the existing handleTableKeyDown function with this updated version:
-const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-  // Handle / key for item code search popup
-  if (e.key === '/') {
-    e.preventDefault();
-    handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
-    return;
-  }
-
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    e.stopPropagation(); // Prevent form submission or other Enter handlers
-
-    // Fields in the visual order (adjust according to your table columns)
-    const fields = [
-      'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
-      'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
-      'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
-    ];
-
-    const currentFieldIndex = fields.indexOf(currentField);
-
-    // Always move to next field if available
-    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
-      const nextInput = document.querySelector(
-        `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
-         select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-      );
-      if (nextInput) {
-        nextInput.focus();
-        return;
-      }
+  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    // Handle / key for item code search popup
+    if (e.key === '/') {
+      e.preventDefault();
+      handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+      return;
     }
 
-    // If Enter is pressed in the amt field (last field)
-    if (currentField === 'amt') {
-      // Check if particulars (name) field is empty
-      const currentRow = items[currentRowIndex];
-      const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation(); // Prevent form submission or other Enter handlers
 
-      if (isParticularsEmpty) {
-        // Show confirmation popup asking to save
-        showConfirmation({
-          title: 'Particulars Missing',
-          message: 'Particulars cannot be empty. Would you like to save the purchase invoice anyway?\n\nNote: Items without particulars will not be saved.',
-          type: 'warning',
-          confirmText: 'Save Anyway',
-          cancelText: 'Cancel',
-          onConfirm: () => {
-            // User chose to save anyway
-            setShowConfirmPopup(false);
-            // Trigger the actual save function
-            handleSave();
-          },
-          onCancel: () => {
-            setShowConfirmPopup(false);
-            // Focus back to name field so user can fix it
-            setTimeout(() => {
-              const nameInput = document.querySelector(
-                `input[data-row="${currentRowIndex}"][data-field="name"]`
-              );
-              if (nameInput) {
-                nameInput.focus();
-              }
-            }, 100);
-          }
-        });
-        return; // Don't proceed further
-      }
-    }
+      // Fields in the visual order (adjust according to your table columns)
+      const fields = [
+        'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
+        'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
+        'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
+      ];
 
-    // If Enter is pressed in the amt field and particulars is not empty
-    if (currentField === 'amt') {
-      // Check if we're on the last row
-      if (currentRowIndex < items.length - 1) {
-        // Move to next row
-        const nextRowInput = document.querySelector(
-          `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+      const currentFieldIndex = fields.indexOf(currentField);
+
+      // Always move to next field if available
+      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+        const nextField = fields[currentFieldIndex + 1];
+        const nextInput = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
+           select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
         );
-        if (nextRowInput) {
-          nextRowInput.focus();
+        if (nextInput) {
+          nextInput.focus();
+          return;
         }
-        return;
-      } else {
-        // We're on the last row, add new row if particulars is filled
+      }
+
+      // If Enter is pressed in the amt field (last field)
+      if (currentField === 'amt') {
+        // Check if particulars (name) field is empty
         const currentRow = items[currentRowIndex];
-        if (currentRow.name && currentRow.name.trim() !== '') {
-          handleAddRow();
-          setTimeout(() => {
-            const newRowInput = document.querySelector(
-              `input[data-row="${items.length}"][data-field="barcode"]`
-            );
-            if (newRowInput) newRowInput.focus();
-          }, 60);
+        const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
+
+        if (isParticularsEmpty) {
+          // Show confirmation popup asking to save
+          showConfirmation({
+            title: 'Particulars Missing',
+            message: 'Particulars cannot be empty. Would you like to save the purchase invoice anyway?\n\nNote: Items without particulars will not be saved.',
+            type: 'warning',
+            confirmText: 'Save Anyway',
+            cancelText: 'Cancel',
+            onConfirm: () => {
+              // User chose to save anyway
+              setShowConfirmPopup(false);
+              // Trigger the actual save function
+              handleSave();
+            },
+            onCancel: () => {
+              setShowConfirmPopup(false);
+              // Focus back to name field so user can fix it
+              setTimeout(() => {
+                const nameInput = document.querySelector(
+                  `input[data-row="${currentRowIndex}"][data-field="name"]`
+                );
+                if (nameInput) {
+                  nameInput.focus();
+                }
+              }, 100);
+            }
+          });
+          return; // Don't proceed further
+        }
+      }
+
+      // If Enter is pressed in the amt field and particulars is not empty
+      if (currentField === 'amt') {
+        // Check if we're on the last row
+        if (currentRowIndex < items.length - 1) {
+          // Move to next row
+          const nextRowInput = document.querySelector(
+            `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+          );
+          if (nextRowInput) {
+            nextRowInput.focus();
+          }
+          return;
+        } else {
+          // We're on the last row, add new row if particulars is filled
+          const currentRow = items[currentRowIndex];
+          if (currentRow.name && currentRow.name.trim() !== '') {
+            handleAddRow();
+            setTimeout(() => {
+              const newRowInput = document.querySelector(
+                `input[data-row="${items.length}"][data-field="barcode"]`
+              );
+              if (newRowInput) newRowInput.focus();
+            }, 60);
+          }
         }
       }
     }
-  }
-};
-
-  const resetForm = () => {
-    setIsEditMode(false);
-    setEditingBillNo('');
-    setBillDetails({
-      invNo: '',
-      billDate: '',
-      mobileNo: '',
-      customerName: '',
-      type: 'Retail',
-      barcodeInput: '',
-      entryDate: '',
-      amount: '',
-      partyCode: '',
-      gstno: '',
-      gstType: 'G',
-      purNo: '',
-      invoiceNo: '',
-      purDate: '',
-      invoiceAmount: '',
-      transType: 'PURCHASE',
-      city: '',
-      isLedger: false,
-    });
-    setItems([
-      { 
-        id: 1, 
-        barcode: '', 
-        name: '', 
-        sub: '', 
-        stock: 0, 
-        mrp: 0, 
-        uom: '', 
-        hsn: '', 
-        tax: 0, 
-        rate: 0, 
-        qty: 0,
-        ovrwt: '',
-        avgwt: '',
-        prate: 0,
-        intax: '',
-        outtax: '',
-        acost: '',
-        sudo: '',
-        profitPercent: '',
-        preRT: '',
-        sRate: '',
-        asRate: '',
-        letProfPer: '',
-        ntCost: '',
-        wsPercent: '',
-        wsRate: '',
-        amt: '',
-        min: '',
-        max: ''
-      }
-    ]);
-    setActiveTopAction('create');
-    setActiveFooterAction('all');
   };
 
   const handleClear = () => {
     showConfirmation({
-      title: 'Clear Form',
-      message: 'Are you sure you want to clear all items? This action cannot be undone.',
+      title: 'Clear All',
+      message: 'Are you sure you want to clear all fields and create a new purchase invoice?',
       onConfirm: () => {
-        setItems([
-          { 
-            id: 1, 
-            barcode: '', 
-            name: '', 
-            sub: '', 
-            stock: 0, 
-            mrp: 0, 
-            uom: '', 
-            hsn: '', 
-            tax: 0, 
-            rate: 0, 
-            qty: 0,
-            ovrwt: '',
-            avgwt: '',
-            prate: 0,
-            intax: '',
-            outtax: '',
-            acost: '',
-            sudo: '',
-            profitPercent: '',
-            preRT: '',
-            sRate: '',
-            asRate: '',
-            letProfPer: '',
-            ntCost: '',
-            wsPercent: '',
-            wsRate: '',
-            amt: '',
-            min: '',
-            max: ''
-          }
-        ]);
-        setBillDetails({ ...billDetails, barcodeInput: '' });
+        createNewForm();
       },
       type: 'warning',
-      confirmText: 'Clear',
+      confirmText: 'Clear All',
       cancelText: 'Cancel'
     });
   };
@@ -1063,6 +1059,38 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       const voucherNo = billDetails.invNo || '';
       if (!voucherNo) {
         showAlertConfirmation('Please enter an Invoice Number', null, 'warning');
+        return;
+      }
+
+      // Validation: Check required fields
+      if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
+        showAlertConfirmation('Party Code is required', null, 'warning');
+        return;
+      }
+
+      if (!billDetails.customerName || billDetails.customerName.trim() === '') {
+        showAlertConfirmation('Customer Name is required', null, 'warning');
+        return;
+      }
+
+      if (!billDetails.mobileNo || billDetails.mobileNo.trim() === '') {
+        showAlertConfirmation('Mobile No is required', null, 'warning');
+        return;
+      }
+
+      if (!billDetails.gstno || billDetails.gstno.trim() === '') {
+        showAlertConfirmation('GST No is required', null, 'warning');
+        return;
+      }
+
+      // Validation: Check if at least one row has item data
+      const hasValidItems = items.some(item => 
+        item.barcode && item.barcode.trim() !== '' &&
+        item.name && item.name.trim() !== ''
+      );
+
+      if (!hasValidItems) {
+        showAlertConfirmation('Please add at least one item before saving', null, 'warning');
         return;
       }
 
@@ -1137,16 +1165,18 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE(purchaseType), 
               payload
             );
+            createNewForm();
+            console.log('Save response:', res);
             
+            // Close the confirmation popup first
+            setShowConfirmPopup(false);
+            
+            // Show success message and reset form
             showAlertConfirmation(
               `Purchase ${isEditMode ? 'updated' : 'saved'} successfully`,
-              () => {
-                resetForm();
-                fetchNextInvNo();
-                console.log('Save response:', res);
-              },
               'success'
             );
+            
           } catch (err) {
             const status = err?.response?.status;
             const data = err?.response?.data;
@@ -1279,29 +1309,29 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       paddingTop: '2px',
     },
     focusedInput: {
-    borderColor: '#1B91DA !important',
-    boxShadow: '0 0 0 1px #1B91DA',
-  },
-  
-  inlineInput: {
-    fontFamily: TYPOGRAPHY.fontFamily,
-    fontSize: TYPOGRAPHY.fontSize.sm,
-    fontWeight: TYPOGRAPHY.fontWeight.normal,
-    lineHeight: TYPOGRAPHY.lineHeight.normal,
-    padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
-    border: '1px solid #ddd',
-    borderRadius: screenSize.isMobile ? '3px' : '4px',
-    boxSizing: 'border-box',
-    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-    outline: 'none',
-    width: '100%',
-    height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
-    flex: 1,
-    minWidth: screenSize.isMobile ? '80px' : '100px',
-    ':hover': {
-      borderColor: '#b3b3b3',
+      borderColor: '#1B91DA !important',
+      boxShadow: '0 0 0 1px #1B91DA',
     },
-  },
+    
+    inlineInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      ':hover': {
+        borderColor: '#b3b3b3',
+      },
+    },
     
     gridRow: {
       display: 'grid',
@@ -1489,7 +1519,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             <label style={styles.inlineLabel}>Inv No:</label>
             <input 
               type="text"
-              // style={styles.inlineInput}
               style={{
                 ...styles.inlineInput,
                 ...(focusedField === 'invNo' && styles.focusedInput)
@@ -1511,7 +1540,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
-              // style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
               style={{
                 ...styles.inlineInput,
                 padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
@@ -1640,11 +1668,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               <input
                 type="text"
                 ref={nameRef}
-                // style={{
-                //   ...styles.inlineInput,
-                //   flex: 1,
-                //   paddingRight: screenSize.isMobile ? '46px' : '50px'
-                // }}
                 style={{
                   ...styles.inlineInput,
                   flex: 1,
@@ -1680,7 +1703,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     }
                   }, 200);
                 }}
-                placeholder="Type name or press / to search"
+                placeholder="Search Supplier"
               />
               <button
                 type="button"
@@ -1917,7 +1940,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     height: '100%'
                   }}>
                     <input
-                     ref={index === 0 ? firstRowNameRef : null}
+                      ref={index === 0 ? firstRowNameRef : null}
                       style={{ 
                         ...styles.editableInput, 
                         textAlign: 'left',
@@ -1930,7 +1953,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                         height: '100%'
                       }}
                       value={item.name}
-                      placeholder="Press / to search items"
+                      placeholder="Search items"
                       data-row={index}
                       data-field="name"
                       onChange={(e) => {
@@ -1956,9 +1979,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       title="Search item details"
                       onClick={() => {
                         handleItemCodeSelect(item.id, item.name);
-                        // setScrapSearchTerm(billDetails.scrapProductInput);
-                        // setActiveSearchField('scrap');
-                        // setShowScrapPopup(true);
                       }}
                       style={{
                         position: 'absolute',
@@ -2372,6 +2392,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
+          
         </div>
       </div>
     </div>
