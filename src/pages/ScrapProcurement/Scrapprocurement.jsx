@@ -1717,7 +1717,7 @@ const Scrapprocurement = () => {
                   }
                 }}
                 onBlur={() => setFocusedField('')}
-                placeholder="Type name or press / to search"
+                placeholder="Search salesman"
               />
               <button
                 type="button"
@@ -1802,7 +1802,7 @@ const Scrapprocurement = () => {
                   }
                 }}
                 onBlur={() => setFocusedField('')}
-                placeholder="Type customer name or press / to search"
+                placeholder="Search customer"
               />
               <button
                 type="button"
@@ -1892,7 +1892,7 @@ const Scrapprocurement = () => {
                   }
                 }}
                 onBlur={() => setFocusedField('')}
-                placeholder="Type scrap product or press / to search"
+                placeholder="Search scrap product"
               />
               <button
                 type="button"
@@ -1960,7 +1960,7 @@ const Scrapprocurement = () => {
                       data-field="scrapProductName"
                       onChange={(e) => handleItemChange(item.id, 'scrapProductName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'scrapProductName')}
-                      placeholder="Barcode"
+                      // placeholder="Barcode"
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
@@ -1983,7 +1983,7 @@ const Scrapprocurement = () => {
                         height: '100%'
                       }}
                       value={item.itemName}
-                      placeholder="Press / to search items"
+                      placeholder="Search items"
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
@@ -2029,7 +2029,7 @@ const Scrapprocurement = () => {
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                      placeholder="UOM"
+                      // placeholder="UOM"
                       readOnly
                     />
                   </td>
@@ -2248,10 +2248,10 @@ const Scrapprocurement = () => {
         }}
         title="Select Item"
         fetchItems={fetchItemList}
-        displayFieldKeys={['itemCode', 'itemName', 'barcode', 'uom']}
-        headerNames={['Item Code', 'Item Name', 'Barcode', 'UOM']}
+        displayFieldKeys={['itemCode', 'itemName', 'uom']}
+        headerNames={['Item Code', 'Item Name', 'UOM']}
         searchFields={['itemName', 'itemCode']}
-        columnWidths={['25%', '35%', '25%', '15%']}
+        columnWidths={['25%', '35%', '40%']}
         searchPlaceholder="Search item by name or code..."
         initialSearchText={itemSearchTerm}
         onSelect={(selectedItem) => {

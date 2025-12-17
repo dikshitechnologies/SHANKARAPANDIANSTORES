@@ -1703,7 +1703,7 @@ const PurchaseInvoice = () => {
                     }
                   }, 200);
                 }}
-                placeholder="Type name or press / to search"
+                placeholder="Search Supplier"
               />
               <button
                 type="button"
@@ -1953,7 +1953,7 @@ const PurchaseInvoice = () => {
                         height: '100%'
                       }}
                       value={item.name}
-                      placeholder="Press / to search items"
+                      placeholder="Search items"
                       data-row={index}
                       data-field="name"
                       onChange={(e) => {
