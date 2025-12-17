@@ -1877,8 +1877,7 @@ const handleSave = async () => {
 
   // Determine if this is an update or create
   // Sales return vouchers typically start with 'SR' and are not the default 'SR0000001'
-  const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
-                            billDetails.billNo.startsWith('SR');
+
   
   const actionType = isExistingVoucher ? 'update' : 'create';
   const actionText = isExistingVoucher ? 'Update' : 'Save';
