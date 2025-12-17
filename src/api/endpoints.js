@@ -225,7 +225,7 @@ CATEGORY: {
     SAVE_SCRAP_PROCUREMENT: (saveType) => 
     `ScrapProcurement/SCRAPCREATE?selecttype=${saveType === 'create' ? 'true' : 'false'}`,
     GET_SALESiNVOICE_ITEMS: "Salesinvoices/GetItemsByType?type=SC",
-    GET_BILL_LIST:"ScrapProcurement/GetVouchersBillNoList?compCode=001&pageNumber=1&pageSize=10",
+    GET_BILL_LIST:"ScrapProcurement/GetVouchersBillNoList?compCode=001&pageNumber=1&pageSize=100",
     GET_VOUCHER_BY_NO: (voucherNo) => `ScrapProcurement/GetSCRAPDETAILS/${voucherNo}/001`,
     DELETE_SCRAP_PROCUREMENT: (voucherNo) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/001`,
   },
@@ -263,7 +263,9 @@ PAYMENTVOUCHER: {
     PARTY_LIST: (pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     GET_VOUCHER_DETAILS: (voucherNo) => `ReceiptVoucher/GetVoucherDetails?voucherNo=${voucherNo}`,
     GETPENDINGBILLS: (partyCode, compCode) => `ReceiptVoucher/GetPendingBills?fcode=${partyCode}&fCompCode=${compCode}`,
-    GETPARTYLIST: (search = '', pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?search=${encodeURIComponent(search)}&pageNumber=${pageNumber}&pageSize=${pageSize}`
+    GETPARTYLIST: (search = '', pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?search=${encodeURIComponent(search)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    GET_PARTY_BALANCE: (partyCode) => `ReceiptVoucher/GetPartyBalance?partyCode=${partyCode}`,
+    GET_OPENING_BALANCE: `ReceiptVoucher/GetOpeningBalance`
   }
 
 };

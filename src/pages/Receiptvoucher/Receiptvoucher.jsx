@@ -521,7 +521,7 @@ const ReceiptVoucher = () => {
   };
 
   // Handle account selection
-  const handleAccountSelect = (account) => {
+  const handleAccountSelect = async (account) => {
     if (accountPopupContext === 'header') {
       // Header section account selection
       setVoucherDetails(prev => ({
@@ -529,6 +529,26 @@ const ReceiptVoucher = () => {
         accountName: account.name || '',
         accountCode: account.code || ''
       }));
+      
+      // Fetch party balance for the selected account
+      try {
+        const partyCode = account.code || '';
+        if (partyCode) {
+          const balanceUrl = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
+          const balanceResponse = await apiService.getSilent(balanceUrl);
+          console.log('Party Balance Response:', balanceResponse);
+          
+          if (balanceResponse) {
+            const balance = balanceResponse.balanceAmount || 0;
+            setVoucherDetails(prev => ({
+              ...prev,
+              balance: balance.toString()
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching party balance:', err);
+      }
     } else if (accountPopupContext?.itemId) {
       // Receipt item row selection
       const { itemId } = accountPopupContext;
@@ -857,7 +877,17 @@ const ReceiptVoucher = () => {
         totalAmt: totalAmount,
         compcode: userData?.companyCode || '001',
         usercode: userData?.userCode || '001',
-        salesTransaction: [], // Empty array as per API spec
+        salesTransaction: {
+          given1: "0",
+          given2: "0",
+          given5: "0",
+          given10: "0",
+          given20: "0",
+          given50: "0",
+          given100: "0",
+          given200: "0",
+          given500: "0"
+        },
         itemDetailsList: itemDetailsList,
         referenceBills: referenceBills
       };
