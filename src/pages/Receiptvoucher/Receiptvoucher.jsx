@@ -17,6 +17,18 @@ const ReceiptVoucher = () => {
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
 
+  // Common confirmation popup
+  const [confirmationPopup, setConfirmationPopup] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'default',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    action: null,
+    isLoading: false
+  });
+
   // Amount entry popup
   const [amountPopupOpen, setAmountPopupOpen] = useState(false);
   const [amountPopupData, setAmountPopupData] = useState(null);
@@ -446,30 +458,30 @@ const ReceiptVoucher = () => {
 
   // Open edit voucher popup
   const openEditVoucherPopup = async () => {
-    try {
-      setLoadingVouchers(true);
-      await fetchSavedVouchers(1, '');
-      setEditVoucherPopupOpen(true);
-    } catch (err) {
-      console.error('Error opening edit popup:', err);
-      setError('Failed to load vouchers');
-    } finally {
-      setLoadingVouchers(false);
-    }
+    setConfirmationPopup({
+      isOpen: true,
+      title: 'Edit Voucher',
+      message: 'Are you sure you want to edit this voucher?',
+      type: 'info',
+      confirmText: 'Edit',
+      cancelText: 'Cancel',
+      action: 'edit',
+      isLoading: false
+    });
   };
 
   // Open delete voucher popup
   const openDeleteVoucherPopup = async () => {
-    try {
-      setLoadingVouchers(true);
-      await fetchSavedVouchers(1, '');
-      setDeleteVoucherPopupOpen(true);
-    } catch (err) {
-      console.error('Error opening delete popup:', err);
-      setError('Failed to load vouchers');
-    } finally {
-      setLoadingVouchers(false);
-    }
+    setConfirmationPopup({
+      isOpen: true,
+      title: 'Delete Voucher',
+      message: 'Are you sure you want to delete this voucher? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      action: 'delete',
+      isLoading: false
+    });
   };
 
   // Handle voucher selection for editing
@@ -688,6 +700,20 @@ const ReceiptVoucher = () => {
 
   // Handle add receipt row
   const handleAddReceiptRow = () => {
+    setConfirmationPopup({
+      isOpen: true,
+      title: 'Add Receipt Row',
+      message: 'Are you sure you want to add a new receipt row?',
+      type: 'info',
+      confirmText: 'Add',
+      cancelText: 'Cancel',
+      action: 'add',
+      isLoading: false
+    });
+  };
+
+  // Execute add receipt row
+  const executeAddReceiptRow = () => {
     const newId = Math.max(...receiptItems.map(item => item.id), 0) + 1;
     const newSNo = receiptItems.length + 1;
     setReceiptItems(prev => [
@@ -814,8 +840,30 @@ const ReceiptVoucher = () => {
 
   // Handle clear - clears current form
   const handleClear = () => {
-    console.log('Clear button clicked');
-    resetForm();
+    setConfirmationPopup({
+      isOpen: true,
+      title: 'Clear All Data',
+      message: 'Are you sure you want to clear all data? This action cannot be undone.',
+      type: 'warning',
+      confirmText: 'Clear',
+      cancelText: 'Cancel',
+      action: 'clear',
+      isLoading: false
+    });
+  };
+
+  // Handle print
+  const handlePrint = () => {
+    setConfirmationPopup({
+      isOpen: true,
+      title: 'Print Voucher',
+      message: 'Are you sure you want to print this voucher?',
+      type: 'info',
+      confirmText: 'Print',
+      cancelText: 'Cancel',
+      action: 'print',
+      isLoading: false
+    });
   };
 
   // Format date to yyyy-MM-dd
@@ -976,6 +1024,46 @@ const ReceiptVoucher = () => {
   // Function to cancel save
   const handleCancelSave = () => {
     setSaveConfirmationOpen(false);
+  };
+
+  // Generic confirmation handler for all actions
+  const handleConfirmationAction = async () => {
+    setConfirmationPopup(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      switch (confirmationPopup.action) {
+        case 'clear':
+          resetForm();
+          break;
+        case 'add':
+          executeAddReceiptRow();
+          break;
+        case 'edit':
+          setLoadingVouchers(true);
+          await fetchSavedVouchers(1, '');
+          setEditVoucherPopupOpen(true);
+          setLoadingVouchers(false);
+          break;
+        case 'delete':
+          setLoadingVouchers(true);
+          await fetchSavedVouchers(1, '');
+          setDeleteVoucherPopupOpen(true);
+          setLoadingVouchers(false);
+          break;
+        case 'print':
+          console.log('Print functionality');
+          break;
+        default:
+          break;
+      }
+      
+      setConfirmationPopup(prev => ({ ...prev, isOpen: false }));
+    } catch (err) {
+      console.error('Error in confirmation action:', err);
+      setError('Failed to perform action');
+    } finally {
+      setConfirmationPopup(prev => ({ ...prev, isLoading: false }));
+    }
   };
 
   // --- RESPONSIVE STYLES ---
@@ -1822,7 +1910,7 @@ const ReceiptVoucher = () => {
           <ActionButtons1
             onClear={handleClear}
             onSave={handleSave}
-            onPrint={() => console.log('Print functionality')}
+            onPrint={handlePrint}
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
@@ -1994,6 +2082,19 @@ const ReceiptVoucher = () => {
           </div>
         </div>
       )}
+
+      {/* Generic Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmationPopup.isOpen}
+        onClose={() => setConfirmationPopup(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmationAction}
+        title={confirmationPopup.title}
+        message={confirmationPopup.message}
+        type={confirmationPopup.type}
+        confirmText={confirmationPopup.isLoading ? 'Processing...' : confirmationPopup.confirmText}
+        showLoading={confirmationPopup.isLoading}
+        disableBackdropClose={confirmationPopup.isLoading}
+      />
     </div>
   );
 };
