@@ -123,6 +123,7 @@ const SalesReturn = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingBills, setIsLoadingBills] = useState(false);
+   const [isEditMode, setIsEditMode] = useState(false);
 
   // NEW STATE: For save button validation
   const [isFormValid, setIsFormValid] = useState(false);
@@ -970,6 +971,8 @@ const updateSalesReturn = async () => {
         );
         await fetchVoucherList();
         handleClear();
+        setIsEditMode(false);
+
         
         return response;
       } else {
@@ -1105,7 +1108,8 @@ const updateSalesReturn = async () => {
       }
       
       toast.success(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
-      
+      setIsEditMode(true); // ✅ IMPORTANT
+
     } catch (err) {
       console.error("Error loading voucher for editing:", err);
       toast.error(`Error loading voucher: ${err.message}`);
@@ -1877,7 +1881,8 @@ const handleSave = async () => {
 
   // Determine if this is an update or create
   // Sales return vouchers typically start with 'SR' and are not the default 'SR0000001'
-
+  const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
+                            billDetails.billNo.startsWith('SR');
   
   const actionType = isExistingVoucher ? 'update' : 'create';
   const actionText = isExistingVoucher ? 'Update' : 'Save';
