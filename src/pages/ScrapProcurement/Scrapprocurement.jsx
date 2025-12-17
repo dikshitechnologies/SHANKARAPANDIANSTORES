@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
+import { hover } from 'framer-motion';
+
+const Icon = {
+  Search: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+    </svg>
+  ),
+}
 
 const Scrapprocurement = () => {
   // --- STATE MANAGEMENT ---
@@ -103,6 +113,24 @@ const Scrapprocurement = () => {
   const [popupMode, setPopupMode] = useState(''); // 'edit' or 'delete'
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false); // Track if in edit mode
+
+  // Confirmation Popup States
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {},
+    onCancel: () => {},
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    showIcon: true,
+    hideCancelButton: false
+  });
+
+  // States to track original data for cancellation
+  const [originalBillDetails, setOriginalBillDetails] = useState(null);
+  const [originalItems, setOriginalItems] = useState(null);
 
   // Fetch next bill number
   const fetchNextBillNo = async () => {
@@ -297,6 +325,27 @@ const Scrapprocurement = () => {
     };
   }, []);
 
+  // Helper function to show confirmation popup
+  const showConfirmation = (config) => {
+    setConfirmConfig({
+      ...confirmConfig,
+      ...config,
+      onCancel: config.onCancel || (() => setShowConfirmPopup(false))
+    });
+    setShowConfirmPopup(true);
+  };
+
+  // Function to revert to original data
+  const revertToOriginalData = () => {
+    if (originalBillDetails && originalItems) {
+      setBillDetails({...originalBillDetails});
+      setItems([...originalItems]);
+      setOriginalBillDetails(null);
+      setOriginalItems(null);
+    }
+    setIsEditMode(false);
+  };
+
   // NEW: Fetch voucher list for popup
   const fetchVoucherList = async (pageNum = 1, search = '') => {
     try {
@@ -358,7 +407,7 @@ const Scrapprocurement = () => {
       const voucherData = response?.data?.data || response?.data;
       
       if (voucherData) {
-        setBillDetails({
+        const newBillDetails = {
           billNo: voucherData.voucherNo || '',
           billDate: voucherData.voucherDate || new Date().toISOString().substring(0, 10),
           mobileNo: voucherData.mobileNo || '',
@@ -369,10 +418,11 @@ const Scrapprocurement = () => {
           custCode: voucherData.customercode || '', 
           scrapProductInput: voucherData.scrpName || '',
           scrapCode: voucherData.scrpCode || '',
-        });
-        
+        };
+
+        let newItems = [];
         if (voucherData.items && Array.isArray(voucherData.items)) {
-          const formattedItems = voucherData.items.map((item, index) => ({
+          newItems = voucherData.items.map((item, index) => ({
             id: index + 1,
             sNo: index + 1,
             scrapProductName: voucherData.scrpName || '',
@@ -385,40 +435,99 @@ const Scrapprocurement = () => {
             qty: item.qty?.toString() || '',
             amount: item.amount?.toString() || '0.00'
           }));
-          setItems(formattedItems);
         }
+
+        // Store original data for cancellation
+        setOriginalBillDetails({...newBillDetails});
+        setOriginalItems([...newItems]);
         
-        alert(`Voucher ${voucherNo} loaded successfully for editing.`);
-        setIsEditMode(true);
+        // Set current data
+        setBillDetails(newBillDetails);
+        setItems(newItems);
+        
+        showConfirmation({
+          title: 'Success',
+          message: `Voucher ${voucherNo} loaded successfully for editing.`,
+          type: 'success',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => {
+            setShowConfirmPopup(false);
+            setIsEditMode(true);
+          }
+        });
       } else {
-        alert(`No voucher data found for ${voucherNo}`);
+        showConfirmation({
+          title: 'Not Found',
+          message: `No voucher data found for ${voucherNo}`,
+          type: 'warning',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => setShowConfirmPopup(false)
+        });
       }
     } catch (error) {
       console.error('Error loading voucher:', error);
-      alert(`Failed to load voucher: ${error.message}`);
+      showConfirmation({
+        title: 'Error',
+        message: `Failed to load voucher: ${error.message}`,
+        type: 'danger',
+        confirmText: 'OK',
+        showIcon: true,
+        onConfirm: () => setShowConfirmPopup(false)
+      });
     }
   };
 
   // NEW: Function to delete a voucher
   const deleteVoucher = async (voucherNo) => {
-    if (window.confirm(`Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`)) {
-      try {
-        const response = await axiosInstance.delete(
-          API_ENDPOINTS.Scrap_Procurement.DELETE_SCRAP_PROCUREMENT(voucherNo)
-        );
-        
-        if (response.status === 200 || response.status === 201) {
-          alert(`Voucher ${voucherNo} deleted successfully.`);
-          handleClear();
-          fetchNextBillNo();
-        } else {
-          alert('Failed to delete voucher. Please try again.');
+    showConfirmation({
+      title: 'Delete Voucher',
+      message: `Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        try {
+          const response = await axiosInstance.delete(
+            API_ENDPOINTS.Scrap_Procurement.DELETE_SCRAP_PROCUREMENT(voucherNo)
+          );
+          
+          if (response.status === 200 || response.status === 201) {
+            showConfirmation({
+              title: 'Success',
+              message: `Voucher ${voucherNo} deleted successfully.`,
+              type: 'success',
+              confirmText: 'OK',
+              showIcon: true,
+              onConfirm: () => {
+                setShowConfirmPopup(false);
+                handleClear();
+                fetchNextBillNo();
+              }
+            });
+          } else {
+            showConfirmation({
+              title: 'Error',
+              message: 'Failed to delete voucher. Please try again.',
+              type: 'danger',
+              confirmText: 'OK',
+              showIcon: true,
+              onConfirm: () => setShowConfirmPopup(false)
+            });
+          }
+        } catch (error) {
+          console.error('Error deleting voucher:', error);
+          showConfirmation({
+            title: 'Error',
+            message: `Failed to delete voucher: ${error.response?.data?.message || error.message}`,
+            type: 'danger',
+            confirmText: 'OK',
+            showIcon: true,
+            onConfirm: () => setShowConfirmPopup(false)
+          });
         }
-      } catch (error) {
-        console.error('Error deleting voucher:', error);
-        alert(`Failed to delete voucher: ${error.response?.data?.message || error.message}`);
       }
-    }
+    });
   };
 
   // NEW: Handle Edit button click
@@ -452,6 +561,8 @@ const Scrapprocurement = () => {
           id: item.itemCode || `item-${index}`,
           itemCode: item.itemCode || '',
           itemName: item.itemName || '',
+          barcode: item.barcode || item.itemCode || '',
+          uom: item.uom || 'KG',
           brand: item.brand || '',
           category: item.category || '',
           model: item.model || '',
@@ -475,6 +586,8 @@ const Scrapprocurement = () => {
         id: item.itemCode || `item-${index}`,
         itemCode: item.itemCode || '',
         itemName: item.itemName || '',
+        barcode: item.barcode || item.itemCode || '',
+        uom: item.uom || 'KG',
         brand: item.brand || '',
         category: item.category || '',
         model: item.model || '',
@@ -676,7 +789,14 @@ const Scrapprocurement = () => {
     const scrapName = billDetails.scrapProductInput;
     
     if (!scrapName) {
-      alert("Please enter scrap product name");
+      showConfirmation({
+        title: 'Missing Scrap Product',
+        message: 'Please enter scrap product name',
+        type: 'warning',
+        confirmText: 'OK',
+        showIcon: true,
+        onConfirm: () => setShowConfirmPopup(false)
+      });
       return;
     }
     
@@ -765,63 +885,105 @@ const Scrapprocurement = () => {
   };
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    // Handle / key for item search popup
-    if (e.key === '/') {
-      e.preventDefault();
-      setSelectedRowForItem(currentRowIndex);
-      setItemSearchTerm('');
-      setClosedItemByUser(false);
-      setShowItemPopup(true);
-      return;
+  // Handle / key for item search popup
+  if (e.key === '/') {
+    e.preventDefault();
+    setSelectedRowForItem(currentRowIndex);
+    setItemSearchTerm('');
+    setClosedItemByUser(false);
+    setShowItemPopup(true);
+    return;
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent form submission or other Enter handlers
+
+    // Fields in the visual order
+    const fields = [
+      'scrapProductName', 'itemName', 'uom', 'tax', 'sRate', 'qty'
+    ];
+
+    const currentFieldIndex = fields.indexOf(currentField);
+
+    // Check if itemName is empty in the current row
+    const currentRow = items[currentRowIndex];
+    const isItemNameEmpty = !currentRow.itemName || currentRow.itemName.trim() === '';
+
+    // If Enter is pressed in the qty field
+    if (currentField === 'qty') {
+      // Check if itemName is empty in the current row
+      if (isItemNameEmpty) {
+        // Show confirmation popup asking to save
+        showConfirmation({
+          title: 'Item Name Missing',
+          message: 'Item Name cannot be empty. Would you like to save the form anyway?\n\nNote: Items without Item Name will not be saved.',
+          type: 'warning',
+          confirmText: 'Save Anyway',
+          cancelText: 'Cancel',
+          onConfirm: () => {
+            // User chose to save anyway
+            setShowConfirmPopup(false);
+            // Trigger the actual save function
+            handleSave();
+          },
+          onCancel: () => {
+            setShowConfirmPopup(false);
+            // Focus back to itemName field so user can fix it
+            setTimeout(() => {
+              const itemNameInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="itemName"]`);
+              if (itemNameInput) {
+                itemNameInput.focus();
+              }
+            }, 100);
+          }
+        });
+        return; // Don't proceed further
+      }
     }
 
-    if (e.key === 'Enter') {
-      e.preventDefault();
-
-      // Fields in the visual order
-      const fields = [
-        'scrapProductName', 'itemName', 'uom', 'tax', 'sRate', 'qty'
-      ];
-
-      const currentFieldIndex = fields.indexOf(currentField);
-
-      // Always move to next field if available, don't create rows
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"], select[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-        if (nextInput) {
-          nextInput.focus();
-          return;
-        }
+    // Always move to next field if available
+    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+      const nextField = fields[currentFieldIndex + 1];
+      const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"], select[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        return;
       }
-
-      // Only add new row if Enter is pressed in the qty field (last field)
-      if (currentField === 'qty') {
-        handleAddRow();
-        setTimeout(() => {
-          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
-          if (newRowInput) newRowInput.focus();
-        }, 60);
-      }
-      
-      return;
     }
-  };
+
+    // If Enter is pressed in the qty field and itemName is not empty
+    if (currentField === 'qty' && !isItemNameEmpty) {
+      // Only add new row if itemName is not empty
+      handleAddRow();
+      setTimeout(() => {
+        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
+        if (newRowInput) newRowInput.focus();
+      }, 60);
+    }
+    
+    return;
+  }
+};
 
   const handleDeleteRow = (id) => {
-    const itemToDelete = items.find(item => item.id === id);
-    const itemName = itemToDelete?.scrapProductName || 'this scrap product';
-
-    if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
-      if (items.length > 1) {
-        const filteredItems = items.filter(item => item.id !== id);
-        const updatedItems = filteredItems.map((item, index) => ({
-          ...item,
-          sNo: index + 1
-        }));
-        setItems(updatedItems);
-      } else {
-        const clearedItem = {
+  const itemToDelete = items.find(item => item.id === id);
+  const itemName = itemToDelete?.scrapProductName || 'this scrap product';
+  
+  // Check if this is the first row (by sNo)
+  const rowIndex = items.findIndex(item => item.id === id);
+  const isFirstRow = rowIndex === 0;
+  
+  if (isFirstRow) {
+    showConfirmation({
+      title: 'Clear First Row',
+      message: 'The first row cannot be deleted, but you can clear its contents. Would you like to clear this row instead?',
+      type: 'info',
+      confirmText: 'Clear',
+      onConfirm: () => {
+        // Clear the first row instead of deleting it
+        const updatedItems = [...items];
+        updatedItems[0] = {
           id: 1,
           sNo: 1,
           scrapProductName: '',
@@ -834,20 +996,37 @@ const Scrapprocurement = () => {
           qty: '',
           amount: '0.00'
         };
-        setItems([clearedItem]);
+        setItems(updatedItems);
+        setShowConfirmPopup(false);
+      },
+      onCancel: () => {
+        setShowConfirmPopup(false);
       }
-    }
-  };
+    });
+    return;
+  }
 
-  const handleClear = () => {
-    if (isEditMode) {
-      if (window.confirm('Are you sure you want to clear all data? This will exit edit mode.')) {
-        setIsEditMode(false);
-      } else {
-        return;
+  showConfirmation({
+    title: 'Delete Item',
+    message: `Are you sure you want to delete "${itemName}"?`,
+    type: 'danger',
+    confirmText: 'Delete',
+    onConfirm: () => {
+      if (items.length > 1) {
+        const filteredItems = items.filter(item => item.id !== id);
+        const updatedItems = filteredItems.map((item, index) => ({
+          ...item,
+          sNo: index + 1
+        }));
+        setItems(updatedItems);
       }
+      setShowConfirmPopup(false);
     }
-    
+  });
+};
+
+  // Separate clear function for reuse
+  const clearFormData = () => {
     setBillDetails({
       billNo: '',
       billDate: new Date().toISOString().substring(0, 10),
@@ -877,36 +1056,42 @@ const Scrapprocurement = () => {
       }
     ]);
     
-    // Fetch next bill number
     fetchNextBillNo();
   };
 
-  const handleSave = async () => {
+  const handleClear = () => {
+    if (isEditMode) {
+      showConfirmation({
+        title: 'Clear Data',
+        message: 'Are you sure you want to clear all data? This will exit edit mode and discard changes.',
+        type: 'warning',
+        confirmText: 'Clear',
+        onConfirm: () => {
+          revertToOriginalData();
+          setShowConfirmPopup(false);
+          clearFormData();
+        },
+        onCancel: () => {
+          // Stay in edit mode, keep changes
+          setShowConfirmPopup(false);
+        }
+      });
+    } else {
+      clearFormData();
+    }
+  };
+
+  // Separate save function for actual API call
+  const performSave = async () => {
     try {
-      // Use isEditMode to determine if this is edit (true) or create (false)
       const isCreate = !isEditMode;
       
-      // Validate required fields
-      if (!billDetails.salesman || !billDetails.custName) {
-        alert('Please fill in required fields: Salesman and Customer');
-        return;
-      }
-      
-      // Check if we have items with item names
+      // Prepare items array for API
       const validItems = items.filter(item => 
         item.itemName && item.itemName.trim() !== '' && 
         item.itemCode && item.itemCode.trim() !== ''
       );
       
-      if (validItems.length === 0) {
-        alert('Please add at least one item with item name selected from the popup');
-        return;
-      }
-      
-      // Get scrap details from the first item with scrap or from header
-      const firstScrapItem = items.find(item => item.scrapProductName && item.scrapProductName.trim() !== '');
-      
-      // Prepare items array for API - only include items with itemName and itemCode
       const itemsForAPI = validItems.map(item => ({
         itemCode: item.itemCode || '',
         itemName: item.itemName || '',
@@ -918,7 +1103,10 @@ const Scrapprocurement = () => {
         barcode: ''
       }));
       
-      // Prepare the payload according to your API format
+      // Get scrap details
+      const firstScrapItem = items.find(item => item.scrapProductName && item.scrapProductName.trim() !== '');
+      
+      // Prepare payload
       const payload = {
         compCode: userData?.companyCode || '001',
         usercode: userData?.userCode || '001',
@@ -932,15 +1120,12 @@ const Scrapprocurement = () => {
         scrpName: firstScrapItem?.scrapProductName || billDetails.scrapProductInput || '',
         scrpCode: firstScrapItem?.scrapCode || billDetails.scrapCode || '',
         empName: billDetails.empName,
-        empCode: billDetails.empCode || '', // You need employee code if available
+        empCode: billDetails.empCode || '',
         mobileNo: billDetails.mobileNo,
         items: itemsForAPI
       };
 
-      // Log the payload for debugging
-      console.log('Saving payload with isCreate =', isCreate, ':', payload);
-      
-      // Make the API call with isCreate as boolean parameter
+      // Make API call
       const response = await axiosInstance.post(
         API_ENDPOINTS.Scrap_Procurement.SAVE_SCRAP_PROCUREMENT(isCreate),
         payload
@@ -948,24 +1133,133 @@ const Scrapprocurement = () => {
 
       if (response.status === 200 || response.status === 201) {
         const mode = isCreate ? 'created' : 'updated';
-        alert(`Scrap Procurement data ${mode} successfully!\n\nVoucher No: ${billDetails.billNo}\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-        
-        // Clear the form and fetch next bill number
-        handleClear();
-        fetchNextBillNo();
-        setIsEditMode(false);
+        showConfirmation({
+          title: 'Success',
+          message: `Scrap Procurement data ${mode} successfully!\n\nVoucher No: ${billDetails.billNo}\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          type: 'success',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => {
+            setShowConfirmPopup(false);
+            // Clear original data after successful save
+            setOriginalBillDetails(null);
+            setOriginalItems(null);
+            handleClear();
+            setIsEditMode(false);
+          }
+        });
       } else {
-        alert('Failed to save data. Please try again.');
+        showConfirmation({
+          title: 'Error',
+          message: 'Failed to save data. Please try again.',
+          type: 'danger',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => setShowConfirmPopup(false)
+        });
       }
-
     } catch (error) {
       console.error('Error saving scrap procurement:', error);
-      alert(`Error saving data: ${error.response?.data?.message || error.message}`);
+      showConfirmation({
+        title: 'Error',
+        message: `Error saving data: ${error.response?.data?.message || error.message}`,
+        type: 'danger',
+        confirmText: 'OK',
+        showIcon: true,
+        onConfirm: () => setShowConfirmPopup(false)
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      // Validate required fields
+      if (!billDetails.salesman || !billDetails.custName) {
+        showConfirmation({
+          title: 'Missing Information',
+          message: 'Please fill in required fields: Salesman and Customer',
+          type: 'warning',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => setShowConfirmPopup(false)
+        });
+        return;
+      }
+      
+      // Check if we have items with item names
+      const validItems = items.filter(item => 
+        item.itemName && item.itemName.trim() !== '' && 
+        item.itemCode && item.itemCode.trim() !== ''
+      );
+      
+      if (validItems.length === 0) {
+        showConfirmation({
+          title: 'No Items',
+          message: 'Please add at least one item with item name selected from the popup',
+          type: 'warning',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => setShowConfirmPopup(false)
+        });
+        return;
+      }
+      
+      // Show save confirmation
+      showConfirmation({
+        title: 'Save Confirmation',
+        message: `Are you sure you want to ${isEditMode ? 'update' : 'save'} this voucher?\n\nVoucher No: ${billDetails.billNo}\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        type: isEditMode ? 'info' : 'success',
+        confirmText: isEditMode ? 'Update' : 'Save',
+        onConfirm: async () => {
+          await performSave();
+          setShowConfirmPopup(false);
+          // Refresh the page after a short delay
+              // setTimeout(() => {
+              //   window.location.reload();
+              // }, 300);
+            // },
+            // showLoading: false
+          // });
+        },
+        onCancel: () => {
+          // If in edit mode and cancel is clicked, revert to original data
+          if (isEditMode) {
+            showConfirmation({
+              title: 'Discard Changes',
+              message: 'Are you sure you want to discard all changes and revert to original data?',
+              type: 'warning',
+              confirmText: 'Discard',
+              onConfirm: () => {
+                revertToOriginalData();
+                setShowConfirmPopup(false);
+              },
+              onCancel: () => {
+                // Keep editing, just close the popup
+                setShowConfirmPopup(false);
+              }
+            });
+          } else {
+            // For new entries, just close the popup
+            setShowConfirmPopup(false);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error in handleSave:', error);
     }
   };
 
   const handlePrint = () => {
-    alert('Print functionality to be implemented');
+    showConfirmation({
+      title: 'Print Confirmation',
+      message: 'Print functionality is not yet implemented. Would you like to continue?',
+      type: 'info',
+      confirmText: 'Continue',
+      onConfirm: () => {
+        setShowConfirmPopup(false);
+        console.log('Print functionality to be implemented');
+      }
+    });
   };
 
   // --- RESPONSIVE STYLES ---
@@ -1018,6 +1312,7 @@ const Scrapprocurement = () => {
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       overflowY: 'visible',
       maxHeight: 'none',
+      
     },
     tableSection: {
       flex: '1 1 auto',
@@ -1049,22 +1344,30 @@ const Scrapprocurement = () => {
       flexShrink: 0,
       paddingTop: '2px',
     },
-    inlineInput: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
-      border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease',
-      outline: 'none',
-      width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
-      flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+    focusedInput: {
+    borderColor: '#1B91DA !important',
+    boxShadow: '0 0 0 1px #1B91DA',
+  },
+  
+  inlineInput: {
+    fontFamily: TYPOGRAPHY.fontFamily,
+    fontSize: TYPOGRAPHY.fontSize.sm,
+    fontWeight: TYPOGRAPHY.fontWeight.normal,
+    lineHeight: TYPOGRAPHY.lineHeight.normal,
+    padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+    border: '1px solid #ddd',
+    borderRadius: screenSize.isMobile ? '3px' : '4px',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+    outline: 'none',
+    width: '100%',
+    height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+    flex: 1,
+    minWidth: screenSize.isMobile ? '80px' : '100px',
+    ':hover': {
+      borderColor: '#b3b3b3',
     },
+  },
     gridRow: {
       display: 'grid',
       gap: '8px',
@@ -1281,7 +1584,10 @@ const Scrapprocurement = () => {
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'billNo' && styles.focusedInput)
+              }}
               value={billDetails.billNo}
               name="billNo"
               onChange={handleInputChange}
@@ -1298,7 +1604,11 @@ const Scrapprocurement = () => {
             <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
-              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
+              style={{
+                ...styles.inlineInput,
+                padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
+                ...(focusedField === 'billDate' && styles.focusedInput)
+              }}
               value={billDetails.billDate}
               name="billDate"
               onChange={handleInputChange}
@@ -1314,7 +1624,10 @@ const Scrapprocurement = () => {
             <label style={styles.inlineLabel}>Mobile No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'mobileNo' && styles.focusedInput)
+              }}
               value={billDetails.mobileNo}
               name="mobileNo"
               onChange={handleInputChange}
@@ -1331,7 +1644,10 @@ const Scrapprocurement = () => {
             <label style={styles.inlineLabel}>EMP Name:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'empName' && styles.focusedInput)
+              }}
               value={billDetails.empName}
               name="empName"
               onChange={handleInputChange}
@@ -1359,6 +1675,7 @@ const Scrapprocurement = () => {
                   ...styles.inlineInput,
                   flex: 1,
                   paddingRight: '40px',
+                  ...(focusedField === 'salesman' && styles.focusedInput)
                 }}
                 value={billDetails.salesman}
                 name="salesman"
@@ -1428,7 +1745,7 @@ const Scrapprocurement = () => {
                   zIndex: 1,
                 }}
               >
-                🔎
+                <Icon.Search size={16} />
               </button>
             </div>
           </div>
@@ -1439,7 +1756,12 @@ const Scrapprocurement = () => {
             <div style={{ position: 'relative', flex: 1 }}>
               <input
                 type="text"
-                style={{ ...styles.inlineInput, flex: 1,paddingRight: '40px', }}
+                style={{
+                  ...styles.inlineInput,
+                  flex: 1,
+                  paddingRight: '40px',
+                  ...(focusedField === 'custName' && styles.focusedInput)
+                }}
                 value={billDetails.custName}
                 name="custName"
                 onChange={(e) => {
@@ -1478,7 +1800,6 @@ const Scrapprocurement = () => {
                 }}
                 onBlur={() => setFocusedField('')}
                 placeholder="Type customer name or press / to search"
-                
               />
               <button
                 type="button"
@@ -1510,7 +1831,7 @@ const Scrapprocurement = () => {
 
                 }}
               >
-                🔎
+                <Icon.Search size={16} />
               </button>
             </div>
           </div>
@@ -1521,7 +1842,11 @@ const Scrapprocurement = () => {
             <div style={{ position: 'relative', flex: 1 }}>
               <input
                 type="text"
-                style={{ ...styles.inlineInput, flex: 1 }}
+                style={{
+                  ...styles.inlineInput,
+                  flex: 1,
+                  ...(focusedField === 'scrapProductInput' && styles.focusedInput)
+                }}
                 value={billDetails.scrapProductInput}
                 name="scrapProductInput"
                 onChange={(e) => {
@@ -1596,7 +1921,7 @@ const Scrapprocurement = () => {
 
                 }}
               >
-                🔎
+                <Icon.Search size={16} />
               </button>
             </div>
           </div>
@@ -1636,8 +1961,24 @@ const Scrapprocurement = () => {
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
+                  <div style={{ 
+                    position: 'relative', 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    height: '100%'
+                  }}>
                     <input
-                      style={{ ...styles.editableInput, textAlign: 'left' }}
+                      style={{ 
+                        ...styles.editableInput, 
+                        textAlign: 'left',
+                        border: 'none',
+                        outline: 'none',
+                        background: 'transparent',
+                        paddingLeft: '8px',
+                        paddingRight: '32px',
+                        width: '100%',
+                        height: '100%'
+                      }}
                       value={item.itemName}
                       placeholder="Press / to search items"
                       data-row={index}
@@ -1645,24 +1986,48 @@ const Scrapprocurement = () => {
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
                     />
-                  </td>
-                  <td style={styles.td}>
-                    <select
-                      style={{
-                        ...styles.editableInput,
-                        textAlign: 'center',
-                        appearance: 'auto',
-                        cursor: 'pointer',
+                    <button
+                      type="button"
+                      aria-label="Search item details"
+                      title="Search item details"
+                      onClick={() => {
+                        setScrapSearchTerm(billDetails.scrapProductInput);
+                        setActiveSearchField('scrap');
+                        setShowScrapPopup(true);
                       }}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#1B91DA',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                        zIndex: 1,
+                        height: '24px',
+                        width: '24px'
+                      }}
+                    >
+                      <Icon.Search size={18} />
+                    </button>
+                  </div>
+                </td>
+                  <td style={styles.td}>
+                    <input
+                      style={styles.editableInput}
                       value={item.uom}
                       data-row={index}
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                    >
-                      <option value="KG">KG</option>
-                      <option value="PCS">PCS</option>
-                    </select>
+                      placeholder="UOM"
+                      readOnly
+                    />
                   </td>
                   <td style={styles.td}>
                     <input
@@ -1879,10 +2244,10 @@ const Scrapprocurement = () => {
         }}
         title="Select Item"
         fetchItems={fetchItemList}
-        displayFieldKeys={['itemCode', 'itemName']}
-        headerNames={['Item Code', 'Item Name']}
+        displayFieldKeys={['itemCode', 'itemName', 'barcode', 'uom']}
+        headerNames={['Item Code', 'Item Name', 'Barcode', 'UOM']}
         searchFields={['itemName', 'itemCode']}
-        columnWidths={['30%', '70%']}
+        columnWidths={['25%', '35%', '25%', '15%']}
         searchPlaceholder="Search item by name or code..."
         initialSearchText={itemSearchTerm}
         onSelect={(selectedItem) => {
@@ -1896,6 +2261,8 @@ const Scrapprocurement = () => {
                 ...updatedItems[itemIndex],
                 itemName: selectedItem.itemName || '',
                 itemCode: selectedItem.itemCode || '',
+                scrapProductName: selectedItem.barcode || '',
+                uom: selectedItem.uom || 'KG',
               };
               
               setItems(updatedItems);
@@ -1988,6 +2355,21 @@ const Scrapprocurement = () => {
           />
         </div>
       </div>
+
+      {/* Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showConfirmPopup}
+        onClose={() => setShowConfirmPopup(false)}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={confirmConfig.onCancel}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+        confirmText={confirmConfig.confirmText}
+        cancelText={confirmConfig.cancelText}
+        showIcon={confirmConfig.showIcon}
+        hideCancelButton={confirmConfig.hideCancelButton}
+      />
     </div>
   );
 };
