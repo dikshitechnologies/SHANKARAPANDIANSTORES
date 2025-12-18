@@ -76,6 +76,7 @@ export default function DesignCreation() {
   // refs for step-by-step Enter navigation
   const designCodeRef = useRef(null);
   const designNameRef = useRef(null);
+  const submitButtonRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -414,6 +415,7 @@ useEffect(() => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
+      DesignNameRef.current?.focus();
     }
   };
 
@@ -1062,6 +1064,7 @@ useEffect(() => {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitButtonRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"

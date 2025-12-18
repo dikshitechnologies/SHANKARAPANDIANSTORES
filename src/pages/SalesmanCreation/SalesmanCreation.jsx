@@ -446,6 +446,7 @@ export default function SalesmanCreation() {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
+      salesmanNameRef.current?.focus();
     }
   };
 
@@ -1079,6 +1080,7 @@ export default function SalesmanCreation() {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitButtonRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"
