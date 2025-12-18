@@ -605,6 +605,25 @@ const PaymentVoucher = () => {
       
       if (partyCode) {
         await fetchPendingBills(partyCode);
+        
+        // Fetch party balance for the selected account
+        try {
+          const balanceUrl = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
+          const balanceResponse = await apiService.getSilent(balanceUrl);
+          console.log('Party Balance Response:', balanceResponse);
+          
+          if (balanceResponse) {
+            const balance = balanceResponse.balanceAmount || 0;
+            const balanceType = balanceResponse.balanceType || 'CR';
+            setVoucherDetails(prev => ({
+              ...prev,
+              balance: balance.toString(),
+              crDr: balanceType
+            }));
+          }
+        } catch (err) {
+          console.error('Error fetching party balance:', err);
+        }
       }
       
       setShowPartyPopup(false);
@@ -618,6 +637,7 @@ const PaymentVoucher = () => {
     if (cashBankPopupContext) {
       const { paymentItemId } = cashBankPopupContext;
       handlePaymentItemChange(paymentItemId, 'cashBank', party.name || party.accountName || '');
+      handlePaymentItemChange(paymentItemId, 'cashBankCode', party.code || party.accountCode || '');
     }
     setShowCashBankPopup(false);
     setCashBankPopupContext(null);
@@ -795,6 +815,7 @@ const PaymentVoucher = () => {
         id: newId,
         sNo: newSNo,
         cashBank: '',
+        cashBankCode: '',
         crDr: 'CR',
         type: '',
         chqNo: '',
@@ -918,6 +939,14 @@ const PaymentVoucher = () => {
         return;
       }
 
+      // Validate that all payment items have Cash/Bank account selected
+      const missingCashBank = paymentItems.some(item => !item.cashBank || !item.cashBankCode);
+      if (missingCashBank) {
+        setError('All payment items must have a Cash/Bank account selected');
+        toast.error('All payment items must have a Cash/Bank account selected', { autoClose: 3000 });
+        return;
+      }
+
       setIsSaving(true);
 
       const payload = {
@@ -942,21 +971,23 @@ const PaymentVoucher = () => {
           returned500: particulars['500']?.collect || 0
         },
         itemDetailsList1: paymentItems.map(item => ({
-          accountCode: item.accountCode || '',
-          accountName: item.cashBank,
-          crdr: item.crDr,
-          type: item.type,
+          accountCode: item.cashBankCode || '',
+          accountName: item.cashBank || '',
+          crdr: item.crDr || 'CR',
+          type: item.type || '',
           amount: parseFloat(item.amount) || 0,
-          chequeNo: item.chqNo,
-          chequeDate: formatDateToYYYYMMDD(item.chqDt),
-          narration: item.narration
+          chequeNo: item.chqNo || '',
+          chequeDate: item.chqDt ? formatDateToYYYYMMDD(item.chqDt) : '',
+          narration: item.narration || ''
         })),
-        referenceBills1: billDetails.map(bill => ({
-          refNo: bill.refNo,
-          date: formatDateToYYYYMMDD(bill.date),
+        referenceBills1: billDetails.filter(bill => bill.amount && bill.amount !== '0.00').map(bill => ({
+          refNo: bill.refNo || '',
+          date: bill.date ? formatDateToYYYYMMDD(bill.date) : '',
           amount: (parseFloat(bill.amount) || 0).toString()
         }))
       };
+
+      console.log('Saving Payment Voucher with payload:', JSON.stringify(payload, null, 2));
 
       const url = API_ENDPOINTS.PAYMENTVOUCHER.POST_PAYMENT_VOUCHER(!isEditing);
       const response = await apiService.post(url, payload);
@@ -970,6 +1001,16 @@ const PaymentVoucher = () => {
       }
     } catch (err) {
       console.error('Error saving voucher:', err);
+      
+      // Handle 409 Conflict (voucher already exists)
+      if (err.response?.status === 409) {
+        const errorMsg = 'Payment Voucher already exists';
+        setError(errorMsg);
+        toast.error(errorMsg, { autoClose: 3000 });
+        setIsSaving(false);
+        return;
+      }
+      
       const errorMsg = err.response?.data?.message || 'Failed to save voucher';
       setError(errorMsg);
       toast.error(`Error: ${errorMsg}`, { autoClose: 3000 });
