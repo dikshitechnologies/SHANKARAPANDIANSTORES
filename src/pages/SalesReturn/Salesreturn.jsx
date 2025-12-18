@@ -110,6 +110,7 @@ const SalesReturn = () => {
   const [isLoadingDetails, setIsLoadingDetails] = useState({});
   const [selectedBillForDetails, setSelectedBillForDetails] = useState(null);
   const [billDetailsSearchText, setBillDetailsSearchText] = useState("");
+  const [billPopupRowIndex, setBillPopupRowIndex] = useState(0);
 
   // 7. API Data State
   const [customers, setCustomers] = useState([]);
@@ -129,6 +130,8 @@ const SalesReturn = () => {
   const [isFormValid, setIsFormValid] = useState(false);
 
   // --- REFS ---
+  const billRowRefs = useRef([]);
+
   const billNoRef = useRef(null);
   const billDateRef = useRef(null);
   const mobileRef = useRef(null);
@@ -141,6 +144,8 @@ const SalesReturn = () => {
 
   const [focusedField, setFocusedField] = useState('');
   const [activeFooterAction, setActiveFooterAction] = useState('null');
+  const [isBarcodeEnter, setIsBarcodeEnter] = useState(false);
+
 
   const [screenSize, setScreenSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
@@ -150,7 +155,75 @@ const SalesReturn = () => {
     isDesktop: true
   });
 
-  // ---------- RESET FORM FUNCTION ----------
+ useEffect(() => {
+  if (!billDetailsPopupOpen) return;
+
+  const handleKeyDown = (e) => {
+    // ❗ Ignore if user typing in input
+    if (
+      e.target.tagName === "INPUT" ||
+      e.target.tagName === "TEXTAREA"
+    ) {
+      return;
+    }
+
+    const billNo = selectedBillForDetails;
+    if (!billNo) return;
+
+    const details = billDetailsData[billNo];
+    const itemsArray = details?.items || details?.details || [];
+    if (itemsArray.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setBillPopupRowIndex(prev =>
+        Math.min(prev + 1, itemsArray.length - 1)
+      );
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setBillPopupRowIndex(prev =>
+        Math.max(prev - 1, 0)
+      );
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const item = itemsArray[billPopupRowIndex];
+      if (!item) return;
+
+      const key = item.fItemcode || item.itemCode;
+      setCheckedBills(prev => ({
+        ...prev,
+        [key]: !prev[key]
+      }));
+    }
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [
+  billDetailsPopupOpen,
+  selectedBillForDetails,
+  billDetailsData,
+  billPopupRowIndex
+]);
+
+useEffect(() => {
+  if (!billDetailsPopupOpen) return;
+
+  const row = billRowRefs.current[billPopupRowIndex];
+  if (row) {
+    row.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest"
+    });
+  }
+}, [billPopupRowIndex, billDetailsPopupOpen]);
+
+
+
   const resetForm = async () => {
     try {
       setIsEditMode(false);
@@ -402,6 +475,8 @@ const SalesReturn = () => {
       }
       
       setBillDetailsPopupOpen(true);
+      setBillPopupRowIndex(0); // reset keyboard cursor
+
       
     } catch (error) {
       console.error("Error opening bill details popup:", error);
@@ -509,6 +584,9 @@ const SalesReturn = () => {
     setSelectedBillForDetails(null);
     setCheckedBills({});
     setBillDetailsSearchText("");
+    setTimeout(() => {
+  barcodeRef.current?.focus();
+}, 150);
   };
 
   // Clear selected bill number
@@ -1411,6 +1489,9 @@ const updateSalesReturn = async () => {
             partyCode: selectedCustomer.code || selectedCustomer.custCode,
             customerCode: selectedCustomer.code || selectedCustomer.custCode,
           }));
+          setTimeout(() => {
+       newBillNoRef.current?.focus();
+    }, 100);
         }
         
       } else if (popupType === "salesman") {
@@ -1425,6 +1506,10 @@ const updateSalesReturn = async () => {
             salesman: selectedSalesman.fname || selectedSalesman.name,
             salesmanCode: selectedSalesman.fcode || selectedSalesman.code || "002"
           }));
+            setTimeout(() => {
+      custNameRef.current?.focus();
+       // optional: auto-open customer popup
+    }, 100);
         }
         
       } else if (popupType === "item") {
@@ -1464,25 +1549,19 @@ const updateSalesReturn = async () => {
         await openBillDetailsPopup(billNo);
         
       } else if (popupType === "edit") {
-        const voucherNo = selectedItem.code || selectedItem.id;
-        
-        showConfirmation({
-          title: "Confirm Edit",
-          message: `Are you sure you want to edit Sales Return ${voucherNo}?\n\nCurrent form data will be replaced.`,
-          type: "warning",
-          confirmText: "Edit",
-          cancelText: "Cancel",
-          onConfirm: async () => {
-            await loadVoucherForEditing(voucherNo);
-            setPopupOpen(false);
-            setPopupType("");
-            setPopupData([]);
-            setSelectedRowIndex(null);
-            setSelectedAction("");
-          }
-        });
-        
-      } else if (popupType === "delete") {
+  const voucherNo = selectedItem.code || selectedItem.id;
+
+  // ✅ DIRECTLY LOAD VOUCHER (NO CONFIRM POPUP)
+  await loadVoucherForEditing(voucherNo);
+
+  // ✅ Close popup cleanly
+  setPopupOpen(false);
+  setPopupType("");
+  setPopupData([]);
+  setSelectedRowIndex(null);
+  setSelectedAction("");
+}
+ else if (popupType === "delete") {
         const voucherNo = selectedItem.code || selectedItem.id;
         
         showConfirmation({
@@ -1501,6 +1580,7 @@ const updateSalesReturn = async () => {
           }
         });
       }
+      
     } catch (err) {
       console.error("Error in popup selection:", err);
       toast.error(`Error: ${err.message}`);
@@ -2615,7 +2695,7 @@ const handleSave = async () => {
       .header-input:hover,
       input:not([data-row]):hover,
       select:hover {
-        border: 1px solid #ddd !important;
+        
         box-shadow: none !important;
       }
         @keyframes fadeSlide {
@@ -2632,7 +2712,7 @@ const handleSave = async () => {
       
       input:focus, 
       select:focus {
-        border: 2px solid #1B91DA !important;
+        
         box-shadow: 0 0 0 2px rgba(27, 145, 218, 0.2) !important;
       }
     `;
@@ -2711,13 +2791,21 @@ const renderBillDetailsContent = () => {
           {itemsArray.map((item, idx) => {
             const key = item.fItemcode || item.itemCode;
             return (
-              <tr
-                key={idx}
-                style={{
-                  transition: "background 0.2s",
-                  background: checkedBills[key] ? "#e3f2fd" : "#fff"
-                }}
-              >
+            <tr
+  key={idx}
+  ref={(el) => (billRowRefs.current[idx] = el)}
+  style={{
+    transition: "background 0.2s",
+    background:
+      billPopupRowIndex === idx
+        ? "#cce5ff"
+        : checkedBills[key]
+        ? "#e3f2fd"
+        : "#fff"
+  }}
+>
+
+
                 <td style={tdStyle}>
                   <input
                     type="checkbox"
@@ -2958,12 +3046,27 @@ const tdStyle = {
               name="barcodeInput"
               onChange={handleInputChange}
               ref={barcodeRef}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddItem();
-                }
-              }}
+onKeyDown={(e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+
+    // ✅ Mark barcode-enter flow
+    setIsBarcodeEnter(true);
+
+    handleAddItem();
+
+    setTimeout(() => {
+      const firstRowBarcode = document.querySelector(
+        'input[data-row="0"][data-field="barcode"]'
+      );
+      if (firstRowBarcode) {
+        firstRowBarcode.focus();
+      }
+    }, 150);
+  }
+}}
+
+
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
               placeholder="Scan or Enter Barcode"
@@ -3259,6 +3362,7 @@ const tdStyle = {
                   setSelectedBillForDetails(null);
                   setCheckedBills({});
                   setBillDetailsSearchText("");
+                  setBillPopupRowIndex(0);
                 }}
                 aria-label="Close"
               >

@@ -308,13 +308,35 @@ useEffect(() => {
     }
   };
 
-  const handleAdd = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
-      return;
-    }
-    setConfirmSaveOpen(true);
-  };
+ const handleAdd = async () => {
+  if (!form.scrapCode || !form.scrapName) {
+    setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    return;
+  }
+
+  // Check if scrap code already exists
+  const codeExists = scrapItems.some(s => s.scrapCode === form.scrapCode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Scrap code ${form.scrapCode} already exists.` });
+    return;
+  }
+
+  // ADD THIS CHECK FOR DUPLICATE SCRAP NAME (case-insensitive)
+  const nameExists = scrapItems.some(s => 
+    s.scrapName.toLowerCase() === form.scrapName.toLowerCase()
+  );
+
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Scrap name "${form.scrapName}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -361,6 +383,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    scrapNameRef.current?.focus()
   };
 
   const handleEditRowClick = (s) => {
@@ -375,6 +398,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    scrapNameRef.current?.focus()
   };
 
   // Fetch items for popup list selector

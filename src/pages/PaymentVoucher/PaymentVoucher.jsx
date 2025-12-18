@@ -1,10 +1,14 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, PrintButton } from '../../components/Buttons/ActionButtons';
+import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, ActionButtons1, PrintButton } from '../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import SaveConfirmationModal from '../../components/SaveConfirmationModal/SaveConfirmationModal';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
+import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import { API_ENDPOINTS } from '../../api/endpoints';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const PaymentVoucher = () => {
   // --- STATE MANAGEMENT ---
@@ -16,9 +20,9 @@ const PaymentVoucher = () => {
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
 
-  // Amount entry popup
-  const [amountPopupOpen, setAmountPopupOpen] = useState(false);
-  const [amountPopupData, setAmountPopupData] = useState(null);
+  // Amount entry popup - REMOVED (GST & Bill Details popup removed)
+  // const [amountPopupOpen, setAmountPopupOpen] = useState(false);
+  // const [amountPopupData, setAmountPopupData] = useState(null);
 
   // Track if we're editing an existing voucher
   const [isEditing, setIsEditing] = useState(false);
@@ -70,10 +74,27 @@ const PaymentVoucher = () => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [billTotalAmount, setBillTotalAmount] = useState(0);
 
+  // 4.5. Particulars State
+  const [particulars, setParticulars] = useState({
+    '500': { available: 0, collect: 0, issue: 0 },
+    '200': { available: 0, collect: 0, issue: 0 },
+    '100': { available: 0, collect: 0, issue: 0 },
+    '50': { available: 0, collect: 0, issue: 0 },
+    '20': { available: 0, collect: 0, issue: 0 },
+    '10': { available: 0, collect: 0, issue: 0 },
+    '5': { available: 0, collect: 0, issue: 0 },
+    '2': { available: 0, collect: 0, issue: 0 },
+    '1': { available: 0, collect: 0, issue: 0 }
+  });
+
   // 5. Popup States
   const [editVoucherPopupOpen, setEditVoucherPopupOpen] = useState(false);
   const [deleteVoucherPopupOpen, setDeleteVoucherPopupOpen] = useState(false);
   const [currentRowIndex, setCurrentRowIndex] = useState(0);
+
+  // 5.5 Cash/Bank Popup State
+  const [showCashBankPopup, setShowCashBankPopup] = useState(false);
+  const [cashBankPopupContext, setCashBankPopupContext] = useState(null); // { paymentItemId, index }
 
   // 6. Data state
   const [savedVouchers, setSavedVouchers] = useState([]);
@@ -138,14 +159,14 @@ const PaymentVoucher = () => {
   // Fetch next voucher number from API
   const fetchNextVoucherNo = useCallback(async () => {
     try {
-      if (!userData?.companyCode || !userData?.username) {
+      if (!userData?.companyCode) {
         console.warn('userData not available yet');
         return;
       }
       setIsLoading(true);
-      const url = API_ENDPOINTS.PAYMENTVOUCHER.GETNEXTVNUMBER(userData.companyCode, '001');
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.GETNEXTVNUMBER(userData.companyCode);
       const response = await apiService.get(url);
-      console.log('Voucher response:', response);
+      console.log('Payment Voucher response:', response);
       if (response.voucherNo) {
         setVoucherDetails(prev => ({
           ...prev,
@@ -158,7 +179,7 @@ const PaymentVoucher = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [userData?.companyCode, userData?.username]);
+  }, [userData?.companyCode]);
 
 
 
@@ -261,50 +282,79 @@ const PaymentVoucher = () => {
   const fetchVoucherDetails = async (voucherNo) => {
     try {
       setIsLoading(true);
-      const response = await apiService.get(`/api/payment-vouchers/${voucherNo}`);
-      if (response.data?.voucher) {
-        const voucher = response.data.voucher;
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.GET_PAYMENT_VOUCHER_DETAILS(voucherNo);
+      const response = await apiService.get(url);
+      
+      if (response?.bledger) {
+        const ledger = response.bledger;
+        
+        // Helper function to safely format date
+        const safeFormatDate = (dateValue) => {
+          if (!dateValue) return new Date().toISOString().substring(0, 10);
+          try {
+            if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+              return dateValue;
+            }
+            const date = new Date(dateValue);
+            if (isNaN(date.getTime())) {
+              return new Date().toISOString().substring(0, 10);
+            }
+            return date.toISOString().substring(0, 10);
+          } catch (e) {
+            console.warn('Date parsing error:', e);
+            return new Date().toISOString().substring(0, 10);
+          }
+        };
+        
         setVoucherDetails({
-          voucherNo: voucher.voucherNo || '',
-          gstType: voucher.gstType || 'CGST/SGST',
-          date: voucher.date || new Date().toISOString().substring(0, 10),
-          costCenter: voucher.costCenter || '',
-          accountName: voucher.accountName || '',
-          accountCode: voucher.accountCode || '',
-          balance: voucher.balance || '0.00'
+          voucherNo: ledger.fVouchno || '',
+          gstType: ledger.fGSTTYPE || 'CGST/SGST',
+          date: safeFormatDate(ledger.fVouchdt),
+          costCenter: '',
+          accountName: ledger.customerName || '',
+          accountCode: ledger.fCucode || '',
+          balance: (ledger.fBillAmt || 0).toString()
         });
-
-        if (voucher.paymentItems) {
-          setPaymentItems(voucher.paymentItems.map((item, idx) => ({
+        
+        // Map ledger details to payment items
+        if (response?.ledgers && Array.isArray(response.ledgers)) {
+          const items = response.ledgers.map((item, idx) => ({
             id: idx + 1,
             sNo: idx + 1,
-            cashBank: item.cashBank || '',
-            crDr: item.crDr || 'CR',
+            cashBank: item.accountName || '',
+            cashBankCode: item.faccode || '',
+            accountCode: item.faccode || '',
+            accountName: item.accountName || '',
+            crDr: item.fCrDb || 'CR',
             type: item.type || '',
-            chqNo: item.chqNo || '',
-            chqDt: item.chqDt || '',
-            narration: item.narration || '',
-            amount: item.amount || ''
-          })));
+            chqNo: item.fchqno || '',
+            chqDt: safeFormatDate(item.fchqdt),
+            narration: '',
+            amount: (item.fvrAmount || 0).toString()
+          }));
+          setPaymentItems(items);
         }
 
-        if (voucher.billDetails) {
-          setBillDetails(voucher.billDetails.map((bill, idx) => ({
-            id: idx + 1,
-            sNo: idx + 1,
-            refNo: bill.refNo || '',
-            billNo: bill.billNo || '',
-            date: bill.date || '',
-            billAmount: bill.billAmount || '0.00',
-            paidAmount: bill.paidAmount || '0.00',
-            balanceAmount: bill.balanceAmount || '0.00',
-            amount: bill.amount || '0.00'
-          })));
+        // Load particulars from salesTransaction if available
+        if (response?.salesTransaction) {
+          const sales = response.salesTransaction;
+          setParticulars({
+            '500': { available: 0, collect: parseInt(sales.returned500) || 0, issue: 0 },
+            '200': { available: 0, collect: parseInt(sales.returned200) || 0, issue: 0 },
+            '100': { available: 0, collect: parseInt(sales.returned100) || 0, issue: 0 },
+            '50': { available: 0, collect: parseInt(sales.returned50) || 0, issue: 0 },
+            '20': { available: 0, collect: parseInt(sales.returned20) || 0, issue: 0 },
+            '10': { available: 0, collect: parseInt(sales.returned10) || 0, issue: 0 },
+            '5': { available: 0, collect: parseInt(sales.returned5) || 0, issue: 0 },
+            '2': { available: 0, collect: parseInt(sales.returned2) || 0, issue: 0 },
+            '1': { available: 0, collect: parseInt(sales.returned1) || 0, issue: 0 }
+          });
         }
       }
     } catch (err) {
       console.error('Error fetching voucher details:', err);
       setError('Failed to load voucher details');
+      toast.error('Failed to load voucher details: ' + err.message, { autoClose: 3000 });
     } finally {
       setIsLoading(false);
     }
@@ -314,13 +364,18 @@ const PaymentVoucher = () => {
   const deleteVoucher = async (voucherNo) => {
     try {
       setIsLoading(true);
-      await apiService.delete(`/api/payment-vouchers/${voucherNo}`);
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.DELETE_PAYMENT_VOUCHER(voucherNo);
+      await apiService.del(url);
       setError(null);
+      toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
       resetForm();
+      await fetchNextVoucherNo();
       await fetchSavedVouchers();
     } catch (err) {
       console.error('Error deleting voucher:', err);
-      setError('Failed to delete voucher');
+      const errorMsg = err.response?.data?.message || 'Failed to delete voucher';
+      setError(errorMsg);
+      toast.error(`Error: ${errorMsg}`, { autoClose: 3000 });
     } finally {
       setIsLoading(false);
     }
@@ -378,16 +433,16 @@ const PaymentVoucher = () => {
         setIsLoadingMoreParties(false);
       }
     }
-  }, [userData?.companyCode, userData?.username]);
+  }, [userData?.companyCode]);
 
   // Initial data fetch on component mount and when userData changes
   useEffect(() => {
-    if (userData?.companyCode && userData?.username) {
+    if (userData?.companyCode) {
       fetchNextVoucherNo();
       // Load first batch of parties (page 1)
       fetchPartiesWithPagination(1);     
     }
-  }, [userData?.companyCode, userData?.username, fetchNextVoucherNo, fetchPartiesWithPagination]);
+  }, [userData?.companyCode, fetchNextVoucherNo, fetchPartiesWithPagination]);
 
   // Calculate Payment Details Totals whenever items change
   useEffect(() => {
@@ -551,12 +606,48 @@ const PaymentVoucher = () => {
       
       if (partyCode) {
         await fetchPendingBills(partyCode);
+        
+        // Fetch party balance for the selected account
+        try {
+          const balanceUrl = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
+          const balanceResponse = await apiService.getSilent(balanceUrl);
+          console.log('Party Balance Response:', balanceResponse);
+          
+          if (balanceResponse) {
+            const balance = balanceResponse.balanceAmount || 0;
+            const balanceType = balanceResponse.balanceType || 'CR';
+            setVoucherDetails(prev => ({
+              ...prev,
+              balance: balance.toString(),
+              crDr: balanceType
+            }));
+          }
+        } catch (err) {
+          console.error('Error fetching party balance:', err);
+        }
       }
       
       setShowPartyPopup(false);
     } catch (err) {
       console.error('Error selecting party:', err);
     }
+  };
+
+  // Handle Cash/Bank selection from popup
+  const handleCashBankSelect = (party) => {
+    if (cashBankPopupContext) {
+      const { paymentItemId } = cashBankPopupContext;
+      handlePaymentItemChange(paymentItemId, 'cashBank', party.name || party.accountName || '');
+      handlePaymentItemChange(paymentItemId, 'cashBankCode', party.code || party.accountCode || '');
+    }
+    setShowCashBankPopup(false);
+    setCashBankPopupContext(null);
+  };
+
+  // Open Cash/Bank popup
+  const openCashBankPopup = (paymentItemId, index) => {
+    setCashBankPopupContext({ paymentItemId, index });
+    setShowCashBankPopup(true);
   };
 
   // Get popup configuration
@@ -580,6 +671,27 @@ const PaymentVoucher = () => {
         hasMoreData: !hasReachedEndOfParties,
         onLoadMore: () => {
           // Only load more if we haven't reached the end
+          if (!hasReachedEndOfParties && !isLoadingMoreParties) {
+            fetchPartiesWithPagination(partyCurrentPage + 1);
+          }
+        }
+      },
+      cashBank: {
+        title: 'Select Cash/Bank Account',
+        displayFieldKeys: ['code', 'name'],
+        searchFields: ['name', 'code'],
+        headerNames: ['Code', 'Name'],
+        columnWidths: { code: '100px', name: '300px' },
+        data: allParties.length > 0 ? allParties : [],
+        fetchItems: async () => {
+          if (!hasReachedEndOfParties && !isLoadingMoreParties) {
+            await fetchPartiesWithPagination(partyCurrentPage + 1);
+          }
+          return allParties;
+        },
+        loading: isLoading || isLoadingMoreParties,
+        hasMoreData: !hasReachedEndOfParties,
+        onLoadMore: () => {
           if (!hasReachedEndOfParties && !isLoadingMoreParties) {
             fetchPartiesWithPagination(partyCurrentPage + 1);
           }
@@ -704,6 +816,7 @@ const PaymentVoucher = () => {
         id: newId,
         sNo: newSNo,
         cashBank: '',
+        cashBankCode: '',
         crDr: 'CR',
         type: '',
         chqNo: '',
@@ -785,40 +898,6 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Handle amount blur in payment table
-  const handleAmountBlur = (itemId, amount, index) => {
-    if (amount && amount !== '0.00') {
-      const item = paymentItems.find(i => i.id === itemId);
-      const bill = billDetails[index] || {};
-      
-      // Calculate GST amount
-      const gstPercent = parseFloat(bill?.gstPercent || 0);
-      const itemAmount = parseFloat(amount) || 0;
-      const gstAmount = (itemAmount * gstPercent) / 100;
-      const billTotal = itemAmount + gstAmount;
-      
-      setAmountPopupData({
-        itemId: itemId,
-        // Payment Details
-        cashBank: item?.cashBank || '',
-        crDr: item?.crDr || 'CR',
-        type: item?.type || '',
-        chqNo: item?.chqNo || '',
-        chqDt: item?.chqDt || '',
-        narration: item?.narration || '',
-        amount: parseFloat(amount).toFixed(2),
-        // GST & Bill Details
-        gstType: voucherDetails?.gstType || 'CGST/SGST',
-        hsnSac: bill?.hsnSac || '',
-        refBillNo: bill?.billNo || '',
-        refBillDate: bill?.date || '',
-        gstPercent: gstPercent,
-        gstAmount: gstAmount.toFixed(2),
-        billTotal: billTotal.toFixed(2)
-      });
-      setAmountPopupOpen(true);
-    }
-  };
 
   // Handle edit click - opens edit voucher popup
   const handleEditClick = () => {
@@ -847,14 +926,25 @@ const PaymentVoucher = () => {
     try {
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
+        toast.error('Voucher number is required', { autoClose: 3000 });
         return;
       }
       if (!voucherDetails.accountName) {
         setError('Account is required');
+        toast.error('Account is required', { autoClose: 3000 });
         return;
       }
       if (paymentItems.length === 0) {
         setError('At least one payment item is required');
+        toast.error('At least one payment item is required', { autoClose: 3000 });
+        return;
+      }
+
+      // Validate that all payment items have Cash/Bank account selected
+      const missingCashBank = paymentItems.some(item => !item.cashBank || !item.cashBankCode);
+      if (missingCashBank) {
+        setError('All payment items must have a Cash/Bank account selected');
+        toast.error('All payment items must have a Cash/Bank account selected', { autoClose: 3000 });
         return;
       }
 
@@ -862,52 +952,69 @@ const PaymentVoucher = () => {
 
       const payload = {
         voucherNo: voucherDetails.voucherNo,
+        voucherDate: formatDateToYYYYMMDD(voucherDetails.date),
+        customerCode: voucherDetails.accountCode,
+        customerName: voucherDetails.accountName,
         gstType: voucherDetails.gstType,
-        date: formatDateToYYYYMMDD(voucherDetails.date),
-        costCenter: voucherDetails.costCenter,
-        accountName: voucherDetails.accountName,
-        accountCode: voucherDetails.accountCode,
-        balance: voucherDetails.balance,
-        crDr: voucherDetails.crDr,
-        paymentItems: paymentItems.map(item => ({
-          cashBank: item.cashBank,
-          crDr: item.crDr,
-          type: item.type,
-          chqNo: item.chqNo,
-          chqDt: item.chqDt,
-          narration: item.narration,
-          amount: parseFloat(item.amount) || 0
+        partyBalance: parseFloat(voucherDetails.balance) || 0,
+        totalAmt: totalAmount,
+        compcode: userData?.companyCode || '',
+        usercode: userData?.username || '',
+        salesTransaction1: {
+          returned1: (particulars['1']?.collect || 0).toString(),
+          returned2: (particulars['2']?.collect || 0).toString(),
+          returned5: (particulars['5']?.collect || 0).toString(),
+          returned10: (particulars['10']?.collect || 0).toString(),
+          returned20: (particulars['20']?.collect || 0).toString(),
+          returned50: (particulars['50']?.collect || 0).toString(),
+          returned100: (particulars['100']?.collect || 0).toString(),
+          returned200: (particulars['200']?.collect || 0).toString(),
+          returned500: (particulars['500']?.collect || 0).toString()
+        },
+        itemDetailsList1: paymentItems.map(item => ({
+          accountCode: item.cashBankCode || '',
+          accountName: item.cashBank || '',
+          crdr: item.crDr || 'CR',
+          type: item.type || '',
+          amount: parseFloat(item.amount) || 0,
+          chequeNo: item.chqNo || '',
+          chequeDate: item.chqDt ? formatDateToYYYYMMDD(item.chqDt) : '',
+          narration: item.narration || ''
         })),
-        billDetails: billDetails.map(bill => ({
-          refNo: bill.refNo,
-          billNo: bill.billNo,
-          date: formatDateToYYYYMMDD(bill.date),
-          billAmount: parseFloat(bill.billAmount) || 0,
-          paidAmount: parseFloat(bill.paidAmount) || 0,
-          balanceAmount: parseFloat(bill.balanceAmount) || 0,
-          amount: parseFloat(bill.amount) || 0
+        referenceBills1: billDetails.filter(bill => bill.amount && bill.amount !== '0.00').map(bill => ({
+          refNo: bill.refNo || '',
+          date: bill.date ? formatDateToYYYYMMDD(bill.date) : '',
+          amount: (parseFloat(bill.amount) || 0).toString()
         }))
       };
 
-      let response;
-      if (isEditing) {
-        response = await apiService.put(
-          `/api/payment-vouchers/${originalVoucherNo}`,
-          payload
-        );
-      } else {
-        response = await apiService.post('/api/payment-vouchers', payload);
-      }
+      console.log('Saving Payment Voucher with payload:', JSON.stringify(payload, null, 2));
 
-      if (response.data?.voucherNo) {
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.POST_PAYMENT_VOUCHER(!isEditing);
+      const response = await apiService.post(url, payload);
+
+      if (response) {
         setError(null);
+        toast.success(`Payment Voucher ${voucherDetails.voucherNo} saved successfully`, { autoClose: 3000 });
         resetForm();
         await fetchNextVoucherNo();
         await fetchSavedVouchers();
       }
     } catch (err) {
       console.error('Error saving voucher:', err);
-      setError(err.response?.data?.message || 'Failed to save voucher');
+      
+      // Handle 409 Conflict (voucher already exists)
+      if (err.response?.status === 409) {
+        const errorMsg = 'Payment Voucher already exists';
+        setError(errorMsg);
+        toast.error(errorMsg, { autoClose: 3000 });
+        setIsSaving(false);
+        return;
+      }
+      
+      const errorMsg = err.response?.data?.message || 'Failed to save voucher';
+      setError(errorMsg);
+      toast.error(`Error: ${errorMsg}`, { autoClose: 3000 });
     } finally {
       setIsSaving(false);
     }
@@ -918,19 +1025,17 @@ const PaymentVoucher = () => {
     showSaveConfirmation();
   };
 
-  // Function to show save confirmation popup
+  // Function to show save confirmation popup using SaveConfirmationModal
   const showSaveConfirmation = () => {
-    setSaveConfirmationData({
-      title: `${isEditing ? 'Update' : 'Create'} Payment Voucher`,
-      message: `Are you sure you want to ${isEditing ? 'update' : 'create'} this payment voucher?`,
-      confirmText: 'Save',
-      cancelText: 'Cancel'
-    });
     setSaveConfirmationOpen(true);
   };
 
   // Function to handle confirmed save
-  const handleConfirmedSave = async () => {
+  const handleConfirmedSave = async (updatedParticulars) => {
+    // Update particulars with the confirmed values
+    if (updatedParticulars) {
+      setParticulars(updatedParticulars);
+    }
     setSaveConfirmationOpen(false);
     await savePaymentVoucher();
   };
@@ -1336,7 +1441,7 @@ const PaymentVoucher = () => {
                 ref={voucherNoRef}
                 type="text"
                 name="voucherNo"
-                value={voucherDetails.voucherNo}
+                value={voucherDetails.voucherNo || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('voucherNo')}
                 onBlur={() => setFocusedField('')}
@@ -1352,7 +1457,7 @@ const PaymentVoucher = () => {
                 ref={dateRef}
                 type="date"
                 name="date"
-                value={voucherDetails.date}
+                value={voucherDetails.date || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('date')}
                 onBlur={() => setFocusedField('')}
@@ -1368,7 +1473,7 @@ const PaymentVoucher = () => {
                 ref={accountNameRef}
                 type="text"
                 name="accountName"
-                value={voucherDetails.accountName}
+                value={voucherDetails.accountName || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('accountName')}
                 onBlur={() => setFocusedField('')}
@@ -1388,7 +1493,7 @@ const PaymentVoucher = () => {
               <input
                 type="text"
                 name="balance"
-                value={voucherDetails.balance}
+                value={voucherDetails.balance || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('balance')}
                 onBlur={() => setFocusedField('')}
@@ -1400,7 +1505,7 @@ const PaymentVoucher = () => {
             <div style={styles.fieldGroup}>
               <input
                 name="crDr"
-                value={voucherDetails.crDr}
+                value={voucherDetails.crDr || 'CR'}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('crDr')}
                 onBlur={() => setFocusedField('')}
@@ -1417,7 +1522,7 @@ const PaymentVoucher = () => {
               <select
                 ref={gstTypeRef}
                 name="gstType"
-                value={voucherDetails.gstType}
+                value={voucherDetails.gstType || 'CGST/SGST'}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('gstType')}
                 onBlur={() => setFocusedField('')}
@@ -1460,10 +1565,20 @@ const PaymentVoucher = () => {
                       type="text"
                       value={item.cashBank}
                       onChange={(e) => handlePaymentItemChange(item.id, 'cashBank', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'cashBank', true)}
+                      onKeyDown={(e) => {
+                        if (e.key === '/') {
+                          e.preventDefault();
+                          openCashBankPopup(item.id, index);
+                        } else {
+                          handleTableKeyDown(e, index, 'cashBank', true);
+                        }
+                      }}
+                      onClick={() => openCashBankPopup(item.id, index)}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
+                      placeholder="Click or press / to select"
+                      title="Click to select or press / to search"
                     />
                   </td>
                   <td style={styles.td}>
@@ -1548,10 +1663,7 @@ const PaymentVoucher = () => {
                       value={item.amount}
                       onChange={(e) => handlePaymentItemChange(item.id, 'amount', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', true)}
-                      onBlur={(e) => {
-                        e.target.style.border = 'none';
-                        handleAmountBlur(item.id, item.amount, index);
-                      }}
+                      onBlur={(e) => e.target.style.border = 'none'}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                     />
@@ -1637,7 +1749,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_refNo`}
                       type="text"
-                      value={bill.refNo}
+                      value={bill.refNo || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1646,7 +1758,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_billNo`}
                       type="text"
-                      value={bill.billNo}
+                      value={bill.billNo || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1655,7 +1767,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_date`}
                       type="date"
-                      value={bill.date}
+                      value={bill.date || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1663,7 +1775,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_billAmount`}
-                      value={bill.billAmount}
+                      value={bill.billAmount || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1671,7 +1783,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_paidAmount`}
-                      value={bill.paidAmount}
+                      value={bill.paidAmount || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1679,7 +1791,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '120px', width: '120px'}}>
                     <input
                       id={`bill_${bill.id}_balanceAmount`}
-                      value={bill.balanceAmount}
+                      value={bill.balanceAmount || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1687,7 +1799,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_amount`}
-                      value={bill.amount}
+                      value={bill.amount || ''}
                       onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', false)}
                       style={styles.editableInput}
@@ -1783,6 +1895,18 @@ const PaymentVoucher = () => {
         />
       )}
 
+      {showCashBankPopup && (
+        <PopupListSelector
+          {...getPopupConfig('cashBank')}
+          open={showCashBankPopup}
+          onClose={() => {
+            setShowCashBankPopup(false);
+            setCashBankPopupContext(null);
+          }}
+          onSelect={handleCashBankSelect}
+        />
+      )}
+
       {editVoucherPopupOpen && (
         <PopupListSelector
           {...getPopupConfig('editVoucher')}
@@ -1802,320 +1926,21 @@ const PaymentVoucher = () => {
       )}
 
       {saveConfirmationOpen && (
-        <ConfirmationPopup
+        <SaveConfirmationModal
           isOpen={saveConfirmationOpen}
-          title={saveConfirmationData?.title}
-          message={saveConfirmationData?.message}
+          onClose={handleCancelSave}
           onConfirm={handleConfirmedSave}
-          onCancel={handleCancelSave}
-          confirmText={saveConfirmationData?.confirmText}
-          cancelText={saveConfirmationData?.cancelText}
+          title={`${isEditing ? 'Update' : 'Create'} Payment Voucher`}
+          particulars={particulars}
+          loading={isSaving}
+          voucherNo={voucherDetails.voucherNo}
+          voucherDate={voucherDetails.date}
         />
       )}
 
-      {amountPopupOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-            width: screenSize.isMobile ? '90%' : screenSize.isTablet ? '70%' : '500px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '24px'
-          }}>
-            <h2 style={{
-              margin: '0 0 20px 0',
-              color: '#1B91DA',
-              fontSize: screenSize.isMobile ? '18px' : '20px',
-              fontWeight: 'bold'
-            }}>GST & Bill Details</h2>
+      {/* GST & Bill Details Popup - REMOVED */}
 
-            {/* GST & Bill Section */}
-            <div style={{
-              backgroundColor: '#f9f9f9',
-              padding: '16px',
-              borderRadius: '6px',
-              borderLeft: '4px solid #1B91DA'
-            }}>
-              <h3 style={{
-                margin: '0 0 12px 0',
-                color: '#333',
-                fontSize: '14px',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>GST & Bill Details</h3>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: screenSize.isMobile ? '1fr' : '1fr 1fr',
-                gap: '12px'
-              }}>
-                {/* GST Type */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST Type</label>
-                  <select
-                    value={amountPopupData?.gstType || voucherDetails?.gstType || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box',
-                      cursor: 'default',
-                      appearance: 'none'
-                    }}
-                  >
-                    <option value="">-- Select --</option>
-                    <option value="CGST/SGST">CGST/SGST</option>
-                    <option value="IGST">IGST</option>
-                  </select>
-                </div>
-
-                {/* HSN/SAC */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>HSN/SAC</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.hsnSac || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Ref Bill No */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Ref Bill No</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.refBillNo || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Ref Bill Date */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Ref Bill Date</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.refBillDate || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* GST % */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST %</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.gstPercent || '0'}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* GST Amount */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST Amount</label>
-                  <input
-                    type="text"
-                    value={`₹${amountPopupData?.gstAmount || '0.00'}`}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Bill Total */}
-                <div style={{ gridColumn: screenSize.isMobile ? '1' : '1 / -1' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#1B91DA',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Bill Total</label>
-                  <input
-                    type="text"
-                    value={`₹${amountPopupData?.billTotal || '0.00'}`}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '2px solid #1B91DA',
-                      borderRadius: '4px',
-                      fontSize: '15px',
-                      fontWeight: 'bold',
-                      backgroundColor: '#f0f8ff',
-                      color: '#1B91DA',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-              marginTop: '24px'
-            }}>
-              <button
-                onClick={() => setAmountPopupOpen(false)}
-                style={{
-                  padding: '10px 20px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  backgroundColor: 'white',
-                  color: '#333',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#f5f5f5';
-                  e.target.style.borderColor = '#1B91DA';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'white';
-                  e.target.style.borderColor = '#ddd';
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setAmountPopupOpen(false)}
-                style={{
-                  padding: '10px 20px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  backgroundColor: '#1B91DA',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#1576b9';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#1B91DA';
-                }}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* End of JSX */}
     </div>
   );
 };

@@ -351,20 +351,34 @@ useEffect(() => {
   };
 
   const handleAdd = async () => {
-    if (!form.catCode || !form.catName) {
-      setMessage({ type: "error", text: "Please fill Category Code and Category Name." });
-      return;
-    }
+  if (!form.catCode || !form.catName) {
+    setMessage({ type: "error", text: "Please fill Category Code and Category Name." });
+    return;
+  }
 
-    // Check if category code already exists
-    const exists = categories.some(c => c.catCode === form.catCode);
-    if (exists) {
-      setMessage({ type: "error", text: `Category code ${form.catCode} already exists.` });
-      return;
-    }
+  // Check if category code already exists
+  const codeExists = categories.some(c => c.catCode === form.catCode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Category code ${form.catCode} already exists.` });
+    return;
+  }
 
-    setConfirmSaveOpen(true);
-  };
+  // ADD THIS CHECK FOR DUPLICATE CATEGORY NAME (case-insensitive)
+  const nameExists = categories.some(c => 
+    c.catName.toLowerCase() === form.catName.toLowerCase()
+  );
+
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Category name "${form.catName}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -410,6 +424,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    catNameRef.current?.focus()
   };
 
   const handleEditRowClick = (c) => {
@@ -423,6 +438,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    catNameRef.current?.focus()
   };
 
   const handleDeleteRowClick = (c) => {

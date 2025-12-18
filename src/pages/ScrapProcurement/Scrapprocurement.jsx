@@ -448,16 +448,7 @@ const Scrapprocurement = () => {
         setBillDetails(newBillDetails);
         setItems(newItems);
         
-        showConfirmation({
-          title: 'Success',
-          message: `Voucher ${voucherNo} loaded successfully for editing.`,
-          type: 'success',
-          confirmText: 'OK',
-          showIcon: true,
-          onConfirm: () => {
-            setShowConfirmPopup(false);
-          }
-        });
+     
       } else {
         showConfirmation({
           title: 'Not Found',

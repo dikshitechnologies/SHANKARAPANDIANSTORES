@@ -338,20 +338,34 @@ useEffect(() => {
   };
 
   const handleAdd = async () => {
-    if (!form.fproductcode || !form.fproductname) {
-      setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
-      return;
-    }
+  if (!form.fproductcode || !form.fproductname) {
+    setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
+    return;
+  }
 
-    // Check if product code already exists
-    const exists = products.some(p => p.fproductcode === form.fproductcode);
-    if (exists) {
-      setMessage({ type: "error", text: `Product code ${form.fproductcode} already exists.` });
-      return;
-    }
+  // Check if product code already exists
+  const codeExists = products.some(p => p.fproductcode === form.fproductcode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Product code ${form.fproductcode} already exists.` });
+    return;
+  }
 
-    setConfirmSaveOpen(true);
-  };
+  // ADD THIS CHECK FOR DUPLICATE PRODUCT NAME (like in Color Creation)
+  const nameExists = products.some(p => 
+    p.fproductname.toLowerCase() === form.fproductname.toLowerCase()
+  );
+  
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Product name "${form.fproductname}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -397,6 +411,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    productNameRef.current?.focus()
   };
 
   const handleEditRowClick = (p) => {
@@ -410,6 +425,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    productNameRef.current?.focus()
   };
 
   const handleDeleteRowClick = (p) => {

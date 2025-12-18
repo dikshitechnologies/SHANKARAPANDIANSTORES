@@ -210,7 +210,7 @@ const ReceiptVoucher = () => {
     try {
       if (!userData?.companyCode) return;
       setLoadingVouchers(true);
-      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETBILLNUMLIST(userData.companyCode, page, 10);
+      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETBILLNUMLIST(userData.companyCode, page, 100);
       const response = await apiService.get(url);
       
       // API returns data in the .data property
@@ -340,6 +340,7 @@ const ReceiptVoucher = () => {
     try {
       setIsLoading(true);
       const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_VOUCHER_DETAILS(voucherNo));
+      console.log('Fetched Voucher Details Response:', response);
       
       if (response?.bledger) {
         const ledger = response.bledger;
@@ -375,7 +376,8 @@ const ReceiptVoucher = () => {
         });
         
         // Map ledger details to receipt items
-        if (response?.ledgers && Array.isArray(response.ledgers)) {
+        if (response?.ledgers && Array.isArray(response.ledgers) && response.ledgers.length > 0) {
+          console.log('Receipt Items from API:', response.ledgers);
           const items = response.ledgers.map((item, idx) => ({
             id: idx + 1,
             sNo: idx + 1,
@@ -389,7 +391,11 @@ const ReceiptVoucher = () => {
             narration: '',
             amount: (item.fvrAmount || 0).toString()
           }));
+          console.log('Mapped Receipt Items:', items);
           setReceiptItems(items);
+        } else {
+          console.log('No ledgers found in response, keeping current receipt items or setting empty');
+          // Don't clear - keep the items if they exist
         }
 
         // Load particulars from salesTransaction if available
@@ -528,16 +534,17 @@ const ReceiptVoucher = () => {
 
   // Open edit voucher popup
   const openEditVoucherPopup = async () => {
-    setConfirmationPopup({
-      isOpen: true,
-      title: 'Edit Voucher',
-      message: 'Are you sure you want to edit this voucher?',
-      type: 'info',
-      confirmText: 'Edit',
-      cancelText: 'Cancel',
-      action: 'edit',
-      isLoading: false
-    });
+    try {
+      setLoadingVouchers(true);
+      await fetchSavedVouchers(1, '');
+      setEditVoucherPopupOpen(true);
+    } catch (err) {
+      console.error('Error fetching vouchers:', err);
+      setError('Failed to load vouchers');
+      toast.error('Failed to load vouchers', { autoClose: 3000 });
+    } finally {
+      setLoadingVouchers(false);
+    }
   };
 
   // Open delete voucher popup
