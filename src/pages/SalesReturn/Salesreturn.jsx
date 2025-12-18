@@ -2695,7 +2695,7 @@ const handleSave = async () => {
       .header-input:hover,
       input:not([data-row]):hover,
       select:hover {
-        border: 1px solid #ddd !important;
+        
         box-shadow: none !important;
       }
         @keyframes fadeSlide {
@@ -2712,7 +2712,7 @@ const handleSave = async () => {
       
       input:focus, 
       select:focus {
-        border: 2px solid #1B91DA !important;
+        
         box-shadow: 0 0 0 2px rgba(27, 145, 218, 0.2) !important;
       }
     `;
