@@ -207,8 +207,7 @@ function BillCollector() {
     flex: 'none',
     display: 'flex',
     flexDirection: 'column',
-    maxHeight: isMobile ? '300px' : '400px',
-    minHeight: '70%',
+    maxHeight: isMobile ? '390px' : '490px',
   };
 
   const tableStyle = {
@@ -225,7 +224,7 @@ function BillCollector() {
     lineHeight: "1.2",
     backgroundColor: '#1B91DA',
     color: 'white',
-    padding: isMobile ? '7px 3px' : '10px 6px',
+    padding: isMobile ? '10px 3px' : '12px 6px',
     textAlign: 'center',
     letterSpacing: '0.5px',
     position: 'sticky',
@@ -247,7 +246,7 @@ function BillCollector() {
     fontSize: isMobile ? "11px" : "13px",
     fontWeight: "500",
     lineHeight: "1.4",
-    padding: isMobile ? '6px 3px' : '10px 6px',
+    padding: isMobile ? '8px 3px' : '12px 6px',
     textAlign: 'center',
     border: '1px solid #ccc',
     color: '#333',
