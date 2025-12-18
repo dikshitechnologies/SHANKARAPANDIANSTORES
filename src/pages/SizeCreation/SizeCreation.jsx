@@ -58,7 +58,7 @@ export default function SizeCreation() {
 
   const [form, setForm] = useState({ 
     fuCode: "", 
-    sizeName: ""  // Changed from unitName to sizeName
+    sizeName: ""
   });
   
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
@@ -77,9 +77,6 @@ export default function SizeCreation() {
   // refs for step-by-step Enter navigation
   const sizeCodeRef = useRef(null);
   const sizeNameRef = useRef(null);
-  const createButtonRef = useRef(null);
-  const editButtonRef = useRef(null);
-  const deleteButtonRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -129,7 +126,7 @@ export default function SizeCreation() {
       setLoading(true);
       // API expects fCode and fsize, not sizeName
       const apiData = { 
-        fCode: sizeData.fCode, 
+        fCode: sizeData.fuCode, 
         fsize: sizeData.sizeName 
       };
       const data = await apiService.post(API_ENDPOINTS.SIZECREATION.CREATE_SIZE, apiData);
@@ -148,7 +145,7 @@ export default function SizeCreation() {
       setLoading(true);
       // API expects fCode and fsize
       const apiData = { 
-        fCode: sizeData.fCode, 
+        fCode: sizeData.fuCode, 
         fsize: sizeData.sizeName 
       };
       const data = await apiService.put(API_ENDPOINTS.SIZECREATION.UPDATE_SIZE, apiData);
@@ -190,25 +187,25 @@ export default function SizeCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
- // Focus on size name field on initial load/reload
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (sizeNameRef.current) {
-      sizeNameRef.current.focus();
-    }
-  }, 100); // Small delay to ensure DOM is ready
-  return () => clearTimeout(timer);
-}, []); // Empty dependency array = runs once on mount
-
-// Additional focus for when actionType changes
-useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  // Focus on size name field on initial load/reload
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (sizeNameRef.current) sizeNameRef.current.focus();
-    }, 0);
+      if (sizeNameRef.current) {
+        sizeNameRef.current.focus();
+      }
+    }, 100); // Small delay to ensure DOM is ready
     return () => clearTimeout(timer);
-  }
-}, [actionType]);
+  }, []); // Empty dependency array = runs once on mount
+
+  // Additional focus for when actionType changes
+  useEffect(() => {
+    if (actionType === "edit" || actionType === "Add") {
+      const timer = setTimeout(() => {
+        if (sizeNameRef.current) sizeNameRef.current.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -221,14 +218,29 @@ useEffect(() => {
       return;
     }
 
+    // === CHANGED: Added duplicate check for edit mode (excluding current size) ===
+    const isDuplicate = sizes.some(size => 
+      (size.fsize || size.sizeName || '').toLowerCase() === form.sizeName.toLowerCase() && 
+      (size.fcode || size.fCode || size.fuCode || '') !== form.fuCode // Different ID
+    );
+
+    if (isDuplicate) {
+      setMessage({ 
+        type: "error", 
+        text: `Size name "${form.sizeName}" already exists. Please use a different name.` 
+      });
+      return;
+    }
+    // === END CHANGE ===
+
     setConfirmEditOpen(true);
   };
 
   const confirmEdit = async () => {
     try {
       setIsLoading(true);
-      handleEdit();
-      const sizeData = { fCode: form.fuCode, sizeName: form.sizeName };
+      // === FIXED: Removed recursive handleEdit() call ===
+      const sizeData = { fuCode: form.fuCode, sizeName: form.sizeName };
       await updateSize(sizeData);
       await loadInitial();
       
@@ -255,7 +267,7 @@ useEffect(() => {
   const confirmDelete = async () => {
     try {
       setIsLoading(true);
-      handleDelete();
+      // === FIXED: Removed recursive handleDelete() call ===
       await deleteSize(form.fuCode);
       await loadInitial();
       
@@ -282,13 +294,27 @@ useEffect(() => {
       return;
     }
 
+    // === CHANGED: Added duplicate check for add mode ===
+    const isDuplicate = sizes.some(size => 
+      (size.fsize || size.sizeName || '').toLowerCase() === form.sizeName.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setMessage({ 
+        type: "error", 
+        text: `Size name "${form.sizeName}" already exists. Please use a different name.` 
+      });
+      return; // Don't proceed with save
+    }
+    // === END CHANGE ===
+
     setConfirmSaveOpen(true);
   };
 
   const confirmSave = async () => {
     try {
       setIsLoading(true);
-      const sizeData = { fCode: form.fuCode, sizeName: form.sizeName };
+      const sizeData = { fuCode: form.fuCode, sizeName: form.sizeName };
       await createSize(sizeData);
       await loadInitial();
       
@@ -309,45 +335,36 @@ useEffect(() => {
     else if (actionType === "delete") await handleDelete();
   };
 
-const resetForm = (keepAction = false) => {
-  fetchNextSizeCode();
-  setForm(prev => ({ ...prev, sizeName: "" }));
-  setEditingId(null);
-  setDeleteTargetId(null);
-  setExistingQuery("");
-  setEditQuery("");
-  setDeleteQuery("");
-  setMessage(null);
-  if (!keepAction) setActionType("Add");
-  
-  // Focus back to sizeName field after reset
-  setTimeout(() => {
-    sizeNameRef.current?.focus();
+  const resetForm = (keepAction = false) => {
+    fetchNextSizeCode();
+    setForm(prev => ({ ...prev, sizeName: "" }));
+    setEditingId(null);
+    setDeleteTargetId(null);
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
     
-    // Also blur any focused button
-    createButtonRef.current?.blur();
-    editButtonRef.current?.blur();
-    deleteButtonRef.current?.blur();
-  }, 60);
-};
+    // Focus back to sizeName field after reset
+    setTimeout(() => sizeNameRef.current?.focus(), 60);
+  };
 
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
   };
 
- const handleEditRowClick = (size) => {
-  setForm({ 
-    fuCode: size.fcode || size.fCode, 
-    sizeName: size.fsize || size.sizeName 
-  });
-  setActionType("edit");
-  setEditingId(size.fcode || size.fCode);
-  setEditModalOpen(false);
-  
-  // Focus on edit button after selecting item to edit
-  setTimeout(() => editButtonRef.current?.focus(), 60);
-};
+  const handleEditRowClick = (size) => {
+    setForm({ 
+      fuCode: size.fcode || size.fCode || size.fuCode, 
+      sizeName: size.fsize || size.sizeName 
+    });
+    setActionType("edit");
+    setEditingId(size.fcode || size.fCode || size.fuCode);
+    setEditModalOpen(false);
+    setTimeout(() => sizeNameRef.current?.focus(), 60);
+  };
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -369,19 +386,16 @@ const resetForm = (keepAction = false) => {
   }, [sizes]);
 
   const handleDeleteRowClick = (size) => {
-  setForm({ 
-    fuCode: size.fcode || size.fCode, 
-    sizeName: size.fsize || size.sizeName 
-  });
-  setActionType("delete");
-  setDeleteTargetId(size.fcode || size.fCode);
-  setDeleteModalOpen(false);
-  
-  // Focus on delete button after selecting item to delete
-handleDelete();
+    setForm({ 
+      fuCode: size.fcode || size.fCode || size.fuCode, 
+      sizeName: size.fsize || size.sizeName 
+    });
+    setActionType("delete");
+    setDeleteTargetId(size.fcode || size.fCode || size.fuCode);
+    setDeleteModalOpen(false);
+    setTimeout(() => sizeNameRef.current?.focus(), 60);
+  };
 
-  // setTimeout(() => deleteButtonRef.current?.focus(), 60);
-};
   const onSizeCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -389,23 +403,12 @@ handleDelete();
     }
   };
 
- const onSizeNameKeyDown = (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    
-    // Auto-submit when Enter is pressed
-    
-    
-    // Also focus the button for visual feedback
-    if (actionType === "Add") {     
-      setTimeout(() => createButtonRef.current?.focus(), 10);
-    } else if (actionType === "edit") {
-      setTimeout(() => editButtonRef.current?.focus(), 10);
-    } else if (actionType === "delete") {
-      setTimeout(() => deleteButtonRef.current?.focus(), 10);
+  const onSizeNameKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
     }
-  }
-};
+  };
 
   const stopEnterPropagation = (e) => {
     if (e.key === "Enter") {
@@ -420,7 +423,7 @@ handleDelete();
     if (!q) return sizes;
     return sizes.filter(
       (s) =>
-        (s.fcode || s.fCode || "").toLowerCase().includes(q) ||
+        (s.fcode || s.fCode || s.fuCode || "").toLowerCase().includes(q) ||
         (s.fsize || s.sizeName || "").toLowerCase().includes(q)
     );
   }, [editQuery, sizes]);
@@ -430,7 +433,7 @@ handleDelete();
     if (!q) return sizes;
     return sizes.filter(
       (s) =>
-        (s.fcode || s.fCode || "").toLowerCase().includes(q) ||
+        (s.fcode || s.fCode || s.fuCode || "").toLowerCase().includes(q) ||
         (s.fsize || s.sizeName || "").toLowerCase().includes(q)
     );
   }, [deleteQuery, sizes]);
@@ -440,7 +443,7 @@ handleDelete();
     if (!q) return sizes;
     return sizes.filter(
       (s) => 
-        (s.fcode || s.fCode || "").toLowerCase().includes(q) || 
+        (s.fcode || s.fCode || s.fuCode || "").toLowerCase().includes(q) || 
         (s.fsize || s.sizeName || "").toLowerCase().includes(q)
     );
   }, [existingQuery, sizes]);
@@ -564,10 +567,9 @@ handleDelete();
         .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
 
        .grid {
-  display: block;
-  width: 100%;
-}
-
+          display: block;
+          width: 100%;
+        }
 
         /* left card (form) */
         .card {
@@ -1015,7 +1017,7 @@ handleDelete();
                     className="input"
                     value={form.fuCode}
                     onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                    onKeyDown={onSizeCodeKeyDown} /* FIXED: was onUnitCodeKeyDown */
+                    onKeyDown={onSizeCodeKeyDown}
                     disabled={loading}
                     aria-label="Size Code"
                     readOnly={true}
@@ -1050,26 +1052,24 @@ handleDelete();
               )}
 
               {/* Submit controls */}
-              {/* Submit controls */}
-<div className="submit-row">
-  <button
-    ref={actionType === "Add" ? createButtonRef : actionType === "edit" ? editButtonRef : deleteButtonRef}
-    className="submit-primary"
-    onClick={handleSubmit}
-    disabled={loading}
-    type="button"
-  >
-    {loading ? "Processing..." : actionType === "Add" ? "Create" : actionType}
-  </button>
-  <button
-    className="submit-clear"
-    onClick={resetForm}
-    disabled={loading}
-    type="button"
-  >
-    Clear
-  </button>
-</div>
+              <div className="submit-row">
+                <button
+                  className="submit-primary"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  type="button"
+                >
+                  {loading ? "Processing..." : actionType === "Add" ? "Create" : actionType}
+                </button>
+                <button
+                  className="submit-clear"
+                  onClick={resetForm}
+                  disabled={loading}
+                  type="button"
+                >
+                  Clear
+                </button>
+              </div>
             </div>
 
             {/* Existing Sizes Table */}
@@ -1135,8 +1135,6 @@ handleDelete();
               </div>
             </div>
           </div>
-
-         
         </div>
       </div>
 
