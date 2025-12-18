@@ -20,9 +20,9 @@ const PaymentVoucher = () => {
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
 
-  // Amount entry popup
-  const [amountPopupOpen, setAmountPopupOpen] = useState(false);
-  const [amountPopupData, setAmountPopupData] = useState(null);
+  // Amount entry popup - REMOVED (GST & Bill Details popup removed)
+  // const [amountPopupOpen, setAmountPopupOpen] = useState(false);
+  // const [amountPopupData, setAmountPopupData] = useState(null);
 
   // Track if we're editing an existing voucher
   const [isEditing, setIsEditing] = useState(false);
@@ -91,6 +91,10 @@ const PaymentVoucher = () => {
   const [editVoucherPopupOpen, setEditVoucherPopupOpen] = useState(false);
   const [deleteVoucherPopupOpen, setDeleteVoucherPopupOpen] = useState(false);
   const [currentRowIndex, setCurrentRowIndex] = useState(0);
+
+  // 5.5 Cash/Bank Popup State
+  const [showCashBankPopup, setShowCashBankPopup] = useState(false);
+  const [cashBankPopupContext, setCashBankPopupContext] = useState(null); // { paymentItemId, index }
 
   // 6. Data state
   const [savedVouchers, setSavedVouchers] = useState([]);
@@ -609,6 +613,22 @@ const PaymentVoucher = () => {
     }
   };
 
+  // Handle Cash/Bank selection from popup
+  const handleCashBankSelect = (party) => {
+    if (cashBankPopupContext) {
+      const { paymentItemId } = cashBankPopupContext;
+      handlePaymentItemChange(paymentItemId, 'cashBank', party.name || party.accountName || '');
+    }
+    setShowCashBankPopup(false);
+    setCashBankPopupContext(null);
+  };
+
+  // Open Cash/Bank popup
+  const openCashBankPopup = (paymentItemId, index) => {
+    setCashBankPopupContext({ paymentItemId, index });
+    setShowCashBankPopup(true);
+  };
+
   // Get popup configuration
   const getPopupConfig = (type) => {
     const configs = {
@@ -630,6 +650,27 @@ const PaymentVoucher = () => {
         hasMoreData: !hasReachedEndOfParties,
         onLoadMore: () => {
           // Only load more if we haven't reached the end
+          if (!hasReachedEndOfParties && !isLoadingMoreParties) {
+            fetchPartiesWithPagination(partyCurrentPage + 1);
+          }
+        }
+      },
+      cashBank: {
+        title: 'Select Cash/Bank Account',
+        displayFieldKeys: ['code', 'name'],
+        searchFields: ['name', 'code'],
+        headerNames: ['Code', 'Name'],
+        columnWidths: { code: '100px', name: '300px' },
+        data: allParties.length > 0 ? allParties : [],
+        fetchItems: async () => {
+          if (!hasReachedEndOfParties && !isLoadingMoreParties) {
+            await fetchPartiesWithPagination(partyCurrentPage + 1);
+          }
+          return allParties;
+        },
+        loading: isLoading || isLoadingMoreParties,
+        hasMoreData: !hasReachedEndOfParties,
+        onLoadMore: () => {
           if (!hasReachedEndOfParties && !isLoadingMoreParties) {
             fetchPartiesWithPagination(partyCurrentPage + 1);
           }
@@ -835,40 +876,6 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Handle amount blur in payment table
-  const handleAmountBlur = (itemId, amount, index) => {
-    if (amount && amount !== '0.00') {
-      const item = paymentItems.find(i => i.id === itemId);
-      const bill = billDetails[index] || {};
-      
-      // Calculate GST amount
-      const gstPercent = parseFloat(bill?.gstPercent || 0);
-      const itemAmount = parseFloat(amount) || 0;
-      const gstAmount = (itemAmount * gstPercent) / 100;
-      const billTotal = itemAmount + gstAmount;
-      
-      setAmountPopupData({
-        itemId: itemId,
-        // Payment Details
-        cashBank: item?.cashBank || '',
-        crDr: item?.crDr || 'CR',
-        type: item?.type || '',
-        chqNo: item?.chqNo || '',
-        chqDt: item?.chqDt || '',
-        narration: item?.narration || '',
-        amount: parseFloat(amount).toFixed(2),
-        // GST & Bill Details
-        gstType: voucherDetails?.gstType || 'CGST/SGST',
-        hsnSac: bill?.hsnSac || '',
-        refBillNo: bill?.billNo || '',
-        refBillDate: bill?.date || '',
-        gstPercent: gstPercent,
-        gstAmount: gstAmount.toFixed(2),
-        billTotal: billTotal.toFixed(2)
-      });
-      setAmountPopupOpen(true);
-    }
-  };
 
   // Handle edit click - opens edit voucher popup
   const handleEditClick = () => {
@@ -1516,10 +1523,20 @@ const PaymentVoucher = () => {
                       type="text"
                       value={item.cashBank}
                       onChange={(e) => handlePaymentItemChange(item.id, 'cashBank', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'cashBank', true)}
+                      onKeyDown={(e) => {
+                        if (e.key === '/') {
+                          e.preventDefault();
+                          openCashBankPopup(item.id, index);
+                        } else {
+                          handleTableKeyDown(e, index, 'cashBank', true);
+                        }
+                      }}
+                      onClick={() => openCashBankPopup(item.id, index)}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
+                      placeholder="Click or press / to select"
+                      title="Click to select or press / to search"
                     />
                   </td>
                   <td style={styles.td}>
@@ -1604,10 +1621,7 @@ const PaymentVoucher = () => {
                       value={item.amount}
                       onChange={(e) => handlePaymentItemChange(item.id, 'amount', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', true)}
-                      onBlur={(e) => {
-                        e.target.style.border = 'none';
-                        handleAmountBlur(item.id, item.amount, index);
-                      }}
+                      onBlur={(e) => e.target.style.border = 'none'}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                     />
@@ -1839,6 +1853,18 @@ const PaymentVoucher = () => {
         />
       )}
 
+      {showCashBankPopup && (
+        <PopupListSelector
+          {...getPopupConfig('cashBank')}
+          open={showCashBankPopup}
+          onClose={() => {
+            setShowCashBankPopup(false);
+            setCashBankPopupContext(null);
+          }}
+          onSelect={handleCashBankSelect}
+        />
+      )}
+
       {editVoucherPopupOpen && (
         <PopupListSelector
           {...getPopupConfig('editVoucher')}
@@ -1870,309 +1896,9 @@ const PaymentVoucher = () => {
         />
       )}
 
-      {amountPopupOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-            width: screenSize.isMobile ? '90%' : screenSize.isTablet ? '70%' : '500px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '24px'
-          }}>
-            <h2 style={{
-              margin: '0 0 20px 0',
-              color: '#1B91DA',
-              fontSize: screenSize.isMobile ? '18px' : '20px',
-              fontWeight: 'bold'
-            }}>GST & Bill Details</h2>
+      {/* GST & Bill Details Popup - REMOVED */}
 
-            {/* GST & Bill Section */}
-            <div style={{
-              backgroundColor: '#f9f9f9',
-              padding: '16px',
-              borderRadius: '6px',
-              borderLeft: '4px solid #1B91DA'
-            }}>
-              <h3 style={{
-                margin: '0 0 12px 0',
-                color: '#333',
-                fontSize: '14px',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>GST & Bill Details</h3>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: screenSize.isMobile ? '1fr' : '1fr 1fr',
-                gap: '12px'
-              }}>
-                {/* GST Type */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST Type</label>
-                  <select
-                    value={amountPopupData?.gstType || voucherDetails?.gstType || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box',
-                      cursor: 'default',
-                      appearance: 'none'
-                    }}
-                  >
-                    <option value="">-- Select --</option>
-                    <option value="CGST/SGST">CGST/SGST</option>
-                    <option value="IGST">IGST</option>
-                  </select>
-                </div>
-
-                {/* HSN/SAC */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>HSN/SAC</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.hsnSac || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Ref Bill No */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Ref Bill No</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.refBillNo || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Ref Bill Date */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Ref Bill Date</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.refBillDate || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* GST % */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST %</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.gstPercent || '0'}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* GST Amount */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST Amount</label>
-                  <input
-                    type="text"
-                    value={`₹${amountPopupData?.gstAmount || '0.00'}`}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Bill Total */}
-                <div style={{ gridColumn: screenSize.isMobile ? '1' : '1 / -1' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#1B91DA',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Bill Total</label>
-                  <input
-                    type="text"
-                    value={`₹${amountPopupData?.billTotal || '0.00'}`}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '2px solid #1B91DA',
-                      borderRadius: '4px',
-                      fontSize: '15px',
-                      fontWeight: 'bold',
-                      backgroundColor: '#f0f8ff',
-                      color: '#1B91DA',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-              marginTop: '24px'
-            }}>
-              <button
-                onClick={() => setAmountPopupOpen(false)}
-                style={{
-                  padding: '10px 20px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  backgroundColor: 'white',
-                  color: '#333',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#f5f5f5';
-                  e.target.style.borderColor = '#1B91DA';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'white';
-                  e.target.style.borderColor = '#ddd';
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setAmountPopupOpen(false)}
-                style={{
-                  padding: '10px 20px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  backgroundColor: '#1B91DA',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#1576b9';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#1B91DA';
-                }}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* End of JSX */}
     </div>
   );
 };
