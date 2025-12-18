@@ -424,6 +424,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    catNameRef.current?.focus()
   };
 
   const handleEditRowClick = (c) => {
@@ -437,6 +438,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    catNameRef.current?.focus()
   };
 
   const handleDeleteRowClick = (c) => {

@@ -390,6 +390,7 @@ const resetForm = (keepAction = false) => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    brandNameRef.current?.focus()
   };
 
  const handleEditRowClick = (b) => {
@@ -403,6 +404,7 @@ const resetForm = (keepAction = false) => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    brandNameRef.current?.focus()
   };
 
   // Fetch items for popup list selector
