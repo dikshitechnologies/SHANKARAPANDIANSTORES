@@ -76,6 +76,7 @@ export default function UnitCreation() {
   // refs for step-by-step Enter navigation
   const unitCodeRef = useRef(null);
   const unitNameRef = useRef(null);
+  const submitRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -289,24 +290,24 @@ export default function UnitCreation() {
   }, [actionType]);
 
   // Check for duplicate unit names when typing (optional)
-  useEffect(() => {
-    if (form.unitName && form.unitName.trim() && actionType === "Add") {
-      const timer = setTimeout(() => {
-        const existingUnit = checkUnitNameExists(form.unitName);
-        if (existingUnit) {
-          setMessage({ 
-            type: "warning", 
-            text: `Unit name "${form.unitName}" already exists (Code: ${existingUnit.uCode})` 
-          });
-        } else if (message?.type === "warning" && message?.text.includes("already exists")) {
-          // Clear the warning if the user fixes the duplicate name
-          setMessage(null);
-        }
-      }, 500); // Debounce for 500ms
+  // useEffect(() => {
+  //   if (form.unitName && form.unitName.trim() && actionType === "Add") {
+  //     const timer = setTimeout(() => {
+  //       const existingUnit = checkUnitNameExists(form.unitName);
+  //       if (existingUnit) {
+  //         setMessage({ 
+  //           type: "warning", 
+  //           text: `Unit name "${form.unitName}" already exists (Code: ${existingUnit.uCode})` 
+  //         });
+  //       } else if (message?.type === "warning" && message?.text.includes("already exists")) {
+  //         // Clear the warning if the user fixes the duplicate name
+  //         setMessage(null);
+  //       }
+  //     }, 500); // Debounce for 500ms
 
-      return () => clearTimeout(timer);
-    }
-  }, [form.unitName, units, actionType]);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [form.unitName, units, actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -319,63 +320,42 @@ export default function UnitCreation() {
       return;
     }
 
-    // Validate unit name
-    const validationError = validateUnitName(form.unitName);
-    if (validationError) {
-      setMessage({ type: "error", text: validationError });
-      return;
-    }
+    // === CHANGED: Added duplicate check for edit mode (excluding current size) ===
+    const isDuplicate = units.some(unit => 
+      (unit.unitName || '').toLowerCase() === form.unitName.toLowerCase() && 
+      (unit.fuCode || '') !== form.fuCode // Different ID
+    );
 
-    // Check for duplicate unit name (excluding current unit)
-    const existingUnit = checkUnitNameExists(form.unitName, form.fuCode);
-    if (existingUnit) {
+    if (isDuplicate) {
       setMessage({ 
         type: "error", 
-        text: `Cannot update. Unit name "${form.unitName}" already exists with Code: ${existingUnit.uCode}` 
+        text: `Unit name "${form.unitName}" already exists. Please use a different name.` 
       });
       return;
     }
+    // === END CHANGE ===
 
     setConfirmEditOpen(true);
   };
 
-  const confirmEdit = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Frontend validation
-      const validationError = validateUnitName(form.unitName);
-      if (validationError) {
-        setMessage({ type: "error", text: validationError });
-        setConfirmEditOpen(false);
-        return;
-      }
-      
-      // Check for duplicate unit name (excluding current unit)
-      const existingUnit = checkUnitNameExists(form.unitName, form.fuCode);
-      if (existingUnit) {
-        setMessage({ 
-          type: "error", 
-          text: `Cannot update. Unit name "${form.unitName}" already exists with Code: ${existingUnit.uCode}` 
-        });
-        setConfirmEditOpen(false);
-        return;
-      }
-      
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await updateUnit(unitData);
-      await loadInitial();
-      
-      setMessage({ type: "success", text: "Unit updated successfully." });
-      setConfirmEditOpen(false);
-      resetForm();
-    } catch (err) {
-      setConfirmEditOpen(false);
-      // Error message already set in updateUnit
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const confirmEdit = async () => {
+  try {
+    setIsLoading(true);
+    
+    const unitData = { fuCode: form.fuCode, unitName: form.unitName };
+    await updateUnit(unitData);
+    await loadInitial();
+    
+    setMessage({ type: "success", text: "Unit updated successfully." });
+    setConfirmEditOpen(false);
+    resetForm();
+  } catch (err) {
+    setConfirmEditOpen(false);
+    // Error message already set in updateUnit
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleDelete = async () => {
     if (!form.fuCode) {
@@ -415,63 +395,42 @@ export default function UnitCreation() {
       return;
     }
 
-    // Validate unit name
-    const validationError = validateUnitName(form.unitName);
-    if (validationError) {
-      setMessage({ type: "error", text: validationError });
-      return;
-    }
+    // === CHANGED: Added duplicate check for edit mode (excluding current size) ===
+    const isDuplicate = units.some(unit => 
+      (unit.unitName || '').toLowerCase() === form.unitName.toLowerCase() && 
+      (unit.fuCode || '') !== form.fuCode // Different ID
+    );
 
-    // Check for duplicate unit name
-    const existingUnit = checkUnitNameExists(form.unitName);
-    if (existingUnit) {
+    if (isDuplicate) {
       setMessage({ 
         type: "error", 
-        text: `Cannot create. Unit name "${form.unitName}" already exists with Code: ${existingUnit.uCode}` 
+        text: `Unit name "${form.unitName}" already exists. Please use a different name.` 
       });
       return;
     }
+    // === END CHANGE ===
 
     setConfirmSaveOpen(true);
   };
 
-  const confirmSave = async () => {
-    try {
-      setIsLoading(true);
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      
-      // Frontend validation before sending to API
-      const validationError = validateUnitName(form.unitName);
-      if (validationError) {
-        setMessage({ type: "error", text: validationError });
-        setConfirmSaveOpen(false);
-        return;
-      }
-      
-      // Check for duplicate unit name
-      const existingUnit = checkUnitNameExists(form.unitName);
-      if (existingUnit) {
-        setMessage({ 
-          type: "error", 
-          text: `Cannot create. Unit name "${form.unitName}" already exists with Code: ${existingUnit.uCode}` 
-        });
-        setConfirmSaveOpen(false);
-        return;
-      }
-      
-      await createUnit(unitData);
-      await loadInitial();
-      
-      setMessage({ type: "success", text: "Unit created successfully." });
-      setConfirmSaveOpen(false);
-      resetForm(true);
-    } catch (err) {
-      setConfirmSaveOpen(false);
-      // Error message already set in createUnit
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const confirmSave = async () => {
+  try {
+    setIsLoading(true);
+    const unitData = { fuCode: form.fuCode, unitName: form.unitName };
+    
+    await createUnit(unitData);
+    await loadInitial();
+    
+    setMessage({ type: "success", text: "Unit created successfully." });
+    setConfirmSaveOpen(false);
+    resetForm(true);
+  } catch (err) {
+    setConfirmSaveOpen(false);
+    // Error message already set in createUnit
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
@@ -497,6 +456,7 @@ export default function UnitCreation() {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    unitNameRef.current?.focus();
   };
 
   const handleEditRowClick = (u) => {
@@ -510,6 +470,7 @@ export default function UnitCreation() {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    unitNameRef.current?.focus();
   };
 
   // Fetch items for popup list selector (simple client-side paging/filtering)
@@ -540,8 +501,7 @@ export default function UnitCreation() {
 
   const onUnitNameKeyDown = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
+      submitRef.current?.focus();
     }
   };
 
@@ -1224,6 +1184,7 @@ export default function UnitCreation() {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"
