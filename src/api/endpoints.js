@@ -245,10 +245,16 @@ CATEGORY: {
 },
 
 PAYMENTVOUCHER: {
-  GETNEXTVNUMBER: (compCode,user) => `PaymentVoucher/GetNextVoucher?compCode=${compCode}&user=${user}`,
+  GETNEXTVNUMBER: (compCode) => `PaymentVoucher/GetNextVoucher?compCode=${compCode}`,
   GETPENDINGBILLS: (partyCode,compCode) => `PaymentVoucher/GetPendingBills?fcode=${partyCode}&fCompCode=${compCode}`,
   GETBILLNUMLIST: (compCode)=>`PaymentVoucher/BillNumberList/${compCode}`,
-  GETPARTYLIST: (search,pageNumber,pageSize) => `PaymentVoucher/PartyList?search=${search}&pageNumber=${pageNumber}&pageSize=${pageSize}`
+  GETPARTYLIST: (search = '', pageNumber = 1, pageSize = 20) => `PaymentVoucher/PartyList?search=${encodeURIComponent(search)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  GET_PAYMENT_DETAILS: (voucherNo, fcode, compCode) => `PaymentVoucher/getPaymentDetails?voucherNo=${voucherNo}&fcode=${fcode}&fCompCode=${compCode}`,
+  POST_PAYMENT_VOUCHER: (selectType = true) => `PaymentVoucher/PaymentVoucherPost?selectType1=${selectType}`,
+  DELETE_PAYMENT_VOUCHER: (voucherNo) => `PaymentVoucher/DeletePaymentVoucher?voucherNo=${voucherNo}`,
+  GET_PAYMENT_VOUCHER_DETAILS: (voucherNo) => `PaymentVoucher/GetpaymentVoucherDetails?voucherNo=${voucherNo}`,
+  GET_PARTY_BALANCE: (partyCode) => `PaymentVoucher/GetPartyBalance?partyCode=${partyCode}`,
+  GET_CLOSING_BALANCE: `PaymentVoucher/GetClosingBalance`
 },
 
 
