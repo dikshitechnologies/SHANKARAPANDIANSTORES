@@ -564,6 +564,7 @@ const resetForm = (keepAction = false) => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    stateNameRef.current?.focus()
   };
 
 const handleEditRowClick = (s) => {
@@ -584,6 +585,7 @@ const handleEditRowClick = (s) => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+   stateNameRef.current?.focus()
   };
 
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
