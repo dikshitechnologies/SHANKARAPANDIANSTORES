@@ -92,7 +92,7 @@ export default function StateCreation() {
   const stateCodeRef = useRef(null);
   const stateNameRef = useRef(null);
   const tableContainerRef = useRef(null);
-
+  const submitRef = useRef(null);
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
@@ -622,8 +622,7 @@ const handleDeleteRowClick = (s) => {
 
   const onStateNameKeyDown = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
+      submitRef.current?.focus();
     }
   };
 
@@ -1258,6 +1257,7 @@ const handleDeleteRowClick = (s) => {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitRef}
                 onClick={handleSubmit}
                 disabled={loading || (actionType === "edit" && isCurrentNameDuplicate)}
                 type="button"
