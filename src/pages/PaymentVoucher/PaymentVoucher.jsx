@@ -322,6 +322,7 @@ const PaymentVoucher = () => {
             id: idx + 1,
             sNo: idx + 1,
             cashBank: item.accountName || '',
+            cashBankCode: item.faccode || '',
             accountCode: item.faccode || '',
             accountName: item.accountName || '',
             crDr: item.fCrDb || 'CR',
@@ -1440,7 +1441,7 @@ const PaymentVoucher = () => {
                 ref={voucherNoRef}
                 type="text"
                 name="voucherNo"
-                value={voucherDetails.voucherNo}
+                value={voucherDetails.voucherNo || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('voucherNo')}
                 onBlur={() => setFocusedField('')}
@@ -1456,7 +1457,7 @@ const PaymentVoucher = () => {
                 ref={dateRef}
                 type="date"
                 name="date"
-                value={voucherDetails.date}
+                value={voucherDetails.date || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('date')}
                 onBlur={() => setFocusedField('')}
@@ -1472,7 +1473,7 @@ const PaymentVoucher = () => {
                 ref={accountNameRef}
                 type="text"
                 name="accountName"
-                value={voucherDetails.accountName}
+                value={voucherDetails.accountName || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('accountName')}
                 onBlur={() => setFocusedField('')}
@@ -1492,7 +1493,7 @@ const PaymentVoucher = () => {
               <input
                 type="text"
                 name="balance"
-                value={voucherDetails.balance}
+                value={voucherDetails.balance || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('balance')}
                 onBlur={() => setFocusedField('')}
@@ -1504,7 +1505,7 @@ const PaymentVoucher = () => {
             <div style={styles.fieldGroup}>
               <input
                 name="crDr"
-                value={voucherDetails.crDr}
+                value={voucherDetails.crDr || 'CR'}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('crDr')}
                 onBlur={() => setFocusedField('')}
@@ -1521,7 +1522,7 @@ const PaymentVoucher = () => {
               <select
                 ref={gstTypeRef}
                 name="gstType"
-                value={voucherDetails.gstType}
+                value={voucherDetails.gstType || 'CGST/SGST'}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('gstType')}
                 onBlur={() => setFocusedField('')}
@@ -1748,7 +1749,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_refNo`}
                       type="text"
-                      value={bill.refNo}
+                      value={bill.refNo || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1757,7 +1758,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_billNo`}
                       type="text"
-                      value={bill.billNo}
+                      value={bill.billNo || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1766,7 +1767,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_date`}
                       type="date"
-                      value={bill.date}
+                      value={bill.date || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1774,7 +1775,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_billAmount`}
-                      value={bill.billAmount}
+                      value={bill.billAmount || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1782,7 +1783,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_paidAmount`}
-                      value={bill.paidAmount}
+                      value={bill.paidAmount || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1790,7 +1791,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '120px', width: '120px'}}>
                     <input
                       id={`bill_${bill.id}_balanceAmount`}
-                      value={bill.balanceAmount}
+                      value={bill.balanceAmount || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1798,7 +1799,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_amount`}
-                      value={bill.amount}
+                      value={bill.amount || ''}
                       onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', false)}
                       style={styles.editableInput}
