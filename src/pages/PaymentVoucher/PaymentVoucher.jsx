@@ -969,7 +969,16 @@ const PaymentVoucher = () => {
           returned50: (particulars['50']?.collect || 0).toString(),
           returned100: (particulars['100']?.collect || 0).toString(),
           returned200: (particulars['200']?.collect || 0).toString(),
-          returned500: (particulars['500']?.collect || 0).toString()
+          returned500: (particulars['500']?.collect || 0).toString(),
+          given1: (particulars['1']?.issue || 0).toString(),
+          given2: (particulars['2']?.issue || 0).toString(),
+          given5: (particulars['5']?.issue || 0).toString(),
+          given10: (particulars['10']?.issue || 0).toString(),
+          given20: (particulars['20']?.issue || 0).toString(),
+          given50: (particulars['50']?.issue || 0).toString(),
+          given100: (particulars['100']?.issue || 0).toString(),
+          given200: (particulars['200']?.issue || 0).toString(),
+          given500: (particulars['500']?.issue || 0).toString()
         },
         itemDetailsList1: paymentItems.map(item => ({
           accountCode: item.cashBankCode || '',

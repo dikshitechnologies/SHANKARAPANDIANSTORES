@@ -27,6 +27,8 @@ const SaveConfirmationModal = ({
   const [editableParticulars, setEditableParticulars] = useState(particulars);
   const fieldRefs = useRef({});
   const [openingBalances, setOpeningBalances] = useState({});
+  const [initialAvailable, setInitialAvailable] = useState({});
+  const [initialClosing, setInitialClosing] = useState({});
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationLoading, setSaveConfirmationLoading] = useState(false);
 
@@ -63,6 +65,22 @@ const SaveConfirmationModal = ({
     if (isOpen) {
       setEditableParticulars(particulars);
       fetchOpeningBalance();
+      
+      // Store initial available values (should not change as user enters COLLECT/ISSUE)
+      const initialAvailableValues = {};
+      const initialClosingValues = {};
+      
+      denominations.forEach(denom => {
+        initialAvailableValues[denom] = particulars[denom]?.available || 0;
+        const available = particulars[denom]?.available || 0;
+        const collect = particulars[denom]?.collect || 0;
+        const issue = particulars[denom]?.issue || 0;
+        initialClosingValues[denom] = available + collect - issue;
+      });
+      
+      setInitialAvailable(initialAvailableValues);
+      setInitialClosing(initialClosingValues);
+      
       // Focus first field (500) when modal opens
       setTimeout(() => {
         if (fieldRefs.current['500']) {
@@ -298,7 +316,7 @@ const SaveConfirmationModal = ({
                       fontWeight: 600
                     }}
                   >
-                    {available[denom] + collect[denom]}
+                    {initialAvailable[denom] || 0}
                   </td>
                 ))}
               </tr>
@@ -419,7 +437,7 @@ const SaveConfirmationModal = ({
                       fontWeight: 600
                     }}
                   >
-                    {available[denom] + collect[denom] - issue[denom]}
+                    {initialClosing[denom] || 0}
                   </td>
                 ))}
               </tr>
