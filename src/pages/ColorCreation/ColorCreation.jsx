@@ -194,24 +194,24 @@ export default function ColorCreation() {
   }, []);
 
   // Focus on color name field on initial load/reload
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (colorNameRef.current) {
-      colorNameRef.current.focus();
-    }
-  }, 100); // Small delay to ensure DOM is ready
-  return () => clearTimeout(timer);
-}, []); // Empty dependency array = runs once on mount
-
-// Additional focus for when actionType changes
-useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (colorNameRef.current) colorNameRef.current.focus();
-    }, 0);
+      if (colorNameRef.current) {
+        colorNameRef.current.focus();
+      }
+    }, 100); // Small delay to ensure DOM is ready
     return () => clearTimeout(timer);
-  }
-}, [actionType]);
+  }, []); // Empty dependency array = runs once on mount
+
+  // Additional focus for when actionType changes
+  useEffect(() => {
+    if (actionType === "edit" || actionType === "Add") {
+      const timer = setTimeout(() => {
+        if (colorNameRef.current) colorNameRef.current.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -286,6 +286,20 @@ useEffect(() => {
       return;
     }
 
+    // Check for duplicate color name
+    const isDuplicate = colors.some(color => 
+      color.colourName.toLowerCase() === form.colourName.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setMessage({ 
+        type: "error", 
+        text: `Color name "${form.colourName}" already exists. Please use a different name.` 
+      });
+      return; // Don't proceed with save
+    }
+
+    // If no duplicate, proceed to confirmation
     setConfirmSaveOpen(true);
   };
 
@@ -317,19 +331,19 @@ useEffect(() => {
   };
 
   const resetForm = (keepAction = false) => {
-  fetchNextColorCode();
-  setForm(prev => ({ ...prev, colourName: "" }));
-  setEditingId(null);
-  setDeleteTargetId(null);
-  setExistingQuery("");
-  setEditQuery("");
-  setDeleteQuery("");
-  setMessage(null);
-  if (!keepAction) setActionType("Add");
-  
-  // This line already focuses on colorName field after reset - GOOD
-  setTimeout(() => colorNameRef.current?.focus(), 60);
-};
+    fetchNextColorCode();
+    setForm(prev => ({ ...prev, colourName: "" }));
+    setEditingId(null);
+    setDeleteTargetId(null);
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
+    
+    // This line already focuses on colorName field after reset - GOOD
+    setTimeout(() => colorNameRef.current?.focus(), 60);
+  };
 
   const openEditModal = () => {
     setEditQuery("");
@@ -337,15 +351,16 @@ useEffect(() => {
   };
 
   const handleEditRowClick = (color) => {
-  setForm({ 
-    colourCode: color.colourCode, 
-    colourName: color.colourName 
-  });
-  setActionType("edit");
-  setEditingId(color.colourCode);
-  setEditModalOpen(false);
-  setTimeout(() => colorNameRef.current?.focus(), 60); // GOOD
-};
+    setForm({ 
+      colourCode: color.colourCode, 
+      colourName: color.colourName 
+    });
+    setActionType("edit");
+    setEditingId(color.colourCode);
+    setEditModalOpen(false);
+    setTimeout(() => colorNameRef.current?.focus(), 60); // GOOD
+  };
+
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
@@ -365,16 +380,17 @@ useEffect(() => {
     return filtered.slice(start, start + pageSize);
   }, [colors]);
 
- const handleDeleteRowClick = (color) => {
-  setForm({ 
-    colourCode: color.colourCode, 
-    colourName: color.colourName 
-  });
-  setActionType("delete");
-  setDeleteTargetId(color.colourCode);
-  setDeleteModalOpen(false);
-  setTimeout(() => colorNameRef.current?.focus(), 60); // GOOD
-};
+  const handleDeleteRowClick = (color) => {
+    setForm({ 
+      colourCode: color.colourCode, 
+      colourName: color.colourName 
+    });
+    setActionType("delete");
+    setDeleteTargetId(color.colourCode);
+    setDeleteModalOpen(false);
+    setTimeout(() => colorNameRef.current?.focus(), 60); // GOOD
+  };
+
   const onColorCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -439,6 +455,7 @@ useEffect(() => {
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
+        /* (Keep all existing CSS styles - they remain unchanged) */
         :root{
           /* blue theme (matching ItemGroupCreation) */
           --bg-1: #f0f7fb;
@@ -545,10 +562,10 @@ useEffect(() => {
         .action-pill.warn { color:white; background: linear-gradient(180deg, var(--warning), #f97316); }
         .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
 
-       .grid {
-  display: block;
-  width: 100%;
-}
+        .grid {
+          display: block;
+          width: 100%;
+        }
 
         /* left card (form) */
         .card {

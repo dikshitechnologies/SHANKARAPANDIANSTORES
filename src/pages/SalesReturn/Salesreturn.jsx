@@ -86,7 +86,8 @@ const SalesReturn = () => {
   const [selectedAction, setSelectedAction] = useState("");
   const [selectedBillNumber, setSelectedBillNumber] = useState(null);
   const [selectAllItems, setSelectAllItems] = useState(false);
-
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   // 5. Confirmation Popup States
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [confirmPopupConfig, setConfirmPopupConfig] = useState({
@@ -123,8 +124,7 @@ const SalesReturn = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingBills, setIsLoadingBills] = useState(false);
-   const [isEditMode, setIsEditMode] = useState(false);
-
+   
   // NEW STATE: For save button validation
   const [isFormValid, setIsFormValid] = useState(false);
 
@@ -150,7 +150,65 @@ const SalesReturn = () => {
     isDesktop: true
   });
 
-  // REMOVED: UOM cycling values - no more K and P
+  // ---------- RESET FORM FUNCTION ----------
+  const resetForm = async () => {
+    try {
+      setIsEditMode(false);
+
+      // Reset bill details to default
+      setBillDetails({
+        billNo: 'SR0000001',
+        billDate: new Date().toISOString().substring(0, 10),
+        mobileNo: '',
+        empName: '',
+        empCode: '14789',
+        salesman: '',
+        salesmanCode: '002',
+        custName: '',
+        customerCode: '',
+        returnReason: '',
+        barcodeInput: '',
+        partyCode: '',
+        gstno: '',
+        city: '',
+        type: 'Retail',
+        transType: 'SALES RETURN',
+        billAMT: '0',
+        newBillNo: ''
+      });
+
+      // Reset items to single empty row
+      setItems([
+        {
+          id: 1,
+          sNo: 1,
+          barcode: '',
+          itemName: '',
+          stock: '',
+          mrp: '',
+          uom: '',
+          hsn: '',
+          tax: '',
+          sRate: '',
+          rate: '',
+          qty: '',
+          amount: '0.00',
+          itemCode: '00001'
+        }
+      ]);
+
+      // Fetch new voucher number and refresh voucher list
+      await fetchMaxVoucherNo();
+      await fetchVoucherList();
+      
+      // Show success message
+      toast.success("Form reset successfully! Ready for new entry.", { autoClose: 2000 });
+      
+    } catch (err) {
+      console.error("Error resetting form:", err);
+      toast.error("Error resetting form. Please try again.");
+    }
+  };
 
   // ---------- CONFIRMATION POPUP HANDLERS ----------
   const showConfirmation = (config) => {
@@ -754,11 +812,9 @@ const createSalesReturn = async () => {
         { autoClose: 3000 }
       );
       
-      if (response.voucherNo) {
-        setBillDetails(prev => ({ ...prev, billNo: response.voucherNo }));
-      }
+      // Reset form after successful creation
+      await resetForm();
       
-      await fetchVoucherList();
       return response;
     } else {
       // Check for specific error messages
@@ -868,7 +924,10 @@ const updateSalesReturn = async () => {
         `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
         { autoClose: 3000 }
       );
-      await fetchVoucherList();
+      
+      // Reset form after successful update
+      await resetForm();
+      
       return response;
     } else {
       const errorMessage = response?.message || 
@@ -970,9 +1029,9 @@ const updateSalesReturn = async () => {
           { autoClose: 3000 }
         );
         await fetchVoucherList();
-        handleClear();
-        setIsEditMode(false);
-
+        
+        // Reset form after successful delete
+        await resetForm();
         
         return response;
       } else {
@@ -1108,8 +1167,7 @@ const updateSalesReturn = async () => {
       }
       
       toast.success(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
-      setIsEditMode(true); // ✅ IMPORTANT
-
+      
     } catch (err) {
       console.error("Error loading voucher for editing:", err);
       toast.error(`Error loading voucher: ${err.message}`);
@@ -1190,7 +1248,7 @@ const updateSalesReturn = async () => {
     
     const customerData = customers.map(customer => ({
       id: customer.code || customer.id,
-      code: customer.code,
+      
       name: customer.name,
       displayName: `${customer.code} - ${customer.name}`,
       customerCode: customer.code,
@@ -1212,7 +1270,7 @@ const updateSalesReturn = async () => {
     
     const salesmanData = salesmen.map(salesman => ({
       id: salesman.fcode || salesman.code || salesman.id,
-      code: salesman.fcode || salesman.code,
+     
       name: salesman.fname || salesman.name,
       displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`,
       salesmanCode: salesman.fcode || salesman.code,
@@ -1235,7 +1293,7 @@ const updateSalesReturn = async () => {
       const itemCode = item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
       const itemName = item.fItemName || item.itemName || item.name || 'Unknown Item';
       
-      const displayName = `${itemCode} - ${itemName}`;
+      const displayName = ` ${itemName}`;
       
       return {
         id: itemCode || `item-${index}`,
@@ -1505,17 +1563,17 @@ const updateSalesReturn = async () => {
   const getPopupConfig = () => {
     const configs = {
       customer: {
-        displayFieldKeys: ['code', 'name'],
-        searchFields: ['code', 'name'],
-        headerNames: ['Code', 'Customer Name'],
+        displayFieldKeys: [ 'name'],
+        searchFields: [ 'name'],
+        headerNames: [ 'Customer Name'],
         columnWidths: { code: '30%', name: '70%' },
         searchPlaceholder: 'Search customers...',
         showApplyButton: false
       },
       salesman: {
-        displayFieldKeys: ['code', 'name'],
-        searchFields: ['code', 'name'],
-        headerNames: ['Code', 'Salesman Name'],
+        displayFieldKeys: ['name'],
+        searchFields: [ 'name'],
+        headerNames: [ 'Salesman Name'],
         columnWidths: { code: '30%', name: '70%' },
         searchPlaceholder: 'Search salesmen...',
         showApplyButton: false
@@ -1523,7 +1581,7 @@ const updateSalesReturn = async () => {
       item: {
         displayFieldKeys: ['displayName'],
         searchFields: ['displayName', 'name', 'itemName', 'code'],
-        headerNames: ['Item (Code - Name)'],
+        headerNames: ['Item Name'],
         columnWidths: { displayName: '100%' },
         searchPlaceholder: 'Search items by code or name...',
         showApplyButton: false
@@ -1581,8 +1639,6 @@ const updateSalesReturn = async () => {
       }
     }
   };
-
-  // REMOVED: handleUomSpacebar function - no more K/P cycling
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if (e.key === '/' && currentField === 'itemName') {
@@ -1812,48 +1868,8 @@ const updateSalesReturn = async () => {
       type: "warning",
       confirmText: "Clear",
       cancelText: "Cancel",
-      onConfirm: () => {
-        setBillDetails({
-          billNo: 'SR0000001',
-          billDate: new Date().toISOString().substring(0, 10),
-          mobileNo: '',
-          empName: '',
-          empCode: '14789',
-          salesman: '',
-          salesmanCode: '002',
-          custName: '',
-          customerCode: '',
-          returnReason: '',
-          barcodeInput: '',
-          partyCode: '',
-          gstno: '',
-          city: '',
-          type: 'Retail',
-          transType: 'SALES RETURN',
-          billAMT: '0',
-          newBillNo: ''
-        });
-
-        setItems([
-          {
-            id: 1,
-            sNo: 1,
-            barcode: '',
-            itemName: '',
-            stock: '',
-            mrp: '',
-            uom: '',
-            hsn: '',
-            tax: '',
-            sRate: '',
-            rate: '',
-            qty: '',
-            amount: '0.00',
-            itemCode: '00001'
-          }
-        ]);
-        
-        fetchMaxVoucherNo();
+      onConfirm: async () => {
+        await resetForm();
       }
     });
   };
@@ -1880,7 +1896,6 @@ const handleSave = async () => {
   }
 
   // Determine if this is an update or create
-  // Sales return vouchers typically start with 'SR' and are not the default 'SR0000001'
   const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
                             billDetails.billNo.startsWith('SR');
   
@@ -1898,52 +1913,11 @@ const handleSave = async () => {
         if (isExistingVoucher) {
           console.log("Performing UPDATE operation");
           await updateSalesReturn();
+          // Note: resetForm() is already called inside updateSalesReturn()
         } else {
           console.log("Performing CREATE operation");
           await createSalesReturn();
-          
-          // Clear form only after successful creation
-          setBillDetails({
-            billNo: 'SR0000001',
-            billDate: new Date().toISOString().substring(0, 10),
-            mobileNo: '',
-            empName: '',
-            empCode: '14789',
-            salesman: '',
-            salesmanCode: '002',
-            custName: '',
-            customerCode: '',
-            returnReason: '',
-            barcodeInput: '',
-            partyCode: '',
-            gstno: '',
-            city: '',
-            type: 'Retail',
-            transType: 'SALES RETURN',
-            billAMT: '0',
-            newBillNo: ''
-          });
-
-          setItems([
-            {
-              id: 1,
-              sNo: 1,
-              barcode: '',
-              itemName: '',
-              stock: '',
-              mrp: '',
-              uom: '',
-              hsn: '',
-              tax: '',
-              sRate: '',
-              rate: '',
-              qty: '',
-              amount: '0.00',
-              itemCode: '00001'
-            }
-          ]);
-          
-          fetchMaxVoucherNo();
+          // Note: resetForm() is already called inside createSalesReturn()
         }
         
       } catch (err) {
