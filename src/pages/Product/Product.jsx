@@ -1110,7 +1110,7 @@ useEffect(() => {
             <div className="submit-row">
               <button
                 className="submit-primary"
-                ref={submitButtonRef}
+                ref={submitRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"
