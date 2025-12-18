@@ -555,7 +555,7 @@ const Scrapprocurement = () => {
           itemCode: item.itemCode || '',
           itemName: item.itemName || '',
           barcode: item.barcode || item.itemCode || '',
-          uom: item.uom || 'KG',
+          uom: item.units || 'KG',
           brand: item.brand || '',
           category: item.category || '',
           model: item.model || '',
