@@ -322,6 +322,7 @@ const PaymentVoucher = () => {
             id: idx + 1,
             sNo: idx + 1,
             cashBank: item.accountName || '',
+            cashBankCode: item.faccode || '',
             accountCode: item.faccode || '',
             accountName: item.accountName || '',
             crDr: item.fCrDb || 'CR',
@@ -605,6 +606,25 @@ const PaymentVoucher = () => {
       
       if (partyCode) {
         await fetchPendingBills(partyCode);
+        
+        // Fetch party balance for the selected account
+        try {
+          const balanceUrl = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
+          const balanceResponse = await apiService.getSilent(balanceUrl);
+          console.log('Party Balance Response:', balanceResponse);
+          
+          if (balanceResponse) {
+            const balance = balanceResponse.balanceAmount || 0;
+            const balanceType = balanceResponse.balanceType || 'CR';
+            setVoucherDetails(prev => ({
+              ...prev,
+              balance: balance.toString(),
+              crDr: balanceType
+            }));
+          }
+        } catch (err) {
+          console.error('Error fetching party balance:', err);
+        }
       }
       
       setShowPartyPopup(false);
@@ -618,6 +638,7 @@ const PaymentVoucher = () => {
     if (cashBankPopupContext) {
       const { paymentItemId } = cashBankPopupContext;
       handlePaymentItemChange(paymentItemId, 'cashBank', party.name || party.accountName || '');
+      handlePaymentItemChange(paymentItemId, 'cashBankCode', party.code || party.accountCode || '');
     }
     setShowCashBankPopup(false);
     setCashBankPopupContext(null);
@@ -795,6 +816,7 @@ const PaymentVoucher = () => {
         id: newId,
         sNo: newSNo,
         cashBank: '',
+        cashBankCode: '',
         crDr: 'CR',
         type: '',
         chqNo: '',
@@ -918,6 +940,14 @@ const PaymentVoucher = () => {
         return;
       }
 
+      // Validate that all payment items have Cash/Bank account selected
+      const missingCashBank = paymentItems.some(item => !item.cashBank || !item.cashBankCode);
+      if (missingCashBank) {
+        setError('All payment items must have a Cash/Bank account selected');
+        toast.error('All payment items must have a Cash/Bank account selected', { autoClose: 3000 });
+        return;
+      }
+
       setIsSaving(true);
 
       const payload = {
@@ -928,35 +958,37 @@ const PaymentVoucher = () => {
         gstType: voucherDetails.gstType,
         partyBalance: parseFloat(voucherDetails.balance) || 0,
         totalAmt: totalAmount,
-        compcode: userData?.companyCode,
-        usercode: userData?.username,
+        compcode: userData?.companyCode || '',
+        usercode: userData?.username || '',
         salesTransaction1: {
-          returned1: particulars['1']?.collect || 0,
-          returned2: particulars['2']?.collect || 0,
-          returned5: particulars['5']?.collect || 0,
-          returned10: particulars['10']?.collect || 0,
-          returned20: particulars['20']?.collect || 0,
-          returned50: particulars['50']?.collect || 0,
-          returned100: particulars['100']?.collect || 0,
-          returned200: particulars['200']?.collect || 0,
-          returned500: particulars['500']?.collect || 0
+          returned1: (particulars['1']?.collect || 0).toString(),
+          returned2: (particulars['2']?.collect || 0).toString(),
+          returned5: (particulars['5']?.collect || 0).toString(),
+          returned10: (particulars['10']?.collect || 0).toString(),
+          returned20: (particulars['20']?.collect || 0).toString(),
+          returned50: (particulars['50']?.collect || 0).toString(),
+          returned100: (particulars['100']?.collect || 0).toString(),
+          returned200: (particulars['200']?.collect || 0).toString(),
+          returned500: (particulars['500']?.collect || 0).toString()
         },
         itemDetailsList1: paymentItems.map(item => ({
-          accountCode: item.accountCode || '',
-          accountName: item.cashBank,
-          crdr: item.crDr,
-          type: item.type,
+          accountCode: item.cashBankCode || '',
+          accountName: item.cashBank || '',
+          crdr: item.crDr || 'CR',
+          type: item.type || '',
           amount: parseFloat(item.amount) || 0,
-          chequeNo: item.chqNo,
-          chequeDate: formatDateToYYYYMMDD(item.chqDt),
-          narration: item.narration
+          chequeNo: item.chqNo || '',
+          chequeDate: item.chqDt ? formatDateToYYYYMMDD(item.chqDt) : '',
+          narration: item.narration || ''
         })),
-        referenceBills1: billDetails.map(bill => ({
-          refNo: bill.refNo,
-          date: formatDateToYYYYMMDD(bill.date),
+        referenceBills1: billDetails.filter(bill => bill.amount && bill.amount !== '0.00').map(bill => ({
+          refNo: bill.refNo || '',
+          date: bill.date ? formatDateToYYYYMMDD(bill.date) : '',
           amount: (parseFloat(bill.amount) || 0).toString()
         }))
       };
+
+      console.log('Saving Payment Voucher with payload:', JSON.stringify(payload, null, 2));
 
       const url = API_ENDPOINTS.PAYMENTVOUCHER.POST_PAYMENT_VOUCHER(!isEditing);
       const response = await apiService.post(url, payload);
@@ -970,6 +1002,16 @@ const PaymentVoucher = () => {
       }
     } catch (err) {
       console.error('Error saving voucher:', err);
+      
+      // Handle 409 Conflict (voucher already exists)
+      if (err.response?.status === 409) {
+        const errorMsg = 'Payment Voucher already exists';
+        setError(errorMsg);
+        toast.error(errorMsg, { autoClose: 3000 });
+        setIsSaving(false);
+        return;
+      }
+      
       const errorMsg = err.response?.data?.message || 'Failed to save voucher';
       setError(errorMsg);
       toast.error(`Error: ${errorMsg}`, { autoClose: 3000 });
@@ -1399,7 +1441,7 @@ const PaymentVoucher = () => {
                 ref={voucherNoRef}
                 type="text"
                 name="voucherNo"
-                value={voucherDetails.voucherNo}
+                value={voucherDetails.voucherNo || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('voucherNo')}
                 onBlur={() => setFocusedField('')}
@@ -1415,7 +1457,7 @@ const PaymentVoucher = () => {
                 ref={dateRef}
                 type="date"
                 name="date"
-                value={voucherDetails.date}
+                value={voucherDetails.date || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('date')}
                 onBlur={() => setFocusedField('')}
@@ -1431,7 +1473,7 @@ const PaymentVoucher = () => {
                 ref={accountNameRef}
                 type="text"
                 name="accountName"
-                value={voucherDetails.accountName}
+                value={voucherDetails.accountName || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('accountName')}
                 onBlur={() => setFocusedField('')}
@@ -1451,7 +1493,7 @@ const PaymentVoucher = () => {
               <input
                 type="text"
                 name="balance"
-                value={voucherDetails.balance}
+                value={voucherDetails.balance || ''}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('balance')}
                 onBlur={() => setFocusedField('')}
@@ -1463,7 +1505,7 @@ const PaymentVoucher = () => {
             <div style={styles.fieldGroup}>
               <input
                 name="crDr"
-                value={voucherDetails.crDr}
+                value={voucherDetails.crDr || 'CR'}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('crDr')}
                 onBlur={() => setFocusedField('')}
@@ -1480,7 +1522,7 @@ const PaymentVoucher = () => {
               <select
                 ref={gstTypeRef}
                 name="gstType"
-                value={voucherDetails.gstType}
+                value={voucherDetails.gstType || 'CGST/SGST'}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('gstType')}
                 onBlur={() => setFocusedField('')}
@@ -1707,7 +1749,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_refNo`}
                       type="text"
-                      value={bill.refNo}
+                      value={bill.refNo || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1716,7 +1758,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_billNo`}
                       type="text"
-                      value={bill.billNo}
+                      value={bill.billNo || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1725,7 +1767,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_date`}
                       type="date"
-                      value={bill.date}
+                      value={bill.date || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1733,7 +1775,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_billAmount`}
-                      value={bill.billAmount}
+                      value={bill.billAmount || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1741,7 +1783,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_paidAmount`}
-                      value={bill.paidAmount}
+                      value={bill.paidAmount || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1749,7 +1791,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '120px', width: '120px'}}>
                     <input
                       id={`bill_${bill.id}_balanceAmount`}
-                      value={bill.balanceAmount}
+                      value={bill.balanceAmount || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
@@ -1757,7 +1799,7 @@ const PaymentVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`bill_${bill.id}_amount`}
-                      value={bill.amount}
+                      value={bill.amount || ''}
                       onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', false)}
                       style={styles.editableInput}

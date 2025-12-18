@@ -210,7 +210,7 @@ const ReceiptVoucher = () => {
     try {
       if (!userData?.companyCode) return;
       setLoadingVouchers(true);
-      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETBILLNUMLIST(userData.companyCode, page, 10);
+      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETBILLNUMLIST(userData.companyCode, page, 100);
       const response = await apiService.get(url);
       
       // API returns data in the .data property
