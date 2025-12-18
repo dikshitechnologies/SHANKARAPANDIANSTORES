@@ -300,20 +300,34 @@ export default function SalesmanCreation() {
   };
 
   const handleAdd = async () => {
-    if (!form.salesmanCode || !form.salesmanName) {
-      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
-      return;
-    }
+  if (!form.salesmanCode || !form.salesmanName) {
+    setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
+    return;
+  }
 
-    // Check if salesman code already exists (locally)
-    const exists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
-    if (exists) {
-      setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
-      return;
-    }
+  // Check if salesman code already exists
+  const codeExists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
+    return;
+  }
 
-    setConfirmSaveOpen(true);
-  };
+  // ADD THIS CHECK FOR DUPLICATE SALESMAN NAME (case-insensitive)
+  const nameExists = salesmen.some(s => 
+    s.salesmanName.toLowerCase() === form.salesmanName.toLowerCase()
+  );
+
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Salesman name "${form.salesmanName}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
 
   const confirmSave = async () => {
     setIsLoading(true);

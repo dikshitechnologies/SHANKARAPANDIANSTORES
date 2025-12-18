@@ -4,8 +4,11 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPo
 import SaveConfirmationModal from '../../components/SaveConfirmationModal/SaveConfirmationModal';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
+import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const ReceiptVoucher = () => {
   // --- STATE MANAGEMENT ---
@@ -82,6 +85,19 @@ const ReceiptVoucher = () => {
   // 4. Totals State
   const [totalAmount, setTotalAmount] = useState(0);
   const [billTotalAmount, setBillTotalAmount] = useState(0);
+
+  // 4.5. Particulars State
+  const [particulars, setParticulars] = useState({
+    '500': { available: 0, collect: 0, issue: 0 },
+    '200': { available: 0, collect: 0, issue: 0 },
+    '100': { available: 0, collect: 0, issue: 0 },
+    '50': { available: 0, collect: 0, issue: 0 },
+    '20': { available: 0, collect: 0, issue: 0 },
+    '10': { available: 0, collect: 0, issue: 0 },
+    '5': { available: 0, collect: 0, issue: 0 },
+    '2': { available: 0, collect: 0, issue: 0 },
+    '1': { available: 0, collect: 0, issue: 0 }
+  });
 
   // 5. Popup States
   const [editVoucherPopupOpen, setEditVoucherPopupOpen] = useState(false);
@@ -327,10 +343,31 @@ const ReceiptVoucher = () => {
       
       if (response?.bledger) {
         const ledger = response.bledger;
+        
+        // Helper function to safely format date
+        const safeFormatDate = (dateValue) => {
+          if (!dateValue) return new Date().toISOString().substring(0, 10);
+          try {
+            // If already in YYYY-MM-DD format, return as is
+            if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+              return dateValue;
+            }
+            // Otherwise parse and format
+            const date = new Date(dateValue);
+            if (isNaN(date.getTime())) {
+              return new Date().toISOString().substring(0, 10);
+            }
+            return date.toISOString().substring(0, 10);
+          } catch (e) {
+            console.warn('Date parsing error:', e);
+            return new Date().toISOString().substring(0, 10);
+          }
+        };
+        
         setVoucherDetails({
           voucherNo: ledger.fVouchno || '',
           gstType: ledger.fGSTTYPE || 'CGST/SGST',
-          date: ledger.fVouchdt ? ledger.fVouchdt.substring(0, 10) : new Date().toISOString().substring(0, 10),
+          date: safeFormatDate(ledger.fVouchdt),
           costCenter: '',
           accountName: ledger.customerName || '',
           accountCode: ledger.fCucode || '',
@@ -348,16 +385,33 @@ const ReceiptVoucher = () => {
             crDr: item.fCrDb || 'CR',
             type: item.type || '',
             chqNo: item.fchqno || '',
-            chqDt: item.fchqdt ? item.fchqdt.substring(0, 10) : '',
+            chqDt: safeFormatDate(item.fchqdt),
             narration: '',
             amount: (item.fvrAmount || 0).toString()
           }));
           setReceiptItems(items);
         }
+
+        // Load particulars from salesTransaction if available
+        if (response?.salesTransaction) {
+          const sales = response.salesTransaction;
+          setParticulars({
+            '500': { available: 0, collect: parseInt(sales.given500) || 0, issue: 0 },
+            '200': { available: 0, collect: parseInt(sales.given200) || 0, issue: 0 },
+            '100': { available: 0, collect: parseInt(sales.given100) || 0, issue: 0 },
+            '50': { available: 0, collect: parseInt(sales.given50) || 0, issue: 0 },
+            '20': { available: 0, collect: parseInt(sales.given20) || 0, issue: 0 },
+            '10': { available: 0, collect: parseInt(sales.given10) || 0, issue: 0 },
+            '5': { available: 0, collect: parseInt(sales.given5) || 0, issue: 0 },
+            '2': { available: 0, collect: parseInt(sales.given2) || 0, issue: 0 },
+            '1': { available: 0, collect: parseInt(sales.given1) || 0, issue: 0 }
+          });
+        }
       }
     } catch (err) {
       console.error('Error fetching voucher details:', err);
       setError('Failed to load voucher details');
+      alert('Failed to load voucher details: ' + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -368,6 +422,7 @@ const ReceiptVoucher = () => {
     try {
       if (!userData?.companyCode) {
         setError('Company code not available');
+        alert('Company code not available');
         return;
       }
       setIsLoading(true);
@@ -375,16 +430,20 @@ const ReceiptVoucher = () => {
       try {
         await apiService.del(url);
         setError(null);
+        toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
         resetForm();
         await fetchNextVoucherNo();
         await fetchSavedVouchers();
       } catch (apiErr) {
         console.error('Delete API error:', apiErr);
-        setError('Failed to delete voucher');
+        const errorMsg = apiErr.response?.data?.message || 'Failed to delete voucher';
+        setError(errorMsg);
+        alert(`Error: ${errorMsg}`);
       }
     } catch (err) {
       console.error('Error deleting voucher:', err);
       setError('Failed to delete voucher');
+      alert('Failed to delete voucher');
     } finally {
       setIsLoading(false);
     }
@@ -448,6 +507,17 @@ const ReceiptVoucher = () => {
         amount: '0.00'
       }
     ]);
+    setParticulars({
+      '500': { available: 0, collect: 0, issue: 0 },
+      '200': { available: 0, collect: 0, issue: 0 },
+      '100': { available: 0, collect: 0, issue: 0 },
+      '50': { available: 0, collect: 0, issue: 0 },
+      '20': { available: 0, collect: 0, issue: 0 },
+      '10': { available: 0, collect: 0, issue: 0 },
+      '5': { available: 0, collect: 0, issue: 0 },
+      '2': { available: 0, collect: 0, issue: 0 },
+      '1': { available: 0, collect: 0, issue: 0 }
+    });
     setError(null);
     setIsEditing(false);
     setOriginalVoucherNo('');
@@ -472,16 +542,16 @@ const ReceiptVoucher = () => {
 
   // Open delete voucher popup
   const openDeleteVoucherPopup = async () => {
-    setConfirmationPopup({
-      isOpen: true,
-      title: 'Delete Voucher',
-      message: 'Are you sure you want to delete this voucher? This action cannot be undone.',
-      type: 'danger',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      action: 'delete',
-      isLoading: false
-    });
+    setLoadingVouchers(true);
+    try {
+      await fetchSavedVouchers(1, '');
+      setDeleteVoucherPopupOpen(true);
+    } catch (err) {
+      console.error('Error fetching vouchers:', err);
+      setError('Failed to load vouchers');
+    } finally {
+      setLoadingVouchers(false);
+    }
   };
 
   // Handle voucher selection for editing
@@ -504,11 +574,23 @@ const ReceiptVoucher = () => {
     try {
       // Use voucherNo if available
       const voucherNo = selectedVoucher.voucherNo;
-      await deleteVoucher(voucherNo);
+      // Close the list popup first
       setDeleteVoucherPopupOpen(false);
+      // Show confirmation popup
+      setConfirmationPopup({
+        isOpen: true,
+        title: 'Delete Voucher',
+        message: `Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`,
+        type: 'danger',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        action: 'confirmDelete',
+        isLoading: false,
+        voucherNo: voucherNo
+      });
     } catch (err) {
-      console.error('Error deleting voucher:', err);
-      setError('Failed to delete voucher');
+      console.error('Error in delete voucher selection:', err);
+      setError('Failed to process delete request');
     }
   };
 
@@ -552,9 +634,11 @@ const ReceiptVoucher = () => {
           
           if (balanceResponse) {
             const balance = balanceResponse.balanceAmount || 0;
+            const balanceType = balanceResponse.balanceType || 'CR';
             setVoucherDetails(prev => ({
               ...prev,
-              balance: balance.toString()
+              balance: balance.toString(),
+              crDr: balanceType
             }));
           }
         }
@@ -869,51 +953,83 @@ const ReceiptVoucher = () => {
   // Format date to yyyy-MM-dd
   const formatDateToYYYYMMDD = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toISOString().substring(0, 10);
+    try {
+      // If already in YYYY-MM-DD format, return as is
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      // Otherwise parse and format
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date:', dateString);
+        return '';
+      }
+      return date.toISOString().substring(0, 10);
+    } catch (e) {
+      console.warn('Date formatting error:', e);
+      return '';
+    }
   };
 
   // ========== SAVE FUNCTION ==========
-  // TODO: Add save receipt voucher endpoint to endpoints.js and implement this function
-  const savePaymentVoucher = async () => {
+  const savePaymentVoucher = async (updatedParticulars = null) => {
+    if (isSaving) {
+      return;
+    }
+
     try {
       console.log('Save button clicked');
       
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
+        alert('Voucher number is required');
         return;
       }
       if (!voucherDetails.accountName) {
         setError('Account is required');
+        alert('Please select an account');
         return;
       }
       if (receiptItems.length === 0) {
         setError('At least one receipt item is required');
+        alert('Please add at least one receipt item');
         return;
       }
 
       setIsSaving(true);
+      setIsLoading(true);
+      setError(null);
 
       // Prepare item details list
-      const itemDetailsList = receiptItems.map(item => ({
-        accountCode: item.accountCode || '',
-        accountName: item.accountName || item.cashBank || '',
-        crdr: item.crDr,
-        type: item.type,
-        amount: parseFloat(item.amount) || 0,
-        chequeNo: item.chqNo || '',
-        chequeDate: item.chqDt ? formatDateToYYYYMMDD(item.chqDt) : '',
-        narration: item.narration
-      }));
+      const itemDetailsList = receiptItems
+        .filter(item => item.cashBank && parseFloat(item.amount) > 0)
+        .map(item => ({
+          accountCode: item.accountCode || '',
+          accountName: item.accountName || item.cashBank || '',
+          crdr: item.crDr,
+          type: item.type,
+          amount: parseFloat(item.amount) || 0,
+          chequeNo: item.chqNo || '',
+          chequeDate: item.chqDt ? formatDateToYYYYMMDD(item.chqDt) : '',
+          narration: item.narration
+        }));
 
       // Prepare reference bills
       const referenceBills = billDetails
-        .filter(bill => bill.refNo) // Only include bills with refNo
+        .filter(bill => bill.refNo && parseFloat(bill.amount) > 0)
         .map(bill => ({
           refNo: bill.refNo,
           date: bill.date ? formatDateToYYYYMMDD(bill.date) : '',
           amount: (parseFloat(bill.amount) || 0).toString()
         }));
+
+      // Use updatedParticulars if provided (from modal), otherwise use state particulars
+      const particularToUse = updatedParticulars || particulars;
+      
+      // Also update state if we received updatedParticulars
+      if (updatedParticulars) {
+        setParticulars(updatedParticulars);
+      }
 
       const payload = {
         voucherNo: voucherDetails.voucherNo,
@@ -926,15 +1042,15 @@ const ReceiptVoucher = () => {
         compcode: userData?.companyCode || '001',
         usercode: userData?.userCode || '001',
         salesTransaction: {
-          given1: "0",
-          given2: "0",
-          given5: "0",
-          given10: "0",
-          given20: "0",
-          given50: "0",
-          given100: "0",
-          given200: "0",
-          given500: "0"
+          given1: (particularToUse['1']?.available || 0).toString(),
+          given2: (particularToUse['2']?.available || 0).toString(),
+          given5: (particularToUse['5']?.available || 0).toString(),
+          given10: (particularToUse['10']?.available || 0).toString(),
+          given20: (particularToUse['20']?.available || 0).toString(),
+          given50: (particularToUse['50']?.available || 0).toString(),
+          given100: (particularToUse['100']?.available || 0).toString(),
+          given200: (particularToUse['200']?.available || 0).toString(),
+          given500: (particularToUse['500']?.available || 0).toString()
         },
         itemDetailsList: itemDetailsList,
         referenceBills: referenceBills
@@ -943,44 +1059,74 @@ const ReceiptVoucher = () => {
       console.log('Payload:', payload);
       console.log('Is Editing:', isEditing);
 
-      let response;
-      try {
-        if (isEditing) {
-          console.log('Calling PUT endpoint:', API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(false));
-          response = await apiService.put(
-            API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(false),
-            payload
-          );
-        } else {
-          console.log('Calling POST endpoint:', API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(true));
-          response = await apiService.post(
-            API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(true),
-            payload
-          );
-        }
+      const endpoint = isEditing 
+        ? API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(false)
+        : API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(true);
 
-        console.log('API Response:', response);
+      console.log('Using endpoint:', endpoint);
 
-        if (response?.voucherNo) {
-          setError(null);
-          resetForm();
-          await fetchNextVoucherNo();
-          await fetchSavedVouchers();
-        } else {
-          setError(response?.message || 'Failed to save voucher');
-        }
-      } catch (apiErr) {
-        console.error('API call error:', apiErr);
-        setError(apiErr.response?.data?.message || 'Failed to save voucher');
+      const response = await axiosInstance.post(endpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      });
+
+      console.log('API Response:', response);
+
+      if (response?.data) {
+        const message = response.data.message || `Voucher ${isEditing ? 'updated' : 'saved'} successfully`;
+        const savedVoucherNo = response.data.voucherNo || voucherDetails.voucherNo;
+        
+        toast.success(
+          `Voucher ${isEditing ? "updated" : "saved"} successfully\nVoucher No: ${savedVoucherNo}`,
+          { autoClose: 3000 }
+        );
+
+        setError(null);
+        
+        // Refresh saved vouchers list
+        await fetchSavedVouchers(1, '');
+        
+        // Reset form completely after save
+        resetForm();
+        await fetchNextVoucherNo();
+        
+        return response.data;
       }
     } catch (err) {
-      console.error('Error saving voucher:', err);
-      if (err.response?.status === 409) {
-        setError('Voucher number already exists');
+      let errorMsg = `Failed to ${isEditing ? 'update' : 'save'} receipt voucher`;
+      
+      if (err.response) {
+        console.error("Server error response:", err.response);
+        if (err.response.data) {
+          if (err.response.data.message) {
+            errorMsg = err.response.data.message;
+          } else if (err.response.data.error) {
+            errorMsg = err.response.data.error;
+          } else if (typeof err.response.data === 'string') {
+            errorMsg = err.response.data;
+          } else if (err.response.data.errors) {
+            const errors = Object.values(err.response.data.errors).flat();
+            errorMsg = errors.join(', ');
+          }
+        }
+        errorMsg = `${errorMsg} (Status: ${err.response.status})`;
+      } else if (err.request) {
+        errorMsg = 'No response from server. Please check your connection.';
       } else {
-        setError(err.response?.data?.message || 'Failed to save voucher');
+        errorMsg = err.message || errorMsg;
       }
+      
+      if (errorMsg.toLowerCase().includes('duplicate') || errorMsg.toLowerCase().includes('already exists')) {
+        errorMsg = `Voucher number ${voucherDetails.voucherNo} already exists. Please use a different number or edit the existing voucher.`;
+      }
+      
+      setError(errorMsg);
+      alert(`Error: ${errorMsg}`);
+      console.error('Error saving voucher:', err);
     } finally {
+      setIsLoading(false);
       setIsSaving(false);
     }
   };
@@ -992,20 +1138,6 @@ const ReceiptVoucher = () => {
 
   // Function to show save confirmation popup
   const showSaveConfirmation = () => {
-    // Build particulars data from receipt items
-    // This is placeholder data - adjust based on your actual receipt structure
-    const particulars = {
-      '500': { available: 0, collect: 0, issue: 0 },
-      '200': { available: 4, collect: 0, issue: 0 },
-      '100': { available: 116, collect: 0, issue: 0 },
-      '50': { available: 3, collect: 0, issue: 0 },
-      '20': { available: 2, collect: 0, issue: 0 },
-      '10': { available: 0, collect: 0, issue: 0 },
-      '5': { available: 0, collect: 0, issue: 0 },
-      '2': { available: 9, collect: 0, issue: 0 },
-      '1': { available: 6, collect: 0, issue: 0 }
-    };
-
     setSaveConfirmationData({
       title: `${isEditing ? 'Update' : 'Create'} Payment Voucher`,
       voucherNo: voucherDetails.voucherNo,
@@ -1016,9 +1148,10 @@ const ReceiptVoucher = () => {
   };
 
   // Function to handle confirmed save
-  const handleConfirmedSave = async () => {
+  const handleConfirmedSave = async (updatedParticulars) => {
     setSaveConfirmationOpen(false);
-    await savePaymentVoucher();
+    // Pass updatedParticulars directly to savePaymentVoucher
+    await savePaymentVoucher(updatedParticulars);
   };
 
   // Function to cancel save
@@ -1044,11 +1177,8 @@ const ReceiptVoucher = () => {
           setEditVoucherPopupOpen(true);
           setLoadingVouchers(false);
           break;
-        case 'delete':
-          setLoadingVouchers(true);
-          await fetchSavedVouchers(1, '');
-          setDeleteVoucherPopupOpen(true);
-          setLoadingVouchers(false);
+        case 'confirmDelete':
+          await deleteVoucher(confirmationPopup.voucherNo);
           break;
         case 'print':
           console.log('Print functionality');

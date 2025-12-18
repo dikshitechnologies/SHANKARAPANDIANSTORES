@@ -287,12 +287,34 @@ useEffect(() => {
   };
 
   const handleAdd = async () => {
-    if (!form.designCode || !form.designName) {
-      setMessage({ type: "error", text: "Please fill Design Code and Design Name." });
-      return;
-    }
-    setConfirmSaveOpen(true);
-  };
+  if (!form.designCode || !form.designName) {
+    setMessage({ type: "error", text: "Please fill Design Code and Design Name." });
+    return;
+  }
+
+  // Check if design code already exists
+  const codeExists = designs.some(d => d.designCode === form.designCode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Design code ${form.designCode} already exists.` });
+    return;
+  }
+
+  // ADD THIS CHECK FOR DUPLICATE DESIGN NAME (case-insensitive)
+  const nameExists = designs.some(d => 
+    d.designName.toLowerCase() === form.designName.toLowerCase()
+  );
+
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Design name "${form.designName}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
 
   const confirmSave = async () => {
     setIsLoading(true);

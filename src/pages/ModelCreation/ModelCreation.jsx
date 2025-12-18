@@ -235,7 +235,12 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Model Code and Model Name." });
       return;
     }
-
+    const isDuplicate = models.some(model => 
+    (model.modelName || model.fname || model.fname || "").toLowerCase() === form.modelName.toLowerCase());
+    if (isDuplicate) {
+      setMessage({ type: "error", text: `Model "${form.modelName}" already exists. Please use a different name.` });
+      return;
+    }
     setConfirmEditOpen(true);
   };
 
@@ -299,7 +304,12 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Model Code and Model Name." });
       return;
     }
-
+    const isDuplicate = models.some(model => 
+    (model.modelName || model.fname || model.fname || "").toLowerCase() === form.modelName.toLowerCase());
+    if (isDuplicate) {
+      setMessage({ type: "error", text: `Model "${form.modelName}" already exists. Please use a different name.` });
+      return;
+    }
     setConfirmSaveOpen(true);
   };
 
