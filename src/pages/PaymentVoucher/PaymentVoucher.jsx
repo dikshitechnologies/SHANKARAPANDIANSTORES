@@ -1,10 +1,14 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, PrintButton } from '../../components/Buttons/ActionButtons';
+import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, ActionButtons1, PrintButton } from '../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import SaveConfirmationModal from '../../components/SaveConfirmationModal/SaveConfirmationModal';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
+import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import { API_ENDPOINTS } from '../../api/endpoints';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const PaymentVoucher = () => {
   // --- STATE MANAGEMENT ---
@@ -69,6 +73,19 @@ const PaymentVoucher = () => {
   // 4. Totals State
   const [totalAmount, setTotalAmount] = useState(0);
   const [billTotalAmount, setBillTotalAmount] = useState(0);
+
+  // 4.5. Particulars State
+  const [particulars, setParticulars] = useState({
+    '500': { available: 0, collect: 0, issue: 0 },
+    '200': { available: 0, collect: 0, issue: 0 },
+    '100': { available: 0, collect: 0, issue: 0 },
+    '50': { available: 0, collect: 0, issue: 0 },
+    '20': { available: 0, collect: 0, issue: 0 },
+    '10': { available: 0, collect: 0, issue: 0 },
+    '5': { available: 0, collect: 0, issue: 0 },
+    '2': { available: 0, collect: 0, issue: 0 },
+    '1': { available: 0, collect: 0, issue: 0 }
+  });
 
   // 5. Popup States
   const [editVoucherPopupOpen, setEditVoucherPopupOpen] = useState(false);
@@ -138,14 +155,14 @@ const PaymentVoucher = () => {
   // Fetch next voucher number from API
   const fetchNextVoucherNo = useCallback(async () => {
     try {
-      if (!userData?.companyCode || !userData?.username) {
+      if (!userData?.companyCode) {
         console.warn('userData not available yet');
         return;
       }
       setIsLoading(true);
-      const url = API_ENDPOINTS.PAYMENTVOUCHER.GETNEXTVNUMBER(userData.companyCode, '001');
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.GETNEXTVNUMBER(userData.companyCode);
       const response = await apiService.get(url);
-      console.log('Voucher response:', response);
+      console.log('Payment Voucher response:', response);
       if (response.voucherNo) {
         setVoucherDetails(prev => ({
           ...prev,
@@ -158,7 +175,7 @@ const PaymentVoucher = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [userData?.companyCode, userData?.username]);
+  }, [userData?.companyCode]);
 
 
 
@@ -261,50 +278,78 @@ const PaymentVoucher = () => {
   const fetchVoucherDetails = async (voucherNo) => {
     try {
       setIsLoading(true);
-      const response = await apiService.get(`/api/payment-vouchers/${voucherNo}`);
-      if (response.data?.voucher) {
-        const voucher = response.data.voucher;
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.GET_PAYMENT_VOUCHER_DETAILS(voucherNo);
+      const response = await apiService.get(url);
+      
+      if (response?.bledger) {
+        const ledger = response.bledger;
+        
+        // Helper function to safely format date
+        const safeFormatDate = (dateValue) => {
+          if (!dateValue) return new Date().toISOString().substring(0, 10);
+          try {
+            if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+              return dateValue;
+            }
+            const date = new Date(dateValue);
+            if (isNaN(date.getTime())) {
+              return new Date().toISOString().substring(0, 10);
+            }
+            return date.toISOString().substring(0, 10);
+          } catch (e) {
+            console.warn('Date parsing error:', e);
+            return new Date().toISOString().substring(0, 10);
+          }
+        };
+        
         setVoucherDetails({
-          voucherNo: voucher.voucherNo || '',
-          gstType: voucher.gstType || 'CGST/SGST',
-          date: voucher.date || new Date().toISOString().substring(0, 10),
-          costCenter: voucher.costCenter || '',
-          accountName: voucher.accountName || '',
-          accountCode: voucher.accountCode || '',
-          balance: voucher.balance || '0.00'
+          voucherNo: ledger.fVouchno || '',
+          gstType: ledger.fGSTTYPE || 'CGST/SGST',
+          date: safeFormatDate(ledger.fVouchdt),
+          costCenter: '',
+          accountName: ledger.customerName || '',
+          accountCode: ledger.fCucode || '',
+          balance: (ledger.fBillAmt || 0).toString()
         });
-
-        if (voucher.paymentItems) {
-          setPaymentItems(voucher.paymentItems.map((item, idx) => ({
+        
+        // Map ledger details to payment items
+        if (response?.ledgers && Array.isArray(response.ledgers)) {
+          const items = response.ledgers.map((item, idx) => ({
             id: idx + 1,
             sNo: idx + 1,
-            cashBank: item.cashBank || '',
-            crDr: item.crDr || 'CR',
+            cashBank: item.accountName || '',
+            accountCode: item.faccode || '',
+            accountName: item.accountName || '',
+            crDr: item.fCrDb || 'CR',
             type: item.type || '',
-            chqNo: item.chqNo || '',
-            chqDt: item.chqDt || '',
-            narration: item.narration || '',
-            amount: item.amount || ''
-          })));
+            chqNo: item.fchqno || '',
+            chqDt: safeFormatDate(item.fchqdt),
+            narration: '',
+            amount: (item.fvrAmount || 0).toString()
+          }));
+          setPaymentItems(items);
         }
 
-        if (voucher.billDetails) {
-          setBillDetails(voucher.billDetails.map((bill, idx) => ({
-            id: idx + 1,
-            sNo: idx + 1,
-            refNo: bill.refNo || '',
-            billNo: bill.billNo || '',
-            date: bill.date || '',
-            billAmount: bill.billAmount || '0.00',
-            paidAmount: bill.paidAmount || '0.00',
-            balanceAmount: bill.balanceAmount || '0.00',
-            amount: bill.amount || '0.00'
-          })));
+        // Load particulars from salesTransaction if available
+        if (response?.salesTransaction) {
+          const sales = response.salesTransaction;
+          setParticulars({
+            '500': { available: 0, collect: parseInt(sales.returned500) || 0, issue: 0 },
+            '200': { available: 0, collect: parseInt(sales.returned200) || 0, issue: 0 },
+            '100': { available: 0, collect: parseInt(sales.returned100) || 0, issue: 0 },
+            '50': { available: 0, collect: parseInt(sales.returned50) || 0, issue: 0 },
+            '20': { available: 0, collect: parseInt(sales.returned20) || 0, issue: 0 },
+            '10': { available: 0, collect: parseInt(sales.returned10) || 0, issue: 0 },
+            '5': { available: 0, collect: parseInt(sales.returned5) || 0, issue: 0 },
+            '2': { available: 0, collect: parseInt(sales.returned2) || 0, issue: 0 },
+            '1': { available: 0, collect: parseInt(sales.returned1) || 0, issue: 0 }
+          });
         }
       }
     } catch (err) {
       console.error('Error fetching voucher details:', err);
       setError('Failed to load voucher details');
+      toast.error('Failed to load voucher details: ' + err.message, { autoClose: 3000 });
     } finally {
       setIsLoading(false);
     }
@@ -314,13 +359,18 @@ const PaymentVoucher = () => {
   const deleteVoucher = async (voucherNo) => {
     try {
       setIsLoading(true);
-      await apiService.delete(`/api/payment-vouchers/${voucherNo}`);
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.DELETE_PAYMENT_VOUCHER(voucherNo);
+      await apiService.del(url);
       setError(null);
+      toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
       resetForm();
+      await fetchNextVoucherNo();
       await fetchSavedVouchers();
     } catch (err) {
       console.error('Error deleting voucher:', err);
-      setError('Failed to delete voucher');
+      const errorMsg = err.response?.data?.message || 'Failed to delete voucher';
+      setError(errorMsg);
+      toast.error(`Error: ${errorMsg}`, { autoClose: 3000 });
     } finally {
       setIsLoading(false);
     }
@@ -378,16 +428,16 @@ const PaymentVoucher = () => {
         setIsLoadingMoreParties(false);
       }
     }
-  }, [userData?.companyCode, userData?.username]);
+  }, [userData?.companyCode]);
 
   // Initial data fetch on component mount and when userData changes
   useEffect(() => {
-    if (userData?.companyCode && userData?.username) {
+    if (userData?.companyCode) {
       fetchNextVoucherNo();
       // Load first batch of parties (page 1)
       fetchPartiesWithPagination(1);     
     }
-  }, [userData?.companyCode, userData?.username, fetchNextVoucherNo, fetchPartiesWithPagination]);
+  }, [userData?.companyCode, fetchNextVoucherNo, fetchPartiesWithPagination]);
 
   // Calculate Payment Details Totals whenever items change
   useEffect(() => {
@@ -847,14 +897,17 @@ const PaymentVoucher = () => {
     try {
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
+        toast.error('Voucher number is required', { autoClose: 3000 });
         return;
       }
       if (!voucherDetails.accountName) {
         setError('Account is required');
+        toast.error('Account is required', { autoClose: 3000 });
         return;
       }
       if (paymentItems.length === 0) {
         setError('At least one payment item is required');
+        toast.error('At least one payment item is required', { autoClose: 3000 });
         return;
       }
 
@@ -862,52 +915,57 @@ const PaymentVoucher = () => {
 
       const payload = {
         voucherNo: voucherDetails.voucherNo,
+        voucherDate: formatDateToYYYYMMDD(voucherDetails.date),
+        customerCode: voucherDetails.accountCode,
+        customerName: voucherDetails.accountName,
         gstType: voucherDetails.gstType,
-        date: formatDateToYYYYMMDD(voucherDetails.date),
-        costCenter: voucherDetails.costCenter,
-        accountName: voucherDetails.accountName,
-        accountCode: voucherDetails.accountCode,
-        balance: voucherDetails.balance,
-        crDr: voucherDetails.crDr,
-        paymentItems: paymentItems.map(item => ({
-          cashBank: item.cashBank,
-          crDr: item.crDr,
+        partyBalance: parseFloat(voucherDetails.balance) || 0,
+        totalAmt: totalAmount,
+        compcode: userData?.companyCode,
+        usercode: userData?.username,
+        salesTransaction1: {
+          returned1: particulars['1']?.collect || 0,
+          returned2: particulars['2']?.collect || 0,
+          returned5: particulars['5']?.collect || 0,
+          returned10: particulars['10']?.collect || 0,
+          returned20: particulars['20']?.collect || 0,
+          returned50: particulars['50']?.collect || 0,
+          returned100: particulars['100']?.collect || 0,
+          returned200: particulars['200']?.collect || 0,
+          returned500: particulars['500']?.collect || 0
+        },
+        itemDetailsList1: paymentItems.map(item => ({
+          accountCode: item.accountCode || '',
+          accountName: item.cashBank,
+          crdr: item.crDr,
           type: item.type,
-          chqNo: item.chqNo,
-          chqDt: item.chqDt,
-          narration: item.narration,
-          amount: parseFloat(item.amount) || 0
+          amount: parseFloat(item.amount) || 0,
+          chequeNo: item.chqNo,
+          chequeDate: formatDateToYYYYMMDD(item.chqDt),
+          narration: item.narration
         })),
-        billDetails: billDetails.map(bill => ({
+        referenceBills1: billDetails.map(bill => ({
           refNo: bill.refNo,
-          billNo: bill.billNo,
           date: formatDateToYYYYMMDD(bill.date),
-          billAmount: parseFloat(bill.billAmount) || 0,
-          paidAmount: parseFloat(bill.paidAmount) || 0,
-          balanceAmount: parseFloat(bill.balanceAmount) || 0,
-          amount: parseFloat(bill.amount) || 0
+          amount: (parseFloat(bill.amount) || 0).toString()
         }))
       };
 
-      let response;
-      if (isEditing) {
-        response = await apiService.put(
-          `/api/payment-vouchers/${originalVoucherNo}`,
-          payload
-        );
-      } else {
-        response = await apiService.post('/api/payment-vouchers', payload);
-      }
+      const url = API_ENDPOINTS.PAYMENTVOUCHER.POST_PAYMENT_VOUCHER(!isEditing);
+      const response = await apiService.post(url, payload);
 
-      if (response.data?.voucherNo) {
+      if (response) {
         setError(null);
+        toast.success(`Payment Voucher ${voucherDetails.voucherNo} saved successfully`, { autoClose: 3000 });
         resetForm();
         await fetchNextVoucherNo();
         await fetchSavedVouchers();
       }
     } catch (err) {
       console.error('Error saving voucher:', err);
-      setError(err.response?.data?.message || 'Failed to save voucher');
+      const errorMsg = err.response?.data?.message || 'Failed to save voucher';
+      setError(errorMsg);
+      toast.error(`Error: ${errorMsg}`, { autoClose: 3000 });
     } finally {
       setIsSaving(false);
     }
@@ -918,19 +976,17 @@ const PaymentVoucher = () => {
     showSaveConfirmation();
   };
 
-  // Function to show save confirmation popup
+  // Function to show save confirmation popup using SaveConfirmationModal
   const showSaveConfirmation = () => {
-    setSaveConfirmationData({
-      title: `${isEditing ? 'Update' : 'Create'} Payment Voucher`,
-      message: `Are you sure you want to ${isEditing ? 'update' : 'create'} this payment voucher?`,
-      confirmText: 'Save',
-      cancelText: 'Cancel'
-    });
     setSaveConfirmationOpen(true);
   };
 
   // Function to handle confirmed save
-  const handleConfirmedSave = async () => {
+  const handleConfirmedSave = async (updatedParticulars) => {
+    // Update particulars with the confirmed values
+    if (updatedParticulars) {
+      setParticulars(updatedParticulars);
+    }
     setSaveConfirmationOpen(false);
     await savePaymentVoucher();
   };
@@ -1802,14 +1858,15 @@ const PaymentVoucher = () => {
       )}
 
       {saveConfirmationOpen && (
-        <ConfirmationPopup
+        <SaveConfirmationModal
           isOpen={saveConfirmationOpen}
-          title={saveConfirmationData?.title}
-          message={saveConfirmationData?.message}
+          onClose={handleCancelSave}
           onConfirm={handleConfirmedSave}
-          onCancel={handleCancelSave}
-          confirmText={saveConfirmationData?.confirmText}
-          cancelText={saveConfirmationData?.cancelText}
+          title={`${isEditing ? 'Update' : 'Create'} Payment Voucher`}
+          particulars={particulars}
+          loading={isSaving}
+          voucherNo={voucherDetails.voucherNo}
+          voucherDate={voucherDetails.date}
         />
       )}
 
