@@ -8,7 +8,17 @@ const SaveConfirmationModal = ({
   onClose,
   onConfirm,
   title = "Confirm Save",
-  particulars = [],
+  particulars = {
+    '500': { available: 0, collect: 0, issue: 0 },
+    '200': { available: 0, collect: 0, issue: 0 },
+    '100': { available: 0, collect: 0, issue: 0 },
+    '50': { available: 0, collect: 0, issue: 0 },
+    '20': { available: 0, collect: 0, issue: 0 },
+    '10': { available: 0, collect: 0, issue: 0 },
+    '5': { available: 0, collect: 0, issue: 0 },
+    '2': { available: 0, collect: 0, issue: 0 },
+    '1': { available: 0, collect: 0, issue: 0 }
+  },
   loading = false,
   voucherNo = "",
   voucherDate = ""
@@ -115,8 +125,19 @@ const SaveConfirmationModal = ({
   const handleSaveConfirmation = async () => {
     setSaveConfirmationLoading(true);
     try {
-      // Call the parent's onConfirm callback with the particulars
-      onConfirm(editableParticulars);
+      // Update editableParticulars with calculated available values (opening balance + collect)
+      const updatedParticulars = { ...editableParticulars };
+      denominations.forEach(denom => {
+        const currentAvailable = openingBalances[denom] !== undefined ? openingBalances[denom] : (editableParticulars[denom]?.available || 0);
+        const currentCollect = editableParticulars[denom]?.collect || 0;
+        const totalAvailable = currentAvailable + currentCollect;
+        updatedParticulars[denom] = {
+          ...editableParticulars[denom],
+          available: totalAvailable
+        };
+      });
+      // Call the parent's onConfirm callback with the updated particulars
+      onConfirm(updatedParticulars);
       setSaveConfirmationOpen(false);
     } catch (err) {
       console.error('Error during save confirmation:', err);
