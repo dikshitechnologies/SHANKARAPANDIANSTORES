@@ -2502,24 +2502,27 @@ searchIconInside: {
           ...styles.gridRow,
           gridTemplateColumns: getGridColumns(),
         }}>
-          {/* Bill No */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Bill No:</label>
-            <input
-              type="text"
-              style={focusedField === 'billNo' ? styles.inlineInputFocused : styles.inlineInput}
-              value={billDetails.billNo}
-              name="billNo"
-              onChange={handleInputChange}
-              ref={billNoRef}
-              onKeyDown={(e) => handleKeyDown(e, billDateRef)}
-              onFocus={() => setFocusedField('billNo')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Auto-generated"
-              readOnly={isEditing}
-              title={isEditing ? "Cannot change invoice number when editing" : ""}
-            />
-          </div>
+        {/* Bill No */}
+<div style={styles.formField}>
+  <label style={styles.inlineLabel}>Bill No:</label>
+  <input
+    type="text"
+    value={billDetails.billNo}
+    name="billNo"
+    readOnly                 // ✅ always readonly
+    tabIndex={-1}            // ✅ skip keyboard focus (optional)
+    ref={billNoRef}
+    style={{
+      ...styles.inlineInput,
+     
+      cursor: "not-allowed",
+      fontWeight: "600"
+    }}
+    placeholder="Auto-generated"
+    title="Auto-generated invoice number"
+  />
+</div>
+
 
           {/* Bill Date */}
           <div style={styles.formField}>
@@ -3034,16 +3037,7 @@ searchIconInside: {
         onClose={() => setSaveConfirmationOpen(false)}
         onConfirm={handleConfirmedSave}
         title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
-        message={
-          saveConfirmationData ? 
-          `Invoice No: ${saveConfirmationData.invoiceNo}\n` +
-          `Customer: ${saveConfirmationData.customer}\n` +
-          `Date: ${saveConfirmationData.billDate}\n` +
-          `Total Amount: ₹${saveConfirmationData.totalAmount}\n` +
-          `Add/Less: ${parseFloat(saveConfirmationData.addLessAmount || 0) >= 0 ? '+' : ''}₹${parseFloat(saveConfirmationData.addLessAmount || 0).toFixed(2)}\n` +
-          `Final Amount: ₹${saveConfirmationData.finalAmount}`
-          : "Are you sure you want to save this invoice?"
-        }
+       
         confirmText={saveConfirmationData?.isEditing ? "CONFIRM UPDATE" : "CONFIRM SAVE"}
         cancelText="Cancel"
         type={saveConfirmationData?.isEditing ? "warning" : "success"}
