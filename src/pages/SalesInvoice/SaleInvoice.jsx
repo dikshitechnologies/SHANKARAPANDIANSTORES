@@ -2518,7 +2518,7 @@ searchIconInside: {
       cursor: "not-allowed",
       fontWeight: "600"
     }}
-    placeholder="Auto-generated"
+    // placeholder="Auto-generated"
     title="Auto-generated invoice number"
   />
 </div>
@@ -2553,7 +2553,7 @@ searchIconInside: {
               onKeyDown={(e) => handleKeyDown(e, typeRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Mobile No"
+              // placeholder="Mobile No"
             />
           </div>
 
@@ -2691,7 +2691,7 @@ searchIconInside: {
               }}
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
-              placeholder="Scan or Enter Barcode"
+              // placeholder="Scan or Enter Barcode"
             />
           </div>
         </div>
@@ -3001,7 +3001,7 @@ searchIconInside: {
             onChange={handleAddLessChange}
             onKeyDown={handleAddLessKeyDown}
             ref={addLessRef}
-            placeholder="Enter amount"
+            // placeholder="Enter amount"
             step="0.01"
             onFocus={() => setFocusedField('addLess')}
             onBlur={() => setFocusedField('')}

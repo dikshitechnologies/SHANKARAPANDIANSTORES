@@ -289,25 +289,6 @@ export default function UnitCreation() {
     }
   }, [actionType]);
 
-  // Check for duplicate unit names when typing (optional)
-  // useEffect(() => {
-  //   if (form.unitName && form.unitName.trim() && actionType === "Add") {
-  //     const timer = setTimeout(() => {
-  //       const existingUnit = checkUnitNameExists(form.unitName);
-  //       if (existingUnit) {
-  //         setMessage({ 
-  //           type: "warning", 
-  //           text: `Unit name "${form.unitName}" already exists (Code: ${existingUnit.uCode})` 
-  //         });
-  //       } else if (message?.type === "warning" && message?.text.includes("already exists")) {
-  //         // Clear the warning if the user fixes the duplicate name
-  //         setMessage(null);
-  //       }
-  //     }, 500); // Debounce for 500ms
-
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [form.unitName, units, actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {

@@ -2916,7 +2916,7 @@ const tdStyle = {
               onKeyDown={(e) => handleKeyDown(e, billDateRef)}
               onFocus={() => setFocusedField('billNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Auto-generated"
+              // placeholder="Auto-generated"
               readOnly
             />
           </div>
@@ -2950,7 +2950,7 @@ const tdStyle = {
               onKeyDown={(e) => handleKeyDown(e, empNameRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Mobile No"
+              // placeholder="Mobile No"
             />
           </div>
 
@@ -2967,7 +2967,7 @@ const tdStyle = {
               onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
               onFocus={() => setFocusedField('empName')}
               onBlur={() => setFocusedField('')}
-              placeholder="Employee Name"
+              // placeholder="Employee Name"
             />
           </div>
         </div>
@@ -3089,7 +3089,7 @@ onKeyDown={(e) => {
 
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
-              placeholder="Scan or Enter Barcode"
+              // placeholder="Scan or Enter Barcode"
             />
           </div>
         </div>

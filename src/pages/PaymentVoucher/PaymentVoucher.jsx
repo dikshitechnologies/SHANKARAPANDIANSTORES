@@ -1481,7 +1481,7 @@ const PaymentVoucher = () => {
                 onKeyDown={(e) => handleKeyDown(e, null, 'accountName')}
                 onKeyUp={(e) => handleBackspace(e, 'accountName')}
                 style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-                placeholder="Click or press / to select"
+                placeholder="Search A/C Name"
               />
             </div>
 
@@ -1577,7 +1577,7 @@ const PaymentVoucher = () => {
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
-                      placeholder="Click or press / to select"
+                      placeholder="Search Cash/Bank"
                       title="Click to select or press / to search"
                     />
                   </td>

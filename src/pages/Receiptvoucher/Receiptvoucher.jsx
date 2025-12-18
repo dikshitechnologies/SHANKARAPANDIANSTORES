@@ -1645,7 +1645,7 @@ const ReceiptVoucher = () => {
                 onKeyDown={(e) => handleKeyDown(e, null, 'accountName')}
                 onKeyUp={(e) => handleBackspace(e, 'accountName')}
                 style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-                placeholder="Click or press / to select"
+                placeholder="Select Account"
               />
             </div>
 

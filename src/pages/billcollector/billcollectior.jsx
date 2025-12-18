@@ -583,7 +583,7 @@ function BillCollector() {
         <div style={{ fontWeight: "700", color: "#1f2937", fontSize: "13px" }}>Search Bill:</div>
         <input 
           type="text" 
-          placeholder="Enter Bill Number" 
+          // placeholder="Enter Bill Number" 
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onFocus={() => setIsFocused(true)}
