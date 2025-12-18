@@ -383,6 +383,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    scrapNameRef.current?.focus()
   };
 
   const handleEditRowClick = (s) => {
@@ -397,6 +398,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    scrapNameRef.current?.focus()
   };
 
   // Fetch items for popup list selector

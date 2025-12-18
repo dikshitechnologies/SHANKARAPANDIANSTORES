@@ -396,6 +396,7 @@ export default function SalesmanCreation() {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    salesmanNameRef.current?.focus()
   };
 
   const handleEditRowClick = (s) => {
@@ -409,6 +410,7 @@ export default function SalesmanCreation() {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    salesmanNameRef.current?.focus()
   };
 
   // Fetch items for popup list selector
