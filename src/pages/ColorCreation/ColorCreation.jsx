@@ -77,6 +77,7 @@ export default function ColorCreation() {
   // refs for step-by-step Enter navigation
   const colorCodeRef = useRef(null);
   const colorNameRef = useRef(null);
+  const submitRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -223,6 +224,18 @@ export default function ColorCreation() {
       setMessage({ type: "error", text: "Please fill Color Code and Color Name." });
       return;
     }
+    // Check for duplicate color name
+    const isDuplicate = colors.some(color => 
+      color.colourName.toLowerCase() === form.colourName.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setMessage({ 
+        type: "error", 
+        text: `Color name "${form.colourName}" already exists. Please use a different name.` 
+      });
+      return; // Don't proceed with save
+    }
 
     setConfirmEditOpen(true);
   };
@@ -239,7 +252,7 @@ export default function ColorCreation() {
       
       setMessage({ type: "success", text: "Color updated successfully." });
       setConfirmEditOpen(false);
-      resetForm(true);
+      resetForm();
     } catch (err) {
       setConfirmEditOpen(false);
       // Error message already set in updateColor
@@ -348,6 +361,7 @@ export default function ColorCreation() {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    colorNameRef.current?.focus()
   };
 
   const handleEditRowClick = (color) => {
@@ -364,6 +378,7 @@ export default function ColorCreation() {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    colorNameRef.current?.focus()
   };
 
   // Fetch items for popup list selector
@@ -401,7 +416,7 @@ export default function ColorCreation() {
   const onColorNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
+      submitRef.current?.focus();
     }
   };
 
@@ -1051,6 +1066,7 @@ export default function ColorCreation() {
               <div className="submit-row">
                 <button
                   className="submit-primary"
+                  ref={submitRef}
                   onClick={handleSubmit}
                   disabled={loading}
                   type="button"

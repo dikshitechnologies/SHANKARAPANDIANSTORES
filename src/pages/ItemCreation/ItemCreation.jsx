@@ -375,43 +375,57 @@ const ItemCreation = ({ onCreated }) => {
     handleChange('pieceRate', newValue ? 'Y' : 'N');
   };
 
-  // Handle Enter key to move focus to next input within the form card
-  const handleEnterNavigation = (e) => {
-    if (e.key !== 'Enter') return;
-    // Prevent form submission on Enter
+const handleEnterNavigation = (e) => {
+  if (e.key !== 'Enter') return;
+
+  const target = e.target;
+  const tag = target.tagName;
+  const type = target.type;
+
+  // ❌ Let normal typing work inside text inputs
+  if (
+    tag === 'INPUT' &&
+    !['checkbox', 'radio'].includes(type)
+  ) {
     e.preventDefault();
-    try {
-      const container = e.currentTarget;
-      if (!container) return;
-      const selectors = 'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), .checkbox-group:not([disabled])';
-      const elements = Array.from(container.querySelectorAll(selectors)).filter(el => el.offsetParent !== null);
-      if (elements.length === 0) return;
-      const active = document.activeElement;
-      const idx = elements.indexOf(active);
-      let next = null;
-      if (idx === -1) {
-        next = elements[0];
-      } else if (idx < elements.length - 1) {
-        next = elements[idx + 1];
-      } else {
-        // wrap to first element
-        next = elements[0];
-      }
-      if (next) {
-        next.focus();
-        // If the focused element is a button, also trigger click when Enter pressed on it
-        if (next.tagName === 'BUTTON') {
-          // small delay to ensure focus applied
-          setTimeout(() => {
-            try { next.click(); } catch (err) {}
-          }, 50);
-        }
-      }
-    } catch (err) {
-      // ignore navigation errors
-      console.warn('Enter navigation error', err);
+  }
+
+  try {
+    const container = e.currentTarget;
+    if (!container) return;
+
+    // ✅ ONLY real form fields (NO buttons)
+    const selectors =
+      'input:not([type="hidden"]):not([disabled]), ' +
+      'select:not([disabled]), ' +
+      'textarea:not([disabled]), ' +
+      '.checkbox-group';
+
+    const elements = Array.from(container.querySelectorAll(selectors))
+      .filter(el => el.offsetParent !== null);
+
+    if (!elements.length) return;
+
+    const active = document.activeElement;
+    const index = elements.indexOf(active);
+
+    // ✅ If there is a next field → move
+    if (index >= 0 && index < elements.length - 1) {
+      elements[index + 1].focus();
+      return;
     }
-  };
+
+    // ✅ LAST FIELD → focus UPDATE / SAVE button
+    if (index === elements.length - 1) {
+      const submitBtn = document.querySelector('.submit-primary');
+      submitBtn?.focus();
+    }
+  } catch (err) {
+    console.warn('Enter navigation error', err);
+  }
+};
+
+
 
   const getMaxPrefixFromAPI = async () => {
     try {
@@ -1867,16 +1881,26 @@ const ItemCreation = ({ onCreated }) => {
             />
 
             <EditButton
-              onClick={() => { changeActionType('edit'); setIsPopupOpen(true); }}
-              disabled={isSubmitting || !formPermissions.edit}
-              isActive={actionType === 'edit'}
-            />
+  onClick={(e) => {
+    e.currentTarget.blur();   // ✅ REMOVE focus from Edit button
+    changeActionType('edit');
+    setIsPopupOpen(true);
+  }}
+  disabled={isSubmitting || !formPermissions.edit}
+  isActive={actionType === 'edit'}
+/>
 
-            <DeleteButton
-              onClick={() => { changeActionType('delete'); setIsPopupOpen(true); }}
-              disabled={isSubmitting || !formPermissions.delete}
-              isActive={actionType === 'delete'}
-            />
+
+        <DeleteButton
+  onClick={(e) => {
+    e.currentTarget.blur();   // ✅ CRITICAL
+    changeActionType('delete');
+    setIsPopupOpen(true);
+  }}
+  disabled={isSubmitting || !formPermissions.delete}
+  isActive={actionType === 'delete'}
+/>
+
           </div>
         </div>
 
@@ -2740,6 +2764,7 @@ const ItemCreation = ({ onCreated }) => {
         open={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
        onSelect={(item) => {
+        
   // Map backend fields to form fields
   console.log("✔️ RAW SELECTED ITEM:", item);
   setFormData({
@@ -2790,6 +2815,10 @@ const ItemCreation = ({ onCreated }) => {
   setMainGroup(item.fParent || '');
   
   setIsPopupOpen(false);
+  // ✅ Move focus into the form, NOT toolbar
+setTimeout(() => {
+  itemNameRef.current?.focus();
+}, 50);
 }}
         fetchItems={fetchPopupItems}
         title={`Select Item to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}

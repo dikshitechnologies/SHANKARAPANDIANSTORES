@@ -88,6 +88,7 @@ export default function BrandPage() {
   // refs for step-by-step Enter navigation
   const brandCodeRef = useRef(null);
   const brandNameRef = useRef(null);
+  const submitButtonRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -440,6 +441,7 @@ const resetForm = (keepAction = false) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
+      BrandNameRef.current?.focus();
     }
   };
 
@@ -1088,6 +1090,7 @@ const resetForm = (keepAction = false) => {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitButtonRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"

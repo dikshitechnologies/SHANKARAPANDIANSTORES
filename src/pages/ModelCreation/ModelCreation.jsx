@@ -77,6 +77,7 @@ export default function ModelCreation() {
   // refs for step-by-step Enter navigation
   const modelCodeRef = useRef(null);
   const modelNameRef = useRef(null);
+  const submitRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -253,7 +254,7 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Model updated successfully." });
       setConfirmEditOpen(false);
-      resetForm(true);
+      resetForm();
     } catch (err) {
       setConfirmEditOpen(false);
       console.error("Edit error:", err);
@@ -365,6 +366,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    modelNameRef.current?.focus();
   };
 
   const handleEditRowClick = (model) => {
@@ -385,6 +387,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    modelNameRef.current?.focus();
   };
 
   // Fetch items for popup list selector
@@ -432,7 +435,7 @@ useEffect(() => {
   const onModelNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
+      submitRef.current?.focus();
     }
   };
 
@@ -1095,6 +1098,7 @@ useEffect(() => {
               <div className="submit-row">
                 <button
                   className="submit-primary"
+                  ref={submitRef}
                   onClick={handleSubmit}
                   disabled={loading}
                   type="button"

@@ -84,6 +84,7 @@ export default function ProductPage() {
   // refs for step-by-step Enter navigation
   const productCodeRef = useRef(null);
   const productNameRef = useRef(null);
+   const submitRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -461,6 +462,7 @@ useEffect(() => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
+      ProductNameRef.current?.focus();
     }
   };
 
@@ -1108,6 +1110,7 @@ useEffect(() => {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitButtonRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"
