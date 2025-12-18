@@ -17,6 +17,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Refs for keyboard navigation
+  const passwordInputRef = React.useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,6 +29,24 @@ const Login = () => {
     }));
     // Clear error when user starts typing
     if (error) setError('');
+  };
+
+  const handleUsernameKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Move focus to password field
+      if (passwordInputRef.current) {
+        passwordInputRef.current.focus();
+      }
+    }
+  };
+
+  const handlePasswordKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Submit the form
+      handleSubmit(e);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -105,6 +126,7 @@ const Login = () => {
               name="username"
               value={formData.username}
               onChange={handleChange}
+              onKeyPress={handleUsernameKeyPress}
               className={styles.input}
               placeholder="Enter your username"
               disabled={loading}
@@ -124,6 +146,8 @@ const Login = () => {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
+                onKeyPress={handlePasswordKeyPress}
+                ref={passwordInputRef}
                 className={styles.input}
                 placeholder="Enter your password"
                 disabled={loading}
