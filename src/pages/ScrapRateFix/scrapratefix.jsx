@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import apiService from "../../api/apiService";
 import { API_ENDPOINTS } from '../../api/endpoints';
+import { toast } from "react-toastify";
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 
 export default function ScrapRateFixing() {
   // State for scrap rates - initially empty
   const [scrapRates, setScrapRates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isMobile, setIsMobile] = useState(false);
-  const [popupMessage, setPopupMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -15,6 +16,7 @@ export default function ScrapRateFixing() {
   // Array of refs for each rate input
   const rateInputRefs = useRef([]);
   
+
   // Your specified colors - kept exactly as before
   const colors = {
     primary: "#307AC8",
@@ -43,16 +45,6 @@ export default function ScrapRateFixing() {
       window.removeEventListener('resize', checkMobile);
     };
   }, []);
-
-  // Show popup message
-  useEffect(() => {
-    if (popupMessage) {
-      const timer = setTimeout(() => {
-        setPopupMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [popupMessage]);
 
   // Fetch scrap rates from API on component mount
   useEffect(() => {
@@ -91,6 +83,7 @@ export default function ScrapRateFixing() {
         
         setScrapRates(transformedData);
         setIsFetching(false);
+       
       } else {
         // If it's not an array, check if it's an object with data property
         if (dataArray.data && Array.isArray(dataArray.data)) {
@@ -104,6 +97,7 @@ export default function ScrapRateFixing() {
           
           setScrapRates(transformedData);
           setIsFetching(false);
+          toast.success("Scrap rates loaded successfully!");
         } else {
           throw new Error(`Unexpected response format: ${typeof dataArray}`);
         }
@@ -122,11 +116,10 @@ export default function ScrapRateFixing() {
       ];
       
       setScrapRates(testData);
-      setPopupMessage({
-        type: "warning",
-        text: `Using test data: ${error.message}`
-      });
       setIsFetching(false);
+      toast.error(`Failed to load scrap rates: ${error.message}`, {
+        autoClose: 5000,
+      });
     }
   };
 
@@ -142,20 +135,24 @@ export default function ScrapRateFixing() {
     );
   };
 
-  // Handle Enter key press
   const handleKeyDown = (e, index) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      
-      // Find next input field
-      const nextIndex = index + 1;
-      if (nextIndex < rateInputRefs.current.length) {
-        rateInputRefs.current[nextIndex]?.focus();
-      } else {
-        // If last input, focus update button
-        document.querySelector('button[type="button"]')?.focus();
-      }
+    if (e.key !== 'Enter') return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const nextIndex = index + 1;
+
+    // Move to next input
+    if (nextIndex < rateInputRefs.current.length) {
+      rateInputRefs.current[nextIndex]?.focus();
+      return;
     }
+
+    // LAST INPUT
+    // Focus Update button + open confirmation popup
+    document.getElementById("updateRatesBtn")?.focus();
+    setShowConfirmation(true);
   };
 
   // Handle update button click
@@ -163,14 +160,17 @@ export default function ScrapRateFixing() {
     // First, validate the data
     const validationResult = validateScrapRates();
     if (!validationResult.isValid) {
-      setPopupMessage({
-        type: "error",
-        text: validationResult.message
+      toast.error(validationResult.message, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
       });
       return;
     }
-    
-    // Show confirmation popup
+   
     setShowConfirmation(true);
   };
 
@@ -193,10 +193,14 @@ export default function ScrapRateFixing() {
         apiData
       );
       
-      // Show success popup
-      setPopupMessage({
-        type: "success",
-        text: "Updated successfully"
+      // Show success toast
+      toast.success("Scrap rates updated successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
       });
       
       // Refresh data from server to ensure consistency
@@ -218,9 +222,13 @@ export default function ScrapRateFixing() {
         errorMessage = error.message;
       }
       
-      setPopupMessage({
-        type: "error",
-        text: errorMessage
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
       });
     } finally {
       setLoading(false);
@@ -270,9 +278,13 @@ export default function ScrapRateFixing() {
       setScrapRates(prev => 
         prev.map(scrap => ({ ...scrap, rate: "" }))
       );
-      setPopupMessage({
-        type: "success",
-        text: "All rate values have been cleared."
+      toast.success("All rate values have been cleared.", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
       });
     }
   };
@@ -391,161 +403,17 @@ export default function ScrapRateFixing() {
         `}
       </style>
 
-      {/* Confirmation Popup */}
-      {showConfirmation && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          animation: 'fadeIn 0.3s ease'
-        }}>
-          <div style={{
-            background: colors.cardBg,
-            borderRadius: '12px',
-            padding: isMobile ? '20px' : '30px',
-            width: isMobile ? '90%' : '400px',
-            maxWidth: '500px',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-            animation: 'slideIn 0.3s ease'
-          }}>
-            <h3 style={{
-              margin: '0 0 15px 0',
-              color: colors.primary,
-              fontSize: isMobile ? '18px' : '20px',
-              fontWeight: '600'
-            }}>
-              Confirm Update
-            </h3>
-            <p style={{
-              color: colors.muted,
-              margin: '0 0 25px 0',
-              fontSize: isMobile ? '14px' : '16px',
-              lineHeight: '1.5'
-            }}>
-              Are you sure you want to update the scrap rates?
-            </p>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px'
-            }}>
-              <button
-                onClick={() => setShowConfirmation(false)}
-                style={{
-                  padding: isMobile ? '8px 16px' : '10px 20px',
-                  borderRadius: '50px',
-                  border: `1px solid ${colors.border}`,
-                  background: '#ffffff',
-                  color: colors.muted,
-                  fontWeight: '600',
-                  fontSize: isMobile ? '14px' : '15px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.borderColor = colors.muted;
-                  e.target.style.color = colors.muted;
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.borderColor = colors.border;
-                  e.target.style.color = colors.muted;
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmUpdate}
-                style={{
-                  padding: isMobile ? '8px 16px' : '10px 20px',
-                  borderRadius: '50px',
-                  border: 'none',
-                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
-                  color: '#ffffff',
-                  fontWeight: '600',
-                  fontSize: isMobile ? '14px' : '15px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.boxShadow = '0 4px 15px rgba(48, 122, 200, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.boxShadow = 'none';
-                }}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Popup Message */}
-      {popupMessage && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 1000,
-          padding: isMobile ? '12px 16px' : '16px 24px',
-          borderRadius: '8px',
-          animation: 'fadeIn 0.3s ease',
-          background: popupMessage.type === 'error' ? '#fef2f2' : 
-                    popupMessage.type === 'success' ? '#f0fdf4' : 
-                    popupMessage.type === 'warning' ? '#fffbeb' : '#eff6ff',
-          border: `1px solid ${popupMessage.type === 'error' ? '#fecaca' : 
-                   popupMessage.type === 'success' ? '#bbf7d0' : 
-                   popupMessage.type === 'warning' ? '#fde68a' : '#bfdbfe'}`,
-          color: popupMessage.type === 'error' ? '#991b1b' : 
-                 popupMessage.type === 'success' ? '#065f46' : 
-                 popupMessage.type === 'warning' ? '#92400e' : '#1e40af',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          maxWidth: isMobile ? '300px' : '400px',
-          minWidth: isMobile ? '250px' : '300px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
-            <span style={{ fontSize: isMobile ? '18px' : '20px' }}>
-              {popupMessage.type === 'error' ? '❌' : 
-               popupMessage.type === 'success' ? '✅' : 
-               popupMessage.type === 'warning' ? '⚠️' : 'ℹ️'}
-            </span>
-            <span style={{ 
-              fontWeight: '500',
-              fontSize: isMobile ? '13px' : '14px'
-            }}>{popupMessage.text}</span>
-          </div>
-          <button
-            onClick={() => setPopupMessage(null)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'inherit',
-              cursor: 'pointer',
-              fontSize: isMobile ? '18px' : '20px',
-              padding: '0',
-              lineHeight: '1',
-              flexShrink: 0,
-              opacity: 0.7,
-              transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.opacity = '1'}
-            onMouseLeave={(e) => e.target.style.opacity = '0.7'}
-          >
-            ×
-          </button>
-        </div>
-      )}
+      <ConfirmationPopup
+        isOpen={showConfirmation}
+        onClose={() => setShowConfirmation(false)}
+        onConfirm={handleConfirmUpdate}
+        title="Confirm Update"
+        message="Are you sure you want to update the scrap rates?"
+        type="success"
+        confirmText={loading ? "Updating..." : "Confirm"}
+        showLoading={loading}
+        disableBackdropClose={loading}
+      />
 
       <div style={{
         width: '100%',
@@ -819,6 +687,7 @@ export default function ScrapRateFixing() {
         }}>
           {/* Update Button */}
           <button
+            id="updateRatesBtn"
             onClick={handleUpdateClick}
             disabled={loading || isFetching || scrapRates.length === 0}
             style={{

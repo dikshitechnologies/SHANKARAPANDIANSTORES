@@ -364,6 +364,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    designNameRef.current?.focus()
   };
 
   const handleEditRowClick = (d) => {
@@ -377,6 +378,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    designNameRef.current?.focus()
   };
 
   // Fetch items for popup list selector (simple client-side paging/filtering)
