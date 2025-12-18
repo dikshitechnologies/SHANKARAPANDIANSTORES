@@ -318,21 +318,34 @@ useEffect(() => {
   };
 
   const handleAdd = async () => {
-    if (!form.brandCode || !form.brandName) {
-      setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
-      return;
-    }
+  if (!form.brandCode || !form.brandName) {
+    setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
+    return;
+  }
 
-    // Check if brand code already exists
-    const exists = brands.some(b => b.brandCode === form.brandCode);
-    if (exists) {
-      setMessage({ type: "error", text: `Brand code ${form.brandCode} already exists.` });
-      return;
-    }
+  // Check if brand code already exists
+  const codeExists = brands.some(b => b.brandCode === form.brandCode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Brand code ${form.brandCode} already exists.` });
+    return;
+  }
 
-    setConfirmSaveOpen(true);
-  };
+  // ADD THIS CHECK FOR DUPLICATE BRAND NAME (case-insensitive)
+  const nameExists = brands.some(b => 
+    b.brandName.toLowerCase() === form.brandName.toLowerCase()
+  );
 
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Brand name "${form.brandName}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
   const confirmSave = async () => {
     setIsLoading(true);
     try {
