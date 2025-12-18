@@ -1065,7 +1065,7 @@ useEffect(() => {
                   className="input" 
                   value={form.scrapName} 
                   onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))} 
-                  placeholder="Enter scrap name" 
+                 
                   onKeyDown={onScrapNameKeyDown}
                   disabled={loading}
                   aria-label="Scrap Name"

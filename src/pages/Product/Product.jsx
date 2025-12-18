@@ -1090,7 +1090,7 @@ useEffect(() => {
                   className="input" 
                   value={form.fproductname} 
                   onChange={(e) => setForm(s => ({ ...s, fproductname: e.target.value }))} 
-                  placeholder="Enter product name" 
+                   
                   onKeyDown={onProductNameKeyDown}
                   disabled={loading}
                   aria-label="Product Name"

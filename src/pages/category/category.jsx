@@ -1103,7 +1103,7 @@ useEffect(() => {
                   className="input" 
                   value={form.catName} 
                   onChange={(e) => setForm(s => ({ ...s, catName: e.target.value }))} 
-                  placeholder="Enter category name" 
+                  
                   onKeyDown={onCatNameKeyDown}
                   disabled={loading}
                   aria-label="Category Name"
