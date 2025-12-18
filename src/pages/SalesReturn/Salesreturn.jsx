@@ -2000,7 +2000,7 @@ const handleSave = async () => {
 
   showConfirmation({
     title: `${actionText} Sales Return`,
-    message: `Are you sure you want to ${actionType} this sales return?\n\nVoucher No: ${billDetails.billNo}\nTotal Amount: ₹${totalAmount.toFixed(2)}`,
+    message: `Are you sure you want tosave`,
     type: "success",
     confirmText: actionText,
     cancelText: "Cancel",
