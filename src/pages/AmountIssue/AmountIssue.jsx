@@ -205,7 +205,7 @@ const AmountIssue = () => {
                     value={formData.expensesCategory}
                     onChange={handleChange}
                     className={`${styles.input} ${errors.expensesCategory ? styles.error : ''}`}
-                    placeholder="Enter expenses category"
+                    // placeholder="Enter expenses category"
                     style={{ flex: 1 }}
                     required
                   />
@@ -245,7 +245,7 @@ const AmountIssue = () => {
                     value={formData.paymentToWhom}
                     onChange={handleChange}
                     className={`${styles.input} ${errors.paymentToWhom ? styles.error : ''}`}
-                    placeholder="Enter recipient name"
+                    // placeholder="Enter recipient name"
                     style={{ flex: 1 }}
                     required
                   />
@@ -284,7 +284,7 @@ const AmountIssue = () => {
                   value={formData.expensesDescription}
                   onChange={handleChange}
                   className={styles.textarea}
-                  placeholder="Enter detailed description of expenses"
+                  // placeholder="Enter detailed description of expenses"
                   rows={4}
                 />
               </div>
@@ -321,7 +321,7 @@ const AmountIssue = () => {
                   value={formData.expensesAmount}
                   onChange={handleChange}
                   className={`${styles.input} ${errors.expensesAmount ? styles.error : ''}`}
-                  placeholder="0.00"
+                  // placeholder="0.00"
                   min="0"
                   step="0.01"
                   required
@@ -340,7 +340,7 @@ const AmountIssue = () => {
                   value={formData.issuedAmount}
                   onChange={handleChange}
                   className={`${styles.input} ${errors.issuedAmount ? styles.error : ''}`}
-                  placeholder="0.00"
+                  // placeholder="0.00"
                   min="0"
                   step="0.01"
                   required
@@ -359,7 +359,7 @@ const AmountIssue = () => {
                   value={formData.paymentIssuedBy}
                   onChange={handleChange}
                   className={`${styles.input} ${errors.paymentIssuedBy ? styles.error : ''}`}
-                  placeholder="Enter issuer name"
+                  // placeholder="Enter issuer name"
                   required
                 />
                 {errors.paymentIssuedBy && <span className={styles.errorText}>{errors.paymentIssuedBy}</span>}

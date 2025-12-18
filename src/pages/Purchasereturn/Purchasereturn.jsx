@@ -691,7 +691,7 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, dateRef)}
               onFocus={() => setFocusedField('returnNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Return No"
+              // placeholder="Return No"
             />
           </div>
 
@@ -724,7 +724,7 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('amount')}
               onBlur={() => setFocusedField('')}
-              placeholder="Amount"
+              // placeholder="Amount"
             />
           </div>
 
@@ -740,7 +740,7 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('originalInvoiceNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Original Invoice No"
+              // placeholder="Original Invoice No"
             />
           </div>
 
@@ -771,7 +771,7 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('originalInvoiceAmount')}
               onBlur={() => setFocusedField('')}
-              placeholder="Original Amount"
+              // placeholder="Original Amount"
             />
           </div>
         </div>
@@ -794,7 +794,7 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
               onFocus={() => setFocusedField('partyCode')}
               onBlur={() => setFocusedField('')}
-              placeholder="Party Code"
+              // placeholder="Party Code"
             />
           </div>
 
@@ -810,7 +810,7 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
               onFocus={() => setFocusedField('customerName')}
               onBlur={() => setFocusedField('')}
-              placeholder="Customer Name"
+              // placeholder="Customer Name"
             />
           </div>
 
@@ -826,7 +826,7 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('city')}
               onBlur={() => setFocusedField('')}
-              placeholder="City"
+              // placeholder="City"
             />
           </div>
 
@@ -883,7 +883,7 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Mobile No"
+              // placeholder="Mobile No"
             />
           </div>
         </div>
@@ -906,7 +906,7 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('gstno')}
               onBlur={() => setFocusedField('')}
-              placeholder="GST No"
+              // placeholder="GST No"
             />
           </div>
 
@@ -984,7 +984,7 @@ const PurchaseReturn = () => {
                     <input
                       style={{ ...styles.editableInput, textAlign: 'left' }}
                       value={item.name}
-                      placeholder="Particulars"
+                      // placeholder="Particulars"
                       data-row={index}
                       data-field="name"
                       onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}

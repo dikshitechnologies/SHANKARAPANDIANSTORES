@@ -555,7 +555,7 @@ const Scrapprocurement = () => {
           itemCode: item.itemCode || '',
           itemName: item.itemName || '',
           barcode: item.barcode || item.itemCode || '',
-          uom: item.uom || 'KG',
+          uom: item.units || 'KG',
           brand: item.brand || '',
           category: item.category || '',
           model: item.model || '',
@@ -1589,7 +1589,7 @@ const Scrapprocurement = () => {
               onKeyDown={(e) => handleKeyDown(e, billDateRef)}
               onFocus={() => setFocusedField('billNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Bill No"
+              // placeholder="Bill No"
             />
           </div>
 
@@ -1629,7 +1629,7 @@ const Scrapprocurement = () => {
               onKeyDown={(e) => handleKeyDown(e, empNameRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Mobile No"
+              // placeholder="Mobile No"
             />
           </div>
 
@@ -1649,7 +1649,7 @@ const Scrapprocurement = () => {
               onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
               onFocus={() => setFocusedField('empName')}
               onBlur={() => setFocusedField('')}
-              placeholder="EMP Name"
+              // placeholder="EMP Name"
             />
           </div>
         </div>
