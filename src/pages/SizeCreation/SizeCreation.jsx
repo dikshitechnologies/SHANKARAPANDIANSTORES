@@ -77,7 +77,7 @@ export default function SizeCreation() {
   // refs for step-by-step Enter navigation
   const sizeCodeRef = useRef(null);
   const sizeNameRef = useRef(null);
-
+const submitRef = useRef(null);
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
@@ -246,7 +246,7 @@ export default function SizeCreation() {
       
       setMessage({ type: "success", text: "Size updated successfully." });
       setConfirmEditOpen(false);
-      resetForm(true);
+      resetForm();
     } catch (err) {
       setConfirmEditOpen(false);
       // Error message already set in updateSize
@@ -353,6 +353,7 @@ export default function SizeCreation() {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    sizeNameRef.current?.focus();
   };
 
   const handleEditRowClick = (size) => {
@@ -369,6 +370,7 @@ export default function SizeCreation() {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    sizeNameRef.current?.focus();
   };
 
   // Fetch items for popup list selector
@@ -405,8 +407,7 @@ export default function SizeCreation() {
 
   const onSizeNameKeyDown = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
+       submitRef.current?.focus();
     }
   };
 
@@ -1037,6 +1038,7 @@ export default function SizeCreation() {
                     value={form.sizeName} 
                     onChange={(e) => setForm(s => ({ ...s, sizeName: e.target.value }))} 
                     onKeyDown={onSizeNameKeyDown}
+                    // onKeyDown={handleSubmit}
                     disabled={loading}
                     aria-label="Size Name"
                     readOnly={actionType === "delete"}
@@ -1055,6 +1057,7 @@ export default function SizeCreation() {
               <div className="submit-row">
                 <button
                   className="submit-primary"
+                  ref={submitRef}
                   onClick={handleSubmit}
                   disabled={loading}
                   type="button"
