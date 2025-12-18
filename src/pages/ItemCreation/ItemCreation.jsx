@@ -1930,8 +1930,10 @@ const handleEnterNavigation = (e) => {
                       }
                       isInitialFocusRef.current = false;
                     }}
-                    placeholder="Select Group Name"
-                    disabled={isSubmitting}
+                    
+
+            
+                     disabled={isSubmitting}
                     aria-label="Group Name"
                     style={{
                       flex: 1,
@@ -2101,7 +2103,7 @@ const handleEnterNavigation = (e) => {
                     className="input"
                     value={formData.itemName}
                     onChange={(e) => handleChange('itemName', e.target.value)}
-                    placeholder="Enter Item Name"
+                   
                     disabled={isSubmitting}
                     aria-label="Item Name"
                     style={{
@@ -2136,7 +2138,7 @@ const handleEnterNavigation = (e) => {
                     className="input"
                     value={formData.shortName}
                     onChange={(e) => handleChange('shortName', e.target.value)}
-                    placeholder="Enter Short Name"
+                    
                     disabled={isSubmitting}
                     aria-label="Short Name"
                     style={{
@@ -2166,7 +2168,7 @@ const handleEnterNavigation = (e) => {
                     onChange={(e) => handleChange('brand', e.target.value)}
                     onClick={() => setIsBrandPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('brand', e)}
-                    placeholder="Select Brand (or type a letter)"
+                   
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Brand"
@@ -2188,7 +2190,8 @@ const handleEnterNavigation = (e) => {
                     onChange={(e) => handleChange('category', e.target.value)}
                     onClick={() => setIsCategoryPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('category', e)}
-                    placeholder="Select Category (or type a letter)"
+                   
+                    
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Category"
@@ -2210,7 +2213,7 @@ const handleEnterNavigation = (e) => {
                     onChange={(e) => handleChange('product', e.target.value)}
                     onClick={() => setIsProductPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('product', e)}
-                    placeholder="Select Product (or type a letter)"
+                    
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Product"
@@ -2232,7 +2235,7 @@ const handleEnterNavigation = (e) => {
                     onChange={(e) => handleChange('model', e.target.value)}
                     onClick={() => setIsModelPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('model', e)}
-                    placeholder="Select Model (or type a letter)"
+                    
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Model"
@@ -2254,7 +2257,7 @@ const handleEnterNavigation = (e) => {
                     onChange={(e) => handleChange('size', e.target.value)}
                     onClick={() => setIsSizePopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('size', e)}
-                    placeholder="Select Size (or type a letter)"
+                    
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Size"
@@ -2276,7 +2279,7 @@ const handleEnterNavigation = (e) => {
                     onChange={(e) => handleChange('unit', e.target.value)}
                     onClick={() => setIsUnitPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('unit', e)}
-                    placeholder="Select Units (or type a letter)"
+                    
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Units"
@@ -2295,7 +2298,7 @@ const handleEnterNavigation = (e) => {
                   className="input"
                   value={formData.max}
                   onChange={(e) => handleChange('max', e.target.value)}
-                  placeholder="Enter Max"
+                 
                   disabled={isSubmitting}
                   aria-label="Max"
                   style={{ textAlign: "center" }}
@@ -2310,7 +2313,7 @@ const handleEnterNavigation = (e) => {
                   className="input"
                   value={formData.min}
                   onChange={(e) => handleChange('min', e.target.value)}
-                  placeholder="Enter Min"
+                  
                   disabled={isSubmitting}
                   aria-label="Min"
                   style={{ textAlign: "center" }}
@@ -2329,7 +2332,7 @@ const handleEnterNavigation = (e) => {
                       handleChange('hsnCode', e.target.value);
                     }
                   }}
-                  placeholder="Enter HSN Code"
+                 
                   disabled={isSubmitting}
                   aria-label="HSN Code"
                   title="4-8 digit HSN Code"
@@ -2385,7 +2388,7 @@ const handleEnterNavigation = (e) => {
                       setTimeout(() => gstinRef.current?.focus(), 10);
                     }
                   }}
-                  placeholder="Enter GST%"
+                 
                   disabled={isSubmitting || !gstChecked}
                   aria-label="GST Percentage"
                 />
@@ -2425,7 +2428,7 @@ const handleEnterNavigation = (e) => {
                       handleChange('prefix', e.target.value);
                     }
                   }}
-                  placeholder="Enter Prefix"
+                 
                   disabled={isSubmitting || !manualPrefixChecked}
                   aria-label="Prefix"
                 />
@@ -2467,7 +2470,7 @@ const handleEnterNavigation = (e) => {
                       handleChange('sellingPrice', value);
                     }
                   }}
-                  placeholder="Enter Selling Price"
+                  
                   disabled={isSubmitting}
                   aria-label="Selling Price"
                   // Use text type instead of number to remove spinners
@@ -2490,7 +2493,7 @@ const handleEnterNavigation = (e) => {
                       handleChange('costPrice', value);
                     }
                   }}
-                  placeholder="Enter Cost Price"
+                  
                   disabled={isSubmitting}
                   aria-label="Cost Price"
                   // Use text type instead of number to remove spinners

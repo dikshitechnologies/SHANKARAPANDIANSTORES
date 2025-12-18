@@ -1232,7 +1232,8 @@ const handleDeleteRowClick = (s) => {
                   className={`input ${isCurrentNameDuplicate ? 'warning' : ''}`}
                   value={form.stateName} 
                   onChange={(e) => setForm(s => ({ ...s, stateName: e.target.value }))} 
-                  placeholder="Enter state name" 
+                 
+                  
                   onKeyDown={onStateNameKeyDown}
                   disabled={loading}
                   aria-label="State Name"
