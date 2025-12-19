@@ -71,6 +71,7 @@ export default function SalesmanCreation() {
   // refs for step-by-step Enter navigation
   const salesmanCodeRef = useRef(null);
   const salesmanNameRef = useRef(null);
+  const submitButtonRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
