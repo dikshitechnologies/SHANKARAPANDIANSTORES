@@ -2131,6 +2131,7 @@ const ReceiptVoucher = () => {
           onConfirm={handleConfirmedSave}
           onClose={handleCancelSave}
           loading={isSaving}
+          totalAmount={saveConfirmationData?.totalAmount}
         />
       )}
 
