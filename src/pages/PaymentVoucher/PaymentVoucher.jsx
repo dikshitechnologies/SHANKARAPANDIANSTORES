@@ -1952,6 +1952,7 @@ const PaymentVoucher = () => {
           loading={isSaving}
           voucherNo={voucherDetails.voucherNo}
           voucherDate={voucherDetails.date}
+          totalAmount={totalAmount}
         />
       )}
 

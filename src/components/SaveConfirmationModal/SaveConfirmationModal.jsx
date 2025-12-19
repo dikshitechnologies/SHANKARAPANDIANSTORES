@@ -111,7 +111,8 @@ const SaveConfirmationModal = ({
     
     const collect = Number(updated[denom].collect) || 0;
     const issue = Number(updated[denom].issue) || 0;
-    const available = liveAvailable[denom] || updated[denom].available;
+    // Use liveAvailable if available, otherwise use denominations available
+    const available = liveAvailable[denom] !== 0 && liveAvailable[denom] ? liveAvailable[denom] : updated[denom].available;
     updated[denom].closing = available + collect - issue;
     
     // If collect field is being updated, calculate balance and auto-fill issue
@@ -126,23 +127,36 @@ const SaveConfirmationModal = ({
       // Calculate balance
       const balance = totalCollected - totalAmount;
       
+      console.log('Balance Calculation: Total Collected:', totalCollected, '- Total Amount:', totalAmount, '= Balance:', balance);
+      
       // Update form data balance and received cash
       setFormData(prev => ({
         ...prev,
-        receivedCash: totalCollected.toString(),
-        balance: balance.toString()
+        receivedCash: totalCollected.toString()
       }));
       
       // If balance is positive, auto-calculate and fill issue row
       if (balance > 0) {
+        console.log('Auto-calculating issue for balance:', balance);
         const optimalIssue = calculateOptimalDenominations(balance);
+        console.log('Optimal issue breakdown:', optimalIssue);
+        
         [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
           updated[d] = { ...updated[d], issue: optimalIssue[d].toString() };
           // Recalculate closing for each denomination
           const col = Number(updated[d].collect) || 0;
           const iss = optimalIssue[d];
-          const avail = liveAvailable[d] || updated[d].available;
+          const avail = liveAvailable[d] !== 0 && liveAvailable[d] ? liveAvailable[d] : updated[d].available;
           updated[d].closing = avail + col - iss;
+        });
+      } else {
+        // If balance is not positive, reset issue to 0
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+          updated[d] = { ...updated[d], issue: 0 };
+          // Recalculate closing for each denomination (closing = available + collect - 0)
+          const col = Number(updated[d].collect) || 0;
+          const avail = liveAvailable[d] !== 0 && liveAvailable[d] ? liveAvailable[d] : updated[d].available;
+          updated[d].closing = avail + col;
         });
       }
     }
@@ -170,6 +184,25 @@ const SaveConfirmationModal = ({
       }, 100);
     }
   }, [isOpen, particulars, userData?.companyCode]);
+
+  // Update closing values when liveAvailable changes
+  useEffect(() => {
+    if (Object.keys(liveAvailable).some(key => liveAvailable[key] > 0)) {
+      setDenominations(prev => {
+        const updated = { ...prev };
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(denom => {
+          const collect = Number(updated[denom]?.collect) || 0;
+          const issue = Number(updated[denom]?.issue) || 0;
+          const available = liveAvailable[denom] || updated[denom]?.available || 0;
+          updated[denom] = {
+            ...updated[denom],
+            closing: available + collect - issue
+          };
+        });
+        return updated;
+      });
+    }
+  }, [liveAvailable]);
 
   if (!isOpen) return null;
 
@@ -297,8 +330,7 @@ const SaveConfirmationModal = ({
                   <div className={styles.paymentInputContainer}>
                     <input
                       type="number"
-                      value={formData.receivedCash}
-                      onChange={(e) => handleInputChange('receivedCash', e.target.value)}
+                      value={totalAmount}
                       className={styles.paymentInput}
                       placeholder="0"
                       readOnly
@@ -307,11 +339,37 @@ const SaveConfirmationModal = ({
                 </div>
                 
                 <div className={styles.paymentGroup}>
-                  <label className={styles.paymentLabel}>Calculated Amount</label>
+                  <label className={styles.paymentLabel}>Collected Amount</label>
                   <div className={styles.paymentInputContainer}>
                     <input
                       type="text"
-                      value={formData.issuedCash}
+                      value={(() => {
+                        let collected = 0;
+                        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+                          const collectValue = Number(denominations[d]?.collect) || 0;
+                          collected += collectValue * d;
+                        });
+                        return collected;
+                      })()}
+                      readOnly
+                      className={`${styles.paymentInput} ${styles.readonlyPayment}`}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.paymentGroup}>
+                  <label className={styles.paymentLabel}>Issued Amount</label>
+                  <div className={styles.paymentInputContainer}>
+                    <input
+                      type="text"
+                      value={(() => {
+                        let issued = 0;
+                        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+                          const issueValue = Number(denominations[d]?.issue) || 0;
+                          issued += issueValue * d;
+                        });
+                        return issued;
+                      })()}
                       readOnly
                       className={`${styles.paymentInput} ${styles.readonlyPayment}`}
                     />
