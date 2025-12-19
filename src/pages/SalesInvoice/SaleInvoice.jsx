@@ -10,7 +10,7 @@ import { axiosInstance } from '../../api/apiService';
 
 
 
-const SearchIcon = ({ size = 16, color = "blue" }) => (
+const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
@@ -1271,7 +1271,7 @@ const handleSalesmanSelect = (salesman) => {
   };
 
   // Handle UOM spacebar cycling
-  const handleUomSpacebar = (e, id, index) => {
+const handleUomSpacebar   = (e, id, index) => {
     if (e.key === ' ') {
       e.preventDefault();
       
