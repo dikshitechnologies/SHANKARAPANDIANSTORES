@@ -1,27 +1,52 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import axiosInstance from '../../api/axiosInstance';
+import { API_ENDPOINTS } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
+
 
 const PurchaseReturn = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('all');
+  const [activeTopAction, setActiveTopAction] = useState('create');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingBillNo, setEditingBillNo] = useState('');
+  
+  // Confirmation popup states
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'default',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    showLoading: false
+  });
+  
+  const [showBillListPopup, setShowBillListPopup] = useState(false);
+  const [popupMode, setPopupMode] = useState('');
 
   // 1. Header Details State
   const [returnDetails, setReturnDetails] = useState({
-    returnNo: '',
-    returnDate: '',
+    invNo: '',
+    billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
     customerName: '',
-    type: 'Return',
+    type: 'Retail',
     barcodeInput: '',
     entryDate: '',
     amount: '',
     partyCode: '',
     gstno: '',
-    originalInvoiceNo: '',
-    originalInvoiceDate: '',
-    originalInvoiceAmount: '',
-    transType: 'RETURN',
+    gstType: 'G',
+    purNo: '',
+    invoiceNo: '',
+    purDate: new Date().toISOString().substring(0, 10),
+    invoiceAmount: '',
+    transType: 'PURCHASE',
     city: '',
     isLedger: false,
   });
@@ -78,6 +103,9 @@ const PurchaseReturn = () => {
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('all');
 
+  // Loading state for async operations
+  const [isLoading, setIsLoading] = useState(false);
+
   // Screen size state for responsive adjustments
   const [screenSize, setScreenSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
@@ -86,6 +114,362 @@ const PurchaseReturn = () => {
     isTablet: false,
     isDesktop: true
   });
+
+  // Auth context for company code
+  const { userData } = useAuth() || {};
+
+  // Helper function to show confirmation popup
+  const showConfirmation = (config) => {
+    setConfirmConfig({
+      title: config.title || 'Confirm Action',
+      message: config.message || 'Are you sure you want to proceed?',
+      onConfirm: config.onConfirm || (() => {}),
+      type: config.type || 'default',
+      confirmText: config.confirmText || 'Confirm',
+      cancelText: config.cancelText || 'Cancel',
+      showLoading: config.showLoading || false,
+      hideCancelButton: config.hideCancelButton || false
+    });
+    setShowConfirmPopup(true);
+  };
+
+  // Helper function to show alert-like confirmation
+  const showAlertConfirmation = (message, onConfirm = null, type = 'info') => {
+    showConfirmation({
+      title: 'Information',
+      message: message,
+      onConfirm: onConfirm || (() => setShowConfirmPopup(false)),
+      type: type,
+      confirmText: 'OK',
+      hideCancelButton: true,
+      showLoading: false
+    });
+  };
+
+  // COMPLETE NEW FORM FUNCTION
+  const createNewForm = async () => {
+    try {
+      setIsLoading(true);
+      
+      // First, clear all states
+      setIsEditMode(false);
+      setEditingBillNo('');
+      setActiveTopAction('create');
+      setActiveFooterAction('all');
+      setFocusedField('');
+      setShowBillListPopup(false);
+      setPopupMode('');
+      
+      // Clear table items first
+      setItems([{
+        id: 1,
+        barcode: '',
+        name: '',
+        sub: '',
+        stock: '0',
+        mrp: '0',
+        uom: '',
+        hsn: '',
+        tax: '',
+        rate: 0,
+        qty: '1',
+        ovrwt: '',
+        avgwt: '',
+        prate: 0,
+        intax: '',
+        outtax: '',
+        acost: '',
+        sudo: '',
+        profitPercent: '',
+        preRT: '',
+        sRate: '',
+        asRate: '',
+        letProfPer: '',
+        ntCost: '',
+        wsPercent: '',
+        wsRate: '',
+        min: '',
+        max: '',
+      }]);
+      
+      // Clear header fields
+      const currentDate = new Date().toISOString().substring(0, 10);
+      setReturnDetails({
+        invNo: '',
+        billDate: currentDate,
+        mobileNo: '',
+        customerName: '',
+        type: 'Retail',
+        barcodeInput: '',
+        entryDate: '',
+        amount: '',
+        partyCode: '',
+        gstno: '',
+        gstType: 'G',
+        purNo: '',
+        invoiceNo: '',
+        purDate: currentDate,
+        invoiceAmount: '',
+        transType: 'PURCHASE',
+        city: '',
+        isLedger: false,
+      });
+      
+      // Then fetch next invoice number
+      await fetchNextInvNo();
+      
+      // Force a state update
+      setTimeout(() => {
+        if (returnNoRef.current) {
+          returnNoRef.current.focus();
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error creating new form:', error);
+      showAlertConfirmation('Error refreshing form. Please try again.', null, 'danger');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch purchase return bill list for popup
+  // Fetch purchase return bill list for popup
+  const fetchBillList = async () => {
+    try {
+      const compCode = userData?.companyCode || '001';
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.PURCHASE_RETURN.GET_BILL_NUMBERS(compCode)
+      );
+      
+      const data = response?.data?.billNumbers || [];
+      
+      return Array.isArray(data) ? data.map((bill, index) => ({
+        id: bill.billno || `bill-${index}`,
+        voucherNo: bill.billno || '',
+      })) : [];
+    } catch (err) {
+      console.error('Error fetching bill list:', err);
+      return [];
+    }
+  };
+
+
+  // Fetch purchase return details for editing
+  const fetchPurchaseReturnDetails = async (voucherNo) => {
+    try {
+      const compCode = userData?.companyCode || '001';
+      
+      console.log('Fetching purchase return details for:', voucherNo, 'compCode:', compCode);
+      
+      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_RETURN_DETAILS(voucherNo), {
+        params: {
+          compCode: compCode
+        }
+      });
+      
+      console.log('Purchase return details response:', response.data);
+      
+      const data = response.data;
+      
+      if (data) {
+        const bledger = data.bledger || {};
+        const iledger = data.iledger || [];
+        const headerDetails = {
+          invNo: bledger.voucherNo || '',
+          billDate: bledger.voucherDate ? bledger.voucherDate.split('T')[0] : '',
+          customerName: bledger.refName || '',
+          amount: bledger.billAmount || '',
+          partyCode: bledger.customerCode || '',
+          gstno: iledger.cstsNo || '',
+          city: iledger.add3 || '',
+          mobileNo: iledger.add4 || '',
+          transType: bledger.transType || 'PURCHASE',
+        };
+        
+        console.log('Setting header details:', headerDetails);
+        setReturnDetails(prev => ({ ...prev, ...headerDetails }));
+
+        let itemsData = [];
+        
+        if (data.items && Array.isArray(data.items)) {
+          itemsData = data.items;
+        } else if (data.iledger && Array.isArray(data.iledger)) {
+          itemsData = data.iledger;
+        }
+        
+        console.log('Items data found:', itemsData.length, 'items');
+        
+        if (itemsData.length > 0) {
+          const formattedItems = itemsData.map((item, index) => ({
+            id: index + 1,
+            barcode: item.itemCode || item.fid || '',
+            name: item.itemname || item.fName || '',
+            stock: item.stock || '0',
+            mrp: item.mrp || '0',
+            uom: item.fUnit || item.unit || '',
+            hsn: item.fhsn || item.hsn || '',
+            tax: item.fTax || item.tax || '',
+            prate: item.rate || 0,
+            qty: item.qty || '1',
+            ovrwt: item.ovrWt || '',
+            avgwt: item.avgWt || '',
+            intax: item.inTax || '',
+            outtax: item.outTax || '',
+            acost: item.acost || '',
+            sudo: item.sudo || '',
+            profitPercent: item.profitPercent || '',
+            preRT: item.preRate || '',
+            sRate: item.sRate || '',
+            asRate: item.asRate || '',
+            letProfPer: item.letProfPer || '',
+            ntCost: item.ntCost || '',
+            wsPercent: item.wsPer || '',
+            wsRate: item.wRate || '',
+            min: '',
+            max: ''
+          }));
+          
+          console.log('Formatted items:', formattedItems);
+          setItems(formattedItems);
+        } else {
+          console.log('No items found, resetting to default');
+          setItems([{
+            id: 1,
+            barcode: '',
+            name: '',
+            sub: '',
+            stock: '0',
+            mrp: '0',
+            uom: '',
+            hsn: '',
+            tax: '',
+            rate: 0,
+            qty: '1',
+            ovrwt: '',
+            avgwt: '',
+            prate: 0,
+            intax: '',
+            outtax: '',
+            acost: '',
+            sudo: '',
+            profitPercent: '',
+            preRT: '',
+            sRate: '',
+            asRate: '',
+            letProfPer: '',
+            ntCost: '',
+            wsPercent: '',
+            wsRate: '',
+            min: '',
+            max: '',
+          }]);
+        }
+
+        setIsEditMode(true);
+        setEditingBillNo(voucherNo);
+        setActiveTopAction('edit');
+        console.log('Edit mode activated for voucher:', voucherNo);
+        
+      } else {
+        console.warn('No data received from API');
+        showAlertConfirmation('No purchase return data found', null, 'warning');
+      }
+    } catch (err) {
+      console.error('Error fetching purchase return details:', err);
+      console.error('Error response:', err.response);
+      showAlertConfirmation(`Failed to load purchase return details: ${err.message}`, null, 'danger');
+    }
+  };
+
+  // Delete purchase return bill
+  const deletePurchaseReturnBill = async (voucherNo) => {
+    try {
+      setIsLoading(true);
+      const compCode = userData?.companyCode || '001';
+      
+      console.log('Deleting purchase return bill:', voucherNo);
+      
+      await axiosInstance.delete(
+        API_ENDPOINTS.PURCHASE_RETURN.DELETE_PURCHASE_RETURN(voucherNo, compCode)
+      );
+      
+      console.log('Purchase return bill deleted successfully');
+      showAlertConfirmation('Purchase Return deleted successfully', () => {
+        createNewForm();
+      }, 'success');
+      
+    } catch (err) {
+      console.error('Error deleting purchase return bill:', err);
+      showAlertConfirmation(`Failed to delete purchase return: ${err.message}`, null, 'danger');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Edit button click
+  const handleEdit = () => {
+    setPopupMode('edit');
+    setShowBillListPopup(true);
+  };
+
+  // Handle Delete button click
+  const handleDeleteBill = () => {
+    setPopupMode('delete');
+    setShowBillListPopup(true);
+  };
+
+  // Handle bill selection from popup
+  const handleBillSelect = (selectedBill) => {
+    if (!selectedBill || !selectedBill.voucherNo) return;
+    
+    if (popupMode === 'edit') {
+      fetchPurchaseReturnDetails(selectedBill.voucherNo);
+    } else if (popupMode === 'delete') {
+      showConfirmation({
+        title: 'Delete Purchase Return',
+        message: `Are you sure you want to delete Purchase Return ${selectedBill.voucherNo}? This action cannot be undone.`,
+        onConfirm: () => {
+          deletePurchaseReturnBill(selectedBill.voucherNo);
+        },
+        type: 'danger',
+        confirmText: 'Delete',
+        cancelText: 'Cancel'
+      });
+    }
+    
+    setShowBillListPopup(false);
+    setPopupMode('');
+  };
+
+ const fetchNextInvNo = async () => {
+    try {
+      setIsLoading(true);
+      const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
+      const endpoint = API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_RETURNS(compCode);
+      const response = await axiosInstance.get(endpoint);
+      const nextCode = response?.data?.voucherNo ?? response?.voucherNo;
+      if (nextCode) {
+        setReturnDetails(prev => ({ ...prev, invNo: nextCode }));
+      } else {
+        // If no next code, set a placeholder
+        setReturnDetails(prev => ({ ...prev, invNo: '' }));
+      }
+    } catch (err) {
+      console.warn('Failed to fetch next invoice number:', err);
+      setReturnDetails(prev => ({ ...prev, invNo: '' }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchNextInvNo();
+  }, [userData]);
+
+
+
 
   // Update screen size on resize
   useEffect(() => {
@@ -233,8 +617,7 @@ const PurchaseReturn = () => {
     }
   };
 
-  const handleDelete = () => {
-    // Removes the last item for demo purposes
+  const handleDeleteRowFromTable = () => {
     if (items.length > 0) {
       setItems(items.slice(0, -1));
     }
@@ -676,9 +1059,9 @@ const PurchaseReturn = () => {
             <input
               type="text"
               style={styles.inlineInput}
-              value={returnDetails.returnNo}
-              name="returnNo"
-              onChange={handleInputChange}
+              value={returnDetails.invNo}
+              name="invNo"
+              readOnly={true}
               ref={returnNoRef}
               onKeyDown={(e) => handleKeyDown(e, dateRef)}
               onFocus={() => setFocusedField('returnNo')}
@@ -1237,18 +1620,19 @@ const PurchaseReturn = () => {
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
-          <ActionButtons
-            activeButton={activeTopAction}
+          <ActionButtons 
+            activeButton={activeTopAction} 
             onButtonClick={(type) => {
+              console.log("Top action clicked:", type);
               setActiveTopAction(type);
-              if (type === 'add') handleAddRow();
-              else if (type === 'edit') alert('Edit action: select a row to edit');
-              else if (type === 'delete') handleDelete();
-            }}
+              if (type === 'add') createNewForm();
+              else if (type === 'edit') handleEdit();
+              else if (type === 'delete') handleDeleteBill();
+            }}         
           >
-            <AddButton />
-            <EditButton />
-            <DeleteButton />
+            <AddButton buttonType="add"/>
+            <EditButton buttonType="edit"/>
+            <DeleteButton buttonType="delete" />
           </ActionButtons>
         </div>
         <div style={styles.netBox}>
@@ -1263,8 +1647,44 @@ const PurchaseReturn = () => {
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
+          
         </div>
       </div>
+
+      {/* Purchase Return Bill List Popup for Edit/Delete */}
+      <PopupListSelector
+        open={showBillListPopup}
+        onClose={() => {
+          setShowBillListPopup(false);
+          setPopupMode('');
+        }}
+        title={popupMode === 'edit' ? 'Select Purchase Return to Edit' : 'Select Purchase Return to Delete'}
+        fetchItems={fetchBillList}
+        displayFieldKeys={['voucherNo']}
+        headerNames={['Bill No']}
+        searchFields={['voucherNo']}
+        columnWidths={{ voucherNo: '100%' }}
+        searchPlaceholder="Search by bill no..."
+        onSelect={handleBillSelect}
+      />
+
+      {/* Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showConfirmPopup}
+        onClose={() => setShowConfirmPopup(false)}
+        onConfirm={async () => {
+          await confirmConfig.onConfirm();
+          setShowConfirmPopup(false);
+        }}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+        confirmText={confirmConfig.confirmText}
+        cancelText={confirmConfig.cancelText}
+        hideCancelButton={confirmConfig.hideCancelButton}
+        showLoading={confirmConfig.showLoading || isLoading}
+        disableBackdropClose={isLoading}
+      />
     </div>
   );
 };
