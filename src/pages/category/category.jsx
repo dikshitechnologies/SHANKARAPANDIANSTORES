@@ -57,17 +57,6 @@ const Icon = {
   ),
 };
 
-// Update your API_ENDPOINTS in endpoints.js with these:
-/*
-  CATEGORY: {
-    GET_CATEGORIES: 'CATEGORY/GetAllCategory',
-    CREATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=true',
-    UPDATE_CATEGORY: 'CATEGORY/InsertCategory?selecttype=false',
-    DELETE_CATEGORY: (code) => `CATEGORY/DeleteCategory/${code}`,
-    GET_NEXT_CODE: 'CATEGORY/getNextModelFcode'
-  }
-*/
-
 export default function CategoryPage() {
   // ---------- state ----------
   const [categories, setCategories] = useState([]);
@@ -138,19 +127,14 @@ export default function CategoryPage() {
       let nextCode = "0001"; // Default fallback
       
       if (typeof response === 'string' || typeof response === 'number') {
-        // If response is a string or number, use it directly
         nextCode = response.toString().padStart(4, '0');
       } else if (response && response.fCode) {
-        // If response has fCode property
         nextCode = response.fCode.toString().padStart(4, '0');
       } else if (response && response.code) {
-        // If response has code property
         nextCode = response.code.toString().padStart(4, '0');
       } else if (response && response.nextCode) {
-        // If response has nextCode property
         nextCode = response.nextCode.toString().padStart(4, '0');
       } else if (response && response.catCode) {
-        // If response has catCode property
         nextCode = response.catCode.toString().padStart(4, '0');
       }
       
@@ -271,31 +255,31 @@ export default function CategoryPage() {
   }, []);
 
   // Focus on category name field on initial load/reload
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (catNameRef.current) {
-      catNameRef.current.focus();
-    }
-  }, 100); // Small delay to ensure DOM is ready
-  return () => clearTimeout(timer);
-}, []); // Empty dependency array = runs once on mount
-
-// Additional focus for when actionType changes
-useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (catNameRef.current) catNameRef.current.focus();
-    }, 0);
+      if (catNameRef.current) {
+        catNameRef.current.focus();
+      }
+    }, 100);
     return () => clearTimeout(timer);
-  }
-}, [actionType]);
+  }, []);
+
+  // Additional focus for when actionType changes
+  useEffect(() => {
+    if (actionType === "edit" || actionType === "Add") {
+      const timer = setTimeout(() => {
+        if (catNameRef.current) catNameRef.current.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
     await Promise.all([fetchCategories(), getNextCategoryCode()]);
   };
 
-  const handleEdit = async () => {
+  const handleEdit = () => { // Remove async
     if (!form.catCode || !form.catName) {
       setMessage({ type: "error", text: "Please fill Category Code and Category Name." });
       return;
@@ -324,7 +308,7 @@ useEffect(() => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => { // Remove async
     if (!form.catCode) {
       setMessage({ type: "error", text: "Please select a category to delete." });
       return;
@@ -355,35 +339,35 @@ useEffect(() => {
     }
   };
 
-  const handleAdd = async () => {
-  if (!form.catCode || !form.catName) {
-    setMessage({ type: "error", text: "Please fill Category Code and Category Name." });
-    return;
-  }
+  const handleAdd = () => { // Remove async - FIXED
+    if (!form.catCode || !form.catName) {
+      setMessage({ type: "error", text: "Please fill Category Code and Category Name." });
+      return;
+    }
 
-  // Check if category code already exists
-  const codeExists = categories.some(c => c.catCode === form.catCode);
-  if (codeExists) {
-    setMessage({ type: "error", text: `Category code ${form.catCode} already exists.` });
-    return;
-  }
+    // Check if category code already exists
+    const codeExists = categories.some(c => c.catCode === form.catCode);
+    if (codeExists) {
+      setMessage({ type: "error", text: `Category code ${form.catCode} already exists.` });
+      return;
+    }
 
-  // ADD THIS CHECK FOR DUPLICATE CATEGORY NAME (case-insensitive)
-  const nameExists = categories.some(c => 
-    c.catName.toLowerCase() === form.catName.toLowerCase()
-  );
+    // Check for duplicate category name (case-insensitive)
+    const nameExists = categories.some(c => 
+      c.catName.toLowerCase() === form.catName.toLowerCase()
+    );
 
-  if (nameExists) {
-    setMessage({ 
-      type: "error", 
-      text: `Category name "${form.catName}" already exists. Please use a different name.` 
-    });
-    return; // Don't proceed with save
-  }
+    if (nameExists) {
+      setMessage({ 
+        type: "error", 
+        text: `Category name "${form.catName}" already exists. Please use a different name.` 
+      });
+      return;
+    }
 
-  // If no duplicate, proceed to confirmation
-  setConfirmSaveOpen(true);
-};
+    // Show confirmation popup - THIS IS THE KEY FIX
+    setConfirmSaveOpen(true);
+  };
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -406,26 +390,29 @@ useEffect(() => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+  const handleSubmit = () => { // Remove async - FIXED
+    if (actionType === "Add") {
+      handleAdd(); // This will show confirmSaveOpen popup
+    } else if (actionType === "edit") {
+      handleEdit(); // This will show confirmEditOpen popup
+    } else if (actionType === "delete") {
+      handleDelete(); // This will show confirmDeleteOpen popup
+    }
   };
 
   const resetForm = (keepAction = false) => {
-  getNextCategoryCode();
-  setForm(prev => ({ ...prev, catName: "" }));
-  setEditingId(null);
-  setDeleteTargetId(null);
-  setExistingQuery("");
-  setEditQuery("");
-  setDeleteQuery("");
-  setMessage(null);
-  if (!keepAction) setActionType("Add");
-  
-  // This line already focuses on catName field after reset - GOOD
-  setTimeout(() => catNameRef.current?.focus(), 60);
-};
+    getNextCategoryCode();
+    setForm(prev => ({ ...prev, catName: "" }));
+    setEditingId(null);
+    setDeleteTargetId(null);
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
+    
+    setTimeout(() => catNameRef.current?.focus(), 60);
+  };
 
   const openEditModal = () => {
     setEditQuery("");
@@ -434,12 +421,12 @@ useEffect(() => {
   };
 
   const handleEditRowClick = (c) => {
-  setForm({ catCode: c.catCode, catName: c.catName });
-  setActionType("edit");
-  setEditingId(c.catCode);
-  setEditModalOpen(false);
-  setTimeout(() => catNameRef.current?.focus(), 60); // GOOD
-};
+    setForm({ catCode: c.catCode, catName: c.catName });
+    setActionType("edit");
+    setEditingId(c.catCode);
+    setEditModalOpen(false);
+    setTimeout(() => catNameRef.current?.focus(), 60);
+  };
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -448,12 +435,12 @@ useEffect(() => {
   };
 
   const handleDeleteRowClick = (c) => {
-  setForm({ catCode: c.catCode, catName: c.catName });
-  setActionType("delete");
-  setDeleteTargetId(c.catCode);
-  setDeleteModalOpen(false);
-  setTimeout(() => catNameRef.current?.focus(), 60); // GOOD
-};
+    setForm({ catCode: c.catCode, catName: c.catName });
+    setActionType("delete");
+    setDeleteTargetId(c.catCode);
+    setDeleteModalOpen(false);
+    setTimeout(() => catNameRef.current?.focus(), 60);
+  };
 
   // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
@@ -479,8 +466,9 @@ useEffect(() => {
   const onCatNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
-      CatNameRef.current?.focus();
+      e.stopPropagation(); // IMPORTANT: Prevent form submission
+      handleSubmit(); // This will trigger the appropriate confirmation popup
+      catNameRef.current?.focus(); // FIXED: lowercase 'c'
     }
   };
 
@@ -1108,7 +1096,7 @@ useEffect(() => {
                   className="input" 
                   value={form.catName} 
                   onChange={(e) => setForm(s => ({ ...s, catName: e.target.value }))} 
-                  
+                  placeholder="Enter category name"
                   onKeyDown={onCatNameKeyDown}
                   disabled={loading}
                   aria-label="Category Name"

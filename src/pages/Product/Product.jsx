@@ -54,7 +54,6 @@ const Icon = {
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
       <rect width="24" height="24" rx="6" fill="#ffffffff" />
       <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 8h8v2H8V8zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" fill="#307AC8" />
-      {/* <circle cx="12" cy="12" r="3" fill="#307AC8" /> */}
     </svg>
   ),
 };
@@ -87,7 +86,7 @@ export default function ProductPage() {
   // refs for step-by-step Enter navigation
   const productCodeRef = useRef(null);
   const productNameRef = useRef(null);
-   const submitRef = useRef(null);
+  const submitRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -129,16 +128,12 @@ export default function ProductPage() {
       let nextCode = "00001"; // Default fallback
       
       if (typeof response === 'string' || typeof response === 'number') {
-        // If response is a string or number, use it directly
         nextCode = response.toString().padStart(5, '0');
       } else if (response && response.code) {
-        // If response has code property (as shown in your example)
         nextCode = response.code.toString().padStart(5, '0');
       } else if (response && response.fproductcode) {
-        // If response has fproductcode property
         nextCode = response.fproductcode.toString().padStart(5, '0');
       } else if (response && response.nextCode) {
-        // If response has nextCode property
         nextCode = response.nextCode.toString().padStart(5, '0');
       }
       
@@ -172,7 +167,6 @@ export default function ProductPage() {
   const getProductByCode = async (code) => {
     try {
       setLoading(true);
-      // Since API doesn't have a specific endpoint, filter from existing items
       const product = products.find(p => p.fproductcode === code);
       return product || null;
     } catch (err) {
@@ -187,7 +181,6 @@ export default function ProductPage() {
   const createProduct = async (productData) => {
     try {
       setLoading(true);
-      // Transform to API expected format
       const apiData = {
         fproductcode: productData.fproductcode,
         fproductname: productData.fproductname
@@ -208,7 +201,6 @@ export default function ProductPage() {
       setLoading(true);
       console.log("Sending update data:", productData);
       
-      // Transform to API expected format
       const apiData = {
         fproductcode: productData.fproductcode,
         fproductname: productData.fproductname
@@ -258,32 +250,32 @@ export default function ProductPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-// Focus on product name field on initial load/reload
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (productNameRef.current) {
-      productNameRef.current.focus();
-    }
-  }, 100); // Small delay to ensure DOM is ready
-  return () => clearTimeout(timer);
-}, []); // Empty dependency array = runs once on mount
-
-// Additional focus for when actionType changes
-useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  // Focus on product name field on initial load/reload
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (productNameRef.current) productNameRef.current.focus();
-    }, 0);
+      if (productNameRef.current) {
+        productNameRef.current.focus();
+      }
+    }, 100);
     return () => clearTimeout(timer);
-  }
-}, [actionType]);
+  }, []);
+
+  // Additional focus for when actionType changes
+  useEffect(() => {
+    if (actionType === "edit" || actionType === "Add") {
+      const timer = setTimeout(() => {
+        if (productNameRef.current) productNameRef.current.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
     await Promise.all([fetchProducts(), getNextProductCode()]);
   };
 
-  const handleEdit = async () => {
+  const handleEdit = () => { // Remove async
     if (!form.fproductcode || !form.fproductname) {
       setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
       return;
@@ -302,7 +294,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Product updated successfully." });
-        toast.success(`Product "${form.fproductname}" updated successfully.`);
+      toast.success(`Product "${form.fproductname}" updated successfully.`);
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
@@ -312,7 +304,7 @@ useEffect(() => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => { // Remove async
     if (!form.fproductcode) {
       setMessage({ type: "error", text: "Please select a product to delete." });
       return;
@@ -343,35 +335,35 @@ useEffect(() => {
     }
   };
 
-  const handleAdd = async () => {
-  if (!form.fproductcode || !form.fproductname) {
-    setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
-    return;
-  }
+  const handleAdd = () => { // Remove async - FIXED
+    if (!form.fproductcode || !form.fproductname) {
+      setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
+      return;
+    }
 
-  // Check if product code already exists
-  const codeExists = products.some(p => p.fproductcode === form.fproductcode);
-  if (codeExists) {
-    setMessage({ type: "error", text: `Product code ${form.fproductcode} already exists.` });
-    return;
-  }
+    // Check if product code already exists
+    const codeExists = products.some(p => p.fproductcode === form.fproductcode);
+    if (codeExists) {
+      setMessage({ type: "error", text: `Product code ${form.fproductcode} already exists.` });
+      return;
+    }
 
-  // ADD THIS CHECK FOR DUPLICATE PRODUCT NAME (like in Color Creation)
-  const nameExists = products.some(p => 
-    p.fproductname.toLowerCase() === form.fproductname.toLowerCase()
-  );
-  
-  if (nameExists) {
-    setMessage({ 
-      type: "error", 
-      text: `Product name "${form.fproductname}" already exists. Please use a different name.` 
-    });
-    return; // Don't proceed with save
-  }
+    // Check for duplicate product name (case-insensitive)
+    const nameExists = products.some(p => 
+      p.fproductname.toLowerCase() === form.fproductname.toLowerCase()
+    );
+    
+    if (nameExists) {
+      setMessage({ 
+        type: "error", 
+        text: `Product name "${form.fproductname}" already exists. Please use a different name.` 
+      });
+      return;
+    }
 
-  // If no duplicate, proceed to confirmation
-  setConfirmSaveOpen(true);
-};
+    // Show confirmation popup - THIS IS THE KEY FIX
+    setConfirmSaveOpen(true);
+  };
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -394,26 +386,29 @@ useEffect(() => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+  const handleSubmit = () => { // Remove async - FIXED
+    if (actionType === "Add") {
+      handleAdd(); // This will show confirmSaveOpen popup
+    } else if (actionType === "edit") {
+      handleEdit(); // This will show confirmEditOpen popup
+    } else if (actionType === "delete") {
+      handleDelete(); // This will show confirmDeleteOpen popup
+    }
   };
 
   const resetForm = (keepAction = false) => {
-  getNextProductCode();
-  setForm(prev => ({ ...prev, fproductname: "" }));
-  setEditingId(null);
-  setDeleteTargetId(null);
-  setExistingQuery("");
-  setEditQuery("");
-  setDeleteQuery("");
-  setMessage(null);
-  if (!keepAction) setActionType("Add");
-  
-  // This line already focuses on productName field after reset - GOOD
-  setTimeout(() => productNameRef.current?.focus(), 60);
-};
+    getNextProductCode();
+    setForm(prev => ({ ...prev, fproductname: "" }));
+    setEditingId(null);
+    setDeleteTargetId(null);
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
+    
+    setTimeout(() => productNameRef.current?.focus(), 60);
+  };
 
   const openEditModal = () => {
     setEditQuery("");
@@ -422,12 +417,12 @@ useEffect(() => {
   };
 
   const handleEditRowClick = (p) => {
-  setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
-  setActionType("edit");
-  setEditingId(p.fproductcode);
-  setEditModalOpen(false);
-  setTimeout(() => productNameRef.current?.focus(), 60); // GOOD
-};
+    setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
+    setActionType("edit");
+    setEditingId(p.fproductcode);
+    setEditModalOpen(false);
+    setTimeout(() => productNameRef.current?.focus(), 60);
+  };
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -436,12 +431,12 @@ useEffect(() => {
   };
 
   const handleDeleteRowClick = (p) => {
-  setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
-  setActionType("delete");
-  setDeleteTargetId(p.fproductcode);
-  setDeleteModalOpen(false);
-  setTimeout(() => productNameRef.current?.focus(), 60); // GOOD
-};
+    setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
+    setActionType("delete");
+    setDeleteTargetId(p.fproductcode);
+    setDeleteModalOpen(false);
+    setTimeout(() => productNameRef.current?.focus(), 60);
+  };
 
   // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
@@ -467,8 +462,9 @@ useEffect(() => {
   const onProductNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
-      ProductNameRef.current?.focus();
+      e.stopPropagation(); // IMPORTANT: Prevent form submission
+      handleSubmit(); // This will trigger the appropriate confirmation popup
+      productNameRef.current?.focus(); // FIXED: lowercase 'p'
     }
   };
 
@@ -1096,7 +1092,7 @@ useEffect(() => {
                   className="input" 
                   value={form.fproductname} 
                   onChange={(e) => setForm(s => ({ ...s, fproductname: e.target.value }))} 
-                   
+                  placeholder="Enter product name"
                   onKeyDown={onProductNameKeyDown}
                   disabled={loading}
                   aria-label="Product Name"

@@ -51,17 +51,6 @@ const Icon = {
   ),
 };
 
-// Update your API endpoints file with these brand endpoints
-// Add these to your API_ENDPOINTS in endpoints.js:
-/*
-  BRAND: {
-    GET_BRANDS: 'Brand',
-    CREATE_BRAND: 'Brand?selecttype=true',
-    UPDATE_BRAND: 'Brand?selecttype=false',
-    DELETE_BRAND: (code) => `Brand/${code}`,
-  }
-*/
-
 export default function BrandPage() {
   // ---------- state ----------
   const [brands, setBrands] = useState([]);
@@ -237,32 +226,32 @@ export default function BrandPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
- // Focus on brand name field on initial load/reload
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (brandNameRef.current) {
-      brandNameRef.current.focus();
-    }
-  }, 100); // Small delay to ensure DOM is ready
-  return () => clearTimeout(timer);
-}, []); // Empty dependency array = runs once on mount
-
-// Additional focus for when actionType changes
-useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  // Focus on brand name field on initial load/reload
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (brandNameRef.current) brandNameRef.current.focus();
-    }, 0);
+      if (brandNameRef.current) {
+        brandNameRef.current.focus();
+      }
+    }, 100);
     return () => clearTimeout(timer);
-  }
-}, [actionType]);
+  }, []);
+
+  // Additional focus for when actionType changes
+  useEffect(() => {
+    if (actionType === "edit" || actionType === "Add") {
+      const timer = setTimeout(() => {
+        if (brandNameRef.current) brandNameRef.current.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
     await Promise.all([fetchBrands(), getNextBrandCode()]);
   };
 
-  const handleEdit = async () => {
+  const handleEdit = () => { // Remove async
     if (!form.brandCode || !form.brandName) {
       setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
       return;
@@ -291,7 +280,7 @@ useEffect(() => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => { // Remove async
     if (!form.brandCode) {
       setMessage({ type: "error", text: "Please select a brand to delete." });
       return;
@@ -322,35 +311,36 @@ useEffect(() => {
     }
   };
 
-  const handleAdd = async () => {
-  if (!form.brandCode || !form.brandName) {
-    setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
-    return;
-  }
+  const handleAdd = () => { // Remove async - FIXED
+    if (!form.brandCode || !form.brandName) {
+      setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
+      return;
+    }
 
-  // Check if brand code already exists
-  const codeExists = brands.some(b => b.brandCode === form.brandCode);
-  if (codeExists) {
-    setMessage({ type: "error", text: `Brand code ${form.brandCode} already exists.` });
-    return;
-  }
+    // Check if brand code already exists
+    const codeExists = brands.some(b => b.brandCode === form.brandCode);
+    if (codeExists) {
+      setMessage({ type: "error", text: `Brand code ${form.brandCode} already exists.` });
+      return;
+    }
 
-  // ADD THIS CHECK FOR DUPLICATE BRAND NAME (case-insensitive)
-  const nameExists = brands.some(b => 
-    b.brandName.toLowerCase() === form.brandName.toLowerCase()
-  );
+    // Check for duplicate brand name (case-insensitive)
+    const nameExists = brands.some(b => 
+      b.brandName.toLowerCase() === form.brandName.toLowerCase()
+    );
 
-  if (nameExists) {
-    setMessage({ 
-      type: "error", 
-      text: `Brand name "${form.brandName}" already exists. Please use a different name.` 
-    });
-    return; // Don't proceed with save
-  }
+    if (nameExists) {
+      setMessage({ 
+        type: "error", 
+        text: `Brand name "${form.brandName}" already exists. Please use a different name.` 
+      });
+      return;
+    }
 
-  // If no duplicate, proceed to confirmation
-  setConfirmSaveOpen(true);
-};
+    // Show confirmation popup - THIS IS THE KEY FIX
+    setConfirmSaveOpen(true);
+  };
+
   const confirmSave = async () => {
     setIsLoading(true);
     try {
@@ -372,26 +362,29 @@ useEffect(() => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+  const handleSubmit = () => { // Remove async - FIXED
+    if (actionType === "Add") {
+      handleAdd(); // This will show confirmSaveOpen popup
+    } else if (actionType === "edit") {
+      handleEdit(); // This will show confirmEditOpen popup
+    } else if (actionType === "delete") {
+      handleDelete(); // This will show confirmDeleteOpen popup
+    }
   };
 
-const resetForm = (keepAction = false) => {
-  getNextBrandCode();
-  setForm(prev => ({ ...prev, brandName: "" }));
-  setEditingId(null);
-  setDeleteTargetId(null);
-  setExistingQuery("");
-  setEditQuery("");
-  setDeleteQuery("");
-  setMessage(null);
-  if (!keepAction) setActionType("Add");
-  
-  // This line already focuses on brandName field after reset - GOOD
-  setTimeout(() => brandNameRef.current?.focus(), 60);
-};
+  const resetForm = (keepAction = false) => {
+    getNextBrandCode();
+    setForm(prev => ({ ...prev, brandName: "" }));
+    setEditingId(null);
+    setDeleteTargetId(null);
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
+    
+    setTimeout(() => brandNameRef.current?.focus(), 60);
+  };
 
   const openEditModal = () => {
     setEditQuery("");
@@ -399,13 +392,13 @@ const resetForm = (keepAction = false) => {
     brandNameRef.current?.focus()
   };
 
- const handleEditRowClick = (b) => {
-  setForm({ brandCode: b.brandCode, brandName: b.brandName });
-  setActionType("edit");
-  setEditingId(b.brandCode);
-  setEditModalOpen(false);
-  setTimeout(() => brandNameRef.current?.focus(), 60); // GOOD
-};
+  const handleEditRowClick = (b) => {
+    setForm({ brandCode: b.brandCode, brandName: b.brandName });
+    setActionType("edit");
+    setEditingId(b.brandCode);
+    setEditModalOpen(false);
+    setTimeout(() => brandNameRef.current?.focus(), 60);
+  };
 
   const openDeleteModal = () => {
     setDeleteQuery("");
@@ -427,13 +420,13 @@ const resetForm = (keepAction = false) => {
     return filtered.slice(start, start + pageSize);
   }, [brands]);
 
- const handleDeleteRowClick = (b) => {
-  setForm({ brandCode: b.brandCode, brandName: b.brandName });
-  setActionType("delete");
-  setDeleteTargetId(b.brandCode);
-  setDeleteModalOpen(false);
-  setTimeout(() => brandNameRef.current?.focus(), 60); // GOOD
-};
+  const handleDeleteRowClick = (b) => {
+    setForm({ brandCode: b.brandCode, brandName: b.brandName });
+    setActionType("delete");
+    setDeleteTargetId(b.brandCode);
+    setDeleteModalOpen(false);
+    setTimeout(() => brandNameRef.current?.focus(), 60);
+  };
 
   const onBrandCodeKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -445,8 +438,9 @@ const resetForm = (keepAction = false) => {
   const onBrandNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
-      BrandNameRef.current?.focus();
+      e.stopPropagation(); // IMPORTANT: Prevent form submission
+      handleSubmit(); // This will trigger the appropriate confirmation popup
+      brandNameRef.current?.focus(); // FIXED: lowercase 'b'
     }
   };
 

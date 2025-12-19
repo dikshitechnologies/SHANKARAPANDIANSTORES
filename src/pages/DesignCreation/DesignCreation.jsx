@@ -67,6 +67,9 @@ export default function DesignCreation() {
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
 
+  // Track original design name when editing
+  const [originalDesignName, setOriginalDesignName] = useState("");
+
   // modals & queries
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editQuery, setEditQuery] = useState("");
@@ -159,25 +162,24 @@ export default function DesignCreation() {
   };
 
   const updateDesign = async (designData) => {
-  try {
-    setLoading(true);
-    console.log("Sending update data:", designData); // Debug log
-    const response = await apiService.put(API_ENDPOINTS.DESIGNCREATION.UPDATE_DESIGN, designData);
-    console.log("Update response:", response); // Debug log
-    
-    // Check if response is a string or object
-    if (typeof response === 'string' && response.includes("successfully")) {
-      return { success: true, message: response };
+    try {
+      setLoading(true);
+      console.log("Sending update data:", designData);
+      const response = await apiService.put(API_ENDPOINTS.DESIGNCREATION.UPDATE_DESIGN, designData);
+      console.log("Update response:", response);
+      
+      if (typeof response === 'string' && response.includes("successfully")) {
+        return { success: true, message: response };
+      }
+      return response;
+    } catch (err) {
+      console.error("Update error details:", err.response || err);
+      setMessage({ type: "error", text: err.message || "Failed to update design" });
+      throw err;
+    } finally {
+      setLoading(false);
     }
-    return response;
-  } catch (err) {
-    console.error("Update error details:", err.response || err); // More detailed logging
-    setMessage({ type: "error", text: err.message || "Failed to update design" });
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const deleteDesign = async (designCode) => {
     try {
@@ -207,36 +209,43 @@ export default function DesignCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
- // Focus on design name field on initial load/reload
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (designNameRef.current) {
-      designNameRef.current.focus();
-    }
-  }, 100); // Small delay to ensure DOM is ready
-  return () => clearTimeout(timer);
-}, []); // Empty dependency array = runs once on mount
-
-// Additional focus for when actionType changes
-useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  // Focus on design name field on initial load/reload
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (designNameRef.current) designNameRef.current.focus();
-    }, 0);
+      if (designNameRef.current) {
+        designNameRef.current.focus();
+      }
+    }, 100);
     return () => clearTimeout(timer);
-  }
-}, [actionType]);
+  }, []);
+
+  // Additional focus for when actionType changes
+  useEffect(() => {
+    if (actionType === "edit" || actionType === "Add") {
+      const timer = setTimeout(() => {
+        if (designNameRef.current) designNameRef.current.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
     await Promise.all([fetchDesigns(), fetchNextDesignCode()]);
   };
 
-  const handleEdit = async () => {
+  const handleEdit = () => { // REMOVED async
     if (!form.designCode || !form.designName) {
       setMessage({ type: "error", text: "Please fill Design Code and Design Name." });
       return;
     }
+
+    // Check if no changes were made
+    if (originalDesignName && originalDesignName.toUpperCase() === form.designName.toUpperCase()) {
+      setMessage({ type: "warning", text: "No changes detected. Design name remains the same." });
+      return;
+    }
+
     setConfirmEditOpen(true);
   };
 
@@ -261,7 +270,7 @@ useEffect(() => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => { // REMOVED async
     if (!form.designCode) {
       setMessage({ type: "error", text: "Please select a design to delete." });
       return;
@@ -292,35 +301,35 @@ useEffect(() => {
     }
   };
 
-  const handleAdd = async () => {
-  if (!form.designCode || !form.designName) {
-    setMessage({ type: "error", text: "Please fill Design Code and Design Name." });
-    return;
-  }
+  const handleAdd = () => { // REMOVED async - SHOWS CONFIRMATION POPUP
+    if (!form.designCode || !form.designName) {
+      setMessage({ type: "error", text: "Please fill Design Code and Design Name." });
+      return;
+    }
 
-  // Check if design code already exists
-  const codeExists = designs.some(d => d.designCode === form.designCode);
-  if (codeExists) {
-    setMessage({ type: "error", text: `Design code ${form.designCode} already exists.` });
-    return;
-  }
+    // Check if design code already exists
+    const codeExists = designs.some(d => d.designCode === form.designCode);
+    if (codeExists) {
+      setMessage({ type: "error", text: `Design code ${form.designCode} already exists.` });
+      return;
+    }
 
-  // ADD THIS CHECK FOR DUPLICATE DESIGN NAME (case-insensitive)
-  const nameExists = designs.some(d => 
-    d.designName.toLowerCase() === form.designName.toLowerCase()
-  );
+    // Check for duplicate design name (case-insensitive)
+    const nameExists = designs.some(d => 
+      d.designName.toLowerCase() === form.designName.toLowerCase()
+    );
 
-  if (nameExists) {
-    setMessage({ 
-      type: "error", 
-      text: `Design name "${form.designName}" already exists. Please use a different name.` 
-    });
-    return; // Don't proceed with save
-  }
+    if (nameExists) {
+      setMessage({ 
+        type: "error", 
+        text: `Design name "${form.designName}" already exists. Please use a different name.` 
+      });
+      return;
+    }
 
-  // If no duplicate, proceed to confirmation
-  setConfirmSaveOpen(true);
-};
+    // Show confirmation popup
+    setConfirmSaveOpen(true);
+  };
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -343,39 +352,45 @@ useEffect(() => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+  const handleSubmit = () => { // REMOVED async
+    if (actionType === "Add") {
+      handleAdd(); // This will show confirmSaveOpen popup
+    } else if (actionType === "edit") {
+      handleEdit(); // This will show confirmEditOpen popup
+    } else if (actionType === "delete") {
+      handleDelete(); // This will show confirmDeleteOpen popup
+    }
   };
 
   const resetForm = (keepAction = false) => {
-  fetchNextDesignCode();
-  setForm(prev => ({ ...prev, designName: "" }));
-  setEditingId(null);
-  setDeleteTargetId(null);
-  setExistingQuery("");
-  setEditQuery("");
-  setDeleteQuery("");
-  setMessage(null);
-  if (!keepAction) setActionType("Add");
-  
-  // Focus on design name field after reset
-  setTimeout(() => {
-    if (designNameRef.current) {
-      designNameRef.current.focus();
-    }
-  }, 60);
-};
+    fetchNextDesignCode();
+    setForm(prev => ({ ...prev, designName: "" }));
+    setOriginalDesignName("");
+    setEditingId(null);
+    setDeleteTargetId(null);
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
+    
+    // Focus on design name field after reset
+    setTimeout(() => {
+      if (designNameRef.current) {
+        designNameRef.current.focus();
+      }
+    }, 60);
+  };
 
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
-    designNameRef.current?.focus()
+    designNameRef.current?.focus();
   };
 
   const handleEditRowClick = (d) => {
     setForm({ designCode: d.designCode, designName: d.designName });
+    setOriginalDesignName(d.designName);
     setActionType("edit");
     setEditingId(d.designCode);
     setEditModalOpen(false);
@@ -385,10 +400,10 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
-    designNameRef.current?.focus()
+    designNameRef.current?.focus();
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
@@ -420,8 +435,9 @@ useEffect(() => {
   const onDesignNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
-      DesignNameRef.current?.focus();
+      e.stopPropagation(); // IMPORTANT: Prevent form submission
+      handleSubmit(); // This will trigger the appropriate confirmation popup
+      designNameRef.current?.focus(); // FIXED: lowercase 'd'
     }
   };
 
@@ -496,7 +512,7 @@ useEffect(() => {
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 14px; /* increased base font size */
+          font-size: 14px;
           box-sizing: border-box;
         }
 
@@ -532,7 +548,7 @@ useEffect(() => {
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 18px; /* slightly larger title */
+          font-size: 18px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
@@ -1030,7 +1046,6 @@ useEffect(() => {
                   className="input"
                   value={form.designCode}
                   onChange={(e) => setForm(s => ({ ...s, designCode: e.target.value }))}
-                  // placeholder="Design code (auto-generated)"
                   onKeyDown={onDesignCodeKeyDown}
                   disabled={loading}
                   aria-label="Design Code"
@@ -1131,13 +1146,7 @@ useEffect(() => {
                         <tr 
                           key={d.designCode}
                           className={form.designCode === d.designCode ? "selected" : ""}
-                          onClick={() => {
-                            setForm({ 
-                              designCode: d.designCode, 
-                              designName: d.designName
-                            });
-                            setActionType("edit");
-                          }}
+                          onClick={() => handleEditRowClick(d)}
                         >
                           <td>{d.designCode}</td>
                           <td>{d.designName}</td>
@@ -1170,6 +1179,11 @@ useEffect(() => {
               <div className="muted">Design Name</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.designName || "Not set"}
+                {originalDesignName && actionType === "edit" && (
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
+                    Original: {originalDesignName}
+                  </div>
+                )}
               </div>
             </div>
 

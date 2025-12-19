@@ -50,18 +50,6 @@ const Icon = {
   ),
 };
 
-// Update your API endpoints file with these scrap endpoints
-// Add these to your API_ENDPOINTS in endpoints.js:
-/*
-  SCRAPCREATION: {
-    GET_SCRAP_ITEMS: 'ScrapCreation/getScrapItem',
-    GET_NEXT_SCRAP_CODE: 'ScrapCreation/getNextScrapFcode',
-    CREATE_SCRAP: 'ScrapCreation/createScrap',
-    UPDATE_SCRAP: 'ScrapCreation/updateScrap',
-    DELETE_SCRAP: (code) => `ScrapCreation/deleteScrap/${code}`,
-  }
-*/
-
 export default function ScrapPage() {
   // ---------- state ----------
   const [scrapItems, setScrapItems] = useState([]);
@@ -221,31 +209,31 @@ export default function ScrapPage() {
   }, []);
 
   // Focus on scrap name field on initial load/reload
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (scrapNameRef.current) {
-      scrapNameRef.current.focus();
-    }
-  }, 100); // Small delay to ensure DOM is ready
-  return () => clearTimeout(timer);
-}, []); // Empty dependency array = runs once on mount
-
-// Additional focus for when actionType changes
-useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (scrapNameRef.current) scrapNameRef.current.focus();
-    }, 0);
+      if (scrapNameRef.current) {
+        scrapNameRef.current.focus();
+      }
+    }, 100);
     return () => clearTimeout(timer);
-  }
-}, [actionType]);
+  }, []);
+
+  // Additional focus for when actionType changes
+  useEffect(() => {
+    if (actionType === "edit" || actionType === "Add") {
+      const timer = setTimeout(() => {
+        if (scrapNameRef.current) scrapNameRef.current.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [actionType]);
 
   // ---------- handlers ----------
   const loadInitial = async () => {
     await Promise.all([fetchScrapItems(), fetchNextScrapCode()]);
   };
 
-  const handleEdit = async () => {
+  const handleEdit = () => { // Remove async
     if (!form.scrapCode || !form.scrapName) {
       setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
       return;
@@ -281,7 +269,7 @@ useEffect(() => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => { // Remove async
     if (!form.scrapCode) {
       setMessage({ type: "error", text: "Please select a scrap item to delete." });
       return;
@@ -312,35 +300,35 @@ useEffect(() => {
     }
   };
 
- const handleAdd = async () => {
-  if (!form.scrapCode || !form.scrapName) {
-    setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
-    return;
-  }
+  const handleAdd = () => { // Remove async - FIXED
+    if (!form.scrapCode || !form.scrapName) {
+      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+      return;
+    }
 
-  // Check if scrap code already exists
-  const codeExists = scrapItems.some(s => s.scrapCode === form.scrapCode);
-  if (codeExists) {
-    setMessage({ type: "error", text: `Scrap code ${form.scrapCode} already exists.` });
-    return;
-  }
+    // Check if scrap code already exists
+    const codeExists = scrapItems.some(s => s.scrapCode === form.scrapCode);
+    if (codeExists) {
+      setMessage({ type: "error", text: `Scrap code ${form.scrapCode} already exists.` });
+      return;
+    }
 
-  // ADD THIS CHECK FOR DUPLICATE SCRAP NAME (case-insensitive)
-  const nameExists = scrapItems.some(s => 
-    s.scrapName.toLowerCase() === form.scrapName.toLowerCase()
-  );
+    // Check for duplicate scrap name (case-insensitive)
+    const nameExists = scrapItems.some(s => 
+      s.scrapName.toLowerCase() === form.scrapName.toLowerCase()
+    );
 
-  if (nameExists) {
-    setMessage({ 
-      type: "error", 
-      text: `Scrap name "${form.scrapName}" already exists. Please use a different name.` 
-    });
-    return; // Don't proceed with save
-  }
+    if (nameExists) {
+      setMessage({ 
+        type: "error", 
+        text: `Scrap name "${form.scrapName}" already exists. Please use a different name.` 
+      });
+      return;
+    }
 
-  // If no duplicate, proceed to confirmation
-  setConfirmSaveOpen(true);
-};
+    // Show confirmation popup - THIS IS THE KEY FIX
+    setConfirmSaveOpen(true);
+  };
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -363,27 +351,30 @@ useEffect(() => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+  const handleSubmit = () => { // Remove async - FIXED
+    if (actionType === "Add") {
+      handleAdd(); // This will show confirmSaveOpen popup
+    } else if (actionType === "edit") {
+      handleEdit(); // This will show confirmEditOpen popup
+    } else if (actionType === "delete") {
+      handleDelete(); // This will show confirmDeleteOpen popup
+    }
   };
 
   const resetForm = (keepAction = false) => {
-  fetchNextScrapCode();
-  setForm(prev => ({ ...prev, scrapName: "" }));
-  setOriginalScrapName("");
-  setEditingId(null);
-  setDeleteTargetId(null);
-  setExistingQuery("");
-  setEditQuery("");
-  setDeleteQuery("");
-  setMessage(null);
-  if (!keepAction) setActionType("Add");
-  
-  // This line already focuses on scrapName field after reset - GOOD
-  setTimeout(() => scrapNameRef.current?.focus(), 60);
-};
+    fetchNextScrapCode();
+    setForm(prev => ({ ...prev, scrapName: "" }));
+    setOriginalScrapName("");
+    setEditingId(null);
+    setDeleteTargetId(null);
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
+    
+    setTimeout(() => scrapNameRef.current?.focus(), 60);
+  };
 
   const openEditModal = () => {
     setEditQuery("");
@@ -428,19 +419,19 @@ useEffect(() => {
     setTimeout(() => scrapNameRef.current?.focus(), 60);
   };
 
- const onScrapCodeKeyDown = (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    // Focus on scrap name field when Enter is pressed in scrap code field
-    scrapNameRef.current?.focus();
-  }
-};
+  const onScrapCodeKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      scrapNameRef.current?.focus();
+    }
+  };
 
   const onScrapNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
-      stateNameRef.current?.focus();
+      e.stopPropagation(); // IMPORTANT: Prevent form submission
+      handleSubmit(); // This will trigger the appropriate confirmation popup
+      scrapNameRef.current?.focus(); // FIXED: lowercase 's'
     }
   };
 
@@ -1039,24 +1030,23 @@ useEffect(() => {
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
             {/* Scrap Code field */}
-            {/* Scrap Code field */}
-<div className="field">
-  <label className="field-label">
-    Scrap Code <span className="asterisk">*</span>
-  </label>
-  <div className="row">
-    <input
-      ref={scrapCodeRef}
-      className="input"
-      value={form.scrapCode}
-      onChange={(e) => setForm(s => ({ ...s, scrapCode: e.target.value }))}
-      onKeyDown={onScrapCodeKeyDown}
-      disabled={loading}
-      aria-label="Scrap Code"
-      readOnly={true} // Changed from readOnly={actionType === "edit" || actionType === "delete"}
-    />
-  </div>
-</div>
+            <div className="field">
+              <label className="field-label">
+                Scrap Code <span className="asterisk">*</span>
+              </label>
+              <div className="row">
+                <input
+                  ref={scrapCodeRef}
+                  className="input"
+                  value={form.scrapCode}
+                  onChange={(e) => setForm(s => ({ ...s, scrapCode: e.target.value }))}
+                  onKeyDown={onScrapCodeKeyDown}
+                  disabled={loading}
+                  aria-label="Scrap Code"
+                  readOnly={true}
+                />
+              </div>
+            </div>
 
             {/* Scrap Name field */}
             <div className="field">
@@ -1069,7 +1059,7 @@ useEffect(() => {
                   className="input" 
                   value={form.scrapName} 
                   onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))} 
-                 
+                  placeholder="Enter scrap name"
                   onKeyDown={onScrapNameKeyDown}
                   disabled={loading}
                   aria-label="Scrap Name"
