@@ -1944,7 +1944,7 @@ searchIconInside: {
     formField: {
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '8px' : '10px',
       
     },
    inlineLabel: {
