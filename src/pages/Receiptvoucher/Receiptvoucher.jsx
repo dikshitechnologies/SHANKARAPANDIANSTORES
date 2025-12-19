@@ -1150,7 +1150,7 @@ const ReceiptVoucher = () => {
       voucherNo: voucherDetails.voucherNo,
       voucherDate: voucherDetails.date,
       particulars: particulars,
-      totalAmount: billTotalAmount
+      totalAmount: totalAmount
     });
     setSaveConfirmationOpen(true);
   };

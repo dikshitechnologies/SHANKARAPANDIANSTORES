@@ -761,6 +761,37 @@ const getStockByItemName = async (itemCode) => {
       const invoiceData = await fetchInvoiceDetails(selectedInvoice.voucherNo);
       
       if (invoiceData) {
+        if (invoiceData) {
+  // 🔒 block Enter key once after edit load
+  ignoreNextEnterRef.current = true;
+
+  // ✅ move cursor to Bill Date
+  setTimeout(() => {
+    if (billDateRef.current) {
+      billDateRef.current.focus();
+    }
+    ignoreNextEnterRef.current = false;
+  }, 300);
+
+  const addLessValue = parseFloat(addLessAmount || 0);
+  const finalAmount = totalAmount + addLessValue;
+
+  setEditConfirmationData({
+    invoiceNo: selectedInvoice.voucherNo,
+    customer: billDetails.custName,
+    billDate: billDetails.billDate,
+    totalAmount: totalAmount.toFixed(2),
+    addLessAmount: addLessAmount,
+    finalAmount: finalAmount.toFixed(2),
+    itemCount: items.filter(
+      item => item.itemName && item.itemName.trim()
+    ).length
+  });
+
+  setEditConfirmationOpen(true);
+  setEditInvoicePopupOpen(false);
+}
+
         // Show edit confirmation popup
         const addLessValue = parseFloat(addLessAmount || 0);
         const finalAmount = totalAmount + addLessValue;

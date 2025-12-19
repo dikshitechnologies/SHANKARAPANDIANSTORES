@@ -1,79 +1,93 @@
 import React, { useState, useMemo, useEffect } from "react";
-import Select from "react-select";
 
 
 // Import your API service
 import { axiosInstance } from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
-
 // Import PopupListSelector
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+// Import common popups
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+
+// Import toast notifications
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+// Import ActionButtons - CORRECTED IMPORT PATH
+import { 
+  ActionButtons, 
+  AddButton, 
+  EditButton, 
+  DeleteButton,
+  ActionButtons1
+} from '../../components/Buttons/ActionButtons.jsx';
 
 // Get endpoints from your configuration
 const USERS_URL = API_ENDPOINTS.ADMINISTRATION.USER_LIST;
 const GET_PERMS_URL = API_ENDPOINTS.ADMINISTRATION.GET_PERMISSIONS_BY_USER;
 const INSERT_BATCH_URL = API_ENDPOINTS.ADMINISTRATION.ADMIN_BATCH_INSERT;
 const DELETE_URL = API_ENDPOINTS.ADMINISTRATION.DELETE_PERMISSIONS;
-
-// Expanded item lists with more permissions
+// Updated item lists with proper database permission names
 const MASTER_ITEMS = [
-  "Ledger Group Creation",
-  "Item Group Creation",
-  "Ledger Creation",
-  "Item Creation",
-  "User Creation",
-  "Administration",
-  "Company",
-  "Transport Creation",
-  "Place Of Supply",
-  "Route Creation",
-  "Unit Creation",
-  "Tax Creation",
-  "Bank Creation",
-  "Warehouse Creation",
-  "Supplier Creation",
-  "Customer Creation",
-  "Employee Creation"
+  { label: "Unit Creation", dbName: "UNIT_CREATION" },
+  { label: "Color Creation", dbName: "COLOR_CREATION" },
+  { label: "Size Creation", dbName: "SIZE_CREATION" },
+  { label: "Model Creation", dbName: "MODEL_CREATION" },
+  { label: "Salesman Creation", dbName: "SALESMAN_CREATION" },
+  { label: "Company Creation", dbName: "COMPANY_CREATION" },
+  { label: "User Creation", dbName: "USER_CREATION" },
+  { label: "Design Creation", dbName: "DESIGN_CREATION" },
+  { label: "Scrap Creation", dbName: "SCRAP_CREATION" },
+  { label: "Brand Creation", dbName: "BRAND_CREATION" },
+  { label: "Category Creation", dbName: "CATEGORY_CREATION" },
+  { label: "Product Creation", dbName: "PRODUCT_CREATION" },
+  { label: "State Creation", dbName: "STATE_CREATION" },
+  { label: "Item Creation", dbName: "ITEM_CREATION" },
 ];
 
 const TRANSACTION_ITEMS = [
-  "Sales Invoice",
-  "Sales Return",
-  "Purchase Invoice",
-  "Purchase Return",
-  "Outward",
-  "Inward",
-  "Payment Voucher",
-  "Receipt Voucher",
-  "Journal Voucher",
-  "Contra Voucher",
-  "Credit Note",
-  "Debit Note",
-  "Stock Transfer",
-  "Stock Adjustment"
+  { label: "Sales Invoice", dbName: "SALES_INVOICE" },
+  { label: "Sales Return", dbName: "SALES_RETURN" },
+  { label: "Purchase Invoice", dbName: "PURCHASE_INVOICE" },
+  { label: "Purchase Return", dbName: "PURCHASE_RETURN" },
+  { label: "Scrap Rate Fix", dbName: "SCRAP_RATE_FIX" },
+  { label: "Scrap Procurement", dbName: "SCRAP_PROCUREMENT" },
+  { label: "Tender", dbName: "TENDER" },
+  { label: "Bill Collector", dbName: "BILL_COLLECTOR" },
+  { label: "Amount Issue", dbName: "AMOUNT_ISSUE" },
+  { label: "Payment Voucher", dbName: "PAYMENT_VOUCHER" },
+  { label: "Receipt Voucher", dbName: "RECEIPT_VOUCHER" }
 ];
 
 const REPORT_ITEMS = [
-  "Sales Report",
-  "Stock Report",
-  "Purchase Report",
-  "Ledger Report",
-  "Trial Balance",
-  "Profit & Loss",
-  "Balance Sheet",
-  "Cash Flow",
-  "Stock Summary",
-  "Customer Statement",
-  "Supplier Statement",
-  "Tax Report",
-  "Audit Report"
+  { label: "Sales Report", dbName: "SALES_REPORT" },
+  { label: "Stock Report", dbName: "STOCK_REPORT" },
+  { label: "Purchase Report", dbName: "PURCHASE_REPORT" },
+  { label: "Ledger Report", dbName: "LEDGER_REPORT" },
+  { label: "Trial Balance", dbName: "TRIAL_BALANCE" },
+  { label: "Profit & Loss", dbName: "PROFIT_LOSS" },
+  { label: "Balance Sheet", dbName: "BALANCE_SHEET" },
+  { label: "Cash Flow", dbName: "CASH_FLOW" },
+  { label: "Stock Summary", dbName: "STOCK_SUMMARY" },
+  { label: "Customer Statement", dbName: "CUSTOMER_STATEMENT" },
+  { label: "Supplier Statement", dbName: "SUPPLIER_STATEMENT" },
+  { label: "Tax Report", dbName: "TAX_REPORT" },
+  { label: "Audit Report", dbName: "AUDIT_REPORT" }
 ];
 
 function makeEmptyPerms(list, modelShort = "M") {
   const o = {};
-  list.forEach(l => {
-    const c = l.replace(/\s+/g, "_").toUpperCase();
-    o[c] = { formCode: c, modelShort, label: l, permission: false, add: false, edit: false, del: false, print: false }
+  list.forEach(item => {
+    o[item.dbName] = { 
+      formCode: item.dbName, 
+      modelShort, 
+      label: item.label, 
+      permission: false, 
+      add: false, 
+      edit: false, 
+      del: false, 
+      print: false 
+    };
   });
   return o;
 }
@@ -88,6 +102,18 @@ const Administration = () => {
   const [showUserPopup, setShowUserPopup] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeButton, setActiveButton] = useState("add");
+
+  // Confirmation Popup State
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmPopupConfig, setConfirmPopupConfig] = useState({
+    title: "",
+    message: "",
+    type: "default",
+    onConfirm: null,
+    confirmText: "Confirm",
+    cancelText: "Cancel"
+  });
 
   const LS_LAST_USER = "admin_last_selected_user_id";
   const LS_PERMS_PREFIX = "admin_perms_user_";
@@ -131,6 +157,23 @@ const Administration = () => {
 
   const selectedUserPerms = useMemo(() => perms[selectedUserId] || {}, [perms, selectedUserId]);
 
+  // ---------- COMMON POPUP HANDLERS ----------
+  const showConfirmation = (config) => {
+    setConfirmPopupConfig(config);
+    setShowConfirmPopup(true);
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmPopupConfig.onConfirm) {
+      confirmPopupConfig.onConfirm();
+    }
+    setShowConfirmPopup(false);
+  };
+
+  const handleCancelAction = () => {
+    setShowConfirmPopup(false);
+  };
+
   async function loadUsers() {
     try {
       setLoading(true);
@@ -149,6 +192,14 @@ const Administration = () => {
       console.error("Error loading users:", error);
       // Fallback to mock data if API fails
       setUsers([{ id: "0", code: "0", name: "Select User" }]);
+      toast.error("Failed to load users. Please try again.", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -228,9 +279,10 @@ const Administration = () => {
           let e = b(it.edit) || b(it.editPermission);
           let d = b(it.del) || b(it.deletePermission) || b(it.delPermission);
           let pr = b(it.print) || b(it.printPermission);
-          let n = fc;
-          if (!n && it.label) n = it.label.replace(/\s+/g, "_").toUpperCase();
-          if (n && map[n]) map[n] = { ...map[n], permission: !!p, add: !!a, edit: !!e, del: !!d, print: !!pr };
+          
+          if (fc && map[fc]) {
+            map[fc] = { ...map[fc], permission: !!p, add: !!a, edit: !!e, del: !!d, print: !!pr };
+          }
         });
         c[userId] = { ...c[userId], ...map };
         try {
@@ -241,6 +293,10 @@ const Administration = () => {
       return true;
     } catch (error) {
       console.error("Error mapping permissions:", error);
+      toast.error("Error loading permissions", {
+        position: "top-right",
+        autoClose: 3000,
+      });
       return null;
     } finally {
       setLoading(false);
@@ -296,7 +352,7 @@ const Administration = () => {
     const payload = Object.values(o).map(p => ({
       userCode: code,
       modelShort: p.modelShort,
-      formPermission: p.formCode,
+      formPermission: p.formCode, // This should now match your database field names
       fPermission: p.permission ? "1" : "0",
       addPermission: p.add ? "1" : "0",
       editPermission: p.edit ? "1" : "0",
@@ -364,58 +420,110 @@ const Administration = () => {
   };
 
   const handleClear = () => {
-    setSelectedUserId("0");
-    localStorage.setItem(LS_LAST_USER, "0");
+    // Show confirmation for clear action
+    showConfirmation({
+      title: "Clear Permissions",
+      message: "Are you sure you want to clear all permissions? This will reset all switches.",
+      type: "warning",
+      confirmText: "Clear",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        setSelectedUserId("0");
+        localStorage.setItem(LS_LAST_USER, "0");
 
-    setPerms(p => {
-      const c = JSON.parse(JSON.stringify(p || {}));
-      Object.keys(c).forEach(userId => {
-        Object.keys(c[userId]).forEach(f => {
-          const x = c[userId][f];
-          x.permission = x.add = x.edit = x.del = x.print = false;
+        setPerms(p => {
+          const c = JSON.parse(JSON.stringify(p || {}));
+          Object.keys(c).forEach(userId => {
+            Object.keys(c[userId]).forEach(f => {
+              const x = c[userId][f];
+              x.permission = x.add = x.edit = x.del = x.print = false;
+            });
+          });
+          return c;
         });
-      });
-      return c;
+
+        toast.success("All permissions have been cleared.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
     });
   };
 
   const handleSubmit = async () => {
-    if (selectedUserId === "0") return alert("Please select a user");
+    if (selectedUserId === "0") {
+      toast.warning("Please select a user to update permissions.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    
     const u = users.find(x => x.id === selectedUserId);
-    if (!u) return alert("User not found");
-
-    const code = u.code;
-
-    // Show confirmation
-    if (!window.confirm(`Are you sure you want to update permissions for ${u.name}?`)) {
+    if (!u) {
+      toast.error("Selected user not found.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
       return;
     }
 
-    try {
-      setLoading(true);
-      // First delete existing permissions
-      const delResult = await deletePermissionsForCode(code);
+    const code = u.code;
 
-      if (!delResult.ok) {
-        console.warn("Delete operation may have failed, but continuing with insert...");
+    // Show confirmation popup
+    showConfirmation({
+      title: "Update Permissions",
+      message: `Are you sure you want to update permissions for ${u.name}?`,
+      type: "success",
+      confirmText: "Update",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          // First delete existing permissions
+          const delResult = await deletePermissionsForCode(code);
+
+          if (!delResult.ok) {
+            console.warn("Delete operation may have failed, but continuing with insert...");
+          }
+
+          // Insert new permissions
+          const ins = await insertBatchForUser(code);
+
+          if (ins.ok) {
+            toast.success("Permissions updated successfully!", {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              onClose: () => {
+                // Refresh permissions from server
+                fetchAndMapPermissions(code, selectedUserId);
+              }
+            });
+          } else {
+            toast.error("Failed to update permissions. Please try again.", {
+              position: "top-right",
+              autoClose: 3000,
+            });
+          }
+        } catch (error) {
+          console.error("Error submitting permissions:", error);
+          toast.error("An error occurred while updating permissions.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+        } finally {
+          setLoading(false);
+        }
       }
-
-      // Insert new permissions
-      const ins = await insertBatchForUser(code);
-
-      if (ins.ok) {
-        alert("Permissions updated successfully!");
-        // Refresh permissions from server
-        await fetchAndMapPermissions(code, selectedUserId);
-      } else {
-        alert("Failed to update permissions. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error submitting permissions:", error);
-      alert("An error occurred while updating permissions.");
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleClearSearch = () => {
@@ -458,16 +566,30 @@ const Administration = () => {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       return list
-        .filter(item => item.toLowerCase().includes(query))
-        .map(l => {
-          const c = l.replace(/\s+/g, "_").toUpperCase();
-          return selectedUserPerms[c] || { formCode: c, label: l };
+        .filter(item => item.label.toLowerCase().includes(query))
+        .map(item => {
+          return selectedUserPerms[item.dbName] || { 
+            formCode: item.dbName, 
+            label: item.label,
+            permission: false,
+            add: false,
+            edit: false,
+            del: false,
+            print: false
+          };
         });
     }
 
-    return list.map(l => {
-      const c = l.replace(/\s+/g, "_").toUpperCase();
-      return selectedUserPerms[c] || { formCode: c, label: l };
+    return list.map(item => {
+      return selectedUserPerms[item.dbName] || { 
+        formCode: item.dbName, 
+        label: item.label,
+        permission: false,
+        add: false,
+        edit: false,
+        del: false,
+        print: false
+      };
     });
   }, [activeTab, selectedUserPerms, searchQuery]);
 
@@ -597,7 +719,7 @@ const Administration = () => {
         
         .react-select-container .react-select__control--is-focused {
           border-color: #307AC8;
-          box-shadow: 0 0 0 2px rgba(48, 122, 200, 0.1);
+          boxShadow: 0 0 0 2px rgba(48, 122, 200, 0.1);
         }
         
         @media (max-width: 1200px) {
@@ -693,8 +815,26 @@ const Administration = () => {
         </div>
       )}
 
-      <div style={styles.contentWrapper}>
+      {/* Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showConfirmPopup}
+        onClose={handleCancelAction}
+        onConfirm={handleConfirmAction}
+        title={confirmPopupConfig.title}
+        message={confirmPopupConfig.message}
+        confirmText={confirmPopupConfig.confirmText}
+        cancelText={confirmPopupConfig.cancelText}
+        type={confirmPopupConfig.type}
+        showIcon={true}
+        disableBackdropClose={false}
+        showLoading={loading}
+        defaultFocusedButton="confirm"
+        borderColor="#307AC8"
+        hideCancelButton={false}
+      />
 
+      <div style={styles.contentWrapper}>
+       
 
         <div style={styles.mainContent} className="main-content">
           <div style={styles.leftColumn} className="left-column">
@@ -1042,6 +1182,13 @@ const styles = {
     minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
+  },
+  actionButtonsContainer: {
+    marginBottom: '20px',
+    padding: '0 20px',
+    fontSize: '18px',
+    fontWeight: 'bold',
+    width: '300px'
   },
   pageHeader: {
     padding: '16px 20px',
