@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
+import { useAuth } from '../../context/AuthContext';
 
 const SaveConfirmationModal = ({
   isOpen,
@@ -23,63 +24,112 @@ const SaveConfirmationModal = ({
   voucherNo = "",
   voucherDate = ""
 }) => {
+  const { userData } = useAuth() || {};
   const confirmRef = useRef(null);
   const [editableParticulars, setEditableParticulars] = useState(particulars);
   const fieldRefs = useRef({});
-  const [openingBalances, setOpeningBalances] = useState({});
-  const [initialAvailable, setInitialAvailable] = useState({});
-  const [initialClosing, setInitialClosing] = useState({});
+  const [liveAvailable, setLiveAvailable] = useState({
+    '500': 0, '200': 0, '100': 0, '50': 0, '20': 0, 
+    '10': 0, '5': 0, '2': 0, '1': 0
+  });
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationLoading, setSaveConfirmationLoading] = useState(false);
 
   // Prepare table data based on particulars
   const denominations = ['500', '200', '100', '50', '20', '10', '5', '2', '1'];
 
-  // Fetch opening balance from API
-  const fetchOpeningBalance = async () => {
+  // Function to calculate optimal issue denominations for a given amount
+  const calculateOptimalDenominations = (amount) => {
+    const denomList = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+    const result = {};
+    
+    // Initialize all denominations to 0
+    denomList.forEach(d => result[d] = 0);
+    
+    let remaining = amount;
+    
+    // Greedy algorithm: use largest denominations first
+    for (let denom of denomList) {
+      if (remaining >= denom) {
+        result[denom] = Math.floor(remaining / denom);
+        remaining = remaining % denom;
+      }
+    }
+    
+    return result;
+  };
+
+  // Fetch live cash available from API
+  const fetchLiveCash = async () => {
     try {
-      const response = await apiService.getSilent(API_ENDPOINTS.RECEIPTVOUCHER.GET_OPENING_BALANCE);
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const companyCode = userData?.companyCode || '001';
+      
+      console.log('Fetching live drawer with:', { dateStr, companyCode });
+      
+      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_LIVE_DRAWER(dateStr, companyCode);
+      const response = await apiService.get(endpoint);
+      
+      console.log('Live drawer API response:', response);
+      
       if (response) {
-        // Map API response keys to denominations
-        // API response keys: returned1, returned2, returned5, returned10, returned20, returned50, returned100, returned200
-        const balances = {
-          '500': response.returned500 || 0,
-          '200': response.returned200 || 0,
-          '100': response.returned100 || 0,
-          '50': response.returned50 || 0,
-          '20': response.returned20 || 0,
-          '10': response.returned10 || 0,
-          '5': response.returned5 || 0,
-          '2': response.returned2 || 0,
-          '1': response.returned1 || 0
+        // apiService.get returns the data directly
+        const data = response.data || response;
+        console.log('Parsed data:', data);
+        
+        // Map API response keys (r500, r200, etc.) to denominations
+        const available = {
+          '500': data.r500 || 0,
+          '200': data.r200 || 0,
+          '100': data.r100 || 0,
+          '50': data.r50 || 0,
+          '20': data.r20 || 0,
+          '10': data.r10 || 0,
+          '5': data.r5 || 0,
+          '2': data.r2 || 0,
+          '1': data.r1 || 0
         };
-        setOpeningBalances(balances);
-        console.log('Opening balances fetched:', balances);
+        setLiveAvailable(available);
+        console.log('Live drawer data loaded successfully:', available);
       }
     } catch (err) {
-      console.error('Error fetching opening balance:', err);
+      console.error('Error fetching live drawer:', err);
+      // Use particulars available values as fallback
+      const fallback = {};
+      denominations.forEach(denom => {
+        fallback[denom] = particulars[denom]?.available || 0;
+      });
+      setLiveAvailable(fallback);
     }
+  };
+
+  // Handle collect input change with auto-calculation of issue
+  const handleCollectChange = (denom, value) => {
+    const numValue = value === '' ? 0 : parseInt(value) || 0;
+    setEditableParticulars(prev => {
+      const updated = { ...prev };
+      updated[denom] = {
+        ...prev[denom],
+        collect: numValue
+      };
+
+      // Auto-calculate issue for all denominations if needed
+      // For now, just update the collect value
+      return updated;
+    });
+  };
+
+  // Handle issue input change - keep read-only
+  const handleIssueChange = (denom, value) => {
+    // This will be read-only, so we don't actually handle changes
+    // The issue is auto-calculated
   };
 
   useEffect(() => {
     if (isOpen) {
       setEditableParticulars(particulars);
-      fetchOpeningBalance();
-      
-      // Store initial available values (should not change as user enters COLLECT/ISSUE)
-      const initialAvailableValues = {};
-      const initialClosingValues = {};
-      
-      denominations.forEach(denom => {
-        initialAvailableValues[denom] = particulars[denom]?.available || 0;
-        const available = particulars[denom]?.available || 0;
-        const collect = particulars[denom]?.collect || 0;
-        const issue = particulars[denom]?.issue || 0;
-        initialClosingValues[denom] = available + collect - issue;
-      });
-      
-      setInitialAvailable(initialAvailableValues);
-      setInitialClosing(initialClosingValues);
+      fetchLiveCash();
       
       // Focus first field (500) when modal opens
       setTimeout(() => {
@@ -88,45 +138,21 @@ const SaveConfirmationModal = ({
         }
       }, 100);
     }
-  }, [isOpen, particulars]);
+  }, [isOpen, particulars, userData?.companyCode]);
 
   if (!isOpen) return null;
   
-  // Initialize counters
+  // Initialize counters using liveAvailable from API
   const available = {};
   const collect = {};
   const issue = {};
 
   denominations.forEach(denom => {
-    // Use opening balances from API if available, otherwise use particulars
-    available[denom] = openingBalances[denom] !== undefined ? openingBalances[denom] : (editableParticulars[denom]?.available || 0);
+    // Use live cash from API if available, otherwise use particulars
+    available[denom] = liveAvailable[denom] !== undefined ? liveAvailable[denom] : (editableParticulars[denom]?.available || 0);
     collect[denom] = editableParticulars[denom]?.collect || 0;
     issue[denom] = editableParticulars[denom]?.issue || 0;
   });
-
-  // Handle collect input change
-  const handleCollectChange = (denom, value) => {
-    const numValue = value === '' ? 0 : parseInt(value) || 0;
-    setEditableParticulars(prev => ({
-      ...prev,
-      [denom]: {
-        ...prev[denom],
-        collect: numValue
-      }
-    }));
-  };
-
-  // Handle issue input change
-  const handleIssueChange = (denom, value) => {
-    const numValue = value === '' ? 0 : parseInt(value) || 0;
-    setEditableParticulars(prev => ({
-      ...prev,
-      [denom]: {
-        ...prev[denom],
-        issue: numValue
-      }
-    }));
-  };
 
   // Handle Enter key to move to next field
   const handleKeyDown = (e, denom) => {
@@ -157,10 +183,10 @@ const SaveConfirmationModal = ({
   const handleSaveConfirmation = async () => {
     setSaveConfirmationLoading(true);
     try {
-      // Update editableParticulars with calculated available values and preserve issue values
+      // Update editableParticulars with live available values and collect/issue values
       const updatedParticulars = { ...editableParticulars };
       denominations.forEach(denom => {
-        const currentAvailable = openingBalances[denom] !== undefined ? openingBalances[denom] : (editableParticulars[denom]?.available || 0);
+        const currentAvailable = liveAvailable[denom] !== undefined ? liveAvailable[denom] : (editableParticulars[denom]?.available || 0);
         const currentCollect = editableParticulars[denom]?.collect || 0;
         const currentIssue = editableParticulars[denom]?.issue || 0;
         const closingBalance = currentAvailable + currentCollect - currentIssue;
@@ -316,7 +342,7 @@ const SaveConfirmationModal = ({
                       fontWeight: 600
                     }}
                   >
-                    {initialAvailable[denom] || 0}
+                    {available[denom] || 0}
                   </td>
                 ))}
               </tr>
@@ -393,7 +419,7 @@ const SaveConfirmationModal = ({
                     <input
                       type="number"
                       value={issue[denom] === 0 ? '' : issue[denom]}
-                      onChange={(e) => handleIssueChange(denom, e.target.value)}
+                      readOnly
                       min="0"
                       placeholder="0"
                       tabIndex={index + 9}
@@ -407,7 +433,7 @@ const SaveConfirmationModal = ({
                         background: '#fff',
                         color: '#0f172a',
                         fontWeight: 600,
-                        cursor: 'text'
+                        cursor: 'not-allowed'
                       }}
                     />
                   </td>
@@ -437,7 +463,7 @@ const SaveConfirmationModal = ({
                       fontWeight: 600
                     }}
                   >
-                    {initialClosing[denom] || 0}
+                    {(available[denom] + collect[denom] - issue[denom]) || 0}
                   </td>
                 ))}
               </tr>

@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // --- Inline SVG icons (matching BrandPage style) ---
 const Icon = {
@@ -312,6 +314,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Category updated successfully." });
+      toast.success(`Category "${form.catName}" updated successfully.`);
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
@@ -336,6 +339,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Category deleted successfully." });
+      toast.success(`Category "${form.catName}" deleted successfully.`);
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -392,6 +396,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Category created successfully." });
+      toast.success(`Category "${form.catName}" created successfully.`);
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {

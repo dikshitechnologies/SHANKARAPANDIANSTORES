@@ -4,6 +4,9 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 
 // --- Inline SVG icons (matching Category/Brand style) ---
 const Icon = {
@@ -299,6 +302,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Product updated successfully." });
+        toast.success(`Product "${form.fproductname}" updated successfully.`);
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
@@ -323,6 +327,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Product deleted successfully." });
+      toast.success(`Product "${form.fproductname}" deleted successfully.`);
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -379,6 +384,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Product created successfully." });
+      toast.success(`Product "${form.fproductname}" created successfully.`);
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {

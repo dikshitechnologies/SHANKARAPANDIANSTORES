@@ -12,7 +12,8 @@ export default function ScrapRateFixing() {
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  
+  const [showClearConfirmation, setShowClearConfirmation] = useState(false);
+
   // Array of refs for each rate input
   const rateInputRefs = useRef([]);
   
@@ -272,22 +273,22 @@ export default function ScrapRateFixing() {
     return { isValid: true, message: "" };
   };
 
-  // Handle clear all rates button click
-  const handleClearAll = () => {
-    if (window.confirm("Are you sure you want to clear all rate values?")) {
-      setScrapRates(prev => 
-        prev.map(scrap => ({ ...scrap, rate: "" }))
-      );
-      toast.success("All rate values have been cleared.", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    }
-  };
+ const handleClearAll = () => {
+  setShowClearConfirmation(true);
+};
+const handleConfirmClearAll = () => {
+  setShowClearConfirmation(false);
+
+  setScrapRates(prev =>
+    prev.map(scrap => ({ ...scrap, rate: "" }))
+  );
+
+  toast.success("All rate values have been cleared.", {
+    position: "top-right",
+    autoClose: 3000,
+  });
+};
+
 
   // Filter scraps based on search term
   const filteredScrapRates = scrapRates.filter(scrap =>
@@ -414,6 +415,18 @@ export default function ScrapRateFixing() {
         showLoading={loading}
         disableBackdropClose={loading}
       />
+      <ConfirmationPopup
+  isOpen={showClearConfirmation}
+  onClose={() => setShowClearConfirmation(false)}
+  onConfirm={handleConfirmClearAll}
+  title="Clear All Rates"
+  message="Are you sure you want to clear all rate values?"
+  type="warning"
+  confirmText="Clear"
+  cancelText="Cancel"
+  showIcon={true}
+/>
+
 
       <div style={{
         width: '100%',
@@ -621,7 +634,7 @@ export default function ScrapRateFixing() {
                           value={scrap.rate}
                           onChange={(e) => handleRateChange(scrap.id, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, index)}
-                          placeholder="Enter rate"
+                          // placeholder="Enter rate"
                           style={{
                             width: '100%',
                             padding: isMobile ? '8px 10px' : '10px 12px',

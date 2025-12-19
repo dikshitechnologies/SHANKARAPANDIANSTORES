@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
@@ -465,6 +467,7 @@ useEffect(() => {
       if (response?.status !== "unchanged") {
         await loadInitial();
         setMessage({ type: "success", text: "State updated successfully." });
+          toast.success(`State "${form.stateName}" updated successfully.`);
       }
       resetForm(true);
       setConfirmEditOpen(false);
@@ -489,6 +492,7 @@ useEffect(() => {
       await deleteState(form.fuCode);
       await loadInitial();
       setMessage({ type: "success", text: "State deleted successfully." });
+       toast.success(`State "${form.stateName}" deleted successfully.`);
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -531,6 +535,7 @@ useEffect(() => {
       await createState(stateData);
       await loadInitial();
       setMessage({ type: "success", text: "State created successfully." });
+       toast.success(`State "${form.stateName}" created successfully.`);
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {

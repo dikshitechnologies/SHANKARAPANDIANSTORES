@@ -1614,7 +1614,7 @@ const Scrapprocurement = () => {
               onKeyDown={(e) => handleKeyDown(e, billDateRef)}
               onFocus={() => setFocusedField('billNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Bill No"
+              // ////placeholder="Bill No"
             />
           </div>
 
@@ -1654,7 +1654,7 @@ const Scrapprocurement = () => {
               onKeyDown={(e) => handleKeyDown(e, empNameRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Mobile No"
+              // ////placeholder="Mobile No"
             />
           </div>
 
@@ -1674,7 +1674,7 @@ const Scrapprocurement = () => {
               onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
               onFocus={() => setFocusedField('empName')}
               onBlur={() => setFocusedField('')}
-              // placeholder="EMP Name"
+              // ////placeholder="EMP Name"
             />
           </div>
         </div>
@@ -1733,7 +1733,7 @@ const Scrapprocurement = () => {
                   }
                 }}
                 onBlur={() => setFocusedField('')}
-                placeholder="Search salesman"
+                ////placeholder="Search salesman"
               />
               <button
                 type="button"
@@ -1818,7 +1818,7 @@ const Scrapprocurement = () => {
                   }
                 }}
                 onBlur={() => setFocusedField('')}
-                placeholder="Search customer"
+                ////placeholder="Search customer"
               />
               <button
                 type="button"
@@ -1908,7 +1908,7 @@ const Scrapprocurement = () => {
                   }
                 }}
                 onBlur={() => setFocusedField('')}
-                placeholder="Search scrap product"
+                ////placeholder="Search scrap product"
               />
               <button
                 type="button"
@@ -1976,7 +1976,7 @@ const Scrapprocurement = () => {
                       data-field="scrapProductName"
                       onChange={(e) => handleItemChange(item.id, 'scrapProductName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'scrapProductName')}
-                      // placeholder="Barcode"
+                      // ////placeholder="Barcode"
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
@@ -1999,7 +1999,7 @@ const Scrapprocurement = () => {
                         height: '100%'
                       }}
                       value={item.itemName}
-                      placeholder="Search items"
+                      ////placeholder="Search items"
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
@@ -2045,7 +2045,7 @@ const Scrapprocurement = () => {
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                      // placeholder="UOM"
+                      // ////placeholder="UOM"
                       readOnly
                     />
                   </td>

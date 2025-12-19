@@ -152,6 +152,17 @@ export const API_ENDPOINTS = {
   },
 
 
+  PURCHASE_RETURN: {
+    GET_PURCHASE_RETURNS: (compCode) => `PurchaseReturn/GetPurchaseReturnVoucher/${compCode}`,
+    GET_BILL_NUMBERS: (compCode, page = 1, pageSize = 20) => `PurchaseReturn/BillNumbers/${compCode}/${page}/${pageSize}`,
+    GET_PURCHASE_RETURN_DETAILS: (voucherNo) => `PurchaseReturn/GetPurchaseReturnDetails/${voucherNo}`,
+    GET_PURCHASE_BILL_LIST: (compCode, pageNo = 1, pageSize = 10) => `PurchaseReturn/GetPurchaseBillList?compCode=${compCode}&pageNo=${pageNo}&pageSize=${pageSize}`,
+    GET_PURCHASE_ITEMS_BY_VOUCHER: (voucher) => `PurchaseReturn/GetPurchaseItemsByVoucher?voucher=${voucher}`,
+    CREATE_PURCHASE_RETURN: (selectType = true) => `PurchaseReturn/PurchaseReturn?selecttype=${selectType}`,
+    UPDATE_PURCHASE_RETURN: (selectType = false) => `PurchaseReturn/PurchaseReturn?selecttype=${selectType}`,
+    DELETE_PURCHASE_RETURN: (voucherNo, compCode) => `PurchaseReturn/PurchaseReturnDelete?voucherNo=${voucherNo}&compCode=${compCode}`,
+  },
+
 
   DESIGNCREATION: {
     NEXT_DESIGN_CODE: 'DesignCreation/getNextFcode',
@@ -239,6 +250,7 @@ CATEGORY: {
 
   BILLCOLLECTOR:{
     GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
+    GET_LIVE_DRAWER: (date, ccode) => `BillCollector/GetLiveDrawer?date=${date}&ccode=${ccode}`,
   },
 
   SALESRETURN: {

@@ -4,7 +4,8 @@ import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { axiosInstance } from '../../api/apiService';
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 // --- Inline SVG icons ---
 const Icon = {
   Plus: ({ size = 16 }) => (
@@ -246,6 +247,7 @@ export default function SalesmanCreation() {
         setMessage({ type: "success", text: result.message });
       } else {
         setMessage({ type: "success", text: "Salesman updated successfully." });
+        toast.success(`Salesman "${form.salesmanName}" updated successfully.`);
       }
       
       // Refresh the list
@@ -278,6 +280,7 @@ export default function SalesmanCreation() {
         setMessage({ type: "success", text: result.message });
       } else {
         setMessage({ type: "success", text: "Salesman deleted successfully." });
+        toast.success(`Salesman "${form.salesmanName}" deleted successfully.`);
       }
       
       // Refresh the list
@@ -350,6 +353,7 @@ export default function SalesmanCreation() {
         setMessage({ type: "success", text: result.message });
       } else {
         setMessage({ type: "success", text: "Salesman created successfully." });
+        toast.success(`Salesman "${form.salesmanName}" created successfully.`);
       }
       
       // Refresh the list and get next code
