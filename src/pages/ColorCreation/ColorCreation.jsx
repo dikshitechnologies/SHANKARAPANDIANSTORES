@@ -279,7 +279,7 @@ export default function ColorCreation() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Color deleted successfully." });
-      toast.success(`Color "${form.colourName}" deleted successfully.`);
+      toast.error(`Color "${form.colourName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {

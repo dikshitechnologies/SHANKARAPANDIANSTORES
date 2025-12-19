@@ -276,7 +276,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Design deleted successfully." });
-      toast.success("Design deleted successfully.");
+      toast.error("Design deleted successfully.");
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {

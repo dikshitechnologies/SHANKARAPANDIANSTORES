@@ -4,6 +4,8 @@ import apiService from "../../api/apiService";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // --- SVG Icons (keep the same) ---
 const CreateIcon = () => (
@@ -120,6 +122,17 @@ const Company = () => {
     cpcode: "",
     backupdbi: "",
     desc1: "",
+    // Pseudo fields - each accepts one character
+    pseudo1: "",
+    pseudo2: "",
+    pseudo3: "",
+    pseudo4: "",
+    pseudo5: "",
+    pseudo6: "",
+    pseudo7: "",
+    pseudo8: "",
+    pseudo9: "",
+    pseudo10: ""
   });
   const [narrationToggle, setNarrationToggle] = useState("N");
   const [companycolor, setCompanyColor] = useState("#ff0000");
@@ -140,11 +153,10 @@ const Company = () => {
     confirmText: "Confirm",
     cancelText: "Cancel"
   });
-  // const [validationError, setValidationError] = useState("");
 
   const { canCreate, canEdit, canDelete } = useFormPermissions("COMPANY");
 
-  // Refs for keyboard navigation (keeping all existing refs)
+  // Refs for keyboard navigation (including pseudo fields)
   const companyNameRef = useRef(null);
   const gstinRef = useRef(null);
   const phone1Ref = useRef(null);
@@ -197,6 +209,19 @@ const Company = () => {
   const cpCodeRef = useRef(null);
   const backupDbiRef = useRef(null);
   const desc1Ref = useRef(null);
+  
+  // Refs for pseudo fields
+  const pseudo1Ref = useRef(null);
+  const pseudo2Ref = useRef(null);
+  const pseudo3Ref = useRef(null);
+  const pseudo4Ref = useRef(null);
+  const pseudo5Ref = useRef(null);
+  const pseudo6Ref = useRef(null);
+  const pseudo7Ref = useRef(null);
+  const pseudo8Ref = useRef(null);
+  const pseudo9Ref = useRef(null);
+  const pseudo10Ref = useRef(null);
+  const submitRef = useRef(null);
 
   // Create a refs array for easier navigation
   const inputRefs = [
@@ -209,7 +234,10 @@ const Company = () => {
     tagPrintRef, billPrefixRef, templateRef, numberOfPrintRef, messageRef,
     jewellerySalesRef, narrationRef, senderIdRef, lessQuantityRef,
     quantityFormatRef, barcodeRef, balInSalesRef, calculationRef, showStockRef,
-    cpInSalesRef, backupPathRef, cpCodeRef, backupDbiRef, desc1Ref
+    cpInSalesRef, backupPathRef, cpCodeRef, backupDbiRef, desc1Ref,
+    // Pseudo refs
+    pseudo1Ref, pseudo2Ref, pseudo3Ref, pseudo4Ref, pseudo5Ref,
+    pseudo6Ref, pseudo7Ref, pseudo8Ref, pseudo9Ref, pseudo10Ref
   ];
 
   // ✅ Fetch next code
@@ -283,6 +311,9 @@ const Company = () => {
         return;
       }
 
+      // Extract pseudo code (10 characters) and split into individual fields
+      const pseudoCode = company.pseudoCode || company.pseudo || "";
+      
       setFormData({
         fcompcode: company.compCode || company.compcode || "",
         fcompname: company.compName || company.compname || "",
@@ -334,6 +365,17 @@ const Company = () => {
         cpcode: company.cpCode || "",
         backupdbi: company.backupDBI || "",
         desc1: company.desc1 || "",
+        // Split pseudo code into individual fields
+        pseudo1: pseudoCode.length > 0 ? pseudoCode[0] : "",
+        pseudo2: pseudoCode.length > 1 ? pseudoCode[1] : "",
+        pseudo3: pseudoCode.length > 2 ? pseudoCode[2] : "",
+        pseudo4: pseudoCode.length > 3 ? pseudoCode[3] : "",
+        pseudo5: pseudoCode.length > 4 ? pseudoCode[4] : "",
+        pseudo6: pseudoCode.length > 5 ? pseudoCode[5] : "",
+        pseudo7: pseudoCode.length > 6 ? pseudoCode[6] : "",
+        pseudo8: pseudoCode.length > 7 ? pseudoCode[7] : "",
+        pseudo9: pseudoCode.length > 8 ? pseudoCode[8] : "",
+        pseudo10: pseudoCode.length > 9 ? pseudoCode[9] : ""
       });
 
       setCompanyColor(company.companyPrintColor || company.companyprintcolor || "#ff0000");
@@ -407,6 +449,17 @@ const Company = () => {
       cpcode: "",
       backupdbi: "",
       desc1: "",
+      // Clear pseudo fields
+      pseudo1: "",
+      pseudo2: "",
+      pseudo3: "",
+      pseudo4: "",
+      pseudo5: "",
+      pseudo6: "",
+      pseudo7: "",
+      pseudo8: "",
+      pseudo9: "",
+      pseudo10: ""
     });
     setCompanyColor("#ff0000");
     setAddressColor("#00ff00");
@@ -435,11 +488,48 @@ const Company = () => {
     }
   };
 
+  // Handle pseudo field input - only allow alphanumeric characters
+  const handlePseudoInput = (field, value, nextRef) => {
+    // Remove any non-alphanumeric characters and convert to uppercase
+    const cleanValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    
+    // Only take the first character
+    const singleChar = cleanValue.charAt(0);
+    
+    setFormData(prev => ({
+      ...prev,
+      [field]: singleChar
+    }));
+    
+    // Auto-focus to next field if a character is entered
+    if (singleChar && nextRef && nextRef.current) {
+      nextRef.current.focus();
+    }
+  };
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  // Concatenate all pseudo fields into a single string
+  const getPseudoCode = () => {
+    const pseudoFields = [
+      formData.pseudo1,
+      formData.pseudo2,
+      formData.pseudo3,
+      formData.pseudo4,
+      formData.pseudo5,
+      formData.pseudo6,
+      formData.pseudo7,
+      formData.pseudo8,
+      formData.pseudo9,
+      formData.pseudo10
+    ];
+    
+    return pseudoFields.join('');
   };
 
   const handleActionClick = (action) => {
@@ -466,23 +556,24 @@ const Company = () => {
   };
 
   const validateForm = () => {
-  // Perform fresh validation on the current formData
-  if (!formData.fcompname.trim()) {
-    return { isValid: false, message: "Please enter Company Name" };
-  }
-  
-  if (!formData.fusername.trim()) {
-    return { isValid: false, message: "Please enter UserName" };
-  }
-  if (!formData.fpassword.trim()) {
-    return { isValid: false, message: "Please enter Password" };
-  }
-  if (formData.fpassword !== formData.fconfirmpass) {
-    return { isValid: false, message: "Password and Confirm Password do not match" };
-  }
-  
-  return { isValid: true, message: "" };
-};
+    // Perform fresh validation on the current formData
+    if (!formData.fcompname.trim()) {
+      return { isValid: false, message: "Please enter Company Name" };
+    }
+    
+    if (!formData.fusername.trim()) {
+      return { isValid: false, message: "Please enter UserName" };
+    }
+    if (!formData.fpassword.trim()) {
+      return { isValid: false, message: "Please enter Password" };
+    }
+    if (formData.fpassword !== formData.fconfirmpass) {
+      return { isValid: false, message: "Password and Confirm Password do not match" };
+    }
+    
+    
+    return { isValid: true, message: "" };
+  };
 
   // Show confirmation popup
   const showConfirmation = (config) => {
@@ -492,69 +583,71 @@ const Company = () => {
 
   // Handle save with confirmation
   const handleSaveWithConfirmation = () => {
-  // Get fresh validation result
-  const validationResult = validateForm();
-  
-  if (!validationResult.isValid) {
-    // Use the message from the fresh validation result
+    // Get fresh validation result
+    const validationResult = validateForm();
+    
+    if (!validationResult.isValid) {
+      // Use the message from the fresh validation result
+      showConfirmation({
+        title: "Validation Error",
+        message: validationResult.message, // ✅ Correct message now
+        type: "warning",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => setShowConfirmPopup(false),
+        onCancel: () => setShowConfirmPopup(false)
+      });
+      return;
+    }
+    
+    // ... rest of your success logic ...
     showConfirmation({
-      title: "Validation Error",
-      message: validationResult.message, // ✅ Correct message now
-      type: "warning",
-      confirmText: "OK",
-      hideCancelButton: true,
-      onConfirm: () => setShowConfirmPopup(false),
+      title: "Create Company",
+      message: `Are you sure you want to create company "${formData.fcompname}"?`,
+      type: "success",
+      confirmText: "Create",
+      onConfirm: () => {
+        setShowConfirmPopup(false);
+        saveData();
+        clearForm();
+      },
       onCancel: () => setShowConfirmPopup(false)
     });
-    return;
-  }
-  
-  // ... rest of your success logic ...
-  showConfirmation({
-    title: "Create Company",
-    message: `Are you sure you want to create company "${formData.fcompname}"?`,
-    type: "success",
-    confirmText: "Create",
-    onConfirm: () => {
-      setShowConfirmPopup(false);
-      saveData();
-      clearForm();
-    },
-    onCancel: () => setShowConfirmPopup(false)
-  });
-};
+    toast.success(`Company "${formData.fcompname}" created successfully.`);
+  };
 
   // Handle update with confirmation
-const handleUpdateWithConfirmation = () => {
-  // Get fresh validation result
-  const validationResult = validateForm();
-  
-  if (!validationResult.isValid) {
-    // Use the message from the fresh validation result
+  const handleUpdateWithConfirmation = () => {
+    // Get fresh validation result
+    const validationResult = validateForm();
+    
+    if (!validationResult.isValid) {
+      // Use the message from the fresh validation result
+      showConfirmation({
+        title: "Validation Error",
+        message: validationResult.message,
+        type: "warning",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => setShowConfirmPopup(false),
+        onCancel: () => setShowConfirmPopup(false)
+      });
+      return;
+    }
+    
     showConfirmation({
-      title: "Validation Error",
-      message: validationResult.message,
-      type: "warning",
-      confirmText: "OK",
-      hideCancelButton: true,
-      onConfirm: () => setShowConfirmPopup(false),
+      title: "Update Company",
+      message: `Are you sure you want to update company "${formData.fcompname}"?`,
+      type: "info",
+      confirmText: "Update",
+      onConfirm: () => {
+        setShowConfirmPopup(false);
+        updateData();
+      },
       onCancel: () => setShowConfirmPopup(false)
     });
-    return;
-  }
-  
-  showConfirmation({
-    title: "Update Company",
-    message: `Are you sure you want to update company "${formData.fcompname}"?`,
-    type: "info",
-    confirmText: "Update",
-    onConfirm: () => {
-      setShowConfirmPopup(false);
-      updateData();
-    },
-    onCancel: () => setShowConfirmPopup(false)
-  });
-};
+    toast.success(`Company "${formData.fcompname}" updated successfully.`);
+  };
 
   // Handle delete with confirmation
   const handleDeleteWithConfirmation = () => {
@@ -582,11 +675,14 @@ const handleUpdateWithConfirmation = () => {
       },
       onCancel: () => setShowConfirmPopup(false)
     });
+    toast.success(`Company "${formData.fcompname}" deleted successfully.`);
   };
 
   const saveData = async () => {
     setLoading(true);
     try {
+      const pseudoCode = getPseudoCode();
+      
       const payload = {
         compCode: formData.fcompcode,
         compName: formData.fcompname.trim(),
@@ -642,6 +738,8 @@ const handleUpdateWithConfirmation = () => {
         narration: formData.narrationToggle || "N",
         companyPrintColor: companycolor || "#ff0000",
         printAddressColor: addresscolor || "#00ff00",
+        // Add pseudo code to payload
+        pseudoCode: pseudoCode,
         c: ""
       };
 
@@ -696,6 +794,8 @@ const handleUpdateWithConfirmation = () => {
   const updateData = async () => {
     setLoading(true);
     try {
+      const pseudoCode = getPseudoCode();
+      
       const payload = {
         compCode: formData.fcompcode,
         compName: formData.fcompname.trim(),
@@ -751,6 +851,8 @@ const handleUpdateWithConfirmation = () => {
         narration: formData.narrationToggle || "N",
         companyPrintColor: companycolor || "#ff0000",
         printAddressColor: addresscolor || "#00ff00",
+        // Add pseudo code to payload
+        pseudoCode: pseudoCode,
         c: ""
       };
 
@@ -852,12 +954,12 @@ const handleUpdateWithConfirmation = () => {
   };
 
   const handleSubmit = (e) => {
-  if (e) e.preventDefault(); // Prevent default form submission
-  
-  if (selectedAction === "create") handleSaveWithConfirmation();
-  else if (selectedAction === "edit") handleUpdateWithConfirmation();
-  else if (selectedAction === "delete") handleDeleteWithConfirmation();
-};
+    if (e) e.preventDefault(); // Prevent default form submission
+    
+    if (selectedAction === "create") handleSaveWithConfirmation();
+    else if (selectedAction === "edit") handleUpdateWithConfirmation();
+    else if (selectedAction === "delete") handleDeleteWithConfirmation();
+  };
 
   const filteredData = tableData.filter(
     (item) =>
@@ -1162,8 +1264,130 @@ const handleUpdateWithConfirmation = () => {
                           value={formData.billprefix}
                           onChange={(e) => handleInputChange('billprefix', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          // onKeyDown={(e) => handleKeyDown(e,)}
+                          onKeyDown={(e) => handleKeyDown(e, pseudo1Ref)}
                         />
+                      </div>
+                    </div>
+
+                    {/* Pseudo Fields Section */}
+                    <div className="rowpseudo">
+                      <div className="input-group">
+                        <label>Pseudo Code</label>
+                        <div className="pseudo-container">
+                          <input
+                            type="text"
+                            ref={pseudo1Ref}
+                            maxLength={1}
+                            value={formData.pseudo1}
+                            onChange={(e) => handlePseudoInput('pseudo1', e.target.value, pseudo2Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, pseudo2Ref)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="1"
+                          />
+                          <input
+                            type="text"
+                            ref={pseudo2Ref}
+                            maxLength={1}
+                            value={formData.pseudo2}
+                            onChange={(e) => handlePseudoInput('pseudo2', e.target.value, pseudo3Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, pseudo3Ref)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="2"
+                          />
+                          <input
+                            type="text"
+                            ref={pseudo3Ref}
+                            maxLength={1}
+                            value={formData.pseudo3}
+                            onChange={(e) => handlePseudoInput('pseudo3', e.target.value, pseudo4Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, pseudo4Ref)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="3"
+                          />
+                          <input
+                            type="text"
+                            ref={pseudo4Ref}
+                            maxLength={1}
+                            value={formData.pseudo4}
+                            onChange={(e) => handlePseudoInput('pseudo4', e.target.value, pseudo5Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, pseudo5Ref)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="4"
+                          />
+                          <input
+                            type="text"
+                            ref={pseudo5Ref}
+                            maxLength={1}
+                            value={formData.pseudo5}
+                            onChange={(e) => handlePseudoInput('pseudo5', e.target.value, pseudo6Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, pseudo6Ref)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="5"
+                          />
+                          <input
+                            type="text"
+                            ref={pseudo6Ref}
+                            maxLength={1}
+                            value={formData.pseudo6}
+                            onChange={(e) => handlePseudoInput('pseudo6', e.target.value, pseudo7Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, pseudo7Ref)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="6"
+                          />
+                          <input
+                            type="text"
+                            ref={pseudo7Ref}
+                            maxLength={1}
+                            value={formData.pseudo7}
+                            onChange={(e) => handlePseudoInput('pseudo7', e.target.value, pseudo8Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, pseudo8Ref)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="7"
+                          />
+                          <input
+                            type="text"
+                            ref={pseudo8Ref}
+                            maxLength={1}
+                            value={formData.pseudo8}
+                            onChange={(e) => handlePseudoInput('pseudo8', e.target.value, pseudo9Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, pseudo9Ref)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="8"
+                          />
+                          <input
+                            type="text"
+                            ref={pseudo9Ref}
+                            maxLength={1}
+                            value={formData.pseudo9}
+                            onChange={(e) => handlePseudoInput('pseudo9', e.target.value, pseudo10Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, pseudo10Ref)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="9"
+                          />
+                          <input
+                            type="text"
+                            ref={pseudo10Ref}
+                            maxLength={1}
+                            value={formData.pseudo10}
+                            onChange={(e) => handlePseudoInput('pseudo10', e.target.value, note1Ref)}
+                            onKeyDown={(e) => handleKeyDown(e, submitRef)}
+                            disabled={selectedAction === "delete"}
+                            className="pseudo-input"
+                            // placeholder="10"
+                          />
+                        </div>
+                        <div className="pseudo-help">
+                          <small>Enter 0-9 or A-Z only. Combined code: {getPseudoCode()}</small>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1173,6 +1397,7 @@ const handleUpdateWithConfirmation = () => {
               <div className="button-row">
                 <button
                   className="submit-btn"
+                  ref={submitRef}
                   onClick={(e) => handleSubmit(e)} // Pass event
                   disabled={loading || (selectedAction === "create" ? !canCreate : selectedAction === "edit" ? !canEdit : !canDelete)}
                 >
