@@ -23,7 +23,6 @@ const PurchaseReturn = () => {
     originalInvoiceAmount: '',
     transType: 'RETURN',
     city: '',
-    reason: '',
     isLedger: false,
   });
 
@@ -58,7 +57,6 @@ const PurchaseReturn = () => {
       wsRate: '',
       min: '',
       max: '',
-      returnReason: ''
     }
   ]);
 
@@ -150,7 +148,6 @@ const PurchaseReturn = () => {
       tax: 18,
       rate: 400,
       qty: 1,
-      returnReason: 'Damaged'
     };
 
     setItems([...items, newItem]);
@@ -188,7 +185,6 @@ const PurchaseReturn = () => {
       wsRate: '',
       min: '',
       max: '',
-      returnReason: ''
     };
     setItems([...items, newRow]);
   };
@@ -205,7 +201,7 @@ const PurchaseReturn = () => {
 
       // Fields in the visual order
       const fields = [
-        'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'returnReason', 'ovrwt', 'avgwt',
+        'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
         'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 'sRate', 'asRate',
         'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'min', 'max'
       ];
@@ -284,7 +280,6 @@ const PurchaseReturn = () => {
         wsRate: '',
         min: '',
         max: '',
-        returnReason: ''
       }
     ]);
     setReturnDetails({ ...returnDetails, barcodeInput: '' });
@@ -307,7 +302,6 @@ const PurchaseReturn = () => {
           qty: parseFloat(item.qty) || 0,
           rate: parseFloat(item.rate) || 0,
           amount: (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0),
-          returnReason: item.returnReason || '',
           uom: item.uom,
           hsn: item.hsn
         }))
@@ -365,7 +359,6 @@ const PurchaseReturn = () => {
                 <th>Qty</th>
                 <th>Rate</th>
                 <th>Amount</th>
-                <th>Return Reason</th>
               </tr>
             </thead>
             <tbody>
@@ -376,7 +369,6 @@ const PurchaseReturn = () => {
                   <td>${item.qty} ${item.uom}</td>
                   <td>₹${parseFloat(item.rate).toFixed(2)}</td>
                   <td>₹${(parseFloat(item.qty) * parseFloat(item.rate)).toFixed(2)}</td>
-                  <td>${item.returnReason || ''}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -848,27 +840,7 @@ const PurchaseReturn = () => {
             </select>
           </div>
 
-          {/* Return Reason */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Reason:</label>
-            <select
-              name="reason"
-              style={styles.inlineInput}
-              value={returnDetails.reason}
-              onChange={handleInputChange}
-              onKeyDown={(e) => handleKeyDown(e, customerRef)}
-              onFocus={() => setFocusedField('reason')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="">Select Reason</option>
-              <option value="DAMAGED">Damaged Goods</option>
-              <option value="WRONG_ITEM">Wrong Item</option>
-              <option value="EXPIRED">Expired</option>
-              <option value="OVERSTOCK">Overstock</option>
-              <option value="QUALITY">Quality Issue</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </div>
+          
 
           {/* Mobile No */}
           <div style={styles.formField}>
@@ -944,7 +916,6 @@ const PurchaseReturn = () => {
                 <th style={styles.th}>Stock</th>
                 <th style={styles.th}>HSN</th>
                 <th style={styles.th}>Return Qty</th>
-                <th style={styles.th}>Return Reason</th>
                 <th style={styles.th}>OvrWt</th>
                 <th style={styles.th}>AvgWt</th>
                 <th style={styles.th}>PRate</th>
@@ -1031,23 +1002,7 @@ const PurchaseReturn = () => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
                     />
                   </td>
-                  <td style={styles.td}>
-                    <select
-                      style={styles.editableInput}
-                      value={item.returnReason || ''}
-                      data-row={index}
-                      data-field="returnReason"
-                      onChange={(e) => handleItemChange(item.id, 'returnReason', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'returnReason')}
-                    >
-                      <option value="">Select Reason</option>
-                      <option value="DAMAGED">Damaged</option>
-                      <option value="WRONG_ITEM">Wrong Item</option>
-                      <option value="EXPIRED">Expired</option>
-                      <option value="QUALITY">Quality Issue</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </td>
+                
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
