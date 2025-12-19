@@ -65,6 +65,8 @@ export default function UserCreation() {
   const usernameRef = useRef(null);
   const passwordRef = useRef(null);
   const prefixRef = useRef(null);
+  
+  
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
@@ -1301,9 +1303,11 @@ async function handleCreate() {
                     <input
                       ref={prefixRef}
                       type="text"
+                      maxLength={2}
                       value={form.prefix}
                       onChange={(e) => setForm((s) => ({ ...s, prefix: e.target.value }))}
                       onKeyDown={onPrefixKeyDown}
+                     
                       style={styles.formInput}
                       onFocus={(e) => Object.assign(e.target.style, {
                         boxShadow: '0 8px 26px rgba(48,122,200,0.08)',
