@@ -5,10 +5,31 @@ import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+// SEARCH ICON COMPONENT (Same as SalesInvoice)
+const SearchIcon = ({ size = 16, color = "blue" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
 
 const SalesReturn = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('all');
+  const [activeTopAction, setActiveTopAction] = useState('add');
 
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -64,6 +85,8 @@ const SalesReturn = () => {
   const [selectedRowIndex, setSelectedRowIndex] = useState(null);
   const [selectedAction, setSelectedAction] = useState("");
   const [selectedBillNumber, setSelectedBillNumber] = useState(null);
+  const [selectAllItems, setSelectAllItems] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   // 5. Confirmation Popup States
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
@@ -87,6 +110,7 @@ const SalesReturn = () => {
   const [isLoadingDetails, setIsLoadingDetails] = useState({});
   const [selectedBillForDetails, setSelectedBillForDetails] = useState(null);
   const [billDetailsSearchText, setBillDetailsSearchText] = useState("");
+  const [billPopupRowIndex, setBillPopupRowIndex] = useState(0);
 
   // 7. API Data State
   const [customers, setCustomers] = useState([]);
@@ -101,11 +125,13 @@ const SalesReturn = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingBills, setIsLoadingBills] = useState(false);
-
+   
   // NEW STATE: For save button validation
   const [isFormValid, setIsFormValid] = useState(false);
 
   // --- REFS ---
+  const billRowRefs = useRef([]);
+
   const billNoRef = useRef(null);
   const billDateRef = useRef(null);
   const mobileRef = useRef(null);
@@ -117,7 +143,9 @@ const SalesReturn = () => {
   const newBillNoRef = useRef(null);
 
   const [focusedField, setFocusedField] = useState('');
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('null');
+  const [isBarcodeEnter, setIsBarcodeEnter] = useState(false);
+
 
   const [screenSize, setScreenSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
@@ -127,7 +155,132 @@ const SalesReturn = () => {
     isDesktop: true
   });
 
-  // REMOVED: UOM cycling values - no more K and P
+ useEffect(() => {
+  if (!billDetailsPopupOpen) return;
+
+  const handleKeyDown = (e) => {
+    // ❗ Ignore if user typing in input
+    if (
+      e.target.tagName === "INPUT" ||
+      e.target.tagName === "TEXTAREA"
+    ) {
+      return;
+    }
+
+    const billNo = selectedBillForDetails;
+    if (!billNo) return;
+
+    const details = billDetailsData[billNo];
+    const itemsArray = details?.items || details?.details || [];
+    if (itemsArray.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setBillPopupRowIndex(prev =>
+        Math.min(prev + 1, itemsArray.length - 1)
+      );
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setBillPopupRowIndex(prev =>
+        Math.max(prev - 1, 0)
+      );
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const item = itemsArray[billPopupRowIndex];
+      if (!item) return;
+
+      const key = item.fItemcode || item.itemCode;
+      setCheckedBills(prev => ({
+        ...prev,
+        [key]: !prev[key]
+      }));
+    }
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [
+  billDetailsPopupOpen,
+  selectedBillForDetails,
+  billDetailsData,
+  billPopupRowIndex
+]);
+
+useEffect(() => {
+  if (!billDetailsPopupOpen) return;
+
+  const row = billRowRefs.current[billPopupRowIndex];
+  if (row) {
+    row.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest"
+    });
+  }
+}, [billPopupRowIndex, billDetailsPopupOpen]);
+
+
+
+  const resetForm = async () => {
+    try {
+      setIsEditMode(false);
+
+      // Reset bill details to default
+      setBillDetails({
+        billNo: 'SR0000001',
+        billDate: new Date().toISOString().substring(0, 10),
+        mobileNo: '',
+        empName: '',
+        empCode: '14789',
+        salesman: '',
+        salesmanCode: '002',
+        custName: '',
+        customerCode: '',
+        returnReason: '',
+        barcodeInput: '',
+        partyCode: '',
+        gstno: '',
+        city: '',
+        type: 'Retail',
+        transType: 'SALES RETURN',
+        billAMT: '0',
+        newBillNo: ''
+      });
+
+      // Reset items to single empty row
+      setItems([
+        {
+          id: 1,
+          sNo: 1,
+          barcode: '',
+          itemName: '',
+          stock: '',
+          mrp: '',
+          uom: '',
+          hsn: '',
+          tax: '',
+          sRate: '',
+          rate: '',
+          qty: '',
+          amount: '0.00',
+          itemCode: '00001'
+        }
+      ]);
+
+      // Fetch new voucher number and refresh voucher list
+      await fetchMaxVoucherNo();
+      await fetchVoucherList();
+      
+     
+      
+    } catch (err) {
+      console.error("Error resetting form:", err);
+      toast.error("Error resetting form. Please try again.");
+    }
+  };
 
   // ---------- CONFIRMATION POPUP HANDLERS ----------
   const showConfirmation = (config) => {
@@ -321,6 +474,8 @@ const SalesReturn = () => {
       }
       
       setBillDetailsPopupOpen(true);
+      setBillPopupRowIndex(0); // reset keyboard cursor
+
       
     } catch (error) {
       console.error("Error opening bill details popup:", error);
@@ -334,7 +489,7 @@ const SalesReturn = () => {
     const checkedItems = Object.keys(checkedBills).filter(key => checkedBills[key]);
     
     if (!checkedItems || checkedItems.length === 0) {
-      alert("Please select at least one item by checking the checkbox.");
+      toast.warning("Please select at least one item by checking the checkbox.");
       return;
     }
     
@@ -380,12 +535,13 @@ const SalesReturn = () => {
               const itemName = item.fitemNme || item.itemName || item.productName || "";
               const originalQty = parseFloat(item.fTotQty || item.qty || item.quantity || 0);
               
-              const returnQty = originalQty > 0 ? -Math.abs(originalQty) : originalQty;
+              const returnQty = Math.abs(originalQty);
+
               
               return {
                 id: index + 1,
                 sNo: index + 1,
-                barcode: itemCode,
+                barcode:'' ,
                 itemName: itemName,
                 stock: item.fstock || item.stock || "0",
                 mrp: item.mrp || item.maxRetailPrice || "0.00",
@@ -402,19 +558,22 @@ const SalesReturn = () => {
             
             setItems(transformedItems);
             
-            alert(`Selected items from ${voucherNo} applied successfully!\n\n${filteredItems.length} items loaded for return.\nCustomer: ${header.customerName || 'N/A'}`);
+            toast.success(
+              `Selected items from ${voucherNo} applied successfully!\n${filteredItems.length} items loaded for return.`,
+              { autoClose: 3000 }
+            );
           } else {
-            alert("No items selected. Please check at least one item checkbox.");
+            toast.warning("No items selected. Please check at least one item checkbox.");
           }
         } else {
-          alert(`Bill number ${voucherNo} selected, but no items found to apply.`);
+          toast.info(`Bill number ${voucherNo} selected, but no items found to apply.`);
         }
       } else {
-        alert(`Bill number ${voucherNo} selected, but could not fetch voucher details.`);
+        toast.error(`Bill number ${voucherNo} selected, but could not fetch voucher details.`);
       }
     } catch (error) {
       console.error("Error applying voucher details:", error);
-      alert(`Error applying voucher details: ${error.message}`);
+      toast.error(`Error applying voucher details: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -424,6 +583,9 @@ const SalesReturn = () => {
     setSelectedBillForDetails(null);
     setCheckedBills({});
     setBillDetailsSearchText("");
+    setTimeout(() => {
+  barcodeRef.current?.focus();
+}, 150);
   };
 
   // Clear selected bill number
@@ -669,133 +831,235 @@ const SalesReturn = () => {
     }
   };
 
-  // ==================== CREATE SALES RETURN ====================
-  const createSalesReturn = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      const requestData = {
-        header: {
-          voucherNo: billDetails.billNo,
-          voucherDate: billDetails.billDate,
-          mobileNo: billDetails.mobileNo || "",
-          empName: billDetails.empName || "",
-          empcode: billDetails.empCode || "14789",
-          customerCode: billDetails.customerCode || "02154",
-          customerName: billDetails.custName || "",
-          salesMansName: billDetails.salesman || "",
-          salesMansCode: billDetails.salesmanCode || "002",
-          compCode: "001",
-          userCode: "001",
-          billAMT: totalAmount.toString()
-        },
-        items: items.filter(item => item.itemName && item.qty).map((item, index) => ({
-          barcode: item.barcode || "",
-          itemName: item.itemName || "",
-          itemCode: item.itemCode || `0000${index + 1}`,
-          stock: item.stock || "0",
-          mrp: item.mrp || "0",
-          uom: item.uom || "",
-          hsn: item.hsn || "",
-          tax: item.tax || "0",
-          srate: item.sRate || "0",
-          wrate: item.rate || "0",
-          qty: item.qty || "0",
-          amount: item.amount || "0"
-        }))
-      };
+// ==================== CREATE SALES RETURN ====================
+const createSalesReturn = async () => {
+  try {
+    setLoading(true);
+    setError("");
+    
+    // Check if we have items to create
+    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+    if (validItems.length === 0) {
+      throw new Error("No valid items to create. Please add items with quantity > 0.");
+    }
+    
+    // Prepare request data - CONVERT ALL VALUES TO STRINGS
+    const requestData = {
+      header: {
+        voucherNo: billDetails.billNo.toString(),
+        voucherDate: billDetails.billDate.toString(),
+        mobileNo: (billDetails.mobileNo || "").toString(),
+        empName: (billDetails.empName || "").toString(),
+        empcode: (billDetails.empCode || "14789").toString(),
+        customerCode: (billDetails.customerCode || "").toString(),
+        customerName: (billDetails.custName || "").toString(),
+        salesMansName: (billDetails.salesman || "").toString(),
+        salesMansCode: (billDetails.salesmanCode || "002").toString(),
+        compCode: "001",
+        userCode: "001",
+        billAMT: totalAmount.toFixed(2).toString(),
+        billNo: (billDetails.newBillNo || "").toString(),
+        returnReason: (billDetails.returnReason || "").toString()
+      },
+      items: validItems.map((item, index) => ({
+        barcode: (item.barcode || "").toString(),
+        itemName: (item.itemName || "").toString(),
+        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+        stock: (item.stock || "0").toString(),
+        mrp: (item.mrp || "0").toString(),
+        uom: (item.uom || "").toString(),
+        hsn: (item.hsn || "").toString(),
+        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
+        srate: (item.sRate || "0").toString(),
+        wrate: (item.rate || "0").toString(),
+        qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
+        amount: (item.amount || "0").toString(),
+        netAmount: (item.amount || "0").toString()
+      }))
+    };
 
-      const endpoint = API_ENDPOINTS.sales_return?.createSalesReturn || 
-        "SalesReturn/SalesReturnCreate?SelectType=true";
+    console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
+    
+    const endpoint = "SalesReturn/SalesReturnCreate?SelectType=true";
+    const response = await apiService.post(endpoint, requestData);
+    
+    if (response && response.success) {
+      toast.success(
+        `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+        { autoClose: 3000 }
+      );
       
-      const response = await apiService.post(endpoint, requestData);
+      // Reset form after successful creation
+      await resetForm();
       
-      if (response && response.success) {
-        alert(`Sales Return Created Successfully!\nVoucher No: ${response.voucherNo}`);
-        
-        if (response.voucherNo) {
-          setBillDetails(prev => ({ ...prev, billNo: response.voucherNo }));
+      return response;
+    } else {
+      // Check for specific error messages
+      const errorMessage = response?.message || 
+                          response?.error || 
+                          response?.Message || 
+                          "Failed to create sales return";
+      throw new Error(errorMessage);
+    }
+    
+  } catch (err) {
+    console.error("API Error in createSalesReturn:", err);
+    
+    // Detailed error logging
+    if (err.response) {
+      console.error("Response status:", err.response.status);
+      console.error("Response data:", err.response.data);
+      
+      // Extract server error message
+      let errorMsg = "Failed to create sales return";
+      const serverData = err.response.data;
+      
+      if (serverData) {
+        if (typeof serverData === 'string') {
+          errorMsg = serverData;
+        } else if (serverData.message) {
+          errorMsg = serverData.message;
+        } else if (serverData.Message) {
+          errorMsg = serverData.Message;
+        } else if (serverData.error) {
+          errorMsg = serverData.error;
+        } else if (serverData.errors) {
+          // Handle validation errors
+          const validationErrors = Object.values(serverData.errors).flat().join(', ');
+          errorMsg = `Validation Error: ${validationErrors}`;
         }
-        
-        await fetchVoucherList();
-        
-        return response;
-      } else {
-        throw new Error(response?.message || "Failed to create sales return");
       }
       
-    } catch (err) {
+      setError(errorMsg);
+      toast.error(`Create Error: ${errorMsg}`);
+    } else {
       const errorMsg = err.message || "Failed to create sales return";
       setError(errorMsg);
-      console.error("API Error:", err);
-      alert(`Error: ${errorMsg}`);
-      throw err;
-    } finally {
-      setLoading(false);
+      toast.error(`Error: ${errorMsg}`);
     }
-  };
+    
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
 
-  // ==================== UPDATE SALES RETURN ====================
-  const updateSalesReturn = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      const requestData = {
-        header: {
-          voucherNo: billDetails.billNo,
-          voucherDate: billDetails.billDate,
-          mobileNo: billDetails.mobileNo || "",
-          empName: billDetails.empName || "",
-          empcode: billDetails.empCode || "14789",
-          customerCode: billDetails.customerCode || "02154",
-          customerName: billDetails.custName || "",
-          salesMansName: billDetails.salesman || "",
-          salesMansCode: billDetails.salesmanCode || "002",
-          compCode: "001",
-          userCode: "001",
-          billAMT: totalAmount.toString()
-        },
-        items: items.filter(item => item.itemName && item.qty).map((item, index) => ({
-          barcode: item.barcode || "",
-          itemName: item.itemName || "",
-          itemCode: item.itemCode || `0000${index + 1}`,
-          stock: item.stock || "0",
-          mrp: item.mrp || "0",
-          uom: item.uom || "",
-          hsn: item.hsn || "",
-          tax: item.tax || "0",
-          srate: item.sRate || "0",
-          wrate: item.rate || "0",
-          qty: item.qty || "0",
-          amount: item.amount || "0"
-        }))
-      };
+// ==================== UPDATE SALES RETURN ====================
+const updateSalesReturn = async () => {
+  try {
+    setLoading(true);
+    setError("");
+    
+    // Check if we have items to update
+    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+    if (validItems.length === 0) {
+      throw new Error("No valid items to update. Please add items with quantity > 0.");
+    }
+    
+    // Prepare request data - CONVERT ALL VALUES TO STRINGS
+    const requestData = {
+      header: {
+        voucherNo: billDetails.billNo.toString(),
+        voucherDate: billDetails.billDate.toString(),
+        mobileNo: (billDetails.mobileNo || "").toString(),
+        empName: (billDetails.empName || "").toString(),
+        empcode: (billDetails.empCode || "14789").toString(),
+        customerCode: (billDetails.customerCode || "").toString(),
+        customerName: (billDetails.custName || "").toString(),
+        salesMansName: (billDetails.salesman || "").toString(),
+        salesMansCode: (billDetails.salesmanCode || "002").toString(),
+        compCode: "001",
+        userCode: "001",
+        billAMT: totalAmount.toFixed(2).toString(),
+        billNo: (billDetails.newBillNo || "").toString(),
+        returnReason: (billDetails.returnReason || "").toString()
+      },
+      items: validItems.map((item, index) => ({
+        barcode: (item.barcode || "").toString(),
+        itemName: (item.itemName || "").toString(),
+        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+        stock: (item.stock || "0").toString(),
+        mrp: (item.mrp || "0").toString(),
+        uom: (item.uom || "").toString(),
+        hsn: (item.hsn || "").toString(),
+        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
+        srate: (item.sRate || "0").toString(),
+        wrate: (item.rate || "0").toString(),
+        qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
+        amount: (item.amount || "0").toString(),
+        netAmount: (item.amount || "0").toString()
+      }))
+    };
 
-      const endpoint = API_ENDPOINTS.sales_return?.updateSalesReturn || 
-        "SalesReturn/SalesReturnCreate?SelectType=true";
+    console.log("Updating sales return with data:", JSON.stringify(requestData, null, 2));
+    
+    const endpoint = "SalesReturn/SalesReturnCreate?SelectType=false";
+    const response = await apiService.post(endpoint, requestData);
+    
+    if (response && response.success) {
+      toast.success(
+        `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+        { autoClose: 3000 }
+      );
       
-      const response = await apiService.post(endpoint, requestData);
+      // Reset form after successful update
+      await resetForm();
       
-      if (response && response.success) {
-        alert(`Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo}`);
-        await fetchVoucherList();
-        return response;
-      } else {
-        throw new Error(response?.message || "Failed to update sales return");
+      return response;
+    } else {
+      const errorMessage = response?.message || 
+                          response?.error || 
+                          response?.Message || 
+                          "Failed to update sales return";
+      throw new Error(errorMessage);
+    }
+    
+  } catch (err) {
+    console.error("API Error in updateSalesReturn:", err);
+    
+    // Detailed error handling
+    if (err.response) {
+      console.error("Response status:", err.response.status);
+      console.error("Response data:", err.response.data);
+      
+      let errorMsg = "Failed to update sales return";
+      const serverData = err.response.data;
+      
+      if (serverData) {
+        if (typeof serverData === 'string') {
+          errorMsg = serverData;
+        } else if (serverData.message) {
+          errorMsg = serverData.message;
+        } else if (serverData.Message) {
+          errorMsg = serverData.Message;
+        } else if (serverData.error) {
+          errorMsg = serverData.error;
+        } else if (serverData.errors) {
+          // Handle validation errors
+          const validationErrors = Object.values(serverData.errors).flat().join(', ');
+          errorMsg = `Validation Error: ${validationErrors}`;
+        } else if (serverData.title) {
+          errorMsg = serverData.title;
+        }
       }
       
-    } catch (err) {
+      setError(errorMsg);
+      toast.error(`Update Error: ${errorMsg}`);
+    } else if (err.request) {
+      console.error("No response received:", err.request);
+      setError("No response from server. Please check your connection.");
+      toast.error("Update Error: No response from server. Please check your connection.");
+    } else {
       const errorMsg = err.message || "Failed to update sales return";
       setError(errorMsg);
-      console.error("API Error:", err);
-      alert(`Error: ${errorMsg}`);
-      throw err;
-    } finally {
-      setLoading(false);
+      toast.error(`Update Error: ${errorMsg}`);
     }
-  };
+    
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ==================== DELETE SALES RETURN ====================
   const deleteSalesReturn = async (voucherNo) => {
@@ -837,9 +1101,14 @@ const SalesReturn = () => {
       }
       
       if (response && response.success) {
-        alert(`Sales Return ${voucherNo} deleted successfully!`);
+        toast.success(
+          `Sales Return ${voucherNo} deleted successfully!`,
+          { autoClose: 3000 }
+        );
         await fetchVoucherList();
-        handleClear();
+        
+        // Reset form after successful delete
+        await resetForm();
         
         return response;
       } else {
@@ -850,7 +1119,7 @@ const SalesReturn = () => {
       const errorMsg = err.message || "Failed to delete sales return";
       setError(errorMsg);
       console.error("API Error:", err);
-      alert(`Error: ${errorMsg}`);
+      toast.error(`Error: ${errorMsg}`);
       throw err;
     } finally {
       setLoading(false);
@@ -887,7 +1156,7 @@ const SalesReturn = () => {
       
     } catch (err) {
       console.error("API Error fetching sales return details:", err);
-      alert(`Error fetching details: ${err.message}`);
+      toast.error(`Error fetching details: ${err.message}`);
       return null;
     } finally {
       setLoading(false);
@@ -903,7 +1172,7 @@ const SalesReturn = () => {
       const voucherDetails = await fetchSalesReturnDetails(voucherNo);
       
       if (!voucherDetails) {
-        alert(`Could not load details for voucher ${voucherNo}.`);
+        toast.error(`Could not load details for voucher ${voucherNo}.`);
         return;
       }
       
@@ -947,7 +1216,8 @@ const SalesReturn = () => {
             tax: item.tax || "0",
             sRate: item.srate || item.sRate || "0",
             rate: item.wrate || item.rate || item.srate || "0",
-            qty: item.qty || "0",
+            qty: Math.abs(parseFloat(item.qty || 0)).toString(),
+
             amount: item.amount || "0",
             itemCode: item.itemCode || `0000${index + 1}`
           };
@@ -973,11 +1243,11 @@ const SalesReturn = () => {
         }]);
       }
       
-      alert(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
+      toast.success(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
       
     } catch (err) {
       console.error("Error loading voucher for editing:", err);
-      alert(`Error loading voucher: ${err.message}`);
+      toast.error(`Error loading voucher: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -1049,13 +1319,13 @@ const SalesReturn = () => {
   // --- POPUP HANDLERS ---
   const openCustomerPopup = () => {
     if (customers.length === 0) {
-      alert("No customers available. Please try again later or enter manually.");
+      toast.warning("No customers available. Please try again later or enter manually.");
       return;
     }
     
     const customerData = customers.map(customer => ({
       id: customer.code || customer.id,
-      code: customer.code,
+      
       name: customer.name,
       displayName: `${customer.code} - ${customer.name}`,
       customerCode: customer.code,
@@ -1071,13 +1341,13 @@ const SalesReturn = () => {
 
   const openSalesmanPopup = () => {
     if (salesmen.length === 0) {
-      alert("No salesmen available. Please try again later or enter manually.");
+      toast.warning("No salesmen available. Please try again later or enter manually.");
       return;
     }
     
     const salesmanData = salesmen.map(salesman => ({
       id: salesman.fcode || salesman.code || salesman.id,
-      code: salesman.fcode || salesman.code,
+     
       name: salesman.fname || salesman.name,
       displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`,
       salesmanCode: salesman.fcode || salesman.code,
@@ -1092,7 +1362,7 @@ const SalesReturn = () => {
 
   const openItemPopup = (rowIndex) => {
     if (itemList.length === 0) {
-      alert("No items available. Please try again later or enter manually.");
+      toast.warning("No items available. Please try again later or enter manually.");
       return;
     }
     
@@ -1100,7 +1370,7 @@ const SalesReturn = () => {
       const itemCode = item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
       const itemName = item.fItemName || item.itemName || item.name || 'Unknown Item';
       
-      const displayName = `${itemCode} - ${itemName}`;
+      const displayName = ` ${itemName}`;
       
       return {
         id: itemCode || `item-${index}`,
@@ -1126,7 +1396,7 @@ const SalesReturn = () => {
       const freshVouchers = await fetchVoucherList();
       
       if (!freshVouchers || freshVouchers.length === 0) {
-        alert("No sales return vouchers available for editing.");
+        toast.warning("No sales return vouchers available for editing.");
         setLoading(false);
         return;
       }
@@ -1156,7 +1426,7 @@ const SalesReturn = () => {
       
     } catch (err) {
       console.error("Error opening edit popup:", err);
-      alert("Error loading edit data. Please try again.");
+      toast.error("Error loading edit data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -1169,7 +1439,7 @@ const SalesReturn = () => {
       const freshVouchers = await fetchVoucherList();
       
       if (!freshVouchers || freshVouchers.length === 0) {
-        alert("No sales return vouchers available for deletion.");
+        toast.warning("No sales return vouchers available for deletion.");
         setLoading(false);
         return;
       }
@@ -1198,7 +1468,7 @@ const SalesReturn = () => {
       
     } catch (err) {
       console.error("Error opening delete popup:", err);
-      alert("Error loading delete data. Please try again.");
+      toast.error("Error loading delete data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -1218,6 +1488,9 @@ const SalesReturn = () => {
             partyCode: selectedCustomer.code || selectedCustomer.custCode,
             customerCode: selectedCustomer.code || selectedCustomer.custCode,
           }));
+          setTimeout(() => {
+       newBillNoRef.current?.focus();
+    }, 100);
         }
         
       } else if (popupType === "salesman") {
@@ -1232,69 +1505,67 @@ const SalesReturn = () => {
             salesman: selectedSalesman.fname || selectedSalesman.name,
             salesmanCode: selectedSalesman.fcode || selectedSalesman.code || "002"
           }));
+            setTimeout(() => {
+      custNameRef.current?.focus();
+       // optional: auto-open customer popup
+    }, 100);
         }
         
-      } else if (popupType === "item") {
-        if (selectedRowIndex !== null) {
-          const selectedItemFromList = itemList.find(item => {
-            const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id;
-            
-            if (selectedItem.code && itemCode) {
-              return itemCode.toString() === selectedItem.code.toString();
-            }
-            return false;
-          });
-          
-          const itemData = selectedItemFromList || selectedItem;
-          
-          const itemName = itemData.fItemName || itemData.itemName || itemData.name || 
-                          selectedItem.name || selectedItem.fItemName || 'Unknown Item';
-          const itemCode = itemData.fItemcode || itemData.itemCode || itemData.code || 
-                          selectedItem.code || `0000${selectedRowIndex + 1}`;
-          
-          const updatedItems = [...items];
-          
-          if (updatedItems[selectedRowIndex]) {
-            updatedItems[selectedRowIndex] = {
-              ...updatedItems[selectedRowIndex],
-              itemName: itemName,
-              itemCode: itemCode,
-            };
-            
-            setItems(updatedItems);
-          }
-        }
-        
-      } else if (popupType === "billNumber") {
+} else if (popupType === "item") {
+  if (selectedRowIndex !== null) {
+    setItems(prev => {
+      const updated = [...prev];
+
+      updated[selectedRowIndex] = {
+        ...updated[selectedRowIndex],
+        itemName:
+          selectedItem.fItemName ||
+          selectedItem.itemName ||
+          selectedItem.name ||
+          "",
+        itemCode:
+          selectedItem.fItemcode ||
+          selectedItem.itemCode ||
+          selectedItem.code ||
+          updated[selectedRowIndex].itemCode,
+      };
+
+      return updated;
+    });
+
+    // ✅ Move cursor to QTY of SAME ROW
+    setTimeout(() => {
+      const qtyInput = document.querySelector(
+        `input[data-row="${selectedRowIndex}"][data-field="qty"]`
+      );
+      qtyInput?.focus();
+    }, 120);
+  }
+}
+ else if (popupType === "billNumber") {
         // For bill number popup, open second popup with details
         const billNo = selectedItem.code || selectedItem.id;
         await openBillDetailsPopup(billNo);
         
       } else if (popupType === "edit") {
-        const voucherNo = selectedItem.code || selectedItem.id;
-        
-        showConfirmation({
-          title: "Confirm Edit",
-          message: `Are you sure you want to edit Sales Return ${voucherNo}?\n\nCurrent form data will be replaced.`,
-          type: "warning",
-          confirmText: "Edit",
-          cancelText: "Cancel",
-          onConfirm: async () => {
-            await loadVoucherForEditing(voucherNo);
-            setPopupOpen(false);
-            setPopupType("");
-            setPopupData([]);
-            setSelectedRowIndex(null);
-            setSelectedAction("");
-          }
-        });
-        
-      } else if (popupType === "delete") {
+  const voucherNo = selectedItem.code || selectedItem.id;
+
+  // ✅ DIRECTLY LOAD VOUCHER (NO CONFIRM POPUP)
+  await loadVoucherForEditing(voucherNo);
+
+  // ✅ Close popup cleanly
+  setPopupOpen(false);
+  setPopupType("");
+  setPopupData([]);
+  setSelectedRowIndex(null);
+  setSelectedAction("");
+}
+ else if (popupType === "delete") {
         const voucherNo = selectedItem.code || selectedItem.id;
         
         showConfirmation({
           title: "Confirm Delete",
-          message: `Are you sure you want to delete Sales Return ${voucherNo}?\n\nThis action cannot be undone!`,
+          message: `Are you sure you want to delete`,
           type: "danger",
           confirmText: "Delete",
           cancelText: "Cancel",
@@ -1308,9 +1579,10 @@ const SalesReturn = () => {
           }
         });
       }
+      
     } catch (err) {
       console.error("Error in popup selection:", err);
-      alert(`Error: ${err.message}`);
+      toast.error(`Error: ${err.message}`);
     }
   };
 
@@ -1370,17 +1642,17 @@ const SalesReturn = () => {
   const getPopupConfig = () => {
     const configs = {
       customer: {
-        displayFieldKeys: ['code', 'name'],
-        searchFields: ['code', 'name'],
-        headerNames: ['Code', 'Customer Name'],
+        displayFieldKeys: [ 'name'],
+        searchFields: [ 'name'],
+        headerNames: [ 'Customer Name'],
         columnWidths: { code: '30%', name: '70%' },
         searchPlaceholder: 'Search customers...',
         showApplyButton: false
       },
       salesman: {
-        displayFieldKeys: ['code', 'name'],
-        searchFields: ['code', 'name'],
-        headerNames: ['Code', 'Salesman Name'],
+        displayFieldKeys: ['name'],
+        searchFields: [ 'name'],
+        headerNames: [ 'Salesman Name'],
         columnWidths: { code: '30%', name: '70%' },
         searchPlaceholder: 'Search salesmen...',
         showApplyButton: false
@@ -1388,7 +1660,7 @@ const SalesReturn = () => {
       item: {
         displayFieldKeys: ['displayName'],
         searchFields: ['displayName', 'name', 'itemName', 'code'],
-        headerNames: ['Item (Code - Name)'],
+        headerNames: ['Item Name'],
         columnWidths: { displayName: '100%' },
         searchPlaceholder: 'Search items by code or name...',
         showApplyButton: false
@@ -1447,52 +1719,58 @@ const SalesReturn = () => {
     }
   };
 
-  // REMOVED: handleUomSpacebar function - no more K/P cycling
+const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  if (e.key === '/' && currentField === 'itemName') {
+    e.preventDefault();
+    openItemPopup(currentRowIndex);
+    return;
+  }
+  
+  if (e.key === 'Enter') {
+    e.preventDefault();
 
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    if (e.key === '/' && currentField === 'itemName') {
-      e.preventDefault();
-      openItemPopup(currentRowIndex);
-      return;
+    const fields = [
+      'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
+    ];
+
+    const currentFieldIndex = fields.indexOf(currentField);
+
+    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+      const nextField = fields[currentFieldIndex + 1];
+      const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        return;
+      }
     }
-    
-    if (e.key === 'Enter') {
-      e.preventDefault();
 
-      const fields = [
-        'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
-      ];
+    // Check if we're on the quantity field
+    if (currentField === 'qty') {
+      const currentItem = items[currentRowIndex];
 
-      const currentFieldIndex = fields.indexOf(currentField);
-
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-        if (nextInput) {
-          nextInput.focus();
-          return;
-        }
+      // 🚫 BLOCK if item name not selected
+      if (!currentItem.itemName || currentItem.itemName.trim() === '') {
+        toast.warning("Select item before moving to next row");
+        return;
       }
 
       if (currentRowIndex < items.length - 1) {
         const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-        if (nextInput) {
-          nextInput.focus();
-          return;
-        }
+        if (nextInput) nextInput.focus();
+      } else {
+        handleAddRow();
+        setTimeout(() => {
+          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
+          if (newRowInput) newRowInput.focus();
+        }, 60);
       }
-
-      handleAddRow();
-      setTimeout(() => {
-        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
-        if (newRowInput) newRowInput.focus();
-      }, 60);
     }
-  };
+  }
+};
 
   const handleAddItem = async () => {
     if (!billDetails.barcodeInput) {
-      alert("Please enter barcode");
+      toast.warning("Please enter barcode");
       return;
     }
 
@@ -1510,12 +1788,12 @@ const SalesReturn = () => {
         if (itemData) {
           handleAddItemFromAPI(itemData);
         } else {
-          alert("Item not found. Please check the barcode.");
+          toast.warning("Item not found. Please check the barcode.");
         }
       }
     } catch (err) {
       console.error("Error adding item:", err);
-      alert("Failed to add item. Please try again.");
+      toast.error("Failed to add item. Please try again.");
     }
   };
 
@@ -1587,25 +1865,33 @@ const SalesReturn = () => {
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
-  const handleAddRow = () => {
-    const newRow = {
-      id: items.length + 1,
-      sNo: items.length + 1,
-      barcode: '',
-      itemName: '',
-      stock: '',
-      mrp: '',
-      uom: '',
-      hsn: '',
-      tax: '',
-      sRate: '',
-      rate: '',
-      qty: '',
-      amount: '0.00',
-      itemCode: `0000${items.length + 1}`
-    };
-    setItems([...items, newRow]);
+const handleAddRow = () => {
+  const lastItem = items[items.length - 1];
+
+  // 🚫 BLOCK adding row if item name is empty
+  if (!lastItem.itemName || lastItem.itemName.trim() === '') {
+    toast.warning("Please select an item before adding a new row");
+    return;
+  }
+
+  const newRow = {
+    id: items.length + 1,
+    sNo: items.length + 1,
+    barcode: '',
+    itemName: '',
+    stock: '',
+    mrp: '',
+    uom: '',
+    hsn: '',
+    tax: '',
+    sRate: '',
+    rate: '',
+    qty: '',
+    amount: '0.00',
+    itemCode: `0000${items.length + 1}`
   };
+  setItems([...items, newRow]);
+};
 
   const handleItemChange = (id, field, value) => {
     setItems(items.map(item => {
@@ -1635,7 +1921,7 @@ const SalesReturn = () => {
 
     showConfirmation({
       title: "Delete Item",
-      message: `Are you sure you want to delete "${itemName}" ${barcode}?`,
+      message: `Are you sure you want to delete`,
       type: "danger",
       confirmText: "Delete",
       cancelText: "Cancel",
@@ -1673,147 +1959,72 @@ const SalesReturn = () => {
   const handleClear = () => {
     showConfirmation({
       title: "Clear All Data",
-      message: "Are you sure you want to clear all data? This action cannot be undone.",
+      message: "Are you sure you want to clear all data? ",
       type: "warning",
       confirmText: "Clear",
       cancelText: "Cancel",
-      onConfirm: () => {
-        setBillDetails({
-          billNo: 'SR0000001',
-          billDate: new Date().toISOString().substring(0, 10),
-          mobileNo: '',
-          empName: '',
-          empCode: '14789',
-          salesman: '',
-          salesmanCode: '002',
-          custName: '',
-          customerCode: '',
-          returnReason: '',
-          barcodeInput: '',
-          partyCode: '',
-          gstno: '',
-          city: '',
-          type: 'Retail',
-          transType: 'SALES RETURN',
-          billAMT: '0',
-          newBillNo: ''
-        });
-
-        setItems([
-          {
-            id: 1,
-            sNo: 1,
-            barcode: '',
-            itemName: '',
-            stock: '',
-            mrp: '',
-            uom: '',
-            hsn: '',
-            tax: '',
-            sRate: '',
-            rate: '',
-            qty: '',
-            amount: '0.00',
-            itemCode: '00001'
-          }
-        ]);
-        
-        fetchMaxVoucherNo();
-      }
-    });
-  };
-
-  // ==================== SAVE FUNCTION ====================
-  const handleSave = async () => {
-    if (!billDetails.custName) {
-      alert("Please select a customer.");
-      return;
-    }
-
-    if (items.length === 0 || items.every(item => !item.itemName && !item.barcode)) {
-      alert("Please add at least one item.");
-      return;
-    }
-
-    const invalidItems = items.filter(item => 
-      item.itemName && (!item.qty || parseFloat(item.qty) <= 0)
-    );
-    
-    if (invalidItems.length > 0) {
-      alert("Please enter valid quantity for all items.");
-      return;
-    }
-
-    showConfirmation({
-      title: "Save Sales Return",
-      message: `Are you sure you want to save this sales return?\n\nTotal Amount: ₹${totalAmount.toFixed(2)}`,
-      type: "success",
-      confirmText: "Save",
-      cancelText: "Cancel",
       onConfirm: async () => {
-        try {
-          const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
-                                    !billDetails.billNo.startsWith('SR000000');
-          
-          if (isExistingVoucher) {
-            await updateSalesReturn();
-          } else {
-            await createSalesReturn();
-          }
-          
-          if (!isExistingVoucher) {
-            setBillDetails({
-              billNo: 'SR0000001',
-              billDate: new Date().toISOString().substring(0, 10),
-              mobileNo: '',
-              empName: '',
-              empCode: '14789',
-              salesman: '',
-              salesmanCode: '002',
-              custName: '',
-              customerCode: '',
-              returnReason: '',
-              barcodeInput: '',
-              partyCode: '',
-              gstno: '',
-              city: '',
-              type: 'Retail',
-              transType: 'SALES RETURN',
-              billAMT: '0',
-              newBillNo: ''
-            });
-
-            setItems([
-              {
-                id: 1,
-                sNo: 1,
-                barcode: '',
-                itemName: '',
-                stock: '',
-                mrp: '',
-                uom: '',
-                hsn: '',
-                tax: '',
-                sRate: '',
-                rate: '',
-                qty: '',
-                amount: '0.00',
-                itemCode: '00001'
-              }
-            ]);
-            
-            fetchMaxVoucherNo();
-          }
-          
-        } catch (err) {
-          console.error("Save error:", err);
-        }
+        await resetForm();
       }
     });
   };
+
+// ==================== SAVE FUNCTION ====================
+const handleSave = async () => {
+  if (!billDetails.custName) {
+    toast.warning("Please select a customer.");
+    return;
+  }
+
+  if (items.length === 0 || items.every(item => !item.itemName && !item.barcode)) {
+    toast.warning("Please add at least one item.");
+    return;
+  }
+
+  const invalidItems = items.filter(item => 
+    item.itemName && (!item.qty || parseFloat(item.qty) <= 0)
+  );
+  
+  if (invalidItems.length > 0) {
+    toast.warning("Please enter valid quantity for all items.");
+    return;
+  }
+
+  // Determine if this is an update or create
+  const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
+                            billDetails.billNo.startsWith('SR');
+  
+  const actionType = isExistingVoucher ? 'update' : 'create';
+  const actionText = isExistingVoucher ? 'Update' : 'Save';
+
+  showConfirmation({
+    title: `${actionText} Sales Return`,
+    message: `Are you sure you want to ${actionType} this sales return?\n\nVoucher No: ${billDetails.billNo}\nTotal Amount: ₹${totalAmount.toFixed(2)}`,
+    type: "success",
+    confirmText: actionText,
+    cancelText: "Cancel",
+    onConfirm: async () => {
+      try {
+        if (isExistingVoucher) {
+          console.log("Performing UPDATE operation");
+          await updateSalesReturn();
+          // Note: resetForm() is already called inside updateSalesReturn()
+        } else {
+          console.log("Performing CREATE operation");
+          await createSalesReturn();
+          // Note: resetForm() is already called inside createSalesReturn()
+        }
+        
+      } catch (err) {
+        console.error("Save error:", err);
+        // Error is already handled in the individual functions
+      }
+    }
+  });
+};
 
   const handlePrint = () => {
-    alert('Print functionality to be implemented');
+    toast.info('Print functionality to be implemented');
   };
 
   // --- RESPONSIVE STYLES ---
@@ -1903,44 +2114,92 @@ const SalesReturn = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '30px' : screenSize.isTablet ? '34px' : '34px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
-      paddingRight: '30px',
+    },
+    inlineInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '30px' : screenSize.isTablet ? '34px' : '34px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     inlineInputClickable: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '30px' : screenSize.isTablet ? '34px' : '34px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
       cursor: 'pointer',
-      paddingRight: '30px',
+      backgroundColor: 'white',
     },
-    searchIcon: {
+    inlineInputClickableFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '30px' : screenSize.isTablet ? '34px' : '34px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      cursor: 'pointer',
+      backgroundColor: 'white',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    searchIconInside: {
       position: 'absolute',
-      right: '8px',
+      right: '10px',
       top: '50%',
       transform: 'translateY(-50%)',
-      color: '#1B91DA',
-      cursor: 'pointer',
-      zIndex: 2,
+      pointerEvents: 'none',
+      display: 'flex',
+      alignItems: 'center',
+      opacity: 0.7,
     },
     gridRow: {
       display: 'grid',
@@ -2023,7 +2282,7 @@ const SalesReturn = () => {
       outline: 'none',
       transition: 'border-color 0.2s ease',
     },
-    editableInputClickable: {
+    editableInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.xs,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
@@ -2034,6 +2293,26 @@ const SalesReturn = () => {
       minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
       padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
       boxSizing: 'border-box',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      outline: 'none',
+      transition: 'border-color 0.2s ease',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    editableInputClickable: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      paddingRight: screenSize.isMobile ? '20px' : '24px',
+      boxSizing: 'border-box',
       border: 'none',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       textAlign: 'center',
@@ -2041,6 +2320,29 @@ const SalesReturn = () => {
       outline: 'none',
       transition: 'border-color 0.2s ease',
       cursor: 'pointer',
+      position: 'relative',
+    },
+    editableInputClickableFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      paddingRight: screenSize.isMobile ? '20px' : '24px',
+      boxSizing: 'border-box',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      outline: 'none',
+      transition: 'border-color 0.2s ease',
+      cursor: 'pointer',
+      position: 'relative',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     itemNameContainer: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -2082,7 +2384,7 @@ const SalesReturn = () => {
       minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
       width: '100%',
       boxSizing: 'border-box',
-      zIndex: 90,
+      zIndex: 100,
     },
     totalsContainer: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -2279,7 +2581,7 @@ const SalesReturn = () => {
       justifyContent: 'center',
     },
     customPopupClearButton: {
-      backgroundColor: '#1B91DA',
+      backgroundColor: '#da1b2be3',
       color: 'white',
     },
     customPopupApplyButton: {
@@ -2350,7 +2652,91 @@ const SalesReturn = () => {
       textAlign: 'left',
       fontSize: '11px',
     },
+    loadingOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(255, 255, 255, 0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      fontFamily: TYPOGRAPHY.fontFamily,
+    },
+    loadingBox: {
+      background: 'white',
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      textAlign: 'center',
+    },
   };
+
+  // Add CSS for hover effects (same as SalesInvoice)
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .sales-return-scrollable::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      .sales-return-scrollable::-webkit-scrollbar-track {
+        background-color: #f0f0f0;
+        border-radius: 4px;
+      }
+      
+      .sales-return-scrollable::-webkit-scrollbar-thumb {
+        background-color: #1B91DA;
+        border-radius: 4px;
+      }
+      
+      .sales-return-scrollable::-webkit-scrollbar-thumb:hover {
+        background-color: #1479c0;
+      }
+      
+      .sales-return-scrollable {
+        scrollbar-width: thin;
+        scrollbar-color: #1B91DA #f0f0f0;
+      }
+      
+      input[data-row]:hover {
+        border: none !important;
+        box-shadow: none !important;
+      }
+      
+      .header-input:hover,
+      input:not([data-row]):hover,
+      select:hover {
+        
+        box-shadow: none !important;
+      }
+        @keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+      
+      input:focus, 
+      select:focus {
+        
+        box-shadow: 0 0 0 2px rgba(27, 145, 218, 0.2) !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const getGridColumns = () => {
     if (screenSize.isMobile) {
@@ -2362,135 +2748,130 @@ const SalesReturn = () => {
     }
   };
 
-  // Render bill details for second popup
-  const renderBillDetailsContent = () => {
-    const billNo = selectedBillForDetails;
-    if (!billNo) return null;
-    
-    const details = billDetailsData[billNo];
-    const isLoading = isLoadingDetails[billNo];
-    
-    if (isLoading) {
-      return (
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          Loading bill details...
-        </div>
-      );
-    }
-    
-    if (!details) {
-      return (
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          Details not available
-        </div>
-      );
-    }
-    
-    const filteredItems = getFilteredBillItems();
-    
-    return (
-      <div style={{ padding: '20px' }}>
-        {/* Search Box */}
-        <div style={{ marginBottom: '15px' }}>
-          <input
-            type="text"
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontFamily: TYPOGRAPHY.fontFamily,
-              outline: 'none',
-              transition: 'border-color 0.2s',
-              boxSizing: 'border-box',
-            }}
-            placeholder="Search items by code or name..."
-            value={billDetailsSearchText}
-            onChange={(e) => setBillDetailsSearchText(e.target.value)}
-          />
-        </div>
-        
-        {/* Items Table with Checkboxes */}
-        <h4 style={{ marginBottom: '15px', color: '#1B91DA' }}>Items - Select items to return</h4>
-        <table style={styles.itemDetailsTable}>
-          <thead style={styles.itemDetailsHeader}>
-            <tr>
-              <th style={styles.checkboxCell}></th>
-              <th style={styles.itemDetailsHeaderCell}>Item Code</th>
-              <th style={styles.itemDetailsHeaderCell}>Item Name</th>
-              <th style={styles.itemDetailsHeaderCell}>Quantity</th>
-              <th style={styles.itemDetailsHeaderCell}>Unit</th>
-              <th style={styles.itemDetailsHeaderCell}>Rate</th>
-              <th style={styles.itemDetailsHeaderCell}>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredItems.map((item, index) => {
-              const itemKey = item.fItemcode || item.itemCode || index;
-              const isChecked = checkedBills[itemKey] || false;
-              
-              return (
-                <tr key={index} style={styles.itemDetailsRow}>
-                  <td style={styles.checkboxCell}>
-                    <input
-                      type="checkbox"
-                      style={styles.checkboxInput}
-                      checked={isChecked}
-                      onChange={(e) => {
-                        setCheckedBills(prev => ({
-                          ...prev,
-                          [itemKey]: e.target.checked
-                        }));
-                      }}
-                    />
-                  </td>
-                  <td style={styles.itemDetailsCell}>{item.fItemcode || item.itemCode || 'N/A'}</td>
-                  <td style={styles.itemDetailsCell}>{item.fitemNme || item.itemName || 'N/A'}</td>
-                  <td style={styles.itemDetailsCell}>{item.fTotQty || item.qty || '0'}</td>
-                  <td style={styles.itemDetailsCell}>{item.fUnit || item.uom || 'N/A'}</td>
-                  <td style={styles.itemDetailsCell}>₹{item.fRate || item.rate || '0.00'}</td>
-                  <td style={styles.itemDetailsCell}>₹{item.fAmount || item.amount || '0.00'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        
-        {filteredItems.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-            {billDetailsSearchText ? "No matching items found" : "No items found in this bill"}
-          </div>
-        )}
-      </div>
-    );
+const renderBillDetailsContent = () => {
+  const billNo = selectedBillForDetails;
+  if (!billNo) return null;
+
+  const details = billDetailsData[billNo];
+  if (!details) {
+    return <div style={{ padding: 30, textAlign: "center" }}>No data</div>;
+  }
+
+  const itemsArray = details.items || details.details || [];
+
+  const handleSelectAll = (checked) => {
+    setSelectAllItems(checked);
+    const updated = {};
+    itemsArray.forEach(item => {
+      const key = item.fItemcode || item.itemCode;
+      updated[key] = checked;
+    });
+    setCheckedBills(updated);
   };
 
   return (
-    <div style={styles.container}>
+    <div style={{ padding: "20px", animation: "fadeSlide 0.3s ease" }}>
+      
+      <h4 style={{
+        marginBottom: 12,
+        fontWeight: 700,
+        color: "#1B91DA"
+      }}>
+        Items – Select items to return
+      </h4>
+
+      <table style={{
+        width: "100%",
+        borderCollapse: "collapse",
+        fontSize: "13px"
+      }}>
+        <thead>
+          <tr style={{ background: "#f0f6ff" }}>
+            <th style={{ padding: 8 }}>
+              <input
+                type="checkbox"
+                checked={selectAllItems}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+              />
+            </th>
+            <th style={thStyle}>Item Name</th>
+            <th style={thStyle}>Qty</th>
+            <th style={thStyle}>Unit</th>
+            <th style={thStyle}>Rate</th>
+            <th style={thStyle}>Amount</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {itemsArray.map((item, idx) => {
+            const key = item.fItemcode || item.itemCode;
+            return (
+            <tr
+  key={idx}
+  ref={(el) => (billRowRefs.current[idx] = el)}
+  style={{
+    transition: "background 0.2s",
+    background:
+      billPopupRowIndex === idx
+        ? "#cce5ff"
+        : checkedBills[key]
+        ? "#e3f2fd"
+        : "#fff"
+  }}
+>
+
+
+                <td style={tdStyle}>
+                  <input
+                    type="checkbox"
+                    checked={checkedBills[key] || false}
+                    onChange={(e) =>
+                      setCheckedBills(prev => ({
+                        ...prev,
+                        [key]: e.target.checked
+                      }))
+                    }
+                  />
+                </td>
+
+                <td style={{ ...tdStyle, fontWeight: 600 }}>
+                  {item.fitemNme || item.itemName}
+                </td>
+                <td style={tdStyle}>{item.fTotQty || item.qty}</td>
+                <td style={tdStyle}>{item.fUnit || item.uom}</td>
+                <td style={tdStyle}>₹{item.fRate || item.rate}</td>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>
+                  ₹{item.fAmount || item.amount}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const thStyle = {
+  padding: 8,
+  fontWeight: 700,
+  textAlign: "left",
+  borderBottom: "2px solid #ddd"
+};
+
+const tdStyle = {
+  padding: 8,
+  borderBottom: "1px solid #eee"
+};
+
+
+  return (
+    <div style={styles.container} className="sales-return-scrollable">
       {error && <div style={styles.errorContainer}>Error: {error}</div>}
       
       {loading && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(255, 255, 255, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          fontFamily: TYPOGRAPHY.fontFamily,
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            textAlign: 'center',
-          }}>
+        <div style={styles.loadingOverlay}>
+          <div style={styles.loadingBox}>
             <div>Loading...</div>
           </div>
         </div>
@@ -2526,7 +2907,7 @@ const SalesReturn = () => {
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={focusedField === 'billNo' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.billNo}
               name="billNo"
               onChange={handleInputChange}
@@ -2534,7 +2915,7 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, billDateRef)}
               onFocus={() => setFocusedField('billNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Auto-generated"
+              // placeholder="Auto-generated"
               readOnly
             />
           </div>
@@ -2544,7 +2925,7 @@ const SalesReturn = () => {
             <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
-              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
+              style={focusedField === 'billDate' ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' } : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
               value={billDetails.billDate}
               name="billDate"
               onChange={handleInputChange}
@@ -2560,7 +2941,7 @@ const SalesReturn = () => {
             <label style={styles.inlineLabel}>Mobile No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.mobileNo}
               name="mobileNo"
               onChange={handleInputChange}
@@ -2568,6 +2949,7 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, empNameRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
+              // placeholder="Mobile No"
             />
           </div>
 
@@ -2576,7 +2958,7 @@ const SalesReturn = () => {
             <label style={styles.inlineLabel}>EMP Name:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={focusedField === 'empName' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.empName}
               name="empName"
               onChange={handleInputChange}
@@ -2584,6 +2966,7 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
               onFocus={() => setFocusedField('empName')}
               onBlur={() => setFocusedField('')}
+              // placeholder="Employee Name"
             />
           </div>
         </div>
@@ -2598,7 +2981,7 @@ const SalesReturn = () => {
             <label style={styles.inlineLabel}>Salesman:</label>
             <input
               type="text"
-              style={styles.inlineInputClickable}
+              style={focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
               value={billDetails.salesman}
               name="salesman"
               onChange={handleInputChange}
@@ -2607,17 +2990,14 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
               onFocus={() => setFocusedField('salesman')}
               onBlur={() => setFocusedField('')}
+              placeholder="Search salesman"
               readOnly
             />
             <div 
-              style={styles.searchIcon}
-              onClick={openSalesmanPopup}
+              style={styles.searchIconInside}
               title="Click or press / to search"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B91DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
+              <SearchIcon />
             </div>
           </div>
 
@@ -2626,7 +3006,7 @@ const SalesReturn = () => {
             <label style={styles.inlineLabel}>Customer:</label>
             <input
               type="text"
-              style={styles.inlineInputClickable}
+              style={focusedField === 'custName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
               value={billDetails.custName}
               name="custName"
               onChange={handleInputChange}
@@ -2635,17 +3015,14 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'custName')}
               onFocus={() => setFocusedField('custName')}
               onBlur={() => setFocusedField('')}
+              placeholder="Search customer"
               readOnly
             />
             <div 
-              style={styles.searchIcon}
-              onClick={openCustomerPopup}
+              style={styles.searchIconInside}
               title="Click or press / to search"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B91DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
+              <SearchIcon />
             </div>
           </div>
 
@@ -2654,7 +3031,7 @@ const SalesReturn = () => {
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
               type="text"
-              style={styles.inlineInputClickable}
+              style={focusedField === 'newBillNo' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
               value={billDetails.newBillNo}
               name="newBillNo"
               onChange={handleInputChange}
@@ -2663,17 +3040,14 @@ const SalesReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, barcodeRef, 'newBillNo')}
               onFocus={() => setFocusedField('newBillNo')}
               onBlur={() => setFocusedField('')}
+              placeholder="Select bill number"
               readOnly
             />
             <div 
-              style={styles.searchIcon}
-              onClick={openBillNumberPopup}
+              style={styles.searchIconInside}
               title="Click or press / to search"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B91DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
+              <SearchIcon />
             </div>
           </div>
 
@@ -2682,27 +3056,47 @@ const SalesReturn = () => {
             <label style={styles.inlineLabel}>Barcode:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={focusedField === 'barcodeInput' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.barcodeInput}
               name="barcodeInput"
               onChange={handleInputChange}
               ref={barcodeRef}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddItem();
-                }
-              }}
+onKeyDown={(e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+
+    // ✅ Mark barcode-enter flow
+    setIsBarcodeEnter(true);
+
+    handleAddItem();
+
+    // After adding item, check if we should move focus
+    setTimeout(() => {
+      const lastItem = items[items.length - 1];
+      if (lastItem.itemName && lastItem.itemName.trim()) {
+        const firstRowBarcode = document.querySelector(
+          'input[data-row="0"][data-field="barcode"]'
+        );
+        if (firstRowBarcode) {
+          firstRowBarcode.focus();
+        }
+      }
+    }, 150);
+  }
+}}
+
+
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
+              // placeholder="Scan or Enter Barcode"
             />
           </div>
         </div>
       </div>
 
       {/* --- TABLE SECTION --- */}
-      <div style={styles.tableSection}>
-        <div style={styles.tableContainer}>
+      <div style={styles.tableSection} className="sales-return-scrollable">
+        <div style={styles.tableContainer} className="sales-return-scrollable">
           <table style={styles.table}>
             <thead>
               <tr>
@@ -2727,42 +3121,45 @@ const SalesReturn = () => {
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.barcode}
                       data-row={index}
                       data-field="barcode"
                       onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
+                      onFocus={() => setFocusedField(`barcode-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                   </td>
-                  <td style={{ ...styles.td, ...styles.itemNameContainer }}>
+                  <td style={{ ...styles.td, ...styles.itemNameContainer, position: 'relative' }}>
                     <input
-                      style={styles.editableInputClickable}
+                      style={focusedField === `itemName-${item.id}` ? styles.editableInputClickableFocused : styles.editableInputClickable}
                       value={item.itemName}
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
                       onClick={() => openItemPopup(index)}
+                      onFocus={() => setFocusedField(`itemName-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
+                      placeholder="Search item"
                     />
                     {/* SEARCH ICON IN ITEM NAME */}
                     <div 
                       style={{
                         position: 'absolute',
-                        right: '8px',
+                        right: '6px',
                         top: '50%',
                         transform: 'translateY(-50%)',
-                        color: '#1B91DA',
-                        cursor: 'pointer',
-                        zIndex: 2,
+                        pointerEvents: 'none',
+                        opacity: 0.6,
+                        display: 'flex',
+                        alignItems: 'center',
                       }}
                       onClick={() => openItemPopup(index)}
                       title="Click or press / to search"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1B91DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                      </svg>
+                      <SearchIcon size={14} />
                     </div>
                   </td>
                   <td style={styles.td}>
@@ -2773,79 +3170,94 @@ const SalesReturn = () => {
                       data-field="stock"
                       onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
+                      readOnly
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.mrp}
                       data-row={index}
                       data-field="mrp"
                       onChange={(e) => handleItemChange(item.id, 'mrp', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'mrp')}
+                      onFocus={() => setFocusedField(`mrp-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `uom-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.uom}
                       data-row={index}
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
+                      onFocus={() => setFocusedField(`uom-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `hsn-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.hsn}
                       data-row={index}
                       data-field="hsn"
                       onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
+                      onFocus={() => setFocusedField(`hsn-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `tax-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.tax}
                       data-row={index}
                       data-field="tax"
                       onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'tax')}
+                      onFocus={() => setFocusedField(`tax-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `sRate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.sRate}
                       data-row={index}
                       data-field="sRate"
                       onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
+                      onFocus={() => setFocusedField(`sRate-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `rate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.rate}
                       data-row={index}
                       data-field="rate"
                       onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'rate')}
+                      onFocus={() => setFocusedField(`rate-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={{ ...styles.editableInput, fontWeight: 'bold' }}
+                      style={focusedField === `qty-${item.id}` ? { ...styles.editableInputFocused, fontWeight: 'bold' } : { ...styles.editableInput, fontWeight: 'bold' }}
                       value={item.qty}
                       data-row={index}
                       data-field="qty"
                       onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
+                      onFocus={() => setFocusedField(`qty-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
@@ -2917,7 +3329,7 @@ const SalesReturn = () => {
             activeButton={activeTopAction}
             onButtonClick={(type) => {
               setActiveTopAction(type);
-              if (type === 'add') handleAddRow();
+              if (type === 'add') ;
               else if (type === 'edit') openEditPopup();
               else if (type === 'delete') openDeletePopup();
             }}
@@ -2953,8 +3365,13 @@ const SalesReturn = () => {
 
       {/* SECOND POPUP: Bill Details with Checkboxes (Has Apply/Clear buttons) */}
       {billDetailsPopupOpen && (
-        <div style={styles.customPopupOverlay}>
-          <div style={styles.customPopupContainer}>
+      <div style={styles.customPopupOverlay} className="popup-overlay-slow">
+
+          <div
+  style={styles.customPopupContainer}
+  className="popup-container-slow"
+>
+
             <div style={styles.customPopupHeader}>
               <h3 style={styles.customPopupTitle}>Bill Details - {selectedBillForDetails}</h3>
               <button
@@ -2964,6 +3381,7 @@ const SalesReturn = () => {
                   setSelectedBillForDetails(null);
                   setCheckedBills({});
                   setBillDetailsSearchText("");
+                  setBillPopupRowIndex(0);
                 }}
                 aria-label="Close"
               >
@@ -2984,7 +3402,9 @@ const SalesReturn = () => {
                 }}
                 onClick={handleClearBillNumber}
               >
-                Clear
+                cancel
+
+            
               </button>
               <button
                 style={{

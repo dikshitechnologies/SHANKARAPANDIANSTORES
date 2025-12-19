@@ -89,6 +89,7 @@ export default function ScrapPage() {
   // refs for step-by-step Enter navigation
   const scrapCodeRef = useRef(null);
   const scrapNameRef = useRef(null);
+  const submitButtonRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -308,13 +309,35 @@ useEffect(() => {
     }
   };
 
-  const handleAdd = async () => {
-    if (!form.scrapCode || !form.scrapName) {
-      setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
-      return;
-    }
-    setConfirmSaveOpen(true);
-  };
+ const handleAdd = async () => {
+  if (!form.scrapCode || !form.scrapName) {
+    setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
+    return;
+  }
+
+  // Check if scrap code already exists
+  const codeExists = scrapItems.some(s => s.scrapCode === form.scrapCode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Scrap code ${form.scrapCode} already exists.` });
+    return;
+  }
+
+  // ADD THIS CHECK FOR DUPLICATE SCRAP NAME (case-insensitive)
+  const nameExists = scrapItems.some(s => 
+    s.scrapName.toLowerCase() === form.scrapName.toLowerCase()
+  );
+
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Scrap name "${form.scrapName}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -361,6 +384,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    scrapNameRef.current?.focus()
   };
 
   const handleEditRowClick = (s) => {
@@ -375,6 +399,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    scrapNameRef.current?.focus()
   };
 
   // Fetch items for popup list selector
@@ -411,6 +436,7 @@ useEffect(() => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
+      stateNameRef.current?.focus();
     }
   };
 
@@ -492,9 +518,9 @@ useEffect(() => {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
-          padding: 20px;
+          padding: 12px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,253,250,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
@@ -568,9 +594,11 @@ useEffect(() => {
         /* grid layout */
         .grid {
           display:grid;
-          grid-template-columns: 1fr 360px;
+          grid-template-columns: 1fr;
           gap:18px;
           align-items:start;
+          max-width: 750px;
+          margin: 0 auto;
         }
 
         /* left card (form) */
@@ -655,7 +683,7 @@ useEffect(() => {
 
         /* right side panel */
         .side {
-          display:flex;
+          display: none;
           flex-direction:column;
           gap:12px;
         }
@@ -988,8 +1016,8 @@ useEffect(() => {
         <div className="top-row">
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#ffffffff" />
-              <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 8h8v2H8V8zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" fill="#307AC8" />
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
               <h2 id="scrap-creation-title">Scrap Management</h2>
@@ -1037,7 +1065,7 @@ useEffect(() => {
                   className="input" 
                   value={form.scrapName} 
                   onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))} 
-                  placeholder="Enter scrap name" 
+                 
                   onKeyDown={onScrapNameKeyDown}
                   disabled={loading}
                   aria-label="Scrap Name"
@@ -1057,6 +1085,7 @@ useEffect(() => {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitButtonRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"

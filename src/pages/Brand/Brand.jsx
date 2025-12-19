@@ -88,6 +88,7 @@ export default function BrandPage() {
   // refs for step-by-step Enter navigation
   const brandCodeRef = useRef(null);
   const brandNameRef = useRef(null);
+  const submitButtonRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -318,21 +319,34 @@ useEffect(() => {
   };
 
   const handleAdd = async () => {
-    if (!form.brandCode || !form.brandName) {
-      setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
-      return;
-    }
+  if (!form.brandCode || !form.brandName) {
+    setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
+    return;
+  }
 
-    // Check if brand code already exists
-    const exists = brands.some(b => b.brandCode === form.brandCode);
-    if (exists) {
-      setMessage({ type: "error", text: `Brand code ${form.brandCode} already exists.` });
-      return;
-    }
+  // Check if brand code already exists
+  const codeExists = brands.some(b => b.brandCode === form.brandCode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Brand code ${form.brandCode} already exists.` });
+    return;
+  }
 
-    setConfirmSaveOpen(true);
-  };
+  // ADD THIS CHECK FOR DUPLICATE BRAND NAME (case-insensitive)
+  const nameExists = brands.some(b => 
+    b.brandName.toLowerCase() === form.brandName.toLowerCase()
+  );
 
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Brand name "${form.brandName}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
   const confirmSave = async () => {
     setIsLoading(true);
     try {
@@ -377,6 +391,7 @@ const resetForm = (keepAction = false) => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    brandNameRef.current?.focus()
   };
 
  const handleEditRowClick = (b) => {
@@ -390,6 +405,7 @@ const resetForm = (keepAction = false) => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    brandNameRef.current?.focus()
   };
 
   // Fetch items for popup list selector
@@ -425,6 +441,7 @@ const resetForm = (keepAction = false) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
+      BrandNameRef.current?.focus();
     }
   };
 
@@ -507,9 +524,9 @@ const resetForm = (keepAction = false) => {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
-          padding: 20px;
+          padding: 12px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,243,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
@@ -583,9 +600,11 @@ const resetForm = (keepAction = false) => {
         /* grid layout */
         .grid {
           display:grid;
-          grid-template-columns: 1fr 360px;
+          grid-template-columns: 1fr;
           gap:18px;
           align-items:start;
+          max-width: 750px;
+          margin: 0 auto;
         }
 
         /* left card (form) */
@@ -670,7 +689,7 @@ const resetForm = (keepAction = false) => {
 
         /* right side panel */
         .side {
-          display:flex;
+          display: none;
           flex-direction:column;
           gap:12px;
         }
@@ -1002,9 +1021,9 @@ const resetForm = (keepAction = false) => {
       <div className="dashboard" aria-labelledby="brand-creation-title">
         <div className="top-row">
           <div className="title-block">
-            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
-              <rect width="24" height="24" rx="6" fill="#ffffffff" />
-              <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 8h8v2H8V8zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" fill="#307AC8" />
+              <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
               <h2 id="brand-creation-title">Brand Management</h2>
@@ -1071,6 +1090,7 @@ const resetForm = (keepAction = false) => {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitButtonRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"

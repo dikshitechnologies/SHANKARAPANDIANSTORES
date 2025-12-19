@@ -76,6 +76,7 @@ export default function UnitCreation() {
   // refs for step-by-step Enter navigation
   const unitCodeRef = useRef(null);
   const unitNameRef = useRef(null);
+  const submitRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -142,7 +143,38 @@ export default function UnitCreation() {
       const data = await apiService.post(API_ENDPOINTS.UNITCREATION.CREATE_SIZE, unitData);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to create unit" });
+      // Check if this is a validation error from the backend
+      if (err.response?.status === 400 || err.response?.status === 422) {
+        // Extract the specific error message from the response
+        const errorMessage = err.response?.data?.message || 
+                            err.response?.data?.error || 
+                            err.message;
+        
+        // Check if it's a duplicate unit name error
+        if (errorMessage.toLowerCase().includes("already exists") || 
+            errorMessage.toLowerCase().includes("duplicate") ||
+            errorMessage.toLowerCase().includes("exist")) {
+          setMessage({ 
+            type: "error", 
+            text: "A unit with this name already exists. Please choose a different name." 
+          });
+        } else {
+          setMessage({ 
+            type: "error", 
+            text: errorMessage || "Validation failed. Please check your input." 
+          });
+        }
+        
+        // If you want to extract specific field errors
+        if (err.response?.data?.errors) {
+          const fieldErrors = err.response.data.errors;
+          // Handle field-specific errors if needed
+          console.log("Field errors:", fieldErrors);
+        }
+      } else {
+        setMessage({ type: "error", text: "Failed to create unit" });
+      }
+      
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -156,7 +188,30 @@ export default function UnitCreation() {
       const data = await apiService.put(API_ENDPOINTS.UNITCREATION.UPDATE_SIZE(unitData.fuCode), unitData);
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update unit" });
+      // Check if this is a validation error from the backend
+      if (err.response?.status === 400 || err.response?.status === 422) {
+        const errorMessage = err.response?.data?.message || 
+                            err.response?.data?.error || 
+                            err.message;
+        
+        // Check if it's a duplicate unit name error
+        if (errorMessage.toLowerCase().includes("already exists") || 
+            errorMessage.toLowerCase().includes("duplicate") ||
+            errorMessage.toLowerCase().includes("exist")) {
+          setMessage({ 
+            type: "error", 
+            text: "A unit with this name already exists. Please choose a different name." 
+          });
+        } else {
+          setMessage({ 
+            type: "error", 
+            text: errorMessage || "Validation failed. Please check your input." 
+          });
+        }
+      } else {
+        setMessage({ type: "error", text: "Failed to update unit" });
+      }
+      
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -178,6 +233,28 @@ export default function UnitCreation() {
     }
   };
 
+  // ---------- Validation function ----------
+  const validateUnitName = (name) => {
+    if (!name || name.trim() === "") {
+      return "Unit name is required";
+    }
+    if (name.length > 6) {
+      return "Unit name cannot exceed 6 characters";
+    }
+    return null;
+  };
+
+  // Check if unit name already exists
+  const checkUnitNameExists = (unitName, currentUnitCode = null) => {
+    const normalizedUnitName = unitName.trim().toLowerCase();
+    const existingUnit = units.find(u => 
+      u.unitName && 
+      u.unitName.trim().toLowerCase() === normalizedUnitName &&
+      u.uCode !== currentUnitCode // Exclude current unit when editing
+    );
+    return existingUnit;
+  };
+
   // ---------- effects ----------
   useEffect(() => {
     loadInitial();
@@ -192,25 +269,26 @@ export default function UnitCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
- // Focus on unit name field on initial load/reload
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (unitNameRef.current) {
-      unitNameRef.current.focus();
-    }
-  }, 100); // Small delay to ensure DOM is ready
-  return () => clearTimeout(timer);
-}, []); // Empty dependency array = runs once on mount
-
-// Additional focus for when actionType changes
-useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  // Focus on unit name field on initial load/reload
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (unitNameRef.current) unitNameRef.current.focus();
-    }, 0);
+      if (unitNameRef.current) {
+        unitNameRef.current.focus();
+      }
+    }, 100); // Small delay to ensure DOM is ready
     return () => clearTimeout(timer);
-  }
-}, [actionType]);
+  }, []); // Empty dependency array = runs once on mount
+
+  // Additional focus for when actionType changes
+  useEffect(() => {
+    if (actionType === "edit" || actionType === "Add") {
+      const timer = setTimeout(() => {
+        if (unitNameRef.current) unitNameRef.current.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [actionType]);
+
 
   // ---------- handlers ----------
   const loadInitial = async () => {
@@ -223,26 +301,42 @@ useEffect(() => {
       return;
     }
 
+    // === CHANGED: Added duplicate check for edit mode (excluding current size) ===
+    const isDuplicate = units.some(unit => 
+      (unit.unitName || '').toLowerCase() === form.unitName.toLowerCase() && 
+      (unit.fuCode || '') !== form.fuCode // Different ID
+    );
+
+    if (isDuplicate) {
+      setMessage({ 
+        type: "error", 
+        text: `Unit name "${form.unitName}" already exists. Please use a different name.` 
+      });
+      return;
+    }
+    // === END CHANGE ===
+
     setConfirmEditOpen(true);
   };
 
-  const confirmEdit = async () => {
-    try {
-      setIsLoading(true);
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await updateUnit(unitData);
-      await loadInitial();
-      
-      setMessage({ type: "success", text: "Unit updated successfully." });
-      setConfirmEditOpen(false);
-      resetForm();
-    } catch (err) {
-      setConfirmEditOpen(false);
-      // Error message already set in updateUnit
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const confirmEdit = async () => {
+  try {
+    setIsLoading(true);
+    
+    const unitData = { fuCode: form.fuCode, unitName: form.unitName };
+    await updateUnit(unitData);
+    await loadInitial();
+    
+    setMessage({ type: "success", text: "Unit updated successfully." });
+    setConfirmEditOpen(false);
+    resetForm();
+  } catch (err) {
+    setConfirmEditOpen(false);
+    // Error message already set in updateUnit
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleDelete = async () => {
     if (!form.fuCode) {
@@ -282,26 +376,42 @@ useEffect(() => {
       return;
     }
 
+    // === CHANGED: Added duplicate check for edit mode (excluding current size) ===
+    const isDuplicate = units.some(unit => 
+      (unit.unitName || '').toLowerCase() === form.unitName.toLowerCase() && 
+      (unit.fuCode || '') !== form.fuCode // Different ID
+    );
+
+    if (isDuplicate) {
+      setMessage({ 
+        type: "error", 
+        text: `Unit name "${form.unitName}" already exists. Please use a different name.` 
+      });
+      return;
+    }
+    // === END CHANGE ===
+
     setConfirmSaveOpen(true);
   };
 
-  const confirmSave = async () => {
-    try {
-      setIsLoading(true);
-      const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-      await createUnit(unitData);
-      await loadInitial();
-      
-      setMessage({ type: "success", text: "Unit created successfully." });
-      setConfirmSaveOpen(false);
-      resetForm(true);
-    } catch (err) {
-      setConfirmSaveOpen(false);
-      // Error message already set in createUnit
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const confirmSave = async () => {
+  try {
+    setIsLoading(true);
+    const unitData = { fuCode: form.fuCode, unitName: form.unitName };
+    
+    await createUnit(unitData);
+    await loadInitial();
+    
+    setMessage({ type: "success", text: "Unit created successfully." });
+    setConfirmSaveOpen(false);
+    resetForm(true);
+  } catch (err) {
+    setConfirmSaveOpen(false);
+    // Error message already set in createUnit
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
@@ -310,36 +420,38 @@ useEffect(() => {
   };
 
   const resetForm = (keepAction = false) => {
-  fetchNextUnitCode();
-  setForm(prev => ({ ...prev, unitName: "" }));
-  setEditingId(null);
-  setDeleteTargetId(null);
-  setExistingQuery("");
-  setEditQuery("");
-  setDeleteQuery("");
-  setMessage(null);
-  if (!keepAction) setActionType("Add");
-  
-  // This line already focuses on unitName field after reset - GOOD
-  setTimeout(() => unitNameRef.current?.focus(), 60);
-};
+    fetchNextUnitCode();
+    setForm(prev => ({ ...prev, unitName: "" }));
+    setEditingId(null);
+    setDeleteTargetId(null);
+    setExistingQuery("");
+    setEditQuery("");
+    setDeleteQuery("");
+    setMessage(null);
+    if (!keepAction) setActionType("Add");
+    
+    // This line already focuses on unitName field after reset - GOOD
+    setTimeout(() => unitNameRef.current?.focus(), 60);
+  };
 
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    unitNameRef.current?.focus();
   };
 
   const handleEditRowClick = (u) => {
-  setForm({ fuCode: u.uCode, unitName: u.unitName });
-  setActionType("edit");
-  setEditingId(u.uCode);
-  setEditModalOpen(false);
-  setTimeout(() => unitNameRef.current?.focus(), 60); // GOOD
-};
+    setForm({ fuCode: u.uCode, unitName: u.unitName });
+    setActionType("edit");
+    setEditingId(u.uCode);
+    setEditModalOpen(false);
+    setTimeout(() => unitNameRef.current?.focus(), 60);
+  };
 
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    unitNameRef.current?.focus();
   };
 
   // Fetch items for popup list selector (simple client-side paging/filtering)
@@ -354,12 +466,12 @@ useEffect(() => {
   }, [units]);
 
   const handleDeleteRowClick = (u) => {
-  setForm({ fuCode: u.uCode, unitName: u.unitName });
-  setActionType("delete");
-  setDeleteTargetId(u.uCode);
-  setDeleteModalOpen(false);
-  setTimeout(() => unitNameRef.current?.focus(), 60); // GOOD
-};
+    setForm({ fuCode: u.uCode, unitName: u.unitName });
+    setActionType("delete");
+    setDeleteTargetId(u.uCode);
+    setDeleteModalOpen(false);
+    setTimeout(() => unitNameRef.current?.focus(), 60);
+  };
 
   const onUnitCodeKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -370,8 +482,7 @@ useEffect(() => {
 
   const onUnitNameKeyDown = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
+      submitRef.current?.focus();
     }
   };
 
@@ -440,6 +551,7 @@ useEffect(() => {
         /* Page layout */
         .uc-root {
           min-height: 100vh;
+          
           display: flex;
           align-items: center;
           justify-content: center;
@@ -452,10 +564,11 @@ useEffect(() => {
 
         /* Main dashboard card (glass) */
         .dashboard {
+        
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
-          padding: 20px;
+          padding: 12px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
@@ -471,11 +584,13 @@ useEffect(() => {
           align-items:center;
           justify-content:space-between;
           gap:12px;
+          
           margin-bottom: 18px;
           flex-wrap: wrap;
         }
         .title-block {
           display:flex;
+          
           align-items: center;
           gap:12px;
         }
@@ -529,9 +644,11 @@ useEffect(() => {
         /* grid layout */
         .grid {
           display:grid;
-          grid-template-columns: 1fr 360px;
+          grid-template-columns: 1fr;
           gap:18px;
           align-items:start;
+          max-width: 750px;
+          margin: 0 auto;
         }
 
         /* left card (form) */
@@ -615,7 +732,7 @@ useEffect(() => {
 
         /* right side panel */
         .side {
-          display:flex;
+          display: none;
           flex-direction:column;
           gap:12px;
         }
@@ -634,10 +751,33 @@ useEffect(() => {
           border-radius:10px;
           font-weight:600;
           font-size: 14px;
+          animation: fadeIn 0.3s ease-in;
         }
-        .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
+        .message.error { 
+          background: #fff1f2; 
+          color: #9f1239; 
+          border: 1px solid #ffd7da;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .message.error::before {
+          content: "⚠️";
+          font-size: 16px;
+        }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
-        .message.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .message.warning { 
+          background: #fffbeb; 
+          color: #92400e; 
+          border: 1px solid #fde68a;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .message.warning::before {
+          content: "ℹ️";
+          font-size: 16px;
+        }
 
         /* submit row */
         .submit-row { 
@@ -933,11 +1073,17 @@ useEffect(() => {
           }
         }
 
-        /* Loading animation */
+        /* Animations */
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
         .loading {
           animation: pulse 1.5s ease-in-out infinite;
         }
@@ -982,16 +1128,6 @@ useEffect(() => {
                   aria-label="Unit Code"
                   readOnly={true}
                 />
-                  {/* <button
-                    className="btn"
-                    onClick={fetchNextUnitCode}
-                    disabled={loading || actionType === "edit" || actionType === "delete"}
-                    type="button"
-                    aria-label="Refresh unit code"
-                    title="Get next unit code"
-                  >
-                    <Icon.Refresh />
-                  </button> */}
               </div>
             </div>
 
@@ -1006,12 +1142,15 @@ useEffect(() => {
                   className="input" 
                   value={form.unitName} 
                   onChange={(e) => setForm(s => ({ ...s, unitName: e.target.value }))} 
-                  // placeholder="Enter unit name (e.g., M.T, KGS, PCS)" 
+                  maxLength={6}
                   onKeyDown={onUnitNameKeyDown}
                   disabled={loading}
                   aria-label="Unit Name"
                   readOnly={actionType === "delete"}
                 />
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
+                Max 6 characters
               </div>
             </div>
 
@@ -1026,6 +1165,7 @@ useEffect(() => {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"
@@ -1041,7 +1181,7 @@ useEffect(() => {
                 Clear
               </button>
             </div>
-               <div className="stat" style={{ flex: 1, minHeight: "200px" ,marginTop: "20px" }}>
+            <div className="stat" style={{ flex: 1, minHeight: "200px" ,marginTop: "20px" }}>
               <div className="muted" style={{ marginBottom: "10px" }}>Existing Units</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
@@ -1103,58 +1243,6 @@ useEffect(() => {
 
           {/* Right side panel */}
           <div className="side" aria-live="polite">
-            <div className="stat">
-              <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Unit" : "Delete Unit"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Unit Code</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Unit Name</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.unitName || "Not set"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Existing Units</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {units.length}
-              </div>
-            </div>
-
-            <div className="stat tips-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <Icon.Info />
-                <div style={{ fontWeight: 700 }}>Quick Tips</div>
-              </div>
-              
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Unit code is auto-generated for new units</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find units</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common units: KG, M.T, PCS, LTR, MTR</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Existing Units Table */}
-         
           </div>
         </div>
       </div>

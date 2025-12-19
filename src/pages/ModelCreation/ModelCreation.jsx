@@ -77,6 +77,7 @@ export default function ModelCreation() {
   // refs for step-by-step Enter navigation
   const modelCodeRef = useRef(null);
   const modelNameRef = useRef(null);
+  const submitRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -235,7 +236,12 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Model Code and Model Name." });
       return;
     }
-
+    const isDuplicate = models.some(model => 
+    (model.modelName || model.fname || model.fname || "").toLowerCase() === form.modelName.toLowerCase());
+    if (isDuplicate) {
+      setMessage({ type: "error", text: `Model "${form.modelName}" already exists. Please use a different name.` });
+      return;
+    }
     setConfirmEditOpen(true);
   };
 
@@ -248,7 +254,7 @@ useEffect(() => {
       
       setMessage({ type: "success", text: "Model updated successfully." });
       setConfirmEditOpen(false);
-      resetForm(true);
+      resetForm();
     } catch (err) {
       setConfirmEditOpen(false);
       console.error("Edit error:", err);
@@ -299,7 +305,12 @@ useEffect(() => {
       setMessage({ type: "error", text: "Please fill Model Code and Model Name." });
       return;
     }
-
+    const isDuplicate = models.some(model => 
+    (model.modelName || model.fname || model.fname || "").toLowerCase() === form.modelName.toLowerCase());
+    if (isDuplicate) {
+      setMessage({ type: "error", text: `Model "${form.modelName}" already exists. Please use a different name.` });
+      return;
+    }
     setConfirmSaveOpen(true);
   };
 
@@ -355,6 +366,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    modelNameRef.current?.focus();
   };
 
   const handleEditRowClick = (model) => {
@@ -375,6 +387,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    modelNameRef.current?.focus();
   };
 
   // Fetch items for popup list selector
@@ -422,7 +435,7 @@ useEffect(() => {
   const onModelNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
+      submitRef.current?.focus();
     }
   };
 
@@ -522,7 +535,7 @@ useEffect(() => {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 800px;
           border-radius: 16px;
           padding: 20px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -595,13 +608,11 @@ useEffect(() => {
         .action-pill.warn { color:white; background: linear-gradient(180deg, var(--warning), #f97316); }
         .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
 
-        /* grid layout */
         .grid {
-          display:grid;
-          grid-template-columns: 1fr 360px;
-          gap:18px;
-          align-items:start;
-        }
+  display: block;
+  width: 100%;
+}
+
 
         /* left card (form) */
         .card {
@@ -1087,6 +1098,7 @@ useEffect(() => {
               <div className="submit-row">
                 <button
                   className="submit-primary"
+                  ref={submitRef}
                   onClick={handleSubmit}
                   disabled={loading}
                   type="button"
@@ -1168,58 +1180,7 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Right side panel */}
-          <div className="side" aria-live="polite">
-            <div className="stat">
-              <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Model" : "Delete Model"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Model Code</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Model Name</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.modelName || "Not set"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Existing Models</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {models.length}
-              </div>
-            </div>
-
-            <div className="stat tips-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <Icon.Info />
-                <div style={{ fontWeight: 700 }}>Quick Tips</div>
-              </div>
-              
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Model code is auto-generated for new models</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>For edit/delete, use search modals to find models</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Common models: Large, Medium, Small, etc.</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </div>
 

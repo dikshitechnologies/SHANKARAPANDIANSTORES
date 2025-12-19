@@ -84,6 +84,7 @@ export default function ProductPage() {
   // refs for step-by-step Enter navigation
   const productCodeRef = useRef(null);
   const productNameRef = useRef(null);
+   const submitRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -338,20 +339,34 @@ useEffect(() => {
   };
 
   const handleAdd = async () => {
-    if (!form.fproductcode || !form.fproductname) {
-      setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
-      return;
-    }
+  if (!form.fproductcode || !form.fproductname) {
+    setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
+    return;
+  }
 
-    // Check if product code already exists
-    const exists = products.some(p => p.fproductcode === form.fproductcode);
-    if (exists) {
-      setMessage({ type: "error", text: `Product code ${form.fproductcode} already exists.` });
-      return;
-    }
+  // Check if product code already exists
+  const codeExists = products.some(p => p.fproductcode === form.fproductcode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Product code ${form.fproductcode} already exists.` });
+    return;
+  }
 
-    setConfirmSaveOpen(true);
-  };
+  // ADD THIS CHECK FOR DUPLICATE PRODUCT NAME (like in Color Creation)
+  const nameExists = products.some(p => 
+    p.fproductname.toLowerCase() === form.fproductname.toLowerCase()
+  );
+  
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Product name "${form.fproductname}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -397,6 +412,7 @@ useEffect(() => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    productNameRef.current?.focus()
   };
 
   const handleEditRowClick = (p) => {
@@ -410,6 +426,7 @@ useEffect(() => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    productNameRef.current?.focus()
   };
 
   const handleDeleteRowClick = (p) => {
@@ -445,6 +462,7 @@ useEffect(() => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
+      ProductNameRef.current?.focus();
     }
   };
 
@@ -526,9 +544,9 @@ useEffect(() => {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
-          padding: 20px;
+          padding: 12px;
            background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(240,253,250,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
@@ -602,9 +620,11 @@ useEffect(() => {
         /* grid layout */
         .grid {
           display:grid;
-          grid-template-columns: 1fr 360px;
+          grid-template-columns: 1fr;
           gap:18px;
           align-items:start;
+          max-width: 750px;
+          margin: 0 auto;
         }
 
         /* left card (form) */
@@ -689,7 +709,7 @@ useEffect(() => {
 
         /* right side panel */
         .side {
-          display:flex;
+          display: none;
           flex-direction:column;
           gap:12px;
         }
@@ -1021,7 +1041,10 @@ useEffect(() => {
       <div className="dashboard" aria-labelledby="product-management-title">
         <div className="top-row">
           <div className="title-block">
-            <Icon.Product size={38} />
+           <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             <div>
               <h2 id="product-management-title">Product Management</h2>
               <div className="subtitle muted">Create, edit, or delete products.</div>
@@ -1067,7 +1090,7 @@ useEffect(() => {
                   className="input" 
                   value={form.fproductname} 
                   onChange={(e) => setForm(s => ({ ...s, fproductname: e.target.value }))} 
-                  placeholder="Enter product name" 
+                   
                   onKeyDown={onProductNameKeyDown}
                   disabled={loading}
                   aria-label="Product Name"
@@ -1087,6 +1110,7 @@ useEffect(() => {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"

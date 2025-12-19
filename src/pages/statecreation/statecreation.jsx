@@ -10,6 +10,8 @@ const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
       <path fill="currentColor" d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" />
+
+
     </svg>
   ),
   Edit: ({ size = 16 }) => (
@@ -90,7 +92,7 @@ export default function StateCreation() {
   const stateCodeRef = useRef(null);
   const stateNameRef = useRef(null);
   const tableContainerRef = useRef(null);
-
+  const submitRef = useRef(null);
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
@@ -496,13 +498,28 @@ useEffect(() => {
     }
   };
 
-  const handleAdd = async () => {
-    if (!form.fuCode || !form.stateName) {
-      setMessage({ type: "error", text: "Please fill State Code and State Name." });
-      return;
-    }
-    setConfirmSaveOpen(true);
-  };
+ const handleAdd = async () => {
+  if (!form.fuCode || !form.stateName) {
+    setMessage({ type: "error", text: "Please fill State Code and State Name." });
+    return;
+  }
+
+  // Check for duplicate state name (case-insensitive)
+  const nameExists = states.some(state => 
+    (state.stateName || state.fname).toLowerCase() === form.stateName.toLowerCase()
+  );
+
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `State name "${form.stateName}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -547,6 +564,7 @@ const resetForm = (keepAction = false) => {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    stateNameRef.current?.focus()
   };
 
 const handleEditRowClick = (s) => {
@@ -567,6 +585,7 @@ const handleEditRowClick = (s) => {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+   stateNameRef.current?.focus()
   };
 
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
@@ -603,8 +622,7 @@ const handleDeleteRowClick = (s) => {
 
   const onStateNameKeyDown = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
+      submitRef.current?.focus();
     }
   };
 
@@ -709,7 +727,7 @@ const handleDeleteRowClick = (s) => {
 
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
           padding: 20px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -781,13 +799,14 @@ const handleDeleteRowClick = (s) => {
         .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
 
         .grid {
-          display:grid;
-          grid-template-columns: 1fr 360px;
-          gap:18px;
-          align-items:start;
-        }
+  display: block;
+  width: 100%;
+}
+
 
         .card {
+        width: 100%;
+  max-width: 100%;
           background: rgba(255,255,255,0.85);
           border-radius: 12px;
           padding: 16px;
@@ -1213,7 +1232,8 @@ const handleDeleteRowClick = (s) => {
                   className={`input ${isCurrentNameDuplicate ? 'warning' : ''}`}
                   value={form.stateName} 
                   onChange={(e) => setForm(s => ({ ...s, stateName: e.target.value }))} 
-                  placeholder="Enter state name" 
+                 
+                  
                   onKeyDown={onStateNameKeyDown}
                   disabled={loading}
                   aria-label="State Name"
@@ -1238,6 +1258,7 @@ const handleDeleteRowClick = (s) => {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitRef}
                 onClick={handleSubmit}
                 disabled={loading || (actionType === "edit" && isCurrentNameDuplicate)}
                 type="button"
@@ -1362,67 +1383,15 @@ const handleDeleteRowClick = (s) => {
 
           {/* Right side panel */}
           <div className="side" aria-live="polite">
-            <div className="stat">
-              <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New State" : 
-                 actionType === "edit" ? "Edit Existing State" : "Delete State"}
-              </div>
-            </div>
+           
 
-            <div className="stat">
-              <div className="muted">State Code</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.fuCode || "Auto-generated"}
-              </div>
-            </div>
+            
 
-            <div className="stat">
-              <div className="muted">State Name</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.stateName || "Not set"}
-              </div>
-              {form.originalStateName && actionType === "edit" && (
-                <div className="muted" style={{ fontSize: "14px", marginTop: "4px" }}>
-                  Original: {form.originalStateName}
-                </div>
-              )}
-            </div>
+           
 
-            <div className="stat">
-              <div className="muted">Loaded States</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {states.length}
-              </div>
-            </div>
+            
 
-            <div className="stat tips-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <Icon.Info />
-                <div style={{ fontWeight: 700 }}>Quick Tips</div>
-              </div>
-              
-              <div className="muted" style={{ fontSize: "16px", lineHeight: "1.5" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>State code is auto-generated for new states</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Scroll down to load more states automatically</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Examples: Maharashtra, Karnataka, Tamil Nadu</span>
-                </div>
-                {actionType === "edit" && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginTop: "8px" }}>
-                    <span style={{ color: "var(--warning)", fontWeight: "bold" }}>⚠</span>
-                    <span style={{ color: "var(--warning)" }}>State names must be unique</span>
-                  </div>
-                )}
-              </div>
-            </div>
+           
           </div>
         </div>
       </div>

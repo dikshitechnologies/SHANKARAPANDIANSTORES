@@ -5,12 +5,21 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
+
+const Icon = {
+  Search: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+    </svg>
+  ),
+}
 
 // Calculation helpers
 const calculateTotals = (items = []) => {
   const subTotal = items.reduce((acc, it) => {
     const qty = parseFloat(it?.qty) || 0;
-    const rate = parseFloat(it?.rate) || 0;
+    const rate = parseFloat(it?.prate) || 0;
     return acc + qty * rate;
   }, 0);
   
@@ -26,14 +35,29 @@ const calculateTotals = (items = []) => {
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('add');
+  const [activeTopAction, setActiveTopAction] = useState('create');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingBillNo, setEditingBillNo] = useState('');
+  
+  // Confirmation popup states
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'default',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    showLoading: false
+  });
+  
+  // Loading state for async operations
+  const [isLoading, setIsLoading] = useState(false);
   
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: '',
+    billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
     customerName: '',
     type: 'Retail',
@@ -45,7 +69,7 @@ const PurchaseInvoice = () => {
     gstType: 'G',
     purNo: '',
     invoiceNo: '',
-    purDate: '',
+    purDate: new Date().toISOString().substring(0, 10),
     invoiceAmount: '',
     transType: 'PURCHASE',
     city: '',
@@ -107,6 +131,7 @@ const PurchaseInvoice = () => {
   const transtypeRef = useRef(null); 
   const invoiceAmountRef = useRef(null);
   const gstNoRef = useRef(null);
+  const firstRowNameRef = useRef(null);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -118,7 +143,7 @@ const PurchaseInvoice = () => {
   const [itemSearchTerm, setItemSearchTerm] = useState(''); // Track search term for item popup
   
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('null');
 
   // Screen size state for responsive adjustments
   const [screenSize, setScreenSize] = useState({
@@ -132,45 +157,169 @@ const PurchaseInvoice = () => {
   // Auth context for company code
   const { userData } = useAuth() || {};
 
+  // Helper function to show confirmation popup
+  const showConfirmation = (config) => {
+    setConfirmConfig({
+      title: config.title || 'Confirm Action',
+      message: config.message || 'Are you sure you want to proceed?',
+      onConfirm: config.onConfirm || (() => {}),
+      type: config.type || 'default',
+      confirmText: config.confirmText || 'Confirm',
+      cancelText: config.cancelText || 'Cancel',
+      showLoading: config.showLoading || false,
+      hideCancelButton: config.hideCancelButton || false
+    });
+    setShowConfirmPopup(true);
+  };
+
+  // Helper function to show alert-like confirmation
+  const showAlertConfirmation = (message, onConfirm = null, type = 'info') => {
+    showConfirmation({
+      title: 'Information',
+      message: message,
+      onConfirm: onConfirm || (() => setShowConfirmPopup(false)),
+      type: type,
+      confirmText: 'OK',
+      hideCancelButton: true,
+      showLoading: false
+    });
+  };
+
   // Helper: Fetch next invoice number
   const fetchNextInvNo = async () => {
     try {
+      setIsLoading(true);
       const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
       const endpoint = API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_INVOICES(compCode);
       const response = await axiosInstance.get(endpoint);
       const nextCode = response?.data?.nextCode ?? response?.nextCode;
       if (nextCode) {
-        setBillDetails((prev) => ({ ...prev, invNo: nextCode }));
+        setBillDetails(prev => ({ ...prev, invNo: nextCode }));
+      } else {
+        // If no next code, set a placeholder
+        setBillDetails(prev => ({ ...prev, invNo: '' }));
       }
     } catch (err) {
       console.warn('Failed to fetch next invoice number:', err);
+      setBillDetails(prev => ({ ...prev, invNo: '' }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // COMPLETE NEW FORM FUNCTION
+  const createNewForm = async () => {
+    try {
+      setIsLoading(true);
+      
+      // First, clear all states
+      setIsEditMode(false);
+      setEditingBillNo('');
+      setActiveTopAction('create');
+      setActiveFooterAction('null');
+      setItemSearchTerm('');
+      setFocusedField('');
+      setShowSupplierPopup(false);
+      setShowBillListPopup(false);
+      setShowItemCodePopup(false);
+      setPopupMode('');
+      setSelectedRowId(null);
+      
+      // Clear table items first
+      setItems([{
+        id: 1, 
+        barcode: '', 
+        name: '', 
+        sub: '', 
+        stock: '0', 
+        mrp: '0', 
+        uom: '', 
+        hsn: '', 
+        tax: '', 
+        rate: 0, 
+        qty: '1',
+        ovrwt: '',
+        avgwt: '',
+        prate: 0,
+        intax: '',
+        outtax: '',
+        acost: '',
+        sudo: '',
+        profitPercent: '',
+        preRT: '',
+        sRate: '',
+        asRate: '',
+        letProfPer: '',
+        ntCost: '',
+        wsPercent: '',
+        wsRate: '',
+        amt: '',
+        min: '',
+        max: ''
+      }]);
+      
+      // Clear header fields
+      const currentDate = new Date().toISOString().substring(0, 10);
+      setBillDetails({
+        invNo: '',
+        billDate: currentDate,
+        mobileNo: '',
+        customerName: '',
+        type: 'Retail',
+        barcodeInput: '',
+        entryDate: '',
+        amount: '',
+        partyCode: '',
+        gstno: '',
+        gstType: 'G',
+        purNo: '',
+        invoiceNo: '',
+        purDate: currentDate,
+        invoiceAmount: '',
+        transType: 'PURCHASE',
+        city: '',
+        isLedger: false,
+      });
+      
+      // Then fetch next invoice number
+      await fetchNextInvNo();
+      
+      // Force a state update
+      setTimeout(() => {
+        if (billNoRef.current) {
+          billNoRef.current.focus();
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error creating new form:', error);
+      showAlertConfirmation('Error refreshing form. Please try again.', null, 'danger');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Fetch purchase bill list for popup
   const fetchBillList = async () => {
-  try {
-    const compCode = userData?.companyCode || '001';
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.PURCHASE_INVOICE.GET_BILL_LIST(compCode)
-    );
-    
-    // Check response structure
-    console.log('Bill list response:', response);
-    
-    const data = response?.data || [];
-    
-    return Array.isArray(data) ? data.map((bill, index) => ({
-      id: bill.code || bill.voucherNo || `bill-${index}`,
-      voucherNo: bill.code || bill.voucherNo || '',
-      customerName: bill.customerName || bill.refName || '',
-      date: bill.date || bill.voucherDate || ''
-    })) : [];
-  } catch (err) {
-    console.error('Error fetching bill list:', err);
-    return [];
-  }
-};
+    try {
+      const compCode = userData?.companyCode || '001';
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.PURCHASE_INVOICE.GET_BILL_LIST(compCode)
+      );
+      
+      const data = response?.data || [];
+      
+      return Array.isArray(data) ? data.map((bill, index) => ({
+        id: bill.code || bill.voucherNo || `bill-${index}`,
+        voucherNo: bill.code || bill.voucherNo || '',
+        customerName: bill.customerName || bill.refName || '',
+        date: bill.date || bill.voucherDate || ''
+      })) : [];
+    } catch (err) {
+      console.error('Error fetching bill list:', err);
+      return [];
+    }
+  };
 
   const fetchItemCodeList = async (search = '') => {
     try {
@@ -198,155 +347,137 @@ const PurchaseInvoice = () => {
     }
   };
 
-
-// Fetch item details by item code - SIMPLIFIED VERSION
-const fetchItemDetailsByCode = async (itemCode) => {
-  try {
-    console.log('Fetching item details for code:', itemCode);
-    
-    // First, get all items from the item code list endpoint
-    const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST);
-    const allItems = response?.data || [];
-    
-    console.log('All items from API:', allItems);
-    
-    if (!Array.isArray(allItems) || allItems.length === 0) {
-      console.warn('No items returned from API');
+  // Fetch item details by item code
+  const fetchItemDetailsByCode = async (itemCode) => {
+    try {
+      console.log('Fetching item details for code:', itemCode);
+      
+      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST);
+      const allItems = response?.data || [];
+      
+      console.log('All items from API:', allItems);
+      
+      if (!Array.isArray(allItems) || allItems.length === 0) {
+        console.warn('No items returned from API');
+        return [];
+      }
+      
+      const matchedItem = allItems.find(item => 
+        (item.itemCode || item.code) === itemCode
+      );
+      
+      console.log('Matched item:', matchedItem);
+      
+      if (!matchedItem) {
+        console.warn(`Item ${itemCode} not found in response`);
+        return [];
+      }
+      
+      return [{
+        barcode: matchedItem.itemCode || matchedItem.code || itemCode,
+        name: matchedItem.itemName || matchedItem.name || '',
+        stock: matchedItem.finalStock || matchedItem.stock || matchedItem.totalStock || '0',
+        uom: matchedItem.units || matchedItem.uom || matchedItem.unit || 'PCS',
+        hsn: matchedItem.hsn || matchedItem.hsnCode || '',
+        preRT: matchedItem.preRate || '0',
+        brand: matchedItem.brand || '',
+        category: matchedItem.category || '',
+        model: matchedItem.model || '',
+        size: matchedItem.size || '',
+        max: matchedItem.maxQty || '',
+        min: matchedItem.minQty || '',
+        type: matchedItem.type || '',
+      }];
+      
+    } catch (err) {
+      console.error('Error fetching item details by code:', err);
+      console.error('Error response:', err.response);
       return [];
     }
-    
-    // Find the item with matching itemCode
-    const matchedItem = allItems.find(item => 
-      (item.itemCode || item.code) === itemCode
-    );
-    
-    console.log('Matched item:', matchedItem);
-    
-    if (!matchedItem) {
-      console.warn(`Item ${itemCode} not found in response`);
-      return [];
-    }
-    
-    return [{
-      barcode: matchedItem.itemCode || matchedItem.code || itemCode,
-      name: matchedItem.itemName || matchedItem.name || '',
-      stock: matchedItem.finalStock || matchedItem.stock || matchedItem.totalStock || '0',
-      uom: matchedItem.units || matchedItem.uom || matchedItem.unit || 'PCS',
-      hsn: matchedItem.hsn || matchedItem.hsnCode || '',
-      preRT: matchedItem.preRate || '0',
-      // Add other fields from your API response
-      brand: matchedItem.brand || '',
-      category: matchedItem.category || '',
-      model: matchedItem.model || '',
-      size: matchedItem.size || '',
-      max: matchedItem.maxQty || '',
-      min: matchedItem.minQty || '',
-      type: matchedItem.type || '',
-    }];
-    
-  } catch (err) {
-    console.error('Error fetching item details by code:', err);
-    console.error('Error response:', err.response);
-    return [];
-  }
-};
+  };
 
   // Fetch purchase details for editing
- // Fix the fetchPurchaseDetails function
-const fetchPurchaseDetails = async (voucherNo) => {
-  try {
-    const compCode = userData?.companyCode || '001';
-    
-    console.log('Fetching purchase details for:', voucherNo, 'compCode:', compCode);
-    
-    // Try with GET request
-    const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_DETAILS, {
-      params: {
-        voucherNo: voucherNo,
-        compCode: compCode
-      }
-    });
-    
-    console.log('Purchase details response:', response.data);
-    
-    const data = response.data;
-    
-    if (data) {
-      // Update header details - add null checks
-      const bledger = data.bledger || {};
-      const iledger = data.iledger || [];
-      const headerDetails = {
-        invNo: bledger.voucherNo || '',
-        billDate: bledger.voucherDate ? bledger.voucherDate.split('T')[0] : '',
-        customerName: bledger.refName || '',
-        amount: bledger.billAmount || '',
-        partyCode: bledger.customerCode || '',
-        gstno: iledger.cstsNo || '',
-        city: iledger.add3 || '',
-        mobileNo: iledger.add4 || '',
-        // gstType: bledger.gstType || 'G',
-        // purNo: bledger.purNo || '',
-        // invoiceNo: bledger.invoiceNo || '',
-        // purDate: bledger.purDate ? bledger.purDate.split('T')[0] : '',
-        // invoiceAmount: bledger.invoiceAmount || '',
-        transType: bledger.transType || 'PURCHASE',
-        // city: bledger.city || '',
-        // mobileNo: bledger.mobileNo || '',
-        // isLedger: bledger.isLedger || false,
-      };
+  const fetchPurchaseDetails = async (voucherNo) => {
+    try {
+      const compCode = userData?.companyCode || '001';
       
-      console.log('Setting header details:', headerDetails);
-      setBillDetails(headerDetails);
-
-      // Update items - check multiple possible structures
-      let itemsData = [];
+      console.log('Fetching purchase details for:', voucherNo, 'compCode:', compCode);
       
-      if (data.items && Array.isArray(data.items)) {
-        itemsData = data.items;
-      } else if (data.iledger && Array.isArray(data.iledger)) {
-        itemsData = data.iledger;
-      }
+      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_DETAILS, {
+        params: {
+          voucherNo: voucherNo,
+          compCode: compCode
+        }
+      });
       
-      console.log('Items data found:', itemsData.length, 'items');
+      console.log('Purchase details response:', response.data);
       
-      if (itemsData.length > 0) {
-        const formattedItems = itemsData.map((item, index) => ({
-          id: index + 1,
-          barcode: item.itemCode || item.fid || '',
-          name: item.itemName || item.fName || '',
-          stock: item.stock || '0',
-          mrp: item.mrp || '0',
-          uom: item.fUnit || item.unit || '',
-          hsn: item.fhsn || item.hsn || '',
-          tax: item.fTax || item.tax || '',
-          prate: item.rate || 0,
-          qty: item.qty || '1',
-          ovrwt: item.ovrWt || '',
-          avgwt: item.avgWt || '',
-          intax: item.inTax || '',
-          outtax: item.outTax || '',
-          acost: item.acost || '',
-          sudo: item.sudo || '',
-          profitPercent: item.profitPercent || '',
-          preRT: item.preRate || '',
-          sRate: item.sRate || '',
-          asRate: item.asRate || '',
-          letProfPer: item.letProfPer || '',
-          ntCost: item.ntCost || '',
-          wsPercent: item.wsPer || '',
-          wsRate: item.wRate || '',
-          amt: item.amount || '',
-          min: '',
-          max: ''
-        }));
+      const data = response.data;
+      
+      if (data) {
+        const bledger = data.bledger || {};
+        const iledger = data.iledger || [];
+        const headerDetails = {
+          invNo: bledger.voucherNo || '',
+          billDate: bledger.voucherDate ? bledger.voucherDate.split('T')[0] : '',
+          customerName: bledger.refName || '',
+          amount: bledger.billAmount || '',
+          partyCode: bledger.customerCode || '',
+          gstno: iledger.cstsNo || '',
+          city: iledger.add3 || '',
+          mobileNo: iledger.add4 || '',
+          transType: bledger.transType || 'PURCHASE',
+        };
         
-        console.log('Formatted items:', formattedItems);
-        setItems(formattedItems);
-      } else {
-        console.log('No items found, resetting to default');
-        // Reset to one empty row if no items found
-        setItems([
-          { 
+        console.log('Setting header details:', headerDetails);
+        setBillDetails(prev => ({ ...prev, ...headerDetails }));
+
+        let itemsData = [];
+        
+        if (data.items && Array.isArray(data.items)) {
+          itemsData = data.items;
+        } else if (data.iledger && Array.isArray(data.iledger)) {
+          itemsData = data.iledger;
+        }
+        
+        console.log('Items data found:', itemsData.length, 'items');
+        
+        if (itemsData.length > 0) {
+          const formattedItems = itemsData.map((item, index) => ({
+            id: index + 1,
+            barcode: item.itemCode || item.fid || '',
+            name: item.itemname || item.fName || '',
+            stock: item.stock || '0',
+            mrp: item.mrp || '0',
+            uom: item.fUnit || item.unit || '',
+            hsn: item.fhsn || item.hsn || '',
+            tax: item.fTax || item.tax || '',
+            prate: item.rate || 0,
+            qty: item.qty || '1',
+            ovrwt: item.ovrWt || '',
+            avgwt: item.avgWt || '',
+            intax: item.inTax || '',
+            outtax: item.outTax || '',
+            acost: item.acost || '',
+            sudo: item.sudo || '',
+            profitPercent: item.profitPercent || '',
+            preRT: item.preRate || '',
+            sRate: item.sRate || '',
+            asRate: item.asRate || '',
+            letProfPer: item.letProfPer || '',
+            ntCost: item.ntCost || '',
+            wsPercent: item.wsPer || '',
+            wsRate: item.wRate || '',
+            amt: item.amount || '',
+            min: '',
+            max: ''
+          }));
+          
+          console.log('Formatted items:', formattedItems);
+          setItems(formattedItems);
+        } else {
+          console.log('No items found, resetting to default');
+          setItems([{
             id: 1, 
             barcode: '', 
             name: '', 
@@ -376,34 +507,31 @@ const fetchPurchaseDetails = async (voucherNo) => {
             amt: '',
             min: '',
             max: ''
-          }
-        ]);
+          }]);
+        }
+
+        setIsEditMode(true);
+        setEditingBillNo(voucherNo);
+        setActiveTopAction('edit');
+        console.log('Edit mode activated for voucher:', voucherNo);
+        
+      } else {
+        console.warn('No data received from API');
+        showAlertConfirmation('No purchase data found', null, 'warning');
       }
-
-      // Set edit mode
-      setIsEditMode(true);
-      setEditingBillNo(voucherNo);
-      setActiveTopAction('edit');
-      console.log('Edit mode activated for voucher:', voucherNo);
-      
-    } else {
-      console.warn('No data received from API');
-      alert('No purchase data found');
+    } catch (err) {
+      console.error('Error fetching purchase details:', err);
+      console.error('Error response:', err.response);
+      showAlertConfirmation(`Failed to load purchase details: ${err.message}`, null, 'danger');
     }
-  } catch (err) {
-    console.error('Error fetching purchase details:', err);
-    console.error('Error response:', err.response);
-    alert(`Failed to load purchase details: ${err.message}`);
-  }
-};
+  };
 
-
-const handleItemCodeSelect = (itemId, searchTerm = '') => {
-  console.log('Opening item code popup for row:', itemId, 'with search:', searchTerm);
-  setSelectedRowId(itemId);
-  setItemSearchTerm(searchTerm);
-  setShowItemCodePopup(true);
-};
+  const handleItemCodeSelect = (itemId, searchTerm = '') => {
+    console.log('Opening item code popup for row:', itemId, 'with search:', searchTerm);
+    setSelectedRowId(itemId);
+    setItemSearchTerm(searchTerm);
+    setShowItemCodePopup(true);
+  };
 
   // Handle Edit button click
   const handleEdit = () => {
@@ -424,9 +552,16 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
     if (popupMode === 'edit') {
       fetchPurchaseDetails(selectedBill.voucherNo);
     } else if (popupMode === 'delete') {
-      if (window.confirm(`Are you sure you want to delete Purchase Invoice ${selectedBill.voucherNo}?`)) {
-        deletePurchaseBill(selectedBill.voucherNo);
-      }
+      showConfirmation({
+        title: 'Delete Purchase Invoice',
+        message: `Are you sure you want to delete Purchase Invoice ${selectedBill.voucherNo}? This action cannot be undone.`,
+        onConfirm: () => {
+          deletePurchaseBill(selectedBill.voucherNo);
+        },
+        type: 'danger',
+        confirmText: 'Delete',
+        cancelText: 'Cancel'
+      });
     }
     
     setShowBillListPopup(false);
@@ -434,142 +569,134 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
   };
 
   const handleItemCodeSelection = async (selectedItem) => {
-  if (!selectedItem || !selectedItem.barcode) return;
-  
-  // Close the popup first
-  setShowItemCodePopup(false);
-  
-  try {
-    // Run both APIs in parallel
-    const [stockResponse, itemDetailsArray] = await Promise.all([
-      // API 1: GetStockByItemName - for stock and detailed info
-      axiosInstance.get(
-        API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_DETAILS_BY_CODE(selectedItem.barcode)
-      ),
-      // API 2: fetchItemDetailsByCode - for additional item details
-      fetchItemDetailsByCode(selectedItem.barcode)
-    ]);
+    if (!selectedItem || !selectedItem.barcode) return;
     
-    const stockData = stockResponse?.data || {};
-    const itemDetails = itemDetailsArray && itemDetailsArray.length > 0 ? itemDetailsArray[0] : {};
+    setShowItemCodePopup(false);
     
-    console.log('Stock API response:', stockData);
-    console.log('Item Details API response:', itemDetails);
-    
-    // Merge data from both APIs
-    setItems(prevItems => {
-      return prevItems.map(item => {
-        // Only update the row that was selected
-        if (item.id === selectedRowId) {
-          return {
-            ...item,
-            barcode: stockData.itemCode || itemDetails.barcode || selectedItem.barcode || '',
-            name: stockData.itemName || itemDetails.name || selectedItem.name || '',
-            stock: stockData.finalStock !== undefined && stockData.finalStock !== null ? stockData.finalStock : itemDetails.stock || '0',
-            uom: itemDetails.uom || selectedItem.uom || item.uom || '',
-            hsn: stockData.hsn || itemDetails.hsn || selectedItem.hsn || item.hsn || '',
-            preRT: itemDetails.preRT || selectedItem.preRT || item.preRT || '0',
-            prate: itemDetails.preRT || selectedItem.preRT || item.prate || '0',
-            brand: stockData.brand || itemDetails.brand || '',
-            category: stockData.category || itemDetails.category || '',
-            model: stockData.model || itemDetails.model || '',
-            size: stockData.size || itemDetails.size || '',
-            max: stockData.max || itemDetails.max || '',
-            min: stockData.min || itemDetails.min || '',
-            type: stockData.type || itemDetails.type || '',
-          };
-        }
-        return item;
+    try {
+      const [stockResponse, itemDetailsArray] = await Promise.all([
+        axiosInstance.get(
+          API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_DETAILS_BY_CODE(selectedItem.barcode)
+        ),
+        fetchItemDetailsByCode(selectedItem.barcode)
+      ]);
+      
+      const stockData = stockResponse?.data || {};
+      const itemDetails = itemDetailsArray && itemDetailsArray.length > 0 ? itemDetailsArray[0] : {};
+      
+      console.log('Stock API response:', stockData);
+      console.log('Item Details API response:', itemDetails);
+      
+      setItems(prevItems => {
+        return prevItems.map(item => {
+          if (item.id === selectedRowId) {
+            return {
+              ...item,
+              barcode: stockData.itemCode || itemDetails.barcode || selectedItem.barcode || '',
+              name: stockData.itemName || itemDetails.name || selectedItem.name || '',
+              stock: stockData.finalStock !== undefined && stockData.finalStock !== null ? stockData.finalStock : itemDetails.stock || '0',
+              uom: itemDetails.uom || selectedItem.uom || item.uom || '',
+              hsn: stockData.hsn || itemDetails.hsn || selectedItem.hsn || item.hsn || '',
+              preRT: itemDetails.preRT || selectedItem.preRT || item.preRT || '0',
+              prate: itemDetails.preRT || selectedItem.preRT || item.prate || '0',
+              brand: stockData.brand || itemDetails.brand || '',
+              category: stockData.category || itemDetails.category || '',
+              model: stockData.model || itemDetails.model || '',
+              size: stockData.size || itemDetails.size || '',
+              max: stockData.max || itemDetails.max || '',
+              min: stockData.min || itemDetails.min || '',
+              type: stockData.type || itemDetails.type || '',
+            };
+          }
+          return item;
+        });
       });
-    });
-  } catch (error) {
-    console.error('Error in handleItemCodeSelection:', error);
-    
-    // Fallback: at least fill with popup data on error
-    setItems(prevItems => {
-      return prevItems.map(item => {
-        if (item.id === selectedRowId) {
-          return {
-            ...item,
-            barcode: selectedItem.barcode || '',
-            name: selectedItem.name || '',
-            uom: selectedItem.uom || item.uom || '',
-            hsn: selectedItem.hsn || item.hsn || '',
-            preRT: selectedItem.preRT || item.preRT || '0',
-            prate: selectedItem.preRT || item.prate || '0',
-          };
-        }
-        return item;
+    } catch (error) {
+      console.error('Error in handleItemCodeSelection:', error);
+      
+      setItems(prevItems => {
+        return prevItems.map(item => {
+          if (item.id === selectedRowId) {
+            return {
+              ...item,
+              barcode: selectedItem.barcode || '',
+              name: selectedItem.name || '',
+              uom: selectedItem.uom || item.uom || '',
+              hsn: selectedItem.hsn || item.hsn || '',
+              preRT: selectedItem.preRT || item.preRT || '0',
+              prate: selectedItem.preRT || item.prate || '0',
+            };
+          }
+          return item;
+        });
       });
-    });
-  } finally {
-    // Reset selected row ID after processing
-    setSelectedRowId(null);
-  }
-};
+    } finally {
+      setSelectedRowId(null);
+      setItemSearchTerm('');
+    }
+  };
 
   // Delete purchase bill
   const deletePurchaseBill = async (voucherNo) => {
-  try {
-    const compCode = userData?.companyCode || '001';
-    const username = userData?.username || '';
-    
-    // Check if voucherNo exists
-    if (!voucherNo) {
-      alert('No purchase invoice selected for deletion');
-      return;
-    }
-    
-    console.log('Deleting purchase invoice:', { voucherNo, compCode, username });
-    
-    // Try different parameter formats based on your API requirements
-    // Option 1: Using params in DELETE request
-    const response = await axiosInstance.delete(
-      API_ENDPOINTS.PURCHASE_INVOICE.DELETE_PURCHASE_INVOICE,
-      {
-        params: {
-          voucherNo: voucherNo,
-          compCode: compCode,
-          user: username
-        }
+    try {
+      const compCode = userData?.companyCode || '001';
+      const username = userData?.username || '';
+      
+      if (!voucherNo) {
+        showAlertConfirmation('No purchase invoice selected for deletion', null, 'warning');
+        return;
       }
-    );
+      
+      console.log('Deleting purchase invoice:', { voucherNo, compCode, username });
+      
+      setIsLoading(true);
+      
+      const response = await axiosInstance.delete(
+        API_ENDPOINTS.PURCHASE_INVOICE.DELETE_PURCHASE_INVOICE,
+        {
+          params: {
+            voucherNo: voucherNo,
+            compCode: compCode,
+            user: username
+          }
+        }
+      );
 
-    
-    if (response.status === 200 || response.status === 204) {
-      alert(`Purchase invoice ${voucherNo} deleted successfully`);
-      resetForm();
-      fetchNextInvNo();
-    } else {
-      throw new Error(`Delete failed with status: ${response.status}`);
+      if (response.status === 200 || response.status === 204) {
+        showAlertConfirmation(
+          `Purchase invoice ${voucherNo} deleted successfully`,
+          () => {
+            createNewForm();
+          },
+          'success'
+        );
+      } else {
+        throw new Error(`Delete failed with status: ${response.status}`);
+      }
+      
+    } catch (err) {
+      console.error('Delete error details:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        config: err.config
+      });
+      
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          err.message || 
+                          'Failed to delete purchase invoice';
+      
+      showAlertConfirmation(`Delete failed: ${errorMessage}`, null, 'danger');
+    } finally {
+      setIsLoading(false);
     }
-    
-  } catch (err) {
-    console.error('Delete error details:', {
-      message: err.message,
-      status: err.response?.status,
-      data: err.response?.data,
-      config: err.config
-    });
-    
-    const errorMessage = err.response?.data?.message || 
-                        err.response?.data?.error || 
-                        err.message || 
-                        'Failed to delete purchase invoice';
-    
-    alert(`Delete failed: ${errorMessage}`);
-  }
-};
+  };
 
   // Fetch next invoice number on mount
   useEffect(() => {
     fetchNextInvNo();
   }, [userData]);
-
-  useEffect(() => {
-    const { net } = calculateTotals(items);
-    setNetTotal(net);
-  }, [items]);
 
   // Update screen size on resize
   useEffect(() => {
@@ -625,7 +752,16 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
   };
 
   const handleAddItem = () => {
-    if (!billDetails.barcodeInput) return alert("Please enter barcode");
+    if (!billDetails.barcodeInput) {
+      showAlertConfirmation(
+        "Please enter barcode",
+        () => {
+          if (barcodeRef.current) barcodeRef.current.focus();
+        },
+        'warning'
+      );
+      return;
+    }
     
     const newItem = {
       id: items.length + 1,
@@ -788,137 +924,116 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
   };
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    // Handle / key for item code search popup
+    if (e.key === '/') {
+      e.preventDefault();
+      handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+      return;
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
+      e.stopPropagation(); // Prevent form submission or other Enter handlers
 
+      // Fields in the visual order (adjust according to your table columns)
       const fields = [
         'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
-        'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 'sRate', 'asRate',
-        'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate','amt', 'min', 'max'
+        'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
+        'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
       ];
 
       const currentFieldIndex = fields.indexOf(currentField);
 
+      // Always move to next field if available
       if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
         const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+        const nextInput = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
+           select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+        );
         if (nextInput) {
           nextInput.focus();
           return;
         }
       }
 
-      if (currentRowIndex < items.length - 1) {
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-        if (nextInput) {
-          nextInput.focus();
-          return;
+      // If Enter is pressed in the amt field (last field)
+      if (currentField === 'amt') {
+        // Check if particulars (name) field is empty
+        const currentRow = items[currentRowIndex];
+        const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
+
+        if (isParticularsEmpty) {
+          // Show confirmation popup asking to save
+          showConfirmation({
+            title: 'Particulars Missing',
+            message: 'Particulars cannot be empty. Would you like to save the purchase invoice anyway?\n\nNote: Items without particulars will not be saved.',
+            type: 'warning',
+            confirmText: 'Save Anyway',
+            cancelText: 'Cancel',
+            onConfirm: () => {
+              // User chose to save anyway
+              setShowConfirmPopup(false);
+              // Trigger the actual save function
+              handleSave();
+            },
+            onCancel: () => {
+              setShowConfirmPopup(false);
+              // Focus back to name field so user can fix it
+              setTimeout(() => {
+                const nameInput = document.querySelector(
+                  `input[data-row="${currentRowIndex}"][data-field="name"]`
+                );
+                if (nameInput) {
+                  nameInput.focus();
+                }
+              }, 100);
+            }
+          });
+          return; // Don't proceed further
         }
       }
 
-      handleAddRow();
-      setTimeout(() => {
-        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
-        if (newRowInput) newRowInput.focus();
-      }, 60);
+      // If Enter is pressed in the amt field and particulars is not empty
+      if (currentField === 'amt') {
+        // Check if we're on the last row
+        if (currentRowIndex < items.length - 1) {
+          // Move to next row
+          const nextRowInput = document.querySelector(
+            `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+          );
+          if (nextRowInput) {
+            nextRowInput.focus();
+          }
+          return;
+        } else {
+          // We're on the last row, add new row if particulars is filled
+          const currentRow = items[currentRowIndex];
+          if (currentRow.name && currentRow.name.trim() !== '') {
+            handleAddRow();
+            setTimeout(() => {
+              const newRowInput = document.querySelector(
+                `input[data-row="${items.length}"][data-field="barcode"]`
+              );
+              if (newRowInput) newRowInput.focus();
+            }, 60);
+          }
+        }
+      }
     }
   };
 
-  const resetForm = () => {
-    setIsEditMode(false);
-    setEditingBillNo('');
-    setBillDetails({
-      invNo: '',
-      billDate: '',
-      mobileNo: '',
-      customerName: '',
-      type: 'Retail',
-      barcodeInput: '',
-      entryDate: '',
-      amount: '',
-      partyCode: '',
-      gstno: '',
-      gstType: 'G',
-      purNo: '',
-      invoiceNo: '',
-      purDate: '',
-      invoiceAmount: '',
-      transType: 'PURCHASE',
-      city: '',
-      isLedger: false,
-    });
-    setItems([
-      { 
-        id: 1, 
-        barcode: '', 
-        name: '', 
-        sub: '', 
-        stock: 0, 
-        mrp: 0, 
-        uom: '', 
-        hsn: '', 
-        tax: 0, 
-        rate: 0, 
-        qty: 0,
-        ovrwt: '',
-        avgwt: '',
-        prate: 0,
-        intax: '',
-        outtax: '',
-        acost: '',
-        sudo: '',
-        profitPercent: '',
-        preRT: '',
-        sRate: '',
-        asRate: '',
-        letProfPer: '',
-        ntCost: '',
-        wsPercent: '',
-        wsRate: '',
-        amt: '',
-        min: '',
-        max: ''
-      }
-    ]);
-    setActiveTopAction('create');
-    setActiveFooterAction('all');
-  };
-
   const handleClear = () => {
-    setItems([
-      { 
-        id: 1, 
-        barcode: '', 
-        name: '', 
-        sub: '', 
-        stock: 0, 
-        mrp: 0, 
-        uom: '', 
-        hsn: '', 
-        tax: 0, 
-        rate: 0, 
-        qty: 0,
-        ovrwt: '',
-        avgwt: '',
-        prate: 0,
-        intax: '',
-        outtax: '',
-        acost: '',
-        sudo: '',
-        profitPercent: '',
-        preRT: '',
-        sRate: '',
-        asRate: '',
-        letProfPer: '',
-        ntCost: '',
-        wsPercent: '',
-        wsRate: '',
-        amt: '',
-        min: '',
-        max: ''
-      }
-    ]);
-    setBillDetails({ ...billDetails, barcodeInput: '' });
+    showConfirmation({
+      title: 'Clear All',
+      message: 'Are you sure you want to clear all fields and create a new purchase invoice?',
+      onConfirm: () => {
+        createNewForm();
+      },
+      type: 'warning',
+      confirmText: 'Clear All',
+      cancelText: 'Cancel'
+    });
   };
 
   const handleSave = () => {
@@ -943,7 +1058,39 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
 
       const voucherNo = billDetails.invNo || '';
       if (!voucherNo) {
-        alert('Please enter an Invoice Number');
+        showAlertConfirmation('Please enter an Invoice Number', null, 'warning');
+        return;
+      }
+
+      // Validation: Check required fields
+      if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
+        showAlertConfirmation('Party Code is required', null, 'warning');
+        return;
+      }
+
+      if (!billDetails.customerName || billDetails.customerName.trim() === '') {
+        showAlertConfirmation('Customer Name is required', null, 'warning');
+        return;
+      }
+
+      if (!billDetails.mobileNo || billDetails.mobileNo.trim() === '') {
+        showAlertConfirmation('Mobile No is required', null, 'warning');
+        return;
+      }
+
+      if (!billDetails.gstno || billDetails.gstno.trim() === '') {
+        showAlertConfirmation('GST No is required', null, 'warning');
+        return;
+      }
+
+      // Validation: Check if at least one row has item data
+      const hasValidItems = items.some(item => 
+        item.barcode && item.barcode.trim() !== '' &&
+        item.name && item.name.trim() !== ''
+      );
+
+      if (!hasValidItems) {
+        showAlertConfirmation('Please add at least one item before saving', null, 'warning');
         return;
       }
 
@@ -958,20 +1105,11 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
           voucherDate: voucherDateISO,
           billAmount: totals.net,
           balanceAmount: totals.net,
-          // refType: 'pe',
           refName: billDetails.customerName || '',
           compCode: compCode,
           user: username || '001',
           gstType: billDetails.gstType || 'G',
-          // mobileNo: billDetails.mobileNo || '',
-          // city: billDetails.city || '',
-          // gstNo: billDetails.gstno || '',
-          // purNo: billDetails.purNo || '',
-          // invoiceNo: billDetails.invoiceNo || '',
-          // purDate: toISODate(billDetails.purDate),
-          // invoiceAmount: toNumber(billDetails.invoiceAmount),
-          // transType: billDetails.transType || 'PURCHASE',
-          // isLedger: billDetails.isLedger || false
+          transType: billDetails.transType || 'PURCHASE',
         },
         iledger: {
           vrNo: voucherNo,
@@ -1013,43 +1151,80 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
         })),
       };
       
-      // Determine if we're updating an existing purchase
       const purchaseType = isEditMode ? 'false' : 'true';
       
       console.log(`Saving in ${isEditMode ? 'edit' : 'create'} mode`, JSON.stringify(payload));
       
-      axiosInstance
-        .post(API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE(purchaseType), payload)
-        .then((res) => {
-          alert(`Purchase ${isEditMode ? 'updated' : 'saved'} successfully`);
-          resetForm();
-          fetchNextInvNo();
-          console.log('Save response:', res);
-        })
-        .catch((err) => {
-          const status = err?.response?.status;
-          const data = err?.response?.data;
-          const message = typeof data === 'string' ? data : data?.message || data?.error || err?.message;
-          console.warn(`Create/Update Purchase failed:`, { status, data, err });
-          alert(`Failed to ${isEditMode ? 'update' : 'save'} purchase${message ? `: ${message}` : ''}`);
-        });
+      showConfirmation({
+        title: isEditMode ? 'Update Purchase Invoice' : 'Create Purchase Invoice',
+        message: `Are you sure you want to ${isEditMode ? 'update' : 'save'} this purchase invoice?`,
+        onConfirm: async () => {
+          setIsLoading(true);
+          try {
+            const res = await axiosInstance.post(
+              API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE(purchaseType), 
+              payload
+            );
+            createNewForm();
+            console.log('Save response:', res);
+            
+            // Close the confirmation popup first
+            setShowConfirmPopup(false);
+            
+            // Show success message and reset form
+            showAlertConfirmation(
+              `Purchase ${isEditMode ? 'updated' : 'saved'} successfully`,
+              'success'
+            );
+            
+          } catch (err) {
+            const status = err?.response?.status;
+            const data = err?.response?.data;
+            const message = typeof data === 'string' ? data : data?.message || data?.error || err?.message;
+            console.warn(`Create/Update Purchase failed:`, { status, data, err });
+            
+            showAlertConfirmation(
+              `Failed to ${isEditMode ? 'update' : 'save'} purchase${message ? `: ${message}` : ''}`,
+              null,
+              'danger'
+            );
+          } finally {
+            setIsLoading(false);
+          }
+        },
+        type: 'question',
+        confirmText: isEditMode ? 'Update' : 'Save',
+        cancelText: 'Cancel',
+        showLoading: false
+      });
+      
     } catch (e) {
       console.warn('Save error:', e);
-      alert('Failed to save purchase');
+      showAlertConfirmation('Failed to save purchase', null, 'danger');
     }
   };
 
   const handlePrint = () => {
-    alert('Print functionality to be implemented');
+    showAlertConfirmation('Print functionality to be implemented', null, 'info');
   };
 
   // Handle delete row
   const handleDeleteRow = (id) => {
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
-    } else {
-      alert("Cannot delete the last row");
+    if (items.length <= 1) {
+      showAlertConfirmation("Cannot delete the last row", null, 'warning');
+      return;
     }
+    
+    showConfirmation({
+      title: 'Delete Row',
+      message: 'Are you sure you want to delete this row?',
+      onConfirm: () => {
+        setItems(items.filter(item => item.id !== id));
+      },
+      type: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
   };
 
   // --- RESPONSIVE STYLES ---
@@ -1133,6 +1308,11 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
       flexShrink: 0,
       paddingTop: '2px',
     },
+    focusedInput: {
+      borderColor: '#1B91DA !important',
+      boxShadow: '0 0 0 1px #1B91DA',
+    },
+    
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
@@ -1142,13 +1322,17 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
+      ':hover': {
+        borderColor: '#b3b3b3',
+      },
     },
+    
     gridRow: {
       display: 'grid',
       gap: '5px',
@@ -1335,7 +1519,10 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <label style={styles.inlineLabel}>Inv No:</label>
             <input 
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'invNo' && styles.focusedInput)
+              }}
               value={billDetails.invNo}
               name="invNo"
               onChange={handleInputChange}
@@ -1343,7 +1530,7 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
               onKeyDown={(e) => handleKeyDown(e, dateRef)}
               onFocus={() => setFocusedField('invNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Bill No"
+              // placeholder="Bill No"
               disabled={isEditMode}
             />
           </div>
@@ -1353,7 +1540,11 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
-              style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
+              style={{
+                ...styles.inlineInput,
+                padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
+                ...(focusedField === 'billDate' && styles.focusedInput)
+              }}
               value={billDetails.billDate}
               name="billDate"
               onChange={handleInputChange}
@@ -1369,7 +1560,10 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <label style={styles.inlineLabel}>Amount:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'amount' && styles.focusedInput)
+              }}
               value={billDetails.amount}
               name="amount"
               onChange={handleInputChange}
@@ -1377,7 +1571,7 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
               onKeyDown={(e) => handleKeyDown(e, purNoRef)}
               onFocus={() => setFocusedField('amount')}
               onBlur={() => setFocusedField('')}
-              placeholder="Amount"
+              // placeholder="Amount"
             />
           </div>
 
@@ -1387,14 +1581,17 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <input
               type="text"
               name="purNo"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'purNo' && styles.focusedInput)
+              }}
               value={billDetails.purNo}
               onChange={handleInputChange}
               ref={purNoRef}
               onKeyDown={(e) => handleKeyDown(e, invoiceNoRef)}
               onFocus={() => setFocusedField('purNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Pur No"
+              // placeholder="Pur No"
             />
           </div>
 
@@ -1404,14 +1601,17 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <input
               type="text"
               name="invoiceNo"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'invoiceNo' && styles.focusedInput)
+              }}
               value={billDetails.invoiceNo}
               onChange={handleInputChange}
               ref={invoiceNoRef}
               onKeyDown={(e) => handleKeyDown(e, purDateRef)}
               onFocus={() => setFocusedField('invoiceNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Invoice No"
+              // placeholder="Invoice No"
             />
           </div>
 
@@ -1421,7 +1621,11 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <input
               type="date"
               name="purDate"
-              style={{...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px'}}
+              style={{
+                ...styles.inlineInput,
+                padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
+                ...(focusedField === 'purDate' && styles.focusedInput)
+              }}
               value={billDetails.purDate}
               onChange={handleInputChange}
               ref={purDateRef}
@@ -1442,7 +1646,10 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <label style={styles.inlineLabel}>Party Code:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'partyCode' && styles.focusedInput)
+              }}
               value={billDetails.partyCode}
               name="partyCode"
               onChange={handleInputChange}
@@ -1450,28 +1657,31 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
               onKeyDown={(e) => handleKeyDown(e, nameRef)}
               onFocus={() => setFocusedField('partyCode')}
               onBlur={() => setFocusedField('')}
-              placeholder="Party Code"
+              // placeholder="Party Code"
             />
           </div>
 
           {/* Customer Name */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Name:</label>
-            <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
+            <div style={{ position: 'relative', display: 'flex', flex: 1 }}>
               <input
                 type="text"
                 ref={nameRef}
-                style={{...styles.inlineInput, flex: 1}}
+                style={{
+                  ...styles.inlineInput,
+                  flex: 1,
+                  paddingRight: '40px',
+                  ...(focusedField === 'customerName' && styles.focusedInput)
+                }}
                 value={billDetails.customerName}
                 name="customerName"
                 onChange={(e) => {
                   const value = e.target.value;
-                  // Update the field value immediately
                   handleInputChange(e);
                   
-                  // Show popup immediately on typing (after a small delay for better UX)
                   if (value.length > 0) {
-                    setItemSearchTerm(value); // Store search term for popup
+                    setItemSearchTerm(value);
                     setTimeout(() => setShowSupplierPopup(true), 300);
                   }
                 }}
@@ -1487,14 +1697,13 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
                 onFocus={() => setFocusedField('customerName')}
                 onBlur={() => {
                   setFocusedField('');
-                  // Optional: Close popup when field loses focus after a delay
                   setTimeout(() => {
                     if (!showSupplierPopup) {
                       setItemSearchTerm('');
                     }
                   }, 200);
                 }}
-                // placeholder="Type name or press / to search"
+                placeholder="Search Supplier"
               />
               <button
                 type="button"
@@ -1502,16 +1711,26 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
                 title="Search supplier"
                 onClick={() => setShowSupplierPopup(true)}
                 style={{
-                  height: screenSize.isMobile ? '32px' : '40px',
-                  minWidth: '40px',
-                  border: '1px solid #1B91DA',
-                  background: '#e8f4fc',
+                  position: 'absolute',
+                  right: '4px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  height: screenSize.isMobile ? '24px' : '28px',
+                  width: screenSize.isMobile ? '24px' : '28px',
+                  border: 'none',
+                  background: 'transparent',
                   color: '#1B91DA',
-                  borderRadius: screenSize.isMobile ? '3px' : '4px',
-                  cursor: 'pointer'
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: screenSize.isMobile ? '14px' : '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  zIndex: 1,
                 }}
               >
-                🔎
+                <Icon.Search size={16} />
               </button>
             </div>
           </div>
@@ -1521,7 +1740,10 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <label style={styles.inlineLabel}>City:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'city' && styles.focusedInput)
+              }}
               value={billDetails.city}
               name="city"
               onChange={handleInputChange}
@@ -1529,7 +1751,7 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
               onKeyDown={(e) => handleKeyDown(e, gstTypeRef)}
               onFocus={() => setFocusedField('city')}
               onBlur={() => setFocusedField('')}
-              placeholder="City"
+              // placeholder="City"
             />
           </div>
 
@@ -1538,7 +1760,10 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <label style={styles.inlineLabel}>GST Type:</label>
             <select
               name="gstType"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'gstType' && styles.focusedInput)
+              }}
               value={billDetails.gstType}
               onChange={handleInputChange}
               ref={gstTypeRef}
@@ -1556,7 +1781,10 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <label style={styles.inlineLabel}>Trans Type:</label>
             <select
               name="transType"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'transType' && styles.focusedInput)
+              }}
               value={billDetails.transType}
               onChange={handleInputChange}
               ref={transtypeRef}
@@ -1577,14 +1805,17 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <input
               type="text"
               name="invoiceAmount"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'invoiceAmount' && styles.focusedInput)
+              }}
               value={billDetails.invoiceAmount}
               onChange={handleInputChange}
               ref={invoiceAmountRef}
               onKeyDown={(e) => handleKeyDown(e, mobileRef)}
               onFocus={() => setFocusedField('invoiceAmount')}
               onBlur={() => setFocusedField('')}
-              placeholder="Invoice Amount"
+              // placeholder="Invoice Amount"
             />
           </div>
         </div>
@@ -1600,7 +1831,10 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <label style={styles.inlineLabel}>Mobile No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'mobileNo' && styles.focusedInput)
+              }}
               value={billDetails.mobileNo}
               name="mobileNo"
               onChange={handleInputChange}
@@ -1608,7 +1842,7 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
               onKeyDown={(e) => handleKeyDown(e, gstNoRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Mobile No"
+              // placeholder="Mobile No"
             />
           </div>
           
@@ -1617,36 +1851,36 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             <label style={styles.inlineLabel}>GST No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'gstno' && styles.focusedInput)
+              }}
               value={billDetails.gstno}
               name="gstno"
               onChange={handleInputChange}
               ref={gstNoRef}
-              onKeyDown={(e) => handleKeyDown(e, billNoRef)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  // Focus on the first row's name field
+                  if (items.length > 0 && firstRowNameRef.current) {
+                    firstRowNameRef.current.focus();
+                  } else {
+                    // Fallback to the barcode field of first row
+                    const firstRowBarcodeInput = document.querySelector(
+                      'input[data-row="0"][data-field="barcode"]'
+                    );
+                    if (firstRowBarcodeInput) {
+                      firstRowBarcodeInput.focus();
+                    }
+                  }
+                }
+              }}
               onFocus={() => setFocusedField('gstno')}
               onBlur={() => setFocusedField('')}
-              placeholder="GST No"
+              // placeholder="GST No"
             />
           </div>
-
-          {/* Is Ledger Checkbox */}
-          {/* <div style={{
-            ...styles.formField,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            gap: '8px',
-            height: '40px',
-          }}>
-            <label style={{...styles.inlineLabel, marginBottom: 0}}>Is Ledger?</label>
-            <input
-              type="checkbox"
-              checked={billDetails.isLedger}
-              onChange={(e) => setBillDetails(prev => ({ ...prev, isLedger: e.target.checked }))}
-              style={{ width: 18, height: 18 }}
-              id="isLedger"
-            />
-          </div> */}
         </div>
       </div>
 
@@ -1697,19 +1931,35 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
                     />
                   </td>
+                  
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
+                  <div style={{ 
+                    position: 'relative', 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    height: '100%'
+                  }}>
                     <input
-                      style={{ ...styles.editableInput, textAlign: 'left' }}
+                      ref={index === 0 ? firstRowNameRef : null}
+                      style={{ 
+                        ...styles.editableInput, 
+                        textAlign: 'left',
+                        border: 'none',
+                        outline: 'none',
+                        background: 'transparent',
+                        paddingLeft: '8px',
+                        paddingRight: '32px',
+                        width: '100%',
+                        height: '100%'
+                      }}
                       value={item.name}
-                      // placeholder="Type name or press /"
-                      // onClick={() => handleItemCodeSelect(item.id)}
+                      placeholder="Search items"
                       data-row={index}
                       data-field="name"
                       onChange={(e) => {
                         const value = e.target.value;
                         handleItemChange(item.id, 'name', value);
                         
-                        // Show popup immediately on typing with search term
                         if (value.length > 0) {
                           handleItemCodeSelect(item.id, value);
                         }
@@ -1723,7 +1973,35 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
                         }
                       }}
                     />
-                  </td>
+                    <button
+                      type="button"
+                      aria-label="Search item details"
+                      title="Search item details"
+                      onClick={() => {
+                        handleItemCodeSelect(item.id, item.name);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#1B91DA',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                        zIndex: 1,
+                        height: '24px',
+                        width: '24px'
+                      }}
+                    >
+                      <Icon.Search size={18} />
+                    </button>
+                  </div>
+                </td>
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
@@ -1732,18 +2010,6 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
                       data-field="uom"
                       onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                    // Alternative UOM toggle implementation:
-                    //   onChange ={(e) => {
-                    //     const v = e.target.value.toUpperCase();
-                    //     if(v === "PCS" || v === "KG" ) handleItemChange(item.id, 'uom', v);
-                    //   }}
-                    //   onKeyDown={(e) => {
-                    //     if (e.key === " ") {
-                    //       const currentUom = item.uom.toUpperCase();
-                    //       const newUom = currentUom === "PCS" ? "KG" : "PCS";
-                    //       handleItemChange(item.id, 'uom', newUom);
-                    //   }
-                    // }}
                     />
                   </td>
                   <td style={styles.td}>
@@ -1814,6 +2080,7 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
                       data-field="intax"
                       onChange={(e) => {
                         const value = e.target.value;
+                        const validTaxValues = ['3', '5', '12', '18', '40'];
                         if (value === '' || /^[0-9]*$/.test(value)) {
                           handleItemChange(item.id, 'intax', value);
                         }
@@ -1823,8 +2090,13 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
                         const value = e.target.value;
                         const validTaxValues = ['3', '5', '12', '18', '40'];
                         if (value !== '' && !validTaxValues.includes(value)) {
-                          alert('Invalid tax value. Please enter 3, 5, 12, 18, or 40');
-                          handleItemChange(item.id, 'intax', '');
+                          showAlertConfirmation(
+                            'Invalid tax value. Please enter 3, 5, 12, 18, or 40',
+                            () => {
+                              handleItemChange(item.id, 'intax', '');
+                            },
+                            'warning'
+                          );
                         }
                       }}
                     />
@@ -2010,8 +2282,7 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
         </div>
       </div>
       
-
-       {/* Purchase Bill List Popup for Edit/Delete */}
+      {/* Purchase Bill List Popup for Edit/Delete */}
       <PopupListSelector
         open={showBillListPopup}
         onClose={() => {
@@ -2027,6 +2298,7 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
         searchPlaceholder="Search by bill no or customer..."
         onSelect={handleBillSelect}
       />
+      
       {/* Supplier Popup */}
       <PopupListSelector
         open={showSupplierPopup}
@@ -2053,13 +2325,13 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
           }));
         }}
       />     
+      
       {/* Item Code Selection Popup */}     
       <PopupListSelector
         open={showItemCodePopup}
         onClose={() => {
           setShowItemCodePopup(false);
           setItemSearchTerm('');
-          // setPopupMode('');
         }}
         title="Select Item Code"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search || itemSearchTerm)}
@@ -2072,16 +2344,33 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
         onSelect={handleItemCodeSelection}
       />
 
+      {/* Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showConfirmPopup}
+        onClose={() => setShowConfirmPopup(false)}
+        onConfirm={async () => {
+          await confirmConfig.onConfirm();
+          setShowConfirmPopup(false);
+        }}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+        confirmText={confirmConfig.confirmText}
+        cancelText={confirmConfig.cancelText}
+        hideCancelButton={confirmConfig.hideCancelButton}
+        showLoading={confirmConfig.showLoading || isLoading}
+        disableBackdropClose={isLoading}
+      />
+
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
           <ActionButtons 
             activeButton={activeTopAction} 
             onButtonClick={(type) => {
-
               console.log("Top action clicked:", type);
               setActiveTopAction(type);
-              if (type === 'add') handleAddRow();
+              if (type === 'add') handleClear();
               else if (type === 'edit') handleEdit();
               else if (type === 'delete') handleDelete();
             }}         
@@ -2103,6 +2392,7 @@ const handleItemCodeSelect = (itemId, searchTerm = '') => {
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
+          
         </div>
       </div>
     </div>

@@ -1,10 +1,14 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import SaveConfirmationModal from '../../components/SaveConfirmationModal/SaveConfirmationModal';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
+import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const ReceiptVoucher = () => {
   // --- STATE MANAGEMENT ---
@@ -15,6 +19,18 @@ const ReceiptVoucher = () => {
   // Save confirmation popup
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
+
+  // Common confirmation popup
+  const [confirmationPopup, setConfirmationPopup] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'default',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    action: null,
+    isLoading: false
+  });
 
   // Amount entry popup
   const [amountPopupOpen, setAmountPopupOpen] = useState(false);
@@ -70,6 +86,19 @@ const ReceiptVoucher = () => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [billTotalAmount, setBillTotalAmount] = useState(0);
 
+  // 4.5. Particulars State
+  const [particulars, setParticulars] = useState({
+    '500': { available: 0, collect: 0, issue: 0 },
+    '200': { available: 0, collect: 0, issue: 0 },
+    '100': { available: 0, collect: 0, issue: 0 },
+    '50': { available: 0, collect: 0, issue: 0 },
+    '20': { available: 0, collect: 0, issue: 0 },
+    '10': { available: 0, collect: 0, issue: 0 },
+    '5': { available: 0, collect: 0, issue: 0 },
+    '2': { available: 0, collect: 0, issue: 0 },
+    '1': { available: 0, collect: 0, issue: 0 }
+  });
+
   // 5. Popup States
   const [editVoucherPopupOpen, setEditVoucherPopupOpen] = useState(false);
   const [deleteVoucherPopupOpen, setDeleteVoucherPopupOpen] = useState(false);
@@ -84,6 +113,10 @@ const ReceiptVoucher = () => {
   const [partyList, setPartyList] = useState([]);
   const [loadingParties, setLoadingParties] = useState(false);
   const [accountPopupContext, setAccountPopupContext] = useState(null); // 'header' or { itemId, field }
+  const [allParties, setAllParties] = useState([]);
+  const [partyCurrentPage, setPartyCurrentPage] = useState(1);
+  const [hasReachedEndOfParties, setHasReachedEndOfParties] = useState(false);
+  const [isLoadingMoreParties, setIsLoadingMoreParties] = useState(false);
 
   // Auth context for company code
   const { userData } = useAuth() || {};
@@ -177,7 +210,7 @@ const ReceiptVoucher = () => {
     try {
       if (!userData?.companyCode) return;
       setLoadingVouchers(true);
-      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETBILLNUMLIST(userData.companyCode, page, 10);
+      const url = API_ENDPOINTS.RECEIPTVOUCHER.GETBILLNUMLIST(userData.companyCode, page, 100);
       const response = await apiService.get(url);
       
       // API returns data in the .data property
@@ -306,25 +339,85 @@ const ReceiptVoucher = () => {
   const fetchVoucherDetails = async (voucherNo) => {
     try {
       setIsLoading(true);
-      // TODO: Add get receipt voucher details endpoint
-      // const response = await apiService.get(`ReceiptVoucher/GetReceiptVoucherDetails/${voucherNo}`);
-      // if (response.data?.voucher) {
-      //   const voucher = response.data.voucher;
-      //   setVoucherDetails({
-      //     voucherNo: voucher.voucherNo || '',
-      //     gstType: voucher.gstType || 'CGST/SGST',
-      //     date: voucher.date || new Date().toISOString().substring(0, 10),
-      //     costCenter: voucher.costCenter || '',
-      //     accountName: voucher.accountName || '',
-      //     accountCode: voucher.accountCode || '',
-      //     balance: voucher.balance || '0.00'
-      //   });
-      //   setReceiptItems(...);
-      //   setBillDetails(...);
-      // }
+      const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_VOUCHER_DETAILS(voucherNo));
+      console.log('Fetched Voucher Details Response:', response);
+      
+      if (response?.bledger) {
+        const ledger = response.bledger;
+        
+        // Helper function to safely format date
+        const safeFormatDate = (dateValue) => {
+          if (!dateValue) return new Date().toISOString().substring(0, 10);
+          try {
+            // If already in YYYY-MM-DD format, return as is
+            if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+              return dateValue;
+            }
+            // Otherwise parse and format
+            const date = new Date(dateValue);
+            if (isNaN(date.getTime())) {
+              return new Date().toISOString().substring(0, 10);
+            }
+            return date.toISOString().substring(0, 10);
+          } catch (e) {
+            console.warn('Date parsing error:', e);
+            return new Date().toISOString().substring(0, 10);
+          }
+        };
+        
+        setVoucherDetails({
+          voucherNo: ledger.fVouchno || '',
+          gstType: ledger.fGSTTYPE || 'CGST/SGST',
+          date: safeFormatDate(ledger.fVouchdt),
+          costCenter: '',
+          accountName: ledger.customerName || '',
+          accountCode: ledger.fCucode || '',
+          balance: (ledger.fBillAmt || 0).toString()
+        });
+        
+        // Map ledger details to receipt items
+        if (response?.ledgers && Array.isArray(response.ledgers) && response.ledgers.length > 0) {
+          console.log('Receipt Items from API:', response.ledgers);
+          const items = response.ledgers.map((item, idx) => ({
+            id: idx + 1,
+            sNo: idx + 1,
+            cashBank: item.accountName || '',
+            accountCode: item.faccode || '',
+            accountName: item.accountName || '',
+            crDr: item.fCrDb || 'CR',
+            type: item.type || '',
+            chqNo: item.fchqno || '',
+            chqDt: safeFormatDate(item.fchqdt),
+            narration: '',
+            amount: (item.fvrAmount || 0).toString()
+          }));
+          console.log('Mapped Receipt Items:', items);
+          setReceiptItems(items);
+        } else {
+          console.log('No ledgers found in response, keeping current receipt items or setting empty');
+          // Don't clear - keep the items if they exist
+        }
+
+        // Load particulars from salesTransaction if available
+        if (response?.salesTransaction) {
+          const sales = response.salesTransaction;
+          setParticulars({
+            '500': { available: 0, collect: parseInt(sales.given500) || 0, issue: 0 },
+            '200': { available: 0, collect: parseInt(sales.given200) || 0, issue: 0 },
+            '100': { available: 0, collect: parseInt(sales.given100) || 0, issue: 0 },
+            '50': { available: 0, collect: parseInt(sales.given50) || 0, issue: 0 },
+            '20': { available: 0, collect: parseInt(sales.given20) || 0, issue: 0 },
+            '10': { available: 0, collect: parseInt(sales.given10) || 0, issue: 0 },
+            '5': { available: 0, collect: parseInt(sales.given5) || 0, issue: 0 },
+            '2': { available: 0, collect: parseInt(sales.given2) || 0, issue: 0 },
+            '1': { available: 0, collect: parseInt(sales.given1) || 0, issue: 0 }
+          });
+        }
+      }
     } catch (err) {
       console.error('Error fetching voucher details:', err);
       setError('Failed to load voucher details');
+      alert('Failed to load voucher details: ' + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -335,17 +428,28 @@ const ReceiptVoucher = () => {
     try {
       if (!userData?.companyCode) {
         setError('Company code not available');
+        alert('Company code not available');
         return;
       }
       setIsLoading(true);
       const url = API_ENDPOINTS.RECEIPTVOUCHER.DELETE(voucherNo, userData.companyCode);
-      await apiService.delete(url);
-      setError(null);
-      resetForm();
-      await fetchSavedVouchers();
+      try {
+        await apiService.del(url);
+        setError(null);
+        toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
+        resetForm();
+        await fetchNextVoucherNo();
+        await fetchSavedVouchers();
+      } catch (apiErr) {
+        console.error('Delete API error:', apiErr);
+        const errorMsg = apiErr.response?.data?.message || 'Failed to delete voucher';
+        setError(errorMsg);
+        alert(`Error: ${errorMsg}`);
+      }
     } catch (err) {
       console.error('Error deleting voucher:', err);
       setError('Failed to delete voucher');
+      alert('Failed to delete voucher');
     } finally {
       setIsLoading(false);
     }
@@ -372,6 +476,7 @@ const ReceiptVoucher = () => {
 
   // Reset form to empty state
   const resetForm = () => {
+    console.log('Resetting form...');
     setVoucherDetails({
       voucherNo: '',
       gstType: 'CGST/SGST',
@@ -408,6 +513,17 @@ const ReceiptVoucher = () => {
         amount: '0.00'
       }
     ]);
+    setParticulars({
+      '500': { available: 0, collect: 0, issue: 0 },
+      '200': { available: 0, collect: 0, issue: 0 },
+      '100': { available: 0, collect: 0, issue: 0 },
+      '50': { available: 0, collect: 0, issue: 0 },
+      '20': { available: 0, collect: 0, issue: 0 },
+      '10': { available: 0, collect: 0, issue: 0 },
+      '5': { available: 0, collect: 0, issue: 0 },
+      '2': { available: 0, collect: 0, issue: 0 },
+      '1': { available: 0, collect: 0, issue: 0 }
+    });
     setError(null);
     setIsEditing(false);
     setOriginalVoucherNo('');
@@ -423,8 +539,9 @@ const ReceiptVoucher = () => {
       await fetchSavedVouchers(1, '');
       setEditVoucherPopupOpen(true);
     } catch (err) {
-      console.error('Error opening edit popup:', err);
+      console.error('Error fetching vouchers:', err);
       setError('Failed to load vouchers');
+      toast.error('Failed to load vouchers', { autoClose: 3000 });
     } finally {
       setLoadingVouchers(false);
     }
@@ -432,12 +549,12 @@ const ReceiptVoucher = () => {
 
   // Open delete voucher popup
   const openDeleteVoucherPopup = async () => {
+    setLoadingVouchers(true);
     try {
-      setLoadingVouchers(true);
       await fetchSavedVouchers(1, '');
       setDeleteVoucherPopupOpen(true);
     } catch (err) {
-      console.error('Error opening delete popup:', err);
+      console.error('Error fetching vouchers:', err);
       setError('Failed to load vouchers');
     } finally {
       setLoadingVouchers(false);
@@ -464,11 +581,23 @@ const ReceiptVoucher = () => {
     try {
       // Use voucherNo if available
       const voucherNo = selectedVoucher.voucherNo;
-      await deleteVoucher(voucherNo);
+      // Close the list popup first
       setDeleteVoucherPopupOpen(false);
+      // Show confirmation popup
+      setConfirmationPopup({
+        isOpen: true,
+        title: 'Delete Voucher',
+        message: `Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`,
+        type: 'danger',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        action: 'confirmDelete',
+        isLoading: false,
+        voucherNo: voucherNo
+      });
     } catch (err) {
-      console.error('Error deleting voucher:', err);
-      setError('Failed to delete voucher');
+      console.error('Error in delete voucher selection:', err);
+      setError('Failed to process delete request');
     }
   };
 
@@ -493,7 +622,7 @@ const ReceiptVoucher = () => {
   };
 
   // Handle account selection
-  const handleAccountSelect = (account) => {
+  const handleAccountSelect = async (account) => {
     if (accountPopupContext === 'header') {
       // Header section account selection
       setVoucherDetails(prev => ({
@@ -501,6 +630,28 @@ const ReceiptVoucher = () => {
         accountName: account.name || '',
         accountCode: account.code || ''
       }));
+      
+      // Fetch party balance for the selected account
+      try {
+        const partyCode = account.code || '';
+        if (partyCode) {
+          const balanceUrl = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
+          const balanceResponse = await apiService.getSilent(balanceUrl);
+          console.log('Party Balance Response:', balanceResponse);
+          
+          if (balanceResponse) {
+            const balance = balanceResponse.balanceAmount || 0;
+            const balanceType = balanceResponse.balanceType || 'CR';
+            setVoucherDetails(prev => ({
+              ...prev,
+              balance: balance.toString(),
+              crDr: balanceType
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching party balance:', err);
+      }
     } else if (accountPopupContext?.itemId) {
       // Receipt item row selection
       const { itemId } = accountPopupContext;
@@ -640,6 +791,20 @@ const ReceiptVoucher = () => {
 
   // Handle add receipt row
   const handleAddReceiptRow = () => {
+    setConfirmationPopup({
+      isOpen: true,
+      title: 'Add Receipt Row',
+      message: 'Are you sure you want to add a new receipt row?',
+      type: 'info',
+      confirmText: 'Add',
+      cancelText: 'Cancel',
+      action: 'add',
+      isLoading: false
+    });
+  };
+
+  // Execute add receipt row
+  const executeAddReceiptRow = () => {
     const newId = Math.max(...receiptItems.map(item => item.id), 0) + 1;
     const newSNo = receiptItems.length + 1;
     setReceiptItems(prev => [
@@ -760,61 +925,118 @@ const ReceiptVoucher = () => {
         gstAmount: gstAmount.toFixed(2),
         billTotal: billTotal.toFixed(2)
       });
-      setAmountPopupOpen(true);
+      // setAmountPopupOpen(true); // REMOVED - Popup disabled
     }
   };
 
   // Handle clear - clears current form
   const handleClear = () => {
-    resetForm();
+    setConfirmationPopup({
+      isOpen: true,
+      title: 'Clear All Data',
+      message: 'Are you sure you want to clear all data? This action cannot be undone.',
+      type: 'warning',
+      confirmText: 'Clear',
+      cancelText: 'Cancel',
+      action: 'clear',
+      isLoading: false
+    });
+  };
+
+  // Handle print
+  const handlePrint = () => {
+    setConfirmationPopup({
+      isOpen: true,
+      title: 'Print Voucher',
+      message: 'Are you sure you want to print this voucher?',
+      type: 'info',
+      confirmText: 'Print',
+      cancelText: 'Cancel',
+      action: 'print',
+      isLoading: false
+    });
   };
 
   // Format date to yyyy-MM-dd
   const formatDateToYYYYMMDD = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toISOString().substring(0, 10);
+    try {
+      // If already in YYYY-MM-DD format, return as is
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      // Otherwise parse and format
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date:', dateString);
+        return '';
+      }
+      return date.toISOString().substring(0, 10);
+    } catch (e) {
+      console.warn('Date formatting error:', e);
+      return '';
+    }
   };
 
   // ========== SAVE FUNCTION ==========
-  // TODO: Add save receipt voucher endpoint to endpoints.js and implement this function
-  const savePaymentVoucher = async () => {
+  const savePaymentVoucher = async (updatedParticulars = null) => {
+    if (isSaving) {
+      return;
+    }
+
     try {
+      console.log('Save button clicked');
+      
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
+        alert('Voucher number is required');
         return;
       }
       if (!voucherDetails.accountName) {
         setError('Account is required');
+        alert('Please select an account');
         return;
       }
       if (receiptItems.length === 0) {
         setError('At least one receipt item is required');
+        alert('Please add at least one receipt item');
         return;
       }
 
       setIsSaving(true);
+      setIsLoading(true);
+      setError(null);
 
       // Prepare item details list
-      const itemDetailsList = receiptItems.map(item => ({
-        accountCode: item.cashBank, // Using cashBank as accountCode
-        accountName: item.accountName || item.cashBank,
-        crdr: item.crDr,
-        type: item.type,
-        amount: parseFloat(item.amount) || 0,
-        chequeNo: item.chqNo || '',
-        chequeDate: item.chqDt ? formatDateToYYYYMMDD(item.chqDt) : '',
-        narration: item.narration
-      }));
+      const itemDetailsList = receiptItems
+        .filter(item => item.cashBank && parseFloat(item.amount) > 0)
+        .map(item => ({
+          accountCode: item.accountCode || '',
+          accountName: item.accountName || item.cashBank || '',
+          crdr: item.crDr,
+          type: item.type,
+          amount: parseFloat(item.amount) || 0,
+          chequeNo: item.chqNo || '',
+          chequeDate: item.chqDt ? formatDateToYYYYMMDD(item.chqDt) : '',
+          narration: item.narration
+        }));
 
       // Prepare reference bills
       const referenceBills = billDetails
-        .filter(bill => bill.refNo) // Only include bills with refNo
+        .filter(bill => bill.refNo && parseFloat(bill.amount) > 0)
         .map(bill => ({
           refNo: bill.refNo,
           date: bill.date ? formatDateToYYYYMMDD(bill.date) : '',
           amount: (parseFloat(bill.amount) || 0).toString()
         }));
+
+      // Use updatedParticulars if provided (from modal), otherwise use state particulars
+      const particularToUse = updatedParticulars || particulars;
+      
+      // Also update state if we received updatedParticulars
+      if (updatedParticulars) {
+        setParticulars(updatedParticulars);
+      }
 
       const payload = {
         voucherNo: voucherDetails.voucherNo,
@@ -824,41 +1046,94 @@ const ReceiptVoucher = () => {
         gstType: voucherDetails.gstType,
         partyBalance: parseFloat(voucherDetails.balance) || 0,
         totalAmt: totalAmount,
-        compcode: userData?.compCode || '001',
+        compcode: userData?.companyCode || '001',
         usercode: userData?.userCode || '001',
+        salesTransaction: {
+          given1: (particularToUse['1']?.available || 0).toString(),
+          given2: (particularToUse['2']?.available || 0).toString(),
+          given5: (particularToUse['5']?.available || 0).toString(),
+          given10: (particularToUse['10']?.available || 0).toString(),
+          given20: (particularToUse['20']?.available || 0).toString(),
+          given50: (particularToUse['50']?.available || 0).toString(),
+          given100: (particularToUse['100']?.available || 0).toString(),
+          given200: (particularToUse['200']?.available || 0).toString(),
+          given500: (particularToUse['500']?.available || 0).toString()
+        },
         itemDetailsList: itemDetailsList,
         referenceBills: referenceBills
       };
 
-      let response;
-      if (isEditing) {
-        response = await apiService.putSilent(
-          API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(false),
-          payload
-        );
-      } else {
-        response = await apiService.postSilent(
-          API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(true),
-          payload
-        );
-      }
+      console.log('Payload:', payload);
+      console.log('Is Editing:', isEditing);
 
-      if (response?.status && response?.voucherNo) {
+      const endpoint = isEditing 
+        ? API_ENDPOINTS.RECEIPTVOUCHER.PUT_RECEIPT_VOUCHER(false)
+        : API_ENDPOINTS.RECEIPTVOUCHER.POST_RECEIPT_VOUCHER(true);
+
+      console.log('Using endpoint:', endpoint);
+
+      const response = await axiosInstance.post(endpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      });
+
+      console.log('API Response:', response);
+
+      if (response?.data) {
+        const message = response.data.message || `Voucher ${isEditing ? 'updated' : 'saved'} successfully`;
+        const savedVoucherNo = response.data.voucherNo || voucherDetails.voucherNo;
+        
+        toast.success(
+          `Voucher ${isEditing ? "updated" : "saved"} successfully\nVoucher No: ${savedVoucherNo}`,
+          { autoClose: 3000 }
+        );
+
         setError(null);
+        
+        // Refresh saved vouchers list
+        await fetchSavedVouchers(1, '');
+        
+        // Reset form completely after save
         resetForm();
         await fetchNextVoucherNo();
-        await fetchSavedVouchers();
-      } else {
-        setError(response?.message || 'Failed to save voucher');
+        
+        return response.data;
       }
     } catch (err) {
-      console.error('Error saving voucher:', err);
-      if (err.response?.status === 409) {
-        setError('Voucher number already exists');
+      let errorMsg = `Failed to ${isEditing ? 'update' : 'save'} receipt voucher`;
+      
+      if (err.response) {
+        console.error("Server error response:", err.response);
+        if (err.response.data) {
+          if (err.response.data.message) {
+            errorMsg = err.response.data.message;
+          } else if (err.response.data.error) {
+            errorMsg = err.response.data.error;
+          } else if (typeof err.response.data === 'string') {
+            errorMsg = err.response.data;
+          } else if (err.response.data.errors) {
+            const errors = Object.values(err.response.data.errors).flat();
+            errorMsg = errors.join(', ');
+          }
+        }
+        errorMsg = `${errorMsg} (Status: ${err.response.status})`;
+      } else if (err.request) {
+        errorMsg = 'No response from server. Please check your connection.';
       } else {
-        setError(err.response?.data?.message || 'Failed to save voucher');
+        errorMsg = err.message || errorMsg;
       }
+      
+      if (errorMsg.toLowerCase().includes('duplicate') || errorMsg.toLowerCase().includes('already exists')) {
+        errorMsg = `Voucher number ${voucherDetails.voucherNo} already exists. Please use a different number or edit the existing voucher.`;
+      }
+      
+      setError(errorMsg);
+      alert(`Error: ${errorMsg}`);
+      console.error('Error saving voucher:', err);
     } finally {
+      setIsLoading(false);
       setIsSaving(false);
     }
   };
@@ -872,22 +1147,60 @@ const ReceiptVoucher = () => {
   const showSaveConfirmation = () => {
     setSaveConfirmationData({
       title: `${isEditing ? 'Update' : 'Create'} Payment Voucher`,
-      message: `Are you sure you want to ${isEditing ? 'update' : 'create'} this payment voucher?`,
-      confirmText: 'Save',
-      cancelText: 'Cancel'
+      voucherNo: voucherDetails.voucherNo,
+      voucherDate: voucherDetails.date,
+      particulars: particulars
     });
     setSaveConfirmationOpen(true);
   };
 
   // Function to handle confirmed save
-  const handleConfirmedSave = async () => {
+  const handleConfirmedSave = async (updatedParticulars) => {
     setSaveConfirmationOpen(false);
-    await savePaymentVoucher();
+    // Pass updatedParticulars directly to savePaymentVoucher
+    await savePaymentVoucher(updatedParticulars);
   };
 
   // Function to cancel save
   const handleCancelSave = () => {
     setSaveConfirmationOpen(false);
+  };
+
+  // Generic confirmation handler for all actions
+  const handleConfirmationAction = async () => {
+    setConfirmationPopup(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      switch (confirmationPopup.action) {
+        case 'clear':
+          resetForm();
+          break;
+        case 'add':
+          executeAddReceiptRow();
+          break;
+        case 'edit':
+          setLoadingVouchers(true);
+          await fetchSavedVouchers(1, '');
+          setEditVoucherPopupOpen(true);
+          setLoadingVouchers(false);
+          break;
+        case 'confirmDelete':
+          await deleteVoucher(confirmationPopup.voucherNo);
+          break;
+        case 'print':
+          console.log('Print functionality');
+          break;
+        default:
+          break;
+      }
+      
+      setConfirmationPopup(prev => ({ ...prev, isOpen: false }));
+    } catch (err) {
+      console.error('Error in confirmation action:', err);
+      setError('Failed to perform action');
+    } finally {
+      setConfirmationPopup(prev => ({ ...prev, isLoading: false }));
+    }
   };
 
   // --- RESPONSIVE STYLES ---
@@ -1332,7 +1645,7 @@ const ReceiptVoucher = () => {
                 onKeyDown={(e) => handleKeyDown(e, null, 'accountName')}
                 onKeyUp={(e) => handleBackspace(e, 'accountName')}
                 style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-                placeholder="Click or press / to select"
+                placeholder="Select Account"
               />
             </div>
 
@@ -1734,7 +2047,7 @@ const ReceiptVoucher = () => {
           <ActionButtons1
             onClear={handleClear}
             onSave={handleSave}
-            onPrint={() => console.log('Print functionality')}
+            onPrint={handlePrint}
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
@@ -1808,14 +2121,15 @@ const ReceiptVoucher = () => {
       )}
 
       {saveConfirmationOpen && (
-        <ConfirmationPopup
+        <SaveConfirmationModal
           isOpen={saveConfirmationOpen}
           title={saveConfirmationData?.title}
-          message={saveConfirmationData?.message}
+          particulars={saveConfirmationData?.particulars}
+          voucherNo={saveConfirmationData?.voucherNo}
+          voucherDate={saveConfirmationData?.voucherDate}
           onConfirm={handleConfirmedSave}
-          onCancel={handleCancelSave}
-          confirmText={saveConfirmationData?.confirmText}
-          cancelText={saveConfirmationData?.cancelText}
+          onClose={handleCancelSave}
+          loading={isSaving}
         />
       )}
 
@@ -1847,223 +2161,6 @@ const ReceiptVoucher = () => {
               fontSize: screenSize.isMobile ? '18px' : '20px',
               fontWeight: 'bold'
             }}>GST & Bill Details</h2>
-
-            {/* GST & Bill Section */}
-            <div style={{
-              backgroundColor: '#f9f9f9',
-              padding: '16px',
-              borderRadius: '6px',
-              borderLeft: '4px solid #1B91DA'
-            }}>
-              <h3 style={{
-                margin: '0 0 12px 0',
-                color: '#333',
-                fontSize: '14px',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>GST & Bill Details</h3>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: screenSize.isMobile ? '1fr' : '1fr 1fr',
-                gap: '12px'
-              }}>
-                {/* GST Type */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST Type</label>
-                  <select
-                    value={amountPopupData?.gstType || voucherDetails?.gstType || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box',
-                      cursor: 'default',
-                      appearance: 'none'
-                    }}
-                  >
-                    <option value="">-- Select --</option>
-                    <option value="CGST/SGST">CGST/SGST</option>
-                    <option value="IGST">IGST</option>
-                  </select>
-                </div>
-
-                {/* HSN/SAC */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>HSN/SAC</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.hsnSac || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Ref Bill No */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Ref Bill No</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.refBillNo || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Ref Bill Date */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Ref Bill Date</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.refBillDate || ''}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* GST % */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST %</label>
-                  <input
-                    type="text"
-                    value={amountPopupData?.gstPercent || '0'}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* GST Amount */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#555',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>GST Amount</label>
-                  <input
-                    type="text"
-                    value={`₹${amountPopupData?.gstAmount || '0.00'}`}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      backgroundColor: '#fff',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                {/* Bill Total */}
-                <div style={{ gridColumn: screenSize.isMobile ? '1' : '1 / -1' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#1B91DA',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>Bill Total</label>
-                  <input
-                    type="text"
-                    value={`₹${amountPopupData?.billTotal || '0.00'}`}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '2px solid #1B91DA',
-                      borderRadius: '4px',
-                      fontSize: '15px',
-                      fontWeight: 'bold',
-                      backgroundColor: '#f0f8ff',
-                      color: '#1B91DA',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Buttons */}
             <div style={{
@@ -2122,6 +2219,19 @@ const ReceiptVoucher = () => {
           </div>
         </div>
       )}
+
+      {/* Generic Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmationPopup.isOpen}
+        onClose={() => setConfirmationPopup(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmationAction}
+        title={confirmationPopup.title}
+        message={confirmationPopup.message}
+        type={confirmationPopup.type}
+        confirmText={confirmationPopup.isLoading ? 'Processing...' : confirmationPopup.confirmText}
+        showLoading={confirmationPopup.isLoading}
+        disableBackdropClose={confirmationPopup.isLoading}
+      />
     </div>
   );
 };

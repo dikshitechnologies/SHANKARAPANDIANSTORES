@@ -71,6 +71,7 @@ export default function SalesmanCreation() {
   // refs for step-by-step Enter navigation
   const salesmanCodeRef = useRef(null);
   const salesmanNameRef = useRef(null);
+  const submitButtonRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -300,20 +301,34 @@ export default function SalesmanCreation() {
   };
 
   const handleAdd = async () => {
-    if (!form.salesmanCode || !form.salesmanName) {
-      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
-      return;
-    }
+  if (!form.salesmanCode || !form.salesmanName) {
+    setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
+    return;
+  }
 
-    // Check if salesman code already exists (locally)
-    const exists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
-    if (exists) {
-      setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
-      return;
-    }
+  // Check if salesman code already exists
+  const codeExists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
+  if (codeExists) {
+    setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
+    return;
+  }
 
-    setConfirmSaveOpen(true);
-  };
+  // ADD THIS CHECK FOR DUPLICATE SALESMAN NAME (case-insensitive)
+  const nameExists = salesmen.some(s => 
+    s.salesmanName.toLowerCase() === form.salesmanName.toLowerCase()
+  );
+
+  if (nameExists) {
+    setMessage({ 
+      type: "error", 
+      text: `Salesman name "${form.salesmanName}" already exists. Please use a different name.` 
+    });
+    return; // Don't proceed with save
+  }
+
+  // If no duplicate, proceed to confirmation
+  setConfirmSaveOpen(true);
+};
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -382,6 +397,7 @@ export default function SalesmanCreation() {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
+    salesmanNameRef.current?.focus()
   };
 
   const handleEditRowClick = (s) => {
@@ -395,6 +411,7 @@ export default function SalesmanCreation() {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
+    salesmanNameRef.current?.focus()
   };
 
   // Fetch items for popup list selector
@@ -430,6 +447,7 @@ export default function SalesmanCreation() {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
+      salesmanNameRef.current?.focus();
     }
   };
 
@@ -504,7 +522,7 @@ export default function SalesmanCreation() {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
           padding: 20px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -577,13 +595,11 @@ export default function SalesmanCreation() {
         .action-pill.warn { color:white; background: linear-gradient(180deg, var(--warning), #f97316); }
         .action-pill.danger { color:white; background: linear-gradient(180deg, var(--danger), #f97373); }
 
-        /* grid layout */
         .grid {
-          display:grid;
-          grid-template-columns: 1fr 360px;
-          gap:18px;
-          align-items:start;
-        }
+  display: block;
+  width: 100%;
+}
+
 
         /* left card (form) */
         .card {
@@ -998,8 +1014,7 @@ export default function SalesmanCreation() {
           <div className="title-block">
             <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
-              <path d="M18 16v-2a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v2" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
-              <circle cx="12" cy="7" r="4" stroke="#2563eb" strokeWidth="1.2" fill="none"/>
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
               <h2 id="salesman-creation-title">Salesman Creation</h2>
@@ -1066,6 +1081,7 @@ export default function SalesmanCreation() {
             <div className="submit-row">
               <button
                 className="submit-primary"
+                ref={submitButtonRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"
@@ -1145,58 +1161,7 @@ export default function SalesmanCreation() {
             </div>
           </div>
 
-          {/* Right side panel */}
-          <div className="side" aria-live="polite">
-            <div className="stat">
-              <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Salesman" : "Delete Salesman"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Salesman Code</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.salesmanCode || "Auto-generated"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Salesman Name</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {form.salesmanName || "Not set"}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Existing Salesmen</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
-                {salesmen.length}
-              </div>
-            </div>
-
-            <div className="stat tips-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <Icon.Info />
-                <div style={{ fontWeight: 700 }}>Quick Tips</div>
-              </div>
-              
-              <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Salesman code is auto-generated from API</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Keep salesman name under 50 characters to avoid errors</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
-                  <span>Salesmen manage customer relationships and sales</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        
         </div>
       </div>
 
