@@ -171,6 +171,25 @@ const SaveConfirmationModal = ({
     }
   }, [isOpen, particulars, userData?.companyCode]);
 
+  // Update closing values when liveAvailable changes
+  useEffect(() => {
+    if (Object.keys(liveAvailable).some(key => liveAvailable[key] > 0)) {
+      setDenominations(prev => {
+        const updated = { ...prev };
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(denom => {
+          const collect = Number(updated[denom]?.collect) || 0;
+          const issue = Number(updated[denom]?.issue) || 0;
+          const available = liveAvailable[denom] || updated[denom]?.available || 0;
+          updated[denom] = {
+            ...updated[denom],
+            closing: available + collect - issue
+          };
+        });
+        return updated;
+      });
+    }
+  }, [liveAvailable]);
+
   if (!isOpen) return null;
 
   // Handle confirm with updated values
