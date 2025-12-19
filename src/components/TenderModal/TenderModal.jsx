@@ -37,7 +37,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     salesReturn: '',
     netAmount: '',
     receivedCash: '',
-    issuedCash: '12614',
+    issuedCash: '',
     upi: '[ICICI-M-UPI]',
     card: '',
     balance: '',
