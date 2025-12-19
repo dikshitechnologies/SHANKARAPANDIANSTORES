@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // SEARCH ICON COMPONENT (Same as SalesInvoice)
-const SearchIcon = ({ size = 16, color = "blue" }) => (
+const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
@@ -274,8 +274,7 @@ useEffect(() => {
       await fetchMaxVoucherNo();
       await fetchVoucherList();
       
-      // Show success message
-      toast.success("Form reset successfully! Ready for new entry.", { autoClose: 2000 });
+     
       
     } catch (err) {
       console.error("Error resetting form:", err);

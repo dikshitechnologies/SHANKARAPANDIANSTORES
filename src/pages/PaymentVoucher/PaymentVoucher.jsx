@@ -117,6 +117,7 @@ const PaymentVoucher = () => {
   const dateRef = useRef(null);
   const costCenterRef = useRef(null);
   const accountNameRef = useRef(null);
+  const saveButtonRef = useRef(null);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -879,14 +880,20 @@ const PaymentVoucher = () => {
           const nextFieldId = `${isPaymentTable ? 'payment' : 'bill'}_${items[currentRowIndex + 1].id}_${fields[0]}`;
           setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
         } else {
-          // Add new row and focus first field
-          if (isPaymentTable) {
+          // If in the billDetails table's amount field, trigger Save button directly
+          if (!isPaymentTable && currentField === 'amount') {
+            setTimeout(() => {
+              handleSave();
+            }, 0);
+          } else if (isPaymentTable) {
+            // Add new row and focus first field for payment table
             const newId = Math.max(...paymentItems.map(item => item.id), 0) + 1;
             handleAddPaymentRow();
             setTimeout(() => {
               document.getElementById(`payment_${newId}_cashBank`)?.focus();
             }, 0);
           } else {
+            // Add new row and focus first field for bill table
             const newId = Math.max(...billDetails.map(bill => bill.id), 0) + 1;
             handleAddBillRow();
             setTimeout(() => {
@@ -1881,6 +1888,7 @@ const PaymentVoucher = () => {
               isActive={true}
             />
             <SaveButton 
+              ref={saveButtonRef}
               onClick={handleSave} 
               disabled={isSaving}
               isActive={true}

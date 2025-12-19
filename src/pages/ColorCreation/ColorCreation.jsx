@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
@@ -248,9 +250,9 @@ export default function ColorCreation() {
         colourName: form.colourName 
       };
       await updateColor(colorData);
-      await loadInitial();
-      
+      await loadInitial();      
       setMessage({ type: "success", text: "Color updated successfully." });
+      toast.success(`Color "${form.colourName}" updated successfully.`);  
       setConfirmEditOpen(false);
       resetForm();
     } catch (err) {
@@ -277,6 +279,7 @@ export default function ColorCreation() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Color deleted successfully." });
+      toast.success(`Color "${form.colourName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
@@ -327,6 +330,7 @@ export default function ColorCreation() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Color created successfully." });
+      toast.success(`Color "${form.colourName}" created successfully.`);
       setConfirmSaveOpen(false);
       resetForm(true);
     } catch (err) {
