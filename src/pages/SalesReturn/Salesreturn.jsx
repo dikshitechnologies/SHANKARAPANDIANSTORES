@@ -2915,7 +2915,7 @@ const tdStyle = {
               onKeyDown={(e) => handleKeyDown(e, billDateRef)}
               onFocus={() => setFocusedField('billNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Auto-generated"
+              // //placeholder="Auto-generated"
               readOnly
             />
           </div>
@@ -2949,7 +2949,7 @@ const tdStyle = {
               onKeyDown={(e) => handleKeyDown(e, empNameRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Mobile No"
+              // //placeholder="Mobile No"
             />
           </div>
 
@@ -2966,7 +2966,7 @@ const tdStyle = {
               onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
               onFocus={() => setFocusedField('empName')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Employee Name"
+              // //placeholder="Employee Name"
             />
           </div>
         </div>
@@ -2990,7 +2990,7 @@ const tdStyle = {
               onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
               onFocus={() => setFocusedField('salesman')}
               onBlur={() => setFocusedField('')}
-              placeholder="Search salesman"
+              
               readOnly
             />
             <div 
@@ -3015,7 +3015,7 @@ const tdStyle = {
               onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'custName')}
               onFocus={() => setFocusedField('custName')}
               onBlur={() => setFocusedField('')}
-              placeholder="Search customer"
+              //placeholder="Search customer"
               readOnly
             />
             <div 
@@ -3040,7 +3040,7 @@ const tdStyle = {
               onKeyDown={(e) => handleKeyDown(e, barcodeRef, 'newBillNo')}
               onFocus={() => setFocusedField('newBillNo')}
               onBlur={() => setFocusedField('')}
-              placeholder="Select bill number"
+              //placeholder="Select bill number"
               readOnly
             />
             <div 
@@ -3088,7 +3088,7 @@ onKeyDown={(e) => {
 
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Scan or Enter Barcode"
+              // //placeholder="Scan or Enter Barcode"
             />
           </div>
         </div>
@@ -3142,7 +3142,7 @@ onKeyDown={(e) => {
                       onClick={() => openItemPopup(index)}
                       onFocus={() => setFocusedField(`itemName-${item.id}`)}
                       onBlur={() => setFocusedField('')}
-                      placeholder="Search item"
+                      //placeholder="Search item"
                     />
                     {/* SEARCH ICON IN ITEM NAME */}
                     <div 
