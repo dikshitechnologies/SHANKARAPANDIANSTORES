@@ -119,6 +119,7 @@ const SalesReturn = () => {
   const [salesmen, setSalesmen] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+ const [shouldFocusBillDate, setShouldFocusBillDate] = useState(false);
 
   // NEW STATE: For sales invoice bill list (pagination)
   const [salesInvoiceBills, setSalesInvoiceBills] = useState([]);
@@ -131,7 +132,7 @@ const SalesReturn = () => {
 
   // --- REFS ---
   const billRowRefs = useRef([]);
-
+ 
   const billNoRef = useRef(null);
   const billDateRef = useRef(null);
   const mobileRef = useRef(null);
@@ -1242,7 +1243,8 @@ const updateSalesReturn = async () => {
           itemCode: '00001'
         }]);
       }
-      
+      setShouldFocusBillDate(true);
+
       toast.success(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
       
     } catch (err) {
@@ -1275,6 +1277,20 @@ const updateSalesReturn = async () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+  // ✅ Focus Bill Date after Edit voucher loads
+useEffect(() => {
+  if (!shouldFocusBillDate) return;
+
+  const timer = setTimeout(() => {
+    if (billDateRef.current) {
+      billDateRef.current.focus();
+    }
+    setShouldFocusBillDate(false);
+  }, 150);
+
+  return () => clearTimeout(timer);
+}, [shouldFocusBillDate]);
+
 
   // Initial data fetch
   useEffect(() => {
