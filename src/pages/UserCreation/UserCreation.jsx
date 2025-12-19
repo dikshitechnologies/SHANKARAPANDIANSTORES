@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/ActionButtons";
 import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Professional Search Icon
 const SearchIcon = ({ size = 16, color = "#94a3b8" }) => (
@@ -225,7 +227,8 @@ export default function UserCreation() {
       setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
       setMode("create");
       
-      setSuccessMessage(`User "${form.username}" has been deleted successfully.`);
+      // setSuccessMessage(`User "${form.username}" has been deleted successfully.`);
+      toast.success(`User "${form.username}" deleted successfully.`);
       setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
     } catch (err) {
       const errorMsg = err.message || "";
@@ -439,7 +442,8 @@ export default function UserCreation() {
       });
 
       setMode("create");
-      setSuccessMessage("User created successfully.");
+      // setSuccessMessage("User created successfully.");
+      toast.success(`User "${form.username}" created successfully.`);
       setConfirmOpen(false);
 
       setTimeout(() => {
@@ -484,7 +488,8 @@ export default function UserCreation() {
       setEditingId(null);
       setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
       setMode("create");
-      setSuccessMessage("User updated successfully.");
+      // setSuccessMessage("User updated successfully.");
+      toast.success(`User "${form.username}" updated successfully.`);
       setConfirmOpen(false);
       setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
     } catch (err) {
