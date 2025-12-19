@@ -6,6 +6,9 @@ import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 
 const Icon = {
   Search: ({ size = 16 }) => (
@@ -670,6 +673,7 @@ const PurchaseInvoice = () => {
           },
           'success'
         );
+        toast.success(`Purchase invoice ${voucherNo} deleted successfully.`);
       } else {
         throw new Error(`Delete failed with status: ${response.status}`);
       }
@@ -688,6 +692,7 @@ const PurchaseInvoice = () => {
                           'Failed to delete purchase invoice';
       
       showAlertConfirmation(`Delete failed: ${errorMessage}`, null, 'danger');
+      toast.error(`Failed to delete purchase invoice: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -976,6 +981,7 @@ const PurchaseInvoice = () => {
               setShowConfirmPopup(false);
               // Trigger the actual save function
               handleSave();
+              toast.success('Purchase invoice saved successfully (items without particulars were skipped).');
             },
             onCancel: () => {
               setShowConfirmPopup(false);
@@ -1065,6 +1071,7 @@ const PurchaseInvoice = () => {
       // Validation: Check required fields
       if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
         showAlertConfirmation('Party Code is required', null, 'warning');
+        // toast.warning('Party Code is required');
         return;
       }
 
@@ -1176,6 +1183,7 @@ const PurchaseInvoice = () => {
               `Purchase ${isEditMode ? 'updated' : 'saved'} successfully`,
               'success'
             );
+            toast.success(`Purchase invoice ${isEditMode ? 'updated' : 'saved'} successfully.`);
             
           } catch (err) {
             const status = err?.response?.status;
@@ -1188,6 +1196,7 @@ const PurchaseInvoice = () => {
               null,
               'danger'
             );
+            toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase invoice.`);
           } finally {
             setIsLoading(false);
           }
@@ -1201,6 +1210,7 @@ const PurchaseInvoice = () => {
     } catch (e) {
       console.warn('Save error:', e);
       showAlertConfirmation('Failed to save purchase', null, 'danger');
+      toast.error('Failed to save purchase invoice.');
     }
   };
 
@@ -1212,7 +1222,9 @@ const PurchaseInvoice = () => {
   const handleDeleteRow = (id) => {
     if (items.length <= 1) {
       showAlertConfirmation("Cannot delete the last row", null, 'warning');
+      toast.warning("Cannot delete the last row");
       return;
+
     }
     
     showConfirmation({

@@ -4,6 +4,9 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 // --- Inline SVG icons (matching UnitCreation style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
@@ -248,6 +251,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Design updated successfully." });
+      toast.success("Design updated successfully.");
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
@@ -272,6 +276,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Design deleted successfully." });
+      toast.success("Design deleted successfully.");
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -328,6 +333,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Design created successfully." });
+      toast.success(`Design "${form.designName}" created successfully.`);
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {
