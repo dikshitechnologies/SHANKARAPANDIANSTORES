@@ -199,7 +199,7 @@ const PurchaseInvoice = () => {
       if (nextCode) {
         setBillDetails(prev => ({ ...prev, invNo: nextCode }));
       } else {
-        // If no next code, set a placeholder
+        // If no next code, set a //placeholder
         setBillDetails(prev => ({ ...prev, invNo: '' }));
       }
     } catch (err) {
@@ -1542,7 +1542,7 @@ const PurchaseInvoice = () => {
               onKeyDown={(e) => handleKeyDown(e, dateRef)}
               onFocus={() => setFocusedField('invNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Bill No"
+              // //placeholder="Bill No"
               disabled={isEditMode}
             />
           </div>
@@ -1583,7 +1583,7 @@ const PurchaseInvoice = () => {
               onKeyDown={(e) => handleKeyDown(e, purNoRef)}
               onFocus={() => setFocusedField('amount')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Amount"
+              // //placeholder="Amount"
             />
           </div>
 
@@ -1603,7 +1603,7 @@ const PurchaseInvoice = () => {
               onKeyDown={(e) => handleKeyDown(e, invoiceNoRef)}
               onFocus={() => setFocusedField('purNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Pur No"
+              // //placeholder="Pur No"
             />
           </div>
 
@@ -1623,7 +1623,7 @@ const PurchaseInvoice = () => {
               onKeyDown={(e) => handleKeyDown(e, purDateRef)}
               onFocus={() => setFocusedField('invoiceNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Invoice No"
+              // //placeholder="Invoice No"
             />
           </div>
 
@@ -1669,7 +1669,7 @@ const PurchaseInvoice = () => {
               onKeyDown={(e) => handleKeyDown(e, nameRef)}
               onFocus={() => setFocusedField('partyCode')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Party Code"
+              // //placeholder="Party Code"
             />
           </div>
 
@@ -1715,7 +1715,7 @@ const PurchaseInvoice = () => {
                     }
                   }, 200);
                 }}
-                placeholder="Search Supplier"
+                //placeholder="Search Supplier"
               />
               <button
                 type="button"
@@ -1763,7 +1763,7 @@ const PurchaseInvoice = () => {
               onKeyDown={(e) => handleKeyDown(e, gstTypeRef)}
               onFocus={() => setFocusedField('city')}
               onBlur={() => setFocusedField('')}
-              // placeholder="City"
+              // //placeholder="City"
             />
           </div>
 
@@ -1827,7 +1827,7 @@ const PurchaseInvoice = () => {
               onKeyDown={(e) => handleKeyDown(e, mobileRef)}
               onFocus={() => setFocusedField('invoiceAmount')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Invoice Amount"
+              // //placeholder="Invoice Amount"
             />
           </div>
         </div>
@@ -1854,7 +1854,7 @@ const PurchaseInvoice = () => {
               onKeyDown={(e) => handleKeyDown(e, gstNoRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Mobile No"
+              // //placeholder="Mobile No"
             />
           </div>
           
@@ -1890,7 +1890,7 @@ const PurchaseInvoice = () => {
               }}
               onFocus={() => setFocusedField('gstno')}
               onBlur={() => setFocusedField('')}
-              // placeholder="GST No"
+              // //placeholder="GST No"
             />
           </div>
         </div>
@@ -1965,7 +1965,7 @@ const PurchaseInvoice = () => {
                         height: '100%'
                       }}
                       value={item.name}
-                      placeholder="Search items"
+                      //placeholder="Search items"
                       data-row={index}
                       data-field="name"
                       onChange={(e) => {
