@@ -7,6 +7,8 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import { hover } from 'framer-motion';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Icon = {
   Search: ({ size = 16 }) => (
@@ -19,6 +21,13 @@ const Icon = {
 const Scrapprocurement = () => {
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
+  // API and data management
+    const [bills, setBills] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [pageNumber, setPageNumber] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+    const [totalCount, setTotalCount] = useState(0);
+    const fCompCode = "001";
 
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -157,6 +166,7 @@ const Scrapprocurement = () => {
 
   useEffect(() => {
     fetchNextBillNo();
+    fetchVoucherList();
   }, [userData]);
 
   // Update screen size on resize
@@ -246,7 +256,7 @@ const Scrapprocurement = () => {
   useEffect(() => {
     const fetchAllScrapItems = async () => {
       try {
-        const url = API_ENDPOINTS.SCRAP_CREATION.GET_SCRAP_ITEMS;
+        const url = API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_ITEMS;
         const res = await axiosInstance.get(url);
         const data = res?.data || [];
         setAllScrapItems(Array.isArray(data) ? data : []);
@@ -352,7 +362,8 @@ const Scrapprocurement = () => {
       setIsLoadingVouchers(true);
       const searchTerm = search || voucherSearchTerm || '';
       
-      const url = API_ENDPOINTS.Scrap_Procurement.GET_BILL_LIST;
+      const url = API_ENDPOINTS.Scrap_Procurement.GET_BILL_LIST(fCompCode, pageNum, pageSize);
+      // console.log('Fetching vouchers with URL:', url);
       const response = await axiosInstance.get(url);
       
       let dataArray = [];
@@ -361,6 +372,11 @@ const Scrapprocurement = () => {
       } else if (Array.isArray(response?.data)) {
         dataArray = response.data;
       }
+        // if (response && response.data) {
+        //   setBills(response.data);
+        //   setTotalCount(response.data.totalCount);
+        //   setPageNumber(pageNum);
+        // }
       
       if (!Array.isArray(dataArray)) {
         console.warn('Voucher data is not an array:', dataArray);
@@ -448,7 +464,6 @@ const Scrapprocurement = () => {
         setBillDetails(newBillDetails);
         setItems(newItems);
         
-     
       } else {
         showConfirmation({
           title: 'Not Found',
@@ -495,9 +510,10 @@ const Scrapprocurement = () => {
               onConfirm: () => {
                 setShowConfirmPopup(false);
                 handleClear();
-                fetchNextBillNo();
               }
             });
+            toast.error(`Voucher ${voucherNo} deleted successfully.`);
+            clearFormData();
           } else {
             showConfirmation({
               title: 'Error',
@@ -507,6 +523,7 @@ const Scrapprocurement = () => {
               showIcon: true,
               onConfirm: () => setShowConfirmPopup(false)
             });
+            toast.error('Failed to delete voucher. Please try again.');
           }
         } catch (error) {
           console.error('Error deleting voucher:', error);
@@ -518,6 +535,7 @@ const Scrapprocurement = () => {
             showIcon: true,
             onConfirm: () => setShowConfirmPopup(false)
           });
+          toast.error(`Failed to delete voucher: ${error.response?.data?.message || error.message}`);
         }
       }
     });
@@ -878,159 +896,163 @@ const Scrapprocurement = () => {
   };
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-  // Handle / key for item search popup
-  if (e.key === '/') {
-    e.preventDefault();
-    setSelectedRowForItem(currentRowIndex);
-    setItemSearchTerm('');
-    setClosedItemByUser(false);
-    setShowItemPopup(true);
-    return;
-  }
+    // Handle / key for item search popup
+    if (e.key === '/') {
+      e.preventDefault();
+      setSelectedRowForItem(currentRowIndex);
+      setItemSearchTerm('');
+      setClosedItemByUser(false);
+      setShowItemPopup(true);
+      return;
+    }
 
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    e.stopPropagation(); // Prevent form submission or other Enter handlers
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation(); // Prevent form submission or other Enter handlers
 
-    // Fields in the visual order
-    const fields = [
-      'scrapProductName', 'itemName', 'uom', 'tax', 'sRate', 'qty'
-    ];
+      // Fields in the visual order
+      const fields = [
+        'scrapProductName', 'itemName', 'uom', 'tax', 'sRate', 'qty'
+      ];
 
-    const currentFieldIndex = fields.indexOf(currentField);
+      const currentFieldIndex = fields.indexOf(currentField);
 
-    // Check if itemName is empty in the current row
-    const currentRow = items[currentRowIndex];
-    const isItemNameEmpty = !currentRow.itemName || currentRow.itemName.trim() === '';
-
-    // If Enter is pressed in the qty field
-    if (currentField === 'qty') {
       // Check if itemName is empty in the current row
-      if (isItemNameEmpty) {
-        // Show confirmation popup asking to save
-        showConfirmation({
-          title: 'Item Name Missing',
-          message: 'Item Name cannot be empty. Would you like to save the form anyway?\n\nNote: Items without Item Name will not be saved.',
-          type: 'warning',
-          confirmText: 'Save Anyway',
-          cancelText: 'Cancel',
-          onConfirm: () => {
-            // User chose to save anyway
-            setShowConfirmPopup(false);
-            // Trigger the actual save function
-            handleSave();
-          },
-          onCancel: () => {
-            setShowConfirmPopup(false);
-            // Focus back to itemName field so user can fix it
-            setTimeout(() => {
-              const itemNameInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="itemName"]`);
-              if (itemNameInput) {
-                itemNameInput.focus();
-              }
-            }, 100);
-          }
-        });
-        return; // Don't proceed further
-      }
-    }
+      const currentRow = items[currentRowIndex];
+      const isItemNameEmpty = !currentRow.itemName || currentRow.itemName.trim() === '';
 
-    // Always move to next field if available
-    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
-      const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"], select[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-      if (nextInput) {
-        nextInput.focus();
-        return;
+      // If Enter is pressed in the qty field
+      if (currentField === 'qty') {
+        // Check if itemName is empty in the current row
+        if (isItemNameEmpty) {
+          // Show confirmation popup asking to save
+          showConfirmation({
+            title: 'Item Name Missing',
+            message: 'Item Name cannot be empty. Would you like to save the form anyway?\n\nNote: Items without Item Name will not be saved.',
+            type: 'warning',
+            confirmText: 'Save Anyway',
+            cancelText: 'Cancel',
+            onConfirm: () => {
+              // User chose to save anyway
+              setShowConfirmPopup(false);
+              // Trigger the actual save function
+              handleSave();
+            },
+            onCancel: () => {
+              setShowConfirmPopup(false);
+              // Focus back to itemName field so user can fix it
+              setTimeout(() => {
+                const itemNameInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="itemName"]`);
+                if (itemNameInput) {
+                  itemNameInput.focus();
+                }
+              }, 100);
+            }
+          });
+          return; // Don't proceed further
+        }
       }
-    }
 
-    // If Enter is pressed in the qty field and itemName is not empty
-    if (currentField === 'qty' && !isItemNameEmpty) {
-      // Only add new row if itemName is not empty
-      handleAddRow();
-      setTimeout(() => {
-        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
-        if (newRowInput) newRowInput.focus();
-      }, 60);
+      // Always move to next field if available
+      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+        const nextField = fields[currentFieldIndex + 1];
+        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"], select[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          return;
+        }
+      }
+
+      // If Enter is pressed in the qty field and itemName is not empty
+      if (currentField === 'qty' && !isItemNameEmpty) {
+        // Only add new row if itemName is not empty
+        handleAddRow();
+        setTimeout(() => {
+          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
+          if (newRowInput) newRowInput.focus();
+        }, 60);
+      }
+      
+      return;
     }
-    
-    return;
-  }
-};
+  };
 
   const handleDeleteRow = (id) => {
-  const itemToDelete = items.find(item => item.id === id);
-  const itemName = itemToDelete?.scrapProductName || 'this scrap product';
-  
-  // Check if this is the first row (by sNo)
-  const rowIndex = items.findIndex(item => item.id === id);
-  const isFirstRow = rowIndex === 0;
-  
-  if (isFirstRow) {
+    const itemToDelete = items.find(item => item.id === id);
+    const itemName = itemToDelete?.scrapProductName || 'this scrap product';
+    
+    // Check if this is the first row (by sNo)
+    const rowIndex = items.findIndex(item => item.id === id);
+    const isFirstRow = rowIndex === 0;
+    
+    if (isFirstRow) {
+      showConfirmation({
+        title: 'Clear First Row',
+        message: 'The first row cannot be deleted, but you can clear its contents. Would you like to clear this row instead?',
+        type: 'info',
+        confirmText: 'Clear',
+        onConfirm: () => {
+          // Clear the first row instead of deleting it
+          const updatedItems = [...items];
+          updatedItems[0] = {
+            id: 1,
+            sNo: 1,
+            scrapProductName: '',
+            scrapCode: '',
+            itemName: '',
+            itemCode: '',
+            uom: '',
+            tax: '',
+            sRate: '',
+            qty: '',
+            amount: '0.00'
+          };
+          setItems(updatedItems);
+          setShowConfirmPopup(false);
+        },
+        onCancel: () => {
+          setShowConfirmPopup(false);
+        }
+      });
+      return;
+    }
+
     showConfirmation({
-      title: 'Clear First Row',
-      message: 'The first row cannot be deleted, but you can clear its contents. Would you like to clear this row instead?',
-      type: 'info',
-      confirmText: 'Clear',
+      title: 'Delete Item',
+      message: `Are you sure you want to delete "${itemName}"?`,
+      type: 'danger',
+      confirmText: 'Delete',
       onConfirm: () => {
-        // Clear the first row instead of deleting it
-        const updatedItems = [...items];
-        updatedItems[0] = {
-          id: 1,
-          sNo: 1,
-          scrapProductName: '',
-          scrapCode: '',
-          itemName: '',
-          itemCode: '',
-          uom: '',
-          tax: '',
-          sRate: '',
-          qty: '',
-          amount: '0.00'
-        };
-        setItems(updatedItems);
-        setShowConfirmPopup(false);
-      },
-      onCancel: () => {
+        if (items.length > 1) {
+          const filteredItems = items.filter(item => item.id !== id);
+          const updatedItems = filteredItems.map((item, index) => ({
+            ...item,
+            sNo: index + 1
+          }));
+          setItems(updatedItems);
+        }
         setShowConfirmPopup(false);
       }
     });
-    return;
-  }
-
-  showConfirmation({
-    title: 'Delete Item',
-    message: `Are you sure you want to delete "${itemName}"?`,
-    type: 'danger',
-    confirmText: 'Delete',
-    onConfirm: () => {
-      if (items.length > 1) {
-        const filteredItems = items.filter(item => item.id !== id);
-        const updatedItems = filteredItems.map((item, index) => ({
-          ...item,
-          sNo: index + 1
-        }));
-        setItems(updatedItems);
-      }
-      setShowConfirmPopup(false);
-    }
-  });
-};
+  };
 
   // Separate clear function for reuse
   const clearFormData = () => {
-    setBillDetails({
-      billNo: '',
-      billDate: new Date().toISOString().substring(0, 10),
-      mobileNo: '',
-      empName: '',
-      salesman: '',
-      salesmanCode: '', 
-      custName: '',
-      custCode: '', 
-      scrapProductInput: '',
-      scrapCode: '',
+    // Reset bill details with new bill number
+    fetchNextBillNo().then(() => {
+      // After fetching new bill number, reset other fields
+      setBillDetails(prev => ({
+        billNo: prev.billNo, // Keep the new bill number
+        billDate: new Date().toISOString().substring(0, 10),
+        mobileNo: '',
+        empName: '',
+        salesman: '',
+        salesmanCode: '', 
+        custName: '',
+        custCode: '', 
+        scrapProductInput: '',
+        scrapCode: '',
+      }));
     });
 
     setItems([
@@ -1049,7 +1071,11 @@ const Scrapprocurement = () => {
       }
     ]);
     
-    fetchNextBillNo();
+    // Reset edit mode states
+    setActiveTopAction('add');
+    setIsEditMode(false);
+    setOriginalBillDetails(null);
+    setOriginalItems(null);
   };
 
   const handleClear = () => {
@@ -1126,6 +1152,11 @@ const Scrapprocurement = () => {
 
       if (response.status === 200 || response.status === 201) {
         const mode = isCreate ? 'created' : 'updated';
+        
+        // Show toast
+        toast.success(`Scrap Procurement data ${mode} successfully! Voucher No: ${billDetails.billNo}`);
+        clearFormData();
+        // Show confirmation popup
         showConfirmation({
           title: 'Success',
           message: `Scrap Procurement data ${mode} successfully!\n\nVoucher No: ${billDetails.billNo}\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -1139,7 +1170,6 @@ const Scrapprocurement = () => {
             setOriginalItems(null);
             clearFormData();
             setIsEditMode(false);
-            fetchNextBillNo();
           }
         });
       } else {
@@ -1151,6 +1181,7 @@ const Scrapprocurement = () => {
           showIcon: true,
           onConfirm: () => setShowConfirmPopup(false)
         });
+        toast.error('Failed to save data. Please try again.');
       }
     } catch (error) {
       console.error('Error saving scrap procurement:', error);
@@ -1162,6 +1193,7 @@ const Scrapprocurement = () => {
         showIcon: true,
         onConfirm: () => setShowConfirmPopup(false)
       });
+      toast.error(`Error saving data: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -1207,13 +1239,6 @@ const Scrapprocurement = () => {
         onConfirm: async () => {
           await performSave();
           setShowConfirmPopup(false);
-          // Refresh the page after a short delay
-              setTimeout(() => {
-                window.location.reload();
-              }, 300);
-            // },
-            // showLoading: false
-          // });
         },
         onCancel: () => {
           // If in edit mode and cancel is clicked, revert to original data
