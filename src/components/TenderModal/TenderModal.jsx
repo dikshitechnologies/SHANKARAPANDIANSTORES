@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import styles from './TenderModal.module.css';
-import axiosInstance from '../../api/axiosInstance';
+import apiService from '../../api/apiService';
 import { ActionButtons1 } from '../Buttons/ActionButtons';
 import { API_ENDPOINTS } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 
 const TenderModal = ({ isOpen, onClose, billData }) => {
+  const { userData } = useAuth() || {};
   const [activeFooterAction, setActiveFooterAction] = useState('all');
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: '', issue: '', closing: 0 },
-    200: { available: 4, collect: '', issue: '', closing: 4 },
-    100: { available: 116, collect: '', issue: '', closing: 116 },
-    50: { available: 3, collect: '', issue: '', closing: 3 },
-    20: { available: 2, collect: '', issue: '', closing: 2 },
+    200: { available: 0, collect: '', issue: '', closing: 0 },
+    100: { available: 0, collect: '', issue: '', closing: 0 },
+    50: { available: 0, collect: '', issue: '', closing: 0 },
+    20: { available: 0, collect: '', issue: '', closing: 0 },
     10: { available: 0, collect: '', issue: '', closing: 0 },
     5: { available: 0, collect: '', issue: '', closing: 0 },
-    2: { available: 9, collect: '', issue: '', closing: 9 },
-    1: { available: 6, collect: '', issue: '', closing: 6 },
+    2: { available: 0, collect: '', issue: '', closing: 0 },
+    1: { available: 0, collect: '', issue: '', closing: 0 },
   });
 
   const [formData, setFormData] = useState({
@@ -55,8 +57,48 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
         grossAmt: billData.amount ? billData.amount.toString() : '',
         billAmount: billData.amount ? billData.amount.toString() : '',
       }));
+      // Fetch live drawer data when modal opens
+      fetchLiveDrawer();
     }
-  }, [billData, isOpen]);
+  }, [billData, isOpen, userData?.companyCode]);
+
+  // Fetch live drawer available from API
+  const fetchLiveDrawer = async () => {
+    try {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const companyCode = userData?.companyCode || '001';
+      
+      console.log('Fetching live drawer with:', { dateStr, companyCode });
+      
+      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_LIVE_DRAWER(dateStr, companyCode);
+      const response = await apiService.get(endpoint);
+      
+      console.log('Live drawer API response:', response);
+      
+      if (response) {
+        // apiService.get returns the data directly
+        const data = response.data || response;
+        console.log('Parsed data:', data);
+        
+        // Map API response keys (r500, r200, etc.) to denominations
+        setDenominations(prev => ({
+          500: { ...prev[500], available: data.r500 || 0, closing: data.r500 || 0 },
+          200: { ...prev[200], available: data.r200 || 0, closing: data.r200 || 0 },
+          100: { ...prev[100], available: data.r100 || 0, closing: data.r100 || 0 },
+          50: { ...prev[50], available: data.r50 || 0, closing: data.r50 || 0 },
+          20: { ...prev[20], available: data.r20 || 0, closing: data.r20 || 0 },
+          10: { ...prev[10], available: data.r10 || 0, closing: data.r10 || 0 },
+          5: { ...prev[5], available: data.r5 || 0, closing: data.r5 || 0 },
+          2: { ...prev[2], available: data.r2 || 0, closing: data.r2 || 0 },
+          1: { ...prev[1], available: data.r1 || 0, closing: data.r1 || 0 },
+        }));
+        console.log('Live drawer data loaded successfully');
+      }
+    } catch (err) {
+      console.error('Error fetching live drawer:', err);
+    }
+  };
 
   // Function to calculate optimal issue denominations for a given amount
   const calculateOptimalDenominations = (amount) => {

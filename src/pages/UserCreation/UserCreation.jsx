@@ -45,6 +45,7 @@ export default function UserCreation() {
   const [mode, setMode] = useState("create");
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+ const [prefixError, setPrefixError] = useState("");
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupType, setPopupType] = useState("");
@@ -138,7 +139,7 @@ export default function UserCreation() {
       return response.data;
 
     } catch (err) {
-      setError(err.message || "Failed to create user");
+      
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -461,10 +462,25 @@ async function handleCreate() {
         if (companyRef.current) companyRef.current.focus();
       }, 60);
 
-    } catch (err) {
-      setError(`Failed to create user: ${err.message}`);
-      setConfirmOpen(false);
-    }
+} catch (err) {
+  setConfirmOpen(false);
+
+  // ✅ HANDLE DUPLICATE PREFIX — INLINE ONLY
+  if (err.response?.status === 409) {
+    setError(""); // ❗ ensure no top alert
+    setPrefixError(
+      err.response?.data?.message ||
+      "Prefix already exists. Choose a different one."
+    );
+    return; // ⛔ STOP HERE — NO POPUP
+  }
+
+  // ❌ ONLY REAL ERRORS
+  setError(err.message || "Failed to create user");
+}
+
+
+
   };
 
   async function handleUpdate() {
@@ -1305,7 +1321,11 @@ async function handleCreate() {
                       type="text"
                       maxLength={2}
                       value={form.prefix}
-                      onChange={(e) => setForm((s) => ({ ...s, prefix: e.target.value }))}
+                     onChange={(e) => {
+  setForm((s) => ({ ...s, prefix: e.target.value }));
+  setPrefixError(""); // ✅ clear error while typing
+}}
+
                       onKeyDown={onPrefixKeyDown}
                      
                       style={styles.formInput}
@@ -1323,6 +1343,23 @@ async function handleCreate() {
                       }}
                       disabled={loading || isProcessing}
                     />
+                    {prefixError && (
+  <div
+    style={{
+      marginTop: "8px",
+      background: "#fff1f2",
+      color: "#9f1239",
+      padding: "10px 12px",
+      borderRadius: "8px",
+      fontSize: "13px",
+      fontWeight: 500,
+      border: "1px solid #fecaca",
+    }}
+  >
+    {prefixError}
+  </div>
+)}
+
                   </div>
                 </div>
 
