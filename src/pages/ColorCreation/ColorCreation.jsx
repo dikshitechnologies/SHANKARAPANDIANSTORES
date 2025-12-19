@@ -250,10 +250,9 @@ export default function ColorCreation() {
         colourName: form.colourName 
       };
       await updateColor(colorData);
-      await loadInitial();
-      
+      await loadInitial();      
       setMessage({ type: "success", text: "Color updated successfully." });
-      toast.success(`Color "${form.colourName}" updated successfully.`);
+      toast.success(`Color "${form.colourName}" updated successfully.`);  
       setConfirmEditOpen(false);
       resetForm();
     } catch (err) {
