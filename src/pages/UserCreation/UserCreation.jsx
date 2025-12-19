@@ -406,17 +406,26 @@ export default function UserCreation() {
     setPopupData([]);
   };
 
-  async function handleCreate() {
-    if (!form.companyCode || !form.username || !form.password) {
-      setError("Please fill required fields: Company, Username, Password.");
-      return;
-    }
-
-    // Show confirmation popup
-    setConfirmMessage(`Are you sure you want to create user "${form.username}"?\n\nThis action cannot be undone.`);
-    setConfirmAction(() => confirmCreate);
-    setConfirmOpen(true);
+async function handleCreate() {
+  if (!form.companyCode || !form.username || !form.password) {
+    toast.warning(
+      "Please fill required fields: Company, Username, Password.",
+      {
+        position: "top-right",
+        autoClose: 3000,
+      }
+    );
+    return;
   }
+
+  // Show confirmation popup
+  setConfirmMessage(
+    `Are you sure you want to create user "${form.username}"?\n\nThis action cannot be undone.`
+  );
+  setConfirmAction(() => confirmCreate);
+  setConfirmOpen(true);
+}
+
 
   const confirmCreate = async () => {
     try {
@@ -1147,11 +1156,12 @@ export default function UserCreation() {
               <div style={styles.rightTitleContainer}>
                 
                 
-                <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+                
+                <h2 style={styles.rightTitle}>
+                  <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-                <h2 style={styles.rightTitle}>
                   User Creation
                 </h2>
                 <p style={styles.rightSubtitle}>
