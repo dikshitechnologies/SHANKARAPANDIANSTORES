@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
-import axiosInstance from '../../api/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
 
 const SaveConfirmationModal = ({
   isOpen,
@@ -24,10 +24,14 @@ const SaveConfirmationModal = ({
   voucherNo = "",
   voucherDate = ""
 }) => {
+  const { userData } = useAuth() || {};
   const confirmRef = useRef(null);
   const [editableParticulars, setEditableParticulars] = useState(particulars);
   const fieldRefs = useRef({});
-  const [liveAvailable, setLiveAvailable] = useState({});
+  const [liveAvailable, setLiveAvailable] = useState({
+    '500': 0, '200': 0, '100': 0, '50': 0, '20': 0, 
+    '10': 0, '5': 0, '2': 0, '1': 0
+  });
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationLoading, setSaveConfirmationLoading] = useState(false);
 
@@ -59,31 +63,38 @@ const SaveConfirmationModal = ({
   const fetchLiveCash = async () => {
     try {
       const today = new Date();
-      const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const companyCode = userData?.companyCode || '001';
       
-      const response = await axiosInstance.get(
-        `/api/BillCollector/GetLiveCash?date=${dateStr}`
-      );
+      console.log('Fetching live drawer with:', { dateStr, companyCode });
       
-      if (response.data) {
-        const data = response.data;
-        // Map API response keys (live1, live2, live5, etc.) to denominations
+      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_LIVE_DRAWER(dateStr, companyCode);
+      const response = await apiService.get(endpoint);
+      
+      console.log('Live drawer API response:', response);
+      
+      if (response) {
+        // apiService.get returns the data directly
+        const data = response.data || response;
+        console.log('Parsed data:', data);
+        
+        // Map API response keys (r500, r200, etc.) to denominations
         const available = {
-          '500': data.live500 || 0,
-          '200': data.live200 || 0,
-          '100': data.live100 || 0,
-          '50': data.live50 || 0,
-          '20': data.live20 || 0,
-          '10': data.live10 || 0,
-          '5': data.live5 || 0,
-          '2': data.live2 || 0,
-          '1': data.live1 || 0
+          '500': data.r500 || 0,
+          '200': data.r200 || 0,
+          '100': data.r100 || 0,
+          '50': data.r50 || 0,
+          '20': data.r20 || 0,
+          '10': data.r10 || 0,
+          '5': data.r5 || 0,
+          '2': data.r2 || 0,
+          '1': data.r1 || 0
         };
         setLiveAvailable(available);
-        console.log('Live cash fetched:', available);
+        console.log('Live drawer data loaded successfully:', available);
       }
     } catch (err) {
-      console.error('Error fetching live cash:', err);
+      console.error('Error fetching live drawer:', err);
       // Use particulars available values as fallback
       const fallback = {};
       denominations.forEach(denom => {
@@ -127,7 +138,7 @@ const SaveConfirmationModal = ({
         }
       }, 100);
     }
-  }, [isOpen, particulars]);
+  }, [isOpen, particulars, userData?.companyCode]);
 
   if (!isOpen) return null;
   

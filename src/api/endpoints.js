@@ -247,6 +247,7 @@ CATEGORY: {
 
   BILLCOLLECTOR:{
     GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
+    GET_LIVE_DRAWER: (date, ccode) => `BillCollector/GetLiveDrawer?date=${date}&ccode=${ccode}`,
   },
 
   SALESRETURN: {
