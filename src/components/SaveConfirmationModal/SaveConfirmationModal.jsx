@@ -27,6 +27,8 @@ const SaveConfirmationModal = ({
   const [editableParticulars, setEditableParticulars] = useState(particulars);
   const fieldRefs = useRef({});
   const [openingBalances, setOpeningBalances] = useState({});
+  const [initialAvailable, setInitialAvailable] = useState({});
+  const [initialClosing, setInitialClosing] = useState({});
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationLoading, setSaveConfirmationLoading] = useState(false);
 
@@ -63,6 +65,22 @@ const SaveConfirmationModal = ({
     if (isOpen) {
       setEditableParticulars(particulars);
       fetchOpeningBalance();
+      
+      // Store initial available values (should not change as user enters COLLECT/ISSUE)
+      const initialAvailableValues = {};
+      const initialClosingValues = {};
+      
+      denominations.forEach(denom => {
+        initialAvailableValues[denom] = particulars[denom]?.available || 0;
+        const available = particulars[denom]?.available || 0;
+        const collect = particulars[denom]?.collect || 0;
+        const issue = particulars[denom]?.issue || 0;
+        initialClosingValues[denom] = available + collect - issue;
+      });
+      
+      setInitialAvailable(initialAvailableValues);
+      setInitialClosing(initialClosingValues);
+      
       // Focus first field (500) when modal opens
       setTimeout(() => {
         if (fieldRefs.current['500']) {
@@ -77,11 +95,13 @@ const SaveConfirmationModal = ({
   // Initialize counters
   const available = {};
   const collect = {};
+  const issue = {};
 
   denominations.forEach(denom => {
     // Use opening balances from API if available, otherwise use particulars
     available[denom] = openingBalances[denom] !== undefined ? openingBalances[denom] : (editableParticulars[denom]?.available || 0);
     collect[denom] = editableParticulars[denom]?.collect || 0;
+    issue[denom] = editableParticulars[denom]?.issue || 0;
   });
 
   // Handle collect input change
@@ -92,6 +112,18 @@ const SaveConfirmationModal = ({
       [denom]: {
         ...prev[denom],
         collect: numValue
+      }
+    }));
+  };
+
+  // Handle issue input change
+  const handleIssueChange = (denom, value) => {
+    const numValue = value === '' ? 0 : parseInt(value) || 0;
+    setEditableParticulars(prev => ({
+      ...prev,
+      [denom]: {
+        ...prev[denom],
+        issue: numValue
       }
     }));
   };
@@ -125,15 +157,18 @@ const SaveConfirmationModal = ({
   const handleSaveConfirmation = async () => {
     setSaveConfirmationLoading(true);
     try {
-      // Update editableParticulars with calculated available values (opening balance + collect)
+      // Update editableParticulars with calculated available values and preserve issue values
       const updatedParticulars = { ...editableParticulars };
       denominations.forEach(denom => {
         const currentAvailable = openingBalances[denom] !== undefined ? openingBalances[denom] : (editableParticulars[denom]?.available || 0);
         const currentCollect = editableParticulars[denom]?.collect || 0;
-        const totalAvailable = currentAvailable + currentCollect;
+        const currentIssue = editableParticulars[denom]?.issue || 0;
+        const closingBalance = currentAvailable + currentCollect - currentIssue;
         updatedParticulars[denom] = {
-          ...editableParticulars[denom],
-          available: totalAvailable
+          available: currentAvailable,
+          collect: currentCollect,
+          issue: currentIssue,
+          closing: closingBalance
         };
       });
       // Call the parent's onConfirm callback with the updated particulars
@@ -281,7 +316,7 @@ const SaveConfirmationModal = ({
                       fontWeight: 600
                     }}
                   >
-                    {available[denom] + collect[denom]}
+                    {initialAvailable[denom] || 0}
                   </td>
                 ))}
               </tr>
@@ -330,6 +365,79 @@ const SaveConfirmationModal = ({
                         cursor: 'text'
                       }}
                     />
+                  </td>
+                ))}
+              </tr>
+
+              {/* ISSUE Row */}
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+                <td
+                  style={{
+                    padding: '12px',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    borderRight: '1px solid #e5e7eb'
+                  }}
+                >
+                  ISSUE
+                </td>
+                {denominations.map((denom, index) => (
+                  <td
+                    key={`issue-${denom}`}
+                    style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      borderRight: '1px solid #e5e7eb'
+                    }}
+                  >
+                    <input
+                      type="number"
+                      value={issue[denom] === 0 ? '' : issue[denom]}
+                      onChange={(e) => handleIssueChange(denom, e.target.value)}
+                      min="0"
+                      placeholder="0"
+                      tabIndex={index + 9}
+                      style={{
+                        width: '50px',
+                        padding: '6px 8px',
+                        border: '2px solid #307AC8',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        fontSize: '13px',
+                        background: '#fff',
+                        color: '#0f172a',
+                        fontWeight: 600,
+                        cursor: 'text'
+                      }}
+                    />
+                  </td>
+                ))}
+              </tr>
+
+              {/* CLOSING Row */}
+              <tr style={{ background: 'white', borderBottom: '1px solid #e5e7eb' }}>
+                <td
+                  style={{
+                    padding: '12px',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    borderRight: '1px solid #e5e7eb'
+                  }}
+                >
+                  CLOSING
+                </td>
+                {denominations.map((denom) => (
+                  <td
+                    key={`closing-${denom}`}
+                    style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      color: '#0f172a',
+                      borderRight: '1px solid #e5e7eb',
+                      fontWeight: 600
+                    }}
+                  >
+                    {initialClosing[denom] || 0}
                   </td>
                 ))}
               </tr>

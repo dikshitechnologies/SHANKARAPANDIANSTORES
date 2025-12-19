@@ -274,8 +274,7 @@ useEffect(() => {
       await fetchMaxVoucherNo();
       await fetchVoucherList();
       
-      // Show success message
-      toast.success("Form reset successfully! Ready for new entry.", { autoClose: 2000 });
+     
       
     } catch (err) {
       console.error("Error resetting form:", err);
