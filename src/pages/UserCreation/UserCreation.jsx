@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/ActionButtons";
 import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Professional Search Icon
 const SearchIcon = ({ size = 16, color = "#94a3b8" }) => (
@@ -225,7 +227,8 @@ export default function UserCreation() {
       setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
       setMode("create");
       
-      setSuccessMessage(`User "${form.username}" has been deleted successfully.`);
+      // setSuccessMessage(`User "${form.username}" has been deleted successfully.`);
+      toast.success(`User "${form.username}" deleted successfully.`);
       setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
     } catch (err) {
       const errorMsg = err.message || "";
@@ -403,17 +406,26 @@ export default function UserCreation() {
     setPopupData([]);
   };
 
-  async function handleCreate() {
-    if (!form.companyCode || !form.username || !form.password) {
-      setError("Please fill required fields: Company, Username, Password.");
-      return;
-    }
-
-    // Show confirmation popup
-    setConfirmMessage(`Are you sure you want to create user "${form.username}"?\n\nThis action cannot be undone.`);
-    setConfirmAction(() => confirmCreate);
-    setConfirmOpen(true);
+async function handleCreate() {
+  if (!form.companyCode || !form.username || !form.password) {
+    toast.warning(
+      "Please fill required fields: Company, Username, Password.",
+      {
+        position: "top-right",
+        autoClose: 3000,
+      }
+    );
+    return;
   }
+
+  // Show confirmation popup
+  setConfirmMessage(
+    `Are you sure you want to create user "${form.username}"?\n\nThis action cannot be undone.`
+  );
+  setConfirmAction(() => confirmCreate);
+  setConfirmOpen(true);
+}
+
 
   const confirmCreate = async () => {
     try {
@@ -439,7 +451,8 @@ export default function UserCreation() {
       });
 
       setMode("create");
-      setSuccessMessage("User created successfully.");
+      // setSuccessMessage("User created successfully.");
+      toast.success(`User "${form.username}" created successfully.`);
       setConfirmOpen(false);
 
       setTimeout(() => {
@@ -484,7 +497,8 @@ export default function UserCreation() {
       setEditingId(null);
       setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
       setMode("create");
-      setSuccessMessage("User updated successfully.");
+      // setSuccessMessage("User updated successfully.");
+      toast.success(`User "${form.username}" updated successfully.`);
       setConfirmOpen(false);
       setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
     } catch (err) {
@@ -1142,11 +1156,12 @@ export default function UserCreation() {
               <div style={styles.rightTitleContainer}>
                 
                 
-                <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+                
+                <h2 style={styles.rightTitle}>
+                  <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-                <h2 style={styles.rightTitle}>
                   User Creation
                 </h2>
                 <p style={styles.rightSubtitle}>

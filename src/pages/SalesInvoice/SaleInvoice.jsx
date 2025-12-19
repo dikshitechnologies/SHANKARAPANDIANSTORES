@@ -38,7 +38,12 @@ const SaleInvoice = () => {
   // Save confirmation popup
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
-  
+  // Clear confirmation popup
+const [clearConfirmationOpen, setClearConfirmationOpen] = useState(false);
+
+// Print confirmation popup
+const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
+
   // Edit confirmation popup
   const [editConfirmationOpen, setEditConfirmationOpen] = useState(false);
   const [editConfirmationData, setEditConfirmationData] = useState(null);
@@ -52,7 +57,8 @@ const SaleInvoice = () => {
   
   // Add/Less amount state
   const [addLessAmount, setAddLessAmount] = useState('');
-  
+ 
+
   // Track if we're editing an existing invoice
   const [isEditing, setIsEditing] = useState(false);
   const [originalInvoiceNo, setOriginalInvoiceNo] = useState('');
@@ -391,9 +397,9 @@ const [rowToDelete, setRowToDelete] = useState(null);
           return true;
         });
       
-      if (page === 1) {
-        setSavedInvoices(formattedInvoices);
-      }
+      // ✅ ALWAYS keep savedInvoices in sync
+setSavedInvoices(formattedInvoices);
+
       
       let finalResults = formattedInvoices;
       if (search && search.trim() !== '') {
@@ -443,21 +449,13 @@ const [rowToDelete, setRowToDelete] = useState(null);
         setIsEditing(true);
         setOriginalInvoiceNo(voucherNo);
         
-        let billDate = header.voucherDate || new Date().toISOString().split('T')[0];
+  const billDate = formatDateToYYYYMMDD(
+  header.billDate || header.voucherDate
+);
+
+
         
-        // Convert date format to yyyy-MM-dd
-        if (billDate.includes('-')) {
-          const parts = billDate.split('-');
-          if (parts.length === 3) {
-            if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
-              // dd-MM-yyyy to yyyy-MM-dd
-              billDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            } else if (parts[0].length === 4 && parts[1].length === 2 && parts[2].length === 2) {
-              // yyyy-MM-dd (already correct)
-              billDate = billDate;
-            }
-          }
-        }
+
         
         setBillDetails(prev => ({
           ...prev,
@@ -557,14 +555,18 @@ const [rowToDelete, setRowToDelete] = useState(null);
                        response.data.message !== "Delete failed" &&
                        !response.data.error;
         
-        if (success) {
-          if (voucherNo === billDetails.billNo) {
-            resetForm();
-          }
-          
-          await fetchSavedInvoices(1, '');
-          return { success: true, message: "Invoice deleted successfully" };
-        } else {
+if (success) {
+  // ✅ If deleted invoice is currently opened, reset everything safely
+  if (voucherNo === billDetails.billNo) {
+    resetForm();
+    setIsEditing(false);
+    setOriginalInvoiceNo('');
+   
+  }
+
+  return { success: true, message: "Invoice deleted successfully" };
+}
+else {
           const errorMsg = response.data.message || response.data.error || "Delete failed";
           throw new Error(errorMsg);
         }
@@ -831,47 +833,55 @@ const handleConfirmedDelete = async () => {
 };
 
 
-  // Fetch items for invoice popup
-  const fetchInvoiceItemsForPopup = async (pageNum, search) => {
-    try {
-      let filtered = [...savedInvoices];
-      
-      if (search && search.trim() !== '') {
-        const searchLower = search.toLowerCase();
-        filtered = savedInvoices.filter(invoice => {
-          return (
-            (invoice.voucherNo && invoice.voucherNo.toString().toLowerCase().includes(searchLower))
-          );
-        });
-      }
-      
-      const uniqueInvoices = [];
-      const seenVoucherNos = new Set();
-      
-      filtered.forEach(invoice => {
-        if (!seenVoucherNos.has(invoice.voucherNo)) {
-          seenVoucherNos.add(invoice.voucherNo);
-          uniqueInvoices.push(invoice);
-        }
-      });
-      
-      const formattedForPopup = uniqueInvoices.map(invoice => ({
-        ...invoice,
-        name: invoice.voucherNo,
-        displayName: invoice.voucherNo
-      }));
-      
-      const itemsPerPage = 20;
-      const startIndex = (pageNum - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      const paginated = formattedForPopup.slice(startIndex, endIndex);
-      
-      return paginated;
-      
-    } catch (err) {
-      return [];
+const fetchInvoicesForPopup = async (pageNum, search) => {
+  try {
+    setLoadingInvoices(true);
+
+    // 🔹 Fetch from backend page-wise
+    const endpoint =
+      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getBillList("001", pageNum, 20);
+
+    const response = await axiosInstance.get(endpoint);
+
+    let invoiceData = [];
+
+    if (response?.data?.data && Array.isArray(response.data.data)) {
+      invoiceData = response.data.data;
+    } else if (Array.isArray(response.data)) {
+      invoiceData = response.data;
     }
-  };
+
+    let formatted = invoiceData.map(inv => {
+      const voucherNo = inv.billNo || inv.voucherNo || "";
+      return {
+        id: voucherNo,
+        voucherNo,
+        name: voucherNo,
+        displayName: voucherNo,
+        customerName: inv.customerName || "",
+        date: inv.voucherDate || "",
+        totalAmount: inv.billAmt || 0,
+      };
+    });
+
+    // 🔍 Apply search
+    if (search && search.trim()) {
+      const s = search.toLowerCase();
+      formatted = formatted.filter(i =>
+        i.voucherNo.toLowerCase().includes(s)
+      );
+    }
+
+    return formatted;
+  } catch (err) {
+    console.error("Popup invoice fetch failed", err);
+    return [];
+  } finally {
+    setLoadingInvoices(false);
+  }
+};
+
+
 
   // Open customer popup
   const openCustomerPopup = () => {
@@ -1589,44 +1599,43 @@ const handleConfirmedRowDelete = () => {
   setRowToDelete(null);
 };
 
-  // Handle clear - clears current form
-  const handleClear = () => {
-    if (window.confirm('Are you sure you want to clear current unsaved data?')) {
-      resetForm();
-    }
-  };
+const handleClear = () => {
+  setClearConfirmationOpen(true);
+};
+const handleConfirmedClear = () => {
+  setClearConfirmationOpen(false);
+  resetForm();
+};
 
-  // Helper function to format date to yyyy-MM-dd
-  const formatDateToYYYYMMDD = (dateString) => {
-    try {
-      // Check if already in yyyy-MM-dd format
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
-      }
-      
-      // Check if in dd-MM-yyyy format
-      if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
-        const parts = dateString.split('-');
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
-      }
-      
-      // Try parsing as date
-      const date = new Date(dateString);
-      
-      if (isNaN(date.getTime())) {
-        const today = new Date();
-        return today.toISOString().split('T')[0];
-      }
-      
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch (err) {
-      const today = new Date();
-      return today.toISOString().split('T')[0];
-    }
-  };
+
+const formatDateToYYYYMMDD = (dateString) => {
+  if (!dateString) {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  // ✅ Already correct format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
+  }
+
+  // ✅ Handle: DD-MM-YYYY or DD/MM/YYYY
+  if (/^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(dateString)) {
+    const [day, month, year] = dateString.split(/[\/-]/);
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  // ✅ Handle: DD-MM-YYYY HH:mm:ss or DD/MM/YYYY HH:mm:ss
+  if (/^\d{2}[\/-]\d{2}[\/-]\d{4}\s+/.test(dateString)) {
+    const datePart = dateString.split(' ')[0];
+    const [day, month, year] = datePart.split(/[\/-]/);
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  console.warn("Unrecognized date format:", dateString);
+  return new Date().toISOString().split('T')[0];
+};
+
+
 
   // ========== SAVE FUNCTION ==========
   const saveSalesInvoice = async () => {
@@ -1659,22 +1668,22 @@ const handleConfirmedRowDelete = () => {
       // Format date to yyyy-MM-dd (without time)
       const voucherDate = formatDateToYYYYMMDD(billDetails.billDate);
 
-      // Prepare header data
-      const headerData = {
-        voucherNo: billDetails.billNo || "",
-        voucherDate: voucherDate, // Only date, no time
-        mobileNumber: billDetails.mobileNo || "",
-        salesmanName: billDetails.salesman || "",
-        salesCode: billDetails.salesmanCode || "",
-        selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
-        customerName: billDetails.custName || "",
-        customercode: billDetails.custCode || "",
-        compCode: "001",
-        billAmount: Number(totalAmount) || 0,
-        balanceAmount: 0,
-        userCode: "001",
-        addLess: (addLessAmount ?? "0").toString()
-      };
+  const headerData = {
+  voucherNo: billDetails.billNo || "",
+  billDate: voucherDate,      // ✅ CORRECT FIELD
+  voucherDate: voucherDate,   // ✅ KEEP BOTH (SAFE)
+  mobileNumber: billDetails.mobileNo || "",
+  salesmanName: billDetails.salesman || "",
+  salesCode: billDetails.salesmanCode || "",
+  selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
+  customerName: billDetails.custName || "",
+  customercode: billDetails.custCode || "",
+  compCode: "001",
+  billAmount: Number(totalAmount) || 0,
+  balanceAmount: 0,
+  userCode: "001",
+  addLess: (addLessAmount ?? "0").toString()
+};
 
       // Prepare items data
       const itemsData = validItems.map(item => ({
@@ -1779,13 +1788,30 @@ const handleConfirmedRowDelete = () => {
       return;
     }
     
-    if (!billDetails.custName) {
-      if (!customerMessageShown) {
-        setCustomerMessageShown(true);
-        alert('Please select a customer');
-      }
-      return;
-    }
+   if (!billDetails.custName) {
+  if (
+  items.length === 0 ||
+  items.every(item => !item.itemName || parseFloat(item.qty || 0) <= 0)
+) {
+  toast.warning("Please add a customer Name", {
+    position: "top-right",
+    autoClose: 2000,
+  });
+  }
+  return;
+}
+
+if (
+  items.length === 0 ||
+  items.every(item => !item.itemName || parseFloat(item.qty || 0) <= 0)
+) {
+  toast.warning("Please add at least one item with quantity", {
+    position: "top-right",
+    autoClose: 2000,
+  });
+  return;
+}
+
     
     if (items.length === 0 || items.every(item => !item.itemName || parseFloat(item.qty || 0) <= 0)) {
       alert('Please add at least one item with quantity');
@@ -1823,9 +1849,16 @@ const handleConfirmedRowDelete = () => {
     await saveSalesInvoice();
   };
 
-  const handlePrint = () => {
-    alert('Print functionality to be implemented');
-  };
+ const handlePrint = () => {
+  setPrintConfirmationOpen(true);
+};
+
+const handleConfirmedPrint = () => {
+  setPrintConfirmationOpen(false);
+
+  // 🔹 Replace with your actual print logic
+  window.print();
+};
 
   // --- RESPONSIVE STYLES ---
   const TYPOGRAPHY = {
@@ -1912,19 +1945,18 @@ searchIconInside: {
       display: 'flex',
       alignItems: 'center',
       gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      flexWrap: 'wrap',
+      
     },
-    inlineLabel: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.semibold,
-      lineHeight: TYPOGRAPHY.lineHeight.tight,
-      color: '#333',
-      minWidth: screenSize.isMobile ? '75px' : screenSize.isTablet ? '85px' : '95px',
-      whiteSpace: 'nowrap',
-      flexShrink: 0,
-      paddingTop: '2px',
-    },
+   inlineLabel: {
+  fontFamily: TYPOGRAPHY.fontFamily,
+  fontSize: TYPOGRAPHY.fontSize.sm,
+  fontWeight: TYPOGRAPHY.fontWeight.semibold,
+  color: '#333',
+  minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px', // ✅ REDUCED
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
+},
+
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
@@ -2533,6 +2565,8 @@ searchIconInside: {
               value={billDetails.billDate}
               name="billDate"
               onChange={handleInputChange}
+
+
               ref={billDateRef}
               onKeyDown={(e) => handleKeyDown(e, mobileRef)}
               onFocus={() => setFocusedField('billDate')}
@@ -2557,23 +2591,32 @@ searchIconInside: {
             />
           </div>
 
-          {/* Type */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Type:</label>
-            <select
-              name="type"
-              style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
-              value={billDetails.type}
-              onChange={handleInputChange}
-              ref={typeRef}
-              onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
-              onFocus={() => setFocusedField('type')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="Retail">Retail</option>
-              <option value="Wholesale">Wholesale</option>
-            </select>
-          </div>
+{/* Type */}
+<div style={{ ...styles.formField, gap: '4px' }}>   {/* ✅ smaller gap */}
+  <label
+    style={{
+      ...styles.inlineLabel,
+      minWidth: '50px'   // ✅ ONLY Type label width reduced
+    }}
+  >
+    Type:
+  </label>
+
+  <select
+    name="type"
+    style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
+    value={billDetails.type}
+    onChange={handleInputChange}
+    ref={typeRef}
+    onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
+    onFocus={() => setFocusedField('type')}
+    onBlur={() => setFocusedField('')}
+  >
+    <option value="Retail">Retail</option>
+    <option value="Wholesale">Wholesale</option>
+  </select>
+</div>
+
         </div>
 
         <div style={{
@@ -3045,6 +3088,33 @@ searchIconInside: {
         showLoading={isSaving}
         borderColor={saveConfirmationData?.isEditing ? "#ffc107" : "#1B91DA"}
       />
+      {/* Clear Confirmation Popup */}
+<ConfirmationPopup
+  isOpen={clearConfirmationOpen}
+  onClose={() => setClearConfirmationOpen(false)}
+  onConfirm={handleConfirmedClear}
+  title="Clear Sales Invoice"
+  message="Are you sure you want to clear all unsaved data?"
+  confirmText="CLEAR"
+  cancelText="Cancel"
+  type="warning"
+  showIcon={true}
+  borderColor="#ffc107"
+/>
+{/* Print Confirmation Popup */}
+<ConfirmationPopup
+  isOpen={printConfirmationOpen}
+  onClose={() => setPrintConfirmationOpen(false)}
+  onConfirm={handleConfirmedPrint}
+  title="Print Sales Invoice"
+ 
+  confirmText="PRINT"
+  cancelText="Cancel"
+  type="default"
+  showIcon={true}
+  borderColor="#1B91DA"
+/>
+
 
       {/* Delete Confirmation Popup */}
       <ConfirmationPopup
@@ -3120,7 +3190,10 @@ searchIconInside: {
         open={editInvoicePopupOpen}
         onClose={() => setEditInvoicePopupOpen(false)}
         onSelect={handleInvoiceSelect}
-        fetchItems={(page, search) => fetchItemsForPopup(page, search, 'editInvoice')}
+       fetchItems={(page, search) =>
+  fetchInvoicesForPopup(page, search)
+}
+
         title="Select Invoice to Edit"
         displayFieldKeys={getPopupConfig('editInvoice').displayFieldKeys}
         searchFields={getPopupConfig('editInvoice').searchFields}
@@ -3137,7 +3210,10 @@ searchIconInside: {
         open={deleteInvoicePopupOpen}
         onClose={() => setDeleteInvoicePopupOpen(false)}
         onSelect={handleInvoiceDelete}
-        fetchItems={(page, search) => fetchItemsForPopup(page, search, 'deleteInvoice')}
+        fetchItems={(page, search) =>
+  fetchInvoicesForPopup(page, search)
+}
+
         title="Select Invoice to Delete"
         displayFieldKeys={getPopupConfig('deleteInvoice').displayFieldKeys}
         searchFields={getPopupConfig('deleteInvoice').searchFields}
