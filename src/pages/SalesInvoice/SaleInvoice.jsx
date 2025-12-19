@@ -1613,21 +1613,28 @@ const formatDateToYYYYMMDD = (dateString) => {
     return new Date().toISOString().split('T')[0];
   }
 
-  // ✅ Already correct (YYYY-MM-DD)
+  // ✅ Already correct format
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
     return dateString;
   }
 
-  // ✅ Handle DD/MM/YYYY or DD-MM-YYYY
+  // ✅ Handle: DD-MM-YYYY or DD/MM/YYYY
   if (/^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(dateString)) {
     const [day, month, year] = dateString.split(/[\/-]/);
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
 
-  // ❌ NEVER trust new Date(string) — fallback only
-  const today = new Date();
-  return today.toISOString().split('T')[0];
+  // ✅ Handle: DD-MM-YYYY HH:mm:ss or DD/MM/YYYY HH:mm:ss
+  if (/^\d{2}[\/-]\d{2}[\/-]\d{4}\s+/.test(dateString)) {
+    const datePart = dateString.split(' ')[0];
+    const [day, month, year] = datePart.split(/[\/-]/);
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  console.warn("Unrecognized date format:", dateString);
+  return new Date().toISOString().split('T')[0];
 };
+
 
 
   // ========== SAVE FUNCTION ==========
