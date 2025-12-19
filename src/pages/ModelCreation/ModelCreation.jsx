@@ -283,7 +283,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Model deleted successfully." });
-      toast.success(`Model "${form.modelName}" deleted successfully.`);
+      toast.error(`Model "${form.modelName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {

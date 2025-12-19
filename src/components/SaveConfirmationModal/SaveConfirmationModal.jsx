@@ -3,6 +3,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
 import { useAuth } from '../../context/AuthContext';
+import styles from './SaveConfirmationModal.module.css';
 
 const SaveConfirmationModal = ({
   isOpen,
@@ -10,33 +11,41 @@ const SaveConfirmationModal = ({
   onConfirm,
   title = "Confirm Save",
   particulars = {
-    '500': { available: 0, collect: 0, issue: 0 },
-    '200': { available: 0, collect: 0, issue: 0 },
-    '100': { available: 0, collect: 0, issue: 0 },
-    '50': { available: 0, collect: 0, issue: 0 },
-    '20': { available: 0, collect: 0, issue: 0 },
-    '10': { available: 0, collect: 0, issue: 0 },
-    '5': { available: 0, collect: 0, issue: 0 },
-    '2': { available: 0, collect: 0, issue: 0 },
-    '1': { available: 0, collect: 0, issue: 0 }
+    500: { available: 0, collect: '', issue: '', closing: 0 },
+    200: { available: 0, collect: '', issue: '', closing: 0 },
+    100: { available: 0, collect: '', issue: '', closing: 0 },
+    50: { available: 0, collect: '', issue: '', closing: 0 },
+    20: { available: 0, collect: '', issue: '', closing: 0 },
+    10: { available: 0, collect: '', issue: '', closing: 0 },
+    5: { available: 0, collect: '', issue: '', closing: 0 },
+    2: { available: 0, collect: '', issue: '', closing: 0 },
+    1: { available: 0, collect: '', issue: '', closing: 0 }
   },
   loading = false,
   voucherNo = "",
-  voucherDate = ""
+  voucherDate = "",
+  totalAmount = 0
 }) => {
   const { userData } = useAuth() || {};
   const confirmRef = useRef(null);
-  const [editableParticulars, setEditableParticulars] = useState(particulars);
+  const [denominations, setDenominations] = useState(particulars);
   const fieldRefs = useRef({});
   const [liveAvailable, setLiveAvailable] = useState({
-    '500': 0, '200': 0, '100': 0, '50': 0, '20': 0, 
-    '10': 0, '5': 0, '2': 0, '1': 0
+    500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 
+    10: 0, 5: 0, 2: 0, 1: 0
   });
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationLoading, setSaveConfirmationLoading] = useState(false);
-
-  // Prepare table data based on particulars
-  const denominations = ['500', '200', '100', '50', '20', '10', '5', '2', '1'];
+  
+  const [formData, setFormData] = useState({
+    receivedCash: '',
+    issuedCash: '',
+    upi: '',
+    card: '',
+    balance: '',
+    isServiceCharge: false,
+    isCreditBill: false,
+  });
 
   // Function to calculate optimal issue denominations for a given amount
   const calculateOptimalDenominations = (amount) => {
@@ -74,105 +83,95 @@ const SaveConfirmationModal = ({
       console.log('Live drawer API response:', response);
       
       if (response) {
-        // apiService.get returns the data directly
         const data = response.data || response;
         console.log('Parsed data:', data);
         
         // Map API response keys (r500, r200, etc.) to denominations
-        const available = {
-          '500': data.r500 || 0,
-          '200': data.r200 || 0,
-          '100': data.r100 || 0,
-          '50': data.r50 || 0,
-          '20': data.r20 || 0,
-          '10': data.r10 || 0,
-          '5': data.r5 || 0,
-          '2': data.r2 || 0,
-          '1': data.r1 || 0
-        };
-        setLiveAvailable(available);
-        console.log('Live drawer data loaded successfully:', available);
+        setLiveAvailable({
+          500: data.r500 || 0,
+          200: data.r200 || 0,
+          100: data.r100 || 0,
+          50: data.r50 || 0,
+          20: data.r20 || 0,
+          10: data.r10 || 0,
+          5: data.r5 || 0,
+          2: data.r2 || 0,
+          1: data.r1 || 0
+        });
+        console.log('Live drawer data loaded successfully');
       }
     } catch (err) {
       console.error('Error fetching live drawer:', err);
-      // Use particulars available values as fallback
-      const fallback = {};
-      denominations.forEach(denom => {
-        fallback[denom] = particulars[denom]?.available || 0;
-      });
-      setLiveAvailable(fallback);
     }
   };
 
-  // Handle collect input change with auto-calculation of issue
-  const handleCollectChange = (denom, value) => {
-    const numValue = value === '' ? 0 : parseInt(value) || 0;
-    setEditableParticulars(prev => {
-      const updated = { ...prev };
-      updated[denom] = {
-        ...prev[denom],
-        collect: numValue
-      };
-
-      // Auto-calculate issue for all denominations if needed
-      // For now, just update the collect value
-      return updated;
-    });
+  const handleDenominationChange = (denom, field, value) => {
+    const updated = { ...denominations };
+    updated[denom] = { ...updated[denom], [field]: value };
+    
+    const collect = Number(updated[denom].collect) || 0;
+    const issue = Number(updated[denom].issue) || 0;
+    const available = liveAvailable[denom] || updated[denom].available;
+    updated[denom].closing = available + collect - issue;
+    
+    // If collect field is being updated, calculate balance and auto-fill issue
+    if (field === 'collect') {
+      // Calculate total collected amount from all denominations
+      let totalCollected = 0;
+      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+        const collectValue = d === denom ? Number(value) || 0 : Number(updated[d].collect) || 0;
+        totalCollected += collectValue * d;
+      });
+      
+      // Calculate balance
+      const balance = totalCollected - totalAmount;
+      
+      // Update form data balance and received cash
+      setFormData(prev => ({
+        ...prev,
+        receivedCash: totalCollected.toString(),
+        balance: balance.toString()
+      }));
+      
+      // If balance is positive, auto-calculate and fill issue row
+      if (balance > 0) {
+        const optimalIssue = calculateOptimalDenominations(balance);
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+          updated[d] = { ...updated[d], issue: optimalIssue[d].toString() };
+          // Recalculate closing for each denomination
+          const col = Number(updated[d].collect) || 0;
+          const iss = optimalIssue[d];
+          const avail = liveAvailable[d] || updated[d].available;
+          updated[d].closing = avail + col - iss;
+        });
+      }
+    }
+    
+    setDenominations(updated);
   };
 
-  // Handle issue input change - keep read-only
-  const handleIssueChange = (denom, value) => {
-    // This will be read-only, so we don't actually handle changes
-    // The issue is auto-calculated
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   useEffect(() => {
     if (isOpen) {
-      setEditableParticulars(particulars);
+      setDenominations(particulars);
       fetchLiveCash();
       
       // Focus first field (500) when modal opens
       setTimeout(() => {
-        if (fieldRefs.current['500']) {
-          fieldRefs.current['500'].focus();
+        if (fieldRefs.current[500]) {
+          fieldRefs.current[500].focus();
         }
       }, 100);
     }
   }, [isOpen, particulars, userData?.companyCode]);
 
   if (!isOpen) return null;
-  
-  // Initialize counters using liveAvailable from API
-  const available = {};
-  const collect = {};
-  const issue = {};
-
-  denominations.forEach(denom => {
-    // Use live cash from API if available, otherwise use particulars
-    available[denom] = liveAvailable[denom] !== undefined ? liveAvailable[denom] : (editableParticulars[denom]?.available || 0);
-    collect[denom] = editableParticulars[denom]?.collect || 0;
-    issue[denom] = editableParticulars[denom]?.issue || 0;
-  });
-
-  // Handle Enter key to move to next field
-  const handleKeyDown = (e, denom) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const currentIndex = denominations.indexOf(denom);
-      if (currentIndex < denominations.length - 1) {
-        // Move to next denomination
-        const nextDenom = denominations[currentIndex + 1];
-        if (fieldRefs.current[nextDenom]) {
-          fieldRefs.current[nextDenom].focus();
-        }
-      } else {
-        // Move to Save button
-        if (confirmRef.current) {
-          confirmRef.current.focus();
-        }
-      }
-    }
-  };
 
   // Handle confirm with updated values
   const handleConfirmClick = () => {
@@ -183,22 +182,8 @@ const SaveConfirmationModal = ({
   const handleSaveConfirmation = async () => {
     setSaveConfirmationLoading(true);
     try {
-      // Update editableParticulars with live available values and collect/issue values
-      const updatedParticulars = { ...editableParticulars };
-      denominations.forEach(denom => {
-        const currentAvailable = liveAvailable[denom] !== undefined ? liveAvailable[denom] : (editableParticulars[denom]?.available || 0);
-        const currentCollect = editableParticulars[denom]?.collect || 0;
-        const currentIssue = editableParticulars[denom]?.issue || 0;
-        const closingBalance = currentAvailable + currentCollect - currentIssue;
-        updatedParticulars[denom] = {
-          available: currentAvailable,
-          collect: currentCollect,
-          issue: currentIssue,
-          closing: closingBalance
-        };
-      });
       // Call the parent's onConfirm callback with the updated particulars
-      onConfirm(updatedParticulars);
+      onConfirm(denominations);
       setSaveConfirmationOpen(false);
     } catch (err) {
       console.error('Error during save confirmation:', err);
@@ -208,351 +193,167 @@ const SaveConfirmationModal = ({
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(2, 6, 23, 0.46)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 1200,
-        padding: '20px',
-        animation: 'fadeIn 0.2s ease'
-      }}
-      onClick={onClose}
-    >
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slideIn {
-          from { 
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to { 
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        input[type="number"] {
-          -moz-appearance: textfield;
-        }
-      `}</style>
-
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '1000px',
-          maxHeight: '80vh',
-          overflow: 'auto',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,255,0.95))',
-          borderRadius: '12px',
-          padding: '24px',
-          boxShadow: '0 18px 50px rgba(2, 6, 23, 0.36)',
-          border: '1px solid rgba(255,255,255,0.5)',
-          backdropFilter: 'blur(8px)',
-          animation: 'slideIn 0.3s ease'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{ marginBottom: '24px', borderBottom: '2px solid #307AC8', paddingBottom: '16px' }}>
-          <h2 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '20px', fontWeight: 700 }}>
-            {title}
-          </h2>
-          <div style={{ display: 'flex', gap: '24px', color: '#64748b', fontSize: '14px' }}>
-            <div>
-              <span style={{ fontWeight: 600 }}>Voucher No:</span> {voucherNo}
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.container}>
+          {/* Header */}
+          <div className={styles.header}>
+            <div className={styles.headerLeft}>
+              <h1 className={styles.title}>{title}</h1>
+              <div className={styles.voucherInfo}>
+                <span className={styles.voucherNo}>Voucher No: {voucherNo}</span>
+                <span className={styles.voucherDate}>Date: {voucherDate}</span>
+              </div>
             </div>
-            <div>
-              <span style={{ fontWeight: 600 }}>Date:</span> {voucherDate}
+            <button className={styles.closeButton} onClick={onClose}>✕</button>
+          </div>
+
+          <div className={styles.content}>
+            {/* Top: Denominations Table */}
+            <div className={styles.tableContainer}>
+              <div className={styles.table}>
+                {/* Header Row */}
+                <div className={styles.tableHeaderRow}>
+                  <div className={styles.tableHeaderCell}>Particulars</div>
+                  <div className={styles.tableHeaderCell}>500</div>
+                  <div className={styles.tableHeaderCell}>200</div>
+                  <div className={styles.tableHeaderCell}>100</div>
+                  <div className={styles.tableHeaderCell}>50</div>
+                  <div className={styles.tableHeaderCell}>20</div>
+                  <div className={styles.tableHeaderCell}>10</div>
+                  <div className={styles.tableHeaderCell}>5</div>
+                  <div className={styles.tableHeaderCell}>2</div>
+                  <div className={styles.tableHeaderCell}>1</div>
+                </div>
+
+                {/* Available Row */}
+                <div className={styles.tableRow}>
+                  <div className={styles.tableLabelCell}>Available</div>
+                  <div className={styles.tableCell}>{liveAvailable[500] || denominations[500]?.available || 0}</div>
+                  <div className={styles.tableCell}>{liveAvailable[200] || denominations[200]?.available || 0}</div>
+                  <div className={styles.tableCell}>{liveAvailable[100] || denominations[100]?.available || 0}</div>
+                  <div className={styles.tableCell}>{liveAvailable[50] || denominations[50]?.available || 0}</div>
+                  <div className={styles.tableCell}>{liveAvailable[20] || denominations[20]?.available || 0}</div>
+                  <div className={styles.tableCell}>{liveAvailable[10] || denominations[10]?.available || 0}</div>
+                  <div className={styles.tableCell}>{liveAvailable[5] || denominations[5]?.available || 0}</div>
+                  <div className={styles.tableCell}>{liveAvailable[2] || denominations[2]?.available || 0}</div>
+                  <div className={styles.tableCell}>{liveAvailable[1] || denominations[1]?.available || 0}</div>
+                </div>
+
+                {/* Collect Row */}
+                <div className={styles.tableRow}>
+                  <div className={styles.tableLabelCell}>Collect</div>
+                  {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
+                    <div key={denom} className={styles.tableCell}>
+                      <input
+                        ref={(el) => (fieldRefs.current[denom] = el)}
+                        type="number"
+                        value={denominations[denom].collect}
+                        onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
+                        className={styles.tableInput}
+                        placeholder="0"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Issue Row */}
+                <div className={styles.tableRow}>
+                  <div className={styles.tableLabelCell}>Issue</div>
+                  {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
+                    <div key={denom} className={styles.tableCell}>
+                      <input
+                        type="number"
+                        value={denominations[denom].issue}
+                        readOnly
+                        className={styles.tableInput}
+                        placeholder="0"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Closing Row */}
+                <div className={styles.tableRow}>
+                  <div className={styles.tableLabelCell}>Closing</div>
+                  <div className={styles.tableCell}>{denominations[500].closing}</div>
+                  <div className={styles.tableCell}>{denominations[200].closing}</div>
+                  <div className={styles.tableCell}>{denominations[100].closing}</div>
+                  <div className={styles.tableCell}>{denominations[50].closing}</div>
+                  <div className={styles.tableCell}>{denominations[20].closing}</div>
+                  <div className={styles.tableCell}>{denominations[10].closing}</div>
+                  <div className={styles.tableCell}>{denominations[5].closing}</div>
+                  <div className={styles.tableCell}>{denominations[2].closing}</div>
+                  <div className={styles.tableCell}>{denominations[1].closing}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom: Payment Details */}
+            <div className={styles.paymentSection}>
+              <div className={styles.paymentRow}>
+                <div className={styles.paymentGroup}>
+                  <label className={styles.paymentLabel}>Total Amount</label>
+                  <div className={styles.paymentInputContainer}>
+                    <input
+                      type="number"
+                      value={formData.receivedCash}
+                      onChange={(e) => handleInputChange('receivedCash', e.target.value)}
+                      className={styles.paymentInput}
+                      placeholder="0"
+                      readOnly
+                    />
+                  </div>
+                </div>
+                
+                <div className={styles.paymentGroup}>
+                  <label className={styles.paymentLabel}>Calculated Amount</label>
+                  <div className={styles.paymentInputContainer}>
+                    <input
+                      type="text"
+                      value={formData.issuedCash}
+                      readOnly
+                      className={`${styles.paymentInput} ${styles.readonlyPayment}`}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Table */}
-        <div style={{ marginBottom: '24px', overflowX: 'auto' }}>
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '14px'
-            }}
-          >
-            <thead>
-              <tr style={{ background: 'linear-gradient(90deg, #307AC8, #1B91DA)' }}>
-                <th
-                  style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    color: 'white',
-                    fontWeight: 700,
-                    borderRight: '1px solid rgba(255,255,255,0.2)'
-                  }}
-                >
-                  PARTICULARS
-                </th>
-                {denominations.map((denom) => (
-                  <th
-                    key={denom}
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      color: 'white',
-                      fontWeight: 700,
-                      borderRight: '1px solid rgba(255,255,255,0.2)',
-                      minWidth: '70px'
-                    }}
-                  >
-                    {denom}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* AVAILABLE Row */}
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
-                <td
-                  style={{
-                    padding: '12px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    borderRight: '1px solid #e5e7eb'
-                  }}
-                >
-                  AVAILABLE
-                </td>
-                {denominations.map((denom) => (
-                  <td
-                    key={`avail-${denom}`}
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      color: '#0f172a',
-                      borderRight: '1px solid #e5e7eb',
-                      fontWeight: 600
-                    }}
-                  >
-                    {available[denom] || 0}
-                  </td>
-                ))}
-              </tr>
-
-              {/* COLLECT Row */}
-              <tr style={{ background: 'white', borderBottom: '1px solid #e5e7eb' }}>
-                <td
-                  style={{
-                    padding: '12px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    borderRight: '1px solid #e5e7eb'
-                  }}
-                >
-                  COLLECT
-                </td>
-                {denominations.map((denom, index) => (
-                  <td
-                    key={`collect-${denom}`}
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      borderRight: '1px solid #e5e7eb'
-                    }}
-                  >
-                    <input
-                      ref={(el) => (fieldRefs.current[denom] = el)}
-                      type="number"
-                      value={collect[denom] === 0 ? '' : collect[denom]}
-                      onChange={(e) => handleCollectChange(denom, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, denom)}
-                      min="0"
-                      placeholder="0"
-                      autoFocus={index === 0}
-                      tabIndex={index}
-                      style={{
-                        width: '50px',
-                        padding: '6px 8px',
-                        border: '2px solid #307AC8',
-                        borderRadius: '6px',
-                        textAlign: 'center',
-                        fontSize: '13px',
-                        background: '#fff',
-                        color: '#0f172a',
-                        fontWeight: 600,
-                        cursor: 'text'
-                      }}
-                    />
-                  </td>
-                ))}
-              </tr>
-
-              {/* ISSUE Row */}
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
-                <td
-                  style={{
-                    padding: '12px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    borderRight: '1px solid #e5e7eb'
-                  }}
-                >
-                  ISSUE
-                </td>
-                {denominations.map((denom, index) => (
-                  <td
-                    key={`issue-${denom}`}
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      borderRight: '1px solid #e5e7eb'
-                    }}
-                  >
-                    <input
-                      type="number"
-                      value={issue[denom] === 0 ? '' : issue[denom]}
-                      readOnly
-                      min="0"
-                      placeholder="0"
-                      tabIndex={index + 9}
-                      style={{
-                        width: '50px',
-                        padding: '6px 8px',
-                        border: '2px solid #307AC8',
-                        borderRadius: '6px',
-                        textAlign: 'center',
-                        fontSize: '13px',
-                        background: '#fff',
-                        color: '#0f172a',
-                        fontWeight: 600,
-                        cursor: 'not-allowed'
-                      }}
-                    />
-                  </td>
-                ))}
-              </tr>
-
-              {/* CLOSING Row */}
-              <tr style={{ background: 'white', borderBottom: '1px solid #e5e7eb' }}>
-                <td
-                  style={{
-                    padding: '12px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    borderRight: '1px solid #e5e7eb'
-                  }}
-                >
-                  CLOSING
-                </td>
-                {denominations.map((denom) => (
-                  <td
-                    key={`closing-${denom}`}
-                    style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      color: '#0f172a',
-                      borderRight: '1px solid #e5e7eb',
-                      fontWeight: 600
-                    }}
-                  >
-                    {(available[denom] + collect[denom] - issue[denom]) || 0}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Message */}
-        <div
-          style={{
-            background: '#f0fdf4',
-            border: '1px solid #bbf7d0',
-            borderRadius: '8px',
-            padding: '12px 16px',
-            marginBottom: '24px',
-            color: '#064e3b',
-            fontSize: '14px'
-          }}
-        >
-          ✓ Please verify the particulars above before confirming the save operation.
-        </div>
-
-        {/* Button Controls */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '12px',
-            justifyContent: 'flex-end'
-          }}
-        >
-          <button
-            onClick={onClose}
-            disabled={loading}
-            style={{
-              padding: '10px 20px',
-              background: '#fff',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              color: '#0f172a',
-              transition: 'all 0.2s',
-              opacity: loading ? 0.6 : 1
-            }}
-            onMouseEnter={(e) => !loading && (e.target.style.background = '#f3f4f6')}
-            onMouseLeave={(e) => (e.target.style.background = '#fff')}
-          >
-            Cancel
-          </button>
-          <button
-            ref={confirmRef}
-            onClick={handleConfirmClick}
-            disabled={loading}
-            tabIndex={9}
-            style={{
-              padding: '10px 24px',
-              background: loading
-                ? 'rgba(48, 122, 200, 0.6)'
-                : 'linear-gradient(90deg, #307AC8, #06A7EA)',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 700,
-              color: 'white',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              minWidth: '120px'
-            }}
-            onMouseEnter={(e) => !loading && (e.target.style.boxShadow = '0 8px 24px rgba(48, 122, 200, 0.25)')}
-            onMouseLeave={(e) => (e.target.style.boxShadow = 'none')}
-          >
-            {loading ? 'Saving...' : 'Save'}
-          </button>
+          {/* Footer */}
+          <div className={styles.footer}>
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className={styles.footerButtonCancel}
+            >
+              Cancel
+            </button>
+            <button
+              ref={confirmRef}
+              onClick={handleConfirmClick}
+              disabled={loading}
+              className={styles.footerButtonSave}
+            >
+              {loading ? 'Saving...' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Save Confirmation Popup */}
-      <ConfirmationPopup
-        isOpen={saveConfirmationOpen}
-        onClose={() => setSaveConfirmationOpen(false)}
-        onConfirm={handleSaveConfirmation}
-        title="Confirm Save"
-        message="Are you sure you want to save this voucher?"
-        type="success"
-        confirmText={saveConfirmationLoading ? 'Saving...' : 'Save'}
-        showLoading={saveConfirmationLoading}
-        disableBackdropClose={saveConfirmationLoading}
-      />
+        {/* Save Confirmation Popup */}
+        <ConfirmationPopup
+          isOpen={saveConfirmationOpen}
+          onClose={() => setSaveConfirmationOpen(false)}
+          onConfirm={handleSaveConfirmation}
+          title="Confirm Save"
+          message="Are you sure you want to save this voucher?"
+          type="success"
+          confirmText={saveConfirmationLoading ? 'Saving...' : 'Save'}
+          showLoading={saveConfirmationLoading}
+          disableBackdropClose={saveConfirmationLoading}
+        />
     </div>
   );
 };

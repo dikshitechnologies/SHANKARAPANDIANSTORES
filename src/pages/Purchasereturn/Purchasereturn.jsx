@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Modal } from 'antd';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -28,6 +29,19 @@ const PurchaseReturn = () => {
   
   const [showBillListPopup, setShowBillListPopup] = useState(false);
   const [popupMode, setPopupMode] = useState('');
+  
+  // Invoice Number Popup State
+  const [showInvoiceBillListPopup, setShowInvoiceBillListPopup] = useState(false);
+  const [invoiceBillList, setInvoiceBillList] = useState([]);
+  const [invoiceBillListLoading, setInvoiceBillListLoading] = useState(false);
+  
+  // Bill Details Popup State (for showing items from selected purchase invoice)
+  const [billDetailsPopupOpen, setBillDetailsPopupOpen] = useState(false);
+  const [selectedBillForDetails, setSelectedBillForDetails] = useState(null);
+  const [billDetailsData, setBillDetailsData] = useState({});
+  const [isLoadingDetails, setIsLoadingDetails] = useState({});
+  const [checkedBills, setCheckedBills] = useState({});
+  const [billDetailsSearchText, setBillDetailsSearchText] = useState('');
 
   // 1. Header Details State
   const [returnDetails, setReturnDetails] = useState({
@@ -254,6 +268,189 @@ const PurchaseReturn = () => {
     }
   };
 
+  // Fetch purchase bill list for invoice number popup
+  const fetchInvoiceBillList = async () => {
+    try {
+      setInvoiceBillListLoading(true);
+      const compCode = userData?.companyCode || '001';
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_BILL_LIST(compCode, 1, 100)
+      );
+      
+      const data = response?.data?.data || [];
+      const billList = Array.isArray(data) ? data.map((bill, index) => ({
+        id: bill.billno || `bill-${index}`,
+        billno: bill.billno || '',
+      })) : [];
+      
+      setInvoiceBillList(billList);
+      setShowInvoiceBillListPopup(true);
+    } catch (err) {
+      console.error('Error fetching invoice bill list:', err);
+      setInvoiceBillList([]);
+      setShowInvoiceBillListPopup(true);
+    } finally {
+      setInvoiceBillListLoading(false);
+    }
+  };
+
+  // Handle invoice bill selection from popup - opens bill details popup
+  const handleInvoiceBillSelect = async (selectedBill) => {
+    const billNo = selectedBill.billno || selectedBill.id || '';
+    setSelectedBillForDetails(billNo);
+    setShowInvoiceBillListPopup(false);
+    
+    // Fetch and open bill details popup
+    await openBillDetailsPopup(billNo);
+  };
+
+  // Open Bill Details Popup - fetch items from selected purchase invoice
+  const openBillDetailsPopup = async (billNo) => {
+    try {
+      setIsLoadingDetails(prev => ({ ...prev, [billNo]: true }));
+      
+      // Fetch purchase invoice items using the new endpoint
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_ITEMS_BY_VOUCHER(billNo)
+      );
+      
+      const billData = response?.data?.data || [];
+      
+      // Map the API response to our item format
+      const mappedItems = Array.isArray(billData) ? billData.map(item => ({
+        itemCode: item.itemCode || '',
+        itemName: item.itemName || '',
+        id: item.itemCode || '',
+        barcode: item.itemCode || '',
+        name: item.itemName || '',
+        qty: item.qty || 0,
+        rate: parseFloat(item.pRate) || 0,
+        pRate: parseFloat(item.pRate) || 0,
+        amount: item.amount || 0,
+        wRate: item.wRate || 0,
+        unit: item.unit || '',
+        uom: item.unit || '',
+        hsn: item.hsn || '',
+        ovrWt: item.ovrWt || 0,
+        avgWt: item.avgWt || 0,
+        inTax: item.inTax || 0,
+        outTax: item.outTax || 0,
+        aCost: item.aCost || 0,
+        acost: item.aCost || 0,
+        sudo: item.sudo || '',
+        profitPercent: item.profitPercent || 0,
+        preRate: item.preRate || 0,
+        sRate: item.sRate || 0,
+        asRate: item.asRate || 0,
+        mrp: item.mrp || 0,
+        letProfPer: item.letProfPer || 0,
+        ntCost: item.ntCost || 0,
+        wsPer: item.wsPer || 0,
+        wsPercent: item.wsPer || 0,
+      })) : [];
+      
+      setBillDetailsData(prev => ({
+        ...prev,
+        [billNo]: mappedItems
+      }));
+      
+      setCheckedBills({});
+      setBillDetailsSearchText('');
+      setBillDetailsPopupOpen(true);
+    } catch (err) {
+      console.error('Error fetching bill details:', err);
+      setBillDetailsData(prev => ({ ...prev, [billNo]: [] }));
+      setBillDetailsPopupOpen(true);
+    } finally {
+      setIsLoadingDetails(prev => ({ ...prev, [billNo]: false }));
+    }
+  };
+
+  // Get filtered items for bill details popup
+  const getFilteredBillItems = () => {
+    const billData = billDetailsData[selectedBillForDetails] || [];
+    
+    if (!billDetailsSearchText) {
+      return billData;
+    }
+    
+    return billData.filter(item =>
+      item.itemName?.toLowerCase().includes(billDetailsSearchText.toLowerCase()) ||
+      item.itemCode?.toLowerCase().includes(billDetailsSearchText.toLowerCase()) ||
+      item.barcode?.toLowerCase().includes(billDetailsSearchText.toLowerCase())
+    );
+  };
+
+  // Handle applying selected bill items to purchase return form
+  const handleApplyBillNumber = async () => {
+    try {
+      const billData = billDetailsData[selectedBillForDetails] || [];
+      const selectedItems = billData.filter(item => checkedBills[item.itemCode || item.id]);
+      
+      if (selectedItems.length === 0) {
+        showAlertConfirmation('Please select at least one item', null, 'warning');
+        return;
+      }
+      
+      // Update return details with invoice info
+      setReturnDetails(prev => ({
+        ...prev,
+        originalInvoiceNo: selectedBillForDetails,
+        invoiceNo: selectedBillForDetails,
+      }));
+      
+      // Add selected items to the items table
+      const newItems = selectedItems.map((item, index) => ({
+        id: items.length + index + 1,
+        barcode: item.barcode || item.itemCode || '',
+        name: item.itemName || item.name || '',
+        sub: item.sub || '',
+        stock: item.stock || '0',
+        mrp: item.mrp || '0',
+        uom: item.unit || item.uom || '',
+        hsn: item.hsn || '',
+        tax: item.inTax || '',
+        rate: parseFloat(item.pRate) || parseFloat(item.rate) || 0,
+        qty: item.qty || '1',
+        ovrwt: item.ovrWt || '',
+        avgwt: item.avgWt || '',
+        prate: parseFloat(item.pRate) || 0,
+        intax: item.inTax || '',
+        outtax: item.outTax || '',
+        acost: item.aCost || item.acost || '',
+        sudo: item.sudo || '',
+        profitPercent: item.profitPercent || '',
+        preRT: item.preRate || '',
+        sRate: item.sRate || '',
+        asRate: item.asRate || '',
+        letProfPer: item.letProfPer || '',
+        ntCost: item.ntCost || '',
+        wsPercent: item.wsPer || '',
+        wsRate: item.wRate || '',
+        min: item.min || '',
+        max: item.max || '',
+      }));
+      
+      setItems([...items, ...newItems]);
+      setBillDetailsPopupOpen(false);
+      setCheckedBills({});
+      setBillDetailsSearchText('');
+      
+      showAlertConfirmation(`${newItems.length} item(s) added to return`, null, 'success');
+    } catch (err) {
+      console.error('Error applying bill items:', err);
+      showAlertConfirmation('Error applying bill items', null, 'error');
+    }
+  };
+
+  // Clear selected bill number and details
+  const handleClearBillNumber = () => {
+    setSelectedBillForDetails(null);
+    setBillDetailsData({});
+    setCheckedBills({});
+    setBillDetailsSearchText('');
+    setBillDetailsPopupOpen(false);
+  };
 
   // Fetch purchase return details for editing
   const fetchPurchaseReturnDetails = async (voucherNo) => {
@@ -668,38 +865,150 @@ const PurchaseReturn = () => {
     setReturnDetails({ ...returnDetails, barcodeInput: '' });
   };
 
-  const handleSave = () => {
+  // Check if first row is empty and fetch bill if needed
+  const checkAndFetchFirstRowBill = async () => {
     try {
-      // Prepare return data
-      const returnData = {
-        returnNo: returnDetails.returnNo,
-        returnDate: returnDetails.returnDate,
-        customerName: returnDetails.customerName,
-        partyCode: returnDetails.partyCode,
-        originalInvoiceNo: returnDetails.originalInvoiceNo,
-        originalInvoiceDate: returnDetails.originalInvoiceDate,
-        totalAmount: netTotal,
-        items: items.map(item => ({
-          barcode: item.barcode,
-          name: item.name,
+      const firstItem = items[0];
+      
+      // Check if first row is empty (no barcode/name)
+      if (!firstItem || (!firstItem.barcode && !firstItem.name)) {
+        // First row is empty, try to fetch the purchase bill
+        if (returnDetails.invoiceNo || returnDetails.purNo) {
+          const billNo = returnDetails.invoiceNo || returnDetails.purNo;
+          
+          try {
+            // Fetch purchase invoice items
+            const response = await axiosInstance.get(
+              API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_ITEMS_BY_VOUCHER(billNo)
+            );
+            
+            const billData = response?.data?.data || [];
+            
+            if (billData && billData.length > 0) {
+              // Use first item from the bill to populate the first row
+              const firstBillItem = billData[0];
+              
+              const updatedFirstItem = {
+                ...firstItem,
+                barcode: firstBillItem.itemCode || '',
+                name: firstBillItem.itemName || '',
+                qty: firstBillItem.qty || 1,
+                rate: parseFloat(firstBillItem.pRate) || 0,
+                prate: parseFloat(firstBillItem.pRate) || 0,
+                uom: firstBillItem.unit || '',
+                hsn: firstBillItem.hsn || '',
+                mrp: firstBillItem.mrp || 0,
+                inTax: firstBillItem.inTax || 0,
+                outTax: firstBillItem.outTax || 0,
+                acost: firstBillItem.aCost || 0,
+                ovrwt: firstBillItem.ovrWt || 0,
+                avgwt: firstBillItem.avgWt || 0,
+              };
+              
+              // Update items with the populated first row
+              const updatedItems = [updatedFirstItem, ...items.slice(1)];
+              setItems(updatedItems);
+              
+              return updatedItems;
+            }
+          } catch (err) {
+            console.warn('Could not fetch purchase bill for first row:', err);
+          }
+        }
+      }
+      
+      return items;
+    } catch (err) {
+      console.error('Error checking first row:', err);
+      return items;
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsLoading(true);
+
+      // Check if first row is empty and fetch bill if needed
+      const finalItems = await checkAndFetchFirstRowBill();
+
+      // Calculate totals
+      const subTotal = finalItems.reduce((sum, item) => sum + ((parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0)), 0);
+      const total = subTotal;
+      const balanceAmount = subTotal;
+
+      // Prepare return data according to API schema
+      const purchaseReturnPayload = {
+        bledger: {
+          customerCode: returnDetails.partyCode || '',
+          voucherNo: returnDetails.purNo || '',
+          voucherDate: returnDetails.purDate || new Date().toISOString(),
+          billAmount: total,
+          balanceAmount: balanceAmount,
+          subTotal: subTotal,
+          refName: returnDetails.customerName || '',
+          compCode: userData?.companyCode || '',
+          user: userData?.username || '',
+          gstType: returnDetails.gstType || 'G'
+        },
+        iledger: {
+          vrNo: returnDetails.invoiceNo || '',
+          less: 0,
+          subTotal: subTotal,
+          total: total,
+          net: total,
+          add1: returnDetails.city || '',
+          add2: '',
+          cstsNo: returnDetails.gstno || '',
+          add3: '',
+          add4: ''
+        },
+        items: finalItems.map(item => ({
+          itemCode: item.barcode || '',
           qty: parseFloat(item.qty) || 0,
           rate: parseFloat(item.rate) || 0,
           amount: (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0),
-          uom: item.uom,
-          hsn: item.hsn
+          fTax: parseFloat(item.tax) || 0,
+          wRate: 0,
+          fid: item.id?.toString() || '',
+          fUnit: item.uom || '',
+          fhsn: item.hsn || '',
+          ovrWt: parseFloat(item.ovrwt) || 0,
+          avgWt: parseFloat(item.avgwt) || 0,
+          inTax: parseFloat(item.intax) || 0,
+          outTax: parseFloat(item.outtax) || 0,
+          acost: parseFloat(item.acost) || 0,
+          sudo: item.sudo || '',
+          profitPercent: parseFloat(item.profitPercent) || 0,
+          preRate: parseFloat(item.preRT) || 0,
+          sRate: parseFloat(item.sRate) || 0,
+          asRate: parseFloat(item.asRate) || 0,
+          mrp: parseFloat(item.mrp) || 0,
+          letProfPer: parseFloat(item.letProfPer) || 0,
+          ntCost: parseFloat(item.ntCost) || 0,
+          wsPer: parseFloat(item.wsPercent) || 0
         }))
       };
 
-      console.log('Return Data:', returnData);
-      alert('Purchase Return saved successfully!');
+      console.log('Purchase Return Payload:', purchaseReturnPayload);
 
-      // In a real application, you would send this data to your API
-      // Example:
-      // await axios.post('/api/purchase-returns', returnData);
+      // Call API based on edit mode
+      const endpoint = isEditMode 
+        ? API_ENDPOINTS.PURCHASE_RETURN.UPDATE_PURCHASE_RETURN()
+        : API_ENDPOINTS.PURCHASE_RETURN.CREATE_PURCHASE_RETURN();
+
+      const response = await axiosInstance.post(endpoint, purchaseReturnPayload);
+
+      if (response.status === 200 || response.status === 201) {
+        showAlertConfirmation('Purchase Return saved successfully!', () => {
+          createNewForm();
+        });
+      }
 
     } catch (error) {
       console.error('Error saving purchase return:', error);
-      alert('Failed to save purchase return');
+      showAlertConfirmation(error.response?.data?.message || 'Failed to save purchase return', null, 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1112,10 +1421,11 @@ const PurchaseReturn = () => {
               style={styles.inlineInput}
               value={returnDetails.originalInvoiceNo}
               onChange={handleInputChange}
+              onClick={fetchInvoiceBillList}
               onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('originalInvoiceNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Original Invoice No"
+              placeholder="Click to select invoice"
             />
           </div>
 
@@ -1667,6 +1977,145 @@ const PurchaseReturn = () => {
         searchPlaceholder="Search by bill no..."
         onSelect={handleBillSelect}
       />
+
+      {/* Invoice Bill List Popup */}
+      <PopupListSelector
+        open={showInvoiceBillListPopup}
+        onClose={() => setShowInvoiceBillListPopup(false)}
+        title="Select Purchase Invoice"
+        fetchItems={async () => invoiceBillList}
+        displayFieldKeys={['billno']}
+        headerNames={['Invoice No']}
+        searchFields={['billno']}
+        columnWidths={{ billno: '100%' }}
+        searchPlaceholder="Search invoice number..."
+        onSelect={handleInvoiceBillSelect}
+      />
+
+      {/* Bill Details Popup with Item Checkboxes */}
+      <Modal
+        title={`Purchase Invoice Items - ${selectedBillForDetails}`}
+        open={billDetailsPopupOpen}
+        onCancel={handleClearBillNumber}
+        width={800}
+        footer={[
+          <button
+            key="cancel"
+            onClick={handleClearBillNumber}
+            style={{
+              padding: '8px 16px',
+              marginRight: '8px',
+              backgroundColor: '#f5f5f5',
+              border: '1px solid #d9d9d9',
+              borderRadius: '2px',
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>,
+          <button
+            key="apply"
+            onClick={handleApplyBillNumber}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#1890ff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '2px',
+              cursor: 'pointer',
+            }}
+          >
+            Apply Selected Items
+          </button>,
+        ]}
+      >
+        <div style={{ marginBottom: '16px' }}>
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={billDetailsSearchText}
+            onChange={(e) => setBillDetailsSearchText(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #d9d9d9',
+              borderRadius: '4px',
+              fontSize: '14px',
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            maxHeight: '400px',
+            overflowY: 'auto',
+            border: '1px solid #d9d9d9',
+            borderRadius: '4px',
+          }}
+        >
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '13px',
+            }}
+          >
+            <thead>
+              <tr style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #d9d9d9' }}>
+                <th style={{ padding: '8px', textAlign: 'center', width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    checked={
+                      getFilteredBillItems().length > 0 &&
+                      getFilteredBillItems().every(item => checkedBills[item.itemCode || item.id])
+                    }
+                    onChange={(e) => {
+                      const newChecked = {};
+                      getFilteredBillItems().forEach(item => {
+                        newChecked[item.itemCode || item.id] = e.target.checked;
+                      });
+                      setCheckedBills(prev => ({ ...prev, ...newChecked }));
+                    }}
+                  />
+                </th>
+                <th style={{ padding: '8px', textAlign: 'left' }}>Item Code</th>
+                <th style={{ padding: '8px', textAlign: 'left' }}>Item Name</th>
+                <th style={{ padding: '8px', textAlign: 'center' }}>Qty</th>
+                <th style={{ padding: '8px', textAlign: 'right' }}>Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {getFilteredBillItems().map((item, index) => (
+                <tr key={index} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={checkedBills[item.itemCode || item.id] || false}
+                      onChange={(e) => {
+                        setCheckedBills(prev => ({
+                          ...prev,
+                          [item.itemCode || item.id]: e.target.checked,
+                        }));
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '8px' }}>{item.itemCode || ''}</td>
+                  <td style={{ padding: '8px' }}>{item.itemName || item.name || ''}</td>
+                  <td style={{ padding: '8px', textAlign: 'center' }}>{item.qty || 0}</td>
+                  <td style={{ padding: '8px', textAlign: 'right' }}>
+                    ₹ {parseFloat(item.rate || 0).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {getFilteredBillItems().length === 0 && (
+            <div style={{ padding: '16px', textAlign: 'center', color: '#999' }}>
+              No items found
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Confirmation Popup */}
       <ConfirmationPopup

@@ -358,7 +358,7 @@ const confirmEdit = async () => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Unit deleted successfully." });
-      toast.success(`Unit "${form.unitName}" deleted successfully.`);
+      toast.error(`Unit "${form.unitName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
@@ -1148,15 +1148,12 @@ const confirmSave = async () => {
                   className="input" 
                   value={form.unitName} 
                   onChange={(e) => setForm(s => ({ ...s, unitName: e.target.value }))} 
-                  maxLength={6}
+                  // maxLength={6}
                   onKeyDown={onUnitNameKeyDown}
                   disabled={loading}
                   aria-label="Unit Name"
                   readOnly={actionType === "delete"}
                 />
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
-                Max 6 characters
               </div>
             </div>
 

@@ -276,7 +276,7 @@ const submitRef = useRef(null);
       await loadInitial();
       
       setMessage({ type: "success", text: "Size deleted successfully." });
-      toast.success(`Size "${form.sizeName}" deleted successfully.`);
+      toast.error(`Size "${form.sizeName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
