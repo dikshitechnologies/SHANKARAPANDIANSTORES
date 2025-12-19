@@ -5,6 +5,23 @@ import apiService from "../../api/apiService";
 import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/ActionButtons";
 import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
 
+// Professional Search Icon
+const SearchIcon = ({ size = 16, color = "#94a3b8" }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
 export default function UserCreation() {
   // ---------- state ----------
   const [companies, setCompanies] = useState([]);
@@ -63,26 +80,25 @@ export default function UserCreation() {
  
   // ---------- API functions ----------
   const fetchCompanies = async () => {
-  try {
-    setLoading(true);
-    setError("");
-    const response = await apiService.get(API_ENDPOINTS.user_creation.getuserdetails);
-    console.log("API Response structure:", response);
-    
-    const data = Array.isArray(response) ? response : 
-                 response.data ? (Array.isArray(response.data) ? response.data : []) : [];
-    
-    console.log("Fetched companies structure:", data);
-    
-    setCompanies(data || []);
-  } catch (err) {
-    setError(err.message || "Failed to load companies");
-    console.error("API Error:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+    try {
+      setLoading(true);
+      setError("");
+      const response = await apiService.get(API_ENDPOINTS.user_creation.getuserdetails);
+      console.log("API Response structure:", response);
+      
+      const data = Array.isArray(response) ? response : 
+                   response.data ? (Array.isArray(response.data) ? response.data : []) : [];
+      
+      console.log("Fetched companies structure:", data);
+      
+      setCompanies(data || []);
+    } catch (err) {
+      setError(err.message || "Failed to load companies");
+      console.error("API Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -103,29 +119,28 @@ export default function UserCreation() {
   };
 
   const createUser = async (userData) => {
-  console.log("Creating user with data:", userData);
+    console.log("Creating user with data:", userData);
 
-  try {
-    setIsProcessing(true);
-    setError("");
+    try {
+      setIsProcessing(true);
+      setError("");
 
-    const response = await apiService.post(
-      API_ENDPOINTS.user_creation.postCreate,
-      userData
-    );
+      const response = await apiService.post(
+        API_ENDPOINTS.user_creation.postCreate,
+        userData
+      );
 
-    console.log("API Response:", response.data);
-    return response.data;
+      console.log("API Response:", response.data);
+      return response.data;
 
-  } catch (err) {
-    setError(err.message || "Failed to create user");
-    console.error("API Error:", err);
-    throw err;
-  } finally {
-    setIsProcessing(false);
-  }
-};
-
+    } catch (err) {
+      setError(err.message || "Failed to create user");
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const updateUser = async (userData) => {
     try {
@@ -147,43 +162,43 @@ export default function UserCreation() {
     try {
       setIsProcessing(true);
       setError("");
-      const response = await apiService.delete(`${API_ENDPOINTS.user_creation.delete}/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      const responseText = await response.text();
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        
-        if (responseText) {
-          try {
-            const errorData = JSON.parse(responseText);
-            errorMessage = errorData.message || errorData.Message || errorData.error || responseText;
-          } catch {
-            errorMessage = responseText;
-          }
-        } else {
-          errorMessage = response.statusText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
+      
+      // Use apiService.del() instead of apiService.delete()
+      const response = await apiService.del(
+        `${API_ENDPOINTS.user_creation.delete(userId)}`
+      );
+      
+      console.log("Delete response:", response);
+      
+      if (response && response.data) {
+        return response.data;
       }
-
-      if (responseText) {
-        try {
-          return JSON.parse(responseText);
-        } catch {
-          return { success: true };
-        }
-      }
+      
       return { success: true };
+      
     } catch (err) {
       console.error("API Error:", err);
-      throw err;
+      
+      // Handle error messages
+      let errorMessage = "Failed to delete user";
+      if (err.response) {
+        const status = err.response.status;
+        const data = err.response.data;
+        
+        if (status === 409) {
+          errorMessage = "User is referenced in other tables and cannot be deleted";
+        } else if (status === 404) {
+          errorMessage = "User not found";
+        } else if (data && data.message) {
+          errorMessage = data.message;
+        } else {
+          errorMessage = `Server error (${status})`;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      throw new Error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -268,31 +283,31 @@ export default function UserCreation() {
 
   // ---------- handlers ----------
   function openCompanyModal() {
-  const companyData = companies.map(c => ({
-    id: c.fCompCode || c.code || c.fCompCode,
-    code: c.fCompCode || c.code || c.fCompCode,
-    companyName: c.fCompName || c.companyName || c.fCompName,
-    displayName: `${c.fCompCode || c.code} - ${c.fCompName || c.companyName || ''}`
-  }));
-  
-  setPopupData(companyData);
-  setPopupTitle("Select Company");
-  setPopupType("company");
-  setPopupOpen(true);
-}
+    const companyData = companies.map(c => ({
+      id: c.fCompCode || c.code || c.fCompCode,
+      code: c.fCompCode || c.code || c.fCompCode,
+      companyName: c.fCompName || c.companyName || c.fCompName,
+      displayName: `${c.fCompCode || c.code} - ${c.fCompName || c.companyName || ''}`
+    }));
+    
+    setPopupData(companyData);
+    setPopupTitle("Select Company");
+    setPopupType("company");
+    setPopupOpen(true);
+  }
 
- function selectCompany(c) {
-  const companyCode = c.fCompCode || c.code || c.fCompCode;
-  const companyName = c.fCompName || c.companyName || c.fCompName;
-  
-  setForm((s) => ({ 
-    ...s, 
-    company: `${companyCode} - ${companyName}`,
-    companyCode: companyCode 
-  }));
-  
-  setTimeout(() => usernameRef.current && usernameRef.current.focus(), 60);
-}
+  function selectCompany(c) {
+    const companyCode = c.fCompCode || c.code || c.fCompCode;
+    const companyName = c.fCompName || c.companyName || c.fCompName;
+    
+    setForm((s) => ({ 
+      ...s, 
+      company: `${companyCode} - ${companyName}`,
+      companyCode: companyCode 
+    }));
+    
+    setTimeout(() => usernameRef.current && usernameRef.current.focus(), 60);
+  }
 
   function openEditModal() {
     const editUserData = users.map(u => ({
@@ -356,87 +371,86 @@ export default function UserCreation() {
     setTimeout(() => prefixRef.current && prefixRef.current.focus(), 60);
   }
 
- const handlePopupSelect = (selectedItem) => {
-  if (popupType === "company") {
-    const originalCompany = companies.find(c => 
-      (c.fCompCode && c.fCompCode.toString() === selectedItem.id.toString()) ||
-      (c.code && c.code.toString() === selectedItem.id.toString()) ||
-      (c.fCompCode && c.fCompCode.toString() === selectedItem.code.toString())
-    );
-    
-    if (originalCompany) {
-      selectCompany(originalCompany);
-    } else {
-      selectCompany({
-        fCompCode: selectedItem.code || selectedItem.id,
-        fCompName: selectedItem.companyName || selectedItem.displayName?.split(' - ')[1] || ''
+  const handlePopupSelect = (selectedItem) => {
+    if (popupType === "company") {
+      const originalCompany = companies.find(c => 
+        (c.fCompCode && c.fCompCode.toString() === selectedItem.id.toString()) ||
+        (c.code && c.code.toString() === selectedItem.id.toString()) ||
+        (c.fCompCode && c.fCompCode.toString() === selectedItem.code.toString())
+      );
+      
+      if (originalCompany) {
+        selectCompany(originalCompany);
+      } else {
+        selectCompany({
+          fCompCode: selectedItem.code || selectedItem.id,
+          fCompName: selectedItem.companyName || selectedItem.displayName?.split(' - ')[1] || ''
+        });
+      }
+    } else if (popupType === "edit") {
+      const originalUser = users.find(u => u.code === selectedItem.id);
+      if (originalUser) {
+        handleEditRowClick(originalUser);
+      }
+    } else if (popupType === "delete") {
+      const originalUser = users.find(u => u.code === selectedItem.id);
+      if (originalUser) {
+        handleDeleteRowClick(originalUser);
+      }
+    }
+    setPopupOpen(false);
+    setPopupType("");
+    setPopupData([]);
+  };
+
+  async function handleCreate() {
+    if (!form.companyCode || !form.username || !form.password) {
+      setError("Please fill required fields: Company, Username, Password.");
+      return;
+    }
+
+    // Show confirmation popup
+    setConfirmMessage(`Are you sure you want to create user "${form.username}"?\n\nThis action cannot be undone.`);
+    setConfirmAction(() => confirmCreate);
+    setConfirmOpen(true);
+  }
+
+  const confirmCreate = async () => {
+    try {
+      const userData = {
+        code: "009",
+        userName: form.username,
+        password: form.password,
+        fCompCode: form.companyCode,
+        fPrefix: form.prefix || ""
+      };
+
+      await createUser(userData);
+      await fetchUsers();
+
+      // Reset form
+      setForm({
+        company: "",
+        companyCode: "",
+        username: "",
+        password: "",
+        prefix: "",
+        userId: null,
       });
+
+      setMode("create");
+      setSuccessMessage("User created successfully.");
+      setConfirmOpen(false);
+
+      setTimeout(() => {
+        if (companyRef.current) companyRef.current.focus();
+      }, 60);
+
+    } catch (err) {
+      setError(`Failed to create user: ${err.message}`);
+      setConfirmOpen(false);
     }
-  } else if (popupType === "edit") {
-    const originalUser = users.find(u => u.code === selectedItem.id);
-    if (originalUser) {
-      handleEditRowClick(originalUser);
-    }
-  } else if (popupType === "delete") {
-    const originalUser = users.find(u => u.code === selectedItem.id);
-    if (originalUser) {
-      handleDeleteRowClick(originalUser);
-    }
-  }
-  setPopupOpen(false);
-  setPopupType("");
-  setPopupData([]);
-};
-
- async function handleCreate() {
-  if (!form.companyCode || !form.username || !form.password) {
-    setError("Please fill required fields: Company, Username, Password.");
-    return;
-  }
-
-  // Show confirmation popup
-  setConfirmMessage(`Are you sure you want to create user "${form.username}"?\n\nThis action cannot be undone.`);
-  setConfirmAction(() => confirmCreate);
-  setConfirmOpen(true);
-}
-
-const confirmCreate = async () => {
-  try {
-    const userData = {
-      code: "009",
-      userName: form.username,
-      password: form.password,
-      fCompCode: form.companyCode,
-      fPrefix: form.prefix || ""
-    };
-
-    await createUser(userData);
-    await fetchUsers();
-
-    // Reset form
-    setForm({
-      company: "",
-      companyCode: "",
-      username: "",
-      password: "",
-      prefix: "",
-      userId: null,
-    });
-
-    setMode("create");
-    setSuccessMessage("User created successfully.");
-    setConfirmOpen(false);
-
-    setTimeout(() => {
-      if (companyRef.current) companyRef.current.focus();
-    }, 60);
-
-  } catch (err) {
-    setError(`Failed to create user: ${err.message}`);
-    setConfirmOpen(false);
-  }
-};
-
+  };
 
   async function handleUpdate() {
     if (!editingId) {
@@ -661,8 +675,9 @@ const confirmCreate = async () => {
       left: '14px',
       top: '50%',
       transform: 'translateY(-50%)',
-      color: '#94a3b8',
-      fontSize: isMobile ? '16px' : '18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     
     tableContainer: {
@@ -884,8 +899,9 @@ const confirmCreate = async () => {
       left: '14px',
       top: '50%',
       transform: 'translateY(-50%)',
-      color: '#94a3b8',
-      fontSize: isMobile ? '16px' : '18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     
     formActions: {
@@ -1054,7 +1070,7 @@ const confirmCreate = async () => {
               </p>
             </div>
 
-            {/* Search Bar */}
+            {/* Search Bar with Professional Search Icon */}
             <div style={styles.searchContainer}>
               <input
                 type="text"
@@ -1076,7 +1092,7 @@ const confirmCreate = async () => {
                 }}
               />
               <span style={styles.searchIcon}>
-                🔍
+                <SearchIcon size={isMobile ? 16 : 18} color="#94a3b8" />
               </span>
             </div>
 
@@ -1124,6 +1140,12 @@ const confirmCreate = async () => {
             
             <div style={styles.rightHeader}>
               <div style={styles.rightTitleContainer}>
+                
+                
+                <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
                 <h2 style={styles.rightTitle}>
                   User Creation
                 </h2>
@@ -1160,7 +1182,7 @@ const confirmCreate = async () => {
             {/* Form */}
             <div style={styles.formContainer}>
               <form onSubmit={(e) => e.preventDefault()}>
-                {/* Company Field */}
+                {/* Company Field with Professional Search Icon */}
                 <div style={styles.formGroup}>
                   <label style={styles.formLabel}>
                     Company <span style={{color: '#ef4444'}}>*</span>
@@ -1171,7 +1193,6 @@ const confirmCreate = async () => {
                       type="text"
                       value={form.company}
                       onChange={(e) => setForm((s) => ({ ...s, company: e.target.value }))}
-                     
                       onKeyDown={onCompanyKeyDown}
                       onClick={openCompanyModal}
                       style={styles.companyInput}
@@ -1191,7 +1212,7 @@ const confirmCreate = async () => {
                       disabled={loading || isProcessing}
                     />
                     <span style={styles.companyIcon}>
-                      🔍
+                      <SearchIcon size={isMobile ? 16 : 18} color="#94a3b8" />
                     </span>
                   </div>
                 </div>
@@ -1207,7 +1228,6 @@ const confirmCreate = async () => {
                       type="text"
                       value={form.username}
                       onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
-                     
                       onKeyDown={onUsernameKeyDown}
                       style={styles.formInput}
                       onFocus={(e) => Object.assign(e.target.style, {
@@ -1224,7 +1244,6 @@ const confirmCreate = async () => {
                       }}
                       disabled={loading || isProcessing || mode === "delete"}
                     />
-                    
                   </div>
                 </div>
 
@@ -1239,7 +1258,6 @@ const confirmCreate = async () => {
                       type="password"
                       value={form.password}
                       onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
-                      
                       onKeyDown={onPasswordKeyDown}
                       style={styles.formInput}
                       onFocus={(e) => Object.assign(e.target.style, {
@@ -1256,7 +1274,6 @@ const confirmCreate = async () => {
                       }}
                       disabled={loading || isProcessing || mode === "delete"}
                     />
-                    
                   </div>
                 </div>
 
@@ -1271,7 +1288,6 @@ const confirmCreate = async () => {
                       type="text"
                       value={form.prefix}
                       onChange={(e) => setForm((s) => ({ ...s, prefix: e.target.value }))}
-                     
                       onKeyDown={onPrefixKeyDown}
                       style={styles.formInput}
                       onFocus={(e) => Object.assign(e.target.style, {
@@ -1288,7 +1304,6 @@ const confirmCreate = async () => {
                       }}
                       disabled={loading || isProcessing}
                     />
-                    
                   </div>
                 </div>
 
