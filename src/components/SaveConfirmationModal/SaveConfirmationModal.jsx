@@ -339,11 +339,37 @@ const SaveConfirmationModal = ({
                 </div>
                 
                 <div className={styles.paymentGroup}>
-                  <label className={styles.paymentLabel}>Calculated Amount</label>
+                  <label className={styles.paymentLabel}>Collected Amount</label>
                   <div className={styles.paymentInputContainer}>
                     <input
                       type="text"
-                      value={formData.receivedCash}
+                      value={(() => {
+                        let collected = 0;
+                        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+                          const collectValue = Number(denominations[d]?.collect) || 0;
+                          collected += collectValue * d;
+                        });
+                        return collected;
+                      })()}
+                      readOnly
+                      className={`${styles.paymentInput} ${styles.readonlyPayment}`}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.paymentGroup}>
+                  <label className={styles.paymentLabel}>Issued Amount</label>
+                  <div className={styles.paymentInputContainer}>
+                    <input
+                      type="text"
+                      value={(() => {
+                        let issued = 0;
+                        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+                          const issueValue = Number(denominations[d]?.issue) || 0;
+                          issued += issueValue * d;
+                        });
+                        return issued;
+                      })()}
                       readOnly
                       className={`${styles.paymentInput} ${styles.readonlyPayment}`}
                     />
