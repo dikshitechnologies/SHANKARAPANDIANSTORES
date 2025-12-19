@@ -8,6 +8,9 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 // Import PopupListSelector
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 
+// Import ConfirmationPopup
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+
 // Get endpoints from your configuration
 const USERS_URL = API_ENDPOINTS.ADMINISTRATION.USER_LIST;
 const GET_PERMS_URL = API_ENDPOINTS.ADMINISTRATION.GET_PERMISSIONS_BY_USER;
@@ -87,6 +90,13 @@ const Administration = () => {
   const [showUserPopup, setShowUserPopup] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // New states for confirmation popups
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
   const LS_LAST_USER = "admin_last_selected_user_id";
   const LS_PERMS_PREFIX = "admin_perms_user_";
@@ -127,6 +137,16 @@ const Administration = () => {
     }
     setTimeout(() => setLoaded(true), 80);
   }, [users]);
+
+  // Auto-hide success alert after 3 seconds
+  useEffect(() => {
+    if (showSuccessAlert) {
+      const timer = setTimeout(() => {
+        setShowSuccessAlert(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessAlert]);
 
   const selectedUserPerms = useMemo(() => perms[selectedUserId] || {}, [perms, selectedUserId]);
 
@@ -362,7 +382,13 @@ const Administration = () => {
     });
   };
 
+  // Handle Clear with confirmation
   const handleClear = () => {
+    setConfirmClearOpen(true);
+  };
+
+  // Confirm Clear action
+  const confirmClear = () => {
     setSelectedUserId("0");
     localStorage.setItem(LS_LAST_USER, "0");
 
@@ -376,22 +402,45 @@ const Administration = () => {
       });
       return c;
     });
+    
+    // Show success alert
+    setSuccessMessage("All permissions have been cleared successfully!");
+    setShowSuccessAlert(true);
+    setConfirmClearOpen(false);
   };
 
-  const handleSubmit = async () => {
-    if (selectedUserId === "0") return alert("Please select a user");
+  // Handle Submit with confirmation
+  const handleSubmit = () => {
+    if (selectedUserId === "0") {
+      setSuccessMessage("Please select a user before submitting");
+      setShowSuccessAlert(true);
+      return;
+    }
     const u = users.find(x => x.id === selectedUserId);
-    if (!u) return alert("User not found");
+    if (!u) {
+      setSuccessMessage("User not found");
+      setShowSuccessAlert(true);
+      return;
+    }
+    setConfirmSubmitOpen(true);
+  };
 
-    const code = u.code;
-
-    // Show confirmation
-    if (!window.confirm(`Are you sure you want to update permissions for ${u.name}?`)) {
+  // Confirm Submit action
+  const confirmSubmit = async () => {
+    const u = users.find(x => x.id === selectedUserId);
+    if (!u) {
+      setSuccessMessage("User not found");
+      setShowSuccessAlert(true);
+      setConfirmSubmitOpen(false);
       return;
     }
 
+    const code = u.code;
+
     try {
+      setIsSubmitting(true);
       setLoading(true);
+      
       // First delete existing permissions
       const delResult = await deletePermissionsForCode(code);
 
@@ -403,17 +452,24 @@ const Administration = () => {
       const ins = await insertBatchForUser(code);
 
       if (ins.ok) {
-        alert("Permissions updated successfully!");
+        // Show success alert
+        setSuccessMessage(`Permissions updated successfully for ${u.name}!`);
+        setShowSuccessAlert(true);
+        
         // Refresh permissions from server
         await fetchAndMapPermissions(code, selectedUserId);
       } else {
-        alert("Failed to update permissions. Please try again.");
+        setSuccessMessage("Failed to update permissions. Please try again.");
+        setShowSuccessAlert(true);
       }
     } catch (error) {
       console.error("Error submitting permissions:", error);
-      alert("An error occurred while updating permissions.");
+      setSuccessMessage("An error occurred while updating permissions.");
+      setShowSuccessAlert(true);
     } finally {
+      setIsSubmitting(false);
       setLoading(false);
+      setConfirmSubmitOpen(false);
     }
   };
 
@@ -599,6 +655,86 @@ const Administration = () => {
           box-shadow: 0 0 0 2px rgba(48, 122, 200, 0.1);
         }
         
+        /* Success Alert Styles */
+        .success-alert {
+          position: fixed;
+          top: 100px;
+          right: 20px;
+          z-index: 1000;
+          background: linear-gradient(90deg, #10b981, #059669);
+          color: white;
+          padding: 16px 24px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 300px;
+          max-width: 400px;
+          animation: slideIn 0.3s ease-out;
+          border-left: 4px solid #047857;
+        }
+        
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        @keyframes slideOut {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+        
+        .success-alert.hiding {
+          animation: slideOut 0.3s ease-in forwards;
+        }
+        
+        .success-alert-icon {
+          font-size: 24px;
+          flex-shrink: 0;
+        }
+        
+        .success-alert-content {
+          flex: 1;
+        }
+        
+        .success-alert-title {
+          font-weight: 600;
+          font-size: 16px;
+          margin-bottom: 4px;
+        }
+        
+        .success-alert-message {
+          font-size: 14px;
+          opacity: 0.9;
+        }
+        
+        .success-alert-close {
+          background: none;
+          border: none;
+          color: white;
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          transition: background-color 0.2s;
+        }
+        
+        .success-alert-close:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+        
         @media (max-width: 1200px) {
           .main-content {
             flex-direction: column !important;
@@ -632,6 +768,12 @@ const Administration = () => {
           .select-container {
             width: 100% !important;
           }
+          
+          .success-alert {
+            left: 20px;
+            right: 20px;
+            max-width: calc(100% - 40px);
+          }
         }
         
         @media (max-width: 768px) {
@@ -660,6 +802,12 @@ const Administration = () => {
           .table-container {
             max-height: 400px !important;
           }
+          
+          .success-alert {
+            top: 80px;
+            padding: 12px 16px;
+            min-width: auto;
+          }
         }
         
         @media (max-width: 576px) {
@@ -679,6 +827,10 @@ const Administration = () => {
             padding: 8px 10px !important;
             font-size: 13px !important;
           }
+          
+          .success-alert {
+            padding: 10px 14px;
+          }
         }
       `}</style>
 
@@ -689,6 +841,24 @@ const Administration = () => {
             <i className="bi bi-arrow-clockwise" style={{ fontSize: '32px', color: '#307AC8' }}></i>
             <p style={{ marginTop: '16px', color: '#307AC8', fontWeight: '600' }}>Loading...</p>
           </div>
+        </div>
+      )}
+
+      {/* Success Alert */}
+      {showSuccessAlert && (
+        <div className="success-alert">
+          <i className="bi bi-check-circle-fill success-alert-icon"></i>
+          <div className="success-alert-content">
+            <div className="success-alert-title">Success!</div>
+            <div className="success-alert-message">{successMessage}</div>
+          </div>
+          <button 
+            className="success-alert-close"
+            onClick={() => setShowSuccessAlert(false)}
+            aria-label="Close alert"
+          >
+            <i className="bi bi-x-lg"></i>
+          </button>
         </div>
       )}
 
@@ -776,7 +946,11 @@ const Administration = () => {
 
                 {/* Right: Clear and Submit Buttons */}
                 <div style={styles.actionButtons}>
-                  <button style={styles.clearButton} onClick={handleClear}>
+                  <button 
+                    style={styles.clearButton} 
+                    onClick={handleClear}
+                    disabled={loading}
+                  >
                     Clear
                   </button>
                   <button
@@ -785,9 +959,9 @@ const Administration = () => {
                       ...(selectedUserId === "0" ? styles.disabledButton : {})
                     }}
                     onClick={handleSubmit}
-                    disabled={selectedUserId === "0" || loading}
+                    disabled={selectedUserId === "0" || loading || isSubmitting}
                   >
-                    {loading ? "Saving..." : "Submit"}
+                    {isSubmitting ? "Saving..." : "Submit"}
                   </button>
                 </div>
               </div>
@@ -1022,6 +1196,51 @@ const Administration = () => {
         searchPlaceholder="Search user by name or code..."
         onCustomClose={() => setUserSearchTerm("")}
         clearSearch={() => setUserSearchTerm("")}
+      />
+
+      {/* Submit Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSubmitOpen}
+        onClose={() => setConfirmSubmitOpen(false)}
+        onConfirm={confirmSubmit}
+        title="Update Permissions"
+        message={`Are you sure you want to update permissions for ${selectedUserName}? This action cannot be undone.`}
+        type="warning"
+        confirmText={isSubmitting ? "Updating..." : "Update"}
+        showLoading={isSubmitting}
+        disableBackdropClose={isSubmitting}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #307AC8'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Clear Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmClearOpen}
+        onClose={() => setConfirmClearOpen(false)}
+        onConfirm={confirmClear}
+        title="Clear All Permissions"
+        message="Are you sure you want to clear all permissions? This will reset all checkboxes to unchecked state."
+        type="info"
+        confirmText="Clear All"
+        cancelText="Cancel"
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #6b7280'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #6b7280ff, #9ca3afff)'
+            }
+          }
+        }}
       />
     </div>
   );

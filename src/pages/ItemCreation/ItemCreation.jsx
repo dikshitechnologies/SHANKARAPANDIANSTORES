@@ -5,6 +5,8 @@ import axios from 'axios';
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
+import { toast } from "react-toastify"; // ADDED
+import "react-toastify/dist/ReactToastify.css"; // ADDED
 
 const FCompCode = "001";
 
@@ -32,7 +34,7 @@ const Icon = {
   ),
   Close: ({ size = 18 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 10.59 10.59 16.88 4.29z" />
+      <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 16.88 16.88z" />
     </svg>
   ),
   Folder: ({ size = 14 }) => (
@@ -500,7 +502,7 @@ const handleEnterNavigation = (e) => {
     setShowConfirmPopup(true);
   };
 
-  // Handle confirmation from popup
+  // Handle confirmation from popup - UPDATED with toast notifications
   const handleConfirmAction = async () => {
     setShowConfirmPopup(false);
     
@@ -560,6 +562,7 @@ const handleEnterNavigation = (e) => {
       console.log('Submitting data:', requestData);
 
       let response;
+      let successMessage = '';
       
       switch (actionType) {
         case 'create':
@@ -573,14 +576,17 @@ const handleEnterNavigation = (e) => {
           }
          
           response = await apiService.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
+          successMessage = `Item "${formData.itemName}" created successfully.`; // ADDED
           break;
           
         case 'edit':
           response = await apiService.put(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.putEdit, requestData);
+          successMessage = `Item "${formData.itemName}" updated successfully.`; // ADDED
           break;
           
         case 'delete':
           response = await apiService.del(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
+          successMessage = `Item "${formData.itemName}" deleted successfully.`; // ADDED
           break;
 
         default:
@@ -592,6 +598,16 @@ const handleEnterNavigation = (e) => {
       // Refresh tree data
       await fetchTreeData();
       handleClear();
+      
+      // Show success toast notification - ADDED
+      toast.success(successMessage, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       
     } catch (error) {
       console.error('Submit error:', error);
@@ -1090,6 +1106,25 @@ const handleEnterNavigation = (e) => {
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
+        /* Toast notification styles - ADDED */
+        .Toastify__toast-container {
+          z-index: 9999;
+        }
+        .Toastify__toast {
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          border-radius: 10px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+        .Toastify__toast--success {
+          background: linear-gradient(180deg, #f0fdf4, #dcfce7);
+          color: #064e3b;
+          border: 1px solid #bbf7d0;
+        }
+        .Toastify__toast-body {
+          font-size: 14px;
+          font-weight: 500;
+        }
+
         :root{
           /* custom blue theme */
           --bg-1: #f0f7fb;
