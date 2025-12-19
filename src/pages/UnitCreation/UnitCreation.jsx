@@ -4,6 +4,9 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 // --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
@@ -328,6 +331,7 @@ const confirmEdit = async () => {
     await loadInitial();
     
     setMessage({ type: "success", text: "Unit updated successfully." });
+    toast.success(`Unit "${form.unitName}" updated successfully.`);
     setConfirmEditOpen(false);
     resetForm();
   } catch (err) {
@@ -354,6 +358,7 @@ const confirmEdit = async () => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Unit deleted successfully." });
+      toast.success(`Unit "${form.unitName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
@@ -403,6 +408,7 @@ const confirmSave = async () => {
     await loadInitial();
     
     setMessage({ type: "success", text: "Unit created successfully." });
+    toast.success(`Unit "${form.unitName}" created successfully.`);
     setConfirmSaveOpen(false);
     resetForm(true);
   } catch (err) {

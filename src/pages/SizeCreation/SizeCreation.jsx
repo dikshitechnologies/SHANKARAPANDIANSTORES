@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // --- Inline SVG icons (matching ItemGroupCreation style) ---
 const Icon = {
@@ -245,6 +247,7 @@ const submitRef = useRef(null);
       await loadInitial();
       
       setMessage({ type: "success", text: "Size updated successfully." });
+      toast.success(`Size "${form.sizeName}" updated successfully.`);
       setConfirmEditOpen(false);
       resetForm();
     } catch (err) {
@@ -258,6 +261,7 @@ const submitRef = useRef(null);
   const handleDelete = async () => {
     if (!form.fuCode) {
       setMessage({ type: "error", text: "Please select a size to delete." });
+      toast.error("Please select a size to delete.");
       return;
     }
 
@@ -272,6 +276,7 @@ const submitRef = useRef(null);
       await loadInitial();
       
       setMessage({ type: "success", text: "Size deleted successfully." });
+      toast.success(`Size "${form.sizeName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
@@ -319,6 +324,7 @@ const submitRef = useRef(null);
       await loadInitial();
       
       setMessage({ type: "success", text: "Size created successfully." });
+      toast.success(`Size "${form.sizeName}" created successfully.`);
       setConfirmSaveOpen(false);
       resetForm(true);
     } catch (err) {
