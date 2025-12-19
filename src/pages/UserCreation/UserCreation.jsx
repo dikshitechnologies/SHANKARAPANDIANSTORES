@@ -3,12 +3,15 @@ import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/ActionButtons";
+import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
+
 export default function UserCreation() {
   // ---------- state ----------
   const [companies, setCompanies] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [form, setForm] = useState({ 
     company: "", 
@@ -31,6 +34,12 @@ export default function UserCreation() {
   
   const [showDeleteWarning, setShowDeleteWarning] = useState(false);
   const [deleteWarningMessage, setDeleteWarningMessage] = useState("");
+  
+  // New confirmation popup states
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Refs
   const companyRef = useRef(null);
@@ -40,22 +49,11 @@ export default function UserCreation() {
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
-
-  // Color constants
-  const DARK_BLUE = "#306AC8";
-  const MEDIUM_BLUE = "#1B91DA";
-  const LIGHT_BLUE = "#06A7EA";
-  const BG = "#ffffff";
-  const BORDER_SOFT = "#e1e8f0";
-  const INPUT_BG = "#fafcff";
-  const LIGHT_BLUE_BG = "#f1f7ff";
 
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       setIsMobile(width < 768);
-      setIsTablet(width >= 768 && width < 1024);
     };
     
     handleResize();
@@ -69,20 +67,12 @@ export default function UserCreation() {
     setLoading(true);
     setError("");
     const response = await apiService.get(API_ENDPOINTS.user_creation.getuserdetails);
-    console.log("API Response structure:", response); // Debug log
+    console.log("API Response structure:", response);
     
-    // Check if response is an array or object
     const data = Array.isArray(response) ? response : 
-                 response.data ? (Array.isArray(response.data) ? response.data : []) : 
-                 [];
+                 response.data ? (Array.isArray(response.data) ? response.data : []) : [];
     
     console.log("Fetched companies structure:", data);
-    console.log("First company sample:", data[0]); // Show structure of first item
-    
-    // Check all keys in the first company object
-    if (data[0]) {
-      console.log("Keys in company object:", Object.keys(data[0]));
-    }
     
     setCompanies(data || []);
   } catch (err) {
@@ -94,18 +84,14 @@ export default function UserCreation() {
 };
 
 
-  
-
-
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError("");
       const response = await apiService.get(API_ENDPOINTS.user_creation.getDropdown);
       console.log("API Response:", response);
-      
 
-      const data =response;
+      const data = response;
       console.log("Fetched users:", data);
       setUsers(data || []);
     } catch (err) {
@@ -120,10 +106,9 @@ export default function UserCreation() {
   console.log("Creating user with data:", userData);
 
   try {
-    setLoading(true);
+    setIsProcessing(true);
     setError("");
 
-    // Correct Axios POST usage
     const response = await apiService.post(
       API_ENDPOINTS.user_creation.postCreate,
       userData
@@ -137,52 +122,36 @@ export default function UserCreation() {
     console.error("API Error:", err);
     throw err;
   } finally {
-    setLoading(false);
+    setIsProcessing(false);
   }
 };
 
 
   const updateUser = async (userData) => {
     try {
-      setLoading(true);
+      setIsProcessing(true);
       setError("");
-      const response = await apiService.put(API_ENDPOINTS.user_creation.putEdit, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
+      const response = await apiService.put(API_ENDPOINTS.user_creation.putEdit, userData);
+      return response.data;
     } catch (err) {
       setError(err.message || "Failed to update user");
       console.error("API Error:", err);
       throw err;
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
   const deleteUser = async (userId) => {
     console.log("Deleting user with ID:", userId);
-    return;
     try {
-      setLoading(true);
+      setIsProcessing(true);
       setError("");
-      const response = await apiService.delete(`API_ENDPOINTS.user_creation.delete/${fcode}`, {
+      const response = await apiService.delete(`${API_ENDPOINTS.user_creation.delete}/${userId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: userId
-        })
+        }
       });
 
       const responseText = await response.text();
@@ -216,19 +185,23 @@ export default function UserCreation() {
       console.error("API Error:", err);
       throw err;
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
   async function handleDelete() {
     if (!deleteTargetId) {
-      alert("No user selected to delete.");
+      setError("No user selected to delete.");
       return;
     }
     
-    const confirmDelete = window.confirm(`Are you sure you want to delete user "${form.username}" (Code: ${deleteTargetId})?\n\nThis action cannot be undone.`);
-    if (!confirmDelete) return;
+    // Show confirmation popup
+    setConfirmMessage(`Are you sure you want to delete user "${form.username}" (Code: ${deleteTargetId})?\n\nThis action cannot be undone.`);
+    setConfirmAction(() => confirmDelete);
+    setConfirmOpen(true);
+  }
 
+  const confirmDelete = async () => {
     try {
       await deleteUser(deleteTargetId);
       await fetchUsers();
@@ -237,7 +210,7 @@ export default function UserCreation() {
       setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
       setMode("create");
       
-      alert(`✅ User "${form.username}" has been deleted successfully.`);
+      setSuccessMessage(`User "${form.username}" has been deleted successfully.`);
       setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
     } catch (err) {
       const errorMsg = err.message || "";
@@ -250,56 +223,19 @@ export default function UserCreation() {
           errorMsg.includes("reference")) {
         
         setDeleteWarningMessage(`
-          🚫 Cannot Delete User: "${form.username}" (Code: ${deleteTargetId})
+          Cannot Delete User: "${form.username}" (Code: ${deleteTargetId})
           
           Reason: This user is referenced in other system tables.
           
-          Possible Solutions:
-          1. Check if this user has:
-             • Active transactions
-             • Assigned roles/permissions
-             • Created records in other modules
-             • Pending tasks or workflows
-          
-          2. Contact your system administrator to:
-             • Remove references from related tables first
-             • Check database constraints
-             • Use cascade delete if appropriate
-          
-          3. Alternative actions:
-             • Deactivate the user instead of deleting
-             • Archive user data
-             • Update user status to "Inactive"
-          
-          Note: For immediate assistance, please contact the database administrator.
+          Please contact your system administrator.
         `);
         
         setShowDeleteWarning(true);
       } else {
-        alert(`Failed to delete user: ${errorMsg}`);
+        setError(`Failed to delete user: ${errorMsg}`);
       }
     }
-  }
-
-  const getUserItem = async (userId) => {
-    try {
-      setLoading(true);
-      setError("");
-      const response = await fetch(`http://dikshiserver/spstores/api/UserCreation/getUserItem/${userId}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      setError(err.message || "Failed to fetch user item");
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    setConfirmOpen(false);
   };
 
   // ---------- effects ----------
@@ -332,17 +268,12 @@ export default function UserCreation() {
 
   // ---------- handlers ----------
   function openCompanyModal() {
-  console.log("Companies data:", companies); // Debug log
-  
-  // Fix property names - adjust based on your actual API response
   const companyData = companies.map(c => ({
-    id: c.fCompCode || c.code || c.fCompCode,  // Use actual property name
+    id: c.fCompCode || c.code || c.fCompCode,
     code: c.fCompCode || c.code || c.fCompCode,
-    companyName: c.fCompName || c.companyName || c.fCompName,  // Use actual property name
+    companyName: c.fCompName || c.companyName || c.fCompName,
     displayName: `${c.fCompCode || c.code} - ${c.fCompName || c.companyName || ''}`
   }));
-  
-  console.log("Mapped company data:", companyData); // Debug log
   
   setPopupData(companyData);
   setPopupTitle("Select Company");
@@ -351,9 +282,6 @@ export default function UserCreation() {
 }
 
  function selectCompany(c) {
-  console.log("Selected company:", c); // Debug log
-  
-  // Fix property names here too
   const companyCode = c.fCompCode || c.code || c.fCompCode;
   const companyName = c.fCompName || c.companyName || c.fCompName;
   
@@ -363,7 +291,6 @@ export default function UserCreation() {
     companyCode: companyCode 
   }));
   
-  console.log("Form after select:", form); // Debug log
   setTimeout(() => usernameRef.current && usernameRef.current.focus(), 60);
 }
 
@@ -430,23 +357,16 @@ export default function UserCreation() {
   }
 
  const handlePopupSelect = (selectedItem) => {
-  console.log("Popup selected item:", selectedItem); // Debug log
-  
   if (popupType === "company") {
-    // Try different ways to find the company
     const originalCompany = companies.find(c => 
       (c.fCompCode && c.fCompCode.toString() === selectedItem.id.toString()) ||
       (c.code && c.code.toString() === selectedItem.id.toString()) ||
       (c.fCompCode && c.fCompCode.toString() === selectedItem.code.toString())
     );
     
-    console.log("Found company:", originalCompany); // Debug log
-    
     if (originalCompany) {
       selectCompany(originalCompany);
     } else {
-      // Fallback - use the selectedItem data directly
-      console.log("Company not found in companies array, using selectedItem");
       selectCompany({
         fCompCode: selectedItem.code || selectedItem.id,
         fCompName: selectedItem.companyName || selectedItem.displayName?.split(' - ')[1] || ''
@@ -470,10 +390,17 @@ export default function UserCreation() {
 
  async function handleCreate() {
   if (!form.companyCode || !form.username || !form.password) {
-    alert("Please fill required fields: Company, Username, Password.");
+    setError("Please fill required fields: Company, Username, Password.");
     return;
   }
 
+  // Show confirmation popup
+  setConfirmMessage(`Are you sure you want to create user "${form.username}"?\n\nThis action cannot be undone.`);
+  setConfirmAction(() => confirmCreate);
+  setConfirmOpen(true);
+}
+
+const confirmCreate = async () => {
   try {
     const userData = {
       code: "009",
@@ -497,22 +424,37 @@ export default function UserCreation() {
     });
 
     setMode("create");
-    alert("✅ User created successfully.");
+    setSuccessMessage("User created successfully.");
+    setConfirmOpen(false);
 
     setTimeout(() => {
       if (companyRef.current) companyRef.current.focus();
     }, 60);
 
   } catch (err) {
-    alert(`Failed to create user: ${err.message}`);
+    setError(`Failed to create user: ${err.message}`);
+    setConfirmOpen(false);
   }
-}
+};
 
 
   async function handleUpdate() {
-    if (!editingId) return alert("No user selected to update.");
-    if (!form.companyCode || !form.username) return alert("Please fill Company and Username.");
+    if (!editingId) {
+      setError("No user selected to update.");
+      return;
+    }
+    if (!form.companyCode || !form.username) {
+      setError("Please fill Company and Username.");
+      return;
+    }
 
+    // Show confirmation popup
+    setConfirmMessage(`Are you sure you want to update user "${form.username}"?\n\nThis action cannot be undone.`);
+    setConfirmAction(() => confirmUpdate);
+    setConfirmOpen(true);
+  }
+
+  const confirmUpdate = async () => {
     try {
       const userData = {
         code: editingId,
@@ -528,12 +470,14 @@ export default function UserCreation() {
       setEditingId(null);
       setForm({ company: "", companyCode: "", username: "", password: "", prefix: "", userId: null });
       setMode("create");
-      alert("✅ User updated successfully.");
+      setSuccessMessage("User updated successfully.");
+      setConfirmOpen(false);
       setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
     } catch (err) {
-      alert(`Failed to update user: ${err.message}`);
+      setError(`Failed to update user: ${err.message}`);
+      setConfirmOpen(false);
     }
-  }
+  };
 
   function handlePrimaryAction() {
     if (mode === "create") handleCreate();
@@ -546,6 +490,8 @@ export default function UserCreation() {
     setMode("create");
     setEditingId(null);
     setDeleteTargetId(null);
+    setError("");
+    setSuccessMessage("");
     setTimeout(() => companyRef.current && companyRef.current.focus(), 60);
   }
 
@@ -631,8 +577,8 @@ export default function UserCreation() {
   const styles = {
     page: { 
       minHeight: "100vh", 
-      background: 'linear-gradient(135deg, #f8fbff 0%, #f0f7ff 100%)',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      background: 'linear-gradient(180deg, #f0f7fb 0%, #f7fbff 100%)',
+      fontFamily: "'Poppins', 'Inter', system-ui, -apple-system, sans-serif",
       display: "flex", 
       justifyContent: "center",
       alignItems: "flex-start",
@@ -643,14 +589,15 @@ export default function UserCreation() {
     },
     
     mainContainer: {
-      background: 'white',
+      background: 'linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65))',
       borderRadius: isMobile ? '12px' : '20px',
       padding: isMobile ? '15px' : '30px',
       maxWidth: '1400px',
       margin: '0 auto',
-      boxShadow: '0 15px 40px rgba(48, 122, 200, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05)',
-      border: '1px solid rgba(48, 122, 200, 0.08)',
+      boxShadow: '0 8px 30px rgba(16,24,40,0.08)',
+      border: '1px solid rgba(255,255,255,0.6)',
       width: '100%',
+      backdropFilter: 'blur(8px) saturate(120%)',
     },
     
     twoColumnLayout: {
@@ -672,22 +619,21 @@ export default function UserCreation() {
     },
     
     leftTitle: {
-      fontSize: isMobile ? '18px' : '18px',
+      fontSize: isMobile ? '18px' : '20px',
       fontWeight: 700,
       marginBottom: '6px',
-      color: '#11303F',
+      color: '#0f172a',
       letterSpacing: '-0.3px',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Poppins', 'Inter', sans-serif",
       lineHeight: 1.3,
     },
     
     leftSubtitle: {
-      color: '#666',
-      fontSize: isMobile ? '13px' : '15px',
+      color: '#64748b',
+      fontSize: isMobile ? '13px' : '14px',
       margin: 0,
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       fontWeight: 400,
-      opacity: 0.8,
     },
     
     searchContainer: {
@@ -697,14 +643,14 @@ export default function UserCreation() {
     
     searchInput: {
       padding: isMobile ? '12px 14px 12px 42px' : '14px 16px 14px 45px',
-      border: '2px solid #e1e8f0',
+      border: '1px solid rgba(15,23,42,0.06)',
       borderRadius: isMobile ? '10px' : '12px',
       width: '100%',
       fontSize: isMobile ? '14px' : '14px',
-      background: '#fafcff',
+      background: 'linear-gradient(180deg, #fff, #fbfdff)',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       outline: 'none',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       boxSizing: 'border-box',
       fontWeight: 500,
       color: '#1e293b',
@@ -720,23 +666,24 @@ export default function UserCreation() {
     },
     
     tableContainer: {
-      background: '#fafcff',
+      background: 'rgba(255,255,255,0.85)',
       borderRadius: isMobile ? '10px' : '12px',
-      border: '1px solid #e1e8f0',
+      border: '1px solid rgba(15,23,42,0.04)',
       overflow: 'hidden',
       width: '100%',
+      boxShadow: '0 6px 20px rgba(12,18,35,0.06)',
     },
     
     tableHeader: {
       display: 'grid',
       gridTemplateColumns: '1fr 2fr 2fr',
       padding: isMobile ? '14px 16px' : '16px 20px',
-      background: '#f1f7ff',
-      borderBottom: '2px solid #e1e8f0',
+      background: 'linear-gradient(180deg, #f8fafc, #f1f5f9)',
+      borderBottom: '2px solid #307AC8',
       fontWeight: 700,
       fontSize: isMobile ? '14px' : '14px',
-      color: '#334155',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      color: '#307AC8',
+      fontFamily: "'Inter', sans-serif",
       gap: isMobile ? '8px' : '0',
       letterSpacing: '0.01em',
     },
@@ -751,11 +698,11 @@ export default function UserCreation() {
       display: 'grid',
       gridTemplateColumns: '1fr 2fr 2fr',
       padding: isMobile ? '12px 16px' : '16px 20px',
-      borderBottom: '1px solid #f1f5f9',
+      borderBottom: '1px solid rgba(230, 244, 255, 0.8)',
       fontSize: isMobile ? '14px' : '14px',
       transition: 'background-color 0.2s',
       cursor: 'pointer',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       gap: isMobile ? '8px' : '0',
       alignItems: 'center',
     },
@@ -764,6 +711,7 @@ export default function UserCreation() {
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
+      color: '#3a4a5d',
     },
     
     // RIGHT PANEL - User Creation Form
@@ -788,22 +736,21 @@ export default function UserCreation() {
     },
     
     rightTitle: {
-      fontSize: isMobile ? '18px' : '18px',
+      fontSize: isMobile ? '18px' : '20px',
       fontWeight: 700,
       marginBottom: '6px',
-      color: '#11303F',
+      color: '#0f172a',
       letterSpacing: '-0.3px',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Poppins', 'Inter', sans-serif",
       lineHeight: 1.3,
     },
     
     rightSubtitle: {
-      color: '#666',
-      fontSize: isMobile ? '13px' : '15px',
+      color: '#64748b',
+      fontSize: isMobile ? '13px' : '14px',
       margin: 0,
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       fontWeight: 400,
-      opacity: 0.8,
     },
     
     actionButtonsContainer: {
@@ -833,12 +780,12 @@ export default function UserCreation() {
       background: 'linear-gradient(180deg, rgba(255,255,255,0.8), rgba(250,250,252,0.9))',
       border: '1px solid rgba(255,255,255,0.45)',
       cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(2,6,23,0.04)',
+      boxShadow: '0 6px 16px rgba(2,6,23,0.04)',
       fontWeight: 600,
       fontSize: isMobile ? '12px' : '13px',
       color: '#334155',
       transition: 'all 0.2s ease',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       outline: 'none',
       minWidth: isMobile ? '30%' : '80px',
       justifyContent: 'center',
@@ -849,14 +796,14 @@ export default function UserCreation() {
     },
     
     actionPillHover: {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 20px rgba(2,6,23,0.08)',
+      transform: 'translateY(-1px)',
+      boxShadow: '0 8px 20px rgba(2,6,23,0.08)',
       borderColor: 'rgba(48,122,200,0.2)',
     },
     
     actionPillAdd: {
       color: 'white',
-      background: 'linear-gradient(180deg, #306AC8, #1B91DA)',
+      background: 'linear-gradient(180deg, #307AC8, #1B91DA)',
       borderColor: 'rgba(48,122,200,0.3)',
     },
     
@@ -873,12 +820,13 @@ export default function UserCreation() {
     },
     
     formContainer: {
-      background: '#fafcff',
+      background: 'rgba(255,255,255,0.85)',
       borderRadius: isMobile ? '12px' : '16px',
       padding: isMobile ? '20px' : '28px',
-      border: '1px solid #e1e8f0',
+      border: '1px solid rgba(15,23,42,0.04)',
       width: '100%',
       boxSizing: 'border-box',
+      boxShadow: '0 6px 20px rgba(12,18,35,0.06)',
     },
     
     formGroup: {
@@ -891,7 +839,7 @@ export default function UserCreation() {
       fontWeight: 700,
       fontSize: isMobile ? '14px' : '14px',
       color: '#334155',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       letterSpacing: '0.01em',
     },
     
@@ -901,30 +849,30 @@ export default function UserCreation() {
     },
     
     formInput: {
-      padding: isMobile ? '12px 14px' : '14px 16px',
+      padding: isMobile ? '12px 14px 12px 40px' : '14px 16px 14px 40px',
       width: '100%',
-      border: '2px solid #e1e8f0',
+      border: '1px solid rgba(15,23,42,0.06)',
       borderRadius: isMobile ? '10px' : '10px',
       fontSize: isMobile ? '14px' : '14px',
-      background: 'white',
+      background: 'linear-gradient(180deg, #fff, #fbfdff)',
       color: '#0f172a',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       outline: 'none',
       boxSizing: 'border-box',
       fontWeight: 500,
     },
     
     companyInput: {
-      padding: isMobile ? '12px 14px 12px 42px' : '14px 16px 14px 45px',
+      padding: isMobile ? '12px 14px 12px 40px' : '14px 16px 14px 40px',
       width: '100%',
-      border: '2px solid #e1e8f0',
+      border: '1px solid rgba(15,23,42,0.06)',
       borderRadius: isMobile ? '10px' : '10px',
       fontSize: isMobile ? '14px' : '14px',
-      background: 'white',
+      background: '#f8fafc',
       color: '#0f172a',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       outline: 'none',
       boxSizing: 'border-box',
       fontWeight: 500,
@@ -947,46 +895,46 @@ export default function UserCreation() {
       gap: isMobile ? '12px' : '16px',
       marginTop: isMobile ? '28px' : '32px',
       paddingTop: isMobile ? '20px' : '24px',
-      borderTop: '1px solid #e1e8f0',
+      borderTop: '1px solid rgba(15,23,42,0.04)',
       width: '100%',
     },
     
     submitButton: {
-      padding: isMobile ? '10px 16px' : '10px 20px',
-      background: 'linear-gradient(135deg, #06A7EA 0%, #1B91DA 100%)',
+      padding: isMobile ? '10px 16px' : '12px 16px',
+      background: 'linear-gradient(180deg, #307AC8, #1B91DA)',
       borderRadius: isMobile ? '10px' : '10px',
       border: 'none',
       color: 'white',
-      fontWeight: 600,
+      fontWeight: 700,
       fontSize: isMobile ? '13px' : '14px',
       cursor: 'pointer',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 4px 12px rgba(6, 167, 234, 0.25)',
-      minWidth: isMobile ? '100%' : '100px',
+      boxShadow: '0 4px 12px rgba(48, 122, 200, 0.25)',
+      minWidth: isMobile ? '100%' : '120px',
       outline: 'none',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       boxSizing: 'border-box',
       letterSpacing: '0.01em',
     },
     
     submitButtonHover: {
       transform: 'translateY(-2px)',
-      boxShadow: '0 6px 20px rgba(6, 167, 234, 0.4)',
+      boxShadow: '0 8px 24px rgba(48,122,200,0.25)',
     },
     
     clearButton: {
-      padding: isMobile ? '10px 16px' : '10px 20px',
-      background: 'white',
+      padding: isMobile ? '10px 16px' : '12px 16px',
+      background: '#fff',
       borderRadius: isMobile ? '10px' : '10px',
-      border: '2px solid #e1e8f0',
+      border: '1px solid rgba(12,18,35,0.06)',
       color: '#475569',
       fontWeight: 600,
       fontSize: isMobile ? '13px' : '14px',
       cursor: 'pointer',
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-      minWidth: isMobile ? '100%' : '100px',
+      minWidth: isMobile ? '100%' : '120px',
       outline: 'none',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       boxSizing: 'border-box',
       letterSpacing: '0.01em',
     },
@@ -994,7 +942,7 @@ export default function UserCreation() {
     clearButtonHover: {
       borderColor: '#1B91DA',
       color: '#1B91DA',
-      transform: 'translateY(-2px)',
+      transform: 'translateY(-1px)',
       boxShadow: '0 4px 12px rgba(48, 122, 200, 0.1)',
     },
     
@@ -1003,7 +951,7 @@ export default function UserCreation() {
       padding: isMobile ? '20px 15px' : '40px 20px',
       color: '#64748b',
       fontSize: isMobile ? '14px' : '15px',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
       fontWeight: 400,
     },
     
@@ -1017,26 +965,39 @@ export default function UserCreation() {
       textAlign: 'center',
       borderLeft: '4px solid #ef4444',
       fontSize: isMobile ? '14px' : '15px',
-      fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+      fontFamily: "'Inter', sans-serif",
+    },
+    
+    // Success message
+    successContainer: {
+      background: '#f0fdf4',
+      color: '#064e3b',
+      padding: isMobile ? '12px' : '15px',
+      borderRadius: '10px',
+      marginBottom: isMobile ? '16px' : '20px',
+      textAlign: 'center',
+      borderLeft: '4px solid #06A7EA',
+      fontSize: isMobile ? '14px' : '15px',
+      fontFamily: "'Inter', sans-serif",
     },
   };
 
   const getPrimaryButtonStyle = () => {
     if (mode === "edit") return {
       ...styles.submitButton,
-      background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+      background: 'linear-gradient(180deg, #f59e0b, #f97316)',
       boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)',
     };
     if (mode === "delete") return {
       ...styles.submitButton,
-      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+      background: 'linear-gradient(180deg, #ef4444, #dc2626)',
       boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
     };
     return styles.submitButton;
   };
 
   const getPrimaryButtonText = () => {
-    if (loading) {
+    if (isProcessing) {
       if (mode === "create") return "Creating...";
       if (mode === "edit") return "Updating...";
       if (mode === "delete") return "Deleting...";
@@ -1053,36 +1014,29 @@ export default function UserCreation() {
     <div style={styles.page}>
       <style>
         {`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-          
           .action-pill:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(2,6,23,0.08);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(2,6,23,0.08);
             border-color: rgba(48,122,200,0.2);
           }
           
           .form-input-focus {
-            box-shadow: 0 0 0 3px rgba(6,167,234,0.25);
-            border: 1px solid #06A7EA;
+            box-shadow: 0 8px 26px rgba(48,122,200,0.08);
+            transform: translateY(-1px);
+            border-color: rgba(48,122,200,0.25);
             outline: none;
           }
           
           .table-row-hover {
-            background-color: #f8fafc !important;
+            background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)) !important;
           }
           
-          @media (max-width: 768px) {
-            input, button, select, textarea {
-              font-size: 16px !important;
-            }
-            
-            button {
-              min-height: 44px;
-            }
-            
-            input, select {
-              min-height: 44px;
-            }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+          .loading {
+            animation: pulse 1.5s ease-in-out infinite;
           }
         `}
       </style>
@@ -1109,15 +1063,15 @@ export default function UserCreation() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={styles.searchInput}
                 onFocus={(e) => Object.assign(e.target.style, {
-                  boxShadow: '0 0 0 3px rgba(6,167,234,0.25)',
-                  border: '1px solid #06A7EA',
+                  boxShadow: '0 8px 26px rgba(48,122,200,0.08)',
+                  transform: 'translateY(-1px)',
+                  border: '1px solid rgba(48,122,200,0.25)',
                   outline: 'none',
-                  background: 'white',
                 })}
                 onBlur={(e) => {
                   e.target.style.boxShadow = 'none';
-                  e.target.style.border = '2px solid #e1e8f0';
-                  e.target.style.background = '#fafcff';
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.border = '1px solid rgba(15,23,42,0.06)';
                   e.target.style.outline = 'none';
                 }}
               />
@@ -1139,16 +1093,16 @@ export default function UserCreation() {
                   <div
                     key={user.code}
                     style={styles.tableRow}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e) => e.target.style.background = 'linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01))'}
+                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
                   >
-                    <span style={{...styles.tableCell, color: '#475569', fontWeight: 500}}>
+                    <span style={{...styles.tableCell, fontWeight: 500}}>
                       {user.code}
                     </span>
-                    <span style={{...styles.tableCell, color: '#0f172a', fontWeight: 500}}>
+                    <span style={{...styles.tableCell, fontWeight: 500}}>
                       {user.userName}
                     </span>
-                    <span style={{...styles.tableCell, color: '#0f172a', fontWeight: 500}}>
+                    <span style={{...styles.tableCell, fontWeight: 500}}>
                       {user.compaytName}
                     </span>
                   </div>
@@ -1165,7 +1119,8 @@ export default function UserCreation() {
 
           {/* RIGHT PANEL - User Creation Form */}
           <div style={styles.rightPanel}>
-            {error && <div style={styles.errorContainer}>Error: {error}</div>}
+            {error && <div style={styles.errorContainer}>{error}</div>}
+            {successMessage && <div style={styles.successContainer}>{successMessage}</div>}
             
             <div style={styles.rightHeader}>
               <div style={styles.rightTitleContainer}>
@@ -1185,17 +1140,17 @@ export default function UserCreation() {
                       setMode('create');
                       handleClear();
                     }} 
-                    disabled={loading} 
+                    disabled={loading || isProcessing} 
                     isActive={mode === 'create'} 
                   />
                   <EditButton 
                     onClick={openEditModal} 
-                    disabled={loading} 
+                    disabled={loading || isProcessing} 
                     isActive={mode === 'edit'} 
                   />
                   <DeleteButton 
                     onClick={openDeleteModal} 
-                    disabled={loading} 
+                    disabled={loading || isProcessing} 
                     isActive={mode === 'delete'} 
                   />
                 </div>
@@ -1216,22 +1171,24 @@ export default function UserCreation() {
                       type="text"
                       value={form.company}
                       onChange={(e) => setForm((s) => ({ ...s, company: e.target.value }))}
-                      placeholder="Click to select company"
+                     
                       onKeyDown={onCompanyKeyDown}
                       onClick={openCompanyModal}
                       style={styles.companyInput}
                       onFocus={(e) => Object.assign(e.target.style, {
-                        boxShadow: '0 0 0 3px rgba(6,167,234,0.25)',
-                        border: '1px solid #06A7EA',
+                        boxShadow: '0 8px 26px rgba(48,122,200,0.08)',
+                        transform: 'translateY(-1px)',
+                        border: '1px solid rgba(48,122,200,0.25)',
                         outline: 'none',
-                        background: 'white',
                       })}
                       onBlur={(e) => {
                         e.target.style.boxShadow = 'none';
-                        e.target.style.border = '2px solid #e1e8f0';
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.border = '1px solid rgba(15,23,42,0.06)';
                         e.target.style.outline = 'none';
                       }}
                       readOnly
+                      disabled={loading || isProcessing}
                     />
                     <span style={styles.companyIcon}>
                       🔍
@@ -1244,26 +1201,31 @@ export default function UserCreation() {
                   <label style={styles.formLabel}>
                     Username <span style={{color: '#ef4444'}}>*</span>
                   </label>
-                  <input
-                    ref={usernameRef}
-                    type="text"
-                    value={form.username}
-                    onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
-                    placeholder="Enter username"
-                    onKeyDown={onUsernameKeyDown}
-                    style={styles.formInput}
-                    onFocus={(e) => Object.assign(e.target.style, {
-                      boxShadow: '0 0 0 3px rgba(6,167,234,0.25)',
-                      border: '1px solid #06A7EA',
-                      outline: 'none',
-                      background: 'white',
-                    })}
-                    onBlur={(e) => {
-                      e.target.style.boxShadow = 'none';
-                      e.target.style.border = '2px solid #e1e8f0';
-                      e.target.style.outline = 'none';
-                    }}
-                  />
+                  <div style={styles.formInputContainer}>
+                    <input
+                      ref={usernameRef}
+                      type="text"
+                      value={form.username}
+                      onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
+                     
+                      onKeyDown={onUsernameKeyDown}
+                      style={styles.formInput}
+                      onFocus={(e) => Object.assign(e.target.style, {
+                        boxShadow: '0 8px 26px rgba(48,122,200,0.08)',
+                        transform: 'translateY(-1px)',
+                        border: '1px solid rgba(48,122,200,0.25)',
+                        outline: 'none',
+                      })}
+                      onBlur={(e) => {
+                        e.target.style.boxShadow = 'none';
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.border = '1px solid rgba(15,23,42,0.06)';
+                        e.target.style.outline = 'none';
+                      }}
+                      disabled={loading || isProcessing || mode === "delete"}
+                    />
+                    
+                  </div>
                 </div>
 
                 {/* Password Field */}
@@ -1271,26 +1233,31 @@ export default function UserCreation() {
                   <label style={styles.formLabel}>
                     Password <span style={{color: '#ef4444'}}>*</span>
                   </label>
-                  <input
-                    ref={passwordRef}
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
-                    placeholder="Enter password"
-                    onKeyDown={onPasswordKeyDown}
-                    style={styles.formInput}
-                    onFocus={(e) => Object.assign(e.target.style, {
-                      boxShadow: '0 0 0 3px rgba(6,167,234,0.25)',
-                      border: '1px solid #06A7EA',
-                      outline: 'none',
-                      background: 'white',
-                    })}
-                    onBlur={(e) => {
-                      e.target.style.boxShadow = 'none';
-                      e.target.style.border = '2px solid #e1e8f0';
-                      e.target.style.outline = 'none';
-                    }}
-                  />
+                  <div style={styles.formInputContainer}>
+                    <input
+                      ref={passwordRef}
+                      type="password"
+                      value={form.password}
+                      onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
+                      
+                      onKeyDown={onPasswordKeyDown}
+                      style={styles.formInput}
+                      onFocus={(e) => Object.assign(e.target.style, {
+                        boxShadow: '0 8px 26px rgba(48,122,200,0.08)',
+                        transform: 'translateY(-1px)',
+                        border: '1px solid rgba(48,122,200,0.25)',
+                        outline: 'none',
+                      })}
+                      onBlur={(e) => {
+                        e.target.style.boxShadow = 'none';
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.border = '1px solid rgba(15,23,42,0.06)';
+                        e.target.style.outline = 'none';
+                      }}
+                      disabled={loading || isProcessing || mode === "delete"}
+                    />
+                    
+                  </div>
                 </div>
 
                 {/* Prefix Field */}
@@ -1298,26 +1265,31 @@ export default function UserCreation() {
                   <label style={styles.formLabel}>
                     Prefix
                   </label>
-                  <input
-                    ref={prefixRef}
-                    type="text"
-                    value={form.prefix}
-                    onChange={(e) => setForm((s) => ({ ...s, prefix: e.target.value }))}
-                    placeholder="Prefix (optional)"
-                    onKeyDown={onPrefixKeyDown}
-                    style={styles.formInput}
-                    onFocus={(e) => Object.assign(e.target.style, {
-                      boxShadow: '0 0 0 3px rgba(6,167,234,0.25)',
-                      border: '1px solid #06A7EA',
-                      outline: 'none',
-                      background: 'white',
-                    })}
-                    onBlur={(e) => {
-                      e.target.style.boxShadow = 'none';
-                      e.target.style.border = '2px solid #e1e8f0';
-                      e.target.style.outline = 'none';
-                    }}
-                  />
+                  <div style={styles.formInputContainer}>
+                    <input
+                      ref={prefixRef}
+                      type="text"
+                      value={form.prefix}
+                      onChange={(e) => setForm((s) => ({ ...s, prefix: e.target.value }))}
+                     
+                      onKeyDown={onPrefixKeyDown}
+                      style={styles.formInput}
+                      onFocus={(e) => Object.assign(e.target.style, {
+                        boxShadow: '0 8px 26px rgba(48,122,200,0.08)',
+                        transform: 'translateY(-1px)',
+                        border: '1px solid rgba(48,122,200,0.25)',
+                        outline: 'none',
+                      })}
+                      onBlur={(e) => {
+                        e.target.style.boxShadow = 'none';
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.border = '1px solid rgba(15,23,42,0.06)';
+                        e.target.style.outline = 'none';
+                      }}
+                      disabled={loading || isProcessing}
+                    />
+                    
+                  </div>
                 </div>
 
                 {/* Form Action Buttons */}
@@ -1329,27 +1301,28 @@ export default function UserCreation() {
                     onMouseEnter={(e) => {
                       e.target.style.borderColor = '#1B91DA';
                       e.target.style.color = '#1B91DA';
-                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.transform = 'translateY(-1px)';
                       e.target.style.boxShadow = '0 4px 12px rgba(48, 122, 200, 0.1)';
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.borderColor = '#e1e8f0';
+                      e.target.style.borderColor = 'rgba(12,18,35,0.06)';
                       e.target.style.color = '#475569';
                       e.target.style.transform = 'translateY(0)';
                       e.target.style.boxShadow = 'none';
                     }}
                     onFocus={(e) => {
                       e.target.style.outline = 'none';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(6,167,234,0.25)';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(48,122,200,0.25)';
                       e.target.style.borderColor = '#06A7EA';
-                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.transform = 'translateY(-1px)';
                     }}
                     onBlur={(e) => {
                       e.target.style.boxShadow = 'none';
-                      e.target.style.borderColor = '#e1e8f0';
+                      e.target.style.borderColor = 'rgba(12,18,35,0.06)';
                       e.target.style.transform = 'translateY(0)';
                       e.target.style.outline = 'none';
                     }}
+                    disabled={loading || isProcessing}
                   >
                     Clear
                   </button>
@@ -1357,28 +1330,28 @@ export default function UserCreation() {
                   <button
                     type="button"
                     onClick={handlePrimaryAction}
-                    disabled={loading}
+                    disabled={loading || isProcessing}
                     style={getPrimaryButtonStyle()}
                     onMouseEnter={(e) => {
-                      if (!loading) {
+                      if (!loading && !isProcessing) {
                         e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(6, 167, 234, 0.4)';
+                        e.target.style.boxShadow = '0 8px 24px rgba(48,122,200,0.25)';
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (!loading) {
+                      if (!loading && !isProcessing) {
                         e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(48, 122, 200, 0.25)';
                       }
                     }}
                     onFocus={(e) => {
                       e.target.style.outline = 'none';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(6,167,234,0.25), 0 4px 12px rgba(6, 167, 234, 0.25)';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(48,122,200,0.25), 0 4px 12px rgba(48, 122, 200, 0.25)';
                       e.target.style.transform = 'translateY(-2px)';
                     }}
                     onBlur={(e) => {
                       e.target.style.outline = 'none';
-                      e.target.style.boxShadow = '0 4px 12px rgba(6, 167, 234, 0.25)';
+                      e.target.style.boxShadow = '0 4px 12px rgba(48, 122, 200, 0.25)';
                       e.target.style.transform = 'translateY(0)';
                     }}
                   >
@@ -1410,6 +1383,35 @@ export default function UserCreation() {
         maxHeight="70vh"
       />
 
+      {/* Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          if (confirmAction) confirmAction();
+        }}
+        title={mode === "create" ? "Create User" : mode === "edit" ? "Update User" : "Delete User"}
+        message={confirmMessage}
+        type={mode === "create" ? "success" : mode === "edit" ? "warning" : "danger"}
+        confirmText={isProcessing ? "Processing..." : mode === "create" ? "Create" : mode === "edit" ? "Update" : "Delete"}
+        showLoading={isProcessing}
+        disableBackdropClose={isProcessing}
+        customStyles={{
+          modal: {
+            borderTop: mode === "create" ? '4px solid #06A7EA' : 
+                     mode === "edit" ? '4px solid #F59E0B' : 
+                     '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: mode === "create" ? 'linear-gradient(90deg, #307AC8ff, #06A7EAff)' :
+                       mode === "edit" ? 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)' :
+                       'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
+      />
+
       {/* Delete Warning Modal */}
       {showDeleteWarning && (
         <div style={{
@@ -1423,16 +1425,15 @@ export default function UserCreation() {
           zIndex: 1000,
           backdropFilter: 'blur(4px)',
           overflowY: 'auto',
-          fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+          fontFamily: "'Inter', sans-serif",
         }}>
           <div style={{
-            background: 'white',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8))',
             borderRadius: isMobile ? '14px' : '16px',
             width: '100%',
             maxWidth: isMobile ? '95%' : '600px',
             overflow: 'hidden',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-            animation: 'modalSlideIn 0.3s ease-out',
+            boxShadow: '0 18px 50px rgba(2,6,23,0.36)',
             maxHeight: isMobile ? '90vh' : 'auto',
             overflowY: 'auto',
           }}>
@@ -1451,7 +1452,7 @@ export default function UserCreation() {
                 margin: 0, 
                 fontSize: isMobile ? '18px' : '20px', 
                 fontWeight: 600,
-                fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 flex: 1,
                 letterSpacing: '-0.01em',
               }}>
@@ -1473,7 +1474,7 @@ export default function UserCreation() {
                   justifyContent: 'center',
                   transition: 'all 0.2s',
                   outline: 'none',
-                  fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+                  fontFamily: "'Inter', sans-serif",
                   flexShrink: 0,
                   marginLeft: '12px',
                 }}
@@ -1495,7 +1496,7 @@ export default function UserCreation() {
                 color: '#1e293b',
                 lineHeight: 1.6,
                 margin: 0,
-                fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontWeight: 400,
                 whiteSpace: 'pre-line',
               }}>
@@ -1523,7 +1524,7 @@ export default function UserCreation() {
                     boxShadow: '0 4px 12px rgba(6, 167, 234, 0.25)',
                     minWidth: isMobile ? '100%' : '140px',
                     outline: 'none',
-                    fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
+                    fontFamily: "'Inter', sans-serif",
                     boxSizing: 'border-box',
                     letterSpacing: '0.01em',
                   }}
