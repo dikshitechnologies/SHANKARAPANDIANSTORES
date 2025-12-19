@@ -1037,28 +1037,28 @@ const handleSalesmanSelect = (salesman) => {
         searchFields: ['name'],
         headerNames: ['Customer Name'],
         columnWidths: { name: '100%' },
-        searchPlaceholder: 'Search customers by name...'
+        searchPlaceholder: 'Search customers'
       },
       salesman: {
         displayFieldKeys: ['name'],
         searchFields: ['name'],
         headerNames: ['Salesman Name'],
         columnWidths: { name: '100%' },
-        searchPlaceholder: 'Search salesmen by name...'
+        searchPlaceholder: 'Search salesmen '
       },
       item: {
         displayFieldKeys: ['popupDisplay'],
         searchFields: ['fItemcode', 'fItemName', 'itemCode', 'itemName'],
         headerNames: ['Item Name'], // Changed header name
         columnWidths: { popupDisplay: '100%' },
-        searchPlaceholder: 'Search by item code or name...'
+        searchPlaceholder: 'Search by item Name'
       },
       editInvoice: {
         displayFieldKeys: ['voucherNo'],
         searchFields: ['voucherNo'],
         headerNames: ['Invoice Number'],
         columnWidths: { voucherNo: '100%' },
-        searchPlaceholder: 'Search by invoice number...',
+        searchPlaceholder: 'Search by invoice number',
         formatRow: (item) => ({
           ...item,
           name: item.voucherNo,
@@ -1070,7 +1070,7 @@ const handleSalesmanSelect = (salesman) => {
         searchFields: ['voucherNo'],
         headerNames: ['Invoice Number'],
         columnWidths: { voucherNo: '100%' },
-        searchPlaceholder: 'Search invoice to delete...',
+        searchPlaceholder: 'Search invoice to delete',
         formatRow: (item) => ({
           ...item,
           name: item.voucherNo,
@@ -2647,7 +2647,7 @@ searchIconInside: {
       }}
       onFocus={() => setFocusedField('salesman')}
       onBlur={() => setFocusedField('')}
-      placeholder="Search salesman"
+      
     />
 
     {/* 🔍 Search Icon */}
@@ -2692,7 +2692,7 @@ searchIconInside: {
       }}
       onFocus={() => setFocusedField('custName')}
       onBlur={() => setFocusedField('')}
-      placeholder="Search customer"
+      
     />
 
     {/* 🔍 Search Icon */}
@@ -2787,7 +2787,7 @@ searchIconInside: {
         textAlign: 'left',
       }}
       value={item.itemName}
-      placeholder="Search item"
+      
       data-row={index}
       data-field="itemName"
       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}

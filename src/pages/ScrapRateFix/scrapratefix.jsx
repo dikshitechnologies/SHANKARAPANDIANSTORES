@@ -634,7 +634,7 @@ const handleConfirmClearAll = () => {
                           value={scrap.rate}
                           onChange={(e) => handleRateChange(scrap.id, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, index)}
-                          placeholder="Enter rate"
+                          // placeholder="Enter rate"
                           style={{
                             width: '100%',
                             padding: isMobile ? '8px 10px' : '10px 12px',
