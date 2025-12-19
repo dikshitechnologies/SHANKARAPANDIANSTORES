@@ -1146,10 +1146,11 @@ const ReceiptVoucher = () => {
   // Function to show save confirmation popup
   const showSaveConfirmation = () => {
     setSaveConfirmationData({
-      title: `${isEditing ? 'Update' : 'Create'} Payment Voucher`,
+      title: `${isEditing ? 'Update' : 'Create'} Receipt Voucher`,
       voucherNo: voucherDetails.voucherNo,
       voucherDate: voucherDetails.date,
-      particulars: particulars
+      particulars: particulars,
+      totalAmount: billTotalAmount
     });
     setSaveConfirmationOpen(true);
   };

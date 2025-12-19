@@ -673,7 +673,7 @@ const PurchaseInvoice = () => {
           },
           'success'
         );
-        toast.success(`Purchase invoice ${voucherNo} deleted successfully.`);
+        toast.error(`Purchase invoice ${voucherNo} deleted successfully.`);
       } else {
         throw new Error(`Delete failed with status: ${response.status}`);
       }
@@ -981,7 +981,7 @@ const PurchaseInvoice = () => {
               setShowConfirmPopup(false);
               // Trigger the actual save function
               handleSave();
-              toast.success('Purchase invoice saved successfully (items without particulars were skipped).');
+              // toast.success('Purchase invoice saved successfully (items without particulars were skipped).');
             },
             onCancel: () => {
               setShowConfirmPopup(false);
