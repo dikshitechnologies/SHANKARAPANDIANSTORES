@@ -58,6 +58,27 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     }
   }, [billData, isOpen]);
 
+  // Function to calculate optimal issue denominations for a given amount
+  const calculateOptimalDenominations = (amount) => {
+    const denomList = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+    const result = {};
+    
+    // Initialize all denominations to 0
+    denomList.forEach(d => result[d] = 0);
+    
+    let remaining = amount;
+    
+    // Greedy algorithm: use largest denominations first
+    for (let denom of denomList) {
+      if (remaining >= denom) {
+        result[denom] = Math.floor(remaining / denom);
+        remaining = remaining % denom;
+      }
+    }
+    
+    return result;
+  };
+
   const handleDenominationChange = (denom, field, value) => {
     const updated = { ...denominations };
     updated[denom] = { ...updated[denom], [field]: value };
@@ -66,11 +87,110 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     const issue = Number(updated[denom].issue) || 0;
     updated[denom].closing = updated[denom].available + collect - issue;
     
+    // If collect field is being updated, calculate balance and auto-fill issue
+    if (field === 'collect') {
+      // Calculate total collected amount from all denominations
+      let totalCollected = 0;
+      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+        const collectValue = d === denom ? Number(value) || 0 : Number(updated[d].collect) || 0;
+        totalCollected += collectValue * d;
+      });
+      
+      // Calculate balance
+      const netAmount = Number(formData.netAmount) || 0;
+      const balance = totalCollected - netAmount;
+      
+      // Update form data balance
+      setFormData(prev => ({
+        ...prev,
+        receivedCash: totalCollected.toString(),
+        balance: balance.toString()
+      }));
+      
+      // If balance is positive, auto-calculate and fill issue row
+      if (balance > 0) {
+        const optimalIssue = calculateOptimalDenominations(balance);
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+          updated[d] = { ...updated[d], issue: optimalIssue[d].toString() };
+          // Recalculate closing for each denomination
+          const col = Number(updated[d].collect) || 0;
+          const iss = optimalIssue[d];
+          updated[d].closing = updated[d].available + col - iss;
+        });
+      }
+    }
+    
     setDenominations(updated);
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+
+      // Calculate Bill Discount Amount when discount % is entered
+      if (field === 'billDiscountPercent') {
+        const billAmount = Number(prev.billAmount) || 0;
+        const discountPercent = Number(value) || 0;
+        const discountAmount = (billAmount * discountPercent) / 100;
+        updated.billDiscAmt = discountAmount.toFixed(2);
+      }
+
+      // Calculate Grand Total when discount amount is updated
+      if (field === 'billDiscAmt') {
+        const billAmount = Number(prev.billAmount) || 0;
+        const discountAmount = Number(value) || 0;
+        const grandTotal = billAmount - discountAmount;
+        updated.granTotal = grandTotal.toFixed(2);
+      }
+
+      // Calculate Grand Total when discount percent is updated (for Enter key)
+      if (field === 'billDiscountPercent') {
+        const billAmount = Number(prev.billAmount) || 0;
+        const discountPercent = Number(value) || 0;
+        const discountAmount = (billAmount * discountPercent) / 100;
+        const grandTotal = billAmount - discountAmount;
+        updated.granTotal = grandTotal.toFixed(2);
+        
+        // Also recalculate Net Amount when Grand Total changes
+        const roundOff = Number(prev.roudOff) || 0;
+        const scrapAmount = Number(prev.scrapAmount) || 0;
+        const salesReturn = Number(prev.salesReturn) || 0;
+        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+        updated.netAmount = netAmount.toFixed(2);
+      }
+
+      // Calculate Net Amount when round off is entered
+      if (field === 'roudOff') {
+        const grandTotal = Number(prev.granTotal) || 0;
+        const roundOff = Number(value) || 0;
+        const scrapAmount = Number(prev.scrapAmount) || 0;
+        const salesReturn = Number(prev.salesReturn) || 0;
+        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+        updated.netAmount = netAmount.toFixed(2);
+      }
+
+      // Recalculate Net Amount when Scrap Amount changes
+      if (field === 'scrapAmount') {
+        const grandTotal = Number(prev.granTotal) || 0;
+        const roundOff = Number(prev.roudOff) || 0;
+        const scrapAmount = Number(value) || 0;
+        const salesReturn = Number(prev.salesReturn) || 0;
+        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+        updated.netAmount = netAmount.toFixed(2);
+      }
+
+      // Recalculate Net Amount when Sales Return changes
+      if (field === 'salesReturn') {
+        const grandTotal = Number(prev.granTotal) || 0;
+        const roundOff = Number(prev.roudOff) || 0;
+        const scrapAmount = Number(prev.scrapAmount) || 0;
+        const salesReturn = Number(value) || 0;
+        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+        updated.netAmount = netAmount.toFixed(2);
+      }
+
+      return updated;
+    });
   };
 
   const fetchBillAmount = async (billNo, fieldType) => {
@@ -259,8 +379,8 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                     <input
                       type="number"
                       value={formData.billDiscAmt}
-                      onChange={(e) => handleInputChange('billDiscAmt', e.target.value)}
-                      className={styles.inputField}
+                      readOnly
+                      className={`${styles.inputField} ${styles.readonlyField}`}
                       placeholder="0"
                     />
                   </div>
@@ -275,8 +395,8 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                     <input
                       type="text"
                       value={formData.granTotal}
-                      onChange={(e) => handleInputChange('granTotal', e.target.value)}
-                      className={styles.inputField}
+                      readOnly
+                      className={`${styles.inputField} ${styles.readonlyField}`}
                     />
                   </div>
                 </div>
@@ -363,7 +483,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                     <input
                       type="text"
                       value={formData.netAmount}
-                      onChange={(e) => handleInputChange('netAmount', e.target.value)}
+                      readOnly
                       className={`${styles.inputField} ${styles.netAmountField}`}
                     />
                   </div>
@@ -460,7 +580,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                         <input
                           type="number"
                           value={denominations[denom].issue}
-                          onChange={(e) => handleDenominationChange(denom, 'issue', e.target.value)}
+                          readOnly
                           className={styles.tableInput}
                           placeholder="0"
                         />
