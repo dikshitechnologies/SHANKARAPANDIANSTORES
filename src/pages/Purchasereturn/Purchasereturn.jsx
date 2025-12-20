@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from 'antd';
-import { toast } from 'react-toastify';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -12,7 +11,7 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPo
 
 const PurchaseReturn = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('add');
+  const [activeTopAction, setActiveTopAction] = useState('create');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingBillNo, setEditingBillNo] = useState('');
   
@@ -35,14 +34,6 @@ const PurchaseReturn = () => {
   const [showInvoiceBillListPopup, setShowInvoiceBillListPopup] = useState(false);
   const [invoiceBillList, setInvoiceBillList] = useState([]);
   const [invoiceBillListLoading, setInvoiceBillListLoading] = useState(false);
-  
-  // Supplier Popup State
-  const [showSupplierPopup, setShowSupplierPopup] = useState(false);
-  const [itemSearchTerm, setItemSearchTerm] = useState('');
-  
-  // Item Code Popup State (for selecting particulars/items)
-  const [showItemCodePopup, setShowItemCodePopup] = useState(false);
-  const [selectedRowId, setSelectedRowId] = useState(null);
   
   // Bill Details Popup State (for showing items from selected purchase invoice)
   const [billDetailsPopupOpen, setBillDetailsPopupOpen] = useState(false);
@@ -114,19 +105,11 @@ const PurchaseReturn = () => {
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const returnNoRef = useRef(null);
   const dateRef = useRef(null);
-  const amountRef = useRef(null);
-  const invoiceNoRef = useRef(null);
-  const invoiceDateRef = useRef(null);
-  const invoiceAmountRef = useRef(null);
-  const partyCodeRef = useRef(null);
-  const customerNameRef = useRef(null);
-  const cityRef = useRef(null);
-  const transTypeRef = useRef(null);
   const mobileRef = useRef(null);
-  const gstTypeRef = useRef(null);
-  const gstNoRef = useRef(null);
+  const customerRef = useRef(null);
   const barcodeRef = useRef(null);
   const addBtnRef = useRef(null);
+  const amountRef = useRef(null);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -185,7 +168,7 @@ const PurchaseReturn = () => {
       // First, clear all states
       setIsEditMode(false);
       setEditingBillNo('');
-      setActiveTopAction('add');
+      setActiveTopAction('create');
       setActiveFooterAction('all');
       setFocusedField('');
       setShowBillListPopup(false);
@@ -265,43 +248,20 @@ const PurchaseReturn = () => {
   };
 
   // Fetch purchase return bill list for popup
-  // Fetch purchase return bill list for popup - Using BillNumbers endpoint
-  const fetchBillList = async (pageNum = 1, search = '') => {
+  // Fetch purchase return bill list for popup
+  const fetchBillList = async () => {
     try {
       const compCode = userData?.companyCode || '001';
       const response = await axiosInstance.get(
-        API_ENDPOINTS.PURCHASE_RETURN.GET_BILL_NUMBERS(compCode, pageNum, 20)
+        API_ENDPOINTS.PURCHASE_RETURN.GET_BILL_NUMBERS(compCode)
       );
       
-      // Handle billNumbers array structure from API
-      let billsData = [];
+      const data = response?.data?.billNumbers || [];
       
-      if (response?.data?.billNumbers && Array.isArray(response.data.billNumbers)) {
-        billsData = response.data.billNumbers;
-      } else if (Array.isArray(response?.data)) {
-        billsData = response.data;
-      } else if (response?.billNumbers && Array.isArray(response.billNumbers)) {
-        billsData = response.billNumbers;
-      }
-      
-      // Map to expected format
-      let mappedData = Array.isArray(billsData) ? billsData.map((bill, index) => ({
+      return Array.isArray(data) ? data.map((bill, index) => ({
         id: bill.billno || `bill-${index}`,
         voucherNo: bill.billno || '',
-        billno: bill.billno || '',
-        displayName: bill.billno || `BILL-${index + 1}`
       })) : [];
-      
-      // Filter by search text if provided
-      if (search && search.trim()) {
-        const searchLower = search.toLowerCase();
-        mappedData = mappedData.filter(bill => 
-          (bill.voucherNo && bill.voucherNo.toLowerCase().includes(searchLower)) ||
-          (bill.billno && bill.billno.toLowerCase().includes(searchLower))
-        );
-      }
-      
-      return mappedData;
     } catch (err) {
       console.error('Error fetching bill list:', err);
       return [];
@@ -332,152 +292,6 @@ const PurchaseReturn = () => {
     } finally {
       setInvoiceBillListLoading(false);
     }
-  };
-
-  // Fetch item code list for particulars popup
-  const fetchItemCodeList = async (search = '') => {
-    try {
-      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST);
-      const data = response?.data || [];
-      
-      let items = Array.isArray(data) ? data.map((item, index) => ({
-        barcode: item.itemCode || `item-${index}`,
-        name: item.itemName || '',
-      })) : [];
-      
-      // Filter by search term if provided
-      if (search && search.trim().length > 0) {
-        const searchLower = search.toLowerCase();
-        items = items.filter(item => 
-          item.barcode.toLowerCase().includes(searchLower) || 
-          item.name.toLowerCase().includes(searchLower)
-        );
-      }
-      
-      return items;
-    } catch (err) {
-      console.error('Error fetching item code list:', err);
-      return [];
-    }
-  };
-
-  // Fetch item details by item code
-  const fetchItemDetailsByCode = async (itemCode) => {
-    try {
-      console.log('Fetching item details for code:', itemCode);
-      
-      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST);
-      const allItems = response?.data || [];
-      
-      console.log('All items from API:', allItems);
-      
-      if (!Array.isArray(allItems) || allItems.length === 0) {
-        console.warn('No items returned from API');
-        return [];
-      }
-      
-      const matchedItem = allItems.find(item => 
-        (item.itemCode || item.code) === itemCode
-      );
-      
-      console.log('Matched item:', matchedItem);
-      
-      if (!matchedItem) {
-        console.warn(`Item ${itemCode} not found in response`);
-        return [];
-      }
-      
-      return [{
-        barcode: matchedItem.itemCode || matchedItem.code || itemCode,
-        name: matchedItem.itemName || matchedItem.name || '',
-        stock: matchedItem.finalStock || matchedItem.stock || matchedItem.totalStock || '0',
-        uom: matchedItem.units || matchedItem.uom || matchedItem.unit || 'PCS',
-        hsn: matchedItem.hsn || matchedItem.hsnCode || '',
-        preRT: matchedItem.preRate || '0',
-        mrp: matchedItem.mrp || '0',
-        brand: matchedItem.brand || '',
-        category: matchedItem.category || '',
-        model: matchedItem.model || '',
-        size: matchedItem.size || '',
-        max: matchedItem.maxQty || '',
-        min: matchedItem.minQty || '',
-        type: matchedItem.type || '',
-      }];
-      
-    } catch (err) {
-      console.error('Error fetching item details by code:', err);
-      console.error('Error response:', err.response);
-      return [];
-    }
-  };
-
-  // Handle opening item code popup for a specific row
-  const handleItemCodeSelect = (itemId, searchTerm = '') => {
-    console.log('Opening item code popup for row:', itemId, 'with search:', searchTerm);
-    setSelectedRowId(itemId);
-    setItemSearchTerm(searchTerm);
-    setShowItemCodePopup(true);
-  };
-
-  // Handle item code selection from popup
-  const handleItemCodeSelection = async (selectedItem) => {
-    if (!selectedItem || !selectedItem.barcode) return;
-    
-    setShowItemCodePopup(false);
-    
-    try {
-      const [stockResponse, itemDetailsArray] = await Promise.all([
-        axiosInstance.get(
-          API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_DETAILS_BY_CODE(selectedItem.barcode)
-        ),
-        fetchItemDetailsByCode(selectedItem.barcode)
-      ]);
-      
-      const stockData = stockResponse?.data || {};
-      const itemDetails = itemDetailsArray && itemDetailsArray.length > 0 ? itemDetailsArray[0] : {};
-      
-      console.log('Stock API response:', stockData);
-      console.log('Item Details API response:', itemDetails);
-      
-      setItems(prevItems => {
-        return prevItems.map(item => {
-          if (item.id === selectedRowId) {
-            return {
-              ...item,
-              barcode: stockData.itemCode || itemDetails.barcode || selectedItem.barcode || '',
-              name: stockData.itemName || itemDetails.name || selectedItem.name || '',
-              stock: stockData.finalStock !== undefined && stockData.finalStock !== null ? stockData.finalStock : itemDetails.stock || '0',
-              uom: stockData.units || itemDetails.uom || 'PCS',
-              hsn: stockData.hsn || itemDetails.hsn || '',
-              prate: parseFloat(stockData.purchaseRate) || parseFloat(itemDetails.preRT) || 0,
-              mrp: parseFloat(stockData.mrp) || parseFloat(itemDetails.mrp) || 0,
-              preRT: parseFloat(stockData.purchaseRate) || parseFloat(itemDetails.preRT) || 0,
-            };
-          }
-          return item;
-        });
-      });
-      
-    } catch (err) {
-      console.error('Error selecting item code:', err);
-      showAlertConfirmation(`Error loading item details: ${err.message}`, null, 'error');
-    }
-  };
-
-  // Fetch supplier/party list
-  const fetchSupplierItems = async (pageNum = 1, search = '') => {
-    const url = API_ENDPOINTS.PURCHASE_RETURN.GET_PARTY_LIST(search || '', pageNum, 20);
-    const res = await axiosInstance.get(url);
-    const data = res?.data?.data || [];
-    return Array.isArray(data) ? data.map((item) => ({
-      code: item.fCode || '',
-      name: item.fAcname || '',
-      city: item.fCity || '',
-      phone: item.fPhone || '',
-      street: item.fStreet || '',
-      area: item.fArea || '',
-      pincode: item.fPincode || ''
-    })) : [];
   };
 
   // Handle invoice bill selection from popup - opens bill details popup
@@ -641,73 +455,74 @@ const PurchaseReturn = () => {
   // Fetch purchase return details for editing
   const fetchPurchaseReturnDetails = async (voucherNo) => {
     try {
-      setIsLoading(true);
+      const compCode = userData?.companyCode || '001';
       
-      console.log('Fetching purchase return details for:', voucherNo);
+      console.log('Fetching purchase return details for:', voucherNo, 'compCode:', compCode);
       
-      const response = await axiosInstance.get(
-        API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_VOUCHER_DETAILS(voucherNo)
-      );
+      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_RETURN_DETAILS(voucherNo), {
+        params: {
+          compCode: compCode
+        }
+      });
       
       console.log('Purchase return details response:', response.data);
       
-      const data = response?.data;
+      const data = response.data;
       
-      if (data && data.success) {
-        const header = data.header || {};
-        const itemsArray = data.items || [];
-        const summary = data.summary || {};
-        
-        // Format the voucher date
-        let formattedDate = new Date().toISOString().substring(0, 10);
-        if (header.voucherDate) {
-          const dateObj = new Date(header.voucherDate);
-          formattedDate = dateObj.toISOString().substring(0, 10);
-        }
-        
-        // Update header details
+      if (data) {
+        const bledger = data.bledger || {};
+        const iledger = data.iledger || [];
         const headerDetails = {
-          invNo: voucherNo || '',
-          billDate: formattedDate,
-          partyCode: header.customerCode || '',
-          customerName: header.refName || '',
-          mobileNo: header.mobileNo || '',
-          amount: header.billAmount?.toString() || '0',
-          gstType: header.gstType || 'I',
-          city: header.city || '',
-          transType: 'PURCHASE',
+          invNo: bledger.voucherNo || '',
+          billDate: bledger.voucherDate ? bledger.voucherDate.split('T')[0] : '',
+          customerName: bledger.refName || '',
+          amount: bledger.billAmount || '',
+          partyCode: bledger.customerCode || '',
+          gstno: iledger.cstsNo || '',
+          city: iledger.add3 || '',
+          mobileNo: iledger.add4 || '',
+          transType: bledger.transType || 'PURCHASE',
         };
         
         console.log('Setting header details:', headerDetails);
         setReturnDetails(prev => ({ ...prev, ...headerDetails }));
 
-        // Process items
-        if (itemsArray.length > 0) {
-          const formattedItems = itemsArray.map((item, index) => ({
+        let itemsData = [];
+        
+        if (data.items && Array.isArray(data.items)) {
+          itemsData = data.items;
+        } else if (data.iledger && Array.isArray(data.iledger)) {
+          itemsData = data.iledger;
+        }
+        
+        console.log('Items data found:', itemsData.length, 'items');
+        
+        if (itemsData.length > 0) {
+          const formattedItems = itemsData.map((item, index) => ({
             id: index + 1,
             barcode: item.itemCode || item.fid || '',
-            name: item.itemName || '',
-            stock: '0',
-            mrp: item.mrp?.toString() || '0',
-            uom: item.unit || '',
-            hsn: item.hsn || '',
-            tax: item.fTax?.toString() || '0',
-            prate: parseFloat(item.rate) || 0,
-            qty: item.qty?.toString() || '0',
-            ovrwt: item.ovrWt?.toString() || '',
-            avgwt: item.avgWt?.toString() || '',
-            intax: item.inTax?.toString() || '',
-            outtax: item.outTax?.toString() || '',
-            acost: item.acost?.toString() || '',
+            name: item.itemname || item.fName || '',
+            stock: item.stock || '0',
+            mrp: item.mrp || '0',
+            uom: item.fUnit || item.unit || '',
+            hsn: item.fhsn || item.hsn || '',
+            tax: item.fTax || item.tax || '',
+            prate: item.rate || 0,
+            qty: item.qty || '1',
+            ovrwt: item.ovrWt || '',
+            avgwt: item.avgWt || '',
+            intax: item.inTax || '',
+            outtax: item.outTax || '',
+            acost: item.acost || '',
             sudo: item.sudo || '',
-            profitPercent: item.profitPercent?.toString() || '',
-            preRT: item.preRate?.toString() || '',
-            sRate: item.sRate?.toString() || '',
-            asRate: item.asRate?.toString() || '',
-            letProfPer: item.letProfPer?.toString() || '',
-            ntCost: item.ntCost?.toString() || '',
-            wsPercent: item.wsPer?.toString() || '',
-            wsRate: item.wRate?.toString() || '',
+            profitPercent: item.profitPercent || '',
+            preRT: item.preRate || '',
+            sRate: item.sRate || '',
+            asRate: item.asRate || '',
+            letProfPer: item.letProfPer || '',
+            ntCost: item.ntCost || '',
+            wsPercent: item.wsPer || '',
+            wsRate: item.wRate || '',
             min: '',
             max: ''
           }));
@@ -715,7 +530,7 @@ const PurchaseReturn = () => {
           console.log('Formatted items:', formattedItems);
           setItems(formattedItems);
         } else {
-          console.log('No items found');
+          console.log('No items found, resetting to default');
           setItems([{
             id: 1,
             barcode: '',
@@ -754,15 +569,13 @@ const PurchaseReturn = () => {
         console.log('Edit mode activated for voucher:', voucherNo);
         
       } else {
-        console.warn('Invalid response structure');
+        console.warn('No data received from API');
         showAlertConfirmation('No purchase return data found', null, 'warning');
       }
     } catch (err) {
       console.error('Error fetching purchase return details:', err);
       console.error('Error response:', err.response);
       showAlertConfirmation(`Failed to load purchase return details: ${err.message}`, null, 'danger');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -976,7 +789,6 @@ const PurchaseReturn = () => {
 
       const currentFieldIndex = fields.indexOf(currentField);
 
-      // Move to next field in current row
       if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
         const nextField = fields[currentFieldIndex + 1];
         const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
@@ -986,36 +798,19 @@ const PurchaseReturn = () => {
         }
       }
 
-      // When on last field, check if item is selected before moving to next row
-      if (currentField === 'max') {
-        const currentItem = items[currentRowIndex];
-
-        // 🚫 BLOCK if item name or barcode not selected
-        if (!currentItem.barcode || !currentItem.name || currentItem.name.trim() === '') {
-          toast.warning('Select item before moving to next row');
+      if (currentRowIndex < items.length - 1) {
+        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
+        if (nextInput) {
+          nextInput.focus();
           return;
         }
-
-        // Move to next row
-        if (currentRowIndex < items.length - 1) {
-          const nextInput = document.querySelector(
-            `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
-          );
-          if (nextInput) {
-            nextInput.focus();
-            return;
-          }
-        } else {
-          // Only add new row if item is properly filled
-          handleAddRow();
-          setTimeout(() => {
-            const newRowInput = document.querySelector(
-              `input[data-row="${items.length}"][data-field="barcode"]`
-            );
-            if (newRowInput) newRowInput.focus();
-          }, 80);
-        }
       }
+
+      handleAddRow();
+      setTimeout(() => {
+        const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
+        if (newRowInput) newRowInput.focus();
+      }, 60);
     }
   };
 
@@ -1143,7 +938,6 @@ const PurchaseReturn = () => {
 
       // Prepare return data according to API schema
       const purchaseReturnPayload = {
-        invNo: returnDetails.invNo || '',
         bledger: {
           customerCode: returnDetails.partyCode || '',
           voucherNo: returnDetails.purNo || '',
@@ -1199,8 +993,8 @@ const PurchaseReturn = () => {
 
       // Call API based on edit mode
       const endpoint = isEditMode 
-        ? API_ENDPOINTS.PURCHASE_RETURN.UPDATE_PURCHASE_RETURN(false)
-        : API_ENDPOINTS.PURCHASE_RETURN.CREATE_PURCHASE_RETURN(true);
+        ? API_ENDPOINTS.PURCHASE_RETURN.UPDATE_PURCHASE_RETURN()
+        : API_ENDPOINTS.PURCHASE_RETURN.CREATE_PURCHASE_RETURN();
 
       const response = await axiosInstance.post(endpoint, purchaseReturnPayload);
 
@@ -1611,7 +1405,7 @@ const PurchaseReturn = () => {
               name="amount"
               onChange={handleInputChange}
               ref={amountRef}
-              onKeyDown={(e) => handleKeyDown(e, invoiceNoRef)}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('amount')}
               onBlur={() => setFocusedField('')}
               // placeholder="Amount"
@@ -1628,8 +1422,7 @@ const PurchaseReturn = () => {
               value={returnDetails.originalInvoiceNo}
               onChange={handleInputChange}
               onClick={fetchInvoiceBillList}
-              ref={invoiceNoRef}
-              onKeyDown={(e) => handleKeyDown(e, invoiceDateRef)}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('originalInvoiceNo')}
               onBlur={() => setFocusedField('')}
               placeholder="Click to select invoice"
@@ -1645,8 +1438,7 @@ const PurchaseReturn = () => {
               style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
               value={returnDetails.originalInvoiceDate}
               onChange={handleInputChange}
-              ref={invoiceDateRef}
-              onKeyDown={(e) => handleKeyDown(e, invoiceAmountRef)}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('originalInvoiceDate')}
               onBlur={() => setFocusedField('')}
             />
@@ -1661,8 +1453,7 @@ const PurchaseReturn = () => {
               style={styles.inlineInput}
               value={returnDetails.originalInvoiceAmount}
               onChange={handleInputChange}
-              ref={invoiceAmountRef}
-              onKeyDown={(e) => handleKeyDown(e, partyCodeRef)}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('originalInvoiceAmount')}
               onBlur={() => setFocusedField('')}
               // placeholder="Original Amount"
@@ -1680,15 +1471,12 @@ const PurchaseReturn = () => {
             <label style={styles.inlineLabel}>Party Code:</label>
             <input
               type="text"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'partyCode' && styles.focusedInput)
-              }}
+              style={styles.inlineInput}
               value={returnDetails.partyCode}
               name="partyCode"
               onChange={handleInputChange}
-              ref={partyCodeRef}
-              onKeyDown={(e) => handleKeyDown(e, customerNameRef)}
+              ref={customerRef}
+              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
               onFocus={() => setFocusedField('partyCode')}
               onBlur={() => setFocusedField('')}
               // placeholder="Party Code"
@@ -1698,72 +1486,17 @@ const PurchaseReturn = () => {
           {/* Customer Name */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}> Name:</label>
-            <div style={{ position: 'relative', display: 'flex', flex: 1 }}>
-              <input
-                type="text"
-                ref={customerNameRef}
-                style={{
-                  ...styles.inlineInput,
-                  flex: 1,
-                  paddingRight: '40px',
-                  ...(focusedField === 'customerName' && styles.focusedInput)
-                }}
-                value={returnDetails.customerName}
-                name="customerName"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  handleInputChange(e);
-                  
-                  if (value.length > 0) {
-                    setItemSearchTerm(value);
-                    setTimeout(() => setShowSupplierPopup(true), 300);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === '/' || e.key === 'F2') {
-                    e.preventDefault();
-                    setItemSearchTerm(returnDetails.customerName);
-                    setShowSupplierPopup(true);
-                  } else if (e.key === 'Enter') {
-                    handleKeyDown(e, cityRef);
-                  }
-                }}
-                onFocus={() => setFocusedField('customerName')}
-                onBlur={() => {
-                  setFocusedField('');
-                  setTimeout(() => {
-                    if (!showSupplierPopup) {
-                      setItemSearchTerm('');
-                    }
-                  }, 200);
-                }}
-                // placeholder="Search Supplier"
-              />
-              <button
-                type="button"
-                aria-label="Search supplier"
-                title="Search supplier"
-                onClick={() => setShowSupplierPopup(true)}
-                style={{
-                  position: 'absolute',
-                  right: '4px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  height: screenSize.isMobile ? '24px' : '28px',
-                  width: screenSize.isMobile ? '24px' : '28px',
-                  padding: 0,
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  fontSize: screenSize.isMobile ? '14px' : '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                🔍
-              </button>
-            </div>
+            <input
+              type="text"
+              style={styles.inlineInput}
+              value={returnDetails.customerName}
+              name="customerName"
+              onChange={handleInputChange}
+              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
+              onFocus={() => setFocusedField('customerName')}
+              onBlur={() => setFocusedField('')}
+              // placeholder="Customer Name"
+            />
           </div>
 
           {/* City */}
@@ -1775,8 +1508,7 @@ const PurchaseReturn = () => {
               value={returnDetails.city}
               name="city"
               onChange={handleInputChange}
-              ref={cityRef}
-              onKeyDown={(e) => handleKeyDown(e, transTypeRef)}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('city')}
               onBlur={() => setFocusedField('')}
               // placeholder="City"
@@ -1791,8 +1523,7 @@ const PurchaseReturn = () => {
               style={styles.inlineInput}
               value={returnDetails.transType}
               onChange={handleInputChange}
-              ref={transTypeRef}
-              onKeyDown={(e) => handleKeyDown(e, mobileRef)}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('transType')}
               onBlur={() => setFocusedField('')}
             >
@@ -1801,6 +1532,8 @@ const PurchaseReturn = () => {
               <option value="CREDIT_NOTE">CREDIT NOTE</option>
             </select>
           </div>
+
+          
 
           {/* Mobile No */}
           <div style={styles.formField}>
@@ -1812,7 +1545,7 @@ const PurchaseReturn = () => {
               name="mobileNo"
               onChange={handleInputChange}
               ref={mobileRef}
-              onKeyDown={(e) => handleKeyDown(e, gstTypeRef)}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
               // placeholder="Mobile No"
@@ -1826,27 +1559,6 @@ const PurchaseReturn = () => {
           gridTemplateColumns: getGridColumns(),
           marginBottom: '0',
         }}>
-          {/* GST Type */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>GST Type:</label>
-            <select
-              name="gstType"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'gstType' && styles.focusedInput)
-              }}
-              value={returnDetails.gstType || 'G'}
-              onChange={handleInputChange}
-              ref={gstTypeRef}
-              onKeyDown={(e) => handleKeyDown(e, gstNoRef)}
-              onFocus={() => setFocusedField('gstType')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="G">CGST/SGST</option>
-              <option value="I">IGST</option>
-            </select>
-          </div>
-
           {/* GST No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>GST No:</label>
@@ -1856,8 +1568,7 @@ const PurchaseReturn = () => {
               value={returnDetails.gstno}
               name="gstno"
               onChange={handleInputChange}
-              ref={gstNoRef}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
+              onKeyDown={(e) => handleKeyDown(e, customerRef)}
               onFocus={() => setFocusedField('gstno')}
               onBlur={() => setFocusedField('')}
               // placeholder="GST No"
@@ -1931,9 +1642,6 @@ const PurchaseReturn = () => {
                       data-field="barcode"
                       onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
-                      onClick={() => handleItemCodeSelect(item.id, item.barcode)}
-                      ref={index === 0 ? barcodeRef : null}
-                      title="Click to select item from list"
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
@@ -1945,8 +1653,6 @@ const PurchaseReturn = () => {
                       data-field="name"
                       onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'name')}
-                      onClick={() => handleItemCodeSelect(item.id, item.name)}
-                      title="Click to select item from list"
                     />
                   </td>
                   <td style={styles.td}>
@@ -2211,7 +1917,7 @@ const PurchaseReturn = () => {
                         <path d="M10 11v6"></path>
                         <path d="M14 11v6"></path>
                         <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                                           </svg>
+                      </svg>
                     </button>
                   </td>
                 </tr>
@@ -2410,50 +2116,6 @@ const PurchaseReturn = () => {
           )}
         </div>
       </Modal>
-
-      {/* Item Code Popup for Particulars/Items */}
-      <PopupListSelector
-        open={showItemCodePopup}
-        onClose={() => {
-          setShowItemCodePopup(false);
-          setItemSearchTerm('');
-        }}
-        title="Select Item Code (Particulars)"
-        fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search || itemSearchTerm)}
-        displayFieldKeys={['barcode','name']}
-        headerNames={['Barcode','Name']}
-        searchFields={['barcode','name']}
-        columnWidths={{ barcode: '50%', name: '50%' }}
-        searchPlaceholder="Search by barcode or name..."
-        initialSearchText={itemSearchTerm}
-        onSelect={handleItemCodeSelection}
-      />
-
-      {/* Supplier Popup */}
-      <PopupListSelector
-        open={showSupplierPopup}
-        onClose={() => { 
-          setShowSupplierPopup(false); 
-          setItemSearchTerm(''); 
-        }}
-        title="Select Supplier"
-        fetchItems={fetchSupplierItems}
-        displayFieldKeys={['code','name','city','phone']}
-        headerNames={['Code','Name','City','Phone']}
-        searchFields={['code','name','city','phone']}
-        columnWidths={{ code: '20%', name: '40%', city: '20%', phone: '20%' }}
-        searchPlaceholder="Search supplier..."
-        initialSearchText={itemSearchTerm}
-        onSelect={(s) => {
-          setReturnDetails(prev => ({
-            ...prev,
-            partyCode: s.code || '',
-            customerName: s.name || '',
-            city: s.city || '',
-            mobileNo: s.phone || ''
-          }));
-        }}
-      />
 
       {/* Confirmation Popup */}
       <ConfirmationPopup
