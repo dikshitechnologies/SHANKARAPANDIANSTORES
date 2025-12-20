@@ -111,10 +111,21 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     let remaining = amount;
     
     // Greedy algorithm: use largest denominations first
+    // BUT only use denominations that have available quantity
     for (let denom of denomList) {
+      const available = denominations[denom]?.available || 0;
+      
+      // Skip denominations with 0 available
+      if (available <= 0) {
+        continue;
+      }
+      
       if (remaining >= denom) {
-        result[denom] = Math.floor(remaining / denom);
-        remaining = remaining % denom;
+        // Use minimum of: calculated needed amount or available quantity
+        const needed = Math.floor(remaining / denom);
+        const canUse = Math.min(needed, available);
+        result[denom] = canUse;
+        remaining = remaining - (canUse * denom);
       }
     }
     
