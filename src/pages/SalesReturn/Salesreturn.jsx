@@ -1716,26 +1716,83 @@ useEffect(() => {
     setBillDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleKeyDown = (e, nextRef, fieldName = '') => {
-    if (e.key === '/') {
-      e.preventDefault();
+const handleKeyDown = (e, nextRef, fieldName = '') => {
+  // Check if a letter key is pressed (A-Z, a-z)
+  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+  
+  if (isLetterKey) {
+    e.preventDefault(); // Prevent the letter from being typed in the field
+    
+    if (fieldName === 'salesman') {
+      openSalesmanPopup();
+      // Set search in popup after it opens
+      setTimeout(() => {
+        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+        if (searchInput) {
+          searchInput.value = e.key;
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 100);
       
-      if (fieldName === 'salesman') {
-        openSalesmanPopup();
-      } else if (fieldName === 'custName') {
-        openCustomerPopup();
-      } else if (fieldName === 'newBillNo') {
-        openBillNumberPopup();
-      }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (nextRef && nextRef.current) {
-        nextRef.current.focus();
-      }
+    } else if (fieldName === 'custName') {
+      openCustomerPopup();
+      // Set search in popup after it opens
+      setTimeout(() => {
+        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+        if (searchInput) {
+          searchInput.value = e.key;
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 100);
+      
+    } else if (fieldName === 'newBillNo') {
+      openBillNumberPopup().then(() => {
+        setTimeout(() => {
+          const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+          if (searchInput) {
+            searchInput.value = e.key;
+            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }, 200);
+      });
     }
-  };
+  } else if (e.key === '/') {
+    e.preventDefault();
+    
+    if (fieldName === 'salesman') {
+      openSalesmanPopup();
+    } else if (fieldName === 'custName') {
+      openCustomerPopup();
+    } else if (fieldName === 'newBillNo') {
+      openBillNumberPopup();
+    }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (nextRef && nextRef.current) {
+      nextRef.current.focus();
+    }
+  }
+};
 
 const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  // Check if a letter key is pressed (A-Z, a-z) in itemName field
+  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+  
+  if (isLetterKey && currentField === 'itemName') {
+    e.preventDefault(); // Prevent the letter from being typed in the field
+    openItemPopup(currentRowIndex);
+    
+    // Set search in popup after it opens
+    setTimeout(() => {
+      const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+      if (searchInput) {
+        searchInput.value = e.key;
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }, 100);
+    return;
+  }
+  
   if (e.key === '/' && currentField === 'itemName') {
     e.preventDefault();
     openItemPopup(currentRowIndex);
