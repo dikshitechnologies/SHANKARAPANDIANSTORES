@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
 
-
 // Import your API service
 import { axiosInstance } from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
@@ -13,20 +12,12 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPo
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Import ActionButtons - CORRECTED IMPORT PATH
-import { 
-  ActionButtons, 
-  AddButton, 
-  EditButton, 
-  DeleteButton,
-  ActionButtons1
-} from '../../components/Buttons/ActionButtons.jsx';
-
-// Get endpoints from your configuration
+// CORRECTED ENDPOINTS - Fixed spelling mistakes
 const USERS_URL = API_ENDPOINTS.ADMINISTRATION.USER_LIST;
 const GET_PERMS_URL = API_ENDPOINTS.ADMINISTRATION.GET_PERMISSIONS_BY_USER;
 const INSERT_BATCH_URL = API_ENDPOINTS.ADMINISTRATION.ADMIN_BATCH_INSERT;
-const DELETE_URL = API_ENDPOINTS.ADMINISTRATION.DELETE_PERMISSIONS;
+
+
 // Updated item lists with proper database permission names
 const MASTER_ITEMS = [
   { label: "Unit Creation", dbName: "UNIT_CREATION" },
@@ -273,12 +264,12 @@ const Administration = () => {
         const b = v => v === true || v === "1" || v === 1 || v === "true" || v === "True";
 
         data.forEach(it => {
-          const fc = it.formCode || it.form_permission || it.formPermission || it.form || (it.formName ? it.formName.replace(/\s+/g, "_").toUpperCase() : null);
-          let p = b(it.permission) || b(it.fPermission) || b(it.formPermission);
-          let a = b(it.add) || b(it.addPermission);
-          let e = b(it.edit) || b(it.editPermission);
-          let d = b(it.del) || b(it.deletePermission) || b(it.delPermission);
-          let pr = b(it.print) || b(it.printPermission);
+          const fc = it.fForm || it.formCode || it.form_permission || it.formPermission || it.form || (it.formName ? it.formName.replace(/\s+/g, "_").toUpperCase() : null);
+          let p = b(it.fPermission) || b(it.permission) || b(it.fPermission) || b(it.formPermission);
+          let a = b(it.fAdd) || b(it.add) || b(it.addPermission);
+          let e = b(it.fMod) || b(it.edit) || b(it.editPermission);
+          let d = b(it.fDel) || b(it.del) || b(it.deletePermission) || b(it.delPermission);
+          let pr = b(it.fPrint) || b(it.print) || b(it.printPermission);
           
           if (fc && map[fc]) {
             map[fc] = { ...map[fc], permission: !!p, add: !!a, edit: !!e, del: !!d, print: !!pr };
@@ -303,79 +294,45 @@ const Administration = () => {
     }
   }
 
-  async function deletePermissionsForCode(code) {
-    try {
-      // Try different delete methods
-      let response;
 
-      // Try DELETE with code in URL
-      try {
-        response = await axiosInstance.delete(`${DELETE_URL}/${code}`);
-        if (response.status === 200 || response.status === 204) {
-          return { ok: true };
-        }
-      } catch (error1) {
-        // Try DELETE with query parameter
-        try {
-          response = await axiosInstance.delete(DELETE_URL, {
-            params: { userCode: code }
-          });
-          if (response.status === 200 || response.status === 204) {
-            return { ok: true };
-          }
-        } catch (error2) {
-          // Try POST with body for deletion (some APIs use POST for delete)
-          try {
-            response = await axiosInstance.post(DELETE_URL, {
-              userCode: code,
-              action: "delete"
-            });
-            if (response.status === 200) {
-              return { ok: true };
-            }
-          } catch (error3) {
-            console.error("All delete attempts failed");
-            return { ok: false };
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error deleting permissions:", error);
-      return { ok: false };
+  // FIXED INSERT FUNCTION - Based on your API structure
+async function insertBatchForUser(code) {
+  const o = perms[selectedUserId];
+  if (!o) return { ok: false };
+
+  // Build payload EXACTLY as Swagger expects
+  const payload = Object.values(o).map(p => ({
+    userCode: code,
+    modelshort: p.modelShort,                 // REQUIRED
+    formPermission: p.formCode,               // REQUIRED
+    fPermission: p.permission ? "1" : "0",
+    addPermission: p.add ? "1" : "0",
+    editPermission: p.edit ? "1" : "0",
+    deletePermission: p.del ? "1" : "0",
+    printPermission: p.print ? "1" : "0"
+  }));
+
+  console.log("FINAL payload (correct):", payload);
+
+  try {
+    const response = await axiosInstance.post(
+      INSERT_BATCH_URL,
+      payload,
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    if (response.status === 200 || response.status === 201) {
+      localStorage.setItem(LS_PERMS_PREFIX + code, JSON.stringify(o));
+      return { ok: true };
     }
+
+    return { ok: false, error: response.data };
+  } catch (err) {
+    console.error("Insert failed:", err.response?.data || err.message);
+    return { ok: false, error: err.response?.data };
   }
+}
 
-  async function insertBatchForUser(code) {
-    const o = perms[selectedUserId];
-    if (!o) return { ok: false };
-
-    const payload = Object.values(o).map(p => ({
-      userCode: code,
-      modelShort: p.modelShort,
-      formPermission: p.formCode, // This should now match your database field names
-      fPermission: p.permission ? "1" : "0",
-      addPermission: p.add ? "1" : "0",
-      editPermission: p.edit ? "1" : "0",
-      deletePermission: p.del ? "1" : "0",
-      printPermission: p.print ? "1" : "0"
-    }));
-
-    try {
-      const response = await axiosInstance.post(INSERT_BATCH_URL, payload);
-
-      if (response.status === 200 || response.status === 201) {
-        try {
-          localStorage.setItem(LS_PERMS_PREFIX + code, JSON.stringify(o));
-        } catch { }
-        return { ok: true };
-      } else {
-        return { ok: false };
-      }
-    } catch (error) {
-      console.error("Error inserting batch:", error);
-      return { ok: false };
-    }
-  }
 
   const handleUserPopupOpen = () => {
     setShowUserPopup(true);
@@ -481,48 +438,44 @@ const Administration = () => {
       type: "success",
       confirmText: "Update",
       cancelText: "Cancel",
-      onConfirm: async () => {
-        try {
-          setLoading(true);
-          // First delete existing permissions
-          const delResult = await deletePermissionsForCode(code);
+onConfirm: async () => {
+  try {
+    setLoading(true);
 
-          if (!delResult.ok) {
-            console.warn("Delete operation may have failed, but continuing with insert...");
-          }
+    toast.info("Saving permissions...", {
+      position: "top-right",
+      autoClose: 2000,
+    });
 
-          // Insert new permissions
-          const ins = await insertBatchForUser(code);
+    const ins = await insertBatchForUser(code);
 
-          if (ins.ok) {
-            toast.success("Permissions updated successfully!", {
-              position: "top-right",
-              autoClose: 3000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              onClose: () => {
-                // Refresh permissions from server
-                fetchAndMapPermissions(code, selectedUserId);
-              }
-            });
-          } else {
-            toast.error("Failed to update permissions. Please try again.", {
-              position: "top-right",
-              autoClose: 3000,
-            });
-          }
-        } catch (error) {
-          console.error("Error submitting permissions:", error);
-          toast.error("An error occurred while updating permissions.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-        } finally {
-          setLoading(false);
-        }
-      }
+// After successful save in Administration.js
+if (ins.ok) {
+  toast.success("Permissions updated successfully!", {
+    position: "top-right",
+    autoClose: 3000,
+  });
+  
+  // Trigger permission refresh in other components
+  window.dispatchEvent(new Event('permissionsUpdated'));
+}
+ else {
+      toast.error("Failed to update permissions.", {
+        position: "top-right",
+        autoClose: 4000,
+      });
+    }
+  } catch (error) {
+    console.error("Error submitting permissions:", error);
+    toast.error("An error occurred while updating permissions.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+  } finally {
+    setLoading(false);
+  }
+}
+
     });
   };
 
@@ -705,23 +658,6 @@ const Administration = () => {
           cursor: not-allowed;
         }
         
-        .react-select-container .react-select__control {
-          border-radius: 6px;
-          border: 1px solid #d1d5db;
-          box-shadow: none;
-          min-height: 38px;
-          font-size: 14px;
-        }
-        
-        .react-select-container .react-select__control:hover {
-          border-color: #307AC8;
-        }
-        
-        .react-select-container .react-select__control--is-focused {
-          border-color: #307AC8;
-          boxShadow: 0 0 0 2px rgba(48, 122, 200, 0.1);
-        }
-        
         @media (max-width: 1200px) {
           .main-content {
             flex-direction: column !important;
@@ -834,8 +770,6 @@ const Administration = () => {
       />
 
       <div style={styles.contentWrapper}>
-       
-
         <div style={styles.mainContent} className="main-content">
           <div style={styles.leftColumn} className="left-column">
             {/* Tabs + Select User in ONE ROW */}
@@ -1168,7 +1102,7 @@ const Administration = () => {
   );
 };
 
-// Inline CSS Styles (Keep all existing styles exactly the same)
+// Inline CSS Styles (same as before)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -1273,7 +1207,7 @@ const styles = {
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
     transition: 'box-shadow 0.3s ease',
   },
-  // Tabs + Select User Row Styles
+  // ... (keep all other styles exactly as they were)
   tabsSelectRow: {
     display: "flex",
     justifyContent: "space-between",
@@ -1284,7 +1218,6 @@ const styles = {
   tabsContainer: {
     display: 'flex',
     gap: '8px',
-
     flex: '1',
     minWidth: '300px',
   },
@@ -1354,7 +1287,6 @@ const styles = {
     fontSize: '14px',
     marginLeft: '8px',
   },
-  // MASTER Header with Title, Search, and Buttons
   masterHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -1459,7 +1391,6 @@ const styles = {
     opacity: '0.5',
     cursor: 'not-allowed',
   },
-  // BIG Table Styles
   tableContainer: {
     overflow: 'auto',
     maxHeight: 'calc(100vh - 300px)',
@@ -1469,19 +1400,16 @@ const styles = {
   },
   table: {
     width: '100%',
-
     borderCollapse: 'collapse',
     minWidth: '800px',
   },
   tableHeaderCell: {
     padding: '14px 16px',
-
     backgroundColor: 'white',
     borderBottom: '2px solid #e5e7eb',
     textAlign: 'left',
     fontSize: '14px',
     fontWeight: '700',
-
     position: 'sticky',
     top: '0',
     zIndex: '10',
