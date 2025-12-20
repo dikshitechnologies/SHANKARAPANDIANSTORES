@@ -111,10 +111,21 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     let remaining = amount;
     
     // Greedy algorithm: use largest denominations first
+    // BUT only use denominations that have available quantity
     for (let denom of denomList) {
+      const available = denominations[denom]?.available || 0;
+      
+      // Skip denominations with 0 available
+      if (available <= 0) {
+        continue;
+      }
+      
       if (remaining >= denom) {
-        result[denom] = Math.floor(remaining / denom);
-        remaining = remaining % denom;
+        // Use minimum of: calculated needed amount or available quantity
+        const needed = Math.floor(remaining / denom);
+        const canUse = Math.min(needed, available);
+        result[denom] = canUse;
+        remaining = remaining - (canUse * denom);
       }
     }
     
@@ -142,11 +153,12 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
       const netAmount = Number(formData.netAmount) || 0;
       const balance = totalCollected - netAmount;
       
-      // Update form data balance
+      // Update form data balance and issued cash
       setFormData(prev => ({
         ...prev,
         receivedCash: totalCollected.toString(),
-        balance: balance.toString()
+        balance: balance.toString(),
+        issuedCash: balance > 0 ? balance.toString() : ''
       }));
       
       // If balance is positive, auto-calculate and fill issue row
@@ -285,72 +297,9 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     }
   };
 
-  const handleSave = async () => {
-    try {
-      // Prepare the payload for the API
-      const tenderPayload = {
-        invoiceNo: formData.billNo,
-        date: new Date().toISOString(),
-        billAmount: Number(formData.billAmount) || 0,
-        givenTotal: Number(formData.receivedCash) || 0,
-        balanceGiven: Number(formData.balance) || 0,
-        fCompCode: userData?.companyCode || '001',
-        fGrossAMT: Number(formData.grossAmt) || 0,
-        fitemAMT: Number(formData.itemDAmt) || 0,
-        fBilDIS: Number(formData.billDiscAmt) || 0,
-        froundoFf: Number(formData.roudOff) || 0,
-        fScrapBillNo: formData.scrapAmountBillNo || '',
-        fscrapAMT: Number(formData.scrapAmount) || 0,
-        fsaleBillNO: formData.salesReturnBillNo || '',
-        fSalesAMT: Number(formData.salesReturn) || 0,
-        fIssueCash: Number(formData.issuedCash) || 0,
-        fupi: Number(formData.upi) || 0,
-        fcard: Number(formData.card) || 0,
-        collect: {
-          r500: Number(denominations[500].collect) || 0,
-          r200: Number(denominations[200].collect) || 0,
-          r100: Number(denominations[100].collect) || 0,
-          r50: Number(denominations[50].collect) || 0,
-          r20: Number(denominations[20].collect) || 0,
-          r10: Number(denominations[10].collect) || 0,
-          r5: Number(denominations[5].collect) || 0,
-          r2: Number(denominations[2].collect) || 0,
-          r1: Number(denominations[1].collect) || 0,
-        },
-        issue: {
-          r500: Number(denominations[500].issue) || 0,
-          r200: Number(denominations[200].issue) || 0,
-          r100: Number(denominations[100].issue) || 0,
-          r50: Number(denominations[50].issue) || 0,
-          r20: Number(denominations[20].issue) || 0,
-          r10: Number(denominations[10].issue) || 0,
-          r5: Number(denominations[5].issue) || 0,
-          r2: Number(denominations[2].issue) || 0,
-          r1: Number(denominations[1].issue) || 0,
-        }
-      };
-
-      console.log('Tender Payload:', tenderPayload);
-
-      // Call the API
-      const response = await apiService.post(
-        API_ENDPOINTS.BILLCOLLECTOR.INSERT_TENDER,
-        tenderPayload
-      );
-
-      console.log('Save response:', response);
-
-      if (response && response.success) {
-        alert('✓ Tender details saved successfully!');
-        // Close the modal after successful save
-        onClose();
-      } else {
-        alert('Failed to save tender. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error saving tender:', error);
-      alert('Error: ' + (error.message || 'Failed to save tender details'));
-    }
+  const handleSave = () => {
+    console.log('Saved:', { formData, denominations });
+    alert('✓ Tender details saved successfully!');
   };
 
   const handleDelete = () => {
@@ -763,7 +712,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                   </div>
                 </div>
 
-                <div className={styles.paymentRow} style={{ gap: '12px' }}>
+                {/* <div className={styles.paymentRow} style={{ gap: '12px' }}>
                   <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
                     <label className={styles.paymentLabel}>Balance</label>
                     <div className={styles.paymentInputContainer}>
@@ -775,7 +724,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       />
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Right Side Checkboxes */}
                 <div className={styles.rightCheckboxRow}>

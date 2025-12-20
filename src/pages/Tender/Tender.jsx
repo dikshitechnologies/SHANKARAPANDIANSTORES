@@ -1,141 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styles from './Tender.module.css';
-import apiService from '../../api/apiService';
 import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
-import { API_ENDPOINTS } from '../../api/endpoints';
-import { useAuth } from '../../context/AuthContext';
 
-export const Tender = () => {
-  const { userData } = useAuth() || {};
+const Tender = () => {
   const [activeFooterAction, setActiveFooterAction] = useState('all');
-  const [billsList, setBillsList] = useState([]);
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: '', issue: '', closing: 0 },
-    200: { available: 0, collect: '', issue: '', closing: 0 },
-    100: { available: 0, collect: '', issue: '', closing: 0 },
-    50: { available: 0, collect: '', issue: '', closing: 0 },
-    20: { available: 0, collect: '', issue: '', closing: 0 },
+    200: { available: 4, collect: '', issue: '', closing: 4 },
+    100: { available: 116, collect: '', issue: '', closing: 116 },
+    50: { available: 3, collect: '', issue: '', closing: 3 },
+    20: { available: 2, collect: '', issue: '', closing: 2 },
     10: { available: 0, collect: '', issue: '', closing: 0 },
     5: { available: 0, collect: '', issue: '', closing: 0 },
-    2: { available: 0, collect: '', issue: '', closing: 0 },
-    1: { available: 0, collect: '', issue: '', closing: 0 },
+    2: { available: 9, collect: '', issue: '', closing: 9 },
+    1: { available: 6, collect: '', issue: '', closing: 6 },
   });
 
   const [formData, setFormData] = useState({
-    billNo: '',
-    salesman: '',
-    date: '',
-    grossAmt: '',
-    itemDAmt: '',
-    billAmount: '',
+    grossAmt: '3070',
+    itemDAmt: '9026737634',
+    billAmount: '3070',
     billDiscountPercent: '',
     billDiscAmt: '',
     granTotal: '',
     roudOff: '',
-    scrapAmountBillNo: '',
     scrapAmount: '',
-    salesReturnBillNo: '',
     salesReturn: '',
     netAmount: '',
     receivedCash: '',
-    issuedCash: '',
-    upi: '',
+    issuedCash: '12614',
+    upi: '[ICICI-M-UPI]',
     card: '',
     balance: '',
     isServiceCharge: false,
     isCreditBill: false,
     delivery: false,
   });
-
-  // Fetch live drawer available from API on component mount
-  useEffect(() => {
-    fetchLiveDrawer();
-    fetchBillsList();
-  }, [userData?.companyCode]);
-
-  const fetchLiveDrawer = async () => {
-    try {
-      const today = new Date();
-      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const companyCode = userData?.companyCode || '001';
-      
-      console.log('Fetching live drawer with:', { dateStr, companyCode });
-      
-      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_LIVE_DRAWER(dateStr, companyCode);
-      const response = await apiService.get(endpoint);
-      
-      console.log('Live drawer API response:', response);
-      
-      if (response) {
-        const data = response.data || response;
-        console.log('Parsed data:', data);
-        
-        // Map API response keys (r500, r200, etc.) to denominations
-        setDenominations(prev => ({
-          500: { ...prev[500], available: data.r500 || 0, closing: data.r500 || 0 },
-          200: { ...prev[200], available: data.r200 || 0, closing: data.r200 || 0 },
-          100: { ...prev[100], available: data.r100 || 0, closing: data.r100 || 0 },
-          50: { ...prev[50], available: data.r50 || 0, closing: data.r50 || 0 },
-          20: { ...prev[20], available: data.r20 || 0, closing: data.r20 || 0 },
-          10: { ...prev[10], available: data.r10 || 0, closing: data.r10 || 0 },
-          5: { ...prev[5], available: data.r5 || 0, closing: data.r5 || 0 },
-          2: { ...prev[2], available: data.r2 || 0, closing: data.r2 || 0 },
-          1: { ...prev[1], available: data.r1 || 0, closing: data.r1 || 0 },
-        }));
-        console.log('Live drawer data loaded successfully');
-      }
-    } catch (err) {
-      console.error('Error fetching live drawer:', err);
-    }
-  };
-
-  const fetchBillsList = async () => {
-    try {
-      const companyCode = userData?.companyCode || '001';
-      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_SALES_BILLS_LIST(companyCode, 1, 100);
-      const response = await apiService.get(endpoint);
-      
-      console.log('Bills list response:', response);
-      
-      if (response) {
-        // The response structure has a data property containing the bills array
-        const billsData = response.data || response;
-        const bills = Array.isArray(billsData) ? billsData : billsData.data || [];
-        
-        if (bills.length > 0) {
-          setBillsList(bills);
-          console.log('Bills list loaded successfully:', bills);
-        } else {
-          console.log('No bills found in response');
-          setBillsList([]);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching bills list:', err);
-      setBillsList([]);
-    }
-  };
-
-  // Function to calculate optimal issue denominations for a given amount
-  const calculateOptimalDenominations = (amount) => {
-    const denomList = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-    const result = {};
-    
-    // Initialize all denominations to 0
-    denomList.forEach(d => result[d] = 0);
-    
-    let remaining = amount;
-    
-    // Greedy algorithm: use largest denominations first
-    for (let denom of denomList) {
-      if (remaining >= denom) {
-        result[denom] = Math.floor(remaining / denom);
-        remaining = remaining % denom;
-      }
-    }
-    
-    return result;
-  };
 
   const handleDenominationChange = (denom, field, value) => {
     const updated = { ...denominations };
@@ -145,215 +45,16 @@ export const Tender = () => {
     const issue = Number(updated[denom].issue) || 0;
     updated[denom].closing = updated[denom].available + collect - issue;
     
-    // If collect field is being updated, calculate balance and auto-fill issue
-    if (field === 'collect') {
-      // Calculate total collected amount from all denominations
-      let totalCollected = 0;
-      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-        const collectValue = d === denom ? Number(value) || 0 : Number(updated[d].collect) || 0;
-        totalCollected += collectValue * d;
-      });
-      
-      // Calculate balance
-      const netAmount = Number(formData.netAmount) || 0;
-      const balance = totalCollected - netAmount;
-      
-      // Update form data balance
-      setFormData(prev => ({
-        ...prev,
-        receivedCash: totalCollected.toString(),
-        balance: balance.toString()
-      }));
-      
-      // If balance is positive, auto-calculate and fill issue row
-      if (balance > 0) {
-        const optimalIssue = calculateOptimalDenominations(balance);
-        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-          updated[d] = { ...updated[d], issue: optimalIssue[d].toString() };
-          // Recalculate closing for each denomination
-          const col = Number(updated[d].collect) || 0;
-          const iss = optimalIssue[d];
-          updated[d].closing = updated[d].available + col - iss;
-        });
-      }
-    }
-    
     setDenominations(updated);
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => {
-      const updated = { ...prev, [field]: value };
-
-      // Calculate Bill Discount Amount when discount % is entered
-      if (field === 'billDiscountPercent') {
-        const billAmount = Number(prev.billAmount) || 0;
-        const discountPercent = Number(value) || 0;
-        const discountAmount = (billAmount * discountPercent) / 100;
-        updated.billDiscAmt = discountAmount.toFixed(2);
-      }
-
-      // Calculate Grand Total when discount amount is updated
-      if (field === 'billDiscAmt') {
-        const billAmount = Number(prev.billAmount) || 0;
-        const discountAmount = Number(value) || 0;
-        const grandTotal = billAmount - discountAmount;
-        updated.granTotal = grandTotal.toFixed(2);
-      }
-
-      // Calculate Grand Total when discount percent is updated (for Enter key)
-      if (field === 'billDiscountPercent') {
-        const billAmount = Number(prev.billAmount) || 0;
-        const discountPercent = Number(value) || 0;
-        const discountAmount = (billAmount * discountPercent) / 100;
-        const grandTotal = billAmount - discountAmount;
-        updated.granTotal = grandTotal.toFixed(2);
-        
-        // Also recalculate Net Amount when Grand Total changes
-        const roundOff = Number(prev.roudOff) || 0;
-        const scrapAmount = Number(prev.scrapAmount) || 0;
-        const salesReturn = Number(prev.salesReturn) || 0;
-        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
-        updated.netAmount = netAmount.toFixed(2);
-      }
-
-      // Calculate Net Amount when round off is entered
-      if (field === 'roudOff') {
-        const grandTotal = Number(prev.granTotal) || 0;
-        const roundOff = Number(value) || 0;
-        const scrapAmount = Number(prev.scrapAmount) || 0;
-        const salesReturn = Number(prev.salesReturn) || 0;
-        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
-        updated.netAmount = netAmount.toFixed(2);
-      }
-
-      // Recalculate Net Amount when Scrap Amount changes
-      if (field === 'scrapAmount') {
-        const grandTotal = Number(prev.granTotal) || 0;
-        const roundOff = Number(prev.roudOff) || 0;
-        const scrapAmount = Number(value) || 0;
-        const salesReturn = Number(prev.salesReturn) || 0;
-        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
-        updated.netAmount = netAmount.toFixed(2);
-      }
-
-      // Recalculate Net Amount when Sales Return changes
-      if (field === 'salesReturn') {
-        const grandTotal = Number(prev.granTotal) || 0;
-        const roundOff = Number(prev.roudOff) || 0;
-        const scrapAmount = Number(prev.scrapAmount) || 0;
-        const salesReturn = Number(value) || 0;
-        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
-        updated.netAmount = netAmount.toFixed(2);
-      }
-
-      return updated;
-    });
-  };
-
-  const fetchBillAmount = async (billNo, fieldType) => {
-    if (!billNo.trim()) return;
-    
-    try {
-      const response = await apiService.get(
-        API_ENDPOINTS.SALESRETURN.GET_SALESRETURN_TENDER(billNo)
-      );
-      
-      const data = response.data;
-      console.log('Fetched bill amount data:', data);
-      
-      if (data && data.fBillAmt) {
-        if (fieldType === 'scrap') {
-          handleInputChange('scrapAmount', data.fBillAmt.toString());
-        } else if (fieldType === 'salesReturn') {
-          handleInputChange('salesReturn', data.fBillAmt.toString());
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching bill amount:', error);
-    }
-  };
-
-  const fetchBillDetails = async (billNo) => {
-    try {
-      // Try to fetch bill details from the API
-      const endpoint = API_ENDPOINTS.BILLCOLLECTOR?.GET_BILL_DETAILS?.(billNo) || 
-                       `api/bill/${billNo}`;
-      const response = await apiService.get(endpoint);
-      
-      console.log('Bill details response:', response);
-      
-      if (response && response.data) {
-        const billData = response.data;
-        // Update form with fetched bill details
-        setFormData(prev => ({
-          ...prev,
-          billAmount: billData.billAmount || billData.amount || '',
-          grossAmt: billData.grossAmount || billData.amount || '',
-          salesman: billData.salesman || '',
-          date: billData.date || '',
-          itemDAmt: billData.itemDAmt || '',
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching bill details:', error);
-      // If API fails, just proceed with manual entry
-    }
-  };
-
-  const handleScrapBillNoChange = (e) => {
-    const value = e.target.value;
-    handleInputChange('scrapAmountBillNo', value);
-    
-    // Clear amount if bill number is empty
-    if (!value.trim()) {
-      handleInputChange('scrapAmount', '');
-    } else if (value.length > 2) {
-      // Fetch amount when user finishes typing
-      fetchBillAmount(value, 'scrap');
-    }
-  };
-
-  const handleBillNoChange = (e) => {
-    const selectedBillNo = e.target.value;
-    handleInputChange('billNo', selectedBillNo);
-    
-    // Find the selected bill from the list
-    if (selectedBillNo && billsList.length > 0) {
-      const selectedBill = billsList.find(bill => bill.billNo === selectedBillNo);
-      
-      if (selectedBill) {
-        // Update form with selected bill details
-        setFormData(prev => ({
-          ...prev,
-          billAmount: selectedBill.amount?.toString() || selectedBill.grossAmt?.toString() || '',
-          grossAmt: selectedBill.grossAmt?.toString() || '',
-          salesman: selectedBill.salesman || '',
-          date: selectedBill.date ? new Date(selectedBill.date).toLocaleDateString('en-IN') : '',
-          itemDAmt: selectedBill.qty?.toString() || selectedBill.items?.toString() || '',
-        }));
-        
-        console.log('Bill selected:', selectedBill);
-      }
-    }
-  };
-
-  const handleSalesReturnBillNoChange = (e) => {
-    const value = e.target.value;
-    handleInputChange('salesReturnBillNo', value);
-    
-    // Clear amount if bill number is empty
-    if (!value.trim()) {
-      handleInputChange('salesReturn', '');
-    } else if (value.length > 2) {
-      // Fetch amount when user finishes typing
-      fetchBillAmount(value, 'salesReturn');
-    }
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSave = () => {
     console.log('Saved:', { formData, denominations });
-    alert('✓ Tender details saved successfully!');
+    alert('Saved successfully!');
   };
 
   const handleDelete = () => {
@@ -371,9 +72,6 @@ export const Tender = () => {
   const handleClear = () => {
     if (window.confirm('Are you sure you want to clear all data?')) {
       setFormData({
-        billNo: '',
-        salesman: '',
-        date: '',
         grossAmt: '',
         itemDAmt: '',
         billAmount: '',
@@ -381,9 +79,7 @@ export const Tender = () => {
         billDiscAmt: '',
         granTotal: '',
         roudOff: '',
-        scrapAmountBillNo: '',
         scrapAmount: '',
-        salesReturnBillNo: '',
         salesReturn: '',
         netAmount: '',
         receivedCash: '',
@@ -421,44 +117,23 @@ export const Tender = () => {
   return (
     <div className={styles.container}>
       {/* Header */}
-      {/* <div className={styles.header}>
+      <div className={styles.header}>
         <div className={styles.headerLeft}>
           <h1 className={styles.title}>Tender Screen</h1>
           <div className={styles.invoiceInfo}>
-            <span className={styles.invoiceNo}>{formData.billNo}</span>
-            <span className={styles.refNo}>{formData.itemDAmt}</span>
+            <span className={styles.invoiceNo}>RS/INV/25-26/1113/024</span>
+            <span className={styles.refNo}>RS9626737634</span>
           </div>
         </div>
         <div className={styles.headerRight}>
-          <span className={styles.company}>{formData.salesman}</span>
-          <span className={styles.date}>{formData.date}</span>
+          <span className={styles.company}>DHARANI</span>
+          <span className={styles.date}>13-Nov-2025</span>
         </div>
-      </div> */}
+      </div>
 
       <div className={styles.mainContent}>
         {/* Left Section - Top Details */}
         <div className={styles.leftSection}>
-          {/* Bill No Row */}
-          <div className={styles.inputRow}>
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Bill No</label>
-              <div className={styles.inputContainer}>
-                <select
-                  value={formData.billNo}
-                  onChange={handleBillNoChange}
-                  className={styles.inputField}
-                >
-                  <option value="">-- Select Bill --</option>
-                  {billsList.map((bill) => (
-                    <option key={bill.billNo} value={bill.billNo}>
-                      {bill.billNo} - {bill.customer || bill.salesman || 'No Name'} - ₹{bill.amount || bill.grossAmt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
           {/* First Row */}
           <div className={styles.inputRow}>
             <div className={styles.inputGroup}>
@@ -522,8 +197,8 @@ export const Tender = () => {
                 <input
                   type="number"
                   value={formData.billDiscAmt}
-                  readOnly
-                  className={`${styles.inputField} ${styles.readonlyField}`}
+                  onChange={(e) => handleInputChange('billDiscAmt', e.target.value)}
+                  className={styles.inputField}
                   placeholder="0"
                 />
               </div>
@@ -538,8 +213,8 @@ export const Tender = () => {
                 <input
                   type="text"
                   value={formData.granTotal}
-                  readOnly
-                  className={`${styles.inputField} ${styles.readonlyField}`}
+                  onChange={(e) => handleInputChange('granTotal', e.target.value)}
+                  className={styles.inputField}
                 />
               </div>
             </div>
@@ -558,21 +233,8 @@ export const Tender = () => {
             </div>
           </div>
 
-          {/* Scrap Amount Row */}
+          {/* Scrap Amount & Sales Return Row */}
           <div className={styles.inputRow}>
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Scrap Bill No</label>
-              <div className={styles.inputContainer}>
-                <input
-                  type="text"
-                  value={formData.scrapAmountBillNo}
-                  onChange={handleScrapBillNoChange}
-                  className={styles.inputField}
-                  placeholder="Bill No"
-                />
-              </div>
-            </div>
-            
             <div className={styles.inputGroup}>
               <label className={styles.label}>Scrap Amount</label>
               <div className={styles.inputContainer}>
@@ -582,23 +244,6 @@ export const Tender = () => {
                   onChange={(e) => handleInputChange('scrapAmount', e.target.value)}
                   className={styles.inputField}
                   placeholder="0"
-                  readOnly
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Sales Return Row */}
-          <div className={styles.inputRow}>
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Sales Return Bill No</label>
-              <div className={styles.inputContainer}>
-                <input
-                  type="text"
-                  value={formData.salesReturnBillNo}
-                  onChange={handleSalesReturnBillNoChange}
-                  className={styles.inputField}
-                  placeholder="Bill No"
                 />
               </div>
             </div>
@@ -612,7 +257,6 @@ export const Tender = () => {
                   onChange={(e) => handleInputChange('salesReturn', e.target.value)}
                   className={styles.inputField}
                   placeholder="0"
-                  readOnly
                 />
               </div>
             </div>
@@ -626,7 +270,7 @@ export const Tender = () => {
                 <input
                   type="text"
                   value={formData.netAmount}
-                  readOnly
+                  onChange={(e) => handleInputChange('netAmount', e.target.value)}
                   className={`${styles.inputField} ${styles.netAmountField}`}
                 />
               </div>
@@ -723,7 +367,7 @@ export const Tender = () => {
                     <input
                       type="number"
                       value={denominations[denom].issue}
-                      readOnly
+                      onChange={(e) => handleDenominationChange(denom, 'issue', e.target.value)}
                       className={styles.tableInput}
                       placeholder="0"
                     />

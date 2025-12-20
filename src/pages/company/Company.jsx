@@ -613,7 +613,7 @@ const Company = () => {
       },
       onCancel: () => setShowConfirmPopup(false)
     });
-    toast.success(`Company "${formData.fcompname}" created successfully.`);
+    
   };
 
   // Handle update with confirmation
@@ -645,8 +645,7 @@ const Company = () => {
         updateData();
       },
       onCancel: () => setShowConfirmPopup(false)
-    });
-    toast.success(`Company "${formData.fcompname}" updated successfully.`);
+    });    
   };
 
   // Handle delete with confirmation
@@ -674,8 +673,7 @@ const Company = () => {
         deleteData();
       },
       onCancel: () => setShowConfirmPopup(false)
-    });
-    toast.success(`Company "${formData.fcompname}" deleted successfully.`);
+    });    
   };
 
   const saveData = async () => {
@@ -761,6 +759,7 @@ const Company = () => {
         hideCancelButton: true,
         onConfirm: () => {
           setShowConfirmPopup(false);
+          toast.success(`Company "${formData.fcompname}" created successfully.`);
           fetchCompanyList();
           clearForm();
         },
@@ -874,6 +873,7 @@ const Company = () => {
         hideCancelButton: true,
         onConfirm: () => {
           setShowConfirmPopup(false);
+          toast.success(`Company "${formData.fcompname}" updated successfully.`);
           fetchCompanyList();
           clearForm();
         },
@@ -923,6 +923,7 @@ const Company = () => {
         hideCancelButton: true,
         onConfirm: () => {
           setShowConfirmPopup(false);
+          toast.error(`Company "${formData.fcompname}" deleted successfully.`);
           fetchCompanyList();
           clearForm();
         },
