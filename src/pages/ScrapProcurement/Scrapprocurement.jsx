@@ -169,6 +169,12 @@ const Scrapprocurement = () => {
     fetchVoucherList();
   }, [userData]);
 
+  useEffect(() => {
+    if (billDateRef.current && activeTopAction !== "delete") {
+      billDateRef.current.focus();
+    }
+  }, [activeTopAction]);
+
   // Update screen size on resize
   useEffect(() => {
     const handleResize = () => {
@@ -494,6 +500,7 @@ const Scrapprocurement = () => {
       message: `Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`,
       type: 'danger',
       confirmText: 'Delete',
+      cancelText: 'Cancel',
       onConfirm: async () => {
         try {
           const response = await axiosInstance.delete(
@@ -505,7 +512,7 @@ const Scrapprocurement = () => {
               title: 'Success',
               message: `Voucher ${voucherNo} deleted successfully.`,
               type: 'success',
-              confirmText: 'OK',
+              confirmText: 'OK',              
               showIcon: true,
               onConfirm: () => {
                 setShowConfirmPopup(false);
@@ -795,6 +802,7 @@ const Scrapprocurement = () => {
       }
     }
   };
+  
 
   const handleAddItem = () => {
     const scrapName = billDetails.scrapProductInput;
@@ -1610,10 +1618,11 @@ const Scrapprocurement = () => {
               value={billDetails.billNo}
               name="billNo"
               onChange={handleInputChange}
-              ref={billNoRef}
+              // ref={billNoRef}
               onKeyDown={(e) => handleKeyDown(e, billDateRef)}
               onFocus={() => setFocusedField('billNo')}
               onBlur={() => setFocusedField('')}
+              readOnly={true}
               // ////placeholder="Bill No"
             />
           </div>

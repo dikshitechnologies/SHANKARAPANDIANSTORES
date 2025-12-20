@@ -9,12 +9,38 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
 
+const Icon = {
+  Search: ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+    </svg>
+  ),
+}
+
+// Calculation helpers
+const calculateTotals = (items = []) => {
+  const subTotal = items.reduce((acc, it) => {
+    const qty = parseFloat(it?.qty) || 0;
+    const rate = parseFloat(it?.prate) || 0;
+    return acc + qty * rate;
+  }, 0);
+  
+  const amtTotal = items.reduce((acc, it) => {
+    const amt = parseFloat(it?.amt) || 0;
+    return acc + amt;
+  }, 0);
+  
+  const total = subTotal;
+  const net = amtTotal || subTotal;
+  return { subTotal, total, net, amtTotal };
+};
 
 const PurchaseReturn = () => {
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingBillNo, setEditingBillNo] = useState('');
+  const [addLessAmount, setAddLessAmount] = useState('');
   
   // Confirmation popup states
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
@@ -27,6 +53,9 @@ const PurchaseReturn = () => {
     cancelText: 'Cancel',
     showLoading: false
   });
+  
+  // Loading state for async operations
+  const [isLoading, setIsLoading] = useState(false);
   
   const [showBillListPopup, setShowBillListPopup] = useState(false);
   const [popupMode, setPopupMode] = useState('');
@@ -69,9 +98,12 @@ const PurchaseReturn = () => {
     invoiceNo: '',
     purDate: new Date().toISOString().substring(0, 10),
     invoiceAmount: '',
-    transType: 'PURCHASE',
+    transType: 'RETURN',
     city: '',
     isLedger: false,
+    originalInvoiceNo: '',
+    originalInvoiceDate: '',
+    originalInvoiceAmount: ''
   });
 
   // 2. Table Items State
@@ -103,6 +135,7 @@ const PurchaseReturn = () => {
       ntCost: '',
       wsPercent: '',
       wsRate: '',
+      amt: '',
       min: '',
       max: '',
     }
@@ -125,17 +158,14 @@ const PurchaseReturn = () => {
   const mobileRef = useRef(null);
   const gstTypeRef = useRef(null);
   const gstNoRef = useRef(null);
-  const barcodeRef = useRef(null);
-  const addBtnRef = useRef(null);
+  const firstRowBarcodeRef = useRef(null);
+  const addLessRef = useRef(null);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
 
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
-
-  // Loading state for async operations
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeFooterAction, setActiveFooterAction] = useState('null');
 
   // Screen size state for responsive adjustments
   const [screenSize, setScreenSize] = useState({
@@ -186,10 +216,20 @@ const PurchaseReturn = () => {
       setIsEditMode(false);
       setEditingBillNo('');
       setActiveTopAction('add');
-      setActiveFooterAction('all');
+      setActiveFooterAction('null');
       setFocusedField('');
       setShowBillListPopup(false);
       setPopupMode('');
+      setItemSearchTerm('');
+      setShowSupplierPopup(false);
+      setShowItemCodePopup(false);
+      setSelectedRowId(null);
+      setShowInvoiceBillListPopup(false);
+      setBillDetailsPopupOpen(false);
+      setSelectedBillForDetails(null);
+      setCheckedBills({});
+      setBillDetailsSearchText('');
+      setAddLessAmount('');
       
       // Clear table items first
       setItems([{
@@ -219,6 +259,7 @@ const PurchaseReturn = () => {
         ntCost: '',
         wsPercent: '',
         wsRate: '',
+        amt: '',
         min: '',
         max: '',
       }]);
@@ -241,9 +282,12 @@ const PurchaseReturn = () => {
         invoiceNo: '',
         purDate: currentDate,
         invoiceAmount: '',
-        transType: 'PURCHASE',
+        transType: 'RETURN',
         city: '',
         isLedger: false,
+        originalInvoiceNo: '',
+        originalInvoiceDate: currentDate,
+        originalInvoiceAmount: ''
       });
       
       // Then fetch next invoice number
@@ -259,13 +303,13 @@ const PurchaseReturn = () => {
     } catch (error) {
       console.error('Error creating new form:', error);
       showAlertConfirmation('Error refreshing form. Please try again.', null, 'danger');
+      toast.error('Error refreshing form');
     } finally {
       setIsLoading(false);
     }
   };
 
   // Fetch purchase return bill list for popup
-  // Fetch purchase return bill list for popup - Using BillNumbers endpoint
   const fetchBillList = async (pageNum = 1, search = '') => {
     try {
       const compCode = userData?.companyCode || '001';
@@ -461,6 +505,10 @@ const PurchaseReturn = () => {
     } catch (err) {
       console.error('Error selecting item code:', err);
       showAlertConfirmation(`Error loading item details: ${err.message}`, null, 'error');
+      toast.error('Error loading item details');
+    } finally {
+      setSelectedRowId(null);
+      setItemSearchTerm('');
     }
   };
 
@@ -547,6 +595,7 @@ const PurchaseReturn = () => {
       console.error('Error fetching bill details:', err);
       setBillDetailsData(prev => ({ ...prev, [billNo]: [] }));
       setBillDetailsPopupOpen(true);
+      toast.error('Error fetching bill details');
     } finally {
       setIsLoadingDetails(prev => ({ ...prev, [billNo]: false }));
     }
@@ -566,7 +615,64 @@ const PurchaseReturn = () => {
       item.barcode?.toLowerCase().includes(billDetailsSearchText.toLowerCase())
     );
   };
+const handleNumberInput = (e) => {
+  const input = e.target.value;
+  
+  // Allow empty string
+  if (input === '') {
+    setAddLessAmount('');
+    return;
+  }
+  
+  // Allow negative numbers
+  if (input === '-') {
+    setAddLessAmount('-');
+    return;
+  }
+  
+  // Remove any non-numeric characters except decimal point and minus sign at start
+  const sanitizedValue = input
+    .replace(/[^\d.-]/g, '') // Remove non-numeric except . and -
+    .replace(/(?!^)-/g, '') // Remove minus signs that aren't at the start
+    .replace(/(\..*)\./g, '$1'); // Allow only one decimal point
+  
+  // Allow any valid number format during typing
+  const isValidNumber = /^-?\d*\.?\d*$/.test(sanitizedValue);
+  
+  if (isValidNumber) {
+    setAddLessAmount(sanitizedValue);
+  } else {
+    // If invalid, revert to previous valid value
+    // Or you could set to empty
+    // setAddLessAmount('');
+  }
+};
 
+// Format on blur
+const handleBlur = () => {
+  if (addLessAmount === '' || addLessAmount === '-') {
+    setFocusedField('');
+    return;
+  }
+  
+  try {
+    const num = parseFloat(addLessAmount);
+    if (!isNaN(num)) {
+      // Format to 2 decimal places if needed
+      // But don't add .00 if it's a whole number
+      if (num % 1 === 0) {
+        setAddLessAmount(num.toString());
+      } else {
+        setAddLessAmount(num.toFixed(2));
+      }
+    }
+  } catch (error) {
+    // Invalid number, clear it
+    setAddLessAmount('');
+  }
+  
+  setFocusedField('');
+};
   // Handle applying selected bill items to purchase return form
   const handleApplyBillNumber = async () => {
     try {
@@ -575,6 +681,7 @@ const PurchaseReturn = () => {
       
       if (selectedItems.length === 0) {
         showAlertConfirmation('Please select at least one item', null, 'warning');
+        toast.warning('Please select at least one item');
         return;
       }
       
@@ -585,9 +692,12 @@ const PurchaseReturn = () => {
         invoiceNo: selectedBillForDetails,
       }));
       
-      // Add selected items to the items table
+      // Get current max ID to avoid duplicates
+      const maxId = items.length > 0 ? Math.max(...items.map(item => item.id)) : 0;
+      
+      // Create new items with unique IDs starting from maxId + 1
       const newItems = selectedItems.map((item, index) => ({
-        id: items.length + index + 1,
+        id: maxId + index + 1,
         barcode: item.barcode || item.itemCode || '',
         name: item.itemName || item.name || '',
         sub: item.sub || '',
@@ -613,19 +723,35 @@ const PurchaseReturn = () => {
         ntCost: item.ntCost || '',
         wsPercent: item.wsPer || '',
         wsRate: item.wRate || '',
+        amt: item.amount || '',
         min: item.min || '',
         max: item.max || '',
       }));
       
-      setItems([...items, ...newItems]);
+      // Filter out any items that already exist with the same barcode
+      const existingBarcodes = items.map(item => item.barcode);
+      const filteredNewItems = newItems.filter(item => 
+        !existingBarcodes.includes(item.barcode) && item.barcode.trim() !== ''
+      );
+      
+      if (filteredNewItems.length === 0) {
+        showAlertConfirmation('All selected items already exist in the table', null, 'warning');
+        toast.warning('All selected items already exist in the table');
+        return;
+      }
+      
+      // Add only new items
+      setItems([...items, ...filteredNewItems]);
       setBillDetailsPopupOpen(false);
       setCheckedBills({});
       setBillDetailsSearchText('');
       
-      showAlertConfirmation(`${newItems.length} item(s) added to return`, null, 'success');
+      showAlertConfirmation(`${filteredNewItems.length} item(s) added to return`, null, 'success');
+      toast.success(`${filteredNewItems.length} item(s) added to return`);
     } catch (err) {
       console.error('Error applying bill items:', err);
       showAlertConfirmation('Error applying bill items', null, 'error');
+      toast.error('Error applying bill items');
     }
   };
 
@@ -675,11 +801,16 @@ const PurchaseReturn = () => {
           amount: header.billAmount?.toString() || '0',
           gstType: header.gstType || 'I',
           city: header.city || '',
-          transType: 'PURCHASE',
+          transType: 'RETURN',
+          
         };
         
         console.log('Setting header details:', headerDetails);
         setReturnDetails(prev => ({ ...prev, ...headerDetails }));
+        if(summary.less !== undefined && summary.less !== null)
+        {
+        setAddLessAmount(summary.less ?.toString() || '');
+        }
 
         // Process items
         if (itemsArray.length > 0) {
@@ -708,6 +839,7 @@ const PurchaseReturn = () => {
             ntCost: item.ntCost?.toString() || '',
             wsPercent: item.wsPer?.toString() || '',
             wsRate: item.wRate?.toString() || '',
+            amt: item.amount?.toString() || '',
             min: '',
             max: ''
           }));
@@ -743,6 +875,7 @@ const PurchaseReturn = () => {
             ntCost: '',
             wsPercent: '',
             wsRate: '',
+            amt: '',
             min: '',
             max: '',
           }]);
@@ -753,14 +886,18 @@ const PurchaseReturn = () => {
         setActiveTopAction('edit');
         console.log('Edit mode activated for voucher:', voucherNo);
         
+        // toast.success('Purchase return loaded successfully');
+        
       } else {
         console.warn('Invalid response structure');
         showAlertConfirmation('No purchase return data found', null, 'warning');
+        toast.warning('No purchase return data found');
       }
     } catch (err) {
       console.error('Error fetching purchase return details:', err);
       console.error('Error response:', err.response);
       showAlertConfirmation(`Failed to load purchase return details: ${err.message}`, null, 'danger');
+      toast.error('Failed to load purchase return details');
     } finally {
       setIsLoading(false);
     }
@@ -771,6 +908,7 @@ const PurchaseReturn = () => {
     try {
       setIsLoading(true);
       const compCode = userData?.companyCode || '001';
+      const username = userData?.username || '';
       
       console.log('Deleting purchase return bill:', voucherNo);
       
@@ -779,54 +917,45 @@ const PurchaseReturn = () => {
       );
       
       console.log('Purchase return bill deleted successfully');
+      
       showAlertConfirmation('Purchase Return deleted successfully', () => {
         createNewForm();
       }, 'success');
       
+      toast.error('Purchase Return deleted successfully');
+      
     } catch (err) {
       console.error('Error deleting purchase return bill:', err);
-      showAlertConfirmation(`Failed to delete purchase return: ${err.message}`, null, 'danger');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to delete purchase return';
+      showAlertConfirmation(`Failed to delete purchase return: ${errorMessage}`, null, 'danger');
+      toast.error('Failed to delete purchase return');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle Edit button click
-  const handleEdit = () => {
-    setPopupMode('edit');
-    setShowBillListPopup(true);
-  };
-
-  // Handle Delete button click
-  const handleDeleteBill = () => {
-    setPopupMode('delete');
-    setShowBillListPopup(true);
-  };
-
-  // Handle bill selection from popup
-  const handleBillSelect = (selectedBill) => {
-    if (!selectedBill || !selectedBill.voucherNo) return;
+  // Check for duplicates before saving
+  const checkForDuplicates = () => {
+    const barcodeCount = {};
+    const duplicates = [];
     
-    if (popupMode === 'edit') {
-      fetchPurchaseReturnDetails(selectedBill.voucherNo);
-    } else if (popupMode === 'delete') {
-      showConfirmation({
-        title: 'Delete Purchase Return',
-        message: `Are you sure you want to delete Purchase Return ${selectedBill.voucherNo}? This action cannot be undone.`,
-        onConfirm: () => {
-          deletePurchaseReturnBill(selectedBill.voucherNo);
-        },
-        type: 'danger',
-        confirmText: 'Delete',
-        cancelText: 'Cancel'
-      });
-    }
+    items.forEach(item => {
+      if (item.barcode && item.barcode.trim() !== '') {
+        if (!barcodeCount[item.barcode]) {
+          barcodeCount[item.barcode] = 1;
+        } else {
+          barcodeCount[item.barcode]++;
+          if (!duplicates.includes(item.barcode)) {
+            duplicates.push(item.barcode);
+          }
+        }
+      }
+    });
     
-    setShowBillListPopup(false);
-    setPopupMode('');
+    return duplicates;
   };
 
- const fetchNextInvNo = async () => {
+  const fetchNextInvNo = async () => {
     try {
       setIsLoading(true);
       const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
@@ -847,13 +976,15 @@ const PurchaseReturn = () => {
     }
   };
 
-
   useEffect(() => {
     fetchNextInvNo();
   }, [userData]);
 
-
-
+  useEffect(() => {
+    if (dateRef.current && activeTopAction !== "delete") {
+      dateRef.current.focus();
+    }
+  }, [activeTopAction]);
 
   // Update screen size on resize
   useEffect(() => {
@@ -873,15 +1004,15 @@ const PurchaseReturn = () => {
       });
     };
 
-    handleResize(); // Initial call
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Calculate Totals whenever items change
   useEffect(() => {
-    const total = items.reduce((acc, item) => acc + (parseFloat(item.rate) || 0) * (parseFloat(item.qty) || 0), 0);
-    setNetTotal(total);
+    const { net } = calculateTotals(items);
+    setNetTotal(net);
   }, [items]);
 
   // --- HANDLERS ---
@@ -901,31 +1032,10 @@ const PurchaseReturn = () => {
     }
   };
 
-  const handleAddItem = () => {
-    if (!returnDetails.barcodeInput) return alert("Please enter barcode");
-
-    const newItem = {
-      id: items.length + 1,
-      barcode: returnDetails.barcodeInput,
-      name: 'Item Name', // Static data
-      sub: 'Item Description',
-      stock: 100,
-      mrp: 500,
-      uom: 'PCS',
-      hsn: 'HSCODE',
-      tax: 18,
-      rate: 400,
-      qty: 1,
-    };
-
-    setItems([...items, newItem]);
-    setReturnDetails(prev => ({ ...prev, barcodeInput: '' }));
-    if (barcodeRef.current) barcodeRef.current.focus();
-  };
-
   const handleAddRow = () => {
+    const maxId = items.length > 0 ? Math.max(...items.map(item => item.id)) : 0;
     const newRow = {
-      id: items.length + 1,
+      id: maxId + 1,
       barcode: '',
       name: '',
       sub: '',
@@ -951,6 +1061,7 @@ const PurchaseReturn = () => {
       ntCost: '',
       wsPercent: '',
       wsRate: '',
+      amt: '',
       min: '',
       max: '',
     };
@@ -958,336 +1069,507 @@ const PurchaseReturn = () => {
   };
 
   const handleItemChange = (id, field, value) => {
-    setItems(items.map(item =>
-      item.id === id ? { ...item, [field]: value } : item
-    ));
+    const updatedItems = items.map(item => {
+      if (item.id !== id) return item;
+      
+      const updatedItem = { ...item, [field]: value };
+      
+      // When barcode is changed, check for duplicates
+      if (field === 'barcode' && value.trim() !== '') {
+        const duplicateItems = items.filter(item => 
+          item.barcode === value.trim() && item.id !== id
+        );
+        
+        if (duplicateItems.length > 0) {
+          showAlertConfirmation(
+            `Item with barcode "${value}" already exists in the table. Please use a different barcode.`,
+            null,
+            'warning'
+          );
+          toast.warning('Duplicate barcode detected');
+          return item; // Don't update if duplicate
+        }
+      }
+      
+      // Calculate avgwt when ovrwt or qty changes
+      if (field === 'ovrwt' || field === 'qty') {
+        const ovrwt = parseFloat(updatedItem.ovrwt) || 0;
+        const qty = parseFloat(updatedItem.qty) || 1;
+        
+        if (qty > 0) {
+          updatedItem.avgwt = (ovrwt / qty).toFixed(2);
+        } else {
+          updatedItem.avgwt = '';
+        }
+      }
+      
+      // Calculate acost based on uom, prate, qty, and avgwt
+      if (field === 'uom' || field === 'prate' || field === 'qty' || field === 'avgwt') {
+        const uom = updatedItem.uom?.toUpperCase() || '';
+        const prate = parseFloat(updatedItem.prate) || 0;
+        const qty = parseFloat(updatedItem.qty) || 0;
+        const avgwt = parseFloat(updatedItem.avgwt) || 0;
+        
+        if (uom === 'PCS') {
+          updatedItem.acost = (qty * prate).toFixed(2);
+        } else if (uom === 'KG') {
+          updatedItem.acost = (avgwt * prate).toFixed(2);
+        } else {
+          updatedItem.acost = updatedItem.acost || '';
+        }
+        
+        const acost = parseFloat(updatedItem.acost) || 0;
+        if (acost > 0) {
+          updatedItem.ntCost = updatedItem.acost;
+          updatedItem.profitPercent = (acost * 0.05).toFixed(2);
+          updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
+        } else {
+          updatedItem.profitPercent = '';
+          updatedItem.asRate = '';
+          updatedItem.ntCost = '';
+        }
+      }
+      
+      if (field === 'acost') {
+        const acost = parseFloat(value) || 0;
+        if (acost > 0) {
+          updatedItem.profitPercent = (acost * 0.05).toFixed(2);
+          updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
+          updatedItem.ntCost = acost.toFixed(2);
+        } else {
+          updatedItem.profitPercent = '';
+          updatedItem.asRate = '';
+          updatedItem.ntCost = '';
+        }
+      }
+      
+      if (field === 'profitPercent') {
+        const acost = parseFloat(updatedItem.acost) || 0;
+        const profitPercent = parseFloat(value) || 0;
+        
+        if (acost > 0) {
+          updatedItem.asRate = (acost + profitPercent).toFixed(2);
+        } else {
+          updatedItem.asRate = '';
+        }
+      }
+      
+      if(field === 'acost'|| field === 'sRate') {
+        const acost = parseFloat(updatedItem.acost) || 0;
+        const sRate = parseFloat(updatedItem.sRate) || 0;
+        if(acost > 0) {
+          updatedItem.letProfPer = ((acost / sRate) * 100).toFixed(2);
+        } else {
+          updatedItem.letProfPer = '';
+        }
+      }
+      
+      if(field === 'wsPercent' || field === 'ntCost') {
+        const wsPercent = parseFloat(updatedItem.wsPercent) || 0;
+        const ntCost = parseFloat(updatedItem.ntCost) || 0;
+        if(ntCost > 0) {
+          updatedItem.wsRate = ((ntCost * wsPercent) / 100).toFixed(2);
+        } else {
+          updatedItem.wsRate = '';
+        }
+      }
+      
+      if(field === 'qty' || field === 'prate' || field === 'intax') {
+        const qty = parseFloat(updatedItem.qty) || 0;
+        const prate = parseFloat(updatedItem.prate) || 0;
+        const intax = parseFloat(updatedItem.intax) || 0;
+        if(qty > 0 && prate > 0) {
+          updatedItem.amt = ((qty * prate) + intax).toFixed(2);
+        } else {
+          updatedItem.amt = '';
+        }
+      }
+      
+      return updatedItem;
+    });
+    
+    setItems(updatedItems);
   };
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    // Handle / key for item code search popup
+    if (e.key === '/') {
+      e.preventDefault();
+      handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+      return;
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
+      e.stopPropagation(); // Prevent form submission or other Enter handlers
 
       // Fields in the visual order
       const fields = [
         'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
-        'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 'sRate', 'asRate',
-        'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'min', 'max'
+        'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
+        'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
       ];
 
       const currentFieldIndex = fields.indexOf(currentField);
 
-      // Move to next field in current row
+      // Always move to next field if available
       if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
         const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+        const nextInput = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
+           select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+        );
         if (nextInput) {
           nextInput.focus();
           return;
         }
       }
 
-      // When on last field, check if item is selected before moving to next row
-      if (currentField === 'max') {
-        const currentItem = items[currentRowIndex];
+      // If Enter is pressed in the amt field (last field)
+      if (currentField === 'amt') {
+        // Check if particulars (name) field is empty
+        const currentRow = items[currentRowIndex];
+        const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
 
-        // 🚫 BLOCK if item name or barcode not selected
-        if (!currentItem.barcode || !currentItem.name || currentItem.name.trim() === '') {
-          toast.warning('Select item before moving to next row');
-          return;
-        }
-
-        // Move to next row
-        if (currentRowIndex < items.length - 1) {
-          const nextInput = document.querySelector(
-            `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
-          );
-          if (nextInput) {
-            nextInput.focus();
-            return;
-          }
-        } else {
-          // Only add new row if item is properly filled
-          handleAddRow();
-          setTimeout(() => {
-            const newRowInput = document.querySelector(
-              `input[data-row="${items.length}"][data-field="barcode"]`
-            );
-            if (newRowInput) newRowInput.focus();
-          }, 80);
+        if (isParticularsEmpty) {
+          // Show confirmation popup asking to save
+          showConfirmation({
+            title: 'Particulars Missing',
+            message: 'Particulars cannot be empty. Would you like to save the purchase return anyway?\n\nNote: Items without particulars will not be saved.',
+            type: 'warning',
+            confirmText: 'Save Anyway',
+            cancelText: 'Cancel',
+            onConfirm: () => {
+              // User chose to save anyway
+              setShowConfirmPopup(false);
+              // Trigger the actual save function
+              handleSave();
+            },
+            onCancel: () => {
+              setShowConfirmPopup(false);
+              // Focus back to name field so user can fix it
+              setTimeout(() => {
+                const nameInput = document.querySelector(
+                  `input[data-row="${currentRowIndex}"][data-field="name"]`
+                );
+                if (nameInput) {
+                  nameInput.focus();
+                }
+              }, 100);
+            }
+          });
+          return; // Don't proceed further
         }
       }
-    }
-  };
 
-  const handleDeleteRowFromTable = () => {
-    if (items.length > 0) {
-      setItems(items.slice(0, -1));
-    }
-  };
-
-  const handleDeleteRow = (id) => {
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
-    } else {
-      alert("Cannot delete the last row");
+      // If Enter is pressed in the amt field and particulars is not empty
+      if (currentField === 'amt') {
+        // Check if we're on the last row
+        if (currentRowIndex < items.length - 1) {
+          // Move to next row
+          const nextRowInput = document.querySelector(
+            `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+          );
+          if (nextRowInput) {
+            nextRowInput.focus();
+          }
+          return;
+        } else {
+          // We're on the last row, add new row if particulars is filled
+          const currentRow = items[currentRowIndex];
+          if (currentRow.name && currentRow.name.trim() !== '') {
+            handleAddRow();
+            setTimeout(() => {
+              const newRowInput = document.querySelector(
+                `input[data-row="${items.length}"][data-field="barcode"]`
+              );
+              if (newRowInput) newRowInput.focus();
+            }, 60);
+          }
+        }
+      }
     }
   };
 
   const handleClear = () => {
-    // Keep a single empty row after clearing
-    setItems([
-      {
-        id: 1,
-        barcode: '',
-        name: '',
-        sub: '',
-        stock: 0,
-        mrp: 0,
-        uom: '',
-        hsn: '',
-        tax: 0,
-        rate: 0,
-        qty: 0,
-        ovrwt: '',
-        avgwt: '',
-        prate: 0,
-        intax: '',
-        outtax: '',
-        acost: '',
-        sudo: '',
-        profitPercent: '',
-        preRT: '',
-        sRate: '',
-        asRate: '',
-        letProfPer: '',
-        ntCost: '',
-        wsPercent: '',
-        wsRate: '',
-        min: '',
-        max: '',
-      }
-    ]);
-    setReturnDetails({ ...returnDetails, barcodeInput: '' });
+    showConfirmation({
+      title: 'Clear All',
+      message: 'Are you sure you want to clear all fields and create a new purchase return?',
+      onConfirm: () => {
+        createNewForm();
+      },
+      type: 'warning',
+      confirmText: 'Clear All',
+      cancelText: 'Cancel'
+    });
   };
 
-  // Check if first row is empty and fetch bill if needed
-  const checkAndFetchFirstRowBill = async () => {
+  const handleSave = () => {
     try {
-      const firstItem = items[0];
-      
-      // Check if first row is empty (no barcode/name)
-      if (!firstItem || (!firstItem.barcode && !firstItem.name)) {
-        // First row is empty, try to fetch the purchase bill
-        if (returnDetails.invoiceNo || returnDetails.purNo) {
-          const billNo = returnDetails.invoiceNo || returnDetails.purNo;
-          
-          try {
-            // Fetch purchase invoice items
-            const response = await axiosInstance.get(
-              API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_ITEMS_BY_VOUCHER(billNo)
-            );
-            
-            const billData = response?.data?.data || [];
-            
-            if (billData && billData.length > 0) {
-              // Use first item from the bill to populate the first row
-              const firstBillItem = billData[0];
-              
-              const updatedFirstItem = {
-                ...firstItem,
-                barcode: firstBillItem.itemCode || '',
-                name: firstBillItem.itemName || '',
-                qty: firstBillItem.qty || 1,
-                rate: parseFloat(firstBillItem.pRate) || 0,
-                prate: parseFloat(firstBillItem.pRate) || 0,
-                uom: firstBillItem.unit || '',
-                hsn: firstBillItem.hsn || '',
-                mrp: firstBillItem.mrp || 0,
-                inTax: firstBillItem.inTax || 0,
-                outTax: firstBillItem.outTax || 0,
-                acost: firstBillItem.aCost || 0,
-                ovrwt: firstBillItem.ovrWt || 0,
-                avgwt: firstBillItem.avgWt || 0,
-              };
-              
-              // Update items with the populated first row
-              const updatedItems = [updatedFirstItem, ...items.slice(1)];
-              setItems(updatedItems);
-              
-              return updatedItems;
-            }
-          } catch (err) {
-            console.warn('Could not fetch purchase bill for first row:', err);
-          }
-        }
+      // Check for duplicates
+      const duplicates = checkForDuplicates();
+      if (duplicates.length > 0) {
+        showAlertConfirmation(
+          `Duplicate barcodes found: ${duplicates.join(', ')}. Please remove duplicates before saving.`,
+          null,
+          'warning'
+        );
+        toast.warning('Duplicate items found. Please remove duplicates before saving.');
+        return;
       }
-      
-      return items;
-    } catch (err) {
-      console.error('Error checking first row:', err);
-      return items;
-    }
-  };
 
-  const handleSave = async () => {
-    try {
-      setIsLoading(true);
+      const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
+      const username = (userData && userData.username) ? userData.username : '';
 
-      // Check if first row is empty and fetch bill if needed
-      const finalItems = await checkAndFetchFirstRowBill();
-
-      // Calculate totals
-      const subTotal = finalItems.reduce((sum, item) => sum + ((parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0)), 0);
-      const total = subTotal;
-      const balanceAmount = subTotal;
-
-      // Prepare return data according to API schema
-      const purchaseReturnPayload = {
-        invNo: returnDetails.invNo || '',
-        bledger: {
-          customerCode: returnDetails.partyCode || '',
-          voucherNo: returnDetails.purNo || '',
-          voucherDate: returnDetails.purDate || new Date().toISOString(),
-          billAmount: total,
-          balanceAmount: balanceAmount,
-          subTotal: subTotal,
-          refName: returnDetails.customerName || '',
-          compCode: userData?.companyCode || '',
-          user: userData?.username || '',
-          gstType: returnDetails.gstType || 'G'
-        },
-        iledger: {
-          vrNo: returnDetails.invoiceNo || '',
-          less: 0,
-          subTotal: subTotal,
-          total: total,
-          net: total,
-          add1: returnDetails.city || '',
-          add2: '',
-          cstsNo: returnDetails.gstno || '',
-          add3: '',
-          add4: ''
-        },
-        items: finalItems.map(item => ({
-          itemCode: item.barcode || '',
-          qty: parseFloat(item.qty) || 0,
-          rate: parseFloat(item.rate) || 0,
-          amount: (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0),
-          fTax: parseFloat(item.tax) || 0,
-          wRate: 0,
-          fid: item.id?.toString() || '',
-          fUnit: item.uom || '',
-          fhsn: item.hsn || '',
-          ovrWt: parseFloat(item.ovrwt) || 0,
-          avgWt: parseFloat(item.avgwt) || 0,
-          inTax: parseFloat(item.intax) || 0,
-          outTax: parseFloat(item.outtax) || 0,
-          acost: parseFloat(item.acost) || 0,
-          sudo: item.sudo || '',
-          profitPercent: parseFloat(item.profitPercent) || 0,
-          preRate: parseFloat(item.preRT) || 0,
-          sRate: parseFloat(item.sRate) || 0,
-          asRate: parseFloat(item.asRate) || 0,
-          mrp: parseFloat(item.mrp) || 0,
-          letProfPer: parseFloat(item.letProfPer) || 0,
-          ntCost: parseFloat(item.ntCost) || 0,
-          wsPer: parseFloat(item.wsPercent) || 0
-        }))
+      const toNumber = (v) => {
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n : 0;
       };
 
-      console.log('Purchase Return Payload:', purchaseReturnPayload);
+      const toISODate = (d) => {
+        try {
+          if (!d) return new Date().toISOString();
+          const date = new Date(d);
+          return date.toISOString();
+        } catch {
+          return new Date().toISOString();
+        }
+      };
 
-      // Call API based on edit mode
-      const endpoint = isEditMode 
-        ? API_ENDPOINTS.PURCHASE_RETURN.UPDATE_PURCHASE_RETURN(false)
-        : API_ENDPOINTS.PURCHASE_RETURN.CREATE_PURCHASE_RETURN(true);
-
-      const response = await axiosInstance.post(endpoint, purchaseReturnPayload);
-
-      if (response.status === 200 || response.status === 201) {
-        showAlertConfirmation('Purchase Return saved successfully!', () => {
-          createNewForm();
-        });
+      const voucherNo = returnDetails.invNo || '';
+      if (!voucherNo) {
+        showAlertConfirmation('Please enter an Invoice Number', null, 'warning');
+        toast.warning('Please enter an Invoice Number');
+        return;
       }
 
-    } catch (error) {
-      console.error('Error saving purchase return:', error);
-      showAlertConfirmation(error.response?.data?.message || 'Failed to save purchase return', null, 'error');
-    } finally {
-      setIsLoading(false);
+      // Validation: Check required fields
+      if (!returnDetails.partyCode || returnDetails.partyCode.trim() === '') {
+        showAlertConfirmation('Party Code is required', null, 'warning');
+        toast.warning('Party Code is required');
+        return;
+      }
+
+      if (!returnDetails.customerName || returnDetails.customerName.trim() === '') {
+        showAlertConfirmation('Customer Name is required', null, 'warning');
+        toast.warning('Customer Name is required');
+        return;
+      }
+
+      // if (!returnDetails.mobileNo || returnDetails.mobileNo.trim() === '') {
+      //   showAlertConfirmation('Mobile No is required', null, 'warning');
+      //   toast.warning('Mobile No is required');
+      //   return;
+      // }
+
+      // if (!returnDetails.gstno || returnDetails.gstno.trim() === '') {
+      //   showAlertConfirmation('GST No is required', null, 'warning');
+      //   toast.warning('GST No is required');
+      //   return;
+      // }
+
+      // Validation: Check if at least one row has item data
+      const hasValidItems = items.some(item => 
+        item.barcode && item.barcode.trim() !== '' &&
+        item.name && item.name.trim() !== ''
+      );
+
+      if (!hasValidItems) {
+        showAlertConfirmation('Please add at least one item before saving', null, 'warning');
+        toast.warning('Please add at least one item before saving');
+        return;
+      }
+
+      // Filter out empty items
+      const validItems = items.filter(item => 
+        item.barcode && item.barcode.trim() !== '' &&
+        item.name && item.name.trim() !== ''
+      );
+
+      if (validItems.length === 0) {
+        showAlertConfirmation('No valid items to save', null, 'warning');
+        toast.warning('No valid items to save');
+        return;
+      }
+
+      const voucherDateISO = toISODate(returnDetails.billDate || returnDetails.purDate);
+
+      const totals = calculateTotals(validItems);
+
+      const payload = {
+        bledger: {
+          customerCode: returnDetails.partyCode || '',
+          voucherNo: voucherNo,
+          voucherDate: voucherDateISO,
+          billAmount: totals.net,
+          balanceAmount: totals.net,
+          refName: returnDetails.customerName || '',
+          compCode: compCode,
+          user: username || '001',
+          gstType: returnDetails.gstType || 'G',
+          transType: returnDetails.transType || 'RETURN',
+        },
+        iledger: {
+          vrNo: voucherNo,
+          less: addLessAmount,
+          subTotal: totals.subTotal,
+          total: totals.total,
+          net: totals.net,
+          add1: '',
+          add2: '',
+          cstsNo: returnDetails.gstno || '',
+          add3: returnDetails.city || '',
+          add4: returnDetails.mobileNo || '',
+        },
+        items: validItems.map((it) => ({
+          itemCode: it.barcode || '',
+          qty: toNumber(it.qty),
+          rate: toNumber(it.prate),
+          amount: toNumber(it.amt),
+          fTax: toNumber(it.tax),
+          wRate: toNumber(it.wsRate),
+          fid: String(it.id || ''),
+          fUnit: it.uom || '',
+          fhsn: it.hsn || '',
+          ovrWt: toNumber(it.ovrwt),
+          avgWt: toNumber(it.avgwt),
+          inTax: toNumber(it.intax),
+          outTax: toNumber(it.outtax),
+          acost: toNumber(it.acost),
+          sudo: it.sudo || '',
+          profitPercent: toNumber(it.profitPercent),
+          preRate: toNumber(it.preRT),
+          sRate: toNumber(it.sRate),
+          asRate: toNumber(it.asRate),
+          mrp: toNumber(it.mrp),
+          letProfPer: toNumber(it.letProfPer),
+          ntCost: toNumber(it.ntCost),
+          wsPer: toNumber(it.wsPercent),
+          amt: toNumber(it.amt),
+        })),
+      };
+      
+      const purchaseType = isEditMode ? 'false' : 'true';
+      
+      console.log(`Saving in ${isEditMode ? 'edit' : 'create'} mode`, JSON.stringify(payload));
+      
+      showConfirmation({
+        title: isEditMode ? 'Update Purchase Return' : 'Create Purchase Return',
+        message: `Are you sure you want to ${isEditMode ? 'update' : 'save'} this purchase return with ${validItems.length} item(s)?`,
+        onConfirm: async () => {
+          setIsLoading(true);
+          try {
+            const res = await axiosInstance.post(
+              isEditMode 
+                ? API_ENDPOINTS.PURCHASE_RETURN.UPDATE_PURCHASE_RETURN(purchaseType)
+                : API_ENDPOINTS.PURCHASE_RETURN.CREATE_PURCHASE_RETURN(purchaseType), 
+              payload
+            );
+            
+            console.log('Save response:', res);
+            
+            // Close the confirmation popup first
+            setShowConfirmPopup(false);
+            
+            // Show success message and reset form
+            showAlertConfirmation(
+              `Purchase return ${isEditMode ? 'updated' : 'saved'} successfully with ${validItems.length} item(s)`,
+              () => {
+                createNewForm();
+              },
+              'success'
+            );
+            createNewForm();
+            toast.success(`Purchase return ${isEditMode ? 'updated' : 'saved'} successfully.`);
+            
+          } catch (err) {
+            const status = err?.response?.status;
+            const data = err?.response?.data;
+            const message = typeof data === 'string' ? data : data?.message || data?.error || err?.message;
+            console.warn(`Create/Update Purchase Return failed:`, { status, data, err });
+            
+            showAlertConfirmation(
+              `Failed to ${isEditMode ? 'update' : 'save'} purchase return${message ? `: ${message}` : ''}`,
+              null,
+              'danger'
+            );
+            toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase return.`);
+          } finally {
+            setIsLoading(false);
+          }
+        },
+        type: 'question',
+        confirmText: isEditMode ? 'Update' : 'Save',
+        cancelText: 'Cancel',
+        showLoading: false
+      });
+      
+    } catch (e) {
+      console.warn('Save error:', e);
+      showAlertConfirmation('Failed to save purchase return', null, 'danger');
+      toast.error('Failed to save purchase return.');
     }
   };
 
   const handlePrint = () => {
-    // Print logic here
-    const printContent = `
-      <html>
-        <head>
-          <title>Purchase Return - ${returnDetails.returnNo}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .details { margin-bottom: 20px; }
-            .details table { width: 100%; border-collapse: collapse; }
-            .details td { padding: 5px; }
-            .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            .items-table th, .items-table td { border: 1px solid #000; padding: 8px; text-align: left; }
-            .total { text-align: right; font-weight: bold; margin-top: 20px; }
-            .footer { margin-top: 50px; text-align: center; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>Purchase Return</h2>
-            <h3>Return No: ${returnDetails.returnNo}</h3>
-          </div>
-          <div class="details">
-            <table>
-              <tr><td><strong>Return Date:</strong></td><td>${returnDetails.returnDate}</td></tr>
-              <tr><td><strong>Customer Name:</strong></td><td>${returnDetails.customerName}</td></tr>
-              <tr><td><strong>Party Code:</strong></td><td>${returnDetails.partyCode}</td></tr>
-              <tr><td><strong>Original Invoice No:</strong></td><td>${returnDetails.originalInvoiceNo}</td></tr>
-            </table>
-          </div>
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th>Item Code</th>
-                <th>Description</th>
-                <th>Qty</th>
-                <th>Rate</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${items.map(item => `
-                <tr>
-                  <td>${item.barcode}</td>
-                  <td>${item.name}</td>
-                  <td>${item.qty} ${item.uom}</td>
-                  <td>₹${parseFloat(item.rate).toFixed(2)}</td>
-                  <td>₹${(parseFloat(item.qty) * parseFloat(item.rate)).toFixed(2)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <div class="total">
-            <h3>Total Amount: ₹${netTotal.toFixed(2)}</h3>
-          </div>
-          <div class="footer">
-            <p>Authorized Signature</p>
-            <p>Date: ${new Date().toLocaleDateString()}</p>
-          </div>
-        </body>
-      </html>
-    `;
+    showAlertConfirmation('Print functionality to be implemented', null, 'info');
+    toast.info('Print functionality to be implemented');
+  };
 
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+  // Handle delete row
+  const handleDeleteRow = (id) => {
+    if (items.length <= 1) {
+      showAlertConfirmation("Cannot delete the last row", null, 'warning');
+      toast.warning("Cannot delete the last row");
+      return;
+    }
+    
+    showConfirmation({
+      title: 'Delete Row',
+      message: 'Are you sure you want to delete this row?',
+      onConfirm: () => {
+        setItems(items.filter(item => item.id !== id));        
+        toast.success('Row deleted successfully');
+      },
+      type: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+  };
+
+  // Handle Edit button click
+  const handleEdit = () => {
+    setPopupMode('edit');
+    setShowBillListPopup(true);
+  };
+
+  // Handle Delete button click
+  const handleDelete = () => {
+    setPopupMode('delete');
+    setShowBillListPopup(true);
+  };
+
+  // Handle bill selection from popup
+  const handleBillSelect = (selectedBill) => {
+    if (!selectedBill || !selectedBill.voucherNo) return;
+    
+    if (popupMode === 'edit') {
+      fetchPurchaseReturnDetails(selectedBill.voucherNo);
+    } else if (popupMode === 'delete') {
+      showConfirmation({
+        title: 'Delete Purchase Return',
+        message: `Are you sure you want to delete Purchase Return ${selectedBill.voucherNo}? This action cannot be undone.`,
+        onConfirm: () => {
+          deletePurchaseReturnBill(selectedBill.voucherNo);
+        },
+        type: 'danger',
+        confirmText: 'Delete',
+        cancelText: 'Cancel'
+      });
+    }
+    
+    setShowBillListPopup(false);
+    setPopupMode('');
   };
 
   // --- RESPONSIVE STYLES ---
@@ -1371,6 +1653,11 @@ const PurchaseReturn = () => {
       flexShrink: 0,
       paddingTop: '2px',
     },
+    focusedInput: {
+      borderColor: '#1B91DA !important',
+      boxShadow: '0 0 0 1px #1B91DA',
+    },
+    
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
@@ -1380,13 +1667,17 @@ const PurchaseReturn = () => {
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
+      ':hover': {
+        borderColor: '#b3b3b3',
+      },
     },
+    
     gridRow: {
       display: 'grid',
       gap: '5px',
@@ -1422,7 +1713,7 @@ const PurchaseReturn = () => {
       fontSize: TYPOGRAPHY.fontSize.xs,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
-      backgroundColor: '#1B91DA', // Changed to red for return
+      backgroundColor: '#1B91DA',
       color: 'white',
       padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
       textAlign: 'center',
@@ -1505,7 +1796,7 @@ const PurchaseReturn = () => {
       fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.base : screenSize.isTablet ? TYPOGRAPHY.fontSize.lg : TYPOGRAPHY.fontSize.xl,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
-      color: '#FF6B6B', // Changed to red for return
+      color: '#1B91DA',
       padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '10px 20px' : '12px 32px',
       display: 'flex',
       alignItems: 'center',
@@ -1515,7 +1806,7 @@ const PurchaseReturn = () => {
       width: screenSize.isMobile ? '100%' : 'auto',
       order: screenSize.isMobile ? 1 : 0,
       borderRadius: screenSize.isMobile ? '4px' : '6px',
-      backgroundColor: '#FFF0F0', // Light red background
+      backgroundColor: '#f0f8ff',
     },
     rightColumn: {
       display: 'flex',
@@ -1543,8 +1834,55 @@ const PurchaseReturn = () => {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      backgroundColor: '#FFE8E8', // Light red background
-      borderTop: '2px solid #FF6B6B', // Red border
+      backgroundColor: '#FFE8E8',
+      borderTop: '2px solid #1B91DA',
+    },
+    addLessContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '6px' : '8px',
+      marginRight: screenSize.isMobile ? '0' : '15px',
+      order: screenSize.isMobile ? 2 : 0,
+      marginTop: screenSize.isMobile ? '5px' : '0',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      justifyContent: screenSize.isMobile ? 'center' : 'flex-start'
+    },
+    addLessLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      whiteSpace: 'nowrap'
+    },
+    addLessInput: {
+      width: screenSize.isMobile ? '120px' : '150px',
+      border: '1px solid #1B91DA',
+      borderRadius: '4px',
+      padding: screenSize.isMobile ? '6px 10px' : '8px 12px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      outline: 'none',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      color: '#333',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      transition: 'border-color 0.2s, box-shadow 0.2s'
+    },
+    addLessInputFocused: {
+      width: screenSize.isMobile ? '120px' : '150px',
+      border: '2px solid #1B91DA',
+      borderRadius: '4px',
+      padding: screenSize.isMobile ? '6px 10px' : '8px 12px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      outline: 'none',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      color: '#333',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+      transition: 'border-color 0.2s, box-shadow 0.2s'
     },
   };
 
@@ -1573,15 +1911,17 @@ const PurchaseReturn = () => {
             <label style={styles.inlineLabel}>Inv No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'invNo' && styles.focusedInput)
+              }}
               value={returnDetails.invNo}
               name="invNo"
-              readOnly={true}
+              readOnly={isEditMode}
               ref={returnNoRef}
               onKeyDown={(e) => handleKeyDown(e, dateRef)}
-              onFocus={() => setFocusedField('returnNo')}
+              onFocus={() => setFocusedField('invNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Return No"
             />
           </div>
 
@@ -1590,13 +1930,17 @@ const PurchaseReturn = () => {
             <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
-              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
-              value={returnDetails.returnDate}
-              name="returnDate"
+              style={{
+                ...styles.inlineInput,
+                padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
+                ...(focusedField === 'billDate' && styles.focusedInput)
+              }}
+              value={returnDetails.billDate}
+              name="billDate"
               onChange={handleInputChange}
               ref={dateRef}
               onKeyDown={(e) => handleKeyDown(e, amountRef)}
-              onFocus={() => setFocusedField('returnDate')}
+              onFocus={() => setFocusedField('billDate')}
               onBlur={() => setFocusedField('')}
             />
           </div>
@@ -1606,7 +1950,10 @@ const PurchaseReturn = () => {
             <label style={styles.inlineLabel}>Amount:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'amount' && styles.focusedInput)
+              }}
               value={returnDetails.amount}
               name="amount"
               onChange={handleInputChange}
@@ -1614,35 +1961,84 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, invoiceNoRef)}
               onFocus={() => setFocusedField('amount')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Amount"
             />
           </div>
 
           {/* Original Invoice No */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}> Invoice No:</label>
-            <input
-              type="text"
-              name="originalInvoiceNo"
-              style={styles.inlineInput}
-              value={returnDetails.originalInvoiceNo}
-              onChange={handleInputChange}
-              onClick={fetchInvoiceBillList}
-              ref={invoiceNoRef}
-              onKeyDown={(e) => handleKeyDown(e, invoiceDateRef)}
-              onFocus={() => setFocusedField('originalInvoiceNo')}
-              onBlur={() => setFocusedField('')}
-              placeholder="Click to select invoice"
-            />
+            <label style={styles.inlineLabel}>Invoice No:</label>
+            <div style={{ position: 'relative', display: 'flex', flex: 1 }}>            
+              <input
+                type="text"
+                name="originalInvoiceNo"
+                style={{
+                  ...styles.inlineInput,
+                  flex: 1,
+                  paddingRight: '40px',
+                  ...(focusedField === 'originalInvoiceNo' && styles.focusedInput)
+                }}
+                value={returnDetails.originalInvoiceNo}            
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleInputChange(e);
+                  
+                  if (value.length > 0) {
+                    setItemSearchTerm(value);
+                    fetchInvoiceBillList();
+                  }
+                }}
+                ref={invoiceNoRef}
+                onKeyDown={(e) => {
+                  if (e.key === '/' || e.key === 'F2') {
+                    e.preventDefault();
+                    setItemSearchTerm(returnDetails.originalInvoiceNo);
+                    fetchInvoiceBillList();
+                  } else if (e.key === 'Enter') {
+                    handleKeyDown(e, invoiceDateRef);
+                  }
+                }}
+                onFocus={() => setFocusedField('originalInvoiceNo')}
+                onBlur={() => setFocusedField('')}
+              />
+              
+              <button
+                type="button"
+                aria-label="Search invoice"
+                title="Search invoice"
+                onClick={fetchInvoiceBillList}
+                style={{
+                  position: 'absolute',
+                  right: '4px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  height: screenSize.isMobile ? '24px' : '28px',
+                  width: screenSize.isMobile ? '24px' : '28px',
+                  padding: 0,
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer',
+                  fontSize: screenSize.isMobile ? '14px' : '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon.Search size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Original Invoice Date */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}> Inv Date:</label>
+            <label style={styles.inlineLabel}>Inv Date:</label>
             <input
               type="date"
               name="originalInvoiceDate"
-              style={{ ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
+              style={{
+                ...styles.inlineInput,
+                padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
+                ...(focusedField === 'originalInvoiceDate' && styles.focusedInput)
+              }}
               value={returnDetails.originalInvoiceDate}
               onChange={handleInputChange}
               ref={invoiceDateRef}
@@ -1658,14 +2054,16 @@ const PurchaseReturn = () => {
             <input
               type="text"
               name="originalInvoiceAmount"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'originalInvoiceAmount' && styles.focusedInput)
+              }}
               value={returnDetails.originalInvoiceAmount}
               onChange={handleInputChange}
               ref={invoiceAmountRef}
               onKeyDown={(e) => handleKeyDown(e, partyCodeRef)}
               onFocus={() => setFocusedField('originalInvoiceAmount')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Original Amount"
             />
           </div>
         </div>
@@ -1691,13 +2089,12 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, customerNameRef)}
               onFocus={() => setFocusedField('partyCode')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Party Code"
             />
           </div>
 
           {/* Customer Name */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}> Name:</label>
+            <label style={styles.inlineLabel}>Name:</label>
             <div style={{ position: 'relative', display: 'flex', flex: 1 }}>
               <input
                 type="text"
@@ -1737,7 +2134,6 @@ const PurchaseReturn = () => {
                     }
                   }, 200);
                 }}
-                // placeholder="Search Supplier"
               />
               <button
                 type="button"
@@ -1761,7 +2157,7 @@ const PurchaseReturn = () => {
                   justifyContent: 'center',
                 }}
               >
-                🔍
+                <Icon.Search size={16} />
               </button>
             </div>
           </div>
@@ -1771,7 +2167,10 @@ const PurchaseReturn = () => {
             <label style={styles.inlineLabel}>City:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'city' && styles.focusedInput)
+              }}
               value={returnDetails.city}
               name="city"
               onChange={handleInputChange}
@@ -1779,7 +2178,6 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, transTypeRef)}
               onFocus={() => setFocusedField('city')}
               onBlur={() => setFocusedField('')}
-              // placeholder="City"
             />
           </div>
 
@@ -1788,7 +2186,10 @@ const PurchaseReturn = () => {
             <label style={styles.inlineLabel}>Trans Type:</label>
             <select
               name="transType"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'transType' && styles.focusedInput)
+              }}
               value={returnDetails.transType}
               onChange={handleInputChange}
               ref={transTypeRef}
@@ -1807,7 +2208,10 @@ const PurchaseReturn = () => {
             <label style={styles.inlineLabel}>Mobile No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'mobileNo' && styles.focusedInput)
+              }}
               value={returnDetails.mobileNo}
               name="mobileNo"
               onChange={handleInputChange}
@@ -1815,7 +2219,6 @@ const PurchaseReturn = () => {
               onKeyDown={(e) => handleKeyDown(e, gstTypeRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Mobile No"
             />
           </div>
         </div>
@@ -1852,15 +2255,33 @@ const PurchaseReturn = () => {
             <label style={styles.inlineLabel}>GST No:</label>
             <input
               type="text"
-              style={styles.inlineInput}
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'gstno' && styles.focusedInput)
+              }}
               value={returnDetails.gstno}
               name="gstno"
               onChange={handleInputChange}
               ref={gstNoRef}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  // Focus on the first row's barcode field
+                  if (items.length > 0 && firstRowBarcodeRef.current) {
+                    firstRowBarcodeRef.current.focus();
+                  } else {
+                    // Fallback to the barcode field of first row
+                    const firstRowBarcodeInput = document.querySelector(
+                      'input[data-row="0"][data-field="barcode"]'
+                    );
+                    if (firstRowBarcodeInput) {
+                      firstRowBarcodeInput.focus();
+                    }
+                  }
+                }
+              }}
               onFocus={() => setFocusedField('gstno')}
               onBlur={() => setFocusedField('')}
-              // placeholder="GST No"
             />
           </div>
 
@@ -1897,7 +2318,7 @@ const PurchaseReturn = () => {
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>Stock</th>
                 <th style={styles.th}>HSN</th>
-                <th style={styles.th}>Return Qty</th>
+                <th style={styles.th}>RT Qty</th>
                 <th style={styles.th}>OvrWt</th>
                 <th style={styles.th}>AvgWt</th>
                 <th style={styles.th}>PRate</th>
@@ -1913,9 +2334,8 @@ const PurchaseReturn = () => {
                 <th style={styles.th}>PPer</th>
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
-                <th style={styles.th}>WSate</th>
-                {/* <th style={styles.th}>Min</th>
-                <th style={styles.th}>Max</th> */}
+                <th style={styles.th}>WRate</th>
+                <th style={styles.th}>Amt</th>
                 <th style={styles.th}>Action</th>
               </tr>
             </thead>
@@ -1925,29 +2345,84 @@ const PurchaseReturn = () => {
                   <td style={styles.td}>{index + 1}</td>
                   <td style={styles.td}>
                     <input
+                      ref={index === 0 ? firstRowBarcodeRef : null}
                       style={styles.editableInput}
                       value={item.barcode}
                       data-row={index}
                       data-field="barcode"
                       onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
-                      onClick={() => handleItemCodeSelect(item.id, item.barcode)}
-                      ref={index === 0 ? barcodeRef : null}
                       title="Click to select item from list"
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
-                    <input
-                      style={{ ...styles.editableInput, textAlign: 'left' }}
-                      value={item.name}
-                      // placeholder="Particulars"
-                      data-row={index}
-                      data-field="name"
-                      onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'name')}
-                      onClick={() => handleItemCodeSelect(item.id, item.name)}
-                      title="Click to select item from list"
-                    />
+                    <div style={{ 
+                      position: 'relative', 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      height: '100%'
+                    }}>
+                      <input                      
+                        style={{ 
+                          ...styles.editableInput, 
+                          textAlign: 'left',
+                          border: 'none',
+                          outline: 'none',
+                          background: 'transparent',
+                          paddingLeft: '8px',
+                          paddingRight: '32px',
+                          width: '100%',
+                          height: '100%'
+                        }}
+                        value={item.name}
+                        data-row={index}
+                        data-field="name"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleItemChange(item.id, 'name', value);
+                          
+                          if (value.length > 0) {
+                            handleItemCodeSelect(item.id, value);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === '/') {
+                            e.preventDefault();
+                            handleItemCodeSelect(item.id, item.name);
+                          } else if (e.key === 'Enter') {
+                            handleTableKeyDown(e, index, 'name');
+                          }
+                        }}
+                        title="Click to select item from list"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Search item details"
+                        title="Click to select item from list"
+                        onClick={() => {
+                          handleItemCodeSelect(item.id, item.name);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#1B91DA',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0,
+                          zIndex: 1,
+                          height: '24px',
+                          width: '24px'
+                        }}
+                      >
+                        <Icon.Search size={18} />
+                      </button>
+                    </div>
                   </td>
                   <td style={styles.td}>
                     <input
@@ -1989,7 +2464,6 @@ const PurchaseReturn = () => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
                     />
                   </td>
-                
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
@@ -2026,8 +2500,27 @@ const PurchaseReturn = () => {
                       value={item.intax || ''}
                       data-row={index}
                       data-field="intax"
-                      onChange={(e) => handleItemChange(item.id, 'intax', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const validTaxValues = ['3', '5', '12', '18', '40'];
+                        if (value === '' || /^[0-9]*$/.test(value)) {
+                          handleItemChange(item.id, 'intax', value);
+                        }
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'intax')}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        const validTaxValues = ['3', '5', '12', '18', '40'];
+                        if (value !== '' && !validTaxValues.includes(value)) {
+                          showAlertConfirmation(
+                            'Invalid tax value. Please enter 3, 5, 12, 18, or 40',
+                            () => {
+                              handleItemChange(item.id, 'intax', '');
+                            },
+                            'warning'
+                          );
+                        }
+                      }}
                     />
                   </td>
                   <td style={styles.td}>
@@ -2150,26 +2643,16 @@ const PurchaseReturn = () => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
                     />
                   </td>
-                  {/* <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
-                      value={item.min || ''}
-                      data-row={index}
-                      data-field="min"
-                      onChange={(e) => handleItemChange(item.id, 'min', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'min')}
-                    />
-                  </td>
                   <td style={styles.td}>
                     <input
                       style={styles.editableInput}
-                      value={item.max || ''}
+                      value={item.amt || ''}
                       data-row={index}
-                      data-field="max"
-                      onChange={(e) => handleItemChange(item.id, 'max', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'max')}
+                      data-field="amt"
+                      onChange={(e) => handleItemChange(item.id, 'amt', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'amt')}
                     />
-                  </td> */}
+                  </td>
                   <td style={styles.td}>
                     <button
                       aria-label="Delete row"
@@ -2211,7 +2694,7 @@ const PurchaseReturn = () => {
                         <path d="M10 11v6"></path>
                         <path d="M14 11v6"></path>
                         <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                                           </svg>
+                      </svg>
                     </button>
                   </td>
                 </tr>
@@ -2229,9 +2712,9 @@ const PurchaseReturn = () => {
             onButtonClick={(type) => {
               console.log("Top action clicked:", type);
               setActiveTopAction(type);
-              if (type === 'add') createNewForm();
+              if (type === 'add') handleClear();
               else if (type === 'edit') handleEdit();
-              else if (type === 'delete') handleDeleteBill();
+              else if (type === 'delete') handleDelete();
             }}         
           >
             <AddButton buttonType="add"/>
@@ -2239,9 +2722,26 @@ const PurchaseReturn = () => {
             <DeleteButton buttonType="delete" />
           </ActionButtons>
         </div>
+        <div style={styles.addLessContainer}>
+          <span style={styles.addLessLabel}>Add/Less:</span>
+          <input
+            type="text"
+            style={focusedField === 'addLess' ? styles.addLessInputFocused : styles.addLessInput}
+            value={addLessAmount}
+            // onChange={handleNumberInput}
+            onChange={(e) => handleNumberInput(e)}
+            // onKeyDown={handleAddLessKeyDown}
+            ref={addLessRef}
+            // placeholder="Enter amount"
+            // step="0.01"
+            onFocus={() => setFocusedField('addLess')}
+            onBlur={handleBlur}
+            inputMode="decimal"
+          />
+        </div>
         <div style={styles.netBox}>
           <span>Total Return Amount:</span>
-          <span>₹ {netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span>₹ {netTotal.toFixed(2)}</span>
         </div>
         <div style={styles.footerButtons}>
           <ActionButtons1
@@ -2251,7 +2751,6 @@ const PurchaseReturn = () => {
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
-          
         </div>
       </div>
 

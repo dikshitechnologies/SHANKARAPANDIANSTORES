@@ -38,7 +38,7 @@ const calculateTotals = (items = []) => {
 
 const PurchaseInvoice = () => {
   // --- STATE MANAGEMENT ---
-  const [activeTopAction, setActiveTopAction] = useState('create');
+  const [activeTopAction, setActiveTopAction] = useState('add');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingBillNo, setEditingBillNo] = useState('');
   
@@ -56,6 +56,7 @@ const PurchaseInvoice = () => {
   
   // Loading state for async operations
   const [isLoading, setIsLoading] = useState(false);
+  const [addLessAmount, setAddLessAmount] = useState('');
   
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -135,6 +136,7 @@ const PurchaseInvoice = () => {
   const invoiceAmountRef = useRef(null);
   const gstNoRef = useRef(null);
   const firstRowNameRef = useRef(null);
+  const addLessRef = useRef(null);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -159,6 +161,65 @@ const PurchaseInvoice = () => {
 
   // Auth context for company code
   const { userData } = useAuth() || {};
+
+  const handleNumberInput = (e) => {
+  const input = e.target.value;
+  
+  // Allow empty string
+  if (input === '') {
+    setAddLessAmount('');
+    return;
+  }
+  
+  // Allow negative numbers
+  if (input === '-') {
+    setAddLessAmount('-');
+    return;
+  }
+  
+  // Remove any non-numeric characters except decimal point and minus sign at start
+  const sanitizedValue = input
+    .replace(/[^\d.-]/g, '') // Remove non-numeric except . and -
+    .replace(/(?!^)-/g, '') // Remove minus signs that aren't at the start
+    .replace(/(\..*)\./g, '$1'); // Allow only one decimal point
+  
+  // Allow any valid number format during typing
+  const isValidNumber = /^-?\d*\.?\d*$/.test(sanitizedValue);
+  
+  if (isValidNumber) {
+    setAddLessAmount(sanitizedValue);
+  } else {
+    // If invalid, revert to previous valid value
+    // Or you could set to empty
+    // setAddLessAmount('');
+  }
+};
+
+// Format on blur
+const handleBlur = () => {
+  if (addLessAmount === '' || addLessAmount === '-') {
+    setFocusedField('');
+    return;
+  }
+  
+  try {
+    const num = parseFloat(addLessAmount);
+    if (!isNaN(num)) {
+      // Format to 2 decimal places if needed
+      // But don't add .00 if it's a whole number
+      if (num % 1 === 0) {
+        setAddLessAmount(num.toString());
+      } else {
+        setAddLessAmount(num.toFixed(2));
+      }
+    }
+  } catch (error) {
+    // Invalid number, clear it
+    setAddLessAmount('');
+  }
+  
+  setFocusedField('');
+};
 
   // Helper function to show confirmation popup
   const showConfirmation = (config) => {
@@ -218,7 +279,7 @@ const PurchaseInvoice = () => {
       // First, clear all states
       setIsEditMode(false);
       setEditingBillNo('');
-      setActiveTopAction('create');
+      setActiveTopAction('add');
       setActiveFooterAction('null');
       setItemSearchTerm('');
       setFocusedField('');
@@ -227,6 +288,7 @@ const PurchaseInvoice = () => {
       setShowItemCodePopup(false);
       setPopupMode('');
       setSelectedRowId(null);
+      setAddLessAmount('');
       
       // Clear table items first
       setItems([{
@@ -434,6 +496,8 @@ const PurchaseInvoice = () => {
         
         console.log('Setting header details:', headerDetails);
         setBillDetails(prev => ({ ...prev, ...headerDetails }));
+
+        setAddLessAmount(iledger.less ?.toString() || '');
 
         let itemsData = [];
         
@@ -703,6 +767,12 @@ const PurchaseInvoice = () => {
     fetchNextInvNo();
   }, [userData]);
 
+  useEffect(() => {
+  if (dateRef.current && activeTopAction !== "delete") {
+    dateRef.current.focus();
+  }
+}, [activeTopAction]);
+
   // Update screen size on resize
   useEffect(() => {
     const handleResize = () => {
@@ -969,6 +1039,7 @@ const PurchaseInvoice = () => {
         const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
 
         if (isParticularsEmpty) {
+          // ref={addLessRef}
           // Show confirmation popup asking to save
           showConfirmation({
             title: 'Particulars Missing',
@@ -979,8 +1050,10 @@ const PurchaseInvoice = () => {
             onConfirm: () => {
               // User chose to save anyway
               setShowConfirmPopup(false);
+              
               // Trigger the actual save function
               handleSave();
+              
               // toast.success('Purchase invoice saved successfully (items without particulars were skipped).');
             },
             onCancel: () => {
@@ -1120,7 +1193,7 @@ const PurchaseInvoice = () => {
         },
         iledger: {
           vrNo: voucherNo,
-          less: 0,
+          less: parseFloat(addLessAmount) || 0,
           subTotal: totals.subTotal,
           total: totals.total,
           net: totals.net,
@@ -1504,6 +1577,53 @@ const PurchaseInvoice = () => {
       backgroundColor: '#e8f4fc',
       borderTop: '2px solid #1B91DA',
     },
+    addLessContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '6px' : '8px',
+      marginRight: screenSize.isMobile ? '0' : '15px',
+      order: screenSize.isMobile ? 2 : 0,
+      marginTop: screenSize.isMobile ? '5px' : '0',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      justifyContent: screenSize.isMobile ? 'center' : 'flex-start'
+    },
+    addLessLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      whiteSpace: 'nowrap'
+    },
+    addLessInput: {
+      width: screenSize.isMobile ? '120px' : '150px',
+      border: '1px solid #1B91DA',
+      borderRadius: '4px',
+      padding: screenSize.isMobile ? '6px 10px' : '8px 12px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      outline: 'none',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      color: '#333',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      transition: 'border-color 0.2s, box-shadow 0.2s'
+    },
+    addLessInputFocused: {
+      width: screenSize.isMobile ? '120px' : '150px',
+      border: '2px solid #1B91DA',
+      borderRadius: '4px',
+      padding: screenSize.isMobile ? '6px 10px' : '8px 12px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      outline: 'none',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      color: '#333',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+      transition: 'border-color 0.2s, box-shadow 0.2s'
+    },
   };
 
   // Determine grid columns based on screen size
@@ -1538,12 +1658,13 @@ const PurchaseInvoice = () => {
               value={billDetails.invNo}
               name="invNo"
               onChange={handleInputChange}
-              ref={billNoRef}
+              // ref={billNoRef}
               onKeyDown={(e) => handleKeyDown(e, dateRef)}
               onFocus={() => setFocusedField('invNo')}
               onBlur={() => setFocusedField('')}
               // //placeholder="Bill No"
               disabled={isEditMode}
+              readOnly
             />
           </div>
 
@@ -1557,10 +1678,10 @@ const PurchaseInvoice = () => {
                 padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
                 ...(focusedField === 'billDate' && styles.focusedInput)
               }}
+              ref={dateRef}
               value={billDetails.billDate}
               name="billDate"
-              onChange={handleInputChange}
-              ref={dateRef}
+              onChange={handleInputChange}              
               onKeyDown={(e) => handleKeyDown(e, amountRef)}
               onFocus={() => setFocusedField('billDate')}
               onBlur={() => setFocusedField('')}
@@ -2309,6 +2430,7 @@ const PurchaseInvoice = () => {
         columnWidths={{ voucherNo: '100%' }}
         searchPlaceholder="Search by bill no or customer..."
         onSelect={handleBillSelect}
+        ref={dateRef}
       />
       
       {/* Supplier Popup */}
@@ -2391,6 +2513,23 @@ const PurchaseInvoice = () => {
             <EditButton buttonType="edit"/>
             <DeleteButton buttonType="delete" />
           </ActionButtons>
+        </div>
+        <div style={styles.addLessContainer}>
+          <span style={styles.addLessLabel}>Add/Less:</span>
+          <input
+            type="text"
+            style={focusedField === 'addLess' ? styles.addLessInputFocused : styles.addLessInput}
+            value={addLessAmount}
+            // onChange={handleNumberInput}
+            onChange={(e) => handleNumberInput(e)}
+            // onKeyDown={handleAddLessKeyDown}
+            ref={addLessRef}
+            // placeholder="Enter amount"
+            // step="0.01"
+            onFocus={() => setFocusedField('addLess')}
+            onBlur={handleBlur}
+            inputMode="decimal"
+          />
         </div>
         <div style={styles.netBox}>
           <span>Total Amount:</span>

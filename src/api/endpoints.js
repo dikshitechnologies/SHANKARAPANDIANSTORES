@@ -160,8 +160,8 @@ export const API_ENDPOINTS = {
     GET_PURCHASE_ITEMS_BY_VOUCHER: (voucher) => `PurchaseReturn/GetPurchaseItemsByVoucher?voucher=${voucher}`,
     GET_PURCHASE_VOUCHER_DETAILS: (voucherNo) => `PurchaseReturn/GetPurchaseVoucherDetails?voucherNo=${voucherNo}`,
     GET_PARTY_LIST: (search = '', pageNo = 1, pageSize = 20) => `PurchaseReturn/GetPartyList?search=${encodeURIComponent(search)}&pageNo=${pageNo}&pageSize=${pageSize}`,
-    CREATE_PURCHASE_RETURN: (selectType = true) => `PurchaseReturn/PurchaseReturn?selecttype=${selectType}`,
-    UPDATE_PURCHASE_RETURN: (selectType = false) => `PurchaseReturn/PurchaseReturn?selecttype=${selectType}`,
+    CREATE_PURCHASE_RETURN: (selectType) => `PurchaseReturn/PurchaseReturn?selecttype=${selectType}`,
+    UPDATE_PURCHASE_RETURN: (selectType) => `PurchaseReturn/PurchaseReturn?selecttype=${selectType}`,
     DELETE_PURCHASE_RETURN: (voucherNo, compCode) => `PurchaseReturn/PurchaseReturnDelete?voucherNo=${voucherNo}&compCode=${compCode}`,
   },
 
