@@ -1235,51 +1235,50 @@ const handleSalesmanSelect = (salesman) => {
     }
   };
 
-  // Handle keydown with / key support for popup toggle - MODIFIED: Don't trigger save on Enter
   const handleKeyDown = (e, nextRef, fieldName = '') => {
-    if (e.key === '/' || e.key === '?') {
-      e.preventDefault();
-      
-      if (fieldName === 'salesman') {
-        if (salesmanPopupOpen) {
-          setSalesmanPopupOpen(false);
-        } else {
-          openSalesmanPopup();
-        }
-      } else if (fieldName === 'custName') {
-        if (customerPopupOpen) {
-          setCustomerPopupOpen(false);
-        } else {
-          openCustomerPopup();
-        }
-      }
+  // Check if a letter key is pressed (A-Z, a-z)
+  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+  
+  if (isLetterKey) {
+    e.preventDefault(); // Prevent the letter from being typed in the field
     
-      } else if (e.key === 'Enter') {
-  // ✅ Do NOT block native select behavior
-  if (e.target.tagName !== 'SELECT') {
-    e.preventDefault();
-  }
-
-  // Move focus after a tiny delay (important for SELECT)
-  if (nextRef?.current) {
-    setTimeout(() => {
-      nextRef.current.focus();
-    }, 0);
-  }
-
-
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      const allInputs = document.querySelectorAll('input:not([readonly]), select');
-      const currentIndex = Array.from(allInputs).indexOf(e.target);
+    if (fieldName === 'salesman') {
+      openSalesmanPopup();
+      // Set search in popup after it opens
+      setTimeout(() => {
+        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+        if (searchInput) {
+          searchInput.value = e.key;
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 100);
       
-      if (e.key === 'ArrowLeft' && currentIndex > 0) {
-        allInputs[currentIndex - 1].focus();
-      } else if (e.key === 'ArrowRight' && currentIndex < allInputs.length - 1) {
-        allInputs[currentIndex + 1].focus();
-      }
+    } else if (fieldName === 'custName') {
+      openCustomerPopup();
+      // Set search in popup after it opens
+      setTimeout(() => {
+        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+        if (searchInput) {
+          searchInput.value = e.key;
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 100);
     }
-  };
+  } else if (e.key === '/') {
+    e.preventDefault();
+    
+    if (fieldName === 'salesman') {
+      openSalesmanPopup();
+    } else if (fieldName === 'custName') {
+      openCustomerPopup();
+    }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (nextRef && nextRef.current) {
+      nextRef.current.focus();
+    }
+  }
+};
 
   // Handle backspace in customer and salesman fields
   const handleBackspace = (e, fieldName) => {
@@ -1351,99 +1350,72 @@ const handleUomSpacebar   = (e, id, index) => {
     }
   };
 
-  // Handle table keydown with improved navigation - MODIFIED: Don't trigger save on Enter
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    if ((e.key === '/' || e.key === '?') && currentField === 'itemName') {
-      e.preventDefault();
-      if (itemPopupOpen) {
-        setItemPopupOpen(false);
-      } else {
-        openItemPopup(currentRowIndex);
-      }
-      return;
-    }
+ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  // Check if a letter key is pressed (A-Z, a-z) in itemName field
+  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+  
+  if (isLetterKey && currentField === 'itemName') {
+    e.preventDefault(); // Prevent the letter from being typed in the field
+    openItemPopup(currentRowIndex);
     
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'];
-      const currentFieldIndex = fields.indexOf(currentField);
-      
-      if (e.key === 'ArrowLeft' && currentFieldIndex > 0) {
-        const prevField = fields[currentFieldIndex - 1];
-        const prevInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${prevField}"]`);
-        if (prevInput) {
-          prevInput.focus();
-          return;
-        }
-      } else if (e.key === 'ArrowRight' && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        if (nextField === 'uom') {
-          const uomDiv = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
-          if (uomDiv) {
-            uomDiv.focus();
-            return;
-          }
-        } else {
-          const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-          if (nextInput) {
-            nextInput.focus();
-            return;
-          }
-        }
+    // Set search in popup after it opens
+    setTimeout(() => {
+      const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+      if (searchInput) {
+        searchInput.value = e.key;
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
       }
-    }
-    
-    if (e.key === 'Enter') {
-      e.preventDefault();
-
-      const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'];
-      const currentFieldIndex = fields.indexOf(currentField);
-
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        
-        if (nextField === 'uom') {
-          const uomDiv = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
-          if (uomDiv) {
-            uomDiv.focus();
-            return;
-          }
-        } else {
-          const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-          if (nextInput) {
-            nextInput.focus();
-            return;
-          }
-        }
-      }
-
-     if (currentField === 'qty') {
-  const currentItem = items[currentRowIndex];
-
-  // 🚫 BLOCK if item name not selected
-  if (!currentItem.itemName || currentItem.itemName.trim() === '') {
-    toast.warning("Select item before moving to next row");
+    }, 100);
     return;
   }
-
-  if (currentRowIndex < items.length - 1) {
-    const nextInput = document.querySelector(
-      `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
-    );
-    if (nextInput) nextInput.focus();
-  } else {
-    handleAddRow();
-    setTimeout(() => {
-      const newRowInput = document.querySelector(
-        `input[data-row="${items.length}"][data-field="barcode"]`
-      );
-      if (newRowInput) newRowInput.focus();
-    }, 80);
+  
+  if (e.key === '/' && currentField === 'itemName') {
+    e.preventDefault();
+    openItemPopup(currentRowIndex);
+    return;
   }
-}
+  
+  if (e.key === 'Enter') {
+    e.preventDefault();
 
+    const fields = [
+      'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
+    ];
+
+    const currentFieldIndex = fields.indexOf(currentField);
+
+    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+      const nextField = fields[currentFieldIndex + 1];
+      const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        return;
+      }
     }
-  };
+
+    // Check if we're on the quantity field
+    if (currentField === 'qty') {
+      const currentItem = items[currentRowIndex];
+
+      // 🚫 BLOCK if item name not selected
+      if (!currentItem.itemName || currentItem.itemName.trim() === '') {
+        toast.warning("Select item before moving to next row");
+        return;
+      }
+
+      if (currentRowIndex < items.length - 1) {
+        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
+        if (nextInput) nextInput.focus();
+      } else {
+        handleAddRow();
+        setTimeout(() => {
+          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
+          if (newRowInput) newRowInput.focus();
+        }, 60);
+      }
+    }
+  }
+};
   
 
   const handleAddItem = async () => {
