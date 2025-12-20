@@ -7,7 +7,6 @@ import { axiosInstance } from '../../api/apiService';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-
 // --- Inline SVG icons ---
 const Icon = {
   Plus: ({ size = 16 }) => (
@@ -61,6 +60,9 @@ export default function SalesmanCreation() {
   const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+
+  // Track original salesman name when editing
+  const [originalSalesmanName, setOriginalSalesmanName] = useState("");
 
   // modals & queries
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -213,9 +215,9 @@ export default function SalesmanCreation() {
       if (salesmanNameRef.current) {
         salesmanNameRef.current.focus();
       }
-    }, 100); // Small delay to ensure DOM is ready
+    }, 100);
     return () => clearTimeout(timer);
-  }, []); // Empty dependency array = runs once on mount
+  }, []);
 
   // Additional focus for when actionType changes
   useEffect(() => {
@@ -232,11 +234,18 @@ export default function SalesmanCreation() {
     fetchNextCode();
   };
 
-  const handleEdit = async () => {
+  const handleEdit = () => { // REMOVED async
     if (!form.salesmanCode || !form.salesmanName) {
       setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
     }
+
+    // Check if no changes were made
+    if (originalSalesmanName && originalSalesmanName.toUpperCase() === form.salesmanName.toUpperCase()) {
+      setMessage({ type: "warning", text: "No changes detected. Salesman name remains the same." });
+      return;
+    }
+
     setConfirmEditOpen(true);
   };
 
@@ -245,11 +254,13 @@ export default function SalesmanCreation() {
     try {
       const result = await updateSalesman(form);
       
+      // SUCCESS ALERT - Show toast notification
+      toast.success(`Salesman "${form.salesmanName}" updated successfully.`);
+      
       if (result && result.message) {
         setMessage({ type: "success", text: result.message });
       } else {
         setMessage({ type: "success", text: "Salesman updated successfully." });
-        toast.success(`Salesman "${form.salesmanName}" updated successfully.`);
       }
       
       // Refresh the list
@@ -265,7 +276,7 @@ export default function SalesmanCreation() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => { // REMOVED async
     if (!form.salesmanCode) {
       setMessage({ type: "error", text: "Please select a salesman to delete." });
       return;
@@ -278,11 +289,13 @@ export default function SalesmanCreation() {
     try {
       const result = await deleteSalesman(form.salesmanCode);
       
+      // SUCCESS ALERT - Show toast notification
+      toast.success(`Salesman "${form.salesmanName}" deleted successfully.`);
+      
       if (result && result.message) {
         setMessage({ type: "success", text: result.message });
       } else {
         setMessage({ type: "success", text: "Salesman deleted successfully." });
-        toast.success(`Salesman "${form.salesmanName}" deleted successfully.`);
       }
       
       // Refresh the list
@@ -305,35 +318,35 @@ export default function SalesmanCreation() {
     }
   };
 
-  const handleAdd = async () => {
-  if (!form.salesmanCode || !form.salesmanName) {
-    setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
-    return;
-  }
+  const handleAdd = () => { // REMOVED async - SHOWS CONFIRMATION POPUP
+    if (!form.salesmanCode || !form.salesmanName) {
+      setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
+      return;
+    }
 
-  // Check if salesman code already exists
-  const codeExists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
-  if (codeExists) {
-    setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
-    return;
-  }
+    // Check if salesman code already exists
+    const codeExists = salesmen.some(s => s.salesmanCode === form.salesmanCode);
+    if (codeExists) {
+      setMessage({ type: "error", text: `Salesman code ${form.salesmanCode} already exists.` });
+      return;
+    }
 
-  // ADD THIS CHECK FOR DUPLICATE SALESMAN NAME (case-insensitive)
-  const nameExists = salesmen.some(s => 
-    s.salesmanName.toLowerCase() === form.salesmanName.toLowerCase()
-  );
+    // Check for duplicate salesman name (case-insensitive)
+    const nameExists = salesmen.some(s => 
+      s.salesmanName.toLowerCase() === form.salesmanName.toLowerCase()
+    );
 
-  if (nameExists) {
-    setMessage({ 
-      type: "error", 
-      text: `Salesman name "${form.salesmanName}" already exists. Please use a different name.` 
-    });
-    return; // Don't proceed with save
-  }
+    if (nameExists) {
+      setMessage({ 
+        type: "error", 
+        text: `Salesman name "${form.salesmanName}" already exists. Please use a different name.` 
+      });
+      return;
+    }
 
-  // If no duplicate, proceed to confirmation
-  setConfirmSaveOpen(true);
-};
+    // Show confirmation popup
+    setConfirmSaveOpen(true);
+  };
 
   const confirmSave = async () => {
     setIsLoading(true);
@@ -351,11 +364,13 @@ export default function SalesmanCreation() {
 
       const result = await createSalesman(salesmanData);
       
+      // SUCCESS ALERT - Show toast notification
+      toast.success(`Salesman "${form.salesmanName}" created successfully.`);
+      
       if (result && result.message) {
         setMessage({ type: "success", text: result.message });
       } else {
         setMessage({ type: "success", text: "Salesman created successfully." });
-        toast.success(`Salesman "${form.salesmanName}" created successfully.`);
       }
       
       // Refresh the list and get next code
@@ -381,15 +396,20 @@ export default function SalesmanCreation() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+  const handleSubmit = () => { // REMOVED async
+    if (actionType === "Add") {
+      handleAdd(); // This will show confirmSaveOpen popup
+    } else if (actionType === "edit") {
+      handleEdit(); // This will show confirmEditOpen popup
+    } else if (actionType === "delete") {
+      handleDelete(); // This will show confirmDeleteOpen popup
+    }
   };
 
   const resetForm = (keepAction = false) => {
     fetchNextCode(); // Get new code
-    setForm({ salesmanCode: "", salesmanName: "" });
+    setForm(prev => ({ ...prev, salesmanName: "" }));
+    setOriginalSalesmanName("");
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -403,11 +423,12 @@ export default function SalesmanCreation() {
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
-    salesmanNameRef.current?.focus()
+    salesmanNameRef.current?.focus();
   };
 
   const handleEditRowClick = (s) => {
     setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
+    setOriginalSalesmanName(s.salesmanName);
     setActionType("edit");
     setEditingId(s.salesmanCode);
     setEditModalOpen(false);
@@ -417,7 +438,7 @@ export default function SalesmanCreation() {
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
-    salesmanNameRef.current?.focus()
+    salesmanNameRef.current?.focus();
   };
 
   // Fetch items for popup list selector
@@ -452,7 +473,8 @@ export default function SalesmanCreation() {
   const onSalesmanNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
+      e.stopPropagation(); // IMPORTANT: Prevent form submission
+      handleSubmit(); // This will trigger the appropriate confirmation popup
       salesmanNameRef.current?.focus();
     }
   };
@@ -1151,10 +1173,7 @@ export default function SalesmanCreation() {
                         <tr 
                           key={s.salesmanCode}
                           className={form.salesmanCode === s.salesmanCode ? "selected" : ""}
-                          onClick={() => {
-                            setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
-                            setActionType("edit");
-                          }}
+                          onClick={() => handleEditRowClick(s)}
                         >
                           <td>{s.salesmanCode}</td>
                           <td>{s.salesmanName}</td>
@@ -1166,8 +1185,6 @@ export default function SalesmanCreation() {
               </div>
             </div>
           </div>
-
-        
         </div>
       </div>
 
