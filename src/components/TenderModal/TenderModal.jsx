@@ -142,11 +142,12 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
       const netAmount = Number(formData.netAmount) || 0;
       const balance = totalCollected - netAmount;
       
-      // Update form data balance
+      // Update form data balance and issued cash
       setFormData(prev => ({
         ...prev,
         receivedCash: totalCollected.toString(),
-        balance: balance.toString()
+        balance: balance.toString(),
+        issuedCash: balance > 0 ? balance.toString() : ''
       }));
       
       // If balance is positive, auto-calculate and fill issue row
@@ -772,7 +773,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                   </div>
                 </div>
 
-                <div className={styles.paymentRow} style={{ gap: '12px' }}>
+                {/* <div className={styles.paymentRow} style={{ gap: '12px' }}>
                   <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
                     <label className={styles.paymentLabel}>Balance</label>
                     <div className={styles.paymentInputContainer}>
@@ -784,7 +785,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                       />
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Right Side Checkboxes */}
                 {/* <div className={styles.rightCheckboxRow}>
