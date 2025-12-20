@@ -239,23 +239,28 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     if (!billNo.trim()) return;
     
     try {
-      const response = await axiosInstance.get(
-        API_ENDPOINTS.SALESRETURN.GET_SALESRETURN_TENDER(billNo)
+      const response = await apiService.get(
+        API_ENDPOINTS.BILLCOLLECTOR.GET_VOUCHER_AMOUNTS(billNo)
       );
       
-      const data = response.data;
-      console.log('Fetched bill amount data:', data);
+      console.log('Fetched voucher amount data:', response);
       
-      if (data && data.fBillAmt) {
-        if (fieldType === 'scrap') {
-          handleInputChange('scrapAmount', data.fBillAmt.toString());
-        } else if (fieldType === 'salesReturn') {
-          handleInputChange('salesReturn', data.fBillAmt.toString());
-        }
+      const data = response.data || response;
+      
+      // Extract amount based on field type
+      let amount = 0;
+      if (fieldType === 'scrap') {
+        amount = data.scAmount || data.amount || data.fBillAmt || 0;
+        console.log('Setting scrap amount to:', amount);
+        handleInputChange('scrapAmount', amount.toString());
+      } else if (fieldType === 'salesReturn') {
+        amount = data.srAmount || data.amount || data.fBillAmt || 0;
+        console.log('Setting sales return amount to:', amount);
+        handleInputChange('salesReturn', amount.toString());
       }
     } catch (error) {
-      console.error('Error fetching bill amount:', error);
-     
+      console.error('Error fetching voucher amount:', error);
+      console.error('Error details:', error.response?.data || error.message);
     }
   };
 
@@ -266,8 +271,8 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     // Clear amount if bill number is empty
     if (!value.trim()) {
       handleInputChange('scrapAmount', '');
-    } else if (value.length > 2) {
-      // Fetch amount when user finishes typing (on blur would be better, but this triggers on change)
+    } else if (value.length > 0) {
+      // Fetch amount when bill number has value
       fetchBillAmount(value, 'scrap');
     }
   };
@@ -279,8 +284,8 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     // Clear amount if bill number is empty
     if (!value.trim()) {
       handleInputChange('salesReturn', '');
-    } else if (value.length > 2) {
-      // Fetch amount when user finishes typing
+    } else if (value.length > 0) {
+      // Fetch amount when bill number has value
       fetchBillAmount(value, 'salesReturn');
     }
   };
