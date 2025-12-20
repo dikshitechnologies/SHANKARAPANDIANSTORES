@@ -3262,7 +3262,7 @@ const SalesReturn = () => {
                       onBlur={() => setFocusedField('')}
                       title="Press Space to cycle UOM options, Enter to move to HSN"
                     >
-                      {item.uom || 'Select UOM'}
+                      {item.uom || ''}
                     </div>
                   </td>
                   <td style={styles.td}>
