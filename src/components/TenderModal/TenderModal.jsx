@@ -5,7 +5,7 @@ import { ActionButtons1 } from '../Buttons/ActionButtons';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 
-const TenderModal = ({ isOpen, onClose, billData }) => {
+const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const { userData } = useAuth() || {};
   const [activeFooterAction, setActiveFooterAction] = useState('all');
   const [denominations, setDenominations] = useState({
@@ -342,6 +342,10 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
 
       if (response && response.success) {
         alert('✓ Tender details saved successfully!');
+        // Call the success callback to reload parent component
+        if (onSaveSuccess) {
+          onSaveSuccess();
+        }
         // Close the modal after successful save
         onClose();
       } else {
