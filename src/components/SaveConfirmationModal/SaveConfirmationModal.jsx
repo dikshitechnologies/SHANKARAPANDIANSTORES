@@ -281,7 +281,9 @@ const SaveConfirmationModal = ({
                       <input
                         ref={(el) => (fieldRefs.current[denom] = el)}
                         type="number"
-                        value={denominations[denom].collect}
+                        value={
+                          denominations[denom].collect ==0 ? '' : denominations[denom].collect
+                        }
                         onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
                         className={styles.tableInput}
                         placeholder="0"

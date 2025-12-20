@@ -5,7 +5,7 @@ import { ActionButtons1 } from '../Buttons/ActionButtons';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 
-const TenderModal = ({ isOpen, onClose, billData }) => {
+const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const { userData } = useAuth() || {};
   const [activeFooterAction, setActiveFooterAction] = useState('all');
   const [denominations, setDenominations] = useState({
@@ -239,23 +239,28 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     if (!billNo.trim()) return;
     
     try {
-      const response = await axiosInstance.get(
-        API_ENDPOINTS.SALESRETURN.GET_SALESRETURN_TENDER(billNo)
+      const response = await apiService.get(
+        API_ENDPOINTS.BILLCOLLECTOR.GET_VOUCHER_AMOUNTS(billNo)
       );
       
-      const data = response.data;
-      console.log('Fetched bill amount data:', data);
+      console.log('Fetched voucher amount data:', response);
       
-      if (data && data.fBillAmt) {
-        if (fieldType === 'scrap') {
-          handleInputChange('scrapAmount', data.fBillAmt.toString());
-        } else if (fieldType === 'salesReturn') {
-          handleInputChange('salesReturn', data.fBillAmt.toString());
-        }
+      const data = response.data || response;
+      
+      // Extract amount based on field type
+      let amount = 0;
+      if (fieldType === 'scrap') {
+        amount = data.scAmount || data.amount || data.fBillAmt || 0;
+        console.log('Setting scrap amount to:', amount);
+        handleInputChange('scrapAmount', amount.toString());
+      } else if (fieldType === 'salesReturn') {
+        amount = data.srAmount || data.amount || data.fBillAmt || 0;
+        console.log('Setting sales return amount to:', amount);
+        handleInputChange('salesReturn', amount.toString());
       }
     } catch (error) {
-      console.error('Error fetching bill amount:', error);
-     
+      console.error('Error fetching voucher amount:', error);
+      console.error('Error details:', error.response?.data || error.message);
     }
   };
 
@@ -266,8 +271,8 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     // Clear amount if bill number is empty
     if (!value.trim()) {
       handleInputChange('scrapAmount', '');
-    } else if (value.length > 2) {
-      // Fetch amount when user finishes typing (on blur would be better, but this triggers on change)
+    } else if (value.length > 0) {
+      // Fetch amount when bill number has value
       fetchBillAmount(value, 'scrap');
     }
   };
@@ -279,8 +284,8 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     // Clear amount if bill number is empty
     if (!value.trim()) {
       handleInputChange('salesReturn', '');
-    } else if (value.length > 2) {
-      // Fetch amount when user finishes typing
+    } else if (value.length > 0) {
+      // Fetch amount when bill number has value
       fetchBillAmount(value, 'salesReturn');
     }
   };
@@ -342,6 +347,10 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
 
       if (response && response.success) {
         alert('✓ Tender details saved successfully!');
+        // Call the success callback to reload parent component
+        if (onSaveSuccess) {
+          onSaveSuccess();
+        }
         // Close the modal after successful save
         onClose();
       } else {
@@ -596,7 +605,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
               </div>
 
               {/* Checkboxes Row */}
-              <div className={styles.checkboxRow}>
+              {/* <div className={styles.checkboxRow}>
                 <div className={styles.checkboxGroup}>
                   <label className={styles.checkboxLabel}>
                     <input
@@ -620,12 +629,12 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                     <span>Delivery</span>
                   </label>
                 </div>
-              </div>
+              </div> */}
 
               {/* F8-Delete Note */}
-              <div className={styles.f8Note}>
+              {/* <div className={styles.f8Note}>
                 F8-Delete
-              </div>
+              </div> */}
             </div>
 
             {/* Right Section - Bottom Details */}
@@ -778,7 +787,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                 </div>
 
                 {/* Right Side Checkboxes */}
-                <div className={styles.rightCheckboxRow}>
+                {/* <div className={styles.rightCheckboxRow}>
                   <div className={styles.rightCheckboxGroup}>
                     <label className={styles.rightCheckboxLabel}>
                       <input
@@ -811,7 +820,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       <span>Is Credit Bill</span>
                     </label>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

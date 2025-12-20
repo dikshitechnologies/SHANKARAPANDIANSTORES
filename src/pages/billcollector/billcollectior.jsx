@@ -679,6 +679,11 @@ function BillCollector() {
         isOpen={isTenderModalOpen} 
         onClose={handleCloseTenderModal}
         billData={selectedBillData}
+        onSaveSuccess={() => {
+          // Reload bills after successful save
+          fetchBills(pageNumber, searchInput);
+          alert('Bill data updated successfully!');
+        }}
       />
 
       {/* <div style={footer}>
