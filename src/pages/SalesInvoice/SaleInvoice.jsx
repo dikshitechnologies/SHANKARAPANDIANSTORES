@@ -8,8 +8,6 @@ import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { axiosInstance } from '../../api/apiService';
 
-
-
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -1229,9 +1227,9 @@ const handleSalesmanSelect = (salesman) => {
   const handleAddLessKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      // Just move focus to Save button, don't trigger save
-      const saveButton = document.querySelector('button[data-action="save"]');
-      if (saveButton) saveButton.focus();
+      // Focus on Clear button (first footer button)
+      const clearButton = document.querySelector('button[data-action="clear"]');
+      if (clearButton) clearButton.focus();
     }
   };
 
@@ -1378,22 +1376,32 @@ const handleUomSpacebar   = (e, id, index) => {
   if (e.key === 'Enter') {
     e.preventDefault();
 
-    const fields = [
-      'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
-    ];
+    // Define field order and their next field targets
+    const fieldNavigation = {
+      'barcode': `input[data-row="${currentRowIndex}"][data-field="itemName"]`,
+      'itemName': `input[data-row="${currentRowIndex}"][data-field="stock"]`,
+      'stock': `input[data-row="${currentRowIndex}"][data-field="mrp"]`,
+      'mrp': `div[data-row="${currentRowIndex}"][data-field="uom"]`,
+      'uom': `input[data-row="${currentRowIndex}"][data-field="hsn"]`,
+      'hsn': `input[data-row="${currentRowIndex}"][data-field="tax"]`,
+      'tax': `input[data-row="${currentRowIndex}"][data-field="sRate"]`,
+      'sRate': `input[data-row="${currentRowIndex}"][data-field="qty"]`,
+      'qty': currentRowIndex < items.length - 1 
+        ? `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+        : null
+    };
 
-    const currentFieldIndex = fields.indexOf(currentField);
-
-    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
-      const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-      if (nextInput) {
-        nextInput.focus();
+    const nextSelector = fieldNavigation[currentField];
+    
+    if (nextSelector) {
+      const nextElement = document.querySelector(nextSelector);
+      if (nextElement) {
+        nextElement.focus();
         return;
       }
     }
 
-    // Check if we're on the quantity field
+    // Special handling for quantity field
     if (currentField === 'qty') {
       const currentItem = items[currentRowIndex];
 
@@ -2496,27 +2504,11 @@ searchIconInside: {
   style={styles.container}
   className="sale-invoice-scrollable"
   onKeyDown={(e) => {
-    // 🚫 block Enter that comes from popup selection
+    // Only block Enter if it's from popup selection
     if (ignoreNextEnterRef.current && e.key === 'Enter') {
       e.preventDefault();
       e.stopPropagation();
-      return;
-    }
-
-    // 🚫 block Enter everywhere else (no auto save)
-    if (
-      e.key === 'Enter' &&
-      !customerPopupOpen &&
-      !salesmanPopupOpen &&
-      !itemPopupOpen &&
-      !editInvoicePopupOpen &&
-      !deleteInvoicePopupOpen &&
-      !saveConfirmationOpen &&
-      !editConfirmationOpen &&
-      !deleteConfirmationOpen
-    ) {
-      e.preventDefault();
-      e.stopPropagation();
+      ignoreNextEnterRef.current = false; // Reset immediately
     }
   }}
 >
@@ -2571,7 +2563,7 @@ searchIconInside: {
 
 
               ref={billDateRef}
-              onKeyDown={(e) => handleKeyDown(e, mobileRef)}
+              onKeyDown={(e) => handleKeyDown(e, mobileRef, 'billDate')}
               onFocus={() => setFocusedField('billDate')}
               onBlur={() => setFocusedField('')}
             />
@@ -2587,7 +2579,7 @@ searchIconInside: {
               name="mobileNo"
               onChange={handleInputChange}
               ref={mobileRef}
-              onKeyDown={(e) => handleKeyDown(e, typeRef)}
+              onKeyDown={(e) => handleKeyDown(e, typeRef, 'mobileNo')}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
               // placeholder="Mobile No"
@@ -2611,7 +2603,12 @@ searchIconInside: {
     value={billDetails.type}
     onChange={handleInputChange}
     ref={typeRef}
-    onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        salesmanRef.current.focus();
+      }
+    }}
     onFocus={() => setFocusedField('type')}
     onBlur={() => setFocusedField('')}
   >
@@ -2731,8 +2728,13 @@ searchIconInside: {
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   handleAddItem();
+                  // After adding item, focus on first row's barcode
+                  setTimeout(() => {
+                    const firstRowBarcode = document.querySelector('input[data-row="0"][data-field="barcode"]');
+                    if (firstRowBarcode) firstRowBarcode.focus();
+                  }, 50);
                 } else {
-                  handleKeyDown(e, addLessRef);
+                  handleKeyDown(e, addLessRef, 'barcodeInput');
                 }
               }}
               onFocus={() => setFocusedField('barcodeInput')}
@@ -2774,7 +2776,17 @@ searchIconInside: {
                       data-row={index}
                       data-field="barcode"
                       onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const itemNameInput = document.querySelector(`input[data-row="${index}"][data-field="itemName"]`);
+                          if (itemNameInput) {
+                            itemNameInput.focus();
+                            return;
+                          }
+                        }
+                        handleTableKeyDown(e, index, 'barcode');
+                      }}
                       onFocus={() => setFocusedField(`barcode-${item.id}`)}
                       onBlur={() => setFocusedField('')}
                     />
@@ -2794,7 +2806,17 @@ searchIconInside: {
       data-row={index}
       data-field="itemName"
       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
-      onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const stockInput = document.querySelector(`input[data-row="${index}"][data-field="stock"]`);
+          if (stockInput) {
+            stockInput.focus();
+            return;
+          }
+        }
+        handleTableKeyDown(e, index, 'itemName');
+      }}
       onClick={() => openItemPopup(index)}
       onFocus={() => setFocusedField(`itemName-${item.id}`)}
       onBlur={() => setFocusedField('')}
@@ -2826,7 +2848,17 @@ searchIconInside: {
                       data-row={index}
                       data-field="stock"
                       onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const mrpInput = document.querySelector(`input[data-row="${index}"][data-field="mrp"]`);
+                          if (mrpInput) {
+                            mrpInput.focus();
+                            return;
+                          }
+                        }
+                        handleTableKeyDown(e, index, 'stock');
+                      }}
                       readOnly
                     />
                   </td>
@@ -2837,7 +2869,17 @@ searchIconInside: {
                       data-row={index}
                       data-field="mrp"
                       onChange={(e) => handleItemChange(item.id, 'mrp', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'mrp')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const uomElement = document.querySelector(`div[data-row="${index}"][data-field="uom"]`);
+                          if (uomElement) {
+                            uomElement.focus();
+                            return;
+                          }
+                        }
+                        handleTableKeyDown(e, index, 'mrp');
+                      }}
                       onFocus={() => setFocusedField(`mrp-${item.id}`)}
                       onBlur={() => setFocusedField('')}
                     />
@@ -2878,7 +2920,53 @@ searchIconInside: {
                             setFocusedUomField(null);
                           }, 300);
                         }}
-                        onKeyDown={(e) => handleUomSpacebar(e, item.id, index)}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ') {
+                            e.preventDefault();
+                            
+                            const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
+                            const currentUom = item.uom || '';
+                            let nextUom = 'pcs';
+                            
+                            if (currentUom && currentUom.trim() !== '') {
+                              const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
+                              if (currentIndex !== -1) {
+                                const nextIndex = (currentIndex + 1) % uomValues.length;
+                                nextUom = uomValues[nextIndex];
+                              } else {
+                                nextUom = 'pcs';
+                              }
+                            } else {
+                              nextUom = 'pcs';
+                            }
+                            
+                            setItems(items.map(i => {
+                              if (i.id === item.id) {
+                                return {
+                                  ...i,
+                                  uom: nextUom
+                                };
+                              }
+                              return i;
+                            }));
+                            
+                            setFocusedUomField(item.id);
+                            setTimeout(() => {
+                              setFocusedUomField(null);
+                            }, 300);
+                            
+                            return;
+                          }
+                          
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const hsnInput = document.querySelector(`input[data-row="${index}"][data-field="hsn"]`);
+                            if (hsnInput) {
+                              hsnInput.focus();
+                              return;
+                            }
+                          }
+                        }}
                         tabIndex={0}
                         onFocus={() => {
                           setFocusedField(`uom-${item.id}`);
@@ -2888,7 +2976,7 @@ searchIconInside: {
                           setFocusedField('');
                           setFocusedUomField(null);
                         }}
-                        title="Press Space or Click to toggle units"
+                        title="Press Space or Click to toggle units, Enter to move to HSN"
                         data-row={index}
                         data-field="uom"
                       >
@@ -2906,7 +2994,17 @@ searchIconInside: {
                       data-row={index}
                       data-field="hsn"
                       onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const taxInput = document.querySelector(`input[data-row="${index}"][data-field="tax"]`);
+                          if (taxInput) {
+                            taxInput.focus();
+                            return;
+                          }
+                        }
+                        handleTableKeyDown(e, index, 'hsn');
+                      }}
                       onFocus={() => setFocusedField(`hsn-${item.id}`)}
                       onBlur={() => setFocusedField('')}
                     />
@@ -2918,7 +3016,17 @@ searchIconInside: {
                       data-row={index}
                       data-field="tax"
                       onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'tax')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const sRateInput = document.querySelector(`input[data-row="${index}"][data-field="sRate"]`);
+                          if (sRateInput) {
+                            sRateInput.focus();
+                            return;
+                          }
+                        }
+                        handleTableKeyDown(e, index, 'tax');
+                      }}
                       onFocus={() => setFocusedField(`tax-${item.id}`)}
                       onBlur={() => setFocusedField('')}
                       step="0.01"
@@ -2931,7 +3039,17 @@ searchIconInside: {
                       data-row={index}
                       data-field="sRate"
                       onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const qtyInput = document.querySelector(`input[data-row="${index}"][data-field="qty"]`);
+                          if (qtyInput) {
+                            qtyInput.focus();
+                            return;
+                          }
+                        }
+                        handleTableKeyDown(e, index, 'sRate');
+                      }}
                       onFocus={() => setFocusedField(`sRate-${item.id}`)}
                       onBlur={() => setFocusedField('')}
                       step="0.01"

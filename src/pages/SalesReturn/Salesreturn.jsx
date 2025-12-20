@@ -156,80 +156,82 @@ const SalesReturn = () => {
     isDesktop: true
   });
 
- useEffect(() => {
-  if (!billDetailsPopupOpen) return;
+  // UOM options
+  const uomOptions = ['PCS', 'KG', 'LTR', 'MTR', 'BOX', 'PKT', 'SET', 'DZN'];
+  const [currentUomIndex, setCurrentUomIndex] = useState(0);
 
-  const handleKeyDown = (e) => {
-    // ❗ Ignore if user typing in input
-    if (
-      e.target.tagName === "INPUT" ||
-      e.target.tagName === "TEXTAREA"
-    ) {
-      return;
+  useEffect(() => {
+    if (!billDetailsPopupOpen) return;
+
+    const handleKeyDown = (e) => {
+      // ❗ Ignore if user typing in input
+      if (
+        e.target.tagName === "INPUT" ||
+        e.target.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+
+      const billNo = selectedBillForDetails;
+      if (!billNo) return;
+
+      const details = billDetailsData[billNo];
+      const itemsArray = details?.items || details?.details || [];
+      if (itemsArray.length === 0) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setBillPopupRowIndex(prev =>
+          Math.min(prev + 1, itemsArray.length - 1)
+        );
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setBillPopupRowIndex(prev =>
+          Math.max(prev - 1, 0)
+        );
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const item = itemsArray[billPopupRowIndex];
+        if (!item) return;
+
+        const key = item.fItemcode || item.itemCode;
+        setCheckedBills(prev => ({
+          ...prev,
+          [key]: !prev[key]
+        }));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    billDetailsPopupOpen,
+    selectedBillForDetails,
+    billDetailsData,
+    billPopupRowIndex
+  ]);
+
+  useEffect(() => {
+    if (!billDetailsPopupOpen) return;
+
+    const row = billRowRefs.current[billPopupRowIndex];
+    if (row) {
+      row.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest"
+      });
     }
-
-    const billNo = selectedBillForDetails;
-    if (!billNo) return;
-
-    const details = billDetailsData[billNo];
-    const itemsArray = details?.items || details?.details || [];
-    if (itemsArray.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setBillPopupRowIndex(prev =>
-        Math.min(prev + 1, itemsArray.length - 1)
-      );
-    }
-
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setBillPopupRowIndex(prev =>
-        Math.max(prev - 1, 0)
-      );
-    }
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const item = itemsArray[billPopupRowIndex];
-      if (!item) return;
-
-      const key = item.fItemcode || item.itemCode;
-      setCheckedBills(prev => ({
-        ...prev,
-        [key]: !prev[key]
-      }));
-    }
-  };
-
-  window.addEventListener("keydown", handleKeyDown);
-  return () => window.removeEventListener("keydown", handleKeyDown);
-}, [
-  billDetailsPopupOpen,
-  selectedBillForDetails,
-  billDetailsData,
-  billPopupRowIndex
-]);
-
-useEffect(() => {
-  if (!billDetailsPopupOpen) return;
-
-  const row = billRowRefs.current[billPopupRowIndex];
-  if (row) {
-    row.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest"
-    });
-  }
-}, [billPopupRowIndex, billDetailsPopupOpen]);
-
-
+  }, [billPopupRowIndex, billDetailsPopupOpen]);
 
   const resetForm = async () => {
     try {
       setIsEditMode(false);
+      setCurrentUomIndex(0);
 
-      // Reset bill details to default
       setBillDetails({
         billNo: 'SR0000001',
         billDate: new Date().toISOString().substring(0, 10),
@@ -251,7 +253,6 @@ useEffect(() => {
         newBillNo: ''
       });
 
-      // Reset items to single empty row
       setItems([
         {
           id: 1,
@@ -271,11 +272,8 @@ useEffect(() => {
         }
       ]);
 
-      // Fetch new voucher number and refresh voucher list
       await fetchMaxVoucherNo();
       await fetchVoucherList();
-      
-     
       
     } catch (err) {
       console.error("Error resetting form:", err);
@@ -310,26 +308,22 @@ useEffect(() => {
     const hasEmpName = !!billDetails.empName.trim();
     const hasSalesman = !!billDetails.salesman.trim();
     
-    // Check if at least one item has quantity > 0
     const hasValidItems = items.some(item => {
       const hasItemName = !!item.itemName.trim();
       const hasQuantity = parseFloat(item.qty || 0) > 0;
       return hasItemName && hasQuantity;
     });
 
-    // All fields must be filled
     const isValid = hasCustomer && hasBillDate && hasMobile && hasEmpName && hasSalesman && hasValidItems;
     return isValid;
   }).current;
 
-  // Update validation when form fields change
   useEffect(() => {
     const isValid = checkFormValidity();
     setIsFormValid(isValid);
   }, [billDetails, items, checkFormValidity]);
 
   // ---------- API FUNCTIONS ----------
-  // Fetch sales invoice bill list with pagination
   const fetchSalesInvoiceBillList = async (page = 1, pageSize = 20) => {
     try {
       setIsLoadingBills(true);
@@ -370,7 +364,6 @@ useEffect(() => {
     }
   };
 
-  // Fetch voucher details from sales invoice
   const fetchSalesInvoiceVoucherDetails = async (voucherNo) => {
     try {
       setLoading(true);
@@ -393,7 +386,6 @@ useEffect(() => {
     }
   };
 
-  // Fetch details for specific bill
   const fetchBillDetailsForPopup = async (billNo) => {
     try {
       setIsLoadingDetails(prev => ({ ...prev, [billNo]: true }));
@@ -415,7 +407,6 @@ useEffect(() => {
     }
   };
 
-  // Open First Popup - Bill Numbers Only using common PopupListSelector
   const openBillNumberPopup = async () => {
     try {
       const bills = await fetchSalesInvoiceBillList(1, 20);
@@ -454,19 +445,16 @@ useEffect(() => {
     }
   };
 
-  // Open Second Popup - Bill Details with Checkboxes
   const openBillDetailsPopup = async (billNo) => {
     try {
       setSelectedBillForDetails(billNo);
-      setBillDetailsSearchText(""); // Reset search text
-      setCheckedBills({}); // Reset checked items
+      setBillDetailsSearchText("");
+      setCheckedBills({});
       
-      // Close the first popup
       setPopupOpen(false);
       setPopupType("");
       setPopupData([]);
       
-      // Fetch bill details
       const details = await fetchBillDetailsForPopup(billNo);
       
       if (!details) {
@@ -475,8 +463,7 @@ useEffect(() => {
       }
       
       setBillDetailsPopupOpen(true);
-      setBillPopupRowIndex(0); // reset keyboard cursor
-
+      setBillPopupRowIndex(0);
       
     } catch (error) {
       console.error("Error opening bill details popup:", error);
@@ -484,9 +471,7 @@ useEffect(() => {
     }
   };
 
-  // Apply selected bill number from details popup
   const handleApplyBillNumber = async () => {
-    // Get the checked items
     const checkedItems = Object.keys(checkedBills).filter(key => checkedBills[key]);
     
     if (!checkedItems || checkedItems.length === 0) {
@@ -501,7 +486,6 @@ useEffect(() => {
       const voucherDetails = billDetailsData[voucherNo];
       
       if (voucherDetails) {
-        // Set the bill number in the form
         setBillDetails(prev => ({ ...prev, newBillNo: voucherNo }));
         
         const header = voucherDetails.header || voucherDetails;
@@ -523,7 +507,6 @@ useEffect(() => {
         }
         
         if (itemsArray && itemsArray.length > 0) {
-          // Filter only checked items
           const checkedItemCodes = checkedItems;
           const filteredItems = itemsArray.filter(item => {
             const itemCode = item.fItemcode || item.itemCode || item.productCode || "";
@@ -538,11 +521,10 @@ useEffect(() => {
               
               const returnQty = Math.abs(originalQty);
 
-              
               return {
                 id: index + 1,
                 sNo: index + 1,
-                barcode:'' ,
+                barcode: '',
                 itemName: itemName,
                 stock: item.fstock || item.stock || "0",
                 mrp: item.mrp || item.maxRetailPrice || "0.00",
@@ -579,17 +561,15 @@ useEffect(() => {
       setLoading(false);
     }
     
-    // Close the popups
     setBillDetailsPopupOpen(false);
     setSelectedBillForDetails(null);
     setCheckedBills({});
     setBillDetailsSearchText("");
     setTimeout(() => {
-  barcodeRef.current?.focus();
-}, 150);
+      barcodeRef.current?.focus();
+    }, 150);
   };
 
-  // Clear selected bill number
   const handleClearBillNumber = () => {
     setBillDetails(prev => ({ ...prev, newBillNo: '' }));
     
@@ -599,7 +579,6 @@ useEffect(() => {
     setBillDetailsSearchText("");
   };
 
-  // Load more bills for pagination in first popup
   const handleLoadMoreBills = async (pageNum, search) => {
     if (popupType === "billNumber") {
       const moreBills = await fetchSalesInvoiceBillList(pageNum, 20);
@@ -629,7 +608,6 @@ useEffect(() => {
     return [];
   };
 
-  // Filter items for bill details popup based on search
   const getFilteredBillItems = () => {
     const billNo = selectedBillForDetails;
     if (!billNo) return [];
@@ -832,235 +810,223 @@ useEffect(() => {
     }
   };
 
-// ==================== CREATE SALES RETURN ====================
-const createSalesReturn = async () => {
-  try {
-    setLoading(true);
-    setError("");
-    
-    // Check if we have items to create
-    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
-    if (validItems.length === 0) {
-      throw new Error("No valid items to create. Please add items with quantity > 0.");
-    }
-    
-    // Prepare request data - CONVERT ALL VALUES TO STRINGS
-    const requestData = {
-      header: {
-        voucherNo: billDetails.billNo.toString(),
-        voucherDate: billDetails.billDate.toString(),
-        mobileNo: (billDetails.mobileNo || "").toString(),
-        empName: (billDetails.empName || "").toString(),
-        empcode: (billDetails.empCode || "14789").toString(),
-        customerCode: (billDetails.customerCode || "").toString(),
-        customerName: (billDetails.custName || "").toString(),
-        salesMansName: (billDetails.salesman || "").toString(),
-        salesMansCode: (billDetails.salesmanCode || "002").toString(),
-        compCode: "001",
-        userCode: "001",
-        billAMT: totalAmount.toFixed(2).toString(),
-        billNo: (billDetails.newBillNo || "").toString(),
-        returnReason: (billDetails.returnReason || "").toString()
-      },
-      items: validItems.map((item, index) => ({
-        barcode: (item.barcode || "").toString(),
-        itemName: (item.itemName || "").toString(),
-        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-        stock: (item.stock || "0").toString(),
-        mrp: (item.mrp || "0").toString(),
-        uom: (item.uom || "").toString(),
-        hsn: (item.hsn || "").toString(),
-        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
-        srate: (item.sRate || "0").toString(),
-        wrate: (item.rate || "0").toString(),
-        qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
-        amount: (item.amount || "0").toString(),
-        netAmount: (item.amount || "0").toString()
-      }))
-    };
-
-    console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
-    
-    const endpoint = "SalesReturn/SalesReturnCreate?SelectType=true";
-    const response = await apiService.post(endpoint, requestData);
-    
-    if (response && response.success) {
-      toast.success(
-        `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
-        { autoClose: 3000 }
-      );
+  // ==================== CREATE SALES RETURN ====================
+  const createSalesReturn = async () => {
+    try {
+      setLoading(true);
+      setError("");
       
-      // Reset form after successful creation
-      await resetForm();
-      
-      return response;
-    } else {
-      // Check for specific error messages
-      const errorMessage = response?.message || 
-                          response?.error || 
-                          response?.Message || 
-                          "Failed to create sales return";
-      throw new Error(errorMessage);
-    }
-    
-  } catch (err) {
-    console.error("API Error in createSalesReturn:", err);
-    
-    // Detailed error logging
-    if (err.response) {
-      console.error("Response status:", err.response.status);
-      console.error("Response data:", err.response.data);
-      
-      // Extract server error message
-      let errorMsg = "Failed to create sales return";
-      const serverData = err.response.data;
-      
-      if (serverData) {
-        if (typeof serverData === 'string') {
-          errorMsg = serverData;
-        } else if (serverData.message) {
-          errorMsg = serverData.message;
-        } else if (serverData.Message) {
-          errorMsg = serverData.Message;
-        } else if (serverData.error) {
-          errorMsg = serverData.error;
-        } else if (serverData.errors) {
-          // Handle validation errors
-          const validationErrors = Object.values(serverData.errors).flat().join(', ');
-          errorMsg = `Validation Error: ${validationErrors}`;
-        }
+      const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+      if (validItems.length === 0) {
+        throw new Error("No valid items to create. Please add items with quantity > 0.");
       }
       
-      setError(errorMsg);
-      toast.error(`Create Error: ${errorMsg}`);
-    } else {
-      const errorMsg = err.message || "Failed to create sales return";
-      setError(errorMsg);
-      toast.error(`Error: ${errorMsg}`);
-    }
-    
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-};
+      const requestData = {
+        header: {
+          voucherNo: billDetails.billNo.toString(),
+          voucherDate: billDetails.billDate.toString(),
+          mobileNo: (billDetails.mobileNo || "").toString(),
+          empName: (billDetails.empName || "").toString(),
+          empcode: (billDetails.empCode || "14789").toString(),
+          customerCode: (billDetails.customerCode || "").toString(),
+          customerName: (billDetails.custName || "").toString(),
+          salesMansName: (billDetails.salesman || "").toString(),
+          salesMansCode: (billDetails.salesmanCode || "002").toString(),
+          compCode: "001",
+          userCode: "001",
+          billAMT: totalAmount.toFixed(2).toString(),
+          billNo: (billDetails.newBillNo || "").toString(),
+          returnReason: (billDetails.returnReason || "").toString()
+        },
+        items: validItems.map((item, index) => ({
+          barcode: (item.barcode || "").toString(),
+          itemName: (item.itemName || "").toString(),
+          itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+          stock: (item.stock || "0").toString(),
+          mrp: (item.mrp || "0").toString(),
+          uom: (item.uom || "").toString(),
+          hsn: (item.hsn || "").toString(),
+          tax: (item.tax || "0").toString(),
+          srate: (item.sRate || "0").toString(),
+          wrate: (item.rate || "0").toString(),
+          qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(),
+          amount: (item.amount || "0").toString(),
+          netAmount: (item.amount || "0").toString()
+        }))
+      };
 
-// ==================== UPDATE SALES RETURN ====================
-const updateSalesReturn = async () => {
-  try {
-    setLoading(true);
-    setError("");
-    
-    // Check if we have items to update
-    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
-    if (validItems.length === 0) {
-      throw new Error("No valid items to update. Please add items with quantity > 0.");
-    }
-    
-    // Prepare request data - CONVERT ALL VALUES TO STRINGS
-    const requestData = {
-      header: {
-        voucherNo: billDetails.billNo.toString(),
-        voucherDate: billDetails.billDate.toString(),
-        mobileNo: (billDetails.mobileNo || "").toString(),
-        empName: (billDetails.empName || "").toString(),
-        empcode: (billDetails.empCode || "14789").toString(),
-        customerCode: (billDetails.customerCode || "").toString(),
-        customerName: (billDetails.custName || "").toString(),
-        salesMansName: (billDetails.salesman || "").toString(),
-        salesMansCode: (billDetails.salesmanCode || "002").toString(),
-        compCode: "001",
-        userCode: "001",
-        billAMT: totalAmount.toFixed(2).toString(),
-        billNo: (billDetails.newBillNo || "").toString(),
-        returnReason: (billDetails.returnReason || "").toString()
-      },
-      items: validItems.map((item, index) => ({
-        barcode: (item.barcode || "").toString(),
-        itemName: (item.itemName || "").toString(),
-        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-        stock: (item.stock || "0").toString(),
-        mrp: (item.mrp || "0").toString(),
-        uom: (item.uom || "").toString(),
-        hsn: (item.hsn || "").toString(),
-        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
-        srate: (item.sRate || "0").toString(),
-        wrate: (item.rate || "0").toString(),
-        qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
-        amount: (item.amount || "0").toString(),
-        netAmount: (item.amount || "0").toString()
-      }))
-    };
-
-    console.log("Updating sales return with data:", JSON.stringify(requestData, null, 2));
-    
-    const endpoint = "SalesReturn/SalesReturnCreate?SelectType=false";
-    const response = await apiService.post(endpoint, requestData);
-    
-    if (response && response.success) {
-      toast.success(
-        `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
-        { autoClose: 3000 }
-      );
+      console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
       
-      // Reset form after successful update
-      await resetForm();
+      const endpoint = "SalesReturn/SalesReturnCreate?SelectType=true";
+      const response = await apiService.post(endpoint, requestData);
       
-      return response;
-    } else {
-      const errorMessage = response?.message || 
-                          response?.error || 
-                          response?.Message || 
-                          "Failed to update sales return";
-      throw new Error(errorMessage);
-    }
-    
-  } catch (err) {
-    console.error("API Error in updateSalesReturn:", err);
-    
-    // Detailed error handling
-    if (err.response) {
-      console.error("Response status:", err.response.status);
-      console.error("Response data:", err.response.data);
-      
-      let errorMsg = "Failed to update sales return";
-      const serverData = err.response.data;
-      
-      if (serverData) {
-        if (typeof serverData === 'string') {
-          errorMsg = serverData;
-        } else if (serverData.message) {
-          errorMsg = serverData.message;
-        } else if (serverData.Message) {
-          errorMsg = serverData.Message;
-        } else if (serverData.error) {
-          errorMsg = serverData.error;
-        } else if (serverData.errors) {
-          // Handle validation errors
-          const validationErrors = Object.values(serverData.errors).flat().join(', ');
-          errorMsg = `Validation Error: ${validationErrors}`;
-        } else if (serverData.title) {
-          errorMsg = serverData.title;
-        }
+      if (response && response.success) {
+        toast.success(
+          `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+          { autoClose: 3000 }
+        );
+        
+        await resetForm();
+        
+        return response;
+      } else {
+        const errorMessage = response?.message || 
+                            response?.error || 
+                            response?.Message || 
+                            "Failed to create sales return";
+        throw new Error(errorMessage);
       }
       
-      setError(errorMsg);
-      toast.error(`Update Error: ${errorMsg}`);
-    } else if (err.request) {
-      console.error("No response received:", err.request);
-      setError("No response from server. Please check your connection.");
-      toast.error("Update Error: No response from server. Please check your connection.");
-    } else {
-      const errorMsg = err.message || "Failed to update sales return";
-      setError(errorMsg);
-      toast.error(`Update Error: ${errorMsg}`);
+    } catch (err) {
+      console.error("API Error in createSalesReturn:", err);
+      
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+        
+        let errorMsg = "Failed to create sales return";
+        const serverData = err.response.data;
+        
+        if (serverData) {
+          if (typeof serverData === 'string') {
+            errorMsg = serverData;
+          } else if (serverData.message) {
+            errorMsg = serverData.message;
+          } else if (serverData.Message) {
+            errorMsg = serverData.Message;
+          } else if (serverData.error) {
+            errorMsg = serverData.error;
+          } else if (serverData.errors) {
+            const validationErrors = Object.values(serverData.errors).flat().join(', ');
+            errorMsg = `Validation Error: ${validationErrors}`;
+          }
+        }
+        
+        setError(errorMsg);
+        toast.error(`Create Error: ${errorMsg}`);
+      } else {
+        const errorMsg = err.message || "Failed to create sales return";
+        setError(errorMsg);
+        toast.error(`Error: ${errorMsg}`);
+      }
+      
+      throw err;
+    } finally {
+      setLoading(false);
     }
-    
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  // ==================== UPDATE SALES RETURN ====================
+  const updateSalesReturn = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+      if (validItems.length === 0) {
+        throw new Error("No valid items to update. Please add items with quantity > 0.");
+      }
+      
+      const requestData = {
+        header: {
+          voucherNo: billDetails.billNo.toString(),
+          voucherDate: billDetails.billDate.toString(),
+          mobileNo: (billDetails.mobileNo || "").toString(),
+          empName: (billDetails.empName || "").toString(),
+          empcode: (billDetails.empCode || "14789").toString(),
+          customerCode: (billDetails.customerCode || "").toString(),
+          customerName: (billDetails.custName || "").toString(),
+          salesMansName: (billDetails.salesman || "").toString(),
+          salesMansCode: (billDetails.salesmanCode || "002").toString(),
+          compCode: "001",
+          userCode: "001",
+          billAMT: totalAmount.toFixed(2).toString(),
+          billNo: (billDetails.newBillNo || "").toString(),
+          returnReason: (billDetails.returnReason || "").toString()
+        },
+        items: validItems.map((item, index) => ({
+          barcode: (item.barcode || "").toString(),
+          itemName: (item.itemName || "").toString(),
+          itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+          stock: (item.stock || "0").toString(),
+          mrp: (item.mrp || "0").toString(),
+          uom: (item.uom || "").toString(),
+          hsn: (item.hsn || "").toString(),
+          tax: (item.tax || "0").toString(),
+          srate: (item.sRate || "0").toString(),
+          wrate: (item.rate || "0").toString(),
+          qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(),
+          amount: (item.amount || "0").toString(),
+          netAmount: (item.amount || "0").toString()
+        }))
+      };
+
+      console.log("Updating sales return with data:", JSON.stringify(requestData, null, 2));
+      
+      const endpoint = "SalesReturn/SalesReturnCreate?SelectType=false";
+      const response = await apiService.post(endpoint, requestData);
+      
+      if (response && response.success) {
+        toast.success(
+          `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+          { autoClose: 3000 }
+        );
+        
+        await resetForm();
+        
+        return response;
+      } else {
+        const errorMessage = response?.message || 
+                            response?.error || 
+                            response?.Message || 
+                            "Failed to update sales return";
+        throw new Error(errorMessage);
+      }
+      
+    } catch (err) {
+      console.error("API Error in updateSalesReturn:", err);
+      
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+        
+        let errorMsg = "Failed to update sales return";
+        const serverData = err.response.data;
+        
+        if (serverData) {
+          if (typeof serverData === 'string') {
+            errorMsg = serverData;
+          } else if (serverData.message) {
+            errorMsg = serverData.message;
+          } else if (serverData.Message) {
+            errorMsg = serverData.Message;
+          } else if (serverData.error) {
+            errorMsg = serverData.error;
+          } else if (serverData.errors) {
+            const validationErrors = Object.values(serverData.errors).flat().join(', ');
+            errorMsg = `Validation Error: ${validationErrors}`;
+          } else if (serverData.title) {
+            errorMsg = serverData.title;
+          }
+        }
+        
+        setError(errorMsg);
+        toast.error(`Update Error: ${errorMsg}`);
+      } else if (err.request) {
+        console.error("No response received:", err.request);
+        setError("No response from server. Please check your connection.");
+        toast.error("Update Error: No response from server. Please check your connection.");
+      } else {
+        const errorMsg = err.message || "Failed to update sales return";
+        setError(errorMsg);
+        toast.error(`Update Error: ${errorMsg}`);
+      }
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ==================== DELETE SALES RETURN ====================
   const deleteSalesReturn = async (voucherNo) => {
@@ -1108,7 +1074,6 @@ const updateSalesReturn = async () => {
         );
         await fetchVoucherList();
         
-        // Reset form after successful delete
         await resetForm();
         
         return response;
@@ -1218,7 +1183,6 @@ const updateSalesReturn = async () => {
             sRate: item.srate || item.sRate || "0",
             rate: item.wrate || item.rate || item.srate || "0",
             qty: Math.abs(parseFloat(item.qty || 0)).toString(),
-
             amount: item.amount || "0",
             itemCode: item.itemCode || `0000${index + 1}`
           };
@@ -1277,20 +1241,20 @@ const updateSalesReturn = async () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   // ✅ Focus Bill Date after Edit voucher loads
-useEffect(() => {
-  if (!shouldFocusBillDate) return;
+  useEffect(() => {
+    if (!shouldFocusBillDate) return;
 
-  const timer = setTimeout(() => {
-    if (billDateRef.current) {
-      billDateRef.current.focus();
-    }
-    setShouldFocusBillDate(false);
-  }, 150);
+    const timer = setTimeout(() => {
+      if (billDateRef.current) {
+        billDateRef.current.focus();
+      }
+      setShouldFocusBillDate(false);
+    }, 150);
 
-  return () => clearTimeout(timer);
-}, [shouldFocusBillDate]);
-
+    return () => clearTimeout(timer);
+  }, [shouldFocusBillDate]);
 
   // Initial data fetch
   useEffect(() => {
@@ -1341,7 +1305,6 @@ useEffect(() => {
     
     const customerData = customers.map(customer => ({
       id: customer.code || customer.id,
-      
       name: customer.name,
       displayName: `${customer.code} - ${customer.name}`,
       customerCode: customer.code,
@@ -1363,7 +1326,6 @@ useEffect(() => {
     
     const salesmanData = salesmen.map(salesman => ({
       id: salesman.fcode || salesman.code || salesman.id,
-     
       name: salesman.fname || salesman.name,
       displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`,
       salesmanCode: salesman.fcode || salesman.code,
@@ -1505,8 +1467,8 @@ useEffect(() => {
             customerCode: selectedCustomer.code || selectedCustomer.custCode,
           }));
           setTimeout(() => {
-       newBillNoRef.current?.focus();
-    }, 100);
+            newBillNoRef.current?.focus();
+          }, 100);
         }
         
       } else if (popupType === "salesman") {
@@ -1521,62 +1483,55 @@ useEffect(() => {
             salesman: selectedSalesman.fname || selectedSalesman.name,
             salesmanCode: selectedSalesman.fcode || selectedSalesman.code || "002"
           }));
-            setTimeout(() => {
-      custNameRef.current?.focus();
-       // optional: auto-open customer popup
-    }, 100);
+          setTimeout(() => {
+            custNameRef.current?.focus();
+          }, 100);
         }
         
-} else if (popupType === "item") {
-  if (selectedRowIndex !== null) {
-    setItems(prev => {
-      const updated = [...prev];
+      } else if (popupType === "item") {
+        if (selectedRowIndex !== null) {
+          setItems(prev => {
+            const updated = [...prev];
 
-      updated[selectedRowIndex] = {
-        ...updated[selectedRowIndex],
-        itemName:
-          selectedItem.fItemName ||
-          selectedItem.itemName ||
-          selectedItem.name ||
-          "",
-        itemCode:
-          selectedItem.fItemcode ||
-          selectedItem.itemCode ||
-          selectedItem.code ||
-          updated[selectedRowIndex].itemCode,
-      };
+            updated[selectedRowIndex] = {
+              ...updated[selectedRowIndex],
+              itemName:
+                selectedItem.fItemName ||
+                selectedItem.itemName ||
+                selectedItem.name ||
+                "",
+              itemCode:
+                selectedItem.fItemcode ||
+                selectedItem.itemCode ||
+                selectedItem.code ||
+                updated[selectedRowIndex].itemCode,
+            };
 
-      return updated;
-    });
+            return updated;
+          });
 
-    // ✅ Move cursor to QTY of SAME ROW
-    setTimeout(() => {
-      const qtyInput = document.querySelector(
-        `input[data-row="${selectedRowIndex}"][data-field="qty"]`
-      );
-      qtyInput?.focus();
-    }, 120);
-  }
-}
- else if (popupType === "billNumber") {
-        // For bill number popup, open second popup with details
+          setTimeout(() => {
+            const stockInput = document.querySelector(
+              `input[data-row="${selectedRowIndex}"][data-field="stock"]`
+            );
+            stockInput?.focus();
+          }, 120);
+        }
+      } else if (popupType === "billNumber") {
         const billNo = selectedItem.code || selectedItem.id;
         await openBillDetailsPopup(billNo);
         
       } else if (popupType === "edit") {
-  const voucherNo = selectedItem.code || selectedItem.id;
+        const voucherNo = selectedItem.code || selectedItem.id;
 
-  // ✅ DIRECTLY LOAD VOUCHER (NO CONFIRM POPUP)
-  await loadVoucherForEditing(voucherNo);
+        await loadVoucherForEditing(voucherNo);
 
-  // ✅ Close popup cleanly
-  setPopupOpen(false);
-  setPopupType("");
-  setPopupData([]);
-  setSelectedRowIndex(null);
-  setSelectedAction("");
-}
- else if (popupType === "delete") {
+        setPopupOpen(false);
+        setPopupType("");
+        setPopupData([]);
+        setSelectedRowIndex(null);
+        setSelectedAction("");
+      } else if (popupType === "delete") {
         const voucherNo = selectedItem.code || selectedItem.id;
         
         showConfirmation({
@@ -1716,130 +1671,179 @@ useEffect(() => {
     setBillDetails(prev => ({ ...prev, [name]: value }));
   };
 
-const handleKeyDown = (e, nextRef, fieldName = '') => {
-  // Check if a letter key is pressed (A-Z, a-z)
-  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
-  
-  if (isLetterKey) {
-    e.preventDefault(); // Prevent the letter from being typed in the field
-    
-    if (fieldName === 'salesman') {
-      openSalesmanPopup();
-      // Set search in popup after it opens
-      setTimeout(() => {
-        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
-        if (searchInput) {
-          searchInput.value = e.key;
-          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      }, 100);
+  // ==================== HEADER FIELD KEY HANDLER ====================
+  const handleKeyDown = (e, fieldName, nextRef) => {
+    // Handle letter keys for popups
+    if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
+      e.preventDefault();
       
-    } else if (fieldName === 'custName') {
-      openCustomerPopup();
-      // Set search in popup after it opens
-      setTimeout(() => {
-        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
-        if (searchInput) {
-          searchInput.value = e.key;
-          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      }, 100);
-      
-    } else if (fieldName === 'newBillNo') {
-      openBillNumberPopup().then(() => {
+      if (fieldName === 'salesman') {
+        openSalesmanPopup();
+        // Set search text after popup opens
         setTimeout(() => {
           const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
           if (searchInput) {
             searchInput.value = e.key;
             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
           }
-        }, 200);
+        }, 100);
+      } 
+      else if (fieldName === 'custName') {
+        openCustomerPopup();
+        setTimeout(() => {
+          const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+          if (searchInput) {
+            searchInput.value = e.key;
+            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }, 100);
+      }
+      else if (fieldName === 'newBillNo') {
+        openBillNumberPopup();
+        setTimeout(() => {
+          const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+          if (searchInput) {
+            searchInput.value = e.key;
+            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }, 100);
+      }
+    }
+    
+    // Handle slash key for popups
+    else if (e.key === '/') {
+      e.preventDefault();
+      
+      if (fieldName === 'salesman') {
+        openSalesmanPopup();
+      } 
+      else if (fieldName === 'custName') {
+        openCustomerPopup();
+      }
+      else if (fieldName === 'newBillNo') {
+        openBillNumberPopup();
+      }
+    }
+    
+    // Handle Enter key for navigation
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
+      }
+    }
+  };
+
+  // ==================== TABLE FIELD NAVIGATION ====================
+  const handleTableKeyDown = (e, rowIndex, fieldName) => {
+    const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'];
+    
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      const currentIndex = fields.indexOf(fieldName);
+      
+      // If we're on quantity field, go to next row
+      if (fieldName === 'qty') {
+        const currentItem = items[rowIndex];
+        
+        if (!currentItem.itemName || currentItem.itemName.trim() === '') {
+          toast.warning("Select item before moving to next row");
+          return;
+        }
+        
+        if (rowIndex < items.length - 1) {
+          const nextInput = document.querySelector(`input[data-row="${rowIndex + 1}"][data-field="barcode"]`);
+          if (nextInput) nextInput.focus();
+        } else {
+          handleAddRow();
+          setTimeout(() => {
+            const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
+            if (newRowInput) newRowInput.focus();
+          }, 60);
+        }
+        return;
+      }
+      
+      // For other fields, go to next field in same row
+      if (currentIndex >= 0 && currentIndex < fields.length - 1) {
+        const nextField = fields[currentIndex + 1];
+        
+        if (nextField === 'uom') {
+          // UOM is a div, not input
+          const uomDiv = document.querySelector(`div[data-row="${rowIndex}"][data-field="uom"]`);
+          if (uomDiv) uomDiv.focus();
+        } else {
+          const nextInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="${nextField}"]`);
+          if (nextInput) nextInput.focus();
+        }
+      }
+    }
+    
+    // Letter keys in itemName open popup
+    if (fieldName === 'itemName' && e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
+      e.preventDefault();
+      openItemPopup(rowIndex);
+      
+      setTimeout(() => {
+        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+        if (searchInput) {
+          searchInput.value = e.key;
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 100);
+    }
+    
+    // Slash key opens popup
+    if (fieldName === 'itemName' && e.key === '/') {
+      e.preventDefault();
+      openItemPopup(rowIndex);
+    }
+  };
+
+  // ==================== UOM FIELD HANDLER ====================
+  const handleUomKeyDown = (e, rowIndex) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const hsnInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="hsn"]`);
+      if (hsnInput) hsnInput.focus();
+    }
+    
+    if (e.key === ' ') {
+      e.preventDefault();
+      const currentItem = items[rowIndex];
+      const currentUom = currentItem.uom || '';
+      const currentIndex = uomOptions.indexOf(currentUom);
+      const nextIndex = (currentIndex + 1) % uomOptions.length;
+      
+      setItems(prev => {
+        const updated = [...prev];
+        updated[rowIndex] = {
+          ...updated[rowIndex],
+          uom: uomOptions[nextIndex]
+        };
+        return updated;
       });
     }
-  } else if (e.key === '/') {
-    e.preventDefault();
-    
-    if (fieldName === 'salesman') {
-      openSalesmanPopup();
-    } else if (fieldName === 'custName') {
-      openCustomerPopup();
-    } else if (fieldName === 'newBillNo') {
-      openBillNumberPopup();
+  };
+
+  // ==================== BARCODE FIELD HANDLER ====================
+  const handleBarcodeKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setIsBarcodeEnter(true);
+      handleAddItem();
+
+      setTimeout(() => {
+        const firstRowBarcode = document.querySelector(
+          'input[data-row="0"][data-field="barcode"]'
+        );
+        if (firstRowBarcode) {
+          firstRowBarcode.focus();
+        }
+      }, 150);
     }
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (nextRef && nextRef.current) {
-      nextRef.current.focus();
-    }
-  }
-};
-
-const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-  // Check if a letter key is pressed (A-Z, a-z) in itemName field
-  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
-  
-  if (isLetterKey && currentField === 'itemName') {
-    e.preventDefault(); // Prevent the letter from being typed in the field
-    openItemPopup(currentRowIndex);
-    
-    // Set search in popup after it opens
-    setTimeout(() => {
-      const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
-      if (searchInput) {
-        searchInput.value = e.key;
-        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    }, 100);
-    return;
-  }
-  
-  if (e.key === '/' && currentField === 'itemName') {
-    e.preventDefault();
-    openItemPopup(currentRowIndex);
-    return;
-  }
-  
-  if (e.key === 'Enter') {
-    e.preventDefault();
-
-    const fields = [
-      'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
-    ];
-
-    const currentFieldIndex = fields.indexOf(currentField);
-
-    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
-      const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-      if (nextInput) {
-        nextInput.focus();
-        return;
-      }
-    }
-
-    // Check if we're on the quantity field
-    if (currentField === 'qty') {
-      const currentItem = items[currentRowIndex];
-
-      // 🚫 BLOCK if item name not selected
-      if (!currentItem.itemName || currentItem.itemName.trim() === '') {
-        toast.warning("Select item before moving to next row");
-        return;
-      }
-
-      if (currentRowIndex < items.length - 1) {
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-        if (nextInput) nextInput.focus();
-      } else {
-        handleAddRow();
-        setTimeout(() => {
-          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
-          if (newRowInput) newRowInput.focus();
-        }, 60);
-      }
-    }
-  }
-};
+  };
 
   const handleAddItem = async () => {
     if (!billDetails.barcodeInput) {
@@ -1938,33 +1942,32 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
-const handleAddRow = () => {
-  const lastItem = items[items.length - 1];
+  const handleAddRow = () => {
+    const lastItem = items[items.length - 1];
 
-  // 🚫 BLOCK adding row if item name is empty
-  if (!lastItem.itemName || lastItem.itemName.trim() === '') {
-    toast.warning("Please select an item before adding a new row");
-    return;
-  }
+    if (!lastItem.itemName || lastItem.itemName.trim() === '') {
+      toast.warning("Please select an item before adding a new row");
+      return;
+    }
 
-  const newRow = {
-    id: items.length + 1,
-    sNo: items.length + 1,
-    barcode: '',
-    itemName: '',
-    stock: '',
-    mrp: '',
-    uom: '',
-    hsn: '',
-    tax: '',
-    sRate: '',
-    rate: '',
-    qty: '',
-    amount: '0.00',
-    itemCode: `0000${items.length + 1}`
+    const newRow = {
+      id: items.length + 1,
+      sNo: items.length + 1,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      qty: '',
+      amount: '0.00',
+      itemCode: `0000${items.length + 1}`
+    };
+    setItems([...items, newRow]);
   };
-  setItems([...items, newRow]);
-};
 
   const handleItemChange = (id, field, value) => {
     setItems(items.map(item => {
@@ -2042,59 +2045,53 @@ const handleAddRow = () => {
     });
   };
 
-// ==================== SAVE FUNCTION ====================
-const handleSave = async () => {
-  if (!billDetails.custName) {
-    toast.warning("Please select a customer.");
-    return;
-  }
-
-  if (items.length === 0 || items.every(item => !item.itemName && !item.barcode)) {
-    toast.warning("Please add at least one item.");
-    return;
-  }
-
-  const invalidItems = items.filter(item => 
-    item.itemName && (!item.qty || parseFloat(item.qty) <= 0)
-  );
-  
-  if (invalidItems.length > 0) {
-    toast.warning("Please enter valid quantity for all items.");
-    return;
-  }
-
-  // Determine if this is an update or create
-  const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
-                            billDetails.billNo.startsWith('SR');
-  
-  const actionType = isExistingVoucher ? 'update' : 'create';
-  const actionText = isExistingVoucher ? 'Update' : 'Save';
-
-  showConfirmation({
-    title: `${actionText} Sales Return`,
-    message: `Are you sure you want to ${actionType} this sales return?\n\nVoucher No: ${billDetails.billNo}\nTotal Amount: ₹${totalAmount.toFixed(2)}`,
-    type: "success",
-    confirmText: actionText,
-    cancelText: "Cancel",
-    onConfirm: async () => {
-      try {
-        if (isExistingVoucher) {
-          console.log("Performing UPDATE operation");
-          await updateSalesReturn();
-          // Note: resetForm() is already called inside updateSalesReturn()
-        } else {
-          console.log("Performing CREATE operation");
-          await createSalesReturn();
-          // Note: resetForm() is already called inside createSalesReturn()
-        }
-        
-      } catch (err) {
-        console.error("Save error:", err);
-        // Error is already handled in the individual functions
-      }
+  // ==================== SAVE FUNCTION ====================
+  const handleSave = async () => {
+    if (!billDetails.custName) {
+      toast.warning("Please select a customer.");
+      return;
     }
-  });
-};
+
+    if (items.length === 0 || items.every(item => !item.itemName && !item.barcode)) {
+      toast.warning("Please add at least one item.");
+      return;
+    }
+
+    const invalidItems = items.filter(item => 
+      item.itemName && (!item.qty || parseFloat(item.qty) <= 0)
+    );
+    
+    if (invalidItems.length > 0) {
+      toast.warning("Please enter valid quantity for all items.");
+      return;
+    }
+
+    const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
+                            billDetails.billNo.startsWith('SR');
+    
+    const actionType = isExistingVoucher ? 'update' : 'create';
+    const actionText = isExistingVoucher ? 'Update' : 'Save';
+
+    showConfirmation({
+      title: `${actionText} Sales Return`,
+      message: `Are you sure you want to ${actionType} this sales return?\n\nVoucher No: ${billDetails.billNo}\nTotal Amount: ₹${totalAmount.toFixed(2)}`,
+      type: "success",
+      confirmText: actionText,
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        try {
+          if (isExistingVoucher) {
+            await updateSalesReturn();
+          } else {
+            await createSalesReturn();
+          }
+          
+        } catch (err) {
+          console.error("Save error:", err);
+        }
+      }
+    });
+  };
 
   const handlePrint = () => {
     toast.info('Print functionality to be implemented');
@@ -2745,9 +2742,41 @@ const handleSave = async () => {
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
     },
+    uomDiv: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+      cursor: 'pointer',
+      outline: 'none',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      boxSizing: 'border-box',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      border: '1px solid transparent',
+      backgroundColor: 'transparent',
+      transition: 'border-color 0.2s ease',
+    },
+    uomDivFocused: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+      cursor: 'pointer',
+      outline: 'none',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      boxSizing: 'border-box',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      border: '2px solid #1B91DA',
+      backgroundColor: 'white',
+      transition: 'border-color 0.2s ease',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
   };
 
-  // Add CSS for hover effects (same as SalesInvoice)
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -2786,17 +2815,16 @@ const handleSave = async () => {
         
         box-shadow: none !important;
       }
-        @keyframes fadeSlide {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+      @keyframes fadeSlide {
+        from {
+          opacity: 0;
+          transform: translateY(15px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
       
       input:focus, 
       select:focus {
@@ -2821,78 +2849,77 @@ const handleSave = async () => {
     }
   };
 
-const renderBillDetailsContent = () => {
-  const billNo = selectedBillForDetails;
-  if (!billNo) return null;
+  const renderBillDetailsContent = () => {
+    const billNo = selectedBillForDetails;
+    if (!billNo) return null;
 
-  const details = billDetailsData[billNo];
-  if (!details) {
-    return <div style={{ padding: 30, textAlign: "center" }}>No data</div>;
-  }
+    const details = billDetailsData[billNo];
+    if (!details) {
+      return <div style={{ padding: 30, textAlign: "center" }}>No data</div>;
+    }
 
-  const itemsArray = details.items || details.details || [];
+    const itemsArray = details.items || details.details || [];
 
-  const handleSelectAll = (checked) => {
-    setSelectAllItems(checked);
-    const updated = {};
-    itemsArray.forEach(item => {
-      const key = item.fItemcode || item.itemCode;
-      updated[key] = checked;
-    });
-    setCheckedBills(updated);
-  };
+    const handleSelectAll = (checked) => {
+      setSelectAllItems(checked);
+      const updated = {};
+      itemsArray.forEach(item => {
+        const key = item.fItemcode || item.itemCode;
+        updated[key] = checked;
+      });
+      setCheckedBills(updated);
+    };
 
-  return (
-    <div style={{ padding: "20px", animation: "fadeSlide 0.3s ease" }}>
-      
-      <h4 style={{
-        marginBottom: 12,
-        fontWeight: 700,
-        color: "#1B91DA"
-      }}>
-        Items – Select items to return
-      </h4>
+    return (
+      <div style={{ padding: "20px", animation: "fadeSlide 0.3s ease" }}>
+        
+        <h4 style={{
+          marginBottom: 12,
+          fontWeight: 700,
+          color: "#1B91DA"
+        }}>
+          Items – Select items to return
+        </h4>
 
-      <table style={{
-        width: "100%",
-        borderCollapse: "collapse",
-        fontSize: "13px"
-      }}>
-        <thead>
-          <tr style={{ background: "#f0f6ff" }}>
-            <th style={{ padding: 8 }}>
-              <input
-                type="checkbox"
-                checked={selectAllItems}
-                onChange={(e) => handleSelectAll(e.target.checked)}
-              />
-            </th>
-            <th style={thStyle}>Item Name</th>
-            <th style={thStyle}>Qty</th>
-            <th style={thStyle}>Unit</th>
-            <th style={thStyle}>Rate</th>
-            <th style={thStyle}>Amount</th>
-          </tr>
-        </thead>
+        <table style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: "13px"
+        }}>
+          <thead>
+            <tr style={{ background: "#f0f6ff" }}>
+              <th style={{ padding: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={selectAllItems}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                />
+              </th>
+              <th style={thStyle}>Item Name</th>
+              <th style={thStyle}>Qty</th>
+              <th style={thStyle}>Unit</th>
+              <th style={thStyle}>Rate</th>
+              <th style={thStyle}>Amount</th>
+            </tr>
+          </thead>
 
-        <tbody>
-          {itemsArray.map((item, idx) => {
-            const key = item.fItemcode || item.itemCode;
-            return (
-            <tr
-  key={idx}
-  ref={(el) => (billRowRefs.current[idx] = el)}
-  style={{
-    transition: "background 0.2s",
-    background:
-      billPopupRowIndex === idx
-        ? "#cce5ff"
-        : checkedBills[key]
-        ? "#e3f2fd"
-        : "#fff"
-  }}
->
-
+          <tbody>
+            {itemsArray.map((item, idx) => {
+              const key = item.fItemcode || item.itemCode;
+              return (
+              <tr
+                key={idx}
+                ref={(el) => (billRowRefs.current[idx] = el)}
+                style={{
+                  transition: "background 0.2s",
+                  background:
+                    billPopupRowIndex === idx
+                      ? "#cce5ff"
+                      : checkedBills[key]
+                      ? "#e3f2fd"
+                      : "#fff"
+                }}
+              >
 
                 <td style={tdStyle}>
                   <input
@@ -2917,26 +2944,25 @@ const renderBillDetailsContent = () => {
                   ₹{item.fAmount || item.amount}
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-};
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
-const thStyle = {
-  padding: 8,
-  fontWeight: 700,
-  textAlign: "left",
-  borderBottom: "2px solid #ddd"
-};
+  const thStyle = {
+    padding: 8,
+    fontWeight: 700,
+    textAlign: "left",
+    borderBottom: "2px solid #ddd"
+  };
 
-const tdStyle = {
-  padding: 8,
-  borderBottom: "1px solid #eee"
-};
-
+  const tdStyle = {
+    padding: 8,
+    borderBottom: "1px solid #eee"
+  };
 
   return (
     <div style={styles.container} className="sales-return-scrollable">
@@ -2975,7 +3001,7 @@ const tdStyle = {
           ...styles.gridRow,
           gridTemplateColumns: getGridColumns(),
         }}>
-          {/* Bill No (EXISTING - Auto-generated) */}
+          {/* Bill No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
@@ -2985,10 +3011,9 @@ const tdStyle = {
               name="billNo"
               onChange={handleInputChange}
               ref={billNoRef}
-              onKeyDown={(e) => handleKeyDown(e, billDateRef)}
+              onKeyDown={(e) => handleKeyDown(e, 'billNo', billDateRef)}
               onFocus={() => setFocusedField('billNo')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Auto-generated"
               readOnly
             />
           </div>
@@ -3003,7 +3028,7 @@ const tdStyle = {
               name="billDate"
               onChange={handleInputChange}
               ref={billDateRef}
-              onKeyDown={(e) => handleKeyDown(e, mobileRef)}
+              onKeyDown={(e) => handleKeyDown(e, 'billDate', mobileRef)}
               onFocus={() => setFocusedField('billDate')}
               onBlur={() => setFocusedField('')}
             />
@@ -3019,10 +3044,9 @@ const tdStyle = {
               name="mobileNo"
               onChange={handleInputChange}
               ref={mobileRef}
-              onKeyDown={(e) => handleKeyDown(e, empNameRef)}
+              onKeyDown={(e) => handleKeyDown(e, 'mobileNo', empNameRef)}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Mobile No"
             />
           </div>
 
@@ -3036,10 +3060,9 @@ const tdStyle = {
               name="empName"
               onChange={handleInputChange}
               ref={empNameRef}
-              onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
+              onKeyDown={(e) => handleKeyDown(e, 'empName', salesmanRef)}
               onFocus={() => setFocusedField('empName')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Employee Name"
             />
           </div>
         </div>
@@ -3060,15 +3083,14 @@ const tdStyle = {
               onChange={handleInputChange}
               ref={salesmanRef}
               onClick={openSalesmanPopup}
-              onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
+              onKeyDown={(e) => handleKeyDown(e, 'salesman', custNameRef)}
               onFocus={() => setFocusedField('salesman')}
               onBlur={() => setFocusedField('')}
-              
               readOnly
             />
             <div 
               style={styles.searchIconInside}
-              title="Click or press / to search"
+              title="Click or press any letter or / to search"
             >
               <SearchIcon />
             </div>
@@ -3085,21 +3107,20 @@ const tdStyle = {
               onChange={handleInputChange}
               ref={custNameRef}
               onClick={openCustomerPopup}
-              onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'custName')}
+              onKeyDown={(e) => handleKeyDown(e, 'custName', newBillNoRef)}
               onFocus={() => setFocusedField('custName')}
               onBlur={() => setFocusedField('')}
-              //placeholder="Search customer"
               readOnly
             />
             <div 
               style={styles.searchIconInside}
-              title="Click or press / to search"
+              title="Click or press any letter or / to search"
             >
               <SearchIcon />
             </div>
           </div>
 
-          {/* NEW Bill No Field (Near Barcode) - Custom Popup */}
+          {/* NEW Bill No Field */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
@@ -3110,15 +3131,14 @@ const tdStyle = {
               onChange={handleInputChange}
               ref={newBillNoRef}
               onClick={openBillNumberPopup}
-              onKeyDown={(e) => handleKeyDown(e, barcodeRef, 'newBillNo')}
+              onKeyDown={(e) => handleKeyDown(e, 'newBillNo', barcodeRef)}
               onFocus={() => setFocusedField('newBillNo')}
               onBlur={() => setFocusedField('')}
-              //placeholder="Select bill number"
               readOnly
             />
             <div 
               style={styles.searchIconInside}
-              title="Click or press / to search"
+              title="Click or press any letter or / to search"
             >
               <SearchIcon />
             </div>
@@ -3134,34 +3154,9 @@ const tdStyle = {
               name="barcodeInput"
               onChange={handleInputChange}
               ref={barcodeRef}
-onKeyDown={(e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-
-    // ✅ Mark barcode-enter flow
-    setIsBarcodeEnter(true);
-
-    handleAddItem();
-
-    // After adding item, check if we should move focus
-    setTimeout(() => {
-      const lastItem = items[items.length - 1];
-      if (lastItem.itemName && lastItem.itemName.trim()) {
-        const firstRowBarcode = document.querySelector(
-          'input[data-row="0"][data-field="barcode"]'
-        );
-        if (firstRowBarcode) {
-          firstRowBarcode.focus();
-        }
-      }
-    }, 150);
-  }
-}}
-
-
+              onKeyDown={handleBarcodeKeyDown}
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Scan or Enter Barcode"
             />
           </div>
         </div>
@@ -3215,9 +3210,7 @@ onKeyDown={(e) => {
                       onClick={() => openItemPopup(index)}
                       onFocus={() => setFocusedField(`itemName-${item.id}`)}
                       onBlur={() => setFocusedField('')}
-                      //placeholder="Search item"
                     />
-                    {/* SEARCH ICON IN ITEM NAME */}
                     <div 
                       style={{
                         position: 'absolute',
@@ -3230,7 +3223,7 @@ onKeyDown={(e) => {
                         alignItems: 'center',
                       }}
                       onClick={() => openItemPopup(index)}
-                      title="Click or press / to search"
+                      title="Click or press any letter or / to search"
                     >
                       <SearchIcon size={14} />
                     </div>
@@ -3259,16 +3252,18 @@ onKeyDown={(e) => {
                     />
                   </td>
                   <td style={styles.td}>
-                    <input
-                      style={focusedField === `uom-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.uom}
+                    <div
+                      tabIndex={0}
+                      style={focusedField === `uom-${item.id}` ? styles.uomDivFocused : styles.uomDiv}
                       data-row={index}
                       data-field="uom"
-                      onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
+                      onKeyDown={(e) => handleUomKeyDown(e, index)}
                       onFocus={() => setFocusedField(`uom-${item.id}`)}
                       onBlur={() => setFocusedField('')}
-                    />
+                      title="Press Space to cycle UOM options, Enter to move to HSN"
+                    >
+                      {item.uom || 'Select UOM'}
+                    </div>
                   </td>
                   <td style={styles.td}>
                     <input
@@ -3436,7 +3431,7 @@ onKeyDown={(e) => {
         </div>
       </div>
 
-      {/* SECOND POPUP: Bill Details with Checkboxes (Has Apply/Clear buttons) */}
+      {/* SECOND POPUP: Bill Details with Checkboxes */}
       {billDetailsPopupOpen && (
       <div style={styles.customPopupOverlay} className="popup-overlay-slow">
 
@@ -3466,7 +3461,6 @@ onKeyDown={(e) => {
               {renderBillDetailsContent()}
             </div>
             
-            {/* FOOTER WITH APPLY/CLEAR BUTTONS (BLUE COLOR) */}
             <div style={styles.customPopupFooter}>
               <button
                 style={{
@@ -3476,8 +3470,6 @@ onKeyDown={(e) => {
                 onClick={handleClearBillNumber}
               >
                 cancel
-
-            
               </button>
               <button
                 style={{
@@ -3495,7 +3487,7 @@ onKeyDown={(e) => {
         </div>
       )}
 
-      {/* Common PopupListSelector for ALL popups including bill number */}
+      {/* Common PopupListSelector */}
       {popupOpen && (
         <PopupListSelector
           open={popupOpen}
