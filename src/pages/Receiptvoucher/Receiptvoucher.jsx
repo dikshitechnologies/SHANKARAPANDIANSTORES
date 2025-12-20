@@ -63,7 +63,7 @@ const ReceiptVoucher = () => {
       chqNo: '',
       chqDt: '',
       narration: '',
-      amount: '0.00'
+      amount: ''
     }
   ]);
 
@@ -78,7 +78,7 @@ const ReceiptVoucher = () => {
       billAmount: '0.00',
       paidAmount: '0.00',
       balanceAmount: '0.00',
-      amount: '0.00'
+      amount: ''
     }
   ]);
 
