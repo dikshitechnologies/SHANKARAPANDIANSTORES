@@ -1109,7 +1109,7 @@ const PaymentVoucher = () => {
   };
 
   // ========== SAVE FUNCTION ==========
-  const savePaymentVoucher = async () => {
+  const savePaymentVoucher = async (updatedParticulars = null) => {
     try {
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
@@ -1137,6 +1137,26 @@ const PaymentVoucher = () => {
 
       setIsSaving(true);
 
+      // Use passed particulars or fall back to state
+      const particularsToUse = updatedParticulars || particulars;
+
+      // Calculate givenTotal from COLLECT values (amount given by customer)
+      let givenTotal = 0;
+      const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+      
+      denominations.forEach(denom => {
+        // Get the COLLECT value for this denomination (string key)
+        const denomKey = denom.toString();
+        const collectValue = particularsToUse[denomKey]?.collect;
+        const collectCount = parseInt(collectValue) || 0;
+        givenTotal += collectCount * denom;
+      });
+      
+      // Calculate balanceGiven (change given to customer)
+      // Formula: totalAmt = givenTotal - balanceGiven
+      // So: balanceGiven = givenTotal - totalAmt
+      const balanceGiven = givenTotal - totalAmount;
+
       const payload = {
         voucherNo: voucherDetails.voucherNo,
         voucherDate: formatDateToYYYYMMDD(voucherDetails.date),
@@ -1147,6 +1167,8 @@ const PaymentVoucher = () => {
         totalAmt: totalAmount,
         compcode: userData?.companyCode || '',
         usercode: userData?.username || '',
+        givenTotal: givenTotal,
+        balanceGiven: balanceGiven,
         itemDetailsList1: paymentItems.map(item => ({
           accountCode: item.cashBankCode || '',
           accountName: item.cashBank || '',
@@ -1163,26 +1185,26 @@ const PaymentVoucher = () => {
           amount: (parseFloat(bill.amount) || 0).toString()
         })),
         collect: {
-          r500: particulars['500']?.collect || 0,
-          r200: particulars['200']?.collect || 0,
-          r100: particulars['100']?.collect || 0,
-          r50: particulars['50']?.collect || 0,
-          r20: particulars['20']?.collect || 0,
-          r10: particulars['10']?.collect || 0,
-          r5: particulars['5']?.collect || 0,
-          r2: particulars['2']?.collect || 0,
-          r1: particulars['1']?.collect || 0
+          r500: parseInt(particularsToUse['500']?.collect) || 0,
+          r200: parseInt(particularsToUse['200']?.collect) || 0,
+          r100: parseInt(particularsToUse['100']?.collect) || 0,
+          r50: parseInt(particularsToUse['50']?.collect) || 0,
+          r20: parseInt(particularsToUse['20']?.collect) || 0,
+          r10: parseInt(particularsToUse['10']?.collect) || 0,
+          r5: parseInt(particularsToUse['5']?.collect) || 0,
+          r2: parseInt(particularsToUse['2']?.collect) || 0,
+          r1: parseInt(particularsToUse['1']?.collect) || 0
         },
         issue: {
-          r500: particulars['500']?.issue || 0,
-          r200: particulars['200']?.issue || 0,
-          r100: particulars['100']?.issue || 0,
-          r50: particulars['50']?.issue || 0,
-          r20: particulars['20']?.issue || 0,
-          r10: particulars['10']?.issue || 0,
-          r5: particulars['5']?.issue || 0,
-          r2: particulars['2']?.issue || 0,
-          r1: particulars['1']?.issue || 0
+          r500: parseInt(particularsToUse['500']?.issue) || 0,
+          r200: parseInt(particularsToUse['200']?.issue) || 0,
+          r100: parseInt(particularsToUse['100']?.issue) || 0,
+          r50: parseInt(particularsToUse['50']?.issue) || 0,
+          r20: parseInt(particularsToUse['20']?.issue) || 0,
+          r10: parseInt(particularsToUse['10']?.issue) || 0,
+          r5: parseInt(particularsToUse['5']?.issue) || 0,
+          r2: parseInt(particularsToUse['2']?.issue) || 0,
+          r1: parseInt(particularsToUse['1']?.issue) || 0
         }
       };
 
@@ -1230,12 +1252,9 @@ const PaymentVoucher = () => {
 
   // Function to handle confirmed save
   const handleConfirmedSave = async (updatedParticulars) => {
-    // Update particulars with the confirmed values
-    if (updatedParticulars) {
-      setParticulars(updatedParticulars);
-    }
     setSaveConfirmationOpen(false);
-    await savePaymentVoucher();
+    // Pass updatedParticulars directly to savePaymentVoucher to avoid async state update issues
+    await savePaymentVoucher(updatedParticulars);
   };
 
   // Function to cancel save
