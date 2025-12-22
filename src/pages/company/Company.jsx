@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import './Company.css';
 import apiService from "../../api/apiService";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -57,14 +59,6 @@ const SearchIcon = () => (
     <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
   </svg>
 );
-
-const useFormPermissions = (formType) => {
-  return {
-    canCreate: true,
-    canEdit: true,
-    canDelete: true
-  };
-};
 
 const Company = () => {
   const [selectedAction, setSelectedAction] = useState("create");
@@ -142,6 +136,9 @@ const Company = () => {
   const [popupTitle, setPopupTitle] = useState("");
   const [popupMode, setPopupMode] = useState("");
   
+  // Message state for inline errors
+  const [message, setMessage] = useState(null);
+  
   // Confirmation popup states
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({
@@ -154,7 +151,28 @@ const Company = () => {
     cancelText: "Cancel"
   });
 
-  const { canCreate, canEdit, canDelete } = useFormPermissions("COMPANY");
+  // === PERMISSION SETUP ===
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.COMPANY_CREATION),
+    edit: hasModifyPermission(PERMISSION_CODES.COMPANY_CREATION),
+    delete: hasDeletePermission(PERMISSION_CODES.COMPANY_CREATION)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+  
+  // Debug: Check what permissions are actually being used
+  useEffect(() => {
+    console.log('=== COMPANY PERMISSIONS DEBUG ===');
+    console.log('PERMISSION_CODES.COMPANY_CREATION:', PERMISSION_CODES.COMPANY_CREATION);
+    console.log('formPermissions object:', formPermissions);
+    console.log('formPermissions.add:', formPermissions.add, 'type:', typeof formPermissions.add);
+    console.log('formPermissions.edit:', formPermissions.edit, 'type:', typeof formPermissions.edit);
+    console.log('formPermissions.delete:', formPermissions.delete, 'type:', typeof formPermissions.delete);
+    console.log('hasAddPermission result:', hasAddPermission(PERMISSION_CODES.COMPANY_CREATION));
+    console.log('hasModifyPermission result:', hasModifyPermission(PERMISSION_CODES.COMPANY_CREATION));
+    console.log('hasDeletePermission result:', hasDeletePermission(PERMISSION_CODES.COMPANY_CREATION));
+  }, [formPermissions]);
+  // === END PERMISSION SETUP ===
 
   // Refs for keyboard navigation (including pseudo fields)
   const companyNameRef = useRef(null);
@@ -583,6 +601,31 @@ const Company = () => {
 
   // Handle save with confirmation
   const handleSaveWithConfirmation = () => {
+    // === PERMISSION CHECK ===
+    console.log('🔐 handleSaveWithConfirmation - Checking permissions');
+    console.log('  formPermissions.add:', formPermissions.add);
+    console.log('  !formPermissions.add:', !formPermissions.add);
+    
+    if (!formPermissions.add) {
+      console.log('  ❌ Permission DENIED for add');
+      setMessage({
+        type: "error",
+        text: "❌ Access Denied! You do not have permission to create companies."
+      });
+      showConfirmation({
+        title: "Permission Denied",
+        message: "You do not have permission to create companies.",
+        type: "error",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => setShowConfirmPopup(false),
+        onCancel: () => setShowConfirmPopup(false)
+      });
+      return;
+    }
+    console.log('  ✅ Permission ALLOWED for add');
+    // === END PERMISSION CHECK ===
+
     // Get fresh validation result
     const validationResult = validateForm();
     
@@ -618,6 +661,31 @@ const Company = () => {
 
   // Handle update with confirmation
   const handleUpdateWithConfirmation = () => {
+    // === PERMISSION CHECK ===
+    console.log('🔐 handleUpdateWithConfirmation - Checking permissions');
+    console.log('  formPermissions.edit:', formPermissions.edit);
+    console.log('  !formPermissions.edit:', !formPermissions.edit);
+    
+    if (!formPermissions.edit) {
+      console.log('  ❌ Permission DENIED for edit');
+      setMessage({
+        type: "error",
+        text: "❌ Access Denied! You do not have permission to edit companies."
+      });
+      showConfirmation({
+        title: "Permission Denied",
+        message: "You do not have permission to edit companies.",
+        type: "error",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => setShowConfirmPopup(false),
+        onCancel: () => setShowConfirmPopup(false)
+      });
+      return;
+    }
+    console.log('  ✅ Permission ALLOWED for edit');
+    // === END PERMISSION CHECK ===
+
     // Get fresh validation result
     const validationResult = validateForm();
     
@@ -650,6 +718,31 @@ const Company = () => {
 
   // Handle delete with confirmation
   const handleDeleteWithConfirmation = () => {
+    // === PERMISSION CHECK ===
+    console.log('🔐 handleDeleteWithConfirmation - Checking permissions');
+    console.log('  formPermissions.delete:', formPermissions.delete);
+    console.log('  !formPermissions.delete:', !formPermissions.delete);
+    
+    if (!formPermissions.delete) {
+      console.log('  ❌ Permission DENIED for delete');
+      setMessage({
+        type: "error",
+        text: "❌ Access Denied! You do not have permission to delete companies."
+      });
+      showConfirmation({
+        title: "Permission Denied",
+        message: "You do not have permission to delete companies.",
+        type: "error",
+        confirmText: "OK",
+        hideCancelButton: true,
+        onConfirm: () => setShowConfirmPopup(false),
+        onCancel: () => setShowConfirmPopup(false)
+      });
+      return;
+    }
+    console.log('  ✅ Permission ALLOWED for delete');
+    // === END PERMISSION CHECK ===
+
     if (!formData.fcompcode) {
       showConfirmation({
         title: "No Company Selected",
@@ -957,9 +1050,19 @@ const Company = () => {
   const handleSubmit = (e) => {
     if (e) e.preventDefault(); // Prevent default form submission
     
-    if (selectedAction === "create") handleSaveWithConfirmation();
-    else if (selectedAction === "edit") handleUpdateWithConfirmation();
-    else if (selectedAction === "delete") handleDeleteWithConfirmation();
+    console.log('🔘 handleSubmit called - selectedAction:', selectedAction);
+    if (selectedAction === "create") {
+      console.log('  → Calling handleSaveWithConfirmation');
+      handleSaveWithConfirmation();
+    }
+    else if (selectedAction === "edit") {
+      console.log('  → Calling handleUpdateWithConfirmation');
+      handleUpdateWithConfirmation();
+    }
+    else if (selectedAction === "delete") {
+      console.log('  → Calling handleDeleteWithConfirmation');
+      handleDeleteWithConfirmation();
+    }
   };
 
   const filteredData = tableData.filter(
@@ -979,22 +1082,33 @@ const Company = () => {
           {/* Left Column - Split into two columns */}
           <div className="left-column">
             <div className={`card form-card ${getFormClass()}`}>
+              {message && (
+                <div className={`message-box message-${message.type}`}>
+                  {message.text}
+                </div>
+              )}
               <div className="action-buttons">
                 <button
                   className={`action-btn create ${selectedAction === "create" ? "active" : ""}`}
                   onClick={() => handleActionClick("create")}
+                  disabled={!formPermissions.add}
+                  title={!formPermissions.add ? "You don't have permission to create" : "Create a new company"}
                 >
                   <CreateIcon /> Create
                 </button>
                 <button
                   className={`action-btn edit ${selectedAction === "edit" ? "active" : ""}`}
                   onClick={() => handleActionClick("edit")}
+                  disabled={!formPermissions.edit}
+                  title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing company"}
                 >
                   <EditIcon /> Edit
                 </button>
                 <button
                   className={`action-btn delete ${selectedAction === "delete" ? "active" : ""}`}
                   onClick={() => handleActionClick("delete")}
+                  disabled={!formPermissions.delete}
+                  title={!formPermissions.delete ? "You don't have permission to delete" : "Delete company"}
                 >
                   <DeleteIcon /> Delete
                 </button>
@@ -1400,7 +1514,7 @@ const Company = () => {
                   className="submit-btn"
                   ref={submitRef}
                   onClick={(e) => handleSubmit(e)} // Pass event
-                  disabled={loading || (selectedAction === "create" ? !canCreate : selectedAction === "edit" ? !canEdit : !canDelete)}
+                  disabled={loading || (selectedAction === "create" ? !formPermissions.add : selectedAction === "edit" ? !formPermissions.edit : !formPermissions.delete)}
                 >
                   {loading ? "Processing..." :
                     selectedAction === "create" ? "Create Company" :

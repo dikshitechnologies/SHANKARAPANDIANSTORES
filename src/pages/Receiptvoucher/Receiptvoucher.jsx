@@ -1244,19 +1244,30 @@ const ReceiptVoucher = () => {
         totalAmt: totalAmount,
         compcode: userData?.companyCode || '001',
         usercode: userData?.userCode || '001',
-        salesTransaction: {
-          given1: (particularToUse['1']?.available || 0).toString(),
-          given2: (particularToUse['2']?.available || 0).toString(),
-          given5: (particularToUse['5']?.available || 0).toString(),
-          given10: (particularToUse['10']?.available || 0).toString(),
-          given20: (particularToUse['20']?.available || 0).toString(),
-          given50: (particularToUse['50']?.available || 0).toString(),
-          given100: (particularToUse['100']?.available || 0).toString(),
-          given200: (particularToUse['200']?.available || 0).toString(),
-          given500: (particularToUse['500']?.available || 0).toString()
-        },
         itemDetailsList: itemDetailsList,
-        referenceBills: referenceBills
+        referenceBills: referenceBills,
+        collect: {
+          r500: parseInt(particularToUse['500']?.collect) || 0,
+          r200: parseInt(particularToUse['200']?.collect) || 0,
+          r100: parseInt(particularToUse['100']?.collect) || 0,
+          r50: parseInt(particularToUse['50']?.collect) || 0,
+          r20: parseInt(particularToUse['20']?.collect) || 0,
+          r10: parseInt(particularToUse['10']?.collect) || 0,
+          r5: parseInt(particularToUse['5']?.collect) || 0,
+          r2: parseInt(particularToUse['2']?.collect) || 0,
+          r1: parseInt(particularToUse['1']?.collect) || 0
+        },
+        issue: {
+          r500: parseInt(particularToUse['500']?.issue) || 0,
+          r200: parseInt(particularToUse['200']?.issue) || 0,
+          r100: parseInt(particularToUse['100']?.issue) || 0,
+          r50: parseInt(particularToUse['50']?.issue) || 0,
+          r20: parseInt(particularToUse['20']?.issue) || 0,
+          r10: parseInt(particularToUse['10']?.issue) || 0,
+          r5: parseInt(particularToUse['5']?.issue) || 0,
+          r2: parseInt(particularToUse['2']?.issue) || 0,
+          r1: parseInt(particularToUse['1']?.issue) || 0
+        }
       };
 
       console.log('Payload:', payload);

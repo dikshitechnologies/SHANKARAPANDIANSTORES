@@ -245,6 +245,13 @@ export default function ScrapPage() {
   };
 
   const handleEdit = () => { // Remove async
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ type: "error", text: "You do not have permission to edit scraps." });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.scrapCode || !form.scrapName) {
       setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
       return;
@@ -281,6 +288,13 @@ export default function ScrapPage() {
   };
 
   const handleDelete = () => { // Remove async
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ type: "error", text: "You do not have permission to delete scraps." });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.scrapCode) {
       setMessage({ type: "error", text: "Please select a scrap item to delete." });
       return;
@@ -312,6 +326,13 @@ export default function ScrapPage() {
   };
 
   const handleAdd = () => { // Remove async - FIXED
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add) {
+      setMessage({ type: "error", text: "You do not have permission to create scraps." });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.scrapCode || !form.scrapName) {
       setMessage({ type: "error", text: "Please fill Scrap Code and Scrap Name." });
       return;

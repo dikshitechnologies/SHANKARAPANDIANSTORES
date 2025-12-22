@@ -246,6 +246,16 @@ export default function DesignCreation() {
   };
 
   const handleEdit = () => { // REMOVED async
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to edit designs." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.designCode || !form.designName) {
       setMessage({ type: "error", text: "Please fill Design Code and Design Name." });
       return;
@@ -282,6 +292,16 @@ export default function DesignCreation() {
   };
 
   const handleDelete = () => { // REMOVED async
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to delete designs." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.designCode) {
       setMessage({ type: "error", text: "Please select a design to delete." });
       return;
@@ -313,6 +333,16 @@ export default function DesignCreation() {
   };
 
   const handleAdd = () => { // REMOVED async - SHOWS CONFIRMATION POPUP
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to create designs." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.designCode || !form.designName) {
       setMessage({ type: "error", text: "Please fill Design Code and Design Name." });
       return;

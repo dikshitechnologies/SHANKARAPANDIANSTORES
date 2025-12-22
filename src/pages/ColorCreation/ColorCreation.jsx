@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -52,6 +54,15 @@ const Icon = {
 };
 
 export default function ColorCreation() {
+  // ---------- Permissions ----------
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.COLOR_CREATION),
+    edit: hasModifyPermission(PERMISSION_CODES.COLOR_CREATION),
+    delete: hasDeletePermission(PERMISSION_CODES.COLOR_CREATION)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // ---------- state ----------
   const [colors, setColors] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -222,6 +233,16 @@ export default function ColorCreation() {
   };
 
   const handleEdit = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to edit colors." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.colourCode || !form.colourName) {
       setMessage({ type: "error", text: "Please fill Color Code and Color Name." });
       return;
@@ -264,6 +285,16 @@ export default function ColorCreation() {
   };
 
   const handleDelete = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to delete colors." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.colourCode) {
       setMessage({ type: "error", text: "Please select a color to delete." });
       return;
@@ -297,6 +328,16 @@ export default function ColorCreation() {
   };
 
   const handleAdd = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to create colors." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.colourCode || !form.colourName) {
       setMessage({ type: "error", text: "Please fill Color Code and Color Name." });
       return;

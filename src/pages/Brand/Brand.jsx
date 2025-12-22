@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -52,6 +54,15 @@ const Icon = {
 };
 
 export default function BrandPage() {
+  // ---------- Permissions ----------
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.BRAND_CREATION),
+    edit: hasModifyPermission(PERMISSION_CODES.BRAND_CREATION),
+    delete: hasDeletePermission(PERMISSION_CODES.BRAND_CREATION)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // ---------- state ----------
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -252,6 +263,16 @@ export default function BrandPage() {
   };
 
   const handleEdit = () => { // Remove async
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to edit brands." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.brandCode || !form.brandName) {
       setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
       return;
@@ -281,6 +302,16 @@ export default function BrandPage() {
   };
 
   const handleDelete = () => { // Remove async
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to delete brands." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.brandCode) {
       setMessage({ type: "error", text: "Please select a brand to delete." });
       return;
@@ -312,6 +343,16 @@ export default function BrandPage() {
   };
 
   const handleAdd = () => { // Remove async - FIXED
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to create brands." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.brandCode || !form.brandName) {
       setMessage({ type: "error", text: "Please fill Brand Code and Brand Name." });
       return;

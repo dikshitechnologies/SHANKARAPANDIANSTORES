@@ -1147,26 +1147,6 @@ const PaymentVoucher = () => {
         totalAmt: totalAmount,
         compcode: userData?.companyCode || '',
         usercode: userData?.username || '',
-        salesTransaction1: {
-          returned1: (particulars['1']?.collect || 0).toString(),
-          returned2: (particulars['2']?.collect || 0).toString(),
-          returned5: (particulars['5']?.collect || 0).toString(),
-          returned10: (particulars['10']?.collect || 0).toString(),
-          returned20: (particulars['20']?.collect || 0).toString(),
-          returned50: (particulars['50']?.collect || 0).toString(),
-          returned100: (particulars['100']?.collect || 0).toString(),
-          returned200: (particulars['200']?.collect || 0).toString(),
-          returned500: (particulars['500']?.collect || 0).toString(),
-          given1: (particulars['1']?.issue || 0).toString(),
-          given2: (particulars['2']?.issue || 0).toString(),
-          given5: (particulars['5']?.issue || 0).toString(),
-          given10: (particulars['10']?.issue || 0).toString(),
-          given20: (particulars['20']?.issue || 0).toString(),
-          given50: (particulars['50']?.issue || 0).toString(),
-          given100: (particulars['100']?.issue || 0).toString(),
-          given200: (particulars['200']?.issue || 0).toString(),
-          given500: (particulars['500']?.issue || 0).toString()
-        },
         itemDetailsList1: paymentItems.map(item => ({
           accountCode: item.cashBankCode || '',
           accountName: item.cashBank || '',
@@ -1181,7 +1161,29 @@ const PaymentVoucher = () => {
           refNo: bill.refNo || '',
           date: bill.date ? formatDateToYYYYMMDD(bill.date) : '',
           amount: (parseFloat(bill.amount) || 0).toString()
-        }))
+        })),
+        collect: {
+          r500: particulars['500']?.collect || 0,
+          r200: particulars['200']?.collect || 0,
+          r100: particulars['100']?.collect || 0,
+          r50: particulars['50']?.collect || 0,
+          r20: particulars['20']?.collect || 0,
+          r10: particulars['10']?.collect || 0,
+          r5: particulars['5']?.collect || 0,
+          r2: particulars['2']?.collect || 0,
+          r1: particulars['1']?.collect || 0
+        },
+        issue: {
+          r500: particulars['500']?.issue || 0,
+          r200: particulars['200']?.issue || 0,
+          r100: particulars['100']?.issue || 0,
+          r50: particulars['50']?.issue || 0,
+          r20: particulars['20']?.issue || 0,
+          r10: particulars['10']?.issue || 0,
+          r5: particulars['5']?.issue || 0,
+          r2: particulars['2']?.issue || 0,
+          r1: particulars['1']?.issue || 0
+        }
       };
 
       console.log('Saving Payment Voucher with payload:', JSON.stringify(payload, null, 2));

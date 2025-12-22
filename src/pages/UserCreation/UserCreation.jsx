@@ -374,6 +374,13 @@ export default function UserCreation() {
   };
 
   const handleAdd = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add) {
+      setError("You do not have permission to create users.");
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.companyCode || !form.username || !form.password) {
       toast.warning(
         "Please fill required fields: Company, Username, Password.",
@@ -435,6 +442,13 @@ export default function UserCreation() {
   };
 
   const handleEdit = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setError("You do not have permission to edit users.");
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!editingId) {
       setError("No user selected to update.");
       return;
@@ -479,6 +493,13 @@ export default function UserCreation() {
   };
 
   const handleDelete = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setError("You do not have permission to delete users.");
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!deleteTargetId) {
       setError("No user selected to delete.");
       return;
