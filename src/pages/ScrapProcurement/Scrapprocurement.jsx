@@ -6,7 +6,6 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
-import { hover } from 'framer-motion';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -22,12 +21,12 @@ const Scrapprocurement = () => {
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
   // API and data management
-    const [bills, setBills] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [pageNumber, setPageNumber] = useState(1);
-    const [pageSize, setPageSize] = useState(20);
-    const [totalCount, setTotalCount] = useState(0);
-    const fCompCode = "001";
+  // const [bills, setBills] = useState([]);
+  // const [loading, setLoading] = useState(false);
+  // const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  // const [totalCount, setTotalCount] = useState(0);
+  const fCompCode = "001";
 
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -72,6 +71,8 @@ const Scrapprocurement = () => {
   const salesmanRef = useRef(null);
   const custNameRef = useRef(null);
   const scrapProductRef = useRef(null);
+  // Add ignore ref for Enter key blocking
+  const ignoreNextEnterRef = useRef(false);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -378,12 +379,7 @@ const Scrapprocurement = () => {
       } else if (Array.isArray(response?.data)) {
         dataArray = response.data;
       }
-        // if (response && response.data) {
-        //   setBills(response.data);
-        //   setTotalCount(response.data.totalCount);
-        //   setPageNumber(pageNum);
-        // }
-      
+             
       if (!Array.isArray(dataArray)) {
         console.warn('Voucher data is not an array:', dataArray);
         return [];
@@ -470,6 +466,20 @@ const Scrapprocurement = () => {
         setBillDetails(newBillDetails);
         setItems(newItems);
         
+        // 🔥 CRITICAL FIX: Block Enter key after edit load
+        ignoreNextEnterRef.current = true;
+        
+        // Focus on Bill Date field after a short delay
+        setTimeout(() => {
+          if (billDateRef.current) {
+            billDateRef.current.focus();
+          }
+          // Reset the ignore flag after focus
+          setTimeout(() => {
+            ignoreNextEnterRef.current = false;
+          }, 200);
+        }, 300);
+        
       } else {
         showConfirmation({
           title: 'Not Found',
@@ -508,6 +518,9 @@ const Scrapprocurement = () => {
           );
           
           if (response.status === 200 || response.status === 201) {
+            // Reset the ignore flag after delete
+            ignoreNextEnterRef.current = false;
+            
             showConfirmation({
               title: 'Success',
               message: `Voucher ${voucherNo} deleted successfully.`,
@@ -553,6 +566,8 @@ const Scrapprocurement = () => {
     setPopupMode('edit');
     setVoucherSearchTerm('');
     setShowVoucherListPopup(true);
+    // Reset the ignore flag when opening popup
+    ignoreNextEnterRef.current = false;
   };
 
   // NEW: Handle Delete button click
@@ -560,6 +575,8 @@ const Scrapprocurement = () => {
     setPopupMode('delete');
     setVoucherSearchTerm('');
     setShowVoucherListPopup(true);
+    // Reset the ignore flag when opening popup
+    ignoreNextEnterRef.current = false;
   };
 
   // Fetch items list for popup
@@ -795,6 +812,13 @@ const Scrapprocurement = () => {
 
   // Handle Enter Key Navigation for form fields
   const handleKeyDown = (e, nextRef) => {
+    // 🔥 Check if we should ignore Enter key (e.g., after edit load)
+    if (ignoreNextEnterRef.current && e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    
     if (e.key === 'Enter') {
       e.preventDefault();
       if (nextRef && nextRef.current) {
@@ -802,7 +826,6 @@ const Scrapprocurement = () => {
       }
     }
   };
-  
 
   const handleAddItem = () => {
     const scrapName = billDetails.scrapProductInput;
@@ -904,6 +927,13 @@ const Scrapprocurement = () => {
   };
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    // Check if we should ignore Enter key
+    if (ignoreNextEnterRef.current && e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     // Handle / key for item search popup
     if (e.key === '/') {
       e.preventDefault();
@@ -945,6 +975,7 @@ const Scrapprocurement = () => {
               setShowConfirmPopup(false);
               // Trigger the actual save function
               handleSave();
+              clearFormData();  
             },
             onCancel: () => {
               setShowConfirmPopup(false);
@@ -1046,6 +1077,9 @@ const Scrapprocurement = () => {
 
   // Separate clear function for reuse
   const clearFormData = () => {
+    // Reset the ignore flag
+    ignoreNextEnterRef.current = false;
+    
     // Reset bill details with new bill number
     fetchNextBillNo().then(() => {
       // After fetching new bill number, reset other fields
@@ -1087,6 +1121,9 @@ const Scrapprocurement = () => {
   };
 
   const handleClear = () => {
+    // Reset the ignore flag
+    ignoreNextEnterRef.current = false;
+    
     if (isEditMode) {
       showConfirmation({
         title: 'Clear Data',
@@ -1160,10 +1197,13 @@ const Scrapprocurement = () => {
 
       if (response.status === 200 || response.status === 201) {
         const mode = isCreate ? 'created' : 'updated';
-        
+        clearFormData();
         // Show toast
         toast.success(`Scrap Procurement data ${mode} successfully! Voucher No: ${billDetails.billNo}`);
-        clearFormData();
+        
+        // Reset the ignore flag after save
+        ignoreNextEnterRef.current = false;
+        
         // Show confirmation popup
         showConfirmation({
           title: 'Success',
@@ -1207,6 +1247,11 @@ const Scrapprocurement = () => {
 
   const handleSave = async () => {
     try {
+      // Check if we should ignore Enter key
+      if (ignoreNextEnterRef.current) {
+        return;
+      }
+      
       // Validate required fields
       if (!billDetails.salesman || !billDetails.custName) {
         showConfirmation({
@@ -1598,7 +1643,31 @@ const Scrapprocurement = () => {
   };
 
   return (
-    <div style={styles.container}>
+    <div
+      style={styles.container}
+      onKeyDown={(e) => {
+        // 🚫 block Enter that comes from popup selection
+        if (ignoreNextEnterRef.current && e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
+        // 🚫 block Enter everywhere else when in edit mode
+        if (
+          e.key === 'Enter' &&
+          !showSalesmanPopup &&
+          !showCustomerPopup &&
+          !showScrapPopup &&
+          !showItemPopup &&
+          !showVoucherListPopup &&
+          !showConfirmPopup
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+    >
       {/* --- HEADER SECTION --- */}
       <div style={styles.headerSection}>
         {/* ROW 1 */}
