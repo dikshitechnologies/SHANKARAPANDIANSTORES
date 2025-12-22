@@ -351,7 +351,7 @@ export default function UserCreation() {
     setActionType("edit");
     setEditingId(user.code || user.id);
     setEditModalOpen(false);
-    setTimeout(() => usernameRef.current?.focus(), 60);
+    setTimeout(() => usernameRef.current?.focus(), 1060);
   };
 
   const handleDeleteRowClick = (user) => {
@@ -370,7 +370,7 @@ export default function UserCreation() {
     setActionType("delete");
     setDeleteTargetId(user.code || user.id);
     setDeleteModalOpen(false);
-    setTimeout(() => usernameRef.current?.focus(), 60);
+    setTimeout(() => usernameRef.current?.focus(), 1060);
   };
 
   const handleAdd = async () => {
