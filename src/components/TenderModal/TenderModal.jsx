@@ -612,7 +612,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
               </div>
 
               {/* Checkboxes Row */}
-              <div className={styles.checkboxRow}>
+              {/* <div className={styles.checkboxRow}>
                 <div className={styles.checkboxGroup}>
                   <label className={styles.checkboxLabel}>
                     <input
@@ -636,12 +636,12 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                     <span>Delivery</span>
                   </label>
                 </div>
-              </div>
+              </div> */}
 
               {/* F8-Delete Note */}
-              <div className={styles.f8Note}>
+              {/* <div className={styles.f8Note}>
                 F8-Delete
-              </div>
+              </div> */}
             </div>
 
             {/* Right Section - Bottom Details */}
@@ -796,7 +796,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                 </div> */}
 
                 {/* Right Side Checkboxes */}
-                <div className={styles.rightCheckboxRow}>
+                {/* <div className={styles.rightCheckboxRow}>
                   <div className={styles.rightCheckboxGroup}>
                     <label className={styles.rightCheckboxLabel}>
                       <input
@@ -829,7 +829,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       <span>Is Credit Bill</span>
                     </label>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
