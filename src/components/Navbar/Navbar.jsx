@@ -76,35 +76,38 @@ const Navbar = () => {
   }, [isMobile, isMenuOpen]);
 
   const masterItems = [
-    { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
-    { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined />, permission: 'UNIT_CREATION' },
-    { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined />, permission: 'COLOR_CREATION' },
-    { name: 'Size Creation', path: '/masters/size-creation', icon: <TeamOutlined />, permission: 'SIZE_CREATION' },
-    { name: 'Model Creation', path: '/masters/model-creation', icon: <TeamOutlined />, permission: 'MODEL_CREATION' },
-    { name: 'Salesman Creation', path: '/masters/SalesmanCreation', icon: <UserOutlined />, permission: 'SALESMAN_CREATION' },
+    // { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
+        { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined />, permission: 'ITEM_CREATION' },
     { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined />, permission: 'COMPANY_CREATION' },
-    { name: 'Administration', path: '/Administration', icon: <BuildOutlined /> },
-    { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined />, permission: 'USER_CREATION' },
-    { name: 'Design Creation', path: '/design-creation', icon: <BuildOutlined />, permission: 'DESIGN_CREATION' },
-    { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
+    { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined />, permission: 'PRODUCT_CREATION' },
     { name: 'Brand Creation', path: '/masters/brand-creation', icon: <BuildOutlined />, permission: 'BRAND_CREATION' },
     { name: 'Category Creation', path: '/masters/category-creation', icon: <BuildOutlined />, permission: 'CATEGORY_CREATION' },
-    { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined />, permission: 'PRODUCT_CREATION' },
+    { name: 'Design Creation', path: '/design-creation', icon: <BuildOutlined />, permission: 'DESIGN_CREATION' },
+    { name: 'Size Creation', path: '/masters/size-creation', icon: <TeamOutlined />, permission: 'SIZE_CREATION' },
+    { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined />, permission: 'COLOR_CREATION' },
     { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined />, permission: 'STATE_CREATION' },
-    { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined />, permission: 'ITEM_CREATION' },
+
+    { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined />, permission: 'UNIT_CREATION' },
+    { name: 'Model Creation', path: '/masters/model-creation', icon: <TeamOutlined />, permission: 'MODEL_CREATION' },
+    { name: 'Salesman Creation', path: '/masters/SalesmanCreation', icon: <UserOutlined />, permission: 'SALESMAN_CREATION' },
+    { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
+        { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined />, permission: 'USER_CREATION' },
+        { name: 'Administration', path: '/Administration', icon: <BuildOutlined /> },
+
   ];
 
   const transactionItems = [
+        { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined />, permission: 'PURCHASE_INVOICE' },
+       { name: 'Purchase Return', path: '/transactions/Purchasereturn', icon: <DollarOutlined />, permission: 'PURCHASE_RETURN' },
+    { name: 'Receipt Voucher', path: '/transactions/receipt-voucher', icon: <MoneyCollectOutlined />, permission: 'RECEIPT_VOUCHER' },
+    { name: 'Payment Voucher', path: '/payment-voucher', icon: <MoneyCollectOutlined />, permission: 'PAYMENT_VOUCHER' },
+
     { name: 'Sales Invoice', path: '/sales-invoice', icon: <FileTextOutlined />, permission: 'SALES_INVOICE' },
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined />, permission: 'SALES_RETURN' },
-    { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined />, permission: 'PURCHASE_INVOICE' },
-    { name: 'Purchase Return', path: '/transactions/Purchasereturn', icon: <DollarOutlined />, permission: 'PURCHASE_RETURN' },
     { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined />, permission: 'SCRAP_RATE_FIX' },
     { name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined />, permission: 'SCRAP_PROCUREMENT' },
     // { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined />, permission: 'TENDER' },
     { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined />, permission: 'BILL_COLLECTOR' },
-    { name: 'Payment Voucher', path: '/payment-voucher', icon: <MoneyCollectOutlined />, permission: 'PAYMENT_VOUCHER' },
-    { name: 'Receipt Voucher', path: '/transactions/receipt-voucher', icon: <MoneyCollectOutlined />, permission: 'RECEIPT_VOUCHER' },
   ];
 
   // Filter items based on permissions
