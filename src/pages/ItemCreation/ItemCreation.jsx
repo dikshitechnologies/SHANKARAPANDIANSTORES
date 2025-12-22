@@ -5,6 +5,7 @@ import axios from 'axios';
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
+import { usePermissions } from '../../hooks/usePermissions';
 import { toast } from "react-toastify"; // ADDED
 import "react-toastify/dist/ReactToastify.css"; // ADDED
 
@@ -246,8 +247,15 @@ const ItemCreation = ({ onCreated }) => {
   const unitRef = useRef(null);
   const isInitialFocusRef = useRef(true);
 
-  // Get permissions for this form
-  const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
+  // Get permissions for this form using the usePermissions hook
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  // Get permissions for ITEM_CREATION form
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission('ITEM_CREATION'),
+    edit: hasModifyPermission('ITEM_CREATION'),
+    delete: hasDeletePermission('ITEM_CREATION')
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // Auto-focus Group Name on component mount
   useEffect(() => {
@@ -1104,6 +1112,22 @@ const handleEnterNavigation = (e) => {
   return (
     <div className="lg-root" role="region" aria-labelledby="item-title">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
+
+      {/* Check if user has any permission to access this module */}
+      {!formPermissions.add && !formPermissions.edit && !formPermissions.delete && (
+        <div style={{
+          padding: '20px',
+          margin: '20px',
+          backgroundColor: '#fee2e2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          color: '#dc2626',
+          textAlign: 'center'
+        }}>
+          <h3>Access Denied</h3>
+          <p>You do not have permission to access the Item Creation module.</p>
+        </div>
+      )}
 
       <style>{`
         /* Toast notification styles - ADDED */

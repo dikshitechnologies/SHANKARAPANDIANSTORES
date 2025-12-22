@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   MenuOutlined,
@@ -18,6 +18,7 @@ import {
 } from '@ant-design/icons';
 import { Button, Dropdown, Space, Modal } from 'antd';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import DropdownMenu from './DropdownMenu';
 import styles from './Navbar.module.css';
 
@@ -33,6 +34,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { hasPermission } = usePermissions();
 
   // Check screen size
   useEffect(() => {
@@ -75,41 +77,44 @@ const Navbar = () => {
 
   const masterItems = [
     { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
-    { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined /> },
-    { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined /> },
-    { name: 'Size Creation', path: '/masters/size-creation', icon: <TeamOutlined /> },
-    { name: 'Model Creation', path: '/masters/model-creation', icon: <TeamOutlined /> },
-    { name: 'Salesman Creation', path: '/masters/SalesmanCreation', icon: <UserOutlined /> },
-    { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined /> },
+    { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined />, permission: 'UNIT_CREATION' },
+    { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined />, permission: 'COLOR_CREATION' },
+    { name: 'Size Creation', path: '/masters/size-creation', icon: <TeamOutlined />, permission: 'SIZE_CREATION' },
+    { name: 'Model Creation', path: '/masters/model-creation', icon: <TeamOutlined />, permission: 'MODEL_CREATION' },
+    { name: 'Salesman Creation', path: '/masters/SalesmanCreation', icon: <UserOutlined />, permission: 'SALESMAN_CREATION' },
+    { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined />, permission: 'COMPANY_CREATION' },
     { name: 'Administration', path: '/Administration', icon: <BuildOutlined /> },
-    { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined /> },
-    { name: 'Design Creation', path: '/design-creation', icon: <BuildOutlined /> },
-    { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined /> },
-    { name: 'Brand Creation', path: '/masters/brand-creation', icon: <BuildOutlined /> },
-    { name: 'Category Creation', path: '/masters/category-creation', icon: <BuildOutlined /> },
-    { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined /> },
-    { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined /> },
-    { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined /> },
+    { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined />, permission: 'USER_CREATION' },
+    { name: 'Design Creation', path: '/design-creation', icon: <BuildOutlined />, permission: 'DESIGN_CREATION' },
+    { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
+    { name: 'Brand Creation', path: '/masters/brand-creation', icon: <BuildOutlined />, permission: 'BRAND_CREATION' },
+    { name: 'Category Creation', path: '/masters/category-creation', icon: <BuildOutlined />, permission: 'CATEGORY_CREATION' },
+    { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined />, permission: 'PRODUCT_CREATION' },
+    { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined />, permission: 'STATE_CREATION' },
+    { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined />, permission: 'ITEM_CREATION' },
   ];
 
   const transactionItems = [
-    { name: 'Sales Invoice', path: '/sales-invoice', icon: <FileTextOutlined /> },
-    { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined /> },
-    { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined /> },
-    { name: 'Purchase Return', path: '/transactions/Purchasereturn', icon: <DollarOutlined /> },
-    { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined /> },
-    // { name: 'Scrap', path: '/transactions/scrap', icon: <BuildOutlined /> },
-    { name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined /> },
-    { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined /> },
-    { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined /> },
-    // { name: 'Amount Issue', path: '/transactions/amount-issue', icon: <MoneyCollectOutlined /> },
-    { name: 'Payment Voucher', path: '/payment-voucher', icon: <MoneyCollectOutlined /> },
-    // { name: 'Cash Management', path: '/transactions/cash-management', icon: <MoneyCollectOutlined /> },
-    { name: 'Receipt Voucher', path: '/transactions/receipt-voucher', icon: <MoneyCollectOutlined /> },
-
-
-
+    { name: 'Sales Invoice', path: '/sales-invoice', icon: <FileTextOutlined />, permission: 'SALES_INVOICE' },
+    { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined />, permission: 'SALES_RETURN' },
+    { name: 'Purchase Invoice', path: '/transactions/purchase-invoice', icon: <DollarOutlined />, permission: 'PURCHASE_INVOICE' },
+    { name: 'Purchase Return', path: '/transactions/Purchasereturn', icon: <DollarOutlined />, permission: 'PURCHASE_RETURN' },
+    { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined />, permission: 'SCRAP_RATE_FIX' },
+    { name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined />, permission: 'SCRAP_PROCUREMENT' },
+    { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined />, permission: 'TENDER' },
+    { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined />, permission: 'BILL_COLLECTOR' },
+    { name: 'Payment Voucher', path: '/payment-voucher', icon: <MoneyCollectOutlined />, permission: 'PAYMENT_VOUCHER' },
+    { name: 'Receipt Voucher', path: '/transactions/receipt-voucher', icon: <MoneyCollectOutlined />, permission: 'RECEIPT_VOUCHER' },
   ];
+
+  // Filter items based on permissions
+  const filteredMasterItems = useMemo(() => {
+    return masterItems.filter(item => !item.permission || hasPermission(item.permission));
+  }, [hasPermission]);
+
+  const filteredTransactionItems = useMemo(() => {
+    return transactionItems.filter(item => !item.permission || hasPermission(item.permission));
+  }, [hasPermission]);
 
   // Desktop hover handlers
   const handleMouseEnter = (menu) => {
@@ -242,7 +247,7 @@ const Navbar = () => {
                   {activeDropdown === 'masters' && (
                     <div className={`${styles['dropdown-container']} ${styles.masters}`}>
                       <DropdownMenu
-                        items={masterItems}
+                        items={filteredMasterItems}
                         onItemClick={() => setActiveDropdown(null)}
                         position="center"
                       />
@@ -266,7 +271,7 @@ const Navbar = () => {
                   {activeDropdown === 'transactions' && (
                     <div className={styles['dropdown-container']}>
                       <DropdownMenu
-                        items={transactionItems}
+                        items={filteredTransactionItems}
                         onItemClick={() => setActiveDropdown(null)}
                         position="center"
                       />
@@ -364,7 +369,7 @@ const Navbar = () => {
                       </span>
                     </div>
                     <div className={`${styles['mobile-dropdown-items']} ${mobileMenuState.masters ? styles.open : ''}`}>
-                      {masterItems.map(item => (
+                      {filteredMasterItems.map(item => (
                         <Link
                           key={item.path}
                           to={item.path}
@@ -391,7 +396,7 @@ const Navbar = () => {
                       </span>
                     </div>
                     <div className={`${styles['mobile-dropdown-items']} ${mobileMenuState.transactions ? styles.open : ''}`}>
-                      {transactionItems.map(item => (
+                      {filteredTransactionItems.map(item => (
                         <Link
                           key={item.path}
                           to={item.path}

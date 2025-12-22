@@ -137,6 +137,9 @@ const PurchaseInvoice = () => {
   const gstNoRef = useRef(null);
   const firstRowNameRef = useRef(null);
   const addLessRef = useRef(null);
+  
+  // Track if we should ignore Enter key (for edit invoice loading)
+  const ignoreNextEnterRef = useRef(false);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -260,7 +263,7 @@ const handleBlur = () => {
       if (nextCode) {
         setBillDetails(prev => ({ ...prev, invNo: nextCode }));
       } else {
-        // If no next code, set a //placeholder
+        // If no next code, set a placeholder
         setBillDetails(prev => ({ ...prev, invNo: '' }));
       }
     } catch (err) {
@@ -345,6 +348,9 @@ const handleBlur = () => {
         city: '',
         isLedger: false,
       });
+      
+      // Reset ignore Enter flag
+      ignoreNextEnterRef.current = false;
       
       // Then fetch next invoice number
       await fetchNextInvNo();
@@ -582,6 +588,20 @@ const handleBlur = () => {
         setActiveTopAction('edit');
         console.log('Edit mode activated for voucher:', voucherNo);
         
+        // 🔴 SET IGNORE ENTER FLAG
+        ignoreNextEnterRef.current = true;
+        
+        // ✅ MOVE CURSOR TO BILL DATE AFTER LOADING EDIT INVOICE
+        setTimeout(() => {
+          if (dateRef.current) {
+            dateRef.current.focus();
+          }
+          // Reset the flag after focus
+          setTimeout(() => {
+            ignoreNextEnterRef.current = false;
+          }, 200);
+        }, 300);
+        
       } else {
         console.warn('No data received from API');
         showAlertConfirmation('No purchase data found', null, 'warning');
@@ -817,7 +837,14 @@ const handleBlur = () => {
   };
 
   // Handle Enter Key Navigation
-  const handleKeyDown = (e, nextRef) => {
+  const handleKeyDown = (e, nextRef, fieldName = '') => {
+    // If we're ignoring Enter (just loaded edit invoice), prevent default
+    if (ignoreNextEnterRef.current && e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    
     if (e.key === 'Enter') {
       e.preventDefault();
       if (nextRef && nextRef.current) {
@@ -1039,7 +1066,6 @@ const handleBlur = () => {
         const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
 
         if (isParticularsEmpty) {
-          // ref={addLessRef}
           // Show confirmation popup asking to save
           showConfirmation({
             title: 'Particulars Missing',
@@ -1053,8 +1079,6 @@ const handleBlur = () => {
               
               // Trigger the actual save function
               handleSave();
-              
-              // toast.success('Purchase invoice saved successfully (items without particulars were skipped).');
             },
             onCancel: () => {
               setShowConfirmPopup(false);
@@ -1144,7 +1168,6 @@ const handleBlur = () => {
       // Validation: Check required fields
       if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
         showAlertConfirmation('Party Code is required', null, 'warning');
-        // toast.warning('Party Code is required');
         return;
       }
 
@@ -1658,11 +1681,9 @@ const handleBlur = () => {
               value={billDetails.invNo}
               name="invNo"
               onChange={handleInputChange}
-              // ref={billNoRef}
-              onKeyDown={(e) => handleKeyDown(e, dateRef)}
+              onKeyDown={(e) => handleKeyDown(e, dateRef, 'invNo')}
               onFocus={() => setFocusedField('invNo')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Bill No"
               disabled={isEditMode}
               readOnly
             />
@@ -1682,7 +1703,7 @@ const handleBlur = () => {
               value={billDetails.billDate}
               name="billDate"
               onChange={handleInputChange}              
-              onKeyDown={(e) => handleKeyDown(e, amountRef)}
+              onKeyDown={(e) => handleKeyDown(e, amountRef, 'billDate')}
               onFocus={() => setFocusedField('billDate')}
               onBlur={() => setFocusedField('')}
             />
@@ -1701,10 +1722,9 @@ const handleBlur = () => {
               name="amount"
               onChange={handleInputChange}
               ref={amountRef}
-              onKeyDown={(e) => handleKeyDown(e, purNoRef)}
+              onKeyDown={(e) => handleKeyDown(e, purNoRef, 'amount')}
               onFocus={() => setFocusedField('amount')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Amount"
             />
           </div>
 
@@ -1721,10 +1741,9 @@ const handleBlur = () => {
               value={billDetails.purNo}
               onChange={handleInputChange}
               ref={purNoRef}
-              onKeyDown={(e) => handleKeyDown(e, invoiceNoRef)}
+              onKeyDown={(e) => handleKeyDown(e, invoiceNoRef, 'purNo')}
               onFocus={() => setFocusedField('purNo')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Pur No"
             />
           </div>
 
@@ -1741,10 +1760,9 @@ const handleBlur = () => {
               value={billDetails.invoiceNo}
               onChange={handleInputChange}
               ref={invoiceNoRef}
-              onKeyDown={(e) => handleKeyDown(e, purDateRef)}
+              onKeyDown={(e) => handleKeyDown(e, purDateRef, 'invoiceNo')}
               onFocus={() => setFocusedField('invoiceNo')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Invoice No"
             />
           </div>
 
@@ -1762,7 +1780,7 @@ const handleBlur = () => {
               value={billDetails.purDate}
               onChange={handleInputChange}
               ref={purDateRef}
-              onKeyDown={(e) => handleKeyDown(e, customerRef)}
+              onKeyDown={(e) => handleKeyDown(e, customerRef, 'purDate')}
               onFocus={() => setFocusedField('purDate')}
               onBlur={() => setFocusedField('')}
             />
@@ -1787,10 +1805,9 @@ const handleBlur = () => {
               name="partyCode"
               onChange={handleInputChange}
               ref={customerRef}
-              onKeyDown={(e) => handleKeyDown(e, nameRef)}
+              onKeyDown={(e) => handleKeyDown(e, nameRef, 'partyCode')}
               onFocus={() => setFocusedField('partyCode')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Party Code"
             />
           </div>
 
@@ -1824,7 +1841,7 @@ const handleBlur = () => {
                     setItemSearchTerm(billDetails.customerName);
                     setShowSupplierPopup(true);
                   } else if (e.key === 'Enter') {
-                    handleKeyDown(e, cityRef);
+                    handleKeyDown(e, cityRef, 'customerName');
                   }
                 }}
                 onFocus={() => setFocusedField('customerName')}
@@ -1836,7 +1853,6 @@ const handleBlur = () => {
                     }
                   }, 200);
                 }}
-                //placeholder="Search Supplier"
               />
               <button
                 type="button"
@@ -1881,10 +1897,9 @@ const handleBlur = () => {
               name="city"
               onChange={handleInputChange}
               ref={cityRef}
-              onKeyDown={(e) => handleKeyDown(e, gstTypeRef)}
+              onKeyDown={(e) => handleKeyDown(e, gstTypeRef, 'city')}
               onFocus={() => setFocusedField('city')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="City"
             />
           </div>
 
@@ -1900,7 +1915,7 @@ const handleBlur = () => {
               value={billDetails.gstType}
               onChange={handleInputChange}
               ref={gstTypeRef}
-              onKeyDown={(e) => handleKeyDown(e, transtypeRef)}
+              onKeyDown={(e) => handleKeyDown(e, transtypeRef, 'gstType')}
               onFocus={() => setFocusedField('gstType')}
               onBlur={() => setFocusedField('')}
             >
@@ -1921,7 +1936,7 @@ const handleBlur = () => {
               value={billDetails.transType}
               onChange={handleInputChange}
               ref={transtypeRef}
-              onKeyDown={(e) => handleKeyDown(e, invoiceAmountRef)}
+              onKeyDown={(e) => handleKeyDown(e, invoiceAmountRef, 'transType')}
               onFocus={() => setFocusedField('transType')}
               onBlur={() => setFocusedField('')}
             >
@@ -1945,10 +1960,9 @@ const handleBlur = () => {
               value={billDetails.invoiceAmount}
               onChange={handleInputChange}
               ref={invoiceAmountRef}
-              onKeyDown={(e) => handleKeyDown(e, mobileRef)}
+              onKeyDown={(e) => handleKeyDown(e, mobileRef, 'invoiceAmount')}
               onFocus={() => setFocusedField('invoiceAmount')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Invoice Amount"
             />
           </div>
         </div>
@@ -1972,10 +1986,9 @@ const handleBlur = () => {
               name="mobileNo"
               onChange={handleInputChange}
               ref={mobileRef}
-              onKeyDown={(e) => handleKeyDown(e, gstNoRef)}
+              onKeyDown={(e) => handleKeyDown(e, gstNoRef, 'mobileNo')}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="Mobile No"
             />
           </div>
           
@@ -1995,6 +2008,12 @@ const handleBlur = () => {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
+                  
+                  // Don't focus if we're ignoring Enter (just loaded edit)
+                  if (ignoreNextEnterRef.current) {
+                    return;
+                  }
+                  
                   // Focus on the first row's name field
                   if (items.length > 0 && firstRowNameRef.current) {
                     firstRowNameRef.current.focus();
@@ -2011,7 +2030,6 @@ const handleBlur = () => {
               }}
               onFocus={() => setFocusedField('gstno')}
               onBlur={() => setFocusedField('')}
-              // //placeholder="GST No"
             />
           </div>
         </div>
@@ -2086,7 +2104,6 @@ const handleBlur = () => {
                         height: '100%'
                       }}
                       value={item.name}
-                      //placeholder="Search items"
                       data-row={index}
                       data-field="name"
                       onChange={(e) => {
@@ -2430,7 +2447,6 @@ const handleBlur = () => {
         columnWidths={{ voucherNo: '100%' }}
         searchPlaceholder="Search by bill no or customer..."
         onSelect={handleBillSelect}
-        ref={dateRef}
       />
       
       {/* Supplier Popup */}
@@ -2520,12 +2536,8 @@ const handleBlur = () => {
             type="text"
             style={focusedField === 'addLess' ? styles.addLessInputFocused : styles.addLessInput}
             value={addLessAmount}
-            // onChange={handleNumberInput}
             onChange={(e) => handleNumberInput(e)}
-            // onKeyDown={handleAddLessKeyDown}
             ref={addLessRef}
-            // placeholder="Enter amount"
-            // step="0.01"
             onFocus={() => setFocusedField('addLess')}
             onBlur={handleBlur}
             inputMode="decimal"
