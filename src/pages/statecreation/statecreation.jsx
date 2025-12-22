@@ -453,6 +453,16 @@ useEffect(() => {
   };
 
   const handleEdit = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to edit states." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode || !form.stateName) {
       setMessage({ type: "error", text: "Please fill State Code and State Name." });
       return;
@@ -490,6 +500,16 @@ useEffect(() => {
   };
 
   const handleDelete = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to delete states." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode) {
       setMessage({ type: "error", text: "Please select a state to delete." });
       return;
@@ -514,6 +534,16 @@ useEffect(() => {
   };
 
  const handleAdd = async () => {
+  // === PERMISSION CHECK ===
+  if (!formPermissions.add) {
+    setMessage({ 
+      type: "error", 
+      text: "You do not have permission to create states." 
+    });
+    return;
+  }
+  // === END PERMISSION CHECK ===
+
   if (!form.fuCode || !form.stateName) {
     setMessage({ type: "error", text: "Please fill State Code and State Name." });
     return;

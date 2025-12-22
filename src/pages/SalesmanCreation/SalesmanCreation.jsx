@@ -244,6 +244,13 @@ export default function SalesmanCreation() {
   };
 
   const handleEdit = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ type: "error", text: "You do not have permission to edit salesmen." });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.salesmanCode || !form.salesmanName) {
       setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
       return;
@@ -277,6 +284,13 @@ export default function SalesmanCreation() {
   };
 
   const handleDelete = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ type: "error", text: "You do not have permission to delete salesmen." });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.salesmanCode) {
       setMessage({ type: "error", text: "Please select a salesman to delete." });
       return;
@@ -317,6 +331,13 @@ export default function SalesmanCreation() {
   };
 
   const handleAdd = async () => {
+  // === PERMISSION CHECK ===
+  if (!formPermissions.add) {
+    setMessage({ type: "error", text: "You do not have permission to create salesmen." });
+    return;
+  }
+  // === END PERMISSION CHECK ===
+
   if (!form.salesmanCode || !form.salesmanName) {
     setMessage({ type: "error", text: "Please fill Salesman Code and Salesman Name." });
     return;

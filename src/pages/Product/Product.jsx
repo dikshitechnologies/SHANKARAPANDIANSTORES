@@ -287,6 +287,13 @@ export default function ProductPage() {
   };
 
   const handleEdit = () => { // Remove async
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ type: "error", text: "You do not have permission to edit products." });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fproductcode || !form.fproductname) {
       setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
       return;
@@ -316,6 +323,13 @@ export default function ProductPage() {
   };
 
   const handleDelete = () => { // Remove async
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ type: "error", text: "You do not have permission to delete products." });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fproductcode) {
       setMessage({ type: "error", text: "Please select a product to delete." });
       return;
@@ -347,6 +361,13 @@ export default function ProductPage() {
   };
 
   const handleAdd = () => { // Remove async - FIXED
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add) {
+      setMessage({ type: "error", text: "You do not have permission to create products." });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fproductcode || !form.fproductname) {
       setMessage({ type: "error", text: "Please fill Product Code and Product Name." });
       return;

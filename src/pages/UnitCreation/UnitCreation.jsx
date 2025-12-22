@@ -310,6 +310,16 @@ export default function UnitCreation() {
   };
 
   const handleEdit = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to edit units." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode || !form.unitName) {
       setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
       return;
@@ -354,6 +364,16 @@ const confirmEdit = async () => {
 };
 
   const handleDelete = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to delete units." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode) {
       setMessage({ type: "error", text: "Please select a unit to delete." });
       return;
@@ -387,6 +407,16 @@ const confirmEdit = async () => {
   };
 
   const handleAdd = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to create units." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode || !form.unitName) {
       setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
       return;
