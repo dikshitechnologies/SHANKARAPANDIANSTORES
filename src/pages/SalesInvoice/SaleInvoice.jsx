@@ -3186,14 +3186,14 @@ searchIconInside: {
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
           <ActionButtons
-  activeButton={activeTopAction}
-  onButtonClick={(type) => {
-    setActiveTopAction(type); // ✅ only on click
+            activeButton={activeTopAction}
+            onButtonClick={(type) => {
+              setActiveTopAction(type); // ✅ only on click
 
-    if (type === 'add') ;
-    if (type === 'edit') openEditInvoicePopup();
-    if (type === 'delete') openDeleteInvoicePopup();
-  }}
+              if (type === 'add')  resetForm(); ;
+              if (type === 'edit') openEditInvoicePopup();
+              if (type === 'delete') openDeleteInvoicePopup();
+            }}
 >
 
             <AddButton buttonType="add" disabled={!formPermissions.add} />
