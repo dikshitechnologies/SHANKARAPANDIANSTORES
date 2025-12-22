@@ -183,6 +183,13 @@ const [rowToDelete, setRowToDelete] = useState(null);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Focus Bill Date on load or when action changes (except delete)
+  useEffect(() => {
+    if (billDateRef.current && activeTopAction !== "delete") {
+      billDateRef.current.focus();
+    }
+  }, [activeTopAction]);
+
   // ---------- API FUNCTIONS ----------
   
   // Fetch next bill number from API

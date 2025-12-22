@@ -40,10 +40,10 @@ const Scrapprocurement = () => {
   const fCompCode = "001";
 
   // Track table input focus
-  const [focusedTableInput, setFocusedTableInput] = useState({
-    rowIndex: null,
-    field: null
-  });
+  // const [focusedTableInput, setFocusedTableInput] = useState({
+  //   rowIndex: null,
+  //   field: null
+  // });
   
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -136,8 +136,8 @@ const Scrapprocurement = () => {
   // NEW STATES FOR VOUCHER POPUPS
   const [showVoucherListPopup, setShowVoucherListPopup] = useState(false);
   const [voucherSearchTerm, setVoucherSearchTerm] = useState('');
-  const [voucherList, setVoucherList] = useState([]);
-  const [selectedVoucher, setSelectedVoucher] = useState(null);
+  // const [voucherList, setVoucherList] = useState([]);
+  // const [selectedVoucher, setSelectedVoucher] = useState(null);
   const [popupMode, setPopupMode] = useState(''); // 'edit' or 'delete'
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false); // Track if in edit mode

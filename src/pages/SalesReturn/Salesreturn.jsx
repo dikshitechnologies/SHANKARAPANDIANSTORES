@@ -223,6 +223,13 @@ const SalesReturn = () => {
     }
   }, [billPopupRowIndex, billDetailsPopupOpen]);
 
+   // Focus Bill Date on load or when action changes (except delete)
+    useEffect(() => {
+      if (billDateRef.current && activeTopAction !== "delete") {
+        billDateRef.current.focus();
+      }
+    }, [activeTopAction]);
+
   const resetForm = async () => {
     try {
       // Ensure we're in ADD mode
