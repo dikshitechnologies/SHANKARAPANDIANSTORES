@@ -380,7 +380,6 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
-
   // Fetch purchase bill list for popup
   const fetchBillList = async () => {
     try {
@@ -1036,106 +1035,96 @@ const handleBlur = () => {
     setItems(updatedItems);
   };
 
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    // Handle / key for item code search popup
-    if (e.key === '/') {
-      e.preventDefault();
-      handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
-      return;
-    }
+// Update the handleTableKeyDown function
+const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  // Handle / key for item code search popup
+  if (e.key === '/') {
+    e.preventDefault();
+    handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+    return;
+  }
 
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation(); // Prevent form submission or other Enter handlers
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent form submission or other Enter handlers
 
-      // Fields in the visual order (adjust according to your table columns)
-      const fields = [
-        'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
-        'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
-        'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
-      ];
+    // Fields in the visual order
+    const fields = [
+      'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
+      'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
+      'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
+    ];
 
-      const currentFieldIndex = fields.indexOf(currentField);
+    const currentFieldIndex = fields.indexOf(currentField);
 
-      // Always move to next field if available
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
-           select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-        );
-        if (nextInput) {
-          nextInput.focus();
-          return;
-        }
-      }
+    // If Enter is pressed in the amt field (last field)
+    if (currentField === 'amt') {
+      // Check if particulars (name) field is empty
+      const currentRow = items[currentRowIndex];
+      const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
 
-      // If Enter is pressed in the amt field (last field)
-      if (currentField === 'amt') {
-        // Check if particulars (name) field is empty
-        const currentRow = items[currentRowIndex];
-        const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
-
-        if (isParticularsEmpty) {
-          // Show confirmation popup asking to save
-          showConfirmation({
-            title: 'Particulars Missing',
-            message: 'Particulars cannot be empty. Would you like to save the purchase invoice anyway?\n\nNote: Items without particulars will not be saved.',
-            type: 'warning',
-            confirmText: 'Save Anyway',
-            cancelText: 'Cancel',
-            onConfirm: () => {
-              // User chose to save anyway
-              setShowConfirmPopup(false);
+      if (isParticularsEmpty) {
+        // Instead of showing confirmation, move focus to add/less field
+        e.preventDefault();        
               
-              // Trigger the actual save function
-              handleSave();
-            },
-            onCancel: () => {
-              setShowConfirmPopup(false);
-              // Focus back to name field so user can fix it
-              setTimeout(() => {
-                const nameInput = document.querySelector(
-                  `input[data-row="${currentRowIndex}"][data-field="name"]`
-                );
-                if (nameInput) {
-                  nameInput.focus();
-                }
-              }, 100);
-            }
-          });
-          return; // Don't proceed further
-        }
+        // Move focus to add/less field
+        setTimeout(() => {
+          if (addLessRef.current) {
+            addLessRef.current.focus();
+            addLessRef.current.select(); // Optional: select text for easy editing
+          }
+        }, 50);
+        return;
       }
-
-      // If Enter is pressed in the amt field and particulars is not empty
-      if (currentField === 'amt') {
-        // Check if we're on the last row
-        if (currentRowIndex < items.length - 1) {
-          // Move to next row
-          const nextRowInput = document.querySelector(
-            `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
-          );
-          if (nextRowInput) {
-            nextRowInput.focus();
-          }
-          return;
-        } else {
-          // We're on the last row, add new row if particulars is filled
-          const currentRow = items[currentRowIndex];
-          if (currentRow.name && currentRow.name.trim() !== '') {
-            handleAddRow();
-            setTimeout(() => {
-              const newRowInput = document.querySelector(
-                `input[data-row="${items.length}"][data-field="barcode"]`
-              );
-              if (newRowInput) newRowInput.focus();
-            }, 60);
-          }
+      
+      // If particulars is not empty, move to next row or add new row
+      // Check if we're on the last row
+      if (currentRowIndex < items.length - 1) {
+        // Move to next row
+        const nextRowInput = document.querySelector(
+          `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+        );
+        if (nextRowInput) {
+          nextRowInput.focus();
         }
+        return;
+      } else {
+        // We're on the last row, add new row if particulars is filled
+        if (currentRow.name && currentRow.name.trim() !== '') {
+          handleAddRow();
+          setTimeout(() => {
+            const newRowInput = document.querySelector(
+              `input[data-row="${items.length}"][data-field="barcode"]`
+            );
+            if (newRowInput) newRowInput.focus();
+          }, 60);
+        } else {
+          // If last row and particulars empty, move to add/less field
+          setTimeout(() => {
+            if (addLessRef.current) {
+              addLessRef.current.focus();
+              addLessRef.current.select();
+            }
+          }, 50);
+        }
+        return;
       }
     }
-  };
+
+    // Always move to next field if available (for non-amt fields)
+    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+      const nextField = fields[currentFieldIndex + 1];
+      const nextInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
+         select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+      );
+      if (nextInput) {
+        nextInput.focus();
+        return;
+      }
+    }
+  }
+};
 
   const handleClear = () => {
     showConfirmation({
@@ -1384,7 +1373,6 @@ const handleBlur = () => {
       padding: 0,
       overflowX: 'hidden',
       overflowY: 'hidden',
-      position: 'fixed',
     },
     headerSection: {
       flex: '0 0 auto',
@@ -1428,7 +1416,7 @@ const handleBlur = () => {
       paddingTop: '2px',
     },
     focusedInput: {
-      borderColor: '#1B91DA !important',
+      // borderColor: '#1B91DA !important',
       boxShadow: '0 0 0 1px #1B91DA',
     },
     
@@ -2551,6 +2539,15 @@ const handleBlur = () => {
             ref={addLessRef}
             onFocus={() => setFocusedField('addLess')}
             onBlur={handleBlur}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Enter pressed in Add/Less, calling handleSave');
+                // Small delay to let popup render before calling handleSave
+                setTimeout(() => handleSave(), 100);
+              }
+            }}
             inputMode="decimal"
           />
         </div>

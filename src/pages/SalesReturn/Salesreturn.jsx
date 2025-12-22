@@ -238,6 +238,7 @@ useEffect(() => {
 
   const resetForm = async () => {
     try {
+      // Ensure we're in ADD mode
       setIsEditMode(false);
 
       // Reset bill details to default
@@ -1181,6 +1182,9 @@ const updateSalesReturn = async () => {
       setLoading(true);
       setError("");
       
+      // Set edit mode
+      setIsEditMode(true);
+      
       const voucherDetails = await fetchSalesReturnDetails(voucherNo);
       
       if (!voucherDetails) {
@@ -2096,7 +2100,14 @@ const handleAddRow = () => {
       confirmText: "Clear",
       cancelText: "Cancel",
       onConfirm: async () => {
+        // Reset to ADD mode
+        setActiveTopAction('add');
+        setIsEditMode(false);
+        
         await resetForm();
+        
+        // Optional feedback
+        toast.info("Form cleared. Now in Add mode.");
       }
     });
   };
@@ -2742,7 +2753,7 @@ const handleSave = async () => {
       fontSize: '16px',
     },
     checkboxCell: {
-      padding: screenSize.isMobile ? '8px 8px' : '10px 12px',
+      padding: screenSize.isMobile ? '8px 8px' : screenSize.isTablet ? '10px 12px' : '10px 12px',
       textAlign: 'center',
       width: '40px',
     },
@@ -3471,9 +3482,15 @@ onKeyDown={(e) => {
             activeButton={activeTopAction}
             onButtonClick={(type) => {
               setActiveTopAction(type);
-              if (type === 'add') ;
-              else if (type === 'edit') openEditPopup();
-              else if (type === 'delete') openDeletePopup();
+              if (type === 'add') {
+                // Reset to add mode when Add button is clicked
+                setIsEditMode(false);
+                handleClear(); // This will clear and reset to Add mode
+              } else if (type === 'edit') {
+                openEditPopup();
+              } else if (type === 'delete') {
+                openDeletePopup();
+              }
             }}
           >
             <AddButton buttonType="add" disabled={!formPermissions.add} />
