@@ -1263,6 +1263,7 @@ const handleSalesmanSelect = (salesman) => {
   const handleAddLessKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      e.stopPropagation();
       // Trigger save popup
       handleSave();
     }
