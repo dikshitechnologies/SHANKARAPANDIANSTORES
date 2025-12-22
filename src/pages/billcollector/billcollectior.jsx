@@ -1,9 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import TenderModal from '../../components/TenderModal/TenderModal';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 function BillCollector() {
+  // ---------- Permissions ----------
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.BILL_COLLECTOR),
+    edit: hasModifyPermission(PERMISSION_CODES.BILL_COLLECTOR),
+    delete: hasDeletePermission(PERMISSION_CODES.BILL_COLLECTOR)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   const [selectedRow, setSelectedRow] = useState(null);
   const [searchInput, setSearchInput] = useState("");
   const [isFocused, setIsFocused] = useState(true);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -8,6 +8,8 @@ import { useAuth } from '../../context/AuthContext';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 
 
 const Icon = {
@@ -37,6 +39,15 @@ const calculateTotals = (items = []) => {
 };
 
 const PurchaseInvoice = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.PURCHASE_INVOICE),
+    edit: hasModifyPermission(PERMISSION_CODES.PURCHASE_INVOICE),
+    delete: hasDeletePermission(PERMISSION_CODES.PURCHASE_INVOICE)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [isEditMode, setIsEditMode] = useState(false);
@@ -2525,9 +2536,9 @@ const handleBlur = () => {
               else if (type === 'delete') handleDelete();
             }}         
           >
-            <AddButton buttonType="add"/>
-            <EditButton buttonType="edit"/>
-            <DeleteButton buttonType="delete" />
+            <AddButton buttonType="add" disabled={!formPermissions.add}/>
+            <EditButton buttonType="edit" disabled={!formPermissions.edit}/>
+            <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
         <div style={styles.addLessContainer}>
