@@ -22,6 +22,10 @@ import {
   ActionButtons1
 } from '../../components/Buttons/ActionButtons.jsx';
 
+// Import permissions
+import { usePermissions } from "../../hooks/usePermissions";
+import { PERMISSION_CODES } from "../../constants/permissions";
+
 // Get endpoints from your configuration
 const USERS_URL = API_ENDPOINTS.ADMINISTRATION.USER_LIST;
 const GET_PERMS_URL = API_ENDPOINTS.ADMINISTRATION.GET_PERMISSIONS_BY_USER;
@@ -93,6 +97,15 @@ function makeEmptyPerms(list, modelShort = "M") {
 }
 
 const Administration = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.ADMINISTRATION),
+    edit: hasModifyPermission(PERMISSION_CODES.ADMINISTRATION),
+    delete: hasDeletePermission(PERMISSION_CODES.ADMINISTRATION)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   const [users, setUsers] = useState([{ id: "0", code: "0", name: "Select User" }]);
   const [selectedUserId, setSelectedUserId] = useState("0");
   const [activeTab, setActiveTab] = useState("master");

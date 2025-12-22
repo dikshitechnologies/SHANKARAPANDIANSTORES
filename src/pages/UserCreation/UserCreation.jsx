@@ -6,6 +6,8 @@ import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/Ac
 import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { usePermissions } from "../../hooks/usePermissions";
+import { PERMISSION_CODES } from "../../constants/permissions";
 
 // --- Inline SVG icons (matching ColorCreation style) ---
 const Icon = {
@@ -52,6 +54,15 @@ const Icon = {
 };
 
 export default function UserCreation() {
+  // ---------- Permissions ----------
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.USER_CREATION),
+    edit: hasModifyPermission(PERMISSION_CODES.USER_CREATION),
+    delete: hasDeletePermission(PERMISSION_CODES.USER_CREATION)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // ---------- state ----------
   const [companies, setCompanies] = useState([]);
   const [users, setUsers] = useState([]);
@@ -1190,17 +1201,17 @@ export default function UserCreation() {
                 setActionType("Add"); 
                 resetForm(true); 
               }} 
-              disabled={loading || isProcessing} 
+              disabled={loading || isProcessing || !formPermissions.add} 
               isActive={actionType === "Add"} 
             />
             <EditButton 
               onClick={() => setEditModalOpen(true)} 
-              disabled={loading || isProcessing} 
+              disabled={loading || isProcessing || !formPermissions.edit} 
               isActive={actionType === "edit"} 
             />
             <DeleteButton 
               onClick={() => setDeleteModalOpen(true)} 
-              disabled={loading || isProcessing} 
+              disabled={loading || isProcessing || !formPermissions.delete} 
               isActive={actionType === "delete"} 
             />
           </div>

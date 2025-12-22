@@ -6,6 +6,8 @@ import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { usePermissions } from "../../hooks/usePermissions";
+import { PERMISSION_CODES } from "../../constants/permissions";
 
 
 // --- Inline SVG icons (matching Category/Brand style) ---
@@ -59,6 +61,15 @@ const Icon = {
 };
 
 export default function ProductPage() {
+  // ---------- Permissions ----------
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.PRODUCT_CREATION),
+    edit: hasModifyPermission(PERMISSION_CODES.PRODUCT_CREATION),
+    delete: hasDeletePermission(PERMISSION_CODES.PRODUCT_CREATION)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // ---------- state ----------
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1054,9 +1065,9 @@ export default function ProductPage() {
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "delete"} />
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.edit} isActive={actionType === "edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.delete} isActive={actionType === "delete"} />
           </div>
         </div>
 

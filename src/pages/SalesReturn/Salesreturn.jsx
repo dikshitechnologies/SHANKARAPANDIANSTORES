@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import { API_ENDPOINTS } from "../../api/endpoints";
@@ -7,6 +7,8 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPo
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { usePermissions } from "../../hooks/usePermissions";
+import { PERMISSION_CODES } from "../../constants/permissions";
 
 // SEARCH ICON COMPONENT (Same as SalesInvoice)
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
@@ -28,6 +30,15 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 );
 
 const SalesReturn = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.SALES_RETURN),
+    edit: hasModifyPermission(PERMISSION_CODES.SALES_RETURN),
+    delete: hasDeletePermission(PERMISSION_CODES.SALES_RETURN)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
 

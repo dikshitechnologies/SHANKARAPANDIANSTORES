@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
@@ -9,6 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import { hover } from 'framer-motion';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { usePermissions } from "../../hooks/usePermissions";
+import { PERMISSION_CODES } from "../../constants/permissions";
 
 const Icon = {
   Search: ({ size = 16 }) => (
@@ -19,6 +21,15 @@ const Icon = {
 }
 
 const Scrapprocurement = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.SCRAP_PROCUREMENT),
+    edit: hasModifyPermission(PERMISSION_CODES.SCRAP_PROCUREMENT),
+    delete: hasDeletePermission(PERMISSION_CODES.SCRAP_PROCUREMENT)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
   // API and data management
