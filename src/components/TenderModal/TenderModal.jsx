@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './TenderModal.module.css';
 import apiService from '../../api/apiService';
 import { ActionButtons1 } from '../Buttons/ActionButtons';
@@ -8,6 +8,12 @@ import { useAuth } from '../../context/AuthContext';
 const TenderModal = ({ isOpen, onClose, billData }) => {
   const { userData } = useAuth() || {};
   const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const collectFieldRefs = useRef({});
+  const saveButtonRef = useRef(null);
+  const billDiscountPercentRef = useRef(null);
+  const roundOffRef = useRef(null);
+  const scrapBillNoRef = useRef(null);
+  const salesReturnBillNoRef = useRef(null);
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: '', issue: '', closing: 0 },
     200: { available: 0, collect: '', issue: '', closing: 0 },
@@ -61,6 +67,15 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
       fetchLiveDrawer();
     }
   }, [billData, isOpen, userData?.companyCode]);
+
+  // Auto-focus on billDiscountPercent field when modal opens
+  useEffect(() => {
+    if (isOpen && billDiscountPercentRef.current) {
+      setTimeout(() => {
+        billDiscountPercentRef.current?.focus();
+      }, 0);
+    }
+  }, [isOpen]);
 
   // Fetch live drawer available from API
   const fetchLiveDrawer = async () => {
@@ -247,6 +262,49 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     });
   };
 
+  // Handle keydown in collect fields for navigation
+  const handleCollectFieldKeyDown = (e, currentDenom) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+      const currentIndex = denomSequence.indexOf(currentDenom);
+      
+      if (currentIndex < denomSequence.length - 1) {
+        // Move to next denomination field
+        const nextDenom = denomSequence[currentIndex + 1];
+        if (collectFieldRefs.current[nextDenom]) {
+          collectFieldRefs.current[nextDenom].focus();
+        }
+      } else if (currentIndex === denomSequence.length - 1) {
+        // Last field (1), move to Save button
+        if (saveButtonRef.current) {
+          saveButtonRef.current.focus();
+        }
+      }
+    }
+  };
+
+  // Handle keydown for form fields navigation
+  const handleFormFieldKeyDown = (e, nextRef) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
+      }
+    }
+  };
+
+  // Handle keydown for salesReturnBillNo field - move to collect 500 field
+  const handleSalesReturnBillKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (collectFieldRefs.current[500]) {
+        collectFieldRefs.current[500].focus();
+      }
+    }
+  };
+
   const fetchBillAmount = async (billNo, fieldType) => {
     if (!billNo.trim()) return;
     
@@ -418,9 +476,11 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                   <label className={styles.label}>Bill Discount %</label>
                   <div className={styles.inputContainer}>
                     <input
+                      ref={billDiscountPercentRef}
                       type="number"
                       value={formData.billDiscountPercent}
                       onChange={(e) => handleInputChange('billDiscountPercent', e.target.value)}
+                      onKeyDown={(e) => handleFormFieldKeyDown(e, roundOffRef)}
                       className={styles.inputField}
                       placeholder="0"
                     />
@@ -459,9 +519,11 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                   <label className={styles.label}>Round Off</label>
                   <div className={styles.inputContainer}>
                     <input
+                      ref={roundOffRef}
                       type="number"
                       value={formData.roudOff}
                       onChange={(e) => handleInputChange('roudOff', e.target.value)}
+                      onKeyDown={(e) => handleFormFieldKeyDown(e, scrapBillNoRef)}
                       className={styles.inputField}
                       placeholder="0"
                     />
@@ -475,8 +537,11 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                   <label className={styles.label}>Scrap Bill No</label>
                   <div className={styles.inputContainer}>
                     <input
+                      ref={scrapBillNoRef}
                       type="text"
                       value={formData.scrapAmountBillNo}
+                      onChange={(e) => handleInputChange('scrapAmountBillNo', e.target.value)}
+                      onKeyDown={(e) => handleFormFieldKeyDown(e, salesReturnBillNoRef)}
                       onChange={handleScrapBillNoChange}
                       className={styles.inputField}
                       placeholder="Bill No"
@@ -505,9 +570,11 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                   <label className={styles.label}>Sales Return Bill No</label>
                   <div className={styles.inputContainer}>
                     <input
+                      ref={salesReturnBillNoRef}
                       type="text"
                       value={formData.salesReturnBillNo}
                       onChange={handleSalesReturnBillNoChange}
+                      onKeyDown={handleSalesReturnBillKeyDown}
                       className={styles.inputField}
                       placeholder="Bill No"
                     />
@@ -616,9 +683,11 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                     {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
                       <div key={denom} className={styles.tableCell}>
                         <input
+                          ref={(el) => (collectFieldRefs.current[denom] = el)}
                           type="number"
                           value={denominations[denom].collect}
                           onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
+                          onKeyDown={(e) => handleCollectFieldKeyDown(e, denom)}
                           className={styles.tableInput}
                           placeholder="0"
                         />
@@ -768,6 +837,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
           {/* Bottom Action Buttons */}
           <div className={styles.footer}>
             <ActionButtons1
+              ref={saveButtonRef}
               onClear={handleClear}
               onSave={handleSave}
               onPrint={handlePrint}

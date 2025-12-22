@@ -65,7 +65,7 @@ export const ActionButtons = ({ children, activeButton, onButtonClick }) => {
   );
 };
 
-export const ActionButtons1 = ({ onClear, onSave, onPrint, activeButton, onButtonClick, disabledClear, disabledSave, disabledPrint }) => {
+export const ActionButtons1 = React.forwardRef(({ onClear, onSave, onPrint, activeButton, onButtonClick, disabledClear, disabledSave, disabledPrint }, ref) => {
   const handleClick = (type, handler) => () => {
     if (typeof handler === 'function') handler();
     if (typeof onButtonClick === 'function') onButtonClick(type);
@@ -74,11 +74,11 @@ export const ActionButtons1 = ({ onClear, onSave, onPrint, activeButton, onButto
   return (
     <div style={styles.buttonContainer}>
       <ClearButton onClick={handleClick('clear', onClear)} disabled={disabledClear} isActive={activeButton === 'all' || activeButton === 'clear'} />
-      <SaveButton onClick={handleClick('save', onSave)} disabled={disabledSave} isActive={activeButton === 'all' || activeButton === 'save'} />
+      <SaveButton ref={ref} onClick={handleClick('save', onSave)} disabled={disabledSave} isActive={activeButton === 'all' || activeButton === 'save'} />
       <PrintButton onClick={handleClick('print', onPrint)} disabled={disabledPrint} isActive={activeButton === 'all' || activeButton === 'print'} />
     </div>
   );
-};
+});
 
 export const AddButton = ({ onClick, disabled, isActive, buttonType = 'add' }) => (
   <button 
@@ -136,8 +136,9 @@ export const ClearButton = ({ onClick, disabled, isActive, buttonType = 'clear' 
   </button>
 );
 
-export const SaveButton = ({ onClick, disabled, isActive, buttonType = 'save' }) => (
+export const SaveButton = React.forwardRef(({ onClick, disabled, isActive, buttonType = 'save' }, ref) => (
   <button 
+    ref={ref}
     style={{ 
       ...styles.btn, 
       ...(!isActive ? styles.inactiveBtn : styles.saveBtn),
@@ -148,7 +149,7 @@ export const SaveButton = ({ onClick, disabled, isActive, buttonType = 'save' })
   >
     <SaveIcon /> Save
   </button>
-);
+));
 
 export const PrintButton = ({ onClick, disabled, isActive, buttonType = 'print' }) => (
   <button 
