@@ -39,6 +39,12 @@ const Scrapprocurement = () => {
   // const [totalCount, setTotalCount] = useState(0);
   const fCompCode = "001";
 
+  // Track table input focus
+  const [focusedTableInput, setFocusedTableInput] = useState({
+    rowIndex: null,
+    field: null
+  });
+  
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: '',
@@ -84,6 +90,7 @@ const Scrapprocurement = () => {
   const scrapProductRef = useRef(null);
   // Add ignore ref for Enter key blocking
   const ignoreNextEnterRef = useRef(false);
+  const [focusedUomField, setFocusedUomField] = useState(null); 
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -210,7 +217,7 @@ const Scrapprocurement = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Calculate Totals whenever items change
+  // cuculate Totals whenever items change
   useEffect(() => {
     const qtyTotal = items.reduce((acc, item) => acc + (parseFloat(item.qty) || 0), 0);
     const amountTotal = items.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
@@ -814,6 +821,56 @@ const Scrapprocurement = () => {
     return (qtyNum * sRateNum).toFixed(2);
   };
 
+   // Handle UOM spacebar cycling (same as SalesInvoice)
+  const handleUomSpacebar = (e, id, index) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+      
+      const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
+      const currentItem = items.find(item => item.id === id);
+      const currentUom = currentItem?.uom || '';
+      let nextUom = 'pcs';
+      
+      if (currentUom && currentUom.trim() !== '') {
+        const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
+        if (currentIndex !== -1) {
+          const nextIndex = (currentIndex + 1) % uomValues.length;
+          nextUom = uomValues[nextIndex];
+        } else {
+          nextUom = 'pcs';
+        }
+      } else {
+        nextUom = 'pcs';
+      }
+      
+      setItems(items.map(item => {
+        if (item.id === id) {
+          return {
+            ...item,
+            uom: nextUom
+          };
+        }
+        return item;
+      }));
+      
+      setFocusedUomField(id);
+      setTimeout(() => {
+        setFocusedUomField(null);
+      }, 300);
+      
+      return;
+    }
+    
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const taxInput = document.querySelector(`input[data-row="${index}"][data-field="tax"]`);
+      if (taxInput) {
+        taxInput.focus();
+        return;
+      }
+    }
+  };
+
   // --- HANDLERS ---
 
   const handleInputChange = (e) => {
@@ -1006,7 +1063,13 @@ const Scrapprocurement = () => {
       // Always move to next field if available
       if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
         const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"], select[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+        let nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"], select[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+        
+        // For UOM field (which is a div), use special selector
+        if (!nextInput && nextField === 'uom') {
+          nextInput = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
+        }
+        
         if (nextInput) {
           nextInput.focus();
           return;
@@ -1542,6 +1605,66 @@ const Scrapprocurement = () => {
       width: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '220px',
       maxWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '220px',
     },
+    editableInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      minHeight: screenSize.isMobile ? '26px' : screenSize.isTablet ? '30px' : '32px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      boxSizing: 'border-box',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      outline: 'none',
+      transition: 'border-color 0.2s ease',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    
+    editableInputClickable: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      minHeight: screenSize.isMobile ? '26px' : screenSize.isTablet ? '30px' : '32px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      boxSizing: 'border-box',
+      border: 'none',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      textAlign: 'center',
+      backgroundColor: 'transparent',
+      outline: 'none',
+      transition: 'border-color 0.2s ease',
+      cursor: 'pointer',
+    },
+    
+    editableInputClickableFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      minHeight: screenSize.isMobile ? '26px' : screenSize.isTablet ? '30px' : '32px',
+      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      boxSizing: 'border-box',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      outline: 'none',
+      transition: 'border-color 0.2s ease',
+      cursor: 'pointer',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
     itemNameContainer: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
@@ -1639,6 +1762,80 @@ const Scrapprocurement = () => {
       gap: '8px',
       justifyContent: screenSize.isMobile ? 'center' : 'flex-start',
       marginTop: screenSize.isMobile ? '12px' : '0',
+    },
+    // UOM specific styles (same as SalesInvoice)
+    uomContainer: {
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+    },
+    uomDisplay: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#333',
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      minHeight: screenSize.isMobile ? '26px' : screenSize.isTablet ? '30px' : '32px',
+    },
+    uomDisplayActive: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#1B91DA',
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      backgroundColor: '#e6f7ff',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+      minHeight: screenSize.isMobile ? '26px' : screenSize.isTablet ? '30px' : '32px',
+    },
+    uomHint: {
+      position: 'absolute',
+      top: '-25px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      padding: '3px 8px',
+      borderRadius: '3px',
+      fontSize: '10px',
+      fontWeight: 'bold',
+      whiteSpace: 'nowrap',
+      zIndex: 100,
+      pointerEvents: 'none',
+      opacity: 0,
+      transition: 'opacity 0.2s ease',
+    },
+    uomHintVisible: {
+      position: 'absolute',
+      top: '-25px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      padding: '3px 8px',
+      borderRadius: '3px',
+      fontSize: '10px',
+      fontWeight: 'bold',
+      whiteSpace: 'nowrap',
+      zIndex: 100,
+      pointerEvents: 'none',
+      opacity: 1,
+      transition: 'opacity 0.2s ease',
     },
   };
 
@@ -2059,40 +2256,31 @@ const Scrapprocurement = () => {
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.scrapProductName}
                       data-row={index}
                       data-field="scrapProductName"
                       onChange={(e) => handleItemChange(item.id, 'scrapProductName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'scrapProductName')}
-                      // ////placeholder="Barcode"
+                      onFocus={() => setFocusedField(`barcode-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
-                  <div style={{ 
-                    position: 'relative', 
-                    display: 'flex', 
-                    alignItems: 'center',
-                    height: '100%'
-                  }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
                     <input
                       style={{ 
-                        ...styles.editableInput, 
+                        ...(focusedField === `itemName-${item.id}` ? styles.editableInputClickableFocused : styles.editableInputClickable),
                         textAlign: 'left',
-                        border: 'none',
-                        outline: 'none',
-                        background: 'transparent',
-                        paddingLeft: '8px',
                         paddingRight: '32px',
-                        width: '100%',
-                        height: '100%'
                       }}
                       value={item.itemName}
-                      ////placeholder="Search items"
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
+                      onFocus={() => setFocusedField(`itemName-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                     />
                     <button
                       type="button"
@@ -2127,47 +2315,98 @@ const Scrapprocurement = () => {
                   </div>
                 </td>
                   <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
-                      value={item.uom}
-                      data-row={index}
-                      data-field="uom"
-                      onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                      // ////placeholder="UOM"
-                      readOnly
-                    />
+                    <div style={styles.uomContainer}>
+                      <div 
+                        style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
+                        onClick={() => {
+                          const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
+                          const currentUom = item.uom || '';
+                          let nextUom = 'pcs';
+                          
+                          if (currentUom && currentUom.trim() !== '') {
+                            const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
+                            if (currentIndex !== -1) {
+                              const nextIndex = (currentIndex + 1) % uomValues.length;
+                              nextUom = uomValues[nextIndex];
+                            } else {
+                              nextUom = 'pcs';
+                            }
+                          } else {
+                            nextUom = 'pcs';
+                          }
+                          
+                          setItems(items.map(i => {
+                            if (i.id === item.id) {
+                              return {
+                                ...i,
+                                uom: nextUom
+                              };
+                            }
+                            return i;
+                          }));
+                          
+                          setFocusedUomField(item.id);
+                          setTimeout(() => {
+                            setFocusedUomField(null);
+                          }, 300);
+                        }}
+                        onKeyDown={(e) => handleUomSpacebar(e, item.id, index)}
+                        tabIndex={0}
+                        onFocus={() => {
+                          setFocusedField(`uom-${item.id}`);
+                          setFocusedUomField(item.id);
+                        }}
+                        onBlur={() => {
+                          setFocusedField('');
+                          setFocusedUomField(null);
+                        }}
+                        title="Press Space or Click to toggle units, Enter to move to TAX"
+                        data-row={index}
+                        data-field="uom"
+                      >
+                        {item.uom || ''}
+                      </div>
+                      <div style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomHintVisible : styles.uomHint}>
+                        Press Space or Click to toggle
+                      </div>
+                    </div>
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `tax-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.tax}
                       data-row={index}
                       data-field="tax"
                       onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'tax')}
+                      onFocus={() => setFocusedField(`tax-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={styles.editableInput}
+                      style={focusedField === `sRate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.sRate}
                       data-row={index}
                       data-field="sRate"
                       onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
+                      onFocus={() => setFocusedField(`sRate-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={{ ...styles.editableInput, fontWeight: 'bold' }}
+                      style={focusedField === `qty-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.qty}
                       data-row={index}
                       data-field="qty"
                       onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
+                      onFocus={() => setFocusedField(`qty-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
                   </td>
