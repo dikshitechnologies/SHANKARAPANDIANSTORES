@@ -118,15 +118,23 @@ const ReceiptVoucher = () => {
   const [hasReachedEndOfParties, setHasReachedEndOfParties] = useState(false);
   const [isLoadingMoreParties, setIsLoadingMoreParties] = useState(false);
 
+  // Track typing for auto-popup
+  const [typingTimeout, setTypingTimeout] = useState(null);
+  const [lastTypedValue, setLastTypedValue] = useState('');
+
+  // Track current bill row for navigation
+  const [currentBillRowIndex, setCurrentBillRowIndex] = useState(0);
+
   // Auth context for company code
   const { userData } = useAuth() || {};
 
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const voucherNoRef = useRef(null);
-  const gstTypeRef = useRef(null);
   const dateRef = useRef(null);
-  const costCenterRef = useRef(null);
   const accountNameRef = useRef(null);
+  const gstTypeRef = useRef(null);
+  const cashBankRef = useRef(null);
+  const saveButtonRef = useRef(null);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -142,6 +150,15 @@ const ReceiptVoucher = () => {
     isTablet: false,
     isDesktop: true
   });
+
+  // Focus on voucher no on component mount
+  useEffect(() => {
+    if (voucherNoRef.current) {
+      setTimeout(() => {
+        voucherNoRef.current?.focus();
+      }, 100);
+    }
+  }, []);
 
   // Update screen size on resize
   useEffect(() => {
@@ -336,6 +353,7 @@ const ReceiptVoucher = () => {
       }
     }
   }, [userData?.companyCode, userData?.username]);
+  
   const fetchVoucherDetails = async (voucherNo) => {
     try {
       setIsLoading(true);
@@ -528,6 +546,12 @@ const ReceiptVoucher = () => {
     setIsEditing(false);
     setOriginalVoucherNo('');
     setFocusedField('');
+    setCurrentBillRowIndex(0);
+    
+    // Focus on voucher no after reset
+    setTimeout(() => {
+      voucherNoRef.current?.focus();
+    }, 100);
   };
 
   // --- POPUP HANDLERS ---
@@ -601,13 +625,24 @@ const ReceiptVoucher = () => {
     }
   };
 
-  // Open account popup
-  const openAccountPopup = async (context = 'header') => {
+  // Open account popup with search
+  const openAccountPopup = async (context = 'header', searchTerm = '') => {
     try {
       setLoadingParties(true);
-      const response = await apiService.getSilent(
-        API_ENDPOINTS.RECEIPTVOUCHER.PARTY_LIST(1, 100)
-      );
+      let searchUrl = '';
+      
+      if (context === 'header') {
+        searchUrl = API_ENDPOINTS.RECEIPTVOUCHER.PARTY_LIST(1, 100, searchTerm);
+      } else {
+        // For cash/bank search
+        searchUrl = API_ENDPOINTS.RECEIPTVOUCHER.GETPARTYLIST(
+          encodeURIComponent(searchTerm || ''),
+          1,
+          100
+        );
+      }
+      
+      const response = await apiService.getSilent(searchUrl);
       if (response?.data) {
         setPartyList(response.data);
         setAccountPopupContext(context);
@@ -652,6 +687,12 @@ const ReceiptVoucher = () => {
       } catch (err) {
         console.error('Error fetching party balance:', err);
       }
+      
+      // After selecting account, move to GST Type
+      setTimeout(() => {
+        gstTypeRef.current?.focus();
+      }, 100);
+      
     } else if (accountPopupContext?.itemId) {
       // Receipt item row selection
       const { itemId } = accountPopupContext;
@@ -662,6 +703,11 @@ const ReceiptVoucher = () => {
             : item
         )
       );
+      
+      // After selecting cash/bank, move to next field
+      setTimeout(() => {
+        document.getElementById(`receipt_${itemId}_crDr`)?.focus();
+      }, 100);
     }
     setAccountPopupOpen(false);
     setAccountPopupContext(null);
@@ -713,34 +759,63 @@ const ReceiptVoucher = () => {
     }));
   };
 
-  // Handle keydown with / key support for popup toggle
-  const handleKeyDown = (e, nextRef, fieldName = '') => {
-    if (e.key === 'Enter') {
-      if (fieldName === 'accountName') {
-        // From A/C Name, go to Receipt table's first field
-        e.preventDefault();
-        if (receiptItems.length > 0) {
-          const firstReceiptId = receiptItems[0].id;
-          setTimeout(() => document.getElementById(`receipt_${firstReceiptId}_cashBank`)?.focus(), 0);
-        }
-      } else if (nextRef) {
-        nextRef.current?.focus();
-      }
-    } else if (e.key === '/' && (fieldName === 'accountName' || fieldName === 'costCenter')) {
-      e.preventDefault();
-      openAccountPopup();
+  // Handle account name typing for auto-popup
+  const handleAccountNameChange = (e) => {
+    const value = e.target.value;
+    handleInputChange(e);
+    
+    // Clear existing timeout
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+    
+    // Set new timeout to open popup after typing stops
+    if (value.length > 0) {
+      const timeout = setTimeout(() => {
+        openAccountPopup('header', value);
+      }, 500);
+      setTypingTimeout(timeout);
     }
   };
 
-  // Handle backspace in account field
-  const handleBackspace = (e, fieldName) => {
-    if (e.key === 'Backspace') {
-      if (fieldName === 'accountName') {
-        setVoucherDetails(prev => ({
-          ...prev,
-          accountName: '',
-          accountCode: ''
-        }));
+  // Handle cash/bank typing for auto-popup
+  const handleCashBankChange = (itemId, value) => {
+    setReceiptItems(prev =>
+      prev.map(item =>
+        item.id === itemId ? { ...item, cashBank: value } : item
+      )
+    );
+    
+    // Clear existing timeout
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+    
+    // Set new timeout to open popup after typing stops
+    if (value.length > 0) {
+      const timeout = setTimeout(() => {
+        openAccountPopup({ itemId }, value);
+      }, 500);
+      setTypingTimeout(timeout);
+    }
+  };
+
+  // Handle keydown with Enter key navigation
+  const handleKeyDown = (e, nextRef, fieldName = '') => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      if (fieldName === 'voucherNo') {
+        dateRef.current?.focus();
+      } else if (fieldName === 'date') {
+        accountNameRef.current?.focus();
+      } else if (fieldName === 'accountName') {
+        gstTypeRef.current?.focus();
+      } else if (fieldName === 'gstType') {
+        // Move to first cash/bank field in first row
+        if (receiptItems.length > 0) {
+          setTimeout(() => document.getElementById(`receipt_${receiptItems[0].id}_cashBank`)?.focus(), 0);
+        }
       }
     }
   };
@@ -843,51 +918,161 @@ const ReceiptVoucher = () => {
     ]);
   };
 
-  // Handle table keydown with Enter key navigation
-  const handleTableKeyDown = (e, currentRowIndex, currentField, isReceiptTable = true) => {
+  // Handle receipt table keydown with Enter key navigation
+  const handleReceiptTableKeyDown = (e, currentRowIndex, currentField) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const fields = ['cashBank', 'crDr', 'type', 'chqNo', 'chqDt', 'narration', 'amount'];
-      const currentFieldIndex = fields.indexOf(currentField);
-      const items = isReceiptTable ? receiptItems : billDetails;
+      const receiptFields = ['cashBank', 'crDr', 'type', 'chqNo', 'chqDt', 'narration', 'amount'];
+      const currentItem = receiptItems[currentRowIndex];
 
-      // Special case: if cashBank field is empty, go directly to 2nd table Amount
-      if (isReceiptTable && currentField === 'cashBank' && items[currentRowIndex].cashBank.trim() === '') {
+      // Get current field index
+      const currentFieldIndex = receiptFields.indexOf(currentField);
+
+      // Check if Cash/Bank is empty
+      const isCashBankEmpty = !currentItem.cashBank.trim();
+
+      // Special case: If at cashBank field and it's empty, skip to reference bill amount field
+      if (currentField === 'cashBank' && isCashBankEmpty) {
         if (billDetails.length > 0) {
+          setCurrentBillRowIndex(0);
           setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+        } else {
+          // If no bill rows, go to save button
+          setTimeout(() => saveButtonRef.current?.focus(), 0);
         }
         return;
       }
 
+      // Special case: If at amount field and amount is not entered (0 or empty), don't move to next row
+      if (currentField === 'amount' && (!currentItem.amount || parseFloat(currentItem.amount) <= 0)) {
+        // Don't move to next row - stay in same field
+        return;
+      }
+
       // Move to next field in same row
-      if (currentFieldIndex < fields.length - 1) {
-        // Special case: if Type is not CHQ, skip Chq No and Chq Dt and go to Narration
-        if (currentField === 'type' && items[currentRowIndex].type !== 'CHQ') {
-          const narrationFieldId = `${isReceiptTable ? 'receipt' : 'bill'}_${items[currentRowIndex].id}_narration`;
+      if (currentFieldIndex < receiptFields.length - 1) {
+        // Special case for receipt table: if Type is not CHQ, skip Chq No and Chq Dt
+        if (currentField === 'type' && currentItem.type !== 'CHQ') {
+          // Skip to narration
+          const narrationFieldId = `receipt_${currentItem.id}_narration`;
           setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
-        } else {
-          const nextFieldId = `${isReceiptTable ? 'receipt' : 'bill'}_${items[currentRowIndex].id}_${fields[currentFieldIndex + 1]}`;
+        } 
+        // Special case: when moving from chqNo to chqDt and type is not CHQ, skip to narration
+        else if (currentField === 'chqNo' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `receipt_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
+        }
+        // Special case: when moving from chqDt and type is not CHQ, skip to narration
+        else if (currentField === 'chqDt' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `receipt_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
+        }
+        else {
+          // Normal navigation to next field
+          const nextFieldId = `receipt_${currentItem.id}_${receiptFields[currentFieldIndex + 1]}`;
           setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
         }
       } else {
-        // Move to next row, first field
-        if (currentRowIndex < items.length - 1) {
-          const nextFieldId = `${isReceiptTable ? 'receipt' : 'bill'}_${items[currentRowIndex + 1].id}_${fields[0]}`;
-          setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
+        // Last field in current row (Amount field)
+        // Check if next row exists and has cash/bank
+        if (currentRowIndex < receiptItems.length - 1) {
+          const nextItem = receiptItems[currentRowIndex + 1];
+          
+          // Check if next row has cash/bank
+          if (!nextItem.cashBank.trim()) {
+            // Next row has empty cash/bank, skip to reference bill amount
+            if (billDetails.length > 0) {
+              setCurrentBillRowIndex(0);
+              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+            } else {
+              // If no bill rows, go to save button
+              setTimeout(() => saveButtonRef.current?.focus(), 0);
+            }
+          } else {
+            // Next row has cash/bank, go to it
+            const nextFieldId = `receipt_${nextItem.id}_${receiptFields[0]}`;
+            setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
+          }
         } else {
-          // Add new row and focus first field
-          if (isReceiptTable) {
+          // Last row, check if we should add new row or go to bill details
+          // Only add new row if current row has cash/bank and amount
+          if (currentItem.cashBank.trim() && currentItem.amount && parseFloat(currentItem.amount) > 0) {
+            // Add new row and focus on its cash/bank
             const newId = Math.max(...receiptItems.map(item => item.id), 0) + 1;
-            handleAddReceiptRow();
+            setReceiptItems(prev => [
+              ...prev,
+              {
+                id: newId,
+                sNo: prev.length + 1,
+                cashBank: '',
+                crDr: 'CR',
+                type: '',
+                chqNo: '',
+                chqDt: '',
+                narration: '',
+                amount: '0.00'
+              }
+            ]);
+            // Focus on cash/bank of new row
             setTimeout(() => {
               document.getElementById(`receipt_${newId}_cashBank`)?.focus();
             }, 0);
           } else {
-            const newId = Math.max(...billDetails.map(bill => bill.id), 0) + 1;
-            handleAddBillRow();
-            setTimeout(() => {
-              document.getElementById(`bill_${newId}_refNo`)?.focus();
-            }, 0);
+            // Don't add new row, go to bill details or save button
+            if (billDetails.length > 0) {
+              setCurrentBillRowIndex(0);
+              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+            } else {
+              setTimeout(() => saveButtonRef.current?.focus(), 0);
+            }
+          }
+        }
+      }
+    }
+  };
+
+  // Handle bill table keydown with Enter key navigation
+  const handleBillTableKeyDown = (e, currentRowIndex, currentField) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const billFields = ['refNo', 'billNo', 'date', 'billAmount', 'paidAmount', 'balanceAmount', 'amount'];
+      const currentBill = billDetails[currentRowIndex];
+
+      // Get current field index
+      const currentFieldIndex = billFields.indexOf(currentField);
+
+      // If at amount field and amount is not entered (0 or empty), don't move to next row
+      if (currentField === 'amount' && (!currentBill.amount || parseFloat(currentBill.amount) <= 0)) {
+        // Don't move to next row - stay in same field
+        return;
+      }
+
+      // Move to next field in same row
+      if (currentFieldIndex < billFields.length - 1) {
+        const nextFieldId = `bill_${currentBill.id}_${billFields[currentFieldIndex + 1]}`;
+        setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
+      } else {
+        // Last field in current row (Amount field)
+        // Check if next row exists
+        if (currentRowIndex < billDetails.length - 1) {
+          const nextBill = billDetails[currentRowIndex + 1];
+          const nextFieldId = `bill_${nextBill.id}_${billFields[0]}`;
+          setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
+          setCurrentBillRowIndex(currentRowIndex + 1);
+        } else {
+          // Last row of bill details
+          // Check if there are more receipt rows with cash/bank
+          const nextReceiptRow = receiptItems.find(item => 
+            item.cashBank.trim() && 
+            (!item.amount || parseFloat(item.amount) <= 0)
+          );
+          
+          if (nextReceiptRow) {
+            // Go to amount field of that receipt row
+            setTimeout(() => document.getElementById(`receipt_${nextReceiptRow.id}_amount`)?.focus(), 0);
+          } else {
+            // Go to save button
+            setTimeout(() => saveButtonRef.current?.focus(), 0);
           }
         }
       }
@@ -1605,7 +1790,7 @@ const ReceiptVoucher = () => {
                 onFocus={() => setFocusedField('voucherNo')}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'voucherNo' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleKeyDown(e, gstTypeRef, 'voucherNo')}
+                onKeyDown={(e) => handleKeyDown(e, dateRef, 'voucherNo')}
               />
             </div>
 
@@ -1633,18 +1818,11 @@ const ReceiptVoucher = () => {
                 type="text"
                 name="accountName"
                 value={voucherDetails.accountName}
-                onChange={(e) => {
-                  handleInputChange(e);
-                  // Open popup if value is entered
-                  if (e.target.value.length > 0) {
-                    openAccountPopup('header');
-                  }
-                }}
+                onChange={handleAccountNameChange}
                 onFocus={() => setFocusedField('accountName')}
                 onBlur={() => setFocusedField('')}
-                onClick={() => openAccountPopup('header')}
-                onKeyDown={(e) => handleKeyDown(e, null, 'accountName')}
-                onKeyUp={(e) => handleBackspace(e, 'accountName')}
+                onClick={() => openAccountPopup('header', voucherDetails.accountName)}
+                onKeyDown={(e) => handleKeyDown(e, gstTypeRef, 'accountName')}
                 style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
                 placeholder="Select Account"
               />
@@ -1692,7 +1870,7 @@ const ReceiptVoucher = () => {
                 onFocus={() => setFocusedField('gstType')}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'gstType' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleKeyDown(e, dateRef, 'gstType')}
+                onKeyDown={(e) => handleKeyDown(e, null, 'gstType')}
               >
                 <option>CGST/SGST</option>
                 <option>IGST</option>
@@ -1729,17 +1907,12 @@ const ReceiptVoucher = () => {
                       id={`receipt_${item.id}_cashBank`}
                       type="text"
                       value={item.cashBank}
-                      onChange={(e) => {
-                        handleReceiptItemChange(item.id, 'cashBank', e.target.value);
-                        // Open popup if value is entered
-                        if (e.target.value.length > 0) {
-                          openAccountPopup({ itemId: item.id });
-                        }
-                      }}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'cashBank', true)}
+                      onChange={(e) => handleCashBankChange(item.id, e.target.value)}
+                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'cashBank')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
+                      placeholder="Type to search"
                     />
                   </td>
                   <td style={styles.td}>
@@ -1747,7 +1920,7 @@ const ReceiptVoucher = () => {
                       id={`receipt_${item.id}_crDr`}
                       value={item.crDr}
                       onChange={(e) => handleReceiptItemChange(item.id, 'crDr', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'crDr', true)}
+                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'crDr')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -1761,7 +1934,7 @@ const ReceiptVoucher = () => {
                       id={`receipt_${item.id}_type`}
                       value={item.type}
                       onChange={(e) => handleReceiptItemChange(item.id, 'type', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'type', true)}
+                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'type')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -1779,7 +1952,7 @@ const ReceiptVoucher = () => {
                       type="text"
                       value={item.chqNo}
                       onChange={(e) => handleReceiptItemChange(item.id, 'chqNo', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'chqNo', true)}
+                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'chqNo')}
                       disabled={item.type !== 'CHQ'}
                       style={{
                         ...styles.editableInput,
@@ -1795,7 +1968,7 @@ const ReceiptVoucher = () => {
                       type="date"
                       value={item.chqDt}
                       onChange={(e) => handleReceiptItemChange(item.id, 'chqDt', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'chqDt', true)}
+                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'chqDt')}
                       disabled={item.type !== 'CHQ'}
                       style={{
                         ...styles.editableInput,
@@ -1811,7 +1984,7 @@ const ReceiptVoucher = () => {
                       type="text"
                       value={item.narration}
                       onChange={(e) => handleReceiptItemChange(item.id, 'narration', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'narration', true)}
+                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'narration')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -1823,7 +1996,7 @@ const ReceiptVoucher = () => {
                       
                       value={item.amount}
                       onChange={(e) => handleReceiptItemChange(item.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', true)}
+                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'amount')}
                       onBlur={(e) => {
                         e.target.style.border = 'none';
                         handleAmountBlur(item.id, item.amount, index);
@@ -1915,7 +2088,7 @@ const ReceiptVoucher = () => {
                       type="text"
                       value={bill.refNo}
                       onChange={(e) => handleBillItemChange(bill.id, 'refNo', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'refNo', false)}
+                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'refNo')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -1927,7 +2100,7 @@ const ReceiptVoucher = () => {
                       type="text"
                       value={bill.billNo}
                       onChange={(e) => handleBillItemChange(bill.id, 'billNo', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'billNo', false)}
+                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'billNo')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -1939,7 +2112,7 @@ const ReceiptVoucher = () => {
                       type="date"
                       value={bill.date}
                       onChange={(e) => handleBillItemChange(bill.id, 'date', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'date', false)}
+                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'date')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -1951,7 +2124,7 @@ const ReceiptVoucher = () => {
                        
                       value={bill.billAmount}
                       onChange={(e) => handleBillItemChange(bill.id, 'billAmount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'billAmount', false)}
+                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'billAmount')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -1963,7 +2136,7 @@ const ReceiptVoucher = () => {
                       
                       value={bill.paidAmount}
                       onChange={(e) => handleBillItemChange(bill.id, 'paidAmount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'paidAmount', false)}
+                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'paidAmount')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -1975,7 +2148,7 @@ const ReceiptVoucher = () => {
                       
                       value={bill.balanceAmount}
                       onChange={(e) => handleBillItemChange(bill.id, 'balanceAmount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'balanceAmount', false)}
+                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'balanceAmount')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -1987,7 +2160,7 @@ const ReceiptVoucher = () => {
                       
                       value={bill.amount}
                       onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', false)}
+                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'amount')}
                       style={styles.editableInput}
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -2051,6 +2224,7 @@ const ReceiptVoucher = () => {
             onPrint={handlePrint}
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
+            saveButtonRef={saveButtonRef}
           />
         </div>
       </div>
