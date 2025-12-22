@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import { API_ENDPOINTS } from "../../api/endpoints";
@@ -7,8 +7,6 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPo
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { usePermissions } from '../../hooks/usePermissions';
-import { PERMISSION_CODES } from '../../constants/permissions';
 
 // SEARCH ICON COMPONENT (Same as SalesInvoice)
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
@@ -30,15 +28,6 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 );
 
 const SalesReturn = () => {
-  // --- PERMISSIONS ---
-  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
-  
-  const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.SALES_RETURN),
-    edit: hasModifyPermission(PERMISSION_CODES.SALES_RETURN),
-    delete: hasDeletePermission(PERMISSION_CODES.SALES_RETURN)
-  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
-
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
 
@@ -130,7 +119,7 @@ const SalesReturn = () => {
   const [salesmen, setSalesmen] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
- const [shouldFocusBillDate, setShouldFocusBillDate] = useState(false);
+  const [shouldFocusBillDate, setShouldFocusBillDate] = useState(false);
 
   // NEW STATE: For sales invoice bill list (pagination)
   const [salesInvoiceBills, setSalesInvoiceBills] = useState([]);
@@ -167,74 +156,72 @@ const SalesReturn = () => {
     isDesktop: true
   });
 
- useEffect(() => {
-  if (!billDetailsPopupOpen) return;
+  useEffect(() => {
+    if (!billDetailsPopupOpen) return;
 
-  const handleKeyDown = (e) => {
-    // ❗ Ignore if user typing in input
-    if (
-      e.target.tagName === "INPUT" ||
-      e.target.tagName === "TEXTAREA"
-    ) {
-      return;
+    const handleKeyDown = (e) => {
+      // ❗ Ignore if user typing in input
+      if (
+        e.target.tagName === "INPUT" ||
+        e.target.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+
+      const billNo = selectedBillForDetails;
+      if (!billNo) return;
+
+      const details = billDetailsData[billNo];
+      const itemsArray = details?.items || details?.details || [];
+      if (itemsArray.length === 0) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setBillPopupRowIndex(prev =>
+          Math.min(prev + 1, itemsArray.length - 1)
+        );
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setBillPopupRowIndex(prev =>
+          Math.max(prev - 1, 0)
+        );
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const item = itemsArray[billPopupRowIndex];
+        if (!item) return;
+
+        const key = item.fItemcode || item.itemCode;
+        setCheckedBills(prev => ({
+          ...prev,
+          [key]: !prev[key]
+        }));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    billDetailsPopupOpen,
+    selectedBillForDetails,
+    billDetailsData,
+    billPopupRowIndex
+  ]);
+
+  useEffect(() => {
+    if (!billDetailsPopupOpen) return;
+
+    const row = billRowRefs.current[billPopupRowIndex];
+    if (row) {
+      row.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest"
+      });
     }
-
-    const billNo = selectedBillForDetails;
-    if (!billNo) return;
-
-    const details = billDetailsData[billNo];
-    const itemsArray = details?.items || details?.details || [];
-    if (itemsArray.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setBillPopupRowIndex(prev =>
-        Math.min(prev + 1, itemsArray.length - 1)
-      );
-    }
-
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setBillPopupRowIndex(prev =>
-        Math.max(prev - 1, 0)
-      );
-    }
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const item = itemsArray[billPopupRowIndex];
-      if (!item) return;
-
-      const key = item.fItemcode || item.itemCode;
-      setCheckedBills(prev => ({
-        ...prev,
-        [key]: !prev[key]
-      }));
-    }
-  };
-
-  window.addEventListener("keydown", handleKeyDown);
-  return () => window.removeEventListener("keydown", handleKeyDown);
-}, [
-  billDetailsPopupOpen,
-  selectedBillForDetails,
-  billDetailsData,
-  billPopupRowIndex
-]);
-
-useEffect(() => {
-  if (!billDetailsPopupOpen) return;
-
-  const row = billRowRefs.current[billPopupRowIndex];
-  if (row) {
-    row.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest"
-    });
-  }
-}, [billPopupRowIndex, billDetailsPopupOpen]);
-
-
+  }, [billPopupRowIndex, billDetailsPopupOpen]);
 
   const resetForm = async () => {
     try {
@@ -286,8 +273,6 @@ useEffect(() => {
       // Fetch new voucher number and refresh voucher list
       await fetchMaxVoucherNo();
       await fetchVoucherList();
-      
-     
       
     } catch (err) {
       console.error("Error resetting form:", err);
@@ -489,7 +474,6 @@ useEffect(() => {
       setBillDetailsPopupOpen(true);
       setBillPopupRowIndex(0); // reset keyboard cursor
 
-      
     } catch (error) {
       console.error("Error opening bill details popup:", error);
       alert("Error loading bill details. Please try again.");
@@ -597,8 +581,8 @@ useEffect(() => {
     setCheckedBills({});
     setBillDetailsSearchText("");
     setTimeout(() => {
-  barcodeRef.current?.focus();
-}, 150);
+      barcodeRef.current?.focus();
+    }, 150);
   };
 
   // Clear selected bill number
@@ -844,235 +828,235 @@ useEffect(() => {
     }
   };
 
-// ==================== CREATE SALES RETURN ====================
-const createSalesReturn = async () => {
-  try {
-    setLoading(true);
-    setError("");
-    
-    // Check if we have items to create
-    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
-    if (validItems.length === 0) {
-      throw new Error("No valid items to create. Please add items with quantity > 0.");
-    }
-    
-    // Prepare request data - CONVERT ALL VALUES TO STRINGS
-    const requestData = {
-      header: {
-        voucherNo: billDetails.billNo.toString(),
-        voucherDate: billDetails.billDate.toString(),
-        mobileNo: (billDetails.mobileNo || "").toString(),
-        empName: (billDetails.empName || "").toString(),
-        empcode: (billDetails.empCode || "14789").toString(),
-        customerCode: (billDetails.customerCode || "").toString(),
-        customerName: (billDetails.custName || "").toString(),
-        salesMansName: (billDetails.salesman || "").toString(),
-        salesMansCode: (billDetails.salesmanCode || "002").toString(),
-        compCode: "001",
-        userCode: "001",
-        billAMT: totalAmount.toFixed(2).toString(),
-        billNo: (billDetails.newBillNo || "").toString(),
-        returnReason: (billDetails.returnReason || "").toString()
-      },
-      items: validItems.map((item, index) => ({
-        barcode: (item.barcode || "").toString(),
-        itemName: (item.itemName || "").toString(),
-        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-        stock: (item.stock || "0").toString(),
-        mrp: (item.mrp || "0").toString(),
-        uom: (item.uom || "").toString(),
-        hsn: (item.hsn || "").toString(),
-        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
-        srate: (item.sRate || "0").toString(),
-        wrate: (item.rate || "0").toString(),
-        qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
-        amount: (item.amount || "0").toString(),
-        netAmount: (item.amount || "0").toString()
-      }))
-    };
-
-    console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
-    
-    const endpoint = "SalesReturn/SalesReturnCreate?SelectType=true";
-    const response = await apiService.post(endpoint, requestData);
-    
-    if (response && response.success) {
-      toast.success(
-        `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
-        { autoClose: 3000 }
-      );
+  // ==================== CREATE SALES RETURN ====================
+  const createSalesReturn = async () => {
+    try {
+      setLoading(true);
+      setError("");
       
-      // Reset form after successful creation
-      await resetForm();
-      
-      return response;
-    } else {
-      // Check for specific error messages
-      const errorMessage = response?.message || 
-                          response?.error || 
-                          response?.Message || 
-                          "Failed to create sales return";
-      throw new Error(errorMessage);
-    }
-    
-  } catch (err) {
-    console.error("API Error in createSalesReturn:", err);
-    
-    // Detailed error logging
-    if (err.response) {
-      console.error("Response status:", err.response.status);
-      console.error("Response data:", err.response.data);
-      
-      // Extract server error message
-      let errorMsg = "Failed to create sales return";
-      const serverData = err.response.data;
-      
-      if (serverData) {
-        if (typeof serverData === 'string') {
-          errorMsg = serverData;
-        } else if (serverData.message) {
-          errorMsg = serverData.message;
-        } else if (serverData.Message) {
-          errorMsg = serverData.Message;
-        } else if (serverData.error) {
-          errorMsg = serverData.error;
-        } else if (serverData.errors) {
-          // Handle validation errors
-          const validationErrors = Object.values(serverData.errors).flat().join(', ');
-          errorMsg = `Validation Error: ${validationErrors}`;
-        }
+      // Check if we have items to create
+      const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+      if (validItems.length === 0) {
+        throw new Error("No valid items to create. Please add items with quantity > 0.");
       }
       
-      setError(errorMsg);
-      toast.error(`Create Error: ${errorMsg}`);
-    } else {
-      const errorMsg = err.message || "Failed to create sales return";
-      setError(errorMsg);
-      toast.error(`Error: ${errorMsg}`);
-    }
-    
-    throw err;
-  } finally {
-    setLoading(false);
-    }
-};
+      // Prepare request data - CONVERT ALL VALUES TO STRINGS
+      const requestData = {
+        header: {
+          voucherNo: billDetails.billNo.toString(),
+          voucherDate: billDetails.billDate.toString(),
+          mobileNo: (billDetails.mobileNo || "").toString(),
+          empName: (billDetails.empName || "").toString(),
+          empcode: (billDetails.empCode || "14789").toString(),
+          customerCode: (billDetails.customerCode || "").toString(),
+          customerName: (billDetails.custName || "").toString(),
+          salesMansName: (billDetails.salesman || "").toString(),
+          salesMansCode: (billDetails.salesmanCode || "002").toString(),
+          compCode: "001",
+          userCode: "001",
+          billAMT: totalAmount.toFixed(2).toString(),
+          billNo: (billDetails.newBillNo || "").toString(),
+          returnReason: (billDetails.returnReason || "").toString()
+        },
+        items: validItems.map((item, index) => ({
+          barcode: (item.barcode || "").toString(),
+          itemName: (item.itemName || "").toString(),
+          itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+          stock: (item.stock || "0").toString(),
+          mrp: (item.mrp || "0").toString(),
+          uom: (item.uom || "").toString(),
+          hsn: (item.hsn || "").toString(),
+          tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
+          srate: (item.sRate || "0").toString(),
+          wrate: (item.rate || "0").toString(),
+          qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
+          amount: (item.amount || "0").toString(),
+          netAmount: (item.amount || "0").toString()
+        }))
+      };
 
-// ==================== UPDATE SALES RETURN ====================
-const updateSalesReturn = async () => {
-  try {
-    setLoading(true);
-    setError("");
-    
-    // Check if we have items to update
-    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
-    if (validItems.length === 0) {
-      throw new Error("No valid items to update. Please add items with quantity > 0.");
+      console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
+      
+      const endpoint = "SalesReturn/SalesReturnCreate?SelectType=true";
+      const response = await apiService.post(endpoint, requestData);
+      
+      if (response && response.success) {
+        toast.success(
+          `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+          { autoClose: 3000 }
+        );
+        
+        // Reset form after successful creation
+        await resetForm();
+        
+        return response;
+      } else {
+        // Check for specific error messages
+        const errorMessage = response?.message || 
+                            response?.error || 
+                            response?.Message || 
+                            "Failed to create sales return";
+        throw new Error(errorMessage);
+      }
+      
+    } catch (err) {
+      console.error("API Error in createSalesReturn:", err);
+      
+      // Detailed error logging
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+        
+        // Extract server error message
+        let errorMsg = "Failed to create sales return";
+        const serverData = err.response.data;
+        
+        if (serverData) {
+          if (typeof serverData === 'string') {
+            errorMsg = serverData;
+          } else if (serverData.message) {
+            errorMsg = serverData.message;
+          } else if (serverData.Message) {
+            errorMsg = serverData.Message;
+          } else if (serverData.error) {
+            errorMsg = serverData.error;
+          } else if (serverData.errors) {
+            // Handle validation errors
+            const validationErrors = Object.values(serverData.errors).flat().join(', ');
+            errorMsg = `Validation Error: ${validationErrors}`;
+          }
+        }
+        
+        setError(errorMsg);
+        toast.error(`Create Error: ${errorMsg}`);
+      } else {
+        const errorMsg = err.message || "Failed to create sales return";
+        setError(errorMsg);
+        toast.error(`Error: ${errorMsg}`);
+      }
+      
+      throw err;
+    } finally {
+      setLoading(false);
     }
-    
-    // Prepare request data - CONVERT ALL VALUES TO STRINGS
-    const requestData = {
-      header: {
-        voucherNo: billDetails.billNo.toString(),
-        voucherDate: billDetails.billDate.toString(),
-        mobileNo: (billDetails.mobileNo || "").toString(),
-        empName: (billDetails.empName || "").toString(),
-        empcode: (billDetails.empCode || "14789").toString(),
-        customerCode: (billDetails.customerCode || "").toString(),
-        customerName: (billDetails.custName || "").toString(),
-        salesMansName: (billDetails.salesman || "").toString(),
-        salesMansCode: (billDetails.salesmanCode || "002").toString(),
-        compCode: "001",
-        userCode: "001",
-        billAMT: totalAmount.toFixed(2).toString(),
-        billNo: (billDetails.newBillNo || "").toString(),
-        returnReason: (billDetails.returnReason || "").toString()
-      },
-      items: validItems.map((item, index) => ({
-        barcode: (item.barcode || "").toString(),
-        itemName: (item.itemName || "").toString(),
-        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-        stock: (item.stock || "0").toString(),
-        mrp: (item.mrp || "0").toString(),
-        uom: (item.uom || "").toString(),
-        hsn: (item.hsn || "").toString(),
-        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
-        srate: (item.sRate || "0").toString(),
-        wrate: (item.rate || "0").toString(),
-        qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
-        amount: (item.amount || "0").toString(),
-        netAmount: (item.amount || "0").toString()
-      }))
-    };
+  };
 
-    console.log("Updating sales return with data:", JSON.stringify(requestData, null, 2));
-    
-    const endpoint = "SalesReturn/SalesReturnCreate?SelectType=false";
-    const response = await apiService.post(endpoint, requestData);
-    
-    if (response && response.success) {
-      toast.success(
-        `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
-        { autoClose: 3000 }
-      );
+  // ==================== UPDATE SALES RETURN ====================
+  const updateSalesReturn = async () => {
+    try {
+      setLoading(true);
+      setError("");
       
-      // Reset form after successful update
-      await resetForm();
+      // Check if we have items to update
+      const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+      if (validItems.length === 0) {
+        throw new Error("No valid items to update. Please add items with quantity > 0.");
+      }
       
-      return response;
-    } else {
-      const errorMessage = response?.message || 
-                          response?.error || 
-                          response?.Message || 
+      // Prepare request data - CONVERT ALL VALUES TO STRINGS
+      const requestData = {
+        header: {
+          voucherNo: billDetails.billNo.toString(),
+          voucherDate: billDetails.billDate.toString(),
+          mobileNo: (billDetails.mobileNo || "").toString(),
+          empName: (billDetails.empName || "").toString(),
+          empcode: (billDetails.empCode || "14789").toString(),
+          customerCode: (billDetails.customerCode || "").toString(),
+          customerName: (billDetails.custName || "").toString(),
+          salesMansName: (billDetails.salesman || "").toString(),
+          salesMansCode: (billDetails.salesmanCode || "002").toString(),
+          compCode: "001",
+          userCode: "001",
+          billAMT: totalAmount.toFixed(2).toString(),
+          billNo: (billDetails.newBillNo || "").toString(),
+          returnReason: (billDetails.returnReason || "").toString()
+        },
+        items: validItems.map((item, index) => ({
+          barcode: (item.barcode || "").toString(),
+          itemName: (item.itemName || "").toString(),
+          itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+          stock: (item.stock || "0").toString(),
+          mrp: (item.mrp || "0").toString(),
+          uom: (item.uom || "").toString(),
+          hsn: (item.hsn || "").toString(),
+          tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
+          srate: (item.sRate || "0").toString(),
+          wrate: (item.rate || "0").toString(),
+          qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
+          amount: (item.amount || "0").toString(),
+          netAmount: (item.amount || "0").toString()
+        }))
+      };
+
+      console.log("Updating sales return with data:", JSON.stringify(requestData, null, 2));
+      
+      const endpoint = "SalesReturn/SalesReturnCreate?SelectType=false";
+      const response = await apiService.post(endpoint, requestData);
+      
+      if (response && response.success) {
+        toast.success(
+          `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+          { autoClose: 3000 }
+        );
+        
+        // Reset form after successful update
+        await resetForm();
+        
+        return response;
+      } else {
+        const errorMessage = response?.message || 
+                            response?.error || 
+                            response?.Message || 
                           "Failed to update sales return";
-      throw new Error(errorMessage);
-    }
-    
-  } catch (err) {
-    console.error("API Error in updateSalesReturn:", err);
-    
-    // Detailed error handling
-    if (err.response) {
-      console.error("Response status:", err.response.status);
-      console.error("Response data:", err.response.data);
-      
-      let errorMsg = "Failed to update sales return";
-      const serverData = err.response.data;
-      
-      if (serverData) {
-        if (typeof serverData === 'string') {
-          errorMsg = serverData;
-        } else if (serverData.message) {
-          errorMsg = serverData.message;
-        } else if (serverData.Message) {
-          errorMsg = serverData.Message;
-        } else if (serverData.error) {
-          errorMsg = serverData.error;
-        } else if (serverData.errors) {
-          // Handle validation errors
-          const validationErrors = Object.values(serverData.errors).flat().join(', ');
-          errorMsg = `Validation Error: ${validationErrors}`;
-        } else if (serverData.title) {
-          errorMsg = serverData.title;
-        }
+        throw new Error(errorMessage);
       }
       
-      setError(errorMsg);
-      toast.error(`Update Error: ${errorMsg}`);
-    } else if (err.request) {
-      console.error("No response received:", err.request);
-      setError("No response from server. Please check your connection.");
-      toast.error("Update Error: No response from server. Please check your connection.");
-    } else {
-      const errorMsg = err.message || "Failed to update sales return";
-      setError(errorMsg);
-      toast.error(`Update Error: ${errorMsg}`);
+    } catch (err) {
+      console.error("API Error in updateSalesReturn:", err);
+      
+      // Detailed error handling
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+        
+        let errorMsg = "Failed to update sales return";
+        const serverData = err.response.data;
+        
+        if (serverData) {
+          if (typeof serverData === 'string') {
+            errorMsg = serverData;
+          } else if (serverData.message) {
+            errorMsg = serverData.message;
+          } else if (serverData.Message) {
+            errorMsg = serverData.Message;
+          } else if (serverData.error) {
+            errorMsg = serverData.error;
+          } else if (serverData.errors) {
+            // Handle validation errors
+            const validationErrors = Object.values(serverData.errors).flat().join(', ');
+            errorMsg = `Validation Error: ${validationErrors}`;
+          } else if (serverData.title) {
+            errorMsg = serverData.title;
+          }
+        }
+        
+        setError(errorMsg);
+        toast.error(`Update Error: ${errorMsg}`);
+      } else if (err.request) {
+        console.error("No response received:", err.request);
+        setError("No response from server. Please check your connection.");
+        toast.error("Update Error: No response from server. Please check your connection.");
+      } else {
+        const errorMsg = err.message || "Failed to update sales return";
+        setError(errorMsg);
+        toast.error(`Update Error: ${errorMsg}`);
+      }
+      
+      throw err;
+    } finally {
+      setLoading(false);
     }
-    
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // ==================== DELETE SALES RETURN ====================
   const deleteSalesReturn = async (voucherNo) => {
@@ -1233,7 +1217,6 @@ const updateSalesReturn = async () => {
             sRate: item.srate || item.sRate || "0",
             rate: item.wrate || item.rate || item.srate || "0",
             qty: Math.abs(parseFloat(item.qty || 0)).toString(),
-
             amount: item.amount || "0",
             itemCode: item.itemCode || `0000${index + 1}`
           };
@@ -1292,20 +1275,20 @@ const updateSalesReturn = async () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   // ✅ Focus Bill Date after Edit voucher loads
-useEffect(() => {
-  if (!shouldFocusBillDate) return;
+  useEffect(() => {
+    if (!shouldFocusBillDate) return;
 
-  const timer = setTimeout(() => {
-    if (billDateRef.current) {
-      billDateRef.current.focus();
-    }
-    setShouldFocusBillDate(false);
-  }, 150);
+    const timer = setTimeout(() => {
+      if (billDateRef.current) {
+        billDateRef.current.focus();
+      }
+      setShouldFocusBillDate(false);
+    }, 150);
 
-  return () => clearTimeout(timer);
-}, [shouldFocusBillDate]);
-
+    return () => clearTimeout(timer);
+  }, [shouldFocusBillDate]);
 
   // Initial data fetch
   useEffect(() => {
@@ -1356,7 +1339,6 @@ useEffect(() => {
     
     const customerData = customers.map(customer => ({
       id: customer.code || customer.id,
-      
       name: customer.name,
       displayName: `${customer.code} - ${customer.name}`,
       customerCode: customer.code,
@@ -1378,7 +1360,6 @@ useEffect(() => {
     
     const salesmanData = salesmen.map(salesman => ({
       id: salesman.fcode || salesman.code || salesman.id,
-     
       name: salesman.fname || salesman.name,
       displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`,
       salesmanCode: salesman.fcode || salesman.code,
@@ -1421,15 +1402,6 @@ useEffect(() => {
   };
 
   const openEditPopup = async () => {
-    // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
-      toast.error("You do not have permission to edit sales returns.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    // === END PERMISSION CHECK ===
     try {
       setLoading(true);
       
@@ -1473,15 +1445,6 @@ useEffect(() => {
   };
 
   const openDeletePopup = async () => {
-    // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
-      toast.error("You do not have permission to delete sales returns.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    // === END PERMISSION CHECK ===
     try {
       setLoading(true);
       
@@ -1538,8 +1501,8 @@ useEffect(() => {
             customerCode: selectedCustomer.code || selectedCustomer.custCode,
           }));
           setTimeout(() => {
-       newBillNoRef.current?.focus();
-    }, 100);
+            newBillNoRef.current?.focus();
+          }, 100);
         }
         
       } else if (popupType === "salesman") {
@@ -1554,62 +1517,59 @@ useEffect(() => {
             salesman: selectedSalesman.fname || selectedSalesman.name,
             salesmanCode: selectedSalesman.fcode || selectedSalesman.code || "002"
           }));
-            setTimeout(() => {
-      custNameRef.current?.focus();
-       // optional: auto-open customer popup
-    }, 100);
+          setTimeout(() => {
+            custNameRef.current?.focus();
+          }, 100);
         }
         
-} else if (popupType === "item") {
-  if (selectedRowIndex !== null) {
-    setItems(prev => {
-      const updated = [...prev];
+      } else if (popupType === "item") {
+        if (selectedRowIndex !== null) {
+          setItems(prev => {
+            const updated = [...prev];
 
-      updated[selectedRowIndex] = {
-        ...updated[selectedRowIndex],
-        itemName:
-          selectedItem.fItemName ||
-          selectedItem.itemName ||
-          selectedItem.name ||
-          "",
-        itemCode:
-          selectedItem.fItemcode ||
-          selectedItem.itemCode ||
-          selectedItem.code ||
-          updated[selectedRowIndex].itemCode,
-      };
+            updated[selectedRowIndex] = {
+              ...updated[selectedRowIndex],
+              itemName:
+                selectedItem.fItemName ||
+                selectedItem.itemName ||
+                selectedItem.name ||
+                "",
+              itemCode:
+                selectedItem.fItemcode ||
+                selectedItem.itemCode ||
+                selectedItem.code ||
+                updated[selectedRowIndex].itemCode,
+            };
 
-      return updated;
-    });
+            return updated;
+          });
 
-    // ✅ Move cursor to QTY of SAME ROW
-    setTimeout(() => {
-      const qtyInput = document.querySelector(
-        `input[data-row="${selectedRowIndex}"][data-field="qty"]`
-      );
-      qtyInput?.focus();
-    }, 120);
-  }
-}
- else if (popupType === "billNumber") {
+          // ✅ Move cursor to QTY of SAME ROW
+          setTimeout(() => {
+            const qtyInput = document.querySelector(
+              `input[data-row="${selectedRowIndex}"][data-field="qty"]`
+            );
+            qtyInput?.focus();
+          }, 120);
+        }
+      } else if (popupType === "billNumber") {
         // For bill number popup, open second popup with details
         const billNo = selectedItem.code || selectedItem.id;
         await openBillDetailsPopup(billNo);
         
       } else if (popupType === "edit") {
-  const voucherNo = selectedItem.code || selectedItem.id;
+        const voucherNo = selectedItem.code || selectedItem.id;
 
-  // ✅ DIRECTLY LOAD VOUCHER (NO CONFIRM POPUP)
-  await loadVoucherForEditing(voucherNo);
+        // ✅ DIRECTLY LOAD VOUCHER (NO CONFIRM POPUP)
+        await loadVoucherForEditing(voucherNo);
 
-  // ✅ Close popup cleanly
-  setPopupOpen(false);
-  setPopupType("");
-  setPopupData([]);
-  setSelectedRowIndex(null);
-  setSelectedAction("");
-}
- else if (popupType === "delete") {
+        // ✅ Close popup cleanly
+        setPopupOpen(false);
+        setPopupType("");
+        setPopupData([]);
+        setSelectedRowIndex(null);
+        setSelectedAction("");
+      } else if (popupType === "delete") {
         const voucherNo = selectedItem.code || selectedItem.id;
         
         showConfirmation({
@@ -1691,17 +1651,17 @@ useEffect(() => {
   const getPopupConfig = () => {
     const configs = {
       customer: {
-        displayFieldKeys: [ 'name'],
-        searchFields: [ 'name'],
-        headerNames: [ 'Customer Name'],
+        displayFieldKeys: ['name'],
+        searchFields: ['name'],
+        headerNames: ['Customer Name'],
         columnWidths: { code: '30%', name: '70%' },
         searchPlaceholder: 'Search customers...',
         showApplyButton: false
       },
       salesman: {
         displayFieldKeys: ['name'],
-        searchFields: [ 'name'],
-        headerNames: [ 'Salesman Name'],
+        searchFields: ['name'],
+        headerNames: ['Salesman Name'],
         columnWidths: { code: '30%', name: '70%' },
         searchPlaceholder: 'Search salesmen...',
         showApplyButton: false
@@ -1749,160 +1709,163 @@ useEffect(() => {
     setBillDetails(prev => ({ ...prev, [name]: value }));
   };
 
-// ==================== UPDATED KEY HANDLERS ====================
-// This is the main change: When any letter is pressed in salesman, customer, bill no, or item name fields,
-// it will open the popup and search for items starting with that letter
-const handleKeyDown = (e, nextRef, fieldName = '') => {
-  // Check if a letter key is pressed (A-Z, a-z)
-  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
-  
-  if (isLetterKey) {
-    e.preventDefault(); // Prevent the letter from being typed in the field
+  // ==================== UPDATED KEY HANDLERS ====================
+  const handleKeyDown = (e, nextRef, fieldName = '') => {
+    // Check if a letter key is pressed (A-Z, a-z)
+    const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
     
-    if (fieldName === 'salesman') {
-      // Open salesman popup with the typed letter as initial search
-      setPopupData(salesmen.map(salesman => ({
-        id: salesman.fcode || salesman.code || salesman.id,
-        name: salesman.fname || salesman.name,
-        displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`,
-        salesmanCode: salesman.fcode || salesman.code,
-        salesmanName: salesman.fname || salesman.name
-      })));
-      setPopupTitle("Select Salesman");
-      setPopupType("salesman");
-      setPopupOpen(true);
+    if (isLetterKey) {
+      e.preventDefault(); // Prevent the letter from being typed in the field
       
-      // Set the typed letter as initial search in popup
-      // We'll handle this in the PopupListSelector by passing the initial search
-      setTimeout(() => {
-        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
-        if (searchInput) {
-          searchInput.value = e.key;
-          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      }, 100);
-      
-    } else if (fieldName === 'custName') {
-      // Open customer popup with the typed letter as initial search
-      setPopupData(customers.map(customer => ({
-        id: customer.code || customer.id,
-        name: customer.name,
-        displayName: `${customer.code} - ${customer.name}`,
-        customerCode: customer.code,
-        customerName: customer.name,
-        mobileNo: customer.mobile || customer.phone || ""
-      })));
-      setPopupTitle("Select Customer");
-      setPopupType("customer");
-      setPopupOpen(true);
-      
-      // Set the typed letter as initial search in popup
-      setTimeout(() => {
-        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
-        if (searchInput) {
-          searchInput.value = e.key;
-          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      }, 100);
-      
-    } else if (fieldName === 'newBillNo') {
-      // Open bill number popup with the typed letter as initial search
-      openBillNumberPopup().then(() => {
+      if (fieldName === 'salesman') {
+        // Open salesman popup with the typed letter as initial search
+        setPopupData(salesmen.map(salesman => ({
+          id: salesman.fcode || salesman.code || salesman.id,
+          name: salesman.fname || salesman.name,
+          displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`,
+          salesmanCode: salesman.fcode || salesman.code,
+          salesmanName: salesman.fname || salesman.name
+        })));
+        setPopupTitle("Select Salesman");
+        setPopupType("salesman");
+        setPopupOpen(true);
+        
+        // Set the typed letter as initial search in popup
+        // We'll handle this in the PopupListSelector by passing the initial search
         setTimeout(() => {
           const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
           if (searchInput) {
             searchInput.value = e.key;
             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
           }
-        }, 200);
-      });
-    }
-  } else if (e.key === '/') {
-    e.preventDefault();
-    
-    if (fieldName === 'salesman') {
-      openSalesmanPopup();
-    } else if (fieldName === 'custName') {
-      openCustomerPopup();
-    } else if (fieldName === 'newBillNo') {
-      openBillNumberPopup();
-    }
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (nextRef && nextRef.current) {
-      nextRef.current.focus();
-    }
-  }
-};
-
-const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-  // Check if a letter key is pressed (A-Z, a-z) in itemName field
-  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
-  
-  if (isLetterKey && currentField === 'itemName') {
-    e.preventDefault(); // Prevent the letter from being typed in the field
-    
-    // Open item popup with the typed letter as initial search
-    openItemPopup(currentRowIndex);
-    
-    // Set the typed letter as initial search in popup
-    setTimeout(() => {
-      const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
-      if (searchInput) {
-        searchInput.value = e.key;
-        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    }, 100);
-    return;
-  }
-  
-  if (e.key === '/' && currentField === 'itemName') {
-    e.preventDefault();
-    openItemPopup(currentRowIndex);
-    return;
-  }
-  
-  if (e.key === 'Enter') {
-    e.preventDefault();
-
-    const fields = [
-      'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
-    ];
-
-    const currentFieldIndex = fields.indexOf(currentField);
-
-    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
-      const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-      if (nextInput) {
-        nextInput.focus();
-        return;
-      }
-    }
-
-    // Check if we're on the quantity field
-    if (currentField === 'qty') {
-      const currentItem = items[currentRowIndex];
-
-      // 🚫 BLOCK if item name not selected
-      if (!currentItem.itemName || currentItem.itemName.trim() === '') {
-        toast.warning("Select item before moving to next row");
-        return;
-      }
-
-      if (currentRowIndex < items.length - 1) {
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-        if (nextInput) nextInput.focus();
-      } else {
-        handleAddRow();
+        }, 100);
+        
+      } else if (fieldName === 'custName') {
+        // Open customer popup with the typed letter as initial search
+        setPopupData(customers.map(customer => ({
+          id: customer.code || customer.id,
+          name: customer.name,
+          displayName: `${customer.code} - ${customer.name}`,
+          customerCode: customer.code,
+          customerName: customer.name,
+          mobileNo: customer.mobile || customer.phone || ""
+        })));
+        setPopupTitle("Select Customer");
+        setPopupType("customer");
+        setPopupOpen(true);
+        
+        // Set the typed letter as initial search in popup
         setTimeout(() => {
-          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
-          if (newRowInput) newRowInput.focus();
-        }, 60);
+          const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+          if (searchInput) {
+            searchInput.value = e.key;
+            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }, 100);
+        
+      } else if (fieldName === 'newBillNo') {
+        // Open bill number popup with the typed letter as initial search
+        openBillNumberPopup().then(() => {
+          setTimeout(() => {
+            const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+            if (searchInput) {
+              searchInput.value = e.key;
+              searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }, 200);
+        });
+      }
+    } else if (e.key === '/') {
+      e.preventDefault();
+      
+      if (fieldName === 'salesman') {
+        openSalesmanPopup();
+      } else if (fieldName === 'custName') {
+        openCustomerPopup();
+      } else if (fieldName === 'newBillNo') {
+        openBillNumberPopup();
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
       }
     }
-  }
-};
+  };
+
+  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    // Check if a letter key is pressed (A-Z, a-z) in itemName field
+    const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+    
+    if (isLetterKey && currentField === 'itemName') {
+      e.preventDefault(); // Prevent the letter from being typed in the field
+      
+      // Open item popup with the typed letter as initial search
+      openItemPopup(currentRowIndex);
+      
+      // Set the typed letter as initial search in popup
+      setTimeout(() => {
+        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+        if (searchInput) {
+          searchInput.value = e.key;
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 100);
+      return;
+    }
+    
+    if (e.key === '/' && currentField === 'itemName') {
+      e.preventDefault();
+      openItemPopup(currentRowIndex);
+      return;
+    }
+    
+    if (e.key === 'Enter') {
+      e.preventDefault();
+
+      const fields = [
+        'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
+      ];
+
+      const currentFieldIndex = fields.indexOf(currentField);
+
+      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+        const nextField = fields[currentFieldIndex + 1];
+        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          return;
+        }
+      }
+
+      // Check if we're on the quantity field
+      if (currentField === 'qty') {
+        const currentItem = items[currentRowIndex];
+
+        // 🚫 BLOCK if item name not selected
+        if (!currentItem.itemName || currentItem.itemName.trim() === '') {
+          toast.warning("Select item before moving to next row");
+          // FIX: Don't focus Save button, focus item name field instead
+          const itemNameInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="itemName"]`);
+          if (itemNameInput) {
+            itemNameInput.focus();
+          }
+          return;
+        }
+
+        if (currentRowIndex < items.length - 1) {
+          const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
+          if (nextInput) nextInput.focus();
+        } else {
+          handleAddRow();
+          setTimeout(() => {
+            const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
+            if (newRowInput) newRowInput.focus();
+          }, 60);
+        }
+      }
+    }
+  };
 
   const handleAddItem = async () => {
     if (!billDetails.barcodeInput) {
@@ -2001,33 +1964,33 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
-const handleAddRow = () => {
-  const lastItem = items[items.length - 1];
+  const handleAddRow = () => {
+    const lastItem = items[items.length - 1];
 
-  // 🚫 BLOCK adding row if item name is empty
-  if (!lastItem.itemName || lastItem.itemName.trim() === '') {
-    toast.warning("Please select an item before adding a new row");
-    return;
-  }
+    // 🚫 BLOCK adding row if item name is empty
+    if (!lastItem.itemName || lastItem.itemName.trim() === '') {
+      toast.warning("Please select an item before adding a new row");
+      return;
+    }
 
-  const newRow = {
-    id: items.length + 1,
-    sNo: items.length + 1,
-    barcode: '',
-    itemName: '',
-    stock: '',
-    mrp: '',
-    uom: '',
-    hsn: '',
-    tax: '',
-    sRate: '',
-    rate: '',
-    qty: '',
-    amount: '0.00',
-    itemCode: `0000${items.length + 1}`
+    const newRow = {
+      id: items.length + 1,
+      sNo: items.length + 1,
+      barcode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      rate: '',
+      qty: '',
+      amount: '0.00',
+      itemCode: `0000${items.length + 1}`
+    };
+    setItems([...items, newRow]);
   };
-  setItems([...items, newRow]);
-};
 
   const handleItemChange = (id, field, value) => {
     setItems(items.map(item => {
@@ -2112,69 +2075,59 @@ const handleAddRow = () => {
     });
   };
 
-// ==================== SAVE FUNCTION ====================
-const handleSave = async () => {
-  // === PERMISSION CHECK ===
-  if (!formPermissions.add && !formPermissions.edit) {
-    toast.error("You do not have permission to save sales returns.", {
-      position: "top-right",
-      autoClose: 3000,
-    });
-    return;
-  }
-  // === END PERMISSION CHECK ===
-  
-  if (!billDetails.custName) {
-    toast.warning("Please select a customer.");
-    return;
-  }
-
-  if (items.length === 0 || items.every(item => !item.itemName && !item.barcode)) {
-    toast.warning("Please add at least one item.");
-    return;
-  }
-
-  const invalidItems = items.filter(item => 
-    item.itemName && (!item.qty || parseFloat(item.qty) <= 0)
-  );
-  
-  if (invalidItems.length > 0) {
-    toast.warning("Please enter valid quantity for all items.");
-    return;
-  }
-
-  // Determine if this is an update or create
-  const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
-                            billDetails.billNo.startsWith('SR');
-  
-  const actionType = isExistingVoucher ? 'update' : 'create';
-  const actionText = isExistingVoucher ? 'Update' : 'Save';
-
-  showConfirmation({
-    title: `${actionText} Sales Return`,
-    message: `Are you sure you want to ${actionType} this sales return?\n\nVoucher No: ${billDetails.billNo}\nTotal Amount: ₹${totalAmount.toFixed(2)}`,
-    type: "success",
-    confirmText: actionText,
-    cancelText: "Cancel",
-    onConfirm: async () => {
-      try {
-        if (isExistingVoucher) {
-          console.log("Performing UPDATE operation");
-          await updateSalesReturn();
-          // Note: resetForm() is already called inside updateSalesReturn()
-        } else {
-          console.log("Performing CREATE operation");
-          await createSalesReturn();
-          // Note: resetForm() is already called inside createSalesReturn()
-        }
-        
-      } catch (err) {
-        console.error("Save error:", err);
-        // Error is already handled in the individual functions
-      }
+  // ==================== SAVE FUNCTION ====================
+  const handleSave = async () => {
+    if (!billDetails.custName) {
+      toast.warning("Please select a customer.");
+      return;
     }
-  });
-};
+
+    if (items.length === 0 || items.every(item => !item.itemName && !item.barcode)) {
+      toast.warning("Please add at least one item.");
+      return;
+    }
+
+    const invalidItems = items.filter(item => 
+      item.itemName && (!item.qty || parseFloat(item.qty) <= 0)
+    );
+    
+    if (invalidItems.length > 0) {
+      toast.warning("Please enter valid quantity for all items.");
+      return;
+    }
+
+    // Determine if this is an update or create
+    const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
+                              billDetails.billNo.startsWith('SR');
+    
+    const actionType = isExistingVoucher ? 'update' : 'create';
+    const actionText = isExistingVoucher ? 'Update' : 'Save';
+
+    showConfirmation({
+      title: `${actionText} Sales Return`,
+      message: `Are you sure you want to ${actionType} this sales return?\n\nVoucher No: ${billDetails.billNo}\nTotal Amount: ₹${totalAmount.toFixed(2)}`,
+      type: "success",
+      confirmText: actionText,
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        try {
+          if (isExistingVoucher) {
+            console.log("Performing UPDATE operation");
+            await updateSalesReturn();
+            // Note: resetForm() is already called inside updateSalesReturn()
+          } else {
+            console.log("Performing CREATE operation");
+            await createSalesReturn();
+            // Note: resetForm() is already called inside createSalesReturn()
+          }
+          
+        } catch (err) {
+          console.error("Save error:", err);
+          // Error is already handled in the individual functions
+        }
+      }
+    });
+  };
 
   const handlePrint = () => {
     toast.info('Print functionality to be implemented');
@@ -2901,122 +2854,119 @@ const handleSave = async () => {
     }
   };
 
-const renderBillDetailsContent = () => {
-  const billNo = selectedBillForDetails;
-  if (!billNo) return null;
+  const renderBillDetailsContent = () => {
+    const billNo = selectedBillForDetails;
+    if (!billNo) return null;
 
-  const details = billDetailsData[billNo];
-  if (!details) {
-    return <div style={{ padding: 30, textAlign: "center" }}>No data</div>;
-  }
+    const details = billDetailsData[billNo];
+    if (!details) {
+      return <div style={{ padding: 30, textAlign: "center" }}>No data</div>;
+    }
 
-  const itemsArray = details.items || details.details || [];
+    const itemsArray = details.items || details.details || [];
 
-  const handleSelectAll = (checked) => {
-    setSelectAllItems(checked);
-    const updated = {};
-    itemsArray.forEach(item => {
-      const key = item.fItemcode || item.itemCode;
-      updated[key] = checked;
-    });
-    setCheckedBills(updated);
+    const handleSelectAll = (checked) => {
+      setSelectAllItems(checked);
+      const updated = {};
+      itemsArray.forEach(item => {
+        const key = item.fItemcode || item.itemCode;
+        updated[key] = checked;
+      });
+      setCheckedBills(updated);
+    };
+
+    return (
+      <div style={{ padding: "20px", animation: "fadeSlide 0.3s ease" }}>
+        
+        <h4 style={{
+          marginBottom: 12,
+          fontWeight: 700,
+          color: "#1B91DA"
+        }}>
+          Items – Select items to return
+        </h4>
+
+        <table style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: "13px"
+        }}>
+          <thead>
+            <tr style={{ background: "#f0f6ff" }}>
+              <th style={{ padding: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={selectAllItems}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                />
+              </th>
+              <th style={thStyle}>Item Name</th>
+              <th style={thStyle}>Qty</th>
+              <th style={thStyle}>Unit</th>
+              <th style={thStyle}>Rate</th>
+              <th style={thStyle}>Amount</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {itemsArray.map((item, idx) => {
+              const key = item.fItemcode || item.itemCode;
+              return (
+                <tr
+                  key={idx}
+                  ref={(el) => (billRowRefs.current[idx] = el)}
+                  style={{
+                    transition: "background 0.2s",
+                    background:
+                      billPopupRowIndex === idx
+                        ? "#cce5ff"
+                        : checkedBills[key]
+                        ? "#e3f2fd"
+                        : "#fff"
+                  }}
+                >
+                  <td style={tdStyle}>
+                    <input
+                      type="checkbox"
+                      checked={checkedBills[key] || false}
+                      onChange={(e) =>
+                        setCheckedBills(prev => ({
+                          ...prev,
+                          [key]: e.target.checked
+                        }))
+                      }
+                    />
+                  </td>
+
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>
+                    {item.fitemNme || item.itemName}
+                  </td>
+                  <td style={tdStyle}>{item.fTotQty || item.qty}</td>
+                  <td style={tdStyle}>{item.fUnit || item.uom}</td>
+                  <td style={tdStyle}>₹{item.fRate || item.rate}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>
+                    ₹{item.fAmount || item.amount}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
   };
 
-  return (
-    <div style={{ padding: "20px", animation: "fadeSlide 0.3s ease" }}>
-      
-      <h4 style={{
-        marginBottom: 12,
-        fontWeight: 700,
-        color: "#1B91DA"
-      }}>
-        Items – Select items to return
-      </h4>
+  const thStyle = {
+    padding: 8,
+    fontWeight: 700,
+    textAlign: "left",
+    borderBottom: "2px solid #ddd"
+  };
 
-      <table style={{
-        width: "100%",
-        borderCollapse: "collapse",
-        fontSize: "13px"
-      }}>
-        <thead>
-          <tr style={{ background: "#f0f6ff" }}>
-            <th style={{ padding: 8 }}>
-              <input
-                type="checkbox"
-                checked={selectAllItems}
-                onChange={(e) => handleSelectAll(e.target.checked)}
-              />
-            </th>
-            <th style={thStyle}>Item Name</th>
-            <th style={thStyle}>Qty</th>
-            <th style={thStyle}>Unit</th>
-            <th style={thStyle}>Rate</th>
-            <th style={thStyle}>Amount</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {itemsArray.map((item, idx) => {
-            const key = item.fItemcode || item.itemCode;
-            return (
-            <tr
-  key={idx}
-  ref={(el) => (billRowRefs.current[idx] = el)}
-  style={{
-    transition: "background 0.2s",
-    background:
-      billPopupRowIndex === idx
-        ? "#cce5ff"
-        : checkedBills[key]
-        ? "#e3f2fd"
-        : "#fff"
-  }}
->
-
-
-                <td style={tdStyle}>
-                  <input
-                    type="checkbox"
-                    checked={checkedBills[key] || false}
-                    onChange={(e) =>
-                      setCheckedBills(prev => ({
-                        ...prev,
-                        [key]: e.target.checked
-                      }))
-                    }
-                  />
-                </td>
-
-                <td style={{ ...tdStyle, fontWeight: 600 }}>
-                  {item.fitemNme || item.itemName}
-                </td>
-                <td style={tdStyle}>{item.fTotQty || item.qty}</td>
-                <td style={tdStyle}>{item.fUnit || item.uom}</td>
-                <td style={tdStyle}>₹{item.fRate || item.rate}</td>
-                <td style={{ ...tdStyle, fontWeight: 600 }}>
-                  ₹{item.fAmount || item.amount}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
-const thStyle = {
-  padding: 8,
-  fontWeight: 700,
-  textAlign: "left",
-  borderBottom: "2px solid #ddd"
-};
-
-const tdStyle = {
-  padding: 8,
-  borderBottom: "1px solid #eee"
-};
-
+  const tdStyle = {
+    padding: 8,
+    borderBottom: "1px solid #eee"
+  };
 
   return (
     <div style={styles.container} className="sales-return-scrollable">
@@ -3214,31 +3164,29 @@ const tdStyle = {
               name="barcodeInput"
               onChange={handleInputChange}
               ref={barcodeRef}
-onKeyDown={(e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
 
-    // ✅ Mark barcode-enter flow
-    setIsBarcodeEnter(true);
+                  // ✅ Mark barcode-enter flow
+                  setIsBarcodeEnter(true);
 
-    handleAddItem();
+                  handleAddItem();
 
-    // After adding item, check if we should move focus
-    setTimeout(() => {
-      const lastItem = items[items.length - 1];
-      if (lastItem.itemName && lastItem.itemName.trim()) {
-        const firstRowBarcode = document.querySelector(
-          'input[data-row="0"][data-field="barcode"]'
-        );
-        if (firstRowBarcode) {
-          firstRowBarcode.focus();
-        }
-      }
-    }, 150);
-  }
-}}
-
-
+                  // After adding item, check if we should move focus
+                  setTimeout(() => {
+                    const lastItem = items[items.length - 1];
+                    if (lastItem.itemName && lastItem.itemName.trim()) {
+                      const firstRowBarcode = document.querySelector(
+                        'input[data-row="0"][data-field="barcode"]'
+                      );
+                      if (firstRowBarcode) {
+                        firstRowBarcode.focus();
+                      }
+                    }
+                  }, 150);
+                }
+              }}
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
               // //placeholder="Scan or Enter Barcode"
@@ -3493,9 +3441,9 @@ onKeyDown={(e) => {
               }
             }}
           >
-            <AddButton buttonType="add" disabled={!formPermissions.add} />
-            <EditButton buttonType="edit" disabled={!formPermissions.edit} />
-            <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
+            <AddButton buttonType="add" />
+            <EditButton buttonType="edit" />
+            <DeleteButton buttonType="delete" />
           </ActionButtons>
         </div>
         <div style={styles.totalsContainer}>
@@ -3524,13 +3472,11 @@ onKeyDown={(e) => {
 
       {/* SECOND POPUP: Bill Details with Checkboxes (Has Apply/Clear buttons) */}
       {billDetailsPopupOpen && (
-      <div style={styles.customPopupOverlay} className="popup-overlay-slow">
-
+        <div style={styles.customPopupOverlay} className="popup-overlay-slow">
           <div
-  style={styles.customPopupContainer}
-  className="popup-container-slow"
->
-
+            style={styles.customPopupContainer}
+            className="popup-container-slow"
+          >
             <div style={styles.customPopupHeader}>
               <h3 style={styles.customPopupTitle}>Bill Details - {selectedBillForDetails}</h3>
               <button
@@ -3562,8 +3508,6 @@ onKeyDown={(e) => {
                 onClick={handleClearBillNumber}
               >
                 cancel
-
-            
               </button>
               <button
                 style={{
