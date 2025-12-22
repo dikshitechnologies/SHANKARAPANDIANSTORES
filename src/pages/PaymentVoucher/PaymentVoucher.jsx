@@ -20,10 +20,6 @@ const PaymentVoucher = () => {
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
 
-  // Amount entry popup - REMOVED (GST & Bill Details popup removed)
-  // const [amountPopupOpen, setAmountPopupOpen] = useState(false);
-  // const [amountPopupData, setAmountPopupData] = useState(null);
-
   // Track if we're editing an existing voucher
   const [isEditing, setIsEditing] = useState(false);
   const [originalVoucherNo, setOriginalVoucherNo] = useState('');
@@ -111,15 +107,29 @@ const PaymentVoucher = () => {
   // Auth context for company code
   const { userData } = useAuth() || {};
 
+  // --- ENTER KEY NAVIGATION STATES ---
+  const [navigationStep, setNavigationStep] = useState('voucherNo');
+  const [currentPaymentRowIndex, setCurrentPaymentRowIndex] = useState(0);
+  const [currentBillRowIndex, setCurrentBillRowIndex] = useState(0);
+
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const voucherNoRef = useRef(null);
-  const gstTypeRef = useRef(null);
   const dateRef = useRef(null);
-  const costCenterRef = useRef(null);
   const accountNameRef = useRef(null);
+  const gstTypeRef = useRef(null);
+  // Payment table refs
+  const paymentCashBankRefs = useRef([]);
+  const paymentCrDrRefs = useRef([]);
+  const paymentTypeRefs = useRef([]);
+  const paymentChqNoRefs = useRef([]);
+  const paymentChqDtRefs = useRef([]);
+  const paymentNarrationRefs = useRef([]);
+  const paymentAmountRefs = useRef([]);
+  // Bill table refs
+  const billAmountRefs = useRef([]);
   const saveButtonRef = useRef(null);
 
-  // Track which top-section field is focused to style active input
+  // Track which field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
 
   // Footer action active state
@@ -136,6 +146,28 @@ const PaymentVoucher = () => {
     isTablet: false,
     isDesktop: true
   });
+
+  // Initialize refs arrays
+  useEffect(() => {
+    paymentCashBankRefs.current = paymentCashBankRefs.current.slice(0, paymentItems.length);
+    paymentCrDrRefs.current = paymentCrDrRefs.current.slice(0, paymentItems.length);
+    paymentTypeRefs.current = paymentTypeRefs.current.slice(0, paymentItems.length);
+    paymentChqNoRefs.current = paymentChqNoRefs.current.slice(0, paymentItems.length);
+    paymentChqDtRefs.current = paymentChqDtRefs.current.slice(0, paymentItems.length);
+    paymentNarrationRefs.current = paymentNarrationRefs.current.slice(0, paymentItems.length);
+    paymentAmountRefs.current = paymentAmountRefs.current.slice(0, paymentItems.length);
+    billAmountRefs.current = billAmountRefs.current.slice(0, billDetails.length);
+  }, [paymentItems.length, billDetails.length]);
+
+  // Focus on Voucher No when component mounts
+  useEffect(() => {
+    if (voucherNoRef.current) {
+      setTimeout(() => {
+        voucherNoRef.current.focus();
+        setNavigationStep('voucherNo');
+      }, 100);
+    }
+  }, []);
 
   // Update screen size on resize
   useEffect(() => {
@@ -181,8 +213,6 @@ const PaymentVoucher = () => {
       setIsLoading(false);
     }
   }, [userData?.companyCode]);
-
-
 
   // Fetch pending bills for selected party
   const fetchPendingBills = useCallback(async (partyCode) => {
@@ -499,7 +529,210 @@ const PaymentVoucher = () => {
     setIsEditing(false);
     setOriginalVoucherNo('');
     setFocusedField('');
+    setNavigationStep('voucherNo');
+    setCurrentPaymentRowIndex(0);
+    setCurrentBillRowIndex(0);
+    
+    // Focus on voucher no after reset
+    setTimeout(() => {
+      if (voucherNoRef.current) {
+        voucherNoRef.current.focus();
+      }
+    }, 100);
+    
     fetchNextVoucherNo();
+  };
+
+  // --- ENTER KEY NAVIGATION HANDLERS ---
+
+  // Handle Enter in header fields
+  const handleHeaderFieldKeyDown = (e, currentField, nextField) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      switch (currentField) {
+        case 'voucherNo':
+          dateRef.current?.focus();
+          setNavigationStep('date');
+          break;
+          
+        case 'date':
+          accountNameRef.current?.focus();
+          setNavigationStep('accountName');
+          break;
+          
+        case 'accountName':
+          gstTypeRef.current?.focus();
+          setNavigationStep('gstType');
+          break;
+          
+        case 'gstType':
+          // Go to first payment row's Cash/Bank field
+          if (paymentCashBankRefs.current[0]) {
+            paymentCashBankRefs.current[0].focus();
+            setNavigationStep('paymentCashBank');
+            setCurrentPaymentRowIndex(0);
+          }
+          break;
+      }
+    }
+    
+    // Open popup on typing in account name
+    if (currentField === 'accountName' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
+      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        setTimeout(() => {
+          openAccountPopup();
+        }, 100);
+      }
+    }
+  };
+
+  // Handle Enter in payment table fields
+  const handlePaymentFieldKeyDown = (e, rowIndex, fieldType, value = '') => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // Special handling for Cash/Bank field
+      if (fieldType === 'cashBank') {
+        // If empty Cash/Bank, skip to bill amount
+        if (!value || value.trim() === '') {
+          if (billAmountRefs.current[0]) {
+            billAmountRefs.current[0].focus();
+            setNavigationStep('billAmount');
+            setCurrentBillRowIndex(0);
+            return;
+          }
+        }
+        
+        // Otherwise go to next field (Cr/Dr)
+        if (paymentCrDrRefs.current[rowIndex]) {
+          paymentCrDrRefs.current[rowIndex].focus();
+          setNavigationStep('paymentCrDr');
+        }
+      }
+      
+      // Cr/Dr -> Type
+      else if (fieldType === 'crDr') {
+        if (paymentTypeRefs.current[rowIndex]) {
+          paymentTypeRefs.current[rowIndex].focus();
+          setNavigationStep('paymentType');
+        }
+      }
+      
+      // Type -> Chq No or Narration (skip Chq fields if not CHQ)
+      else if (fieldType === 'type') {
+        const isCheque = value === 'CHQ';
+        if (isCheque && paymentChqNoRefs.current[rowIndex]) {
+          paymentChqNoRefs.current[rowIndex].focus();
+          setNavigationStep('paymentChqNo');
+        } else if (paymentNarrationRefs.current[rowIndex]) {
+          paymentNarrationRefs.current[rowIndex].focus();
+          setNavigationStep('paymentNarration');
+        }
+      }
+      
+      // Chq No -> Chq Dt
+      else if (fieldType === 'chqNo') {
+        if (paymentChqDtRefs.current[rowIndex]) {
+          paymentChqDtRefs.current[rowIndex].focus();
+          setNavigationStep('paymentChqDt');
+        }
+      }
+      
+      // Chq Dt -> Narration
+      else if (fieldType === 'chqDt') {
+        if (paymentNarrationRefs.current[rowIndex]) {
+          paymentNarrationRefs.current[rowIndex].focus();
+          setNavigationStep('paymentNarration');
+        }
+      }
+      
+      // Narration -> Amount
+      else if (fieldType === 'narration') {
+        if (paymentAmountRefs.current[rowIndex]) {
+          paymentAmountRefs.current[rowIndex].focus();
+          setNavigationStep('paymentAmount');
+        }
+      }
+      
+      // Amount -> Decision point
+      else if (fieldType === 'amount') {
+        const amountValue = parseFloat(value) || 0;
+        
+        // Only proceed if amount is entered
+        if (amountValue > 0) {
+          // Check if there's a next payment row
+          if (rowIndex < paymentItems.length - 1) {
+            // Go to next row's Cash/Bank
+            if (paymentCashBankRefs.current[rowIndex + 1]) {
+              setTimeout(() => {
+                paymentCashBankRefs.current[rowIndex + 1].focus();
+                setNavigationStep('paymentCashBank');
+                setCurrentPaymentRowIndex(rowIndex + 1);
+              }, 0);
+            }
+          } else {
+            // No next payment row, go to bill amount
+            if (billAmountRefs.current[0]) {
+              setTimeout(() => {
+                billAmountRefs.current[0].focus();
+                setNavigationStep('billAmount');
+                setCurrentBillRowIndex(0);
+              }, 0);
+            }
+          }
+        }
+        // If amount is not entered, DO NOTHING (don't proceed)
+      }
+    }
+    
+    // Open Cash/Bank popup on typing
+    if (fieldType === 'cashBank' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
+      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        setTimeout(() => {
+          openCashBankPopup(paymentItems[rowIndex].id, rowIndex);
+        }, 100);
+      }
+    }
+  };
+
+  // Handle Enter in bill table amount fields
+  const handleBillAmountKeyDown = (e, rowIndex, value = '') => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      const amountValue = parseFloat(value) || 0;
+      
+      // Only proceed if amount is entered
+      if (amountValue > 0) {
+        // Check if there's a next bill row
+        if (rowIndex < billDetails.length - 1) {
+          // Go to next row's Amount
+          if (billAmountRefs.current[rowIndex + 1]) {
+            billAmountRefs.current[rowIndex + 1].focus();
+            setNavigationStep('billAmount');
+            setCurrentBillRowIndex(rowIndex + 1);
+          }
+        } else {
+          // Last bill row, go to Save button
+          if (saveButtonRef.current) {
+            setTimeout(() => {
+              saveButtonRef.current.focus();
+              setNavigationStep('saveButton');
+            }, 0);
+          }
+        }
+      }
+      // If amount is not entered, DO NOTHING (don't proceed)
+    }
+  };
+
+  // Handle Save button keydown
+  const handleSaveButtonKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    }
   };
 
   // --- POPUP HANDLERS ---
@@ -629,6 +862,11 @@ const PaymentVoucher = () => {
       }
       
       setShowPartyPopup(false);
+      // After selecting account, focus on GST Type
+      setTimeout(() => {
+        gstTypeRef.current?.focus();
+        setNavigationStep('gstType');
+      }, 100);
     } catch (err) {
       console.error('Error selecting party:', err);
     }
@@ -637,9 +875,17 @@ const PaymentVoucher = () => {
   // Handle Cash/Bank selection from popup
   const handleCashBankSelect = (party) => {
     if (cashBankPopupContext) {
-      const { paymentItemId } = cashBankPopupContext;
+      const { paymentItemId, index } = cashBankPopupContext;
       handlePaymentItemChange(paymentItemId, 'cashBank', party.name || party.accountName || '');
       handlePaymentItemChange(paymentItemId, 'cashBankCode', party.code || party.accountCode || '');
+      
+      // After selecting Cash/Bank, focus on Cr/Dr field
+      setTimeout(() => {
+        if (paymentCrDrRefs.current[index]) {
+          paymentCrDrRefs.current[index].focus();
+          setNavigationStep('paymentCrDr');
+        }
+      }, 100);
     }
     setShowCashBankPopup(false);
     setCashBankPopupContext(null);
@@ -729,25 +975,6 @@ const PaymentVoucher = () => {
       ...prev,
       [name]: value
     }));
-  };
-
-  // Handle keydown with / key support for popup toggle
-  const handleKeyDown = (e, nextRef, fieldName = '') => {
-    if (e.key === 'Enter') {
-      if (fieldName === 'accountName') {
-        // From A/C Name, go to Payment table's first field
-        e.preventDefault();
-        if (paymentItems.length > 0) {
-          const firstPaymentId = paymentItems[0].id;
-          setTimeout(() => document.getElementById(`payment_${firstPaymentId}_cashBank`)?.focus(), 0);
-        }
-      } else if (nextRef) {
-        nextRef.current?.focus();
-      }
-    } else if (e.key === '/' && (fieldName === 'accountName' || fieldName === 'costCenter')) {
-      e.preventDefault();
-      openAccountPopup();
-    }
   };
 
   // Handle backspace in account field
@@ -847,64 +1074,6 @@ const PaymentVoucher = () => {
       }
     ]);
   };
-
-  // Handle table keydown with Enter key navigation
-  const handleTableKeyDown = (e, currentRowIndex, currentField, isPaymentTable = true) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const fields = ['cashBank', 'crDr', 'type', 'chqNo', 'chqDt', 'narration', 'amount'];
-      const currentFieldIndex = fields.indexOf(currentField);
-      const items = isPaymentTable ? paymentItems : billDetails;
-
-      // Special case: if cashBank field is empty, go directly to 2nd table Amount
-      if (isPaymentTable && currentField === 'cashBank' && items[currentRowIndex].cashBank.trim() === '') {
-        if (billDetails.length > 0) {
-          setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
-        }
-        return;
-      }
-
-      // Move to next field in same row
-      if (currentFieldIndex < fields.length - 1) {
-        // Special case: if Type is not CHQ, skip Chq No and Chq Dt and go to Narration
-        if (currentField === 'type' && items[currentRowIndex].type !== 'CHQ') {
-          const narrationFieldId = `${isPaymentTable ? 'payment' : 'bill'}_${items[currentRowIndex].id}_narration`;
-          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
-        } else {
-          const nextFieldId = `${isPaymentTable ? 'payment' : 'bill'}_${items[currentRowIndex].id}_${fields[currentFieldIndex + 1]}`;
-          setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
-        }
-      } else {
-        // Move to next row, first field
-        if (currentRowIndex < items.length - 1) {
-          const nextFieldId = `${isPaymentTable ? 'payment' : 'bill'}_${items[currentRowIndex + 1].id}_${fields[0]}`;
-          setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
-        } else {
-          // If in the billDetails table's amount field, trigger Save button directly
-          if (!isPaymentTable && currentField === 'amount') {
-            setTimeout(() => {
-              handleSave();
-            }, 0);
-          } else if (isPaymentTable) {
-            // Add new row and focus first field for payment table
-            const newId = Math.max(...paymentItems.map(item => item.id), 0) + 1;
-            handleAddPaymentRow();
-            setTimeout(() => {
-              document.getElementById(`payment_${newId}_cashBank`)?.focus();
-            }, 0);
-          } else {
-            // Add new row and focus first field for bill table
-            const newId = Math.max(...billDetails.map(bill => bill.id), 0) + 1;
-            handleAddBillRow();
-            setTimeout(() => {
-              document.getElementById(`bill_${newId}_refNo`)?.focus();
-            }, 0);
-          }
-        }
-      }
-    }
-  };
-
 
   // Handle edit click - opens edit voucher popup
   const handleEditClick = () => {
@@ -1443,9 +1612,7 @@ const PaymentVoucher = () => {
           </div>
         </div>
       )}
-   
   
-
       {/* HEADER SECTION */}
       <div style={styles.headerSection}>
         <div style={styles.formRow}>
@@ -1459,10 +1626,13 @@ const PaymentVoucher = () => {
                 name="voucherNo"
                 value={voucherDetails.voucherNo || ''}
                 onChange={handleInputChange}
-                onFocus={() => setFocusedField('voucherNo')}
+                onFocus={() => {
+                  setFocusedField('voucherNo');
+                  setNavigationStep('voucherNo');
+                }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'voucherNo' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleKeyDown(e, gstTypeRef, 'voucherNo')}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'voucherNo', 'date')}
               />
             </div>
 
@@ -1475,10 +1645,13 @@ const PaymentVoucher = () => {
                 name="date"
                 value={voucherDetails.date || ''}
                 onChange={handleInputChange}
-                onFocus={() => setFocusedField('date')}
+                onFocus={() => {
+                  setFocusedField('date');
+                  setNavigationStep('date');
+                }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'date' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleKeyDown(e, accountNameRef, 'date')}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'date', 'accountName')}
               />
             </div>
 
@@ -1491,17 +1664,18 @@ const PaymentVoucher = () => {
                 name="accountName"
                 value={voucherDetails.accountName || ''}
                 onChange={handleInputChange}
-                onFocus={() => setFocusedField('accountName')}
+                onFocus={() => {
+                  setFocusedField('accountName');
+                  setNavigationStep('accountName');
+                }}
                 onBlur={() => setFocusedField('')}
                 onClick={openAccountPopup}
-                onKeyDown={(e) => handleKeyDown(e, null, 'accountName')}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName', 'gstType')}
                 onKeyUp={(e) => handleBackspace(e, 'accountName')}
                 style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
                 placeholder="Search A/C Name"
               />
             </div>
-
-            
 
             {/* Balance */}
             <div style={styles.fieldGroup}>
@@ -1527,10 +1701,7 @@ const PaymentVoucher = () => {
                 onBlur={() => setFocusedField('')}
                 style={styles.inlineInput}
               />
-            
-              
             </div>
-
 
             {/* GST Type */}
             <div style={styles.fieldGroup}>
@@ -1540,10 +1711,13 @@ const PaymentVoucher = () => {
                 name="gstType"
                 value={voucherDetails.gstType || 'CGST/SGST'}
                 onChange={handleInputChange}
-                onFocus={() => setFocusedField('gstType')}
+                onFocus={() => {
+                  setFocusedField('gstType');
+                  setNavigationStep('gstType');
+                }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'gstType' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleKeyDown(e, dateRef, 'gstType')}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'gstType', 'paymentCashBank')}
               >
                 <option>CGST/SGST</option>
                 <option>IGST</option>
@@ -1577,35 +1751,38 @@ const PaymentVoucher = () => {
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
                     <input
+                      ref={el => paymentCashBankRefs.current[index] = el}
                       id={`payment_${item.id}_cashBank`}
                       type="text"
                       value={item.cashBank}
                       onChange={(e) => handlePaymentItemChange(item.id, 'cashBank', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === '/') {
-                          e.preventDefault();
-                          openCashBankPopup(item.id, index);
-                        } else {
-                          handleTableKeyDown(e, index, 'cashBank', true);
-                        }
-                      }}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'cashBank', item.cashBank)}
                       onClick={() => openCashBankPopup(item.id, index)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #1B91DA';
+                        setNavigationStep('paymentCashBank');
+                        setCurrentPaymentRowIndex(index);
+                      }}
                       onBlur={(e) => (e.target.style.border = 'none')}
+                      style={navigationStep === 'paymentCashBank' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
                       placeholder="Search Cash/Bank"
-                      title="Click to select or press / to search"
+                      title="Click to select or type to search"
                     />
                   </td>
                   <td style={styles.td}>
                     <select
+                      ref={el => paymentCrDrRefs.current[index] = el}
                       id={`payment_${item.id}_crDr`}
                       value={item.crDr}
                       onChange={(e) => handlePaymentItemChange(item.id, 'crDr', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'crDr', true)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'crDr', item.crDr)}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #1B91DA';
+                        setNavigationStep('paymentCrDr');
+                        setCurrentPaymentRowIndex(index);
+                      }}
                       onBlur={(e) => (e.target.style.border = 'none')}
+                      style={navigationStep === 'paymentCrDr' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
                     >
                       <option>CR</option>
                       <option>DR</option>
@@ -1613,13 +1790,18 @@ const PaymentVoucher = () => {
                   </td>
                   <td style={styles.td}>
                     <select
+                      ref={el => paymentTypeRefs.current[index] = el}
                       id={`payment_${item.id}_type`}
                       value={item.type}
                       onChange={(e) => handlePaymentItemChange(item.id, 'type', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'type', true)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'type', item.type)}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #1B91DA';
+                        setNavigationStep('paymentType');
+                        setCurrentPaymentRowIndex(index);
+                      }}
                       onBlur={(e) => (e.target.style.border = 'none')}
+                      style={navigationStep === 'paymentType' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
                     >
                       <option value="CASH">CASH</option>
                       <option value="CHQ">CHQ</option>
@@ -1630,58 +1812,77 @@ const PaymentVoucher = () => {
                   </td>
                   <td style={styles.td}>
                     <input
+                      ref={el => paymentChqNoRefs.current[index] = el}
                       id={`payment_${item.id}_chqNo`}
                       type="text"
                       value={item.chqNo}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqNo', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'chqNo', true)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqNo', item.chqNo)}
                       disabled={item.type !== 'CHQ'}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #1B91DA';
+                        setNavigationStep('paymentChqNo');
+                        setCurrentPaymentRowIndex(index);
+                      }}
+                      onBlur={(e) => (e.target.style.border = 'none')}
                       style={{
-                        ...styles.editableInput,
+                        ...(navigationStep === 'paymentChqNo' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
                         ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
                       }}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
-                      onBlur={(e) => (e.target.style.border = 'none')}
                     />
                   </td>
                   <td style={styles.td}>
                     <input
+                      ref={el => paymentChqDtRefs.current[index] = el}
                       id={`payment_${item.id}_chqDt`}
                       type="date"
                       value={item.chqDt}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqDt', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'chqDt', true)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqDt', item.chqDt)}
                       disabled={item.type !== 'CHQ'}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #1B91DA';
+                        setNavigationStep('paymentChqDt');
+                        setCurrentPaymentRowIndex(index);
+                      }}
+                      onBlur={(e) => (e.target.style.border = 'none')}
                       style={{
-                        ...styles.editableInput,
+                        ...(navigationStep === 'paymentChqDt' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
                         ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
                       }}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
-                      onBlur={(e) => (e.target.style.border = 'none')}
                     />
                   </td>
                   <td style={{...styles.td, minWidth: '200px', width: '200px'}}>
                     <input
+                      ref={el => paymentNarrationRefs.current[index] = el}
                       id={`payment_${item.id}_narration`}
                       type="text"
                       value={item.narration}
                       onChange={(e) => handlePaymentItemChange(item.id, 'narration', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'narration', true)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'narration', item.narration)}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #1B91DA';
+                        setNavigationStep('paymentNarration');
+                        setCurrentPaymentRowIndex(index);
+                      }}
                       onBlur={(e) => (e.target.style.border = 'none')}
+                      style={navigationStep === 'paymentNarration' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
                     />
                   </td>
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
+                      ref={el => paymentAmountRefs.current[index] = el}
                       id={`payment_${item.id}_amount`}
-                      
                       value={item.amount}
                       onChange={(e) => handlePaymentItemChange(item.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', true)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'amount', item.amount)}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #1B91DA';
+                        setNavigationStep('paymentAmount');
+                        setCurrentPaymentRowIndex(index);
+                      }}
                       onBlur={(e) => e.target.style.border = 'none'}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
+                      style={navigationStep === 'paymentAmount' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
                     />
                   </td>
                   <td style={styles.td}>
@@ -1814,13 +2015,18 @@ const PaymentVoucher = () => {
                   </td>
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
+                      ref={el => billAmountRefs.current[index] = el}
                       id={`bill_${bill.id}_amount`}
                       value={bill.amount || ''}
                       onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'amount', false)}
-                      style={styles.editableInput}
-                      onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
+                      onKeyDown={(e) => handleBillAmountKeyDown(e, index, bill.amount)}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #1B91DA';
+                        setNavigationStep('billAmount');
+                        setCurrentBillRowIndex(index);
+                      }}
                       onBlur={(e) => (e.target.style.border = 'none')}
+                      style={navigationStep === 'billAmount' && currentBillRowIndex === index ? styles.editableInputFocused : styles.editableInput}
                     />
                   </td>
                 </tr>
@@ -1890,6 +2096,7 @@ const PaymentVoucher = () => {
             <SaveButton 
               ref={saveButtonRef}
               onClick={handleSave} 
+              onKeyDown={handleSaveButtonKeyDown}
               disabled={isSaving}
               isActive={true}
             />
@@ -1955,8 +2162,6 @@ const PaymentVoucher = () => {
           totalAmount={totalAmount}
         />
       )}
-
-      {/* GST & Bill Details Popup - REMOVED */}
 
       {/* End of JSX */}
     </div>
