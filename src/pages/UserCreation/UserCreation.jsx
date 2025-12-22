@@ -611,6 +611,16 @@ export default function UserCreation() {
     }
   };
 
+  const onCompanyChange = (e) => {
+    const v = e.target.value || "";
+    // update local form value
+    setForm(s => ({ ...s, company: v }));
+    // set query used by the popup
+    setCompanyQuery(v);
+    // open selector so user sees filtered results while typing
+    setCompanyModalOpen(true);
+  };
+
   const onUsernameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -1252,12 +1262,12 @@ export default function UserCreation() {
                     ref={companyRef}
                     className="company-input"
                     value={form.company}
-                    onChange={(e) => setForm(s => ({ ...s, company: e.target.value }))}
+                    onChange={onCompanyChange}
                     onKeyDown={onCompanyKeyDown}
                     onClick={openCompanyModal}
                     disabled={loading || isProcessing || actionType === "delete"}
                     aria-label="Company"
-                    readOnly={true}
+                    readOnly={false}
                   />
                 </div>
               </div>
@@ -1437,6 +1447,8 @@ export default function UserCreation() {
       <PopupListSelector
         open={companyModalOpen}
         onClose={() => setCompanyModalOpen(false)}
+        clearSearch={() => setCompanyQuery("")}
+        initialSearch={companyQuery}
         onSelect={selectCompany}
         fetchItems={fetchCompaniesForModal}
         title="Select Company"
