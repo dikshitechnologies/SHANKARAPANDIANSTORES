@@ -1252,13 +1252,12 @@ const handleSalesmanSelect = (salesman) => {
     setAddLessAmount(value);
   };
 
-  // Handle add/less key down - MODIFIED: Don't trigger save on Enter
+  // Handle add/less key down - Trigger save popup on Enter
   const handleAddLessKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      // Focus on Clear button (first footer button)
-      const clearButton = document.querySelector('button[data-action="clear"]');
-      if (clearButton) clearButton.focus();
+      // Trigger save popup
+      handleSave();
     }
   };
 
@@ -1434,12 +1433,15 @@ const handleUomSpacebar   = (e, id, index) => {
     if (currentField === 'qty') {
       const currentItem = items[currentRowIndex];
 
-      // 🚫 BLOCK if item name not selected
+      // If row is empty (no item selected), go to add/less
       if (!currentItem.itemName || currentItem.itemName.trim() === '') {
-        toast.warning("Select item before moving to next row");
+        if (addLessRef && addLessRef.current) {
+          addLessRef.current.focus();
+        }
         return;
       }
 
+      // Row has data, go to next row's barcode or add new row
       if (currentRowIndex < items.length - 1) {
         const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
         if (nextInput) nextInput.focus();
@@ -3197,14 +3199,13 @@ searchIconInside: {
         <div style={styles.addLessContainer}>
           <span style={styles.addLessLabel}>Add/Less:</span>
           <input
-            type="number"
+            type="numeric"
             style={focusedField === 'addLess' ? styles.addLessInputFocused : styles.addLessInput}
             value={addLessAmount}
             onChange={handleAddLessChange}
             onKeyDown={handleAddLessKeyDown}
             ref={addLessRef}
             // placeholder="Enter amount"
-            step="0.01"
             onFocus={() => setFocusedField('addLess')}
             onBlur={() => setFocusedField('')}
           />
