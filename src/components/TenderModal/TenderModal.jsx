@@ -540,9 +540,8 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       ref={scrapBillNoRef}
                       type="text"
                       value={formData.scrapAmountBillNo}
-                      onChange={(e) => handleInputChange('scrapAmountBillNo', e.target.value)}
-                      onKeyDown={(e) => handleFormFieldKeyDown(e, salesReturnBillNoRef)}
                       onChange={handleScrapBillNoChange}
+                      onKeyDown={(e) => handleFormFieldKeyDown(e, salesReturnBillNoRef)}
                       className={styles.inputField}
                       placeholder="Bill No"
                     />
