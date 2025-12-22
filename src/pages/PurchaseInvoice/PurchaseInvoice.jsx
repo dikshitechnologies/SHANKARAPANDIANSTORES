@@ -380,7 +380,6 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
-
   // Fetch purchase bill list for popup
   const fetchBillList = async () => {
     try {
