@@ -2733,28 +2733,42 @@ searchIconInside: {
       name="custName"
       onChange={handleInputChange}
       ref={custNameRef}
-      onClick={openCustomerPopup}
-      onKeyDown={(e) => {
-        handleKeyDown(e, barcodeRef, 'custName');
-        handleBackspace(e, 'custName');
-      }}
-      onFocus={() => setFocusedField('custName')}
-      onBlur={() => setFocusedField('')}
+      // onClick={openCustomerPopup}
+      // onKeyDown={(e) => {
+      //   handleKeyDown(e, barcodeRef, 'custName');
+      //   handleBackspace(e, 'custName');
+      // }}
+      // onFocus={() => setFocusedField('custName')}
+      // onBlur={() => setFocusedField('')}
       
     />
 
     {/* 🔍 Search Icon */}
     <div
+      onClick={openCustomerPopup}
       style={{
         position: 'absolute',
         right: '10px',
         top: '50%',
         transform: 'translateY(-50%)',
-        pointerEvents: 'none',
+        pointerEvents: 'auto',
         opacity: 0.65,
         display: 'flex',
         alignItems: 'center',
+      
+        padding: '6px',
+        borderRadius: '4px',
+        transition: 'all 0.2s ease',
       }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.opacity = '1';
+        e.currentTarget.style.backgroundColor = 'rgba(27, 145, 218, 0.1)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.opacity = '0.65';
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+      title="Open Customer Selection"
     >
       <SearchIcon />
     </div>

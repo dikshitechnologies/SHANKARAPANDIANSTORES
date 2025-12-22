@@ -477,6 +477,7 @@ export default function SalesmanCreation() {
   const onSalesmanCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      e.stopPropagation();
       salesmanNameRef.current?.focus();
     }
   };
@@ -484,8 +485,9 @@ export default function SalesmanCreation() {
   const onSalesmanNameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
-      salesmanNameRef.current?.focus();
+      e.stopPropagation();
+      // Add delay to allow confirmation popup to show before handling submit
+      setTimeout(() => handleSubmit(), 100);
     }
   };
 
