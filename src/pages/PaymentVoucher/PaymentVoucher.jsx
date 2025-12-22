@@ -144,7 +144,7 @@ const PaymentVoucher = () => {
   const [focusedField, setFocusedField] = useState('');
 
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('add');
+  const [activeFooterAction, setActiveFooterAction] = useState('save');
 
   // Top action active state
   const [activeTopAction, setActiveTopAction] = useState('add');
@@ -2106,21 +2106,33 @@ const PaymentVoucher = () => {
         <div style={styles.rightColumn}>
           <div style={styles.footerButtons}>
             <ClearButton 
-              onClick={handleClear} 
+              onClick={() => {
+                setActiveFooterAction('clear');
+                handleClear();
+              }} 
               disabled={isSaving}
-              isActive={true}
+              isActive={activeFooterAction === 'all' || activeFooterAction === 'clear'}
+              buttonType="clear"
             />
             <SaveButton 
               ref={saveButtonRef}
-              onClick={handleSave} 
+              onClick={() => {
+                setActiveFooterAction('save');
+                handleSave();
+              }} 
               onKeyDown={handleSaveButtonKeyDown}
               disabled={isSaving}
-              isActive={true}
+              isActive={activeFooterAction === 'all' || activeFooterAction === 'save'}
+              buttonType="save"
             />
             <PrintButton 
-              onClick={() => console.log('Print clicked')} 
+              onClick={() => {
+                setActiveFooterAction('print');
+                console.log('Print clicked');
+              }} 
               disabled={false}
-              isActive={true}
+              isActive={activeFooterAction === 'all' || activeFooterAction === 'print'}
+              buttonType="print"
             />
           </div>
         </div>
