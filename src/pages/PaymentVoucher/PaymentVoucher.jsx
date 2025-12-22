@@ -170,12 +170,12 @@ const PaymentVoucher = () => {
     billAmountRefs.current = billAmountRefs.current.slice(0, billDetails.length);
   }, [paymentItems.length, billDetails.length]);
 
-  // Focus on Voucher No when component mounts
+  // Focus on Date field when component mounts
   useEffect(() => {
-    if (voucherNoRef.current) {
+    if (dateRef.current) {
       setTimeout(() => {
-        voucherNoRef.current.focus();
-        setNavigationStep('voucherNo');
+        dateRef.current.focus();
+        setNavigationStep('date');
       }, 100);
     }
   }, []);
@@ -544,10 +544,10 @@ const PaymentVoucher = () => {
     setCurrentPaymentRowIndex(0);
     setCurrentBillRowIndex(0);
     
-    // Focus on voucher no after reset
+    // Focus on date field after reset
     setTimeout(() => {
-      if (voucherNoRef.current) {
-        voucherNoRef.current.focus();
+      if (dateRef.current) {
+        dateRef.current.focus();
       }
     }, 100);
     
@@ -712,29 +712,13 @@ const PaymentVoucher = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       
-      const amountValue = parseFloat(value) || 0;
-      
-      // Only proceed if amount is entered
-      if (amountValue > 0) {
-        // Check if there's a next bill row
-        if (rowIndex < billDetails.length - 1) {
-          // Go to next row's Amount
-          if (billAmountRefs.current[rowIndex + 1]) {
-            billAmountRefs.current[rowIndex + 1].focus();
-            setNavigationStep('billAmount');
-            setCurrentBillRowIndex(rowIndex + 1);
-          }
-        } else {
-          // Last bill row, go to Save button
-          if (saveButtonRef.current) {
-            setTimeout(() => {
-              saveButtonRef.current.focus();
-              setNavigationStep('saveButton');
-            }, 0);
-          }
-        }
+      // Move directly to Save button
+      if (saveButtonRef.current) {
+        setTimeout(() => {
+          saveButtonRef.current.focus();
+          setNavigationStep('saveButton');
+        }, 0);
       }
-      // If amount is not entered, DO NOTHING (don't proceed)
     }
   };
 
@@ -1665,6 +1649,7 @@ const PaymentVoucher = () => {
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'voucherNo' ? styles.inlineInputFocused : styles.inlineInput}
                 onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'voucherNo', 'date')}
+                readOnly
               />
             </div>
 
