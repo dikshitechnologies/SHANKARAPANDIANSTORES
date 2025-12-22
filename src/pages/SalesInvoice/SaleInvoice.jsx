@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
@@ -7,6 +7,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { axiosInstance } from '../../api/apiService';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -27,6 +29,15 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 );
 
 const SaleInvoice = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.SALES_INVOICE),
+    edit: hasModifyPermission(PERMISSION_CODES.SALES_INVOICE),
+    delete: hasDeletePermission(PERMISSION_CODES.SALES_INVOICE)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [isLoading, setIsLoading] = useState(false);
@@ -706,6 +717,15 @@ const getStockByItemName = async (itemCode) => {
   
   // Open edit invoice popup
   const openEditInvoicePopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      toast.error("You do not have permission to edit invoices.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
     try {
       setIsLoading(true);
       
@@ -718,6 +738,15 @@ const getStockByItemName = async (itemCode) => {
       
       setEditInvoicePopupOpen(true);
       
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      toast.error("You do not have permission to delete invoices.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
     } catch (err) {
       setEditInvoicePopupOpen(true);
     } finally {
@@ -1790,6 +1819,15 @@ const formatDateToYYYYMMDD = (dateString) => {
 
   // Handle save with confirmation
   const handleSave = () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add && !formPermissions.edit) {
+      toast.error("You do not have permission to save invoices.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
     showSaveConfirmation();
   };
 
@@ -3149,9 +3187,9 @@ searchIconInside: {
   }}
 >
 
-            <AddButton buttonType="add" />
-            <EditButton buttonType="edit" />
-            <DeleteButton buttonType="delete" />
+            <AddButton buttonType="add" disabled={!formPermissions.add} />
+            <EditButton buttonType="edit" disabled={!formPermissions.edit} />
+            <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
         

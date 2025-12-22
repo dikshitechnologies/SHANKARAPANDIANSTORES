@@ -1428,7 +1428,7 @@ const Scrapprocurement = () => {
       paddingTop: '2px',
     },
     focusedInput: {
-    borderColor: '#1B91DA !important',
+    // borderColor: '#1B91DA !important',
     boxShadow: '0 0 0 1px #1B91DA',
   },
   

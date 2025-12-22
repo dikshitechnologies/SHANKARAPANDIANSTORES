@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import { API_ENDPOINTS } from "../../api/endpoints";
@@ -7,6 +7,8 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPo
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 
 // SEARCH ICON COMPONENT (Same as SalesInvoice)
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
@@ -28,6 +30,15 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 );
 
 const SalesReturn = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.SALES_RETURN),
+    edit: hasModifyPermission(PERMISSION_CODES.SALES_RETURN),
+    delete: hasDeletePermission(PERMISSION_CODES.SALES_RETURN)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
 
@@ -227,6 +238,7 @@ useEffect(() => {
 
   const resetForm = async () => {
     try {
+      // Ensure we're in ADD mode
       setIsEditMode(false);
 
       // Reset bill details to default
@@ -1170,6 +1182,9 @@ const updateSalesReturn = async () => {
       setLoading(true);
       setError("");
       
+      // Set edit mode
+      setIsEditMode(true);
+      
       const voucherDetails = await fetchSalesReturnDetails(voucherNo);
       
       if (!voucherDetails) {
@@ -1406,6 +1421,15 @@ useEffect(() => {
   };
 
   const openEditPopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      toast.error("You do not have permission to edit sales returns.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
     try {
       setLoading(true);
       
@@ -1449,6 +1473,15 @@ useEffect(() => {
   };
 
   const openDeletePopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      toast.error("You do not have permission to delete sales returns.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
     try {
       setLoading(true);
       
@@ -2067,13 +2100,30 @@ const handleAddRow = () => {
       confirmText: "Clear",
       cancelText: "Cancel",
       onConfirm: async () => {
+        // Reset to ADD mode
+        setActiveTopAction('add');
+        setIsEditMode(false);
+        
         await resetForm();
+        
+        // Optional feedback
+        toast.info("Form cleared. Now in Add mode.");
       }
     });
   };
 
 // ==================== SAVE FUNCTION ====================
 const handleSave = async () => {
+  // === PERMISSION CHECK ===
+  if (!formPermissions.add && !formPermissions.edit) {
+    toast.error("You do not have permission to save sales returns.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+  // === END PERMISSION CHECK ===
+  
   if (!billDetails.custName) {
     toast.warning("Please select a customer.");
     return;
@@ -2703,7 +2753,7 @@ const handleSave = async () => {
       fontSize: '16px',
     },
     checkboxCell: {
-      padding: screenSize.isMobile ? '8px 8px' : '10px 12px',
+      padding: screenSize.isMobile ? '8px 8px' : screenSize.isTablet ? '10px 12px' : '10px 12px',
       textAlign: 'center',
       width: '40px',
     },
@@ -3432,14 +3482,20 @@ onKeyDown={(e) => {
             activeButton={activeTopAction}
             onButtonClick={(type) => {
               setActiveTopAction(type);
-              if (type === 'add') ;
-              else if (type === 'edit') openEditPopup();
-              else if (type === 'delete') openDeletePopup();
+              if (type === 'add') {
+                // Reset to add mode when Add button is clicked
+                setIsEditMode(false);
+                handleClear(); // This will clear and reset to Add mode
+              } else if (type === 'edit') {
+                openEditPopup();
+              } else if (type === 'delete') {
+                openDeletePopup();
+              }
             }}
           >
-            <AddButton buttonType="add" />
-            <EditButton buttonType="edit" />
-            <DeleteButton buttonType="delete" />
+            <AddButton buttonType="add" disabled={!formPermissions.add} />
+            <EditButton buttonType="edit" disabled={!formPermissions.edit} />
+            <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
         <div style={styles.totalsContainer}>
