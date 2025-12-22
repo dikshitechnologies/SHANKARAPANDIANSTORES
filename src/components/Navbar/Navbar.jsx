@@ -106,7 +106,7 @@ const Navbar = () => {
     { name: 'Sales Return', path: '/transactions/sales-return', icon: <FileTextOutlined />, permission: 'SALES_RETURN' },
     { name: 'ScrapRateFix', path: '/mastersScrapRateFix/', icon: <BuildOutlined />, permission: 'SCRAP_RATE_FIX' },
     { name: 'ScrapProcurement', path: '/ScrapProcurement', icon: <BuildOutlined />, permission: 'SCRAP_PROCUREMENT' },
-    { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined />, permission: 'TENDER' },
+    // { name: 'Tender', path: '/Transaction/Tender', icon: <DollarOutlined />, permission: 'TENDER' },
     { name: 'Bill Collector', path: '/transactions/bill-collector', icon: <MoneyCollectOutlined />, permission: 'BILL_COLLECTOR' },
   ];
 

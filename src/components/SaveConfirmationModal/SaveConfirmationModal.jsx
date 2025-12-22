@@ -30,6 +30,7 @@ const SaveConfirmationModal = ({
   const confirmRef = useRef(null);
   const [denominations, setDenominations] = useState(particulars);
   const fieldRefs = useRef({});
+  const collectFieldRefs = useRef({});
   const [liveAvailable, setLiveAvailable] = useState({
     500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 
     10: 0, 5: 0, 2: 0, 1: 0
@@ -171,6 +172,29 @@ const SaveConfirmationModal = ({
     }));
   };
 
+  // Handle keydown in collect fields for navigation
+  const handleCollectFieldKeyDown = (e, currentDenom) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+      const currentIndex = denomSequence.indexOf(currentDenom);
+      
+      if (currentIndex < denomSequence.length - 1) {
+        // Move to next denomination field
+        const nextDenom = denomSequence[currentIndex + 1];
+        if (collectFieldRefs.current[nextDenom]) {
+          collectFieldRefs.current[nextDenom].focus();
+        }
+      } else if (currentIndex === denomSequence.length - 1) {
+        // Last field (1), move to Save button
+        if (confirmRef.current) {
+          confirmRef.current.focus();
+        }
+      }
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       setDenominations(particulars);
@@ -279,10 +303,14 @@ const SaveConfirmationModal = ({
                   {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
                     <div key={denom} className={styles.tableCell}>
                       <input
-                        ref={(el) => (fieldRefs.current[denom] = el)}
+                        ref={(el) => {
+                          fieldRefs.current[denom] = el;
+                          collectFieldRefs.current[denom] = el;
+                        }}
                         type="number"
                         value={denominations[denom].collect === 0 ? '' : denominations[denom].collect}
                         onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
+                        onKeyDown={(e) => handleCollectFieldKeyDown(e, denom)}
                         className={styles.tableInput}
                         placeholder="0"
                       />
