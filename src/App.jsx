@@ -15,7 +15,7 @@ import Administration from './pages/Administration/Admistration'
 import SalesReturn from './pages/SalesReturn/Salesreturn'
 import UserCreation from './pages/UserCreation/UserCreation'
 import ScrapRateFix from './pages/ScrapRateFix/scrapratefix'
-import Scrap from './pages/Scrap/scrap'
+// import Scrap from './pages/Scrap/scrap'
 import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
 import UnitCreation from './pages/UnitCreation/UnitCreation'
@@ -98,7 +98,7 @@ function App() {
           <Route path="/Administration" element={<ProtectedRoute><LayoutWithNavbar><Administration /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/transactions/sales-return" element={<ProtectedRoute><LayoutWithNavbar><SalesReturn /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/mastersScrapRateFix" element={<ProtectedRoute><LayoutWithNavbar><ScrapRateFix /></LayoutWithNavbar></ProtectedRoute>} />
-          <Route path="/transactions/scrap" element={<ProtectedRoute><LayoutWithNavbar><Scrap /></LayoutWithNavbar></ProtectedRoute>} />
+          {/* <Route path="/transactions/scrap" element={<ProtectedRoute><LayoutWithNavbar><Scrap /></LayoutWithNavbar></ProtectedRoute>} /> */}
           <Route path="/popup-list-selector-example" element={<ProtectedRoute><LayoutWithNavbar><ExampleUsage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/unit-creation" element={<ProtectedRoute><LayoutWithNavbar><UnitCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/color-creation" element={<ProtectedRoute><LayoutWithNavbar><ColorCreation /></LayoutWithNavbar></ProtectedRoute>} />
