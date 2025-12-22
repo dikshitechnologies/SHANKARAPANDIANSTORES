@@ -1227,7 +1227,24 @@ const ReceiptVoucher = () => {
         }));
 
       // Use updatedParticulars if provided (from modal), otherwise use state particulars
-      const particularToUse = updatedParticulars || particulars;
+      const particularsToUse = updatedParticulars || particulars;
+      
+      // Calculate givenTotal from COLLECT values (amount collected)
+      let givenTotal = 0;
+      const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+      
+      denominations.forEach(denom => {
+        // Get the COLLECT value for this denomination (string key)
+        const denomKey = denom.toString();
+        const collectValue = particularsToUse[denomKey]?.collect;
+        const collectCount = parseInt(collectValue) || 0;
+        givenTotal += collectCount * denom;
+      });
+      
+      // Calculate balanceGiven (change given back)
+      // Formula: totalAmt = givenTotal - balanceGiven
+      // So: balanceGiven = givenTotal - totalAmt
+      const balanceGiven = givenTotal - totalAmount;
       
       // Also update state if we received updatedParticulars
       if (updatedParticulars) {
@@ -1242,31 +1259,33 @@ const ReceiptVoucher = () => {
         gstType: voucherDetails.gstType,
         partyBalance: parseFloat(voucherDetails.balance) || 0,
         totalAmt: totalAmount,
+        givenTotal: givenTotal,
+        balanceGiven: balanceGiven,
         compcode: userData?.companyCode || '001',
         usercode: userData?.userCode || '001',
         itemDetailsList: itemDetailsList,
         referenceBills: referenceBills,
         collect: {
-          r500: parseInt(particularToUse['500']?.collect) || 0,
-          r200: parseInt(particularToUse['200']?.collect) || 0,
-          r100: parseInt(particularToUse['100']?.collect) || 0,
-          r50: parseInt(particularToUse['50']?.collect) || 0,
-          r20: parseInt(particularToUse['20']?.collect) || 0,
-          r10: parseInt(particularToUse['10']?.collect) || 0,
-          r5: parseInt(particularToUse['5']?.collect) || 0,
-          r2: parseInt(particularToUse['2']?.collect) || 0,
-          r1: parseInt(particularToUse['1']?.collect) || 0
+          r500: parseInt(particularsToUse['500']?.collect) || 0,
+          r200: parseInt(particularsToUse['200']?.collect) || 0,
+          r100: parseInt(particularsToUse['100']?.collect) || 0,
+          r50: parseInt(particularsToUse['50']?.collect) || 0,
+          r20: parseInt(particularsToUse['20']?.collect) || 0,
+          r10: parseInt(particularsToUse['10']?.collect) || 0,
+          r5: parseInt(particularsToUse['5']?.collect) || 0,
+          r2: parseInt(particularsToUse['2']?.collect) || 0,
+          r1: parseInt(particularsToUse['1']?.collect) || 0
         },
         issue: {
-          r500: parseInt(particularToUse['500']?.issue) || 0,
-          r200: parseInt(particularToUse['200']?.issue) || 0,
-          r100: parseInt(particularToUse['100']?.issue) || 0,
-          r50: parseInt(particularToUse['50']?.issue) || 0,
-          r20: parseInt(particularToUse['20']?.issue) || 0,
-          r10: parseInt(particularToUse['10']?.issue) || 0,
-          r5: parseInt(particularToUse['5']?.issue) || 0,
-          r2: parseInt(particularToUse['2']?.issue) || 0,
-          r1: parseInt(particularToUse['1']?.issue) || 0
+          r500: parseInt(particularsToUse['500']?.issue) || 0,
+          r200: parseInt(particularsToUse['200']?.issue) || 0,
+          r100: parseInt(particularsToUse['100']?.issue) || 0,
+          r50: parseInt(particularsToUse['50']?.issue) || 0,
+          r20: parseInt(particularsToUse['20']?.issue) || 0,
+          r10: parseInt(particularsToUse['10']?.issue) || 0,
+          r5: parseInt(particularsToUse['5']?.issue) || 0,
+          r2: parseInt(particularsToUse['2']?.issue) || 0,
+          r1: parseInt(particularsToUse['1']?.issue) || 0
         }
       };
 
