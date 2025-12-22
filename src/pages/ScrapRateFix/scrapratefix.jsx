@@ -1,10 +1,20 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import apiService from "../../api/apiService";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { toast } from "react-toastify";
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 
 export default function ScrapRateFixing() {
+  // --- PERMISSIONS ---
+  const { hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    edit: hasModifyPermission(PERMISSION_CODES.SCRAP_RATE_FIX),
+    delete: hasDeletePermission(PERMISSION_CODES.SCRAP_RATE_FIX)
+  }), [hasModifyPermission, hasDeletePermission]);
+
   // State for scrap rates - initially empty
   const [scrapRates, setScrapRates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -707,22 +717,22 @@ const handleConfirmClearAll = () => {
               padding: isMobile ? '10px 20px' : '12px 24px',
               borderRadius: '50px',
               border: 'none',
-              background: loading || isFetching || scrapRates.length === 0 ? 
+              background: loading || isFetching || scrapRates.length === 0 || !formPermissions.edit ? 
                 `linear-gradient(135deg, #cbd5e1, #e2e8f0)` :
                 `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
               color: '#ffffff',
               fontWeight: '600',
               fontSize: isMobile ? '14px' : '15px',
-              cursor: loading || isFetching || scrapRates.length === 0 ? 'not-allowed' : 'pointer',
+              cursor: loading || isFetching || scrapRates.length === 0 || !formPermissions.edit ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
               minWidth: isMobile ? '100px' : '120px',
-              boxShadow: loading || isFetching || scrapRates.length === 0 ? 
+              boxShadow: loading || isFetching || scrapRates.length === 0 || !formPermissions.edit ? 
                 'none' : '0 4px 12px rgba(48, 122, 200, 0.25)',
               height: isMobile ? '38px' : '42px',
-              opacity: loading || isFetching || scrapRates.length === 0 ? 0.6 : 1
+              opacity: loading || isFetching || scrapRates.length === 0 || !formPermissions.edit ? 0.6 : 1
             }}
             onMouseEnter={(e) => {
-              if (!loading && !isFetching && scrapRates.length > 0) {
+              if (!loading && !isFetching && scrapRates.length > 0 && formPermissions.edit) {
                 e.target.style.transform = 'translateY(-2px)';
                 e.target.style.boxShadow = '0 6px 20px rgba(48, 122, 200, 0.35)';
               }
@@ -731,6 +741,7 @@ const handleConfirmClearAll = () => {
               e.target.style.transform = 'translateY(0)';
               e.target.style.boxShadow = '0 4px 12px rgba(48, 122, 200, 0.25)';
             }}
+            title={!formPermissions.edit ? 'You do not have permission to modify' : ''}
           >
             {loading ? (
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
@@ -750,24 +761,24 @@ const handleConfirmClearAll = () => {
           {/* Clear All Button - Moved to right side next to Update */}
           <button
             onClick={handleClearAll}
-            disabled={loading || isFetching || scrapRates.length === 0}
+            disabled={loading || isFetching || scrapRates.length === 0 || !formPermissions.delete}
             style={{
               padding: isMobile ? '10px 20px' : '12px 24px',
               borderRadius: '50px',
-              border: `1px solid ${colors.border}`,
+              border: `1px solid ${loading || isFetching || scrapRates.length === 0 || !formPermissions.delete ? '#cbd5e1' : colors.border}`,
               background: '#ffffff',
-              color: loading || isFetching || scrapRates.length === 0 ? '#cbd5e1' : colors.muted,
+              color: loading || isFetching || scrapRates.length === 0 || !formPermissions.delete ? '#cbd5e1' : colors.muted,
               fontWeight: '600',
               fontSize: isMobile ? '14px' : '15px',
-              cursor: loading || isFetching || scrapRates.length === 0 ? 'not-allowed' : 'pointer',
+              cursor: loading || isFetching || scrapRates.length === 0 || !formPermissions.delete ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
               minWidth: isMobile ? '100px' : '120px',
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
               height: isMobile ? '38px' : '42px',
-              opacity: loading || isFetching || scrapRates.length === 0 ? 0.6 : 1
+              opacity: loading || isFetching || scrapRates.length === 0 || !formPermissions.delete ? 0.6 : 1
             }}
             onMouseEnter={(e) => {
-              if (!loading && !isFetching && scrapRates.length > 0) {
+              if (!loading && !isFetching && scrapRates.length > 0 && formPermissions.delete) {
                 e.target.style.transform = 'translateY(-2px)';
                 e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.12)';
                 e.target.style.borderColor = colors.warning;
@@ -780,6 +791,7 @@ const handleConfirmClearAll = () => {
               e.target.style.borderColor = colors.border;
               e.target.style.color = colors.muted;
             }}
+            title={!formPermissions.delete ? 'You do not have permission to delete' : ''}
           >
             Clear All
           </button>

@@ -1,8 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import styles from './Tender.module.css';
 import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 
 const Tender = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.TENDER),
+    edit: hasModifyPermission(PERMISSION_CODES.TENDER),
+    delete: hasDeletePermission(PERMISSION_CODES.TENDER)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   const [activeFooterAction, setActiveFooterAction] = useState('all');
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: '', issue: '', closing: 0 },
@@ -53,11 +64,19 @@ const Tender = () => {
   };
 
   const handleSave = () => {
+    if (!formPermissions.edit) {
+      alert('You do not have permission to save');
+      return;
+    }
     console.log('Saved:', { formData, denominations });
     alert('Saved successfully!');
   };
 
   const handleDelete = () => {
+    if (!formPermissions.delete) {
+      alert('You do not have permission to delete');
+      return;
+    }
     if (window.confirm('Are you sure you want to delete?')) {
       console.log('Deleted');
       alert('Deleted successfully!');
@@ -70,6 +89,10 @@ const Tender = () => {
   };
 
   const handleClear = () => {
+    if (!formPermissions.delete) {
+      alert('You do not have permission to clear');
+      return;
+    }
     if (window.confirm('Are you sure you want to clear all data?')) {
       setFormData({
         grossAmt: '',
