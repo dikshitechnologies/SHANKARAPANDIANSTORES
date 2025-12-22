@@ -26,6 +26,7 @@ const PopupListSelector = ({
   tableStyles = {},
   maxHeight = '70vh',
   searchPlaceholder = 'Search...',
+  initialSearch = '',
   responsiveBreakpoint = 768 
 }) => {
   const [searchText, setSearchText] = useState('');
@@ -66,13 +67,16 @@ const PopupListSelector = ({
       setPage(1);
       setHasMore(true);
 
-      loadData(1, '', true);
+      // Use initialSearch when provided so parent can prefill the popup search
+      const initial = initialSearch || '';
+      setSearchText(initial);
+      loadData(1, initial, true);
 
       setTimeout(() => {
         if (searchInputRef.current) searchInputRef.current.focus();
       }, 100);
     }
-  }, [open]);
+  }, [open, initialSearch]);
 
   // -------------------------
   // Debounced Search
