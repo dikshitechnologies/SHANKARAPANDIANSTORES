@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import { API_ENDPOINTS } from "../../api/endpoints";
@@ -7,8 +7,6 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPo
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { usePermissions } from "../../hooks/usePermissions";
-import { PERMISSION_CODES } from "../../constants/permissions";
 
 // SEARCH ICON COMPONENT (Same as SalesInvoice)
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
@@ -30,15 +28,6 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 );
 
 const SalesReturn = () => {
-  // --- PERMISSIONS ---
-  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
-  
-  const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.SALES_RETURN),
-    edit: hasModifyPermission(PERMISSION_CODES.SALES_RETURN),
-    delete: hasDeletePermission(PERMISSION_CODES.SALES_RETURN)
-  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
-
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
 
@@ -953,7 +942,7 @@ const createSalesReturn = async () => {
     throw err;
   } finally {
     setLoading(false);
-  }
+    }
 };
 
 // ==================== UPDATE SALES RETURN ====================
@@ -1727,26 +1716,113 @@ useEffect(() => {
     setBillDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleKeyDown = (e, nextRef, fieldName = '') => {
-    if (e.key === '/') {
-      e.preventDefault();
+// ==================== UPDATED KEY HANDLERS ====================
+// This is the main change: When any letter is pressed in salesman, customer, bill no, or item name fields,
+// it will open the popup and search for items starting with that letter
+const handleKeyDown = (e, nextRef, fieldName = '') => {
+  // Check if a letter key is pressed (A-Z, a-z)
+  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+  
+  if (isLetterKey) {
+    e.preventDefault(); // Prevent the letter from being typed in the field
+    
+    if (fieldName === 'salesman') {
+      // Open salesman popup with the typed letter as initial search
+      setPopupData(salesmen.map(salesman => ({
+        id: salesman.fcode || salesman.code || salesman.id,
+        name: salesman.fname || salesman.name,
+        displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`,
+        salesmanCode: salesman.fcode || salesman.code,
+        salesmanName: salesman.fname || salesman.name
+      })));
+      setPopupTitle("Select Salesman");
+      setPopupType("salesman");
+      setPopupOpen(true);
       
-      if (fieldName === 'salesman') {
-        openSalesmanPopup();
-      } else if (fieldName === 'custName') {
-        openCustomerPopup();
-      } else if (fieldName === 'newBillNo') {
-        openBillNumberPopup();
-      }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (nextRef && nextRef.current) {
-        nextRef.current.focus();
-      }
+      // Set the typed letter as initial search in popup
+      // We'll handle this in the PopupListSelector by passing the initial search
+      setTimeout(() => {
+        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+        if (searchInput) {
+          searchInput.value = e.key;
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 100);
+      
+    } else if (fieldName === 'custName') {
+      // Open customer popup with the typed letter as initial search
+      setPopupData(customers.map(customer => ({
+        id: customer.code || customer.id,
+        name: customer.name,
+        displayName: `${customer.code} - ${customer.name}`,
+        customerCode: customer.code,
+        customerName: customer.name,
+        mobileNo: customer.mobile || customer.phone || ""
+      })));
+      setPopupTitle("Select Customer");
+      setPopupType("customer");
+      setPopupOpen(true);
+      
+      // Set the typed letter as initial search in popup
+      setTimeout(() => {
+        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+        if (searchInput) {
+          searchInput.value = e.key;
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 100);
+      
+    } else if (fieldName === 'newBillNo') {
+      // Open bill number popup with the typed letter as initial search
+      openBillNumberPopup().then(() => {
+        setTimeout(() => {
+          const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+          if (searchInput) {
+            searchInput.value = e.key;
+            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }, 200);
+      });
     }
-  };
+  } else if (e.key === '/') {
+    e.preventDefault();
+    
+    if (fieldName === 'salesman') {
+      openSalesmanPopup();
+    } else if (fieldName === 'custName') {
+      openCustomerPopup();
+    } else if (fieldName === 'newBillNo') {
+      openBillNumberPopup();
+    }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (nextRef && nextRef.current) {
+      nextRef.current.focus();
+    }
+  }
+};
 
 const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  // Check if a letter key is pressed (A-Z, a-z) in itemName field
+  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+  
+  if (isLetterKey && currentField === 'itemName') {
+    e.preventDefault(); // Prevent the letter from being typed in the field
+    
+    // Open item popup with the typed letter as initial search
+    openItemPopup(currentRowIndex);
+    
+    // Set the typed letter as initial search in popup
+    setTimeout(() => {
+      const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+      if (searchInput) {
+        searchInput.value = e.key;
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }, 100);
+    return;
+  }
+  
   if (e.key === '/' && currentField === 'itemName') {
     e.preventDefault();
     openItemPopup(currentRowIndex);

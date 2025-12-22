@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Modal } from 'antd';
 import { toast } from 'react-toastify';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
@@ -8,6 +8,8 @@ import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 
 const Icon = {
   Search: ({ size = 16 }) => (
@@ -36,6 +38,15 @@ const calculateTotals = (items = []) => {
 };
 
 const PurchaseReturn = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.PURCHASE_RETURN),
+    edit: hasModifyPermission(PERMISSION_CODES.PURCHASE_RETURN),
+    delete: hasDeletePermission(PERMISSION_CODES.PURCHASE_RETURN)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [isEditMode, setIsEditMode] = useState(false);
@@ -2717,9 +2728,9 @@ const handleBlur = () => {
               else if (type === 'delete') handleDelete();
             }}         
           >
-            <AddButton buttonType="add"/>
-            <EditButton buttonType="edit"/>
-            <DeleteButton buttonType="delete" />
+            <AddButton buttonType="add" disabled={!formPermissions.add}/>
+            <EditButton buttonType="edit" disabled={!formPermissions.edit}/>
+            <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
         <div style={styles.addLessContainer}>
