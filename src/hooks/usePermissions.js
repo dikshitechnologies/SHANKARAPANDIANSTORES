@@ -44,16 +44,30 @@ export const usePermissions = () => {
   const hasAddPermission = (formName) => {
     // Admin users have all permissions
     if (isAdmin()) {
+      console.log(`✅ User is ADMIN for ${formName} - returning true`);
       return true;
     }
 
-    if (!permissions || permissions.length === 0) return false;
+    if (!permissions || permissions.length === 0) {
+      console.log(`❌ No permissions found for ${formName}`);
+      return false;
+    }
     
     const permission = permissions.find(
       p => p.fForm === formName || p.form === formName || p.formCode === formName
     );
     
-    return permission && (permission.fAdd === 1 || permission.fAdd === '1' || permission.fAdd === true);
+    const hasAdd = permission && (permission.fAdd === 1 || permission.fAdd === '1' || permission.fAdd === true);
+    
+    console.log(`Permission lookup for ${formName}:`, {
+      found: !!permission,
+      permission: permission,
+      fAdd: permission?.fAdd,
+      fAdd_type: typeof permission?.fAdd,
+      hasAdd: hasAdd
+    });
+    
+    return hasAdd;
   };
 
   /**

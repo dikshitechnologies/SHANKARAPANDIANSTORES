@@ -226,6 +226,16 @@ const submitRef = useRef(null);
   };
 
   const handleEdit = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to edit sizes." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode || !form.sizeName) {
       setMessage({ type: "error", text: "Please fill Size Code and Size Name." });
       return;
@@ -270,6 +280,16 @@ const submitRef = useRef(null);
   };
 
   const handleDelete = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to delete sizes." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode) {
       setMessage({ type: "error", text: "Please select a size to delete." });
       toast.error("Please select a size to delete.");
@@ -305,6 +325,16 @@ const submitRef = useRef(null);
   };
 
   const handleAdd = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to create sizes." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode || !form.sizeName) {
       setMessage({ type: "error", text: "Please fill Size Code and Size Name." });
       return;

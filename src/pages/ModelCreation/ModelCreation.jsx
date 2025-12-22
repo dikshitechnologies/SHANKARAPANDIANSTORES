@@ -245,6 +245,16 @@ useEffect(() => {
   };
 
   const handleEdit = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to edit models." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode || !form.modelName) {
       setMessage({ type: "error", text: "Please fill Model Code and Model Name." });
       return;
@@ -279,6 +289,16 @@ useEffect(() => {
   };
 
   const handleDelete = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to delete models." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode) {
       setMessage({ type: "error", text: "Please select a model to delete." });
       return;
@@ -316,6 +336,16 @@ useEffect(() => {
   };
 
   const handleAdd = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.add) {
+      setMessage({ 
+        type: "error", 
+        text: "You do not have permission to create models." 
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!form.fuCode || !form.modelName) {
       setMessage({ type: "error", text: "Please fill Model Code and Model Name." });
       return;
