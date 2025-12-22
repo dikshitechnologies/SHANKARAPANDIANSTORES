@@ -162,11 +162,11 @@ const ReceiptVoucher = () => {
     isDesktop: true
   });
 
-  // Focus on voucher no on component mount
+  // Focus on date field on component mount
   useEffect(() => {
-    if (voucherNoRef.current) {
+    if (dateRef.current) {
       setTimeout(() => {
-        voucherNoRef.current?.focus();
+        dateRef.current?.focus();
       }, 100);
     }
   }, []);
@@ -559,9 +559,9 @@ const ReceiptVoucher = () => {
     setFocusedField('');
     setCurrentBillRowIndex(0);
     
-    // Focus on voucher no after reset
+    // Focus on date field after reset
     setTimeout(() => {
-      voucherNoRef.current?.focus();
+      dateRef.current?.focus();
     }, 100);
   };
 
@@ -1052,9 +1052,9 @@ const ReceiptVoucher = () => {
       // Get current field index
       const currentFieldIndex = billFields.indexOf(currentField);
 
-      // If at amount field and amount is not entered (0 or empty), don't move to next row
-      if (currentField === 'amount' && (!currentBill.amount || parseFloat(currentBill.amount) <= 0)) {
-        // Don't move to next row - stay in same field
+      // If at amount field, move directly to save button
+      if (currentField === 'amount') {
+        setTimeout(() => saveButtonRef.current?.focus(), 0);
         return;
       }
 
@@ -1063,28 +1063,12 @@ const ReceiptVoucher = () => {
         const nextFieldId = `bill_${currentBill.id}_${billFields[currentFieldIndex + 1]}`;
         setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
       } else {
-        // Last field in current row (Amount field)
-        // Check if next row exists
+        // Last field in current row (shouldn't reach here as amount moves to save button)
         if (currentRowIndex < billDetails.length - 1) {
           const nextBill = billDetails[currentRowIndex + 1];
           const nextFieldId = `bill_${nextBill.id}_${billFields[0]}`;
           setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
           setCurrentBillRowIndex(currentRowIndex + 1);
-        } else {
-          // Last row of bill details
-          // Check if there are more receipt rows with cash/bank
-          const nextReceiptRow = receiptItems.find(item => 
-            item.cashBank.trim() && 
-            (!item.amount || parseFloat(item.amount) <= 0)
-          );
-          
-          if (nextReceiptRow) {
-            // Go to amount field of that receipt row
-            setTimeout(() => document.getElementById(`receipt_${nextReceiptRow.id}_amount`)?.focus(), 0);
-          } else {
-            // Go to save button
-            setTimeout(() => saveButtonRef.current?.focus(), 0);
-          }
         }
       }
     }
@@ -1832,6 +1816,7 @@ const ReceiptVoucher = () => {
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'voucherNo' ? styles.inlineInputFocused : styles.inlineInput}
                 onKeyDown={(e) => handleKeyDown(e, dateRef, 'voucherNo')}
+                readOnly
               />
             </div>
 
