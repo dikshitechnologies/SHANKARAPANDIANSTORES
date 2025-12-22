@@ -2245,12 +2245,12 @@ const ReceiptVoucher = () => {
         </div>
         <div style={styles.footerButtons}>
           <ActionButtons1
+            ref={saveButtonRef}
             onClear={handleClear}
             onSave={handleSave}
             onPrint={handlePrint}
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
-            saveButtonRef={saveButtonRef}
           />
         </div>
       </div>
