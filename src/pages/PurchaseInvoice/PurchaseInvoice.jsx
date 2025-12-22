@@ -1373,7 +1373,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       padding: 0,
       overflowX: 'hidden',
       overflowY: 'hidden',
-      position: 'fixed',
     },
     headerSection: {
       flex: '0 0 auto',
@@ -2540,6 +2539,15 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             ref={addLessRef}
             onFocus={() => setFocusedField('addLess')}
             onBlur={handleBlur}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Enter pressed in Add/Less, calling handleSave');
+                // Small delay to let popup render before calling handleSave
+                setTimeout(() => handleSave(), 100);
+              }
+            }}
             inputMode="decimal"
           />
         </div>
