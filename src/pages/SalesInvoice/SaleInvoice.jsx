@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
@@ -7,6 +7,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { axiosInstance } from '../../api/apiService';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 
 
 
@@ -29,6 +31,15 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 );
 
 const SaleInvoice = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.SALES_INVOICE),
+    edit: hasModifyPermission(PERMISSION_CODES.SALES_INVOICE),
+    delete: hasDeletePermission(PERMISSION_CODES.SALES_INVOICE)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [isLoading, setIsLoading] = useState(false);
@@ -3059,9 +3070,9 @@ searchIconInside: {
   }}
 >
 
-            <AddButton buttonType="add" />
-            <EditButton buttonType="edit" />
-            <DeleteButton buttonType="delete" />
+            <AddButton buttonType="add" disabled={!formPermissions.add} />
+            <EditButton buttonType="edit" disabled={!formPermissions.edit} />
+            <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
         

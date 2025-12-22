@@ -2368,9 +2368,9 @@ const Scrapprocurement = () => {
               }
             }}
           >
-            <AddButton buttonType="add" />
-            <EditButton buttonType="edit" />
-            <DeleteButton buttonType="delete" />
+            <AddButton buttonType="add" disabled={!formPermissions.add} />
+            <EditButton buttonType="edit" disabled={!formPermissions.edit} />
+            <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
         <div style={styles.totalsContainer}>

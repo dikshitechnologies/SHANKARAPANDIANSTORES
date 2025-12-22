@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import SaveConfirmationModal from '../../components/SaveConfirmationModal/SaveConfirmationModal';
@@ -9,8 +9,19 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 
 const ReceiptVoucher = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.RECEIPT_VOUCHER),
+    edit: hasModifyPermission(PERMISSION_CODES.RECEIPT_VOUCHER),
+    delete: hasDeletePermission(PERMISSION_CODES.RECEIPT_VOUCHER)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // --- STATE MANAGEMENT ---
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -2202,9 +2213,9 @@ const ReceiptVoucher = () => {
               else if (type === 'delete') openDeleteVoucherPopup();
             }}
           >
-            <AddButton buttonType="add" />
-            <EditButton buttonType="edit" />
-            <DeleteButton buttonType="delete" />
+            <AddButton buttonType="add" disabled={!formPermissions.add} />
+            <EditButton buttonType="edit" disabled={!formPermissions.edit} />
+            <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
         <div style={styles.totalsContainer}>
