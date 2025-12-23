@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useState, useRef, useCallback } from "react"
 import axiosInstance from "../../api/axiosInstance";
 import { API_ENDPOINTS } from "../../api/endpoints";
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
-// import { useFormPermissions } from '../../../hooks/useFormPermissions';
+import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
+import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/ActionButtons";
+import { usePermissions } from "../../hooks/usePermissions";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const FCompCode = "001";
 
@@ -25,7 +29,7 @@ const Icon = {
   ),
   Search: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
+      <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
     </svg>
   ),
   Close: ({ size = 18 }) => (
@@ -167,8 +171,20 @@ export default function LedgerCreation({ onCreated }) {
   const shortNameRef = useRef(null);
   const emailRef = useRef(null);
 
-  // Get permissions for this form (fallback when hook isn't available)
-  const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
+  // Get permissions for this form using the usePermissions hook
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  // Get permissions for LEDGER_CREATION form
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission('LEDGER_CREATION'),
+    edit: hasModifyPermission('LEDGER_CREATION'),
+    delete: hasDeletePermission('LEDGER_CREATION')
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
+  // Confirmation Popup States
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmData, setConfirmData] = useState(null);
 
   // Auto-focus Ledger Name on component mount
   useEffect(() => {
@@ -377,15 +393,15 @@ export default function LedgerCreation({ onCreated }) {
 
     // Check permissions based on action type
     if (actionType === 'create' && !formPermissions.add) {
-      setMessage({ type: "error", text: "You don't have permission to create ledgers." });
+      toast.error("You don't have permission to create ledgers.");
       return;
     }
     if (actionType === 'edit' && !formPermissions.edit) {
-      setMessage({ type: "error", text: "You don't have permission to edit ledgers." });
+      toast.error("You don't have permission to edit ledgers.");
       return;
     }
     if (actionType === 'delete' && !formPermissions.delete) {
-      setMessage({ type: "error", text: "You don't have permission to delete ledgers." });
+      toast.error("You don't have permission to delete ledgers.");
       return;
     }
 
@@ -400,13 +416,13 @@ export default function LedgerCreation({ onCreated }) {
             ledger.fAcname.toLowerCase() === formData.partyName.toLowerCase()
           );
           if (isDuplicate) {
-            setMessage({ type: "error", text: 'A ledger with this name already exists. Please choose a different name.' });
+            toast.error('A ledger with this name already exists. Please choose a different name.');
             setIsSubmitting(false);
             return;
           }
         } catch (error) {
           console.error('Error checking for duplicates:', error);
-          setMessage({ type: "error", text: 'Failed to verify ledger uniqueness. Please try again.' });
+          toast.error('Failed to verify ledger uniqueness. Please try again.');
           setIsSubmitting(false);
           return;
         }
@@ -437,7 +453,7 @@ export default function LedgerCreation({ onCreated }) {
       switch (actionType) {
         case 'create':
           response = await axiosInstance.post(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.postCreate, requestData);
-          setMessage({ type: "success", text: 'Data saved successfully!' });
+          toast.success('Ledger created successfully!');
           if (onCreated) {
             onCreated({
               name: requestData.CustomerName,
@@ -447,18 +463,18 @@ export default function LedgerCreation({ onCreated }) {
           break;
         case 'edit':
           response = await axiosInstance.put(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.putEdit, requestData);
-          setMessage({ type: "success", text: 'Data updated successfully!' });
+          toast.success('Ledger updated successfully!');
           break;
         case 'delete':
           if (!formData.fCode) {
-            setMessage({ type: "error", text: 'fCode is required for deletion' });
+            toast.error('fCode is required for deletion');
             return;
           }
           response = await axiosInstance.delete(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.delete(formData.fCode));
-          setMessage({ type: "success", text: 'Data deleted successfully!' });
+          toast.success('Ledger deleted successfully!');
           break;
         default:
-          setMessage({ type: "error", text: 'Invalid action type' });
+          toast.error('Invalid action type');
           return;
       }
 
@@ -466,7 +482,7 @@ export default function LedgerCreation({ onCreated }) {
         handleClear();
         await fetchTreeData();
       } else {
-        setMessage({ type: "error", text: 'Failed to process request' });
+        toast.error('Failed to process request');
       }
     } catch (error) {
       console.error('Submit error:', error);
@@ -475,14 +491,14 @@ export default function LedgerCreation({ onCreated }) {
         const message = error.response.data?.message || 'An unexpected server error occurred.';
 
         if (status === 409) {
-          setMessage({ type: "error", text: 'Concurrent modification detected. Please refresh and try again.' });
+          toast.error('Concurrent modification detected. Please refresh and try again.');
         } else {
-          setMessage({ type: "error", text: `Error ${status}: ${message}` });
+          toast.error(`Error ${status}: ${message}`);
         }
       } else if (error.request) {
-        setMessage({ type: "error", text: 'No response received from the server. Please check your network connection.' });
+        toast.error('No response received from the server. Please check your network connection.');
       } else {
-        setMessage({ type: "error", text: `Error: ${error.message}. Please check your connection and try again.` });
+        toast.error(`Error: ${error.message}. Please check your connection and try again.`);
       }
     } finally {
       setIsSubmitting(false);
@@ -598,6 +614,25 @@ export default function LedgerCreation({ onCreated }) {
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
+        /* Toast notification styles - ADDED */
+        .Toastify__toast-container {
+          z-index: 9999;
+        }
+        .Toastify__toast {
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          border-radius: 10px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+        .Toastify__toast--success {
+          background: linear-gradient(180deg, #f0fdf4, #dcfce7);
+          color: #064e3b;
+          border: 1px solid #bbf7d0;
+        }
+        .Toastify__toast-body {
+          font-size: 14px;
+          font-weight: 500;
+        }
+
         :root{
           /* blue theme (user-provided) */
           --bg-1: #f0f7fb;
@@ -629,18 +664,18 @@ export default function LedgerCreation({ onCreated }) {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
-          padding: 20px;
+          padding: 24px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
-          box-shadow: var(--card-shadow);
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
-        
+          margin-bottom: 160px;
         }
-        .dashboard:hover { transform: translateY(-6px); }
+        .dashboard:hover { transform: translateY(-2px); }
 
         /* header */
         .top-row {
@@ -648,28 +683,26 @@ export default function LedgerCreation({ onCreated }) {
           align-items:center;
           justify-content:space-between;
           gap:12px;
-          margin-bottom: 18px;
+          margin-bottom: 24px;
           flex-wrap: wrap;
         }
-       .title-block {
-  display: flex;
-  flex-direction: column; /* Change from row to column */
-  align-items: flex-start; /* Align items to the left */
-  gap: 4px; /* Adjust spacing between title and subtitle */
-}
-
-.title-block h2 {
-  margin: 0;
-  font-family: "Poppins", "Inter", sans-serif;
-  font-size: 20px;
-  color: #0f172a;
-  letter-spacing: -0.2px;
-}
-
-.subtitle {
-  color: var(--muted);
-  font-size: 13px;
-}
+        .title-block {
+          display:flex;
+          flex-direction: row;
+          align-items: flex-start;
+          gap: 4px;
+        }
+        .title-block h2 {
+          margin:0;
+          font-family: "Poppins", "Inter", sans-serif;
+          font-size: 20px;
+          color: #0f172a;
+          letter-spacing: -0.2px;
+        }
+        .subtitle {
+          color: var(--muted);
+          font-size: 13px;
+        }
         /* action pills */
         .actions {
           display:flex;
@@ -689,17 +722,38 @@ export default function LedgerCreation({ onCreated }) {
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
           font-size: 13px;
+          transition: all 0.2s;
+          border: none;
         }
-        .action-pill.primary { color:white; background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
-        .action-pill.warn { color:white; background: linear-gradient(180deg,#f59e0b,#f97316); }
-        .action-pill.danger { color:white; background: linear-gradient(180deg,var(--danger),#f97373); }
+        .action-pill:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(2,6,23,0.08);
+        }
+        .action-pill:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+        .action-pill.primary { 
+          color:white; 
+          background: linear-gradient(180deg, var(--accent), var(--accent-2));
+          border: 1px solid rgba(48, 122, 200, 0.3);
+        }
+        .action-pill.warn { 
+          color:white; 
+          background: linear-gradient(180deg,#f59e0b,#f97316);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .action-pill.danger { 
+          color:white; 
+          background: linear-gradient(180deg,var(--danger),#f97373);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
 
         /* grid layout */
         .grid {
-          display:grid;
-          grid-template-columns: 1fr 360px;
-          gap:18px;
-          align-items:start;
+          display: block;
+          width: 100%;
         }
 
         /* left card (form) */
@@ -735,29 +789,59 @@ export default function LedgerCreation({ onCreated }) {
           width:100%;
           flex-wrap: wrap;
         }
-        .input, .search {
+        .input, .search, .select {
           flex:1;
-          min-width: 0;
+          min-width: 250px;
           padding:10px 12px;
           border-radius:10px;
-          border: 1px solid rgba(15,23,42,0.06);
+          border: 1px solid rgba(15,23,42,0.1);
           background: linear-gradient(180deg, #fff, #fbfdff);
           font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
-          transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
+          transition: all 160ms ease;
+          text-align: left;
+          font-family: inherit;
         }
-  .input:focus, .search:focus { outline:none; box-shadow: 0 8px 26px rgba(48,122,200,0.08); transform: translateY(-1px); border-color: rgba(48,122,200,0.25); }
+        .input:focus, .search:focus, .select:focus { 
+          outline:none; 
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.15); 
+          border-color: rgba(37,99,235,0.5); 
+        }
+        .input:disabled, .select:disabled {
+          background: #f1f5f9;
+          cursor: not-allowed;
+          opacity: 0.7;
+        }
+
+        .select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23307AC8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 10px center;
+          background-size: 16px;
+          padding-right: 32px;
+          cursor: pointer;
+        }
 
         .btn {
           padding:10px 12px;
           border-radius:10px;
-          border:1px solid rgba(12,18,35,0.06);
+          border:1px solid rgba(12,18,35,0.1);
           background: linear-gradient(180deg,#fff,#f8fafc);
           cursor:pointer;
           min-width:86px;
           font-weight:600;
           white-space: nowrap;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .btn:hover {
+          background: linear-gradient(180deg,#f8fafc,#f1f5f9);
+        }
+        .btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         .controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
@@ -767,10 +851,34 @@ export default function LedgerCreation({ onCreated }) {
           margin-top:8px;
           border-radius:10px;
           background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(250,251,255,0.6));
-          border: 1px solid rgba(12,18,35,0.04);
+          border: 1px solid rgba(12,18,35,0.08);
           padding:10px;
+          width: 100%;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
-        .tree-scroll { max-height:260px; overflow:auto; padding-right:6px; }
+        .tree-scroll { 
+          max-height:260px; 
+          overflow:auto; 
+          padding-right:6px;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(12,18,35,0.1) transparent;
+        }
+        .tree-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .tree-scroll::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 10px;
+        }
+        .tree-scroll::-webkit-scrollbar-thumb {
+          background: rgba(12,18,35,0.15);
+          border-radius: 10px;
+          border: 2px solid transparent;
+          background-clip: padding-box;
+        }
+        .tree-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(12,18,35,0.25);
+        }
 
         .tree-row {
           display:flex;
@@ -779,10 +887,17 @@ export default function LedgerCreation({ onCreated }) {
           padding:10px;
           border-radius:10px;
           cursor:pointer;
-          transition: background 160ms ease, transform 120ms ease, box-shadow 180ms ease;
+          transition: all 160ms ease;
+          margin-bottom: 2px;
         }
-  .tree-row:hover { background: linear-gradient(90deg, rgba(48,122,200,0.06), rgba(48,122,200,0.02)); transform: translateX(6px); }
-  .tree-row.selected { background: linear-gradient(90deg, rgba(15,23,42,0.03), rgba(15,23,42,0.01)); box-shadow: inset 0 0 0 1px rgba(48,122,200,0.06); }
+        .tree-row:hover { 
+          background: linear-gradient(90deg, rgba(74,222,128,0.06), rgba(74,222,128,0.02)); 
+          transform: translateX(4px); 
+        }
+        .tree-row.selected { 
+          background: linear-gradient(90deg, rgba(15,23,42,0.03), rgba(15,23,42,0.01)); 
+          box-shadow: inset 0 0 0 1px rgba(16,163,98,0.1); 
+        }
 
         .chev, .chev-placeholder {
           background:transparent;
@@ -794,12 +909,29 @@ export default function LedgerCreation({ onCreated }) {
           justify-content:center;
           cursor:pointer;
           font-size:14px;
+          padding: 0;
         }
-        .chev-rot { display:inline-block; transition: transform 220ms cubic-bezier(.2,.8,.2,1); }
+        .chev-rot { 
+          display:inline-block; 
+          transition: transform 220ms cubic-bezier(.2,.8,.2,1); 
+        }
         .chev-rot.open { transform: rotate(90deg); }
 
-        .node-icon { width:22px; display:inline-flex; align-items:center; justify-content:center; color:var(--accent); }
-        .node-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; color:#0f172a; }
+        .node-icon { 
+          width:22px; 
+          display:inline-flex; 
+          align-items:center; 
+          justify-content:center; 
+          color:var(--accent); 
+        }
+        .node-text { 
+          white-space:nowrap; 
+          overflow:hidden; 
+          text-overflow:ellipsis; 
+          font-weight:600; 
+          color:#0f172a;
+          flex: 1;
+        }
 
         /* right card (preview / summary) */
         .side {
@@ -811,9 +943,20 @@ export default function LedgerCreation({ onCreated }) {
           background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(250,251,255,0.7));
           border-radius: 12px;
           padding:12px;
-          border: 1px solid rgba(12,18,35,0.04);
+          border: 1px solid rgba(12,18,35,0.06);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; margin-left:-7px; }
+        .muted { 
+          color: var(--muted); 
+          font-size:13px; 
+          margin-bottom: 4px;
+        }
+        .stat-value {
+          font-weight: 700;
+          font-size: 16px;
+          color: #0f172a;
+          min-height: 24px;
+        }
 
         /* message */
         .message {
@@ -821,17 +964,27 @@ export default function LedgerCreation({ onCreated }) {
           padding:12px;
           border-radius:10px;
           font-weight:600;
+          font-size: 14px;
         }
-        .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
-        .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
+        .message.error { 
+          background: #fff1f2; 
+          color: #9f1239; 
+          border: 1px solid #ffd7da; 
+        }
+        .message.success { 
+          background: #f0fdf4; 
+          color: #064e3b; 
+          border: 1px solid #bbf7d0; 
+        }
 
         /* submit row */
         .submit-row { 
-          display:flex; 
-          gap:12px; 
-          margin-top:14px; 
-          align-items:center; 
-          flex-wrap:wrap; 
+          display: flex; 
+          gap: 12px; 
+          margin-top: 16px; 
+          align-items: center; 
+          justify-content: flex-end;
+          width: 100%;
         }
         .submit-primary {
           padding:12px 16px;
@@ -842,13 +995,37 @@ export default function LedgerCreation({ onCreated }) {
           font-weight:700;
           cursor:pointer;
           min-width: 120px;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .submit-primary:hover:not(:disabled) {
+          background: linear-gradient(180deg, var(--accent-2), var(--accent-3));
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+        }
+        .submit-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+          box-shadow: none !important;
         }
         .submit-clear {
           padding:10px 12px;
           background:#fff;
-          border:1px solid rgba(12,18,35,0.06);
+          border:1px solid rgba(12,18,35,0.1);
           border-radius:10px;
           cursor:pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+          font-weight: 600;
+        }
+        .submit-clear:hover:not(:disabled) {
+          background: #f8fafc;
+          border-color: rgba(12,18,35,0.2);
+        }
+        .submit-clear:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
         
         .search-container {
@@ -858,17 +1035,14 @@ export default function LedgerCreation({ onCreated }) {
 
         .search-with-clear {
           width: 100%;
-          padding: 8px 1px 10px 5px;  
+          padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
           font-size: 14px;
           transition: all 0.2s;
         }
-        /* Limit search input width inside panels */
-        .panel .search-with-clear {
-          max-width: 420px;
-          width: 100%;
-        }
+        /* constrain search input width inside panels/modals to match design */
+        .panel .search-with-clear, .modal .search-with-clear { max-width: 420px; }
 
         .search-with-clear:focus {
           outline: none;
@@ -921,8 +1095,9 @@ export default function LedgerCreation({ onCreated }) {
         .form-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 24px 32px;
           margin-bottom: 16px;
+          align-items: start;
         }
         .full-width {
           grid-column: 1 / -1;
@@ -1192,65 +1367,41 @@ export default function LedgerCreation({ onCreated }) {
       <div className="dashboard" style={isPopupOpen ? { filter: 'blur(4px)', pointerEvents: 'none', opacity: 0.5 } : {}}>
         <div className="top-row">
           <div className="title-block">
-            <h2 id="ledger-title">Ledger Creation</h2>
-            <div className="subtitle">Create and manage ledger accounts</div>
+            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+              <rect width="24" height="24" rx="6" fill="#eff6ff" />
+              <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div>
+              <h2 id="ledger-title">Ledger Creation</h2>
+              <div className="subtitle muted">Create and manage ledger accounts</div>
+            </div>
           </div>
-          <div className="actions">
-            <div
-              className={`action-pill ${actionType === 'create' ? 'primary' : ''} ${!formPermissions.add ? 'disabled' : ''}`}
-              onClick={() => formPermissions.add && changeActionType('create')}
-              onKeyDown={(e) => e.key === 'Enter' && formPermissions.add && changeActionType('create')}
-              role="button"
-              tabIndex={formPermissions.add ? 0 : -1}
-              title={!formPermissions.add ? "You don't have permission to create" : "Create new ledger"}
-              style={!formPermissions.add ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-            >
-              <Icon.Plus size={14} />
-              Create
-            </div>
-            <div
-              className={`action-pill ${actionType === 'edit' ? 'warn' : ''} ${!formPermissions.edit ? 'disabled' : ''}`}
-              onClick={() => {
-                if (formPermissions.edit) {
-                  changeActionType('edit');
-                  setIsPopupOpen(true);
-                }
+          <div className="actions" role="toolbar" aria-label="actions">
+            <AddButton
+              onClick={() => changeActionType('create')}
+              disabled={isSubmitting || !formPermissions.add}
+              isActive={actionType === 'create'}
+            />
+
+            <EditButton
+              onClick={(e) => {
+                e.currentTarget.blur();
+                changeActionType('edit');
+                setIsPopupOpen(true);
               }}
-              onKeyDown={(e) => e.key === 'Enter' && formPermissions.edit && (changeActionType('edit'), setIsPopupOpen(true))}
-              role="button"
-              tabIndex={formPermissions.edit ? 0 : -1}
-              title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing ledger"}
-              style={!formPermissions.edit ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-            >
-              <Icon.Edit size={14} />
-              Edit
-            </div>
-            <div
-              className={`action-pill ${actionType === 'delete' ? 'danger' : ''} ${!formPermissions.delete ? 'disabled' : ''}`}
-              onClick={() => {
-                if (formPermissions.delete) {
-                  changeActionType('delete');
-                  setIsPopupOpen(true);
-                }
+              disabled={isSubmitting || !formPermissions.edit}
+              isActive={actionType === 'edit'}
+            />
+
+            <DeleteButton
+              onClick={(e) => {
+                e.currentTarget.blur();
+                changeActionType('delete');
+                setIsPopupOpen(true);
               }}
-              onKeyDown={(e) => e.key === 'Enter' && formPermissions.delete && (changeActionType('delete'), setIsPopupOpen(true))}
-              role="button"
-              tabIndex={formPermissions.delete ? 0 : -1}
-              title={!formPermissions.delete ? "You don't have permission to delete" : "Delete ledger"}
-              style={!formPermissions.delete ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-            >
-              <Icon.Trash size={14} />
-              Delete
-            </div>
-            {/* <button
-              className="btn"
-              onClick={testConnection}
-              type="button"
-              title="Test API connectivity"
-              style={{ marginLeft: 6 }}
-            >
-              Test API
-            </button> */}
+              disabled={isSubmitting || !formPermissions.delete}
+              isActive={actionType === 'delete'}
+            />
           </div>
         </div>
 
@@ -1575,34 +1726,7 @@ export default function LedgerCreation({ onCreated }) {
             </div>
           </div>
 
-          <div className="side">
-            <div className="card stat">
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Summary</h3>
-              <div className="muted">Ledger Name: {formData.partyName || 'Not set'}</div>
-              <div className="muted">Group: {mainGroup || 'Not selected'}</div>
-              <div className="muted">Status: {isActive ? 'Active' : 'Inactive'}</div>
-              {formData.dueDay && <div className="muted">Due Days: {formData.dueDay}</div>}
-              {formData.dueDate && <div className="muted">Due Date: {formData.dueDate}</div>}
-            </div>
-
-            <div className="card stat">
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Contact Info</h3>
-              {formData.phone && <div className="muted">Phone: {formData.phone}</div>}
-              {formData.email && <div className="muted">Email: {formData.email}</div>}
-              {formData.fStreet && <div className="muted">Address: {formData.fStreet}</div>}
-              {(formData.area || formData.city) && (
-                <div className="muted">Location: {[formData.area, formData.city].filter(Boolean).join(', ')}</div>
-              )}
-              {formData.pincode && <div className="muted">Pincode: {formData.pincode}</div>}
-            </div>
-
-            <div className="card stat">
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Tax & Identification</h3>
-              {formData.gstin && <div className="muted">GSTIN: {formData.gstin}</div>}
-              {formData.hallmark && <div className="muted">Hallmark: {formData.hallmark}</div>}
-              {formData.shortName && <div className="muted">Short Name: {formData.shortName}</div>}
-            </div>
-          </div>
+     
         </div>
       </div>
 
@@ -1664,6 +1788,24 @@ export default function LedgerCreation({ onCreated }) {
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
+
+      {/* Confirmation Popup */}
+      {showConfirmPopup && (
+        <ConfirmationPopup
+          title={confirmAction === 'delete' ? 'Confirm Deletion' : 'Confirm Action'}
+          message={confirmAction === 'delete' ? 'Are you sure you want to delete this ledger? This action cannot be undone.' : 'Are you sure you want to proceed?'}
+          onConfirm={() => {
+            setShowConfirmPopup(false);
+            handleSubmit();
+          }}
+          onCancel={() => setShowConfirmPopup(false)}
+          confirmText="Confirm"
+          cancelText="Cancel"
+          type={confirmAction === 'delete' ? 'danger' : 'default'}
+          showIcon={true}
+          iconSize={24}
+        />
+      )}
     </div>
   );
 }
