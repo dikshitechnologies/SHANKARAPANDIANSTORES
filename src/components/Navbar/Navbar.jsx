@@ -77,7 +77,11 @@ const Navbar = () => {
 
   const masterItems = [
     // { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
-        { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined />, permission: 'ITEM_CREATION' },
+        { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <BuildOutlined />, permission: 'LED_GRPCREATION' },
+    { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <BuildOutlined />, permission: 'ITEM_GRPCREATION' },
+    { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined />, permission: 'Ledger_CREATION' },
+    { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined />, permission: 'ITEM_CREATION' },
+    { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined />, permission: 'UNIT_CREATION' },
     { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined />, permission: 'COMPANY_CREATION' },
     { name: 'Product Creation', path: '/masters/product-creation', icon: <BuildOutlined />, permission: 'PRODUCT_CREATION' },
     { name: 'Brand Creation', path: '/masters/brand-creation', icon: <BuildOutlined />, permission: 'BRAND_CREATION' },
@@ -87,15 +91,12 @@ const Navbar = () => {
     { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined />, permission: 'COLOR_CREATION' },
     { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined />, permission: 'STATE_CREATION' },
 
-    { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined />, permission: 'UNIT_CREATION' },
-    { name: 'Model Creation', path: '/masters/model-creation', icon: <TeamOutlined />, permission: 'MODEL_CREATION' },
+  { name: 'Model Creation', path: '/masters/model-creation', icon: <TeamOutlined />, permission: 'MODEL_CREATION' },
     { name: 'Salesman Creation', path: '/masters/SalesmanCreation', icon: <UserOutlined />, permission: 'SALESMAN_CREATION' },
     { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
         { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined />, permission: 'USER_CREATION' },
         { name: 'Administration', path: '/Administration', icon: <BuildOutlined />, permission: 'ADMINISTRATION' },
-        { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <BuildOutlined />, permission: 'ITEM_GRPCREATION' },
-        { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <BuildOutlined />, permission: 'LED_GRPCREATION' },
-
+    
 
   ];
 

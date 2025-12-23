@@ -33,20 +33,25 @@ const INSERT_BATCH_URL = API_ENDPOINTS.ADMINISTRATION.ADMIN_BATCH_INSERT;
 const DELETE_URL = API_ENDPOINTS.ADMINISTRATION.DELETE_PERMISSIONS;
 // Updated item lists with proper database permission names
 const MASTER_ITEMS = [
+  { label: "Ledger Group Creation", dbName: "LED_GRPCREATION" },
+  { label: "Item Group Creation", dbName: "ITEM_GRPCREATION" },
+  { label: "Ledger Creation", dbName: "LEDGER_CREATION" },
+  { label: "Item Creation", dbName: "ITEM_CREATION" },
   { label: "Unit Creation", dbName: "UNIT_CREATION" },
-  { label: "Color Creation", dbName: "COLOR_CREATION" },
-  { label: "Size Creation", dbName: "SIZE_CREATION" },
-  { label: "Model Creation", dbName: "MODEL_CREATION" },
-  { label: "Salesman Creation", dbName: "SALESMAN_CREATION" },
   { label: "Company Creation", dbName: "COMPANY_CREATION" },
-  { label: "User Creation", dbName: "USER_CREATION" },
-  { label: "Design Creation", dbName: "DESIGN_CREATION" },
-  { label: "Scrap Creation", dbName: "SCRAP_CREATION" },
+  { label: "Product Creation", dbName: "PRODUCT_CREATION" },
   { label: "Brand Creation", dbName: "BRAND_CREATION" },
   { label: "Category Creation", dbName: "CATEGORY_CREATION" },
-  { label: "Product Creation", dbName: "PRODUCT_CREATION" },
-  { label: "State Creation", dbName: "STATE_CREATION" },
-  { label: "Item Creation", dbName: "ITEM_CREATION" },
+    { label: "Design Creation", dbName: "DESIGN_CREATION" },
+  { label: "Size Creation", dbName: "SIZE_CREATION" },
+  { label: "Color Creation", dbName: "COLOR_CREATION" },
+   { label: "State Creation", dbName: "STATE_CREATION" },
+  { label: "Model Creation", dbName: "MODEL_CREATION" },
+  { label: "Salesman Creation", dbName: "SALESMAN_CREATION" },
+  { label: "Scrap Creation", dbName: "SCRAP_CREATION" },
+  { label: "User Creation", dbName: "USER_CREATION" },
+  { label: "Administrator ", dbName: "ADMINISTRATOR_CREATION" },
+
 ];
 
 const TRANSACTION_ITEMS = [
