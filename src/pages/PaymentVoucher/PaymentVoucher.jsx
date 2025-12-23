@@ -491,8 +491,33 @@ const PaymentVoucher = () => {
 
   // Calculate Payment Details Totals whenever items change
   useEffect(() => {
-    const total = paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-    setTotalAmount(total);
+    // Check if there are any CASH type payments
+    const hasCashPayments = paymentItems.some(item => item.type === 'CASH');
+    
+    if (hasCashPayments) {
+      // For CASH payments, calculate net amount (CR - DR)
+      let crTotal = 0;
+      let drTotal = 0;
+      
+      paymentItems.forEach(item => {
+        if (item.type === 'CASH' && item.amount) {
+          const amount = parseFloat(item.amount) || 0;
+          if (item.crDr === 'CR') {
+            crTotal += amount;
+          } else if (item.crDr === 'DR') {
+            drTotal += amount;
+          }
+        }
+      });
+      
+      // Net amount is the absolute difference
+      const netAmount = Math.abs(crTotal - drTotal);
+      setTotalAmount(netAmount);
+    } else {
+      // For non-CASH payments, use simple sum
+      const total = paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+      setTotalAmount(total);
+    }
   }, [paymentItems]);
 
   // Calculate Bill Details Totals
@@ -1008,11 +1033,14 @@ const PaymentVoucher = () => {
 
   // Handle payment item change
   const handlePaymentItemChange = (id, field, value) => {
-    setPaymentItems(prev =>
-      prev.map(item =>
+    console.log(`🟠 handlePaymentItemChange called: id=${id}, field=${field}, value=${value}`);
+    setPaymentItems(prev => {
+      const updated = prev.map(item =>
         item.id === id ? { ...item, [field]: value } : item
-      )
-    );
+      );
+      console.log(`🟠 After update, item ${id}:`, updated.find(i => i.id === id));
+      return updated;
+    });
   };
 
   // Handle bill item change
@@ -1247,9 +1275,70 @@ const PaymentVoucher = () => {
     }
   };
 
+  // Calculate cash totals separated by CR and DR
+  const calculateCashTotals = () => {
+    let crTotal = 0;
+    let drTotal = 0;
+
+    // DEBUG: Log each item's type field in detail
+    console.log('🔍 DEBUG - Payment Items Array Length:', paymentItems.length);
+    paymentItems.forEach((item, idx) => {
+      console.log(`  Item ${idx}:`, {
+        id: item.id,
+        type: item.type,
+        typeLength: item.type?.length,
+        typeEmpty: item.type === '',
+        typeIsCASH: item.type === 'CASH',
+        crDr: item.crDr,
+        amount: item.amount
+      });
+    });
+
+    // Filter payment items with type 'CASH' and sum by CR/DR
+    paymentItems.forEach(item => {
+      if (item.type === 'CASH' && item.amount) {
+        const amount = parseFloat(item.amount) || 0;
+        if (item.crDr === 'CR') {
+          crTotal += amount;
+        } else if (item.crDr === 'DR') {
+          drTotal += amount;
+        }
+      }
+    });
+
+    // Calculate net amount (absolute difference)
+    const netAmount = Math.abs(crTotal - drTotal);
+
+    const result = {
+      crTotal: crTotal.toFixed(2),
+      drTotal: drTotal.toFixed(2),
+      netAmount: netAmount.toFixed(2),
+      hasOnlyCash: paymentItems.every(item => item.type === 'CASH' || !item.type)
+    };
+
+    console.log('📊 calculateCashTotals Result:', result);
+    return result;
+  };
+
   // Handle save with confirmation
   const handleSave = async () => {
-    showSaveConfirmation();
+    const cashTotals = calculateCashTotals();
+    
+    // Check if there are CASH type payments
+    const hasCashPayments = paymentItems.some(item => item.type === 'CASH');
+    
+    if (hasCashPayments) {
+      // Show confirmation modal only for CASH payments
+      const confirmationData = {
+        cashTotals: cashTotals,
+        hasCashPayments: hasCashPayments
+      };
+      setSaveConfirmationData(confirmationData);
+      showSaveConfirmation();
+    } else {
+      // No CASH payments, proceed directly to save
+      await savePaymentVoucher();
+    }
   };
 
   // Function to show save confirmation popup using SaveConfirmationModal
@@ -1267,6 +1356,7 @@ const PaymentVoucher = () => {
   // Function to cancel save
   const handleCancelSave = () => {
     setSaveConfirmationOpen(false);
+    setSaveConfirmationData(null);
   };
 
   // --- RESPONSIVE STYLES ---
@@ -1835,7 +1925,10 @@ const PaymentVoucher = () => {
                       ref={el => paymentTypeRefs.current[index] = el}
                       id={`payment_${item.id}_type`}
                       value={item.type}
-                      onChange={(e) => handlePaymentItemChange(item.id, 'type', e.target.value)}
+                      onChange={(e) => {
+                        console.log(`🟠 SELECT onChange fired: item.id=${item.id}, e.target.value="${e.target.value}"`);
+                        handlePaymentItemChange(item.id, 'type', e.target.value);
+                      }}
                       onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'type', item.type)}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
@@ -1845,6 +1938,7 @@ const PaymentVoucher = () => {
                       onBlur={(e) => (e.target.style.border = 'none')}
                       style={navigationStep === 'paymentType' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
                     >
+                      <option value="">-- Select Type --</option>
                       <option value="CASH">CASH</option>
                       <option value="CHQ">CHQ</option>
                       <option value="RTGS">RTGS</option>
@@ -1969,7 +2063,7 @@ const PaymentVoucher = () => {
                 <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
                 <td style={{...styles.td, backgroundColor: '#f0f8ff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
                 <td style={{...styles.td, backgroundColor: '#f0f8ff', color: '#1B91DA', fontWeight: 'bold', minWidth: '100px', width: '100px'}}>
-                  {paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
+               {paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
                 </td>
                 <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
               </tr>
@@ -2120,7 +2214,7 @@ const PaymentVoucher = () => {
         <div style={styles.totalsContainer}>
           <div style={styles.totalItem}>
             <div style={styles.totalLabel}>Total Amount</div>
-            <div style={styles.totalValue}>{totalAmount.toFixed(2)}</div>
+            <div style={styles.totalValue}>{paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</div>
           </div>
           <div style={styles.totalItem}>
             <div style={styles.totalLabel}>Bill Total</div>
@@ -2214,6 +2308,8 @@ const PaymentVoucher = () => {
           voucherNo={voucherDetails.voucherNo}
           voucherDate={voucherDetails.date}
           totalAmount={totalAmount}
+          cashTotals={saveConfirmationData?.cashTotals}
+          hasCashPayments={saveConfirmationData?.hasCashPayments || false}
         />
       )}
 

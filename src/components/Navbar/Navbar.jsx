@@ -231,12 +231,12 @@ const Navbar = () => {
           {!isMobile && (
             <div className={styles['nav-center-menu']}>
               <div className={styles['nav-menu']}>
-                <Link
+                {/* <Link
                   to="/"
                   className={`${styles['nav-link']} ${location.pathname === '/' ? styles.active : ''}`}
                 >
                   <HomeOutlined /> Home
-                </Link>
+                </Link> */}
 
                 {/* Masters Dropdown - Click to open/close */}
                 <div
