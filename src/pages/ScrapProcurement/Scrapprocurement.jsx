@@ -1403,7 +1403,7 @@ const Scrapprocurement = () => {
       confirmText: 'Continue',
       onConfirm: () => {
         setShowConfirmPopup(false);
-        console.log('Print functionality to be implemented');
+        // console.log('Print functionality to be implemented');
       }
     });
   };

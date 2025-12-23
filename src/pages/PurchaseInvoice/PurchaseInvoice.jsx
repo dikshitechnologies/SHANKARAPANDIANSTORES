@@ -1227,15 +1227,15 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         return;
       }
 
-      if (!billDetails.mobileNo || billDetails.mobileNo.trim() === '') {
-        showAlertConfirmation('Mobile No is required', null, 'warning');
-        return;
-      }
+      // if (!billDetails.mobileNo || billDetails.mobileNo.trim() === '') {
+      //   showAlertConfirmation('Mobile No is required', null, 'warning');
+      //   return;
+      // }
 
-      if (!billDetails.gstno || billDetails.gstno.trim() === '') {
-        showAlertConfirmation('GST No is required', null, 'warning');
-        return;
-      }
+      // if (!billDetails.gstno || billDetails.gstno.trim() === '') {
+      //   showAlertConfirmation('GST No is required', null, 'warning');
+      //   return;
+      // }
 
       // Validation: Check if at least one row has item data
       const hasValidItems = items.some(item => 
@@ -2270,65 +2270,103 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     />
                   </td>
                   
-                  <td style={{ ...styles.td, ...styles.itemNameContainer }}>
-                    <div style={{ position: 'relative', width: '100%' }}>
-                      <input
-  ref={index === 0 ? firstRowNameRef : null}
-  style={{
-    ...(focusedField === `name-${item.id}` ? styles.editableInputClickableFocused : styles.editableInputClickable),
-    paddingRight: '26px',
-    textAlign: 'left',
-  }}
-  value={item.name}
-  data-row={index}
-  data-field="name"
-  onChange={(e) => {
-    const value = e.target.value;
-    handleItemChange(item.id, 'name', value);
-  }}
-  onKeyDown={(e) => {
-    // Handle Enter key to move to UOM field
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Find and focus on the UOM field
-      const uomDiv = document.querySelector(
-        `div[data-row="${index}"][data-field="uom"]`
-      );
-      if (uomDiv) {
-        uomDiv.focus();
-      }
-      return;
-    }
-    
-    // Handle slash for search popup
-    if (e.key === '/') {
-      e.preventDefault();
-      handleItemCodeSelect(item.id, item.name);
-    }
-  }}
-  onClick={() => handleItemCodeSelect(item.id, item.name)}
-  onFocus={() => setFocusedField(`name-${item.id}`)}
-  onBlur={() => setFocusedField('')}
-  title={`Item Code: ${item.barcode || 'Not selected'}`}
-/>
-                      
-                      {/* 🔍 Search Icon (same as SalesInvoice) */}
-                      <div
+                    <td style={{ ...styles.td, ...styles.itemNameContainer }}>
+                    <div style={{ 
+                      position: 'relative', 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      height: '100%',
+                      border: focusedField === `name-${item.id}` ? '2px solid #1B91DA' : 'none',
+                      backgroundColor: focusedField === `name-${item.id}` ? '#e6f7ff' : 'transparent',
+                      borderRadius: '4px',
+                      boxShadow: focusedField === `name-${item.id}` ? '0 0 0 2px rgba(27, 145, 218, 0.2)' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}>
+                      <input                      
+                        style={{ 
+                          ...styles.editableInput, 
+                          textAlign: 'left',
+                          border: 'none',
+                          outline: 'none',
+                          background: 'transparent',
+                          paddingLeft: '8px',
+                          paddingRight: '32px',
+                          width: '100%',
+                          height: '100%',
+                          boxShadow: 'none'
+                        }}
+                        value={item.name}
+                        data-row={index}
+                        data-field="name"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleItemChange(item.id, 'name', value);
+                          
+                          if (value.length > 0) {
+                            handleItemCodeSelect(item.id, value);
+                          }
+                        }}
+                        // onKeyDown={(e) => {
+                        //   if (e.key === '/') {
+                        //     e.preventDefault();
+                        //     handleItemCodeSelect(item.id, item.name);
+                        //   } else if (e.key === 'Enter') {
+                        //     handleTableKeyDown(e, index, 'name');
+                        //   }
+                        // }}
+                         onKeyDown={(e) => {
+                        // Handle Enter key to move to UOM field
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          
+                          // Find and focus on the UOM field
+                          const uomDiv = document.querySelector(
+                            `div[data-row="${index}"][data-field="uom"]`
+                          );
+                          if (uomDiv) {
+                            uomDiv.focus();
+                          }
+                          return;
+                        }
+                        
+                        // Handle slash for search popup
+                        if (e.key === '/') {
+                          e.preventDefault();
+                          handleItemCodeSelect(item.id, item.name);
+                        }
+                      }}
+                        onFocus={() => setFocusedField(`name-${item.id}`)}
+                        onBlur={() => setFocusedField('')}
+                        title="Click to select item from list"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Search item details"
+                        title="Click to select item from list"
+                        onClick={() => {
+                          handleItemCodeSelect(item.id, item.name);
+                        }}
                         style={{
                           position: 'absolute',
-                          right: '6px',
+                          right: '8px',
                           top: '50%',
                           transform: 'translateY(-50%)',
-                          pointerEvents: 'none',
-                          opacity: 0.6,
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#1B91DA',
+                          cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0,
+                          zIndex: 1,
+                          height: '24px',
+                          width: '24px'
                         }}
                       >
-                        <Icon.Search size={14} />
-                      </div>
+                        <Icon.Search size={18} />
+                      </button>
                     </div>
                   </td>
                     <td style={styles.td}>
@@ -2737,7 +2775,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             customerName: s.name || '',
             city: s.city || '',
             gstType: s.gstType || '',
-            gstType: s.gstType || prev.gstType || 'CGST'
+            gstType: s.gstType || prev.gstType || 'CGST',
+            mobileNo: s.phone || prev.mobileNo || '',
           }));
         }}
       />     
