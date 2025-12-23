@@ -6,8 +6,8 @@ import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import { usePermissions } from '../../hooks/usePermissions';
-import { toast } from "react-toastify"; // ADDED
-import "react-toastify/dist/ReactToastify.css"; // ADDED
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const FCompCode = "001";
 
@@ -799,8 +799,8 @@ const handleEnterNavigation = (e) => {
 
       return [];
     } catch (err) {
-      console.error('fetchModels error', err);
-      return [];
+    console.error('fetchModels error', err);
+    return [];
     }
   }, []);
 
@@ -1966,184 +1966,300 @@ const handleEnterNavigation = (e) => {
         <div className="grid" role="main">
           <div className="card" aria-live="polite" onKeyDown={handleEnterNavigation}>
             {/* Group Name field */}
-            <div className="field">
-              <label className="field-label">Group Name *</label>
-              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-                <div style={{
-                  display: "flex",
-                  flex: 1,
-                  border: "1px solid rgba(15,23,42,0.06)",
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  background: "linear-gradient(180deg, #fff, #fbfdff)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                }}>
-                  <input
-                    ref={groupNameRef}
-                    className="input"
-                    value={mainGroup}
-                    onChange={(e) => setMainGroup(e.target.value)}
-                    onFocus={() => {
-                      if (!isInitialFocusRef.current) {
-                        setIsTreeOpen(true);
-                      }
-                      isInitialFocusRef.current = false;
-                    }}
-                    
-
+          <div className="field">
+  <label className="field-label">Group Name *</label>
+  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+    <div style={{
+      display: "flex",
+      flex: 1,
+      border: "1px solid rgba(15,23,42,0.06)",
+      borderRadius: "10px",
+      overflow: "hidden",
+      background: "linear-gradient(180deg, #fff, #fbfdff)",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+    }}>
+      <input
+        ref={groupNameRef}
+        className="input"
+        value={mainGroup}
+        onChange={(e) => {
+          setMainGroup(e.target.value);
+          // Type letters → Tree opens
+          if (e.target.value.trim() && !isTreeOpen) {
+            setIsTreeOpen(true);
+          }
+        }}
+        onFocus={() => {
+          if (!isInitialFocusRef.current) {
+            setIsTreeOpen(true);
+          }
+          isInitialFocusRef.current = false;
+        }}
+        onKeyDown={(e) => {
+          // Type letters → Tree opens (for single key presses)
+          if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
+            setIsTreeOpen(true);
+          }
+          
+          // Handle arrow keys and Enter when tree is open
+          if (isTreeOpen && filteredTree.length > 0) {
+            const treeItems = document.querySelectorAll('.tree-row');
             
-                     disabled={isSubmitting}
-                    aria-label="Group Name"
-                    style={{
-                      flex: 1,
-                      border: "none",
-                      borderRadius: 0,
-                      padding: "10px 12px",
-                      minWidth: "120px",
-                      fontSize: "14px",
-                      outline: "none",
-                      cursor: "pointer"
-                    }}
-                  />
-                  <button
-                    className="btn"
-                    onClick={() => { setIsTreeOpen((v) => !v); }}
-                    disabled={isSubmitting}
-                    type="button"
-                    aria-expanded={isTreeOpen}
-                    aria-controls="group-tree"
-                    style={{
-                      flexShrink: 0,
-                      border: "none",
-                      borderLeft: "1px solid rgba(15,23,42,0.06)",
-                      borderRadius: 0,
-                      padding: "8px 12px",
-                      minWidth: "70px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      background: "linear-gradient(180deg,#fff,#f8fafc)",
-                      cursor: isSubmitting ? "not-allowed" : "pointer",
-                      color: "#0f172a",
-                      transition: "all 0.2s"
-                    }}
-                    onMouseOver={(e) => {
-                      if (!isSubmitting) {
-                        e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
-                      }
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
-                    }}
-                  >
-                    {isTreeOpen ? "Close" : "Open"}
-                  </button>
-                </div>
-              </div>
+            switch(e.key) {
+              case 'ArrowDown':
+                e.preventDefault();
+                // Find current selected index
+                let currentIndex = -1;
+                treeItems.forEach((item, index) => {
+                  if (item.classList.contains('selected')) {
+                    currentIndex = index;
+                  }
+                });
+                
+                // Select next item or first if none selected
+                const nextIndex = currentIndex < treeItems.length - 1 ? currentIndex + 1 : 0;
+                if (treeItems[nextIndex]) {
+                  // Remove selection from all
+                  treeItems.forEach(item => item.classList.remove('selected'));
+                  // Add selection to next
+                  treeItems[nextIndex].classList.add('selected');
+                  // Update selected node
+                  const nextNode = filteredTree[nextIndex];
+                  if (nextNode) {
+                    setSelectedNode(nextNode);
+                  }
+                  // Scroll into view
+                  treeItems[nextIndex].scrollIntoView({ block: 'nearest' });
+                }
+                break;
+                
+              case 'ArrowUp':
+                e.preventDefault();
+                // Find current selected index
+                let currentIdx = -1;
+                treeItems.forEach((item, index) => {
+                  if (item.classList.contains('selected')) {
+                    currentIdx = index;
+                  }
+                });
+                
+                // Select previous item or last if none selected
+                const prevIndex = currentIdx > 0 ? currentIdx - 1 : treeItems.length - 1;
+                if (treeItems[prevIndex]) {
+                  // Remove selection from all
+                  treeItems.forEach(item => item.classList.remove('selected'));
+                  // Add selection to previous
+                  treeItems[prevIndex].classList.add('selected');
+                  // Update selected node
+                  const prevNode = filteredTree[prevIndex];
+                  if (prevNode) {
+                    setSelectedNode(prevNode);
+                  }
+                  // Scroll into view
+                  treeItems[prevIndex].scrollIntoView({ block: 'nearest' });
+                }
+                break;
+                
+              case 'Enter':
+                e.preventDefault();
+                // Press Enter → Select highlighted
+                if (selectedNode) {
+                  handleSelectNode(selectedNode);
+                  setIsTreeOpen(false);
+                  setTimeout(() => {
+      itemNameRef.current?.focus();
+    }, 10);
+                }
+                break;
+                
+              case 'Escape':
+                e.preventDefault();
+                setIsTreeOpen(false);
+                break;
+            }
+          }
+        }}
+        disabled={isSubmitting}
+        aria-label="Group Name"
+        style={{
+          flex: 1,
+          border: "none",
+          borderRadius: 0,
+          padding: "10px 12px",
+          minWidth: "120px",
+          fontSize: "14px",
+          outline: "none",
+          cursor: "pointer"
+        }}
+      />
+      {/* <button
+        className="btn"
+        onClick={() => { setIsTreeOpen((v) => !v); }}
+        disabled={isSubmitting}
+        type="button"
+        aria-expanded={isTreeOpen}
+        aria-controls="group-tree"
+        style={{
+          flexShrink: 0,
+          border: "none",
+          borderLeft: "1px solid rgba(15,23,42,0.06)",
+          borderRadius: 0,
+          padding: "8px 12px",
+          minWidth: "70px",
+          fontSize: "12px",
+          fontWeight: "600",
+          background: "linear-gradient(180deg,#fff,#f8fafc)",
+          cursor: isSubmitting ? "not-allowed" : "pointer",
+          color: "#0f172a", 
+          transition: "all 0.2s"
+        }}
+        onMouseOver={(e) => {
+          if (!isSubmitting) {
+            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
+          }
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
+        }}
+      >
+        {isTreeOpen ? "Close" : "Open"}
+      </button> */}
+    </div>
+  </div>
 
-              {isTreeOpen && (
-                isMobile ? (
-                  <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                        <h3 style={{ margin: 0, fontSize: 18 }}>Groups</h3>
-                        <button
-                          onClick={() => setIsTreeOpen(false)}
-                          style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-                          aria-label="Close"
-                        >
-                          <Icon.Close />
-                        </button>
-                      </div>
+  {isTreeOpen && (
+    isMobile ? (
+      <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <h3 style={{ margin: 0, fontSize: 18 }}>Groups</h3>
+            <button
+              onClick={() => setIsTreeOpen(false)}
+              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
+              aria-label="Close"
+            >
+              <Icon.Close />
+            </button>
+          </div>
 
-                      <div className="row" style={{ marginBottom: 8 }}>
-                        <div className="search-container">
-                          <input
-                            className="search-with-clear"
-                            placeholder="Search groups..."
-                            value={searchTree}
-                            onChange={(e) => setSearchTree(e.target.value)}
-                            aria-label="Search groups"
-                          />
-                          {searchTree && (
-                            <button
-                              className="clear-search-btn"
-                              onClick={() => setSearchTree("")}
-                              type="button"
-                              aria-label="Clear search"
-                            >
-                              <Icon.Close size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="tree-scroll" role="tree" aria-label="Group list">
-                        {loading ? (
-                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-                        ) : filteredTree.length === 0 ? (
-                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-                        ) : (
-                          filteredTree.map((node) => (
-                            <TreeNode
-                              key={node.key}
-                              node={node}
-                              onSelect={(n) => { handleSelectNode(n); setIsTreeOpen(false); }}
-                              expandedKeys={expandedKeys}
-                              toggleExpand={toggleExpand}
-                              selectedKey={selectedNode?.key}
-                            />
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
-                    <div className="row" style={{ marginBottom: 8 }}>
-                      <div className="search-container">
-                        <input
-                          className="search-with-clear"
-                          placeholder="Search groups..."
-                          value={searchTree}
-                          onChange={(e) => setSearchTree(e.target.value)}
-                          aria-label="Search groups"
-                        />
-                        {searchTree && (
-                          <button
-                            className="clear-search-btn"
-                            onClick={() => setSearchTree("")}
-                            type="button"
-                            aria-label="Clear search"
-                          >
-                            <Icon.Close size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="tree-scroll" role="tree" aria-label="Group list">
-                      {loading ? (
-                        <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-                        ) : filteredTree.length === 0 ? (
-                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-                        ) : (
-                          filteredTree.map((node) => (
-                            <TreeNode
-                              key={node.key}
-                              node={node}
-                              onSelect={handleSelectNode}
-                              expandedKeys={expandedKeys}
-                              toggleExpand={toggleExpand}
-                              selectedKey={selectedNode?.key}
-                            />
-                          ))
-                        )}
-                    </div>
-                  </div>
-                )
+          <div className="row" style={{ marginBottom: 8 }}>
+            <div className="search-container">
+              <input
+                className="search-with-clear"
+                placeholder="Search groups..."
+                value={searchTree}
+                onChange={(e) => setSearchTree(e.target.value)}
+                aria-label="Search groups"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setIsTreeOpen(false);
+                  }
+                }}
+              />
+              {searchTree && (
+                <button
+                  className="clear-search-btn"
+                  onClick={() => setSearchTree("")}
+                  type="button"
+                  aria-label="Clear search"
+                >
+                  <Icon.Close size={16} />
+                </button>
               )}
             </div>
+          </div>
 
+          <div className="tree-scroll" role="tree" aria-label="Group list">
+            {loading ? (
+              <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
+            ) : filteredTree.length === 0 ? (
+              <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+            ) : (
+              filteredTree.map((node) => (
+                <TreeNode
+                  key={node.key}
+                  node={node}
+                  onSelect={(n) => { 
+                    handleSelectNode(n); 
+                    setIsTreeOpen(false); 
+                    // Clear selection when item is clicked
+                    const treeItems = document.querySelectorAll('.tree-row');
+                    treeItems.forEach(item => item.classList.remove('selected'));
+                     setTimeout(() => {
+    itemNameRef.current?.focus();
+  }, 10);
+                  }}
+                  expandedKeys={expandedKeys}
+                  toggleExpand={toggleExpand}
+                  selectedKey={selectedNode?.key}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
+        <div className="row" style={{ marginBottom: 8 }}>
+          <div className="search-container">
+            <input
+              className="search-with-clear"
+              placeholder="Search groups..."
+              value={searchTree}
+              onChange={(e) => setSearchTree(e.target.value)}
+              aria-label="Search groups"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setIsTreeOpen(false);
+                }
+              }}
+            />
+            {searchTree && (
+              <button
+                className="clear-search-btn"
+                onClick={() => setSearchTree("")}
+                type="button"
+                aria-label="Clear search"
+              >
+                <Icon.Close size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="tree-scroll" role="tree" aria-label="Group list">
+          {loading ? (
+            <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
+            ) : filteredTree.length === 0 ? (
+              <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+            ) : (
+              filteredTree.map((node) => (
+                <TreeNode
+                  key={node.key}
+                  node={node}
+                  onSelect={(n) => { 
+                    handleSelectNode(n); 
+                    setIsTreeOpen(false); 
+                    // Clear selection when item is clicked
+                    const treeItems = document.querySelectorAll('.tree-row');
+                    treeItems.forEach(item => item.classList.remove('selected'));
+                     setTimeout(() => {
+    itemNameRef.current?.focus();
+  }, 10);
+                  }}
+                  expandedKeys={expandedKeys}
+                  toggleExpand={toggleExpand}
+                  selectedKey={selectedNode?.key}
+                />
+              ))
+            )}
+        </div>
+      </div>
+    )
+  )}
+</div>
             {/* Item Name field */}
             <div className="field">
               <label className="field-label">Item Name *</label>
@@ -2349,22 +2465,7 @@ const handleEnterNavigation = (e) => {
                 </div>
               </div>
 
-              {/* Max */}
-              <div className="field">
-                <label className="field-label">Max</label>
-                <input
-                  ref={maxRef}
-                  className="input"
-                  value={formData.max}
-                  onChange={(e) => handleChange('max', e.target.value)}
-                 
-                  disabled={isSubmitting}
-                  aria-label="Max"
-                  style={{ textAlign: "center" }}
-                />
-              </div>
-
-              {/* Min */}
+              {/* LEFT SIDE: Min */}
               <div className="field">
                 <label className="field-label">Min</label>
                 <input
@@ -2375,11 +2476,26 @@ const handleEnterNavigation = (e) => {
                   
                   disabled={isSubmitting}
                   aria-label="Min"
-                  style={{ textAlign: "center" }}
+                  style={{ textAlign: "center" ,width:300}}
                 />
               </div>
 
-              {/* HSN Code */}
+              {/* RIGHT SIDE: Max */}
+              <div className="field">
+                <label className="field-label">Max</label>
+                <input
+                  ref={maxRef}
+                  className="input"
+                  value={formData.max}
+                  onChange={(e) => handleChange('max', e.target.value)}
+                 
+                  disabled={isSubmitting}
+                  aria-label="Max"
+                  style={{ textAlign: "center" ,width:300}}
+                />
+              </div>
+
+              {/* LEFT SIDE: HSN Code */}
               <div className="field">
                 <label className="field-label">HSN Code</label>
                 <input
@@ -2387,181 +2503,20 @@ const handleEnterNavigation = (e) => {
                   className="input"
                   value={formData.hsnCode}
                   onChange={(e) => {
-                    if (/^\d{0,8}$/.test(e.target.value)) {
-                      handleChange('hsnCode', e.target.value);
+                       const value = e.target.value;
+      if (/^[a-zA-Z0-9]{0,8}$/.test(value)) {
+        handleChange('hsnCode', value.toUpperCase()); 
                     }
                   }}
                  
                   disabled={isSubmitting}
                   aria-label="HSN Code"
-                  title="4-8 digit HSN Code"
+                   title="Alphanumeric HSN Code (max 8 characters)"
+                     style={{ textAlign: "center" ,width:300}}
                 />
               </div>
 
-              {/* Piece Rate Checkbox */}
-              <div className="field">
-                <div 
-                  className="checkbox-group" 
-                  onClick={handlePieceRateToggle}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handlePieceRateToggle();
-                    }
-                  }}
-                  role="checkbox"
-                  tabIndex="0"
-                  aria-checked={pieceRateChecked}
-                >
-                  <div 
-                    className={`checkbox ${pieceRateChecked ? 'checked' : ''}`}
-                  />
-                  <span className="checkbox-label">Piece Rate</span>
-                </div>
-              </div>
-
-              {/* GST% */}
-              <div className="field">
-                <label className="field-label">GST%</label>
-                <input
-                  ref={gstinRef}
-                  className="input"
-                  value={formData.gstin}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Allow empty or numbers only
-                    if (/^\d{0,2}$/.test(value)) {
-                      handleChange('gstin', value);
-                    }
-                  }}
-                  onBlur={() => {
-                    // Validate GST value when user leaves the field
-                    const allowedGSTValues = ['3', '5', '12', '18', '28'];
-                    const gstValue = formData.gstin;
-                    if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
-                      // Show error message
-                      setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
-                      // Clear invalid value
-                      handleChange('gstin', '');
-                      // Focus back to show error
-                      setTimeout(() => gstinRef.current?.focus(), 10);
-                    }
-                  }}
-                 
-                  disabled={isSubmitting || !gstChecked}
-                  aria-label="GST Percentage"
-                />
-              </div>
-
-              {/* GST Checkbox */}
-              <div className="field">
-                <div 
-                  className="checkbox-group" 
-                  onClick={handleGstToggle}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleGstToggle();
-                    }
-                  }}
-                  role="checkbox"
-                  tabIndex="0"
-                  aria-checked={gstChecked}
-                >
-                  <div 
-                    className={`checkbox ${gstChecked ? 'checked' : ''}`}
-                  />
-                  <span className="checkbox-label">GST</span>
-                </div>
-              </div>
-
-              {/* Prefix */}
-              <div className="field">
-                <label className="field-label">Prefix</label>
-                <input
-                  ref={prefixRef}
-                  className="input"
-                  value={formData.prefix}
-                  onChange={(e) => {
-                    if (/^\d*$/.test(e.target.value)) {
-                      handleChange('prefix', e.target.value);
-                    }
-                  }}
-                 
-                  disabled={isSubmitting || !manualPrefixChecked}
-                  aria-label="Prefix"
-                />
-              </div>
-
-              {/* Manual Prefix Checkbox */}
-              <div className="field">
-                <div 
-                  className="checkbox-group" 
-                  onClick={handleManualPrefixToggle}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleManualPrefixToggle();
-                    }
-                  }}
-                  role="checkbox"
-                  tabIndex="0"
-                  aria-checked={manualPrefixChecked}
-                >
-                  <div 
-                    className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
-                  />
-                  <span className="checkbox-label">Manual Prefix</span>
-                </div>
-              </div>
-
-              {/* Selling Price - Changed to text input with validation */}
-              <div className="field">
-                <label className="field-label">Selling Price</label>
-                <input
-                  ref={sellingPriceRef}
-                  className="input"
-                  value={formData.sellingPrice}
-                  onChange={(e) => {
-                    // Allow only numbers and decimal point
-                    const value = e.target.value;
-                    if (/^\d*\.?\d{0,2}$/.test(value)) {
-                      handleChange('sellingPrice', value);
-                    }
-                  }}
-                  
-                  disabled={isSubmitting}
-                  aria-label="Selling Price"
-                  // Use text type instead of number to remove spinners
-                  type="text"
-                  inputMode="decimal"
-                />
-              </div>
-
-              {/* Cost Price - Changed to text input with validation */}
-              <div className="field">
-                <label className="field-label">Cost Price</label>
-                <input
-                  ref={costPriceRef}
-                  className="input"
-                  value={formData.costPrice}
-                  onChange={(e) => {
-                    // Allow only numbers and decimal point
-                    const value = e.target.value;
-                    if (/^\d*\.?\d{0,2}$/.test(value)) {
-                      handleChange('costPrice', value);
-                    }
-                  }}
-                  
-                  disabled={isSubmitting}
-                  aria-label="Cost Price"
-                  // Use text type instead of number to remove spinners
-                  type="text"
-                  inputMode="decimal"
-                />
-              </div>
-
-              {/* Type Dropdown - UPDATED */}
+              {/* RIGHT SIDE: Type Dropdown - MOVED to replace Piece Rate */}
               <div className="field">
                 <label className="field-label">Type</label>
                 <select
@@ -2604,6 +2559,7 @@ const handleEnterNavigation = (e) => {
                   size={0}
                   disabled={isSubmitting}
                   aria-label="Type"
+                    style={{ textAlign: "center" ,width:300}}
                 >
                   <option value="">Select Type</option>
                   {TYPE_OPTIONS.map(option => (
@@ -2613,6 +2569,153 @@ const handleEnterNavigation = (e) => {
                   ))}
                 </select>
               </div>
+
+              {/* LEFT SIDE: GST Checkbox */}
+              <div className="field">
+                <div 
+                  className="checkbox-group" 
+                  onClick={handleGstToggle}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleGstToggle();
+                    }
+                  }}
+                  role="checkbox"
+                  tabIndex="0"
+                  aria-checked={gstChecked}
+                >
+                  <div 
+                    className={`checkbox ${gstChecked ? 'checked' : ''}`}
+                  />
+                  <span className="checkbox-label">GST</span>
+                </div>
+              </div>
+
+              {/* RIGHT SIDE: GST% */}
+              <div className="field">
+                <label className="field-label">GST%</label>
+                <input
+                  ref={gstinRef}
+                  className="input"
+                  value={formData.gstin}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty or numbers only
+                    if (/^\d{0,2}$/.test(value)) {
+                      handleChange('gstin', value);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Validate GST value when user leaves the field
+                    const allowedGSTValues = ['3', '5', '12', '18', '28'];
+                    const gstValue = formData.gstin;
+                    if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
+                      // Show error message
+                      setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
+                      // Clear invalid value
+                      handleChange('gstin', '');
+                      // Focus back to show error
+                      setTimeout(() => gstinRef.current?.focus(), 10);
+                    }
+                  }}
+                 
+                  disabled={isSubmitting || !gstChecked}
+                  aria-label="GST Percentage"
+                    style={{ textAlign: "center" ,width:300}}
+                />
+              </div>
+
+              {/* LEFT SIDE: Manual Prefix Checkbox */}
+              <div className="field">
+                <div 
+                  className="checkbox-group" 
+                  onClick={handleManualPrefixToggle}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleManualPrefixToggle();
+                    }
+                  }}
+                  role="checkbox"
+                  tabIndex="0"
+                  aria-checked={manualPrefixChecked}
+                >
+                  <div 
+                    className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
+                  />
+                  <span className="checkbox-label">Manual Prefix</span>
+                </div>
+              </div>
+
+              {/* RIGHT SIDE: Prefix */}
+              <div className="field">
+                <label className="field-label">Prefix</label>
+                <input
+                  ref={prefixRef}
+                  className="input"
+                  value={formData.prefix}
+                  onChange={(e) => {
+                    if (/^\d*$/.test(e.target.value)) {
+                      handleChange('prefix', e.target.value);
+                    }
+                  }}
+                 
+                  disabled={isSubmitting || !manualPrefixChecked}
+                  aria-label="Prefix"
+                    style={{ textAlign: "center" ,width:300}}
+                />
+              </div>
+
+              {/* LEFT SIDE: Cost Price - Changed to text input with validation */}
+              <div className="field">
+                <label className="field-label">Cost Price</label>
+                <input
+                  ref={costPriceRef}
+                  className="input"
+                  value={formData.costPrice}
+                  onChange={(e) => {
+                    // Allow only numbers and decimal point
+                    const value = e.target.value;
+                    if (/^\d*\.?\d{0,2}$/.test(value)) {
+                      handleChange('costPrice', value);
+                    }
+                  }}
+                  
+                  disabled={isSubmitting}
+                  aria-label="Cost Price"
+                    style={{ textAlign: "center" ,width:300}}
+                  // Use text type instead of number to remove spinners
+                  type="text"
+                  inputMode="decimal"
+                />
+              </div>
+
+              {/* RIGHT SIDE: Selling Price - Changed to text input with validation */}
+              <div className="field">
+                <label className="field-label">Selling Price</label>
+                <input
+                  ref={sellingPriceRef}
+                  className="input"
+                  value={formData.sellingPrice}
+                  onChange={(e) => {
+                    // Allow only numbers and decimal point
+                    const value = e.target.value;
+                    if (/^\d*\.?\d{0,2}$/.test(value)) {
+                      handleChange('sellingPrice', value);
+                    }
+                  }}
+                  
+                  disabled={isSubmitting}
+                  aria-label="Selling Price"
+                    style={{ textAlign: "center" ,width:300}}
+                  // Use text type instead of number to remove spinners
+                  type="text"
+                  inputMode="decimal"
+                />
+              </div>
+
+              {/* Piece Rate Checkbox - REMOVED (replaced by Type dropdown above) */}
             </div>
 
             {/* Message display */}
