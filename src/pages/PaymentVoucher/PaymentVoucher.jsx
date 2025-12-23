@@ -602,101 +602,116 @@ const PaymentVoucher = () => {
   };
 
   // Handle Enter in payment table fields
+  // Handle payment table keydown with Enter key navigation - Similar to Receipt Voucher
   const handlePaymentFieldKeyDown = (e, rowIndex, fieldType, value = '') => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      
-      // Special handling for Cash/Bank field
-      if (fieldType === 'cashBank') {
-        // If empty Cash/Bank, skip to bill amount
-        if (!value || value.trim() === '') {
-          if (billAmountRefs.current[0]) {
-            billAmountRefs.current[0].focus();
-            setNavigationStep('billAmount');
-            setCurrentBillRowIndex(0);
-            return;
-          }
+      const paymentFields = ['cashBank', 'crDr', 'type', 'chqNo', 'chqDt', 'narration', 'amount'];
+      const currentItem = paymentItems[rowIndex];
+
+      // Get current field index
+      const currentFieldIndex = paymentFields.indexOf(fieldType);
+
+      // Check if Cash/Bank is empty
+      const isCashBankEmpty = !currentItem.cashBank.trim();
+
+      // Special case: If at cashBank field and it's empty, skip to reference bill amount field
+      if (fieldType === 'cashBank' && isCashBankEmpty) {
+        if (billDetails.length > 0) {
+          setCurrentBillRowIndex(0);
+          setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+        } else {
+          // If no bill rows, go to save button
+          setTimeout(() => saveButtonRef.current?.focus(), 0);
         }
-        
-        // Otherwise go to next field (Cr/Dr)
-        if (paymentCrDrRefs.current[rowIndex]) {
-          paymentCrDrRefs.current[rowIndex].focus();
-          setNavigationStep('paymentCrDr');
-        }
+        return;
       }
-      
-      // Cr/Dr -> Type
-      else if (fieldType === 'crDr') {
-        if (paymentTypeRefs.current[rowIndex]) {
-          paymentTypeRefs.current[rowIndex].focus();
-          setNavigationStep('paymentType');
-        }
+
+      // Special case: If at amount field and amount is not entered (0 or empty), don't move to next row
+      if (fieldType === 'amount' && (!currentItem.amount || parseFloat(currentItem.amount) <= 0)) {
+        // Don't move to next row - stay in same field
+        return;
       }
-      
-      // Type -> Chq No or Narration (skip Chq fields if not CHQ)
-      else if (fieldType === 'type') {
-        const isCheque = value === 'CHQ';
-        if (isCheque && paymentChqNoRefs.current[rowIndex]) {
-          paymentChqNoRefs.current[rowIndex].focus();
-          setNavigationStep('paymentChqNo');
-        } else if (paymentNarrationRefs.current[rowIndex]) {
-          paymentNarrationRefs.current[rowIndex].focus();
-          setNavigationStep('paymentNarration');
+
+      // Move to next field in same row
+      if (currentFieldIndex < paymentFields.length - 1) {
+        // Special case for payment table: if Type is not CHQ, skip Chq No and Chq Dt
+        if (fieldType === 'type' && currentItem.type !== 'CHQ') {
+          // Skip to narration
+          const narrationFieldId = `payment_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
+        } 
+        // Special case: when moving from chqNo to chqDt and type is not CHQ, skip to narration
+        else if (fieldType === 'chqNo' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `payment_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
         }
-      }
-      
-      // Chq No -> Chq Dt
-      else if (fieldType === 'chqNo') {
-        if (paymentChqDtRefs.current[rowIndex]) {
-          paymentChqDtRefs.current[rowIndex].focus();
-          setNavigationStep('paymentChqDt');
+        // Special case: when moving from chqDt and type is not CHQ, skip to narration
+        else if (fieldType === 'chqDt' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `payment_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
         }
-      }
-      
-      // Chq Dt -> Narration
-      else if (fieldType === 'chqDt') {
-        if (paymentNarrationRefs.current[rowIndex]) {
-          paymentNarrationRefs.current[rowIndex].focus();
-          setNavigationStep('paymentNarration');
+        else {
+          // Normal navigation to next field
+          const nextFieldId = `payment_${currentItem.id}_${paymentFields[currentFieldIndex + 1]}`;
+          setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
         }
-      }
-      
-      // Narration -> Amount
-      else if (fieldType === 'narration') {
-        if (paymentAmountRefs.current[rowIndex]) {
-          paymentAmountRefs.current[rowIndex].focus();
-          setNavigationStep('paymentAmount');
-        }
-      }
-      
-      // Amount -> Decision point
-      else if (fieldType === 'amount') {
-        const amountValue = parseFloat(value) || 0;
-        
-        // Only proceed if amount is entered
-        if (amountValue > 0) {
-          // Check if there's a next payment row
-          if (rowIndex < paymentItems.length - 1) {
-            // Go to next row's Cash/Bank
-            if (paymentCashBankRefs.current[rowIndex + 1]) {
-              setTimeout(() => {
-                paymentCashBankRefs.current[rowIndex + 1].focus();
-                setNavigationStep('paymentCashBank');
-                setCurrentPaymentRowIndex(rowIndex + 1);
-              }, 0);
+      } else {
+        // Last field in current row (Amount field)
+        // Check if next row exists and has cash/bank
+        if (rowIndex < paymentItems.length - 1) {
+          const nextItem = paymentItems[rowIndex + 1];
+          
+          // Check if next row has cash/bank
+          if (!nextItem.cashBank.trim()) {
+            // Next row has empty cash/bank, skip to reference bill amount
+            if (billDetails.length > 0) {
+              setCurrentBillRowIndex(0);
+              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+            } else {
+              // If no bill rows, go to save button
+              setTimeout(() => saveButtonRef.current?.focus(), 0);
             }
           } else {
-            // No next payment row, go to bill amount
-            if (billAmountRefs.current[0]) {
-              setTimeout(() => {
-                billAmountRefs.current[0].focus();
-                setNavigationStep('billAmount');
-                setCurrentBillRowIndex(0);
-              }, 0);
+            // Next row has cash/bank, go to it
+            const nextFieldId = `payment_${nextItem.id}_${paymentFields[0]}`;
+            setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
+          }
+        } else {
+          // Last row, check if we should add new row or go to bill details
+          // Only add new row if current row has cash/bank and amount
+          if (currentItem.cashBank.trim() && currentItem.amount && parseFloat(currentItem.amount) > 0) {
+            // Add new row and focus on its cash/bank
+            const newId = Math.max(...paymentItems.map(item => item.id), 0) + 1;
+            setPaymentItems(prev => [
+              ...prev,
+              {
+                id: newId,
+                sNo: prev.length + 1,
+                cashBank: '',
+                cashBankCode: '',
+                crDr: 'CR',
+                type: '',
+                chqNo: '',
+                chqDt: '',
+                narration: '',
+                amount: '0.00'
+              }
+            ]);
+            // Focus on cash/bank of new row
+            setTimeout(() => {
+              document.getElementById(`payment_${newId}_cashBank`)?.focus();
+            }, 0);
+          } else {
+            // Don't add new row, go to bill details or save button
+            if (billDetails.length > 0) {
+              setCurrentBillRowIndex(0);
+              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+            } else {
+              setTimeout(() => saveButtonRef.current?.focus(), 0);
             }
           }
         }
-        // If amount is not entered, DO NOTHING (don't proceed)
       }
     }
     
@@ -710,17 +725,20 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Handle Enter in bill table amount fields
+  // Handle bill table keydown with Enter key navigation
   const handleBillAmountKeyDown = (e, rowIndex, value = '') => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      
-      // Move directly to Save button
-      if (saveButtonRef.current) {
-        setTimeout(() => {
-          saveButtonRef.current.focus();
-          setNavigationStep('saveButton');
-        }, 0);
+      const billFields = ['refNo', 'billNo', 'date', 'billAmount', 'paidAmount', 'balanceAmount', 'amount'];
+      const currentBill = billDetails[rowIndex];
+
+      // Get current field index
+      const currentFieldIndex = billFields.indexOf('amount');
+
+      // If at amount field, move directly to save button
+      if (currentFieldIndex >= 0) {
+        setTimeout(() => saveButtonRef.current?.focus(), 0);
+        return;
       }
     }
   };
@@ -1114,11 +1132,13 @@ const PaymentVoucher = () => {
         return;
       }
 
-      // Validate that all payment items have Cash/Bank account selected
-      const missingCashBank = paymentItems.some(item => !item.cashBank || !item.cashBankCode);
-      if (missingCashBank) {
-        setError('All payment items must have a Cash/Bank account selected');
-        toast.error('All payment items must have a Cash/Bank account selected', { autoClose: 3000 });
+      // Filter payment items - only include items with cashBank and amount > 0
+      const validPaymentItems = paymentItems.filter(item => item.cashBank && parseFloat(item.amount) > 0);
+      
+      // Check if at least one valid payment item exists
+      if (validPaymentItems.length === 0) {
+        setError('At least one payment item with Cash/Bank account and amount is required');
+        toast.error('At least one payment item with Cash/Bank account and amount is required', { autoClose: 3000 });
         return;
       }
 
@@ -1156,7 +1176,7 @@ const PaymentVoucher = () => {
         usercode: userData?.username || '',
         givenTotal: givenTotal,
         balanceGiven: balanceGiven,
-        itemDetailsList1: paymentItems.map(item => ({
+        itemDetailsList1: validPaymentItems.map(item => ({
           accountCode: item.cashBankCode || '',
           accountName: item.cashBank || '',
           crdr: item.crDr || 'CR',
