@@ -295,6 +295,37 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     }
   };
 
+  // Handle keydown specifically for Bill Discount % field
+  const handleBillDiscountKeyDown = (e, nextRef) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // Trigger calculation by updating form data
+      const billAmount = Number(formData.billAmount) || 0;
+      const discountPercent = Number(formData.billDiscountPercent) || 0;
+      const discountAmount = (billAmount * discountPercent) / 100;
+      const grandTotal = billAmount - discountAmount;
+      
+      const roundOff = Number(formData.roudOff) || 0;
+      const scrapAmount = Number(formData.scrapAmount) || 0;
+      const salesReturn = Number(formData.salesReturn) || 0;
+      const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+      
+      // Update form data with calculated values
+      setFormData(prev => ({
+        ...prev,
+        billDiscAmt: discountAmount.toFixed(2),
+        granTotal: grandTotal.toFixed(2),
+        netAmount: netAmount.toFixed(2)
+      }));
+      
+      // Move to next field
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
+      }
+    }
+  };
+
   // Handle keydown for salesReturnBillNo field - move to collect 500 field
   const handleSalesReturnBillKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -480,9 +511,8 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       type="number"
                       value={formData.billDiscountPercent}
                       onChange={(e) => handleInputChange('billDiscountPercent', e.target.value)}
-                      onKeyDown={(e) => handleFormFieldKeyDown(e, roundOffRef)}
+                      onKeyDown={(e) => handleBillDiscountKeyDown(e, roundOffRef)}
                       className={styles.inputField}
-                      placeholder="0"
                     />
                   </div>
                 </div>
@@ -495,7 +525,6 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       value={formData.billDiscAmt}
                       readOnly
                       className={`${styles.inputField} ${styles.readonlyField}`}
-                      placeholder="0"
                     />
                   </div>
                 </div>
@@ -525,7 +554,6 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       onChange={(e) => handleInputChange('roudOff', e.target.value)}
                       onKeyDown={(e) => handleFormFieldKeyDown(e, scrapBillNoRef)}
                       className={styles.inputField}
-                      placeholder="0"
                     />
                   </div>
                 </div>
@@ -543,7 +571,6 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       onChange={handleScrapBillNoChange}
                       onKeyDown={(e) => handleFormFieldKeyDown(e, salesReturnBillNoRef)}
                       className={styles.inputField}
-                      placeholder="Bill No"
                     />
                   </div>
                 </div>
@@ -556,7 +583,6 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       value={formData.scrapAmount}
                       onChange={(e) => handleInputChange('scrapAmount', e.target.value)}
                       className={styles.inputField}
-                      placeholder="0"
                       readOnly
                     />
                   </div>
@@ -575,7 +601,6 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       onChange={handleSalesReturnBillNoChange}
                       onKeyDown={handleSalesReturnBillKeyDown}
                       className={styles.inputField}
-                      placeholder="Bill No"
                     />
                   </div>
                 </div>
@@ -588,7 +613,6 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       value={formData.salesReturn}
                       onChange={(e) => handleInputChange('salesReturn', e.target.value)}
                       className={styles.inputField}
-                      placeholder="0"
                       readOnly
                     />
                   </div>
@@ -688,7 +712,6 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                           onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
                           onKeyDown={(e) => handleCollectFieldKeyDown(e, denom)}
                           className={styles.tableInput}
-                          placeholder="0"
                         />
                       </div>
                     ))}
@@ -704,7 +727,6 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                           value={denominations[denom].issue}
                           readOnly
                           className={styles.tableInput}
-                          placeholder="0"
                         />
                       </div>
                     ))}
@@ -735,9 +757,8 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                       <input
                         type="number"
                         value={formData.receivedCash}
-                        onChange={(e) => handleInputChange('receivedCash', e.target.value)}
-                        className={styles.paymentInput}
-                        placeholder="0"
+                        readOnly
+                        className={`${styles.paymentInput} ${styles.readonlyPayment}`}
                       />
                     </div>
                   </div>
@@ -774,7 +795,6 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                         value={formData.card}
                         onChange={(e) => handleInputChange('card', e.target.value)}
                         className={styles.paymentInput}
-                        placeholder="0"
                       />
                     </div>
                   </div>
