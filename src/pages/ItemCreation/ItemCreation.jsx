@@ -68,7 +68,14 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         onClick={() => onSelect(node)}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && onSelect(node)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            onSelect(node);
+          } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            // Allow tree navigation to handle arrow keys
+            e.stopPropagation();
+          }
+        }}
       >
         {hasChildren ? (
           <button
@@ -199,32 +206,14 @@ const ItemCreation = ({ onCreated }) => {
   const [isSizePopupOpen, setIsSizePopupOpen] = useState(false);
   const [isUnitPopupOpen, setIsUnitPopupOpen] = useState(false);
 
-  // Search terms for each popup
-  const [brandSearch, setBrandSearch] = useState('');
-  const [categorySearch, setCategorySearch] = useState('');
-  const [productSearch, setProductSearch] = useState('');
-  const [modelSearch, setModelSearch] = useState('');
-  const [sizeSearch, setSizeSearch] = useState('');
-  const [unitSearch, setUnitSearch] = useState('');
-
-  // State to track which popup has initial search text
-  const [popupInitialSearch, setPopupInitialSearch] = useState({
+  // Search terms for each popup - NEW: Track initial search for each popup
+  const [initialPopupSearch, setInitialPopupSearch] = useState({
     brand: '',
     category: '',
     product: '',
     model: '',
     size: '',
     unit: ''
-  });
-
-  // State to track if we should simulate typing in popup
-  const [simulatePopupTyping, setSimulatePopupTyping] = useState({
-    brand: false,
-    category: false,
-    product: false,
-    model: false,
-    size: false,
-    unit: false
   });
 
   // Refs for form inputs
@@ -385,53 +374,86 @@ const ItemCreation = ({ onCreated }) => {
     handleChange('pieceRate', newValue ? 'Y' : 'N');
   };
 
-const handleEnterNavigation = (e) => {
-  if (e.key !== 'Enter') return;
-
-  const target = e.target;
-  const tag = target.tagName;
-  const type = target.type;
-
-  // ❌ Let normal typing work inside text inputs
-  if (
-    tag === 'INPUT' &&
-    !['checkbox', 'radio'].includes(type)
-  ) {
-    e.preventDefault();
-  }
-
-  try {
-    const container = e.currentTarget;
-    if (!container) return;
-
-    // ✅ ONLY real form fields (NO buttons)
-    const selectors =
-      'input:not([type="hidden"]):not([disabled]), ' +
-      'select:not([disabled]), ' +
-      'textarea:not([disabled]), ' +
-      '.checkbox-group';
-
-    const elements = Array.from(container.querySelectorAll(selectors))
-      .filter(el => el.offsetParent !== null);
-
-    if (!elements.length) return;
-
-    const active = document.activeElement;
-    const index = elements.indexOf(active);
-
-    // ✅ If there is a next field → move
-    if (index >= 0 && index < elements.length - 1) {
-      elements[index + 1].focus();
+// UPDATED: Arrow key navigation throughout the form
+const handleKeyNavigation = (e) => {
+  const key = e.key;
+  
+  // Handle arrow keys and Enter for navigation
+  if (['ArrowDown', 'ArrowUp', 'Enter'].includes(key)) {
+    // If tree is open and we're in tree navigation, let tree handle it
+    if (isTreeOpen && (e.target.closest('.tree-scroll') || e.target === groupNameRef.current)) {
       return;
     }
-
-    // ✅ LAST FIELD → focus UPDATE / SAVE button
-    if (index === elements.length - 1) {
-      const submitBtn = document.querySelector('.submit-primary');
-      submitBtn?.focus();
+    
+    // If dropdown is open, let it handle arrow keys
+    if (typeRef.current && typeRef.current.size > 0) {
+      return;
     }
-  } catch (err) {
-    console.warn('Enter navigation error', err);
+    
+    e.preventDefault();
+    
+    try {
+      const container = e.currentTarget;
+      if (!container) return;
+
+      // ✅ Get ALL focusable elements in the form
+      const selectors = [
+        'input:not([type="hidden"]):not([disabled])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '.checkbox-group[tabindex="0"]',
+        'button.submit-primary:not([disabled])',
+        'button.submit-clear:not([disabled])'
+      ].join(', ');
+
+      const elements = Array.from(container.querySelectorAll(selectors))
+        .filter(el => {
+          if (!el.offsetParent) return false;
+          const style = window.getComputedStyle(el);
+          return style.visibility !== 'hidden' && style.display !== 'none';
+        });
+
+      if (!elements.length) return;
+
+      const active = document.activeElement;
+      const index = elements.indexOf(active);
+
+      if (key === 'ArrowDown' || (key === 'Enter' && active.tagName !== 'BUTTON')) {
+        // ✅ Move to next field (or first if none focused)
+        if (index >= 0 && index < elements.length - 1) {
+          const nextElement = elements[index + 1];
+          nextElement.focus();
+          // If next element is a checkbox group, ensure it's visible
+          if (nextElement.classList.contains('checkbox-group')) {
+            nextElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        } else if (index === -1) {
+          // If no element focused, focus first one
+          elements[0].focus();
+        } else if (index === elements.length - 1) {
+          // If at last element, loop to first
+          elements[0].focus();
+        }
+      } else if (key === 'ArrowUp') {
+        // ✅ Move to previous field (or last if none focused)
+        if (index > 0) {
+          const prevElement = elements[index - 1];
+          prevElement.focus();
+          // If previous element is a checkbox group, ensure it's visible
+          if (prevElement.classList.contains('checkbox-group')) {
+            prevElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        } else if (index === 0) {
+          // If at first element, loop to last
+          elements[elements.length - 1].focus();
+        } else if (index === -1) {
+          // If no element focused, focus last one
+          elements[elements.length - 1].focus();
+        }
+      }
+    } catch (err) {
+      console.warn('Keyboard navigation error', err);
+    }
   }
 };
 
@@ -844,7 +866,7 @@ const handleEnterNavigation = (e) => {
     }
   }, []);
 
-  // NEW: Handle keyboard typing in popup fields - SIMPLIFIED APPROACH
+  // NEW: Handle keyboard typing in popup fields - UPDATED SIMPLIFIED VERSION
   const handlePopupFieldKeyPress = (field, e) => {
     const key = e.key;
     
@@ -852,16 +874,10 @@ const handleEnterNavigation = (e) => {
     if (key.length === 1 && /^[a-zA-Z0-9]$/.test(key)) {
       e.preventDefault();
       
-      // Store the typed key
-      setPopupInitialSearch(prev => ({
+      // Store the typed key as initial search for this popup
+      setInitialPopupSearch(prev => ({
         ...prev,
         [field]: key
-      }));
-      
-      // Set flag to simulate typing
-      setSimulatePopupTyping(prev => ({
-        ...prev,
-        [field]: true
       }));
       
       // Open the appropriate popup
@@ -888,25 +904,25 @@ const handleEnterNavigation = (e) => {
     }
   };
 
-  // Reset simulate typing flag when popup closes
+  // Reset initial search when popup closes
   useEffect(() => {
     if (!isBrandPopupOpen) {
-      setSimulatePopupTyping(prev => ({ ...prev, brand: false }));
+      setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
     }
     if (!isCategoryPopupOpen) {
-      setSimulatePopupTyping(prev => ({ ...prev, category: false }));
+      setInitialPopupSearch(prev => ({ ...prev, category: '' }));
     }
     if (!isProductPopupOpen) {
-      setSimulatePopupTyping(prev => ({ ...prev, product: false }));
+      setInitialPopupSearch(prev => ({ ...prev, product: '' }));
     }
     if (!isModelPopupOpen) {
-      setSimulatePopupTyping(prev => ({ ...prev, model: false }));
+      setInitialPopupSearch(prev => ({ ...prev, model: '' }));
     }
     if (!isSizePopupOpen) {
-      setSimulatePopupTyping(prev => ({ ...prev, size: false }));
+      setInitialPopupSearch(prev => ({ ...prev, size: '' }));
     }
     if (!isUnitPopupOpen) {
-      setSimulatePopupTyping(prev => ({ ...prev, unit: false }));
+      setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
     }
   }, [isBrandPopupOpen, isCategoryPopupOpen, isProductPopupOpen, isModelPopupOpen, isSizePopupOpen, isUnitPopupOpen]);
 
@@ -951,22 +967,13 @@ const handleEnterNavigation = (e) => {
     setMessage(null);
     setSearchTree('');
     // Reset popup initial search values
-    setPopupInitialSearch({
+    setInitialPopupSearch({
       brand: '',
       category: '',
       product: '',
       model: '',
       size: '',
       unit: ''
-    });
-    // Reset simulate typing flags
-    setSimulatePopupTyping({
-      brand: false,
-      category: false,
-      product: false,
-      model: false,
-      size: false,
-      unit: false
     });
     if (!keepAction) setActionType('create');
   };
@@ -1004,59 +1011,65 @@ const handleEnterNavigation = (e) => {
 
   // Custom fetch functions that include the initial search
   const fetchBrandsWithSearch = useCallback(async (page = 1, search = '') => {
-    // If we're simulating typing and have an initial search, use it
-    const effectiveSearch = simulatePopupTyping.brand && popupInitialSearch.brand ? 
-      popupInitialSearch.brand + (search || '') : 
+    // If we have an initial search for brand, combine it with current search
+    const initialSearch = initialPopupSearch.brand;
+    const effectiveSearch = initialSearch ? 
+      initialSearch + (search || '') : 
       search;
     
     console.log('Fetching brands with search:', effectiveSearch);
     return fetchBrands(page, effectiveSearch);
-  }, [fetchBrands, simulatePopupTyping.brand, popupInitialSearch.brand]);
+  }, [fetchBrands, initialPopupSearch.brand]);
 
   const fetchCategoriesWithSearch = useCallback(async (page = 1, search = '') => {
-    const effectiveSearch = simulatePopupTyping.category && popupInitialSearch.category ? 
-      popupInitialSearch.category + (search || '') : 
+    const initialSearch = initialPopupSearch.category;
+    const effectiveSearch = initialSearch ? 
+      initialSearch + (search || '') : 
       search;
     
     console.log('Fetching categories with search:', effectiveSearch);
     return fetchCategories(page, effectiveSearch);
-  }, [fetchCategories, simulatePopupTyping.category, popupInitialSearch.category]);
+  }, [fetchCategories, initialPopupSearch.category]);
 
   const fetchProductsWithSearch = useCallback(async (page = 1, search = '') => {
-    const effectiveSearch = simulatePopupTyping.product && popupInitialSearch.product ? 
-      popupInitialSearch.product + (search || '') : 
+    const initialSearch = initialPopupSearch.product;
+    const effectiveSearch = initialSearch ? 
+      initialSearch + (search || '') : 
       search;
     
     console.log('Fetching products with search:', effectiveSearch);
     return fetchProducts(page, effectiveSearch);
-  }, [fetchProducts, simulatePopupTyping.product, popupInitialSearch.product]);
+  }, [fetchProducts, initialPopupSearch.product]);
 
   const fetchModelsWithSearch = useCallback(async (page = 1, search = '') => {
-    const effectiveSearch = simulatePopupTyping.model && popupInitialSearch.model ? 
-      popupInitialSearch.model + (search || '') : 
+    const initialSearch = initialPopupSearch.model;
+    const effectiveSearch = initialSearch ? 
+      initialSearch + (search || '') : 
       search;
     
     console.log('Fetching models with search:', effectiveSearch);
     return fetchModels(page, effectiveSearch);
-  }, [fetchModels, simulatePopupTyping.model, popupInitialSearch.model]);
+  }, [fetchModels, initialPopupSearch.model]);
 
   const fetchSizesWithSearch = useCallback(async (page = 1, search = '') => {
-    const effectiveSearch = simulatePopupTyping.size && popupInitialSearch.size ? 
-      popupInitialSearch.size + (search || '') : 
+    const initialSearch = initialPopupSearch.size;
+    const effectiveSearch = initialSearch ? 
+      initialSearch + (search || '') : 
       search;
     
     console.log('Fetching sizes with search:', effectiveSearch);
     return fetchSizes(page, effectiveSearch);
-  }, [fetchSizes, simulatePopupTyping.size, popupInitialSearch.size]);
+  }, [fetchSizes, initialPopupSearch.size]);
 
   const fetchUnitsWithSearch = useCallback(async (page = 1, search = '') => {
-    const effectiveSearch = simulatePopupTyping.unit && popupInitialSearch.unit ? 
-      popupInitialSearch.unit + (search || '') : 
+    const initialSearch = initialPopupSearch.unit;
+    const effectiveSearch = initialSearch ? 
+      initialSearch + (search || '') : 
       search;
     
     console.log('Fetching units with search:', effectiveSearch);
     return fetchUnits(page, effectiveSearch);
-  }, [fetchUnits, simulatePopupTyping.unit, popupInitialSearch.unit]);
+  }, [fetchUnits, initialPopupSearch.unit]);
 
   // Get confirmation popup configuration based on action
   const getConfirmationConfig = () => {
@@ -1917,6 +1930,25 @@ const handleEnterNavigation = (e) => {
             padding: 10px;
           }
         }
+        
+        /* Better focus styles for keyboard navigation */
+        input:focus, 
+        select:focus, 
+        textarea:focus, 
+        .checkbox-group:focus,
+        button:focus,
+        .submit-primary:focus,
+        .submit-clear:focus {
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+
+        .tree-row:focus {
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
+          background: linear-gradient(90deg, rgba(74,222,128,0.1), rgba(74,222,128,0.05));
+        }
       `}</style>
 
       <div className="dashboard" aria-labelledby="item-title">
@@ -1964,7 +1996,7 @@ const handleEnterNavigation = (e) => {
         </div>
 
         <div className="grid" role="main">
-          <div className="card" aria-live="polite" onKeyDown={handleEnterNavigation}>
+          <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
             {/* Group Name field */}
           <div className="field">
   <label className="field-label">Group Name *</label>
@@ -2092,38 +2124,6 @@ const handleEnterNavigation = (e) => {
           cursor: "pointer"
         }}
       />
-      {/* <button
-        className="btn"
-        onClick={() => { setIsTreeOpen((v) => !v); }}
-        disabled={isSubmitting}
-        type="button"
-        aria-expanded={isTreeOpen}
-        aria-controls="group-tree"
-        style={{
-          flexShrink: 0,
-          border: "none",
-          borderLeft: "1px solid rgba(15,23,42,0.06)",
-          borderRadius: 0,
-          padding: "8px 12px",
-          minWidth: "70px",
-          fontSize: "12px",
-          fontWeight: "600",
-          background: "linear-gradient(180deg,#fff,#f8fafc)",
-          cursor: isSubmitting ? "not-allowed" : "pointer",
-          color: "#0f172a", 
-          transition: "all 0.2s"
-        }}
-        onMouseOver={(e) => {
-          if (!isSubmitting) {
-            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
-          }
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
-        }}
-      >
-        {isTreeOpen ? "Close" : "Open"}
-      </button> */}
     </div>
   </div>
 
@@ -2536,11 +2536,6 @@ const handleEnterNavigation = (e) => {
                         e.target.size = TYPE_OPTIONS.length + 1; // Open dropdown
                       } else {
                         e.target.size = 0; // Close dropdown
-                        // Move to next field (Save button)
-                        const saveButton = document.querySelector('.submit-primary');
-                        if (saveButton) {
-                          setTimeout(() => saveButton.focus(), 10);
-                        }
                       }
                     }
                   }}
@@ -2780,15 +2775,13 @@ const handleEnterNavigation = (e) => {
         open={isBrandPopupOpen}
         onClose={() => {
           setIsBrandPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, brand: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, brand: false }));
+          setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
         }}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, brand: item.fname || '' }));
           setFieldCodes(prev => ({ ...prev, brandCode: item.fcode || '' }));
           setIsBrandPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, brand: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, brand: false }));
+          setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
         }}
         fetchItems={fetchBrandsWithSearch}
         title="Select Brand"
@@ -2798,6 +2791,7 @@ const handleEnterNavigation = (e) => {
         columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.brand} // PASS INITIAL SEARCH TO POPUP
       />
 
       {/* PopupListSelector for Category Selection */}
@@ -2805,15 +2799,13 @@ const handleEnterNavigation = (e) => {
         open={isCategoryPopupOpen}
         onClose={() => {
           setIsCategoryPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, category: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, category: false }));
+          setInitialPopupSearch(prev => ({ ...prev, category: '' }));
         }}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, category: item.fname || '' }));
           setFieldCodes(prev => ({ ...prev, categoryCode: item.fcode || '' }));
           setIsCategoryPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, category: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, category: false }));
+          setInitialPopupSearch(prev => ({ ...prev, category: '' }));
         }}
         fetchItems={fetchCategoriesWithSearch}
         title="Select Category"
@@ -2823,6 +2815,7 @@ const handleEnterNavigation = (e) => {
         columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.category} // PASS INITIAL SEARCH TO POPUP
       />
 
       {/* PopupListSelector for Product Selection */}
@@ -2830,15 +2823,13 @@ const handleEnterNavigation = (e) => {
         open={isProductPopupOpen}
         onClose={() => {
           setIsProductPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, product: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, product: false }));
+          setInitialPopupSearch(prev => ({ ...prev, product: '' }));
         }}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, product: item.fname || '' }));
           setFieldCodes(prev => ({ ...prev, productCode: item.fcode || '' }));
           setIsProductPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, product: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, product: false }));
+          setInitialPopupSearch(prev => ({ ...prev, product: '' }));
         }}
         fetchItems={fetchProductsWithSearch}
         title="Select Product"
@@ -2848,6 +2839,7 @@ const handleEnterNavigation = (e) => {
         columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.product} // PASS INITIAL SEARCH TO POPUP
       />
 
       {/* PopupListSelector for Model Selection */}
@@ -2855,15 +2847,13 @@ const handleEnterNavigation = (e) => {
         open={isModelPopupOpen}
         onClose={() => {
           setIsModelPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, model: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, model: false }));
+          setInitialPopupSearch(prev => ({ ...prev, model: '' }));
         }}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, model: item.fname || '' }));
           setFieldCodes(prev => ({ ...prev, modelCode: item.fcode || '' }));
           setIsModelPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, model: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, model: false }));
+          setInitialPopupSearch(prev => ({ ...prev, model: '' }));
         }}
         fetchItems={fetchModelsWithSearch}
         title="Select Model"
@@ -2873,6 +2863,7 @@ const handleEnterNavigation = (e) => {
         columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.model} // PASS INITIAL SEARCH TO POPUP
       />
 
       {/* PopupListSelector for Size Selection */}
@@ -2880,15 +2871,13 @@ const handleEnterNavigation = (e) => {
         open={isSizePopupOpen}
         onClose={() => {
           setIsSizePopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, size: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, size: false }));
+          setInitialPopupSearch(prev => ({ ...prev, size: '' }));
         }}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, size: item.fname || '' }));
           setFieldCodes(prev => ({ ...prev, sizeCode: item.fcode || '' }));
           setIsSizePopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, size: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, size: false }));
+          setInitialPopupSearch(prev => ({ ...prev, size: '' }));
         }}
         fetchItems={fetchSizesWithSearch}
         title="Select Size"
@@ -2898,6 +2887,7 @@ const handleEnterNavigation = (e) => {
         columnWidths={{ fcode: '30%', fname: '70%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.size} // PASS INITIAL SEARCH TO POPUP
       />
 
       {/* PopupListSelector for Unit Selection */}
@@ -2905,14 +2895,12 @@ const handleEnterNavigation = (e) => {
         open={isUnitPopupOpen}
         onClose={() => {
           setIsUnitPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, unit: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, unit: false }));
+          setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
         }}
         onSelect={(item) => {
           setFormData(prev => ({ ...prev, unit: item.fname || '', unitCode: item.fcode || '' }));
           setIsUnitPopupOpen(false);
-          setPopupInitialSearch(prev => ({ ...prev, unit: '' }));
-          setSimulatePopupTyping(prev => ({ ...prev, unit: false }));
+          setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
         }}
         fetchItems={fetchUnitsWithSearch}
         title="Select Unit"
@@ -2922,6 +2910,7 @@ const handleEnterNavigation = (e) => {
         columnWidths={{ fname: '60%', fcode: '40%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.unit} // PASS INITIAL SEARCH TO POPUP
       />
 
       {/* PopupListSelector for Edit/Delete actions - FIXED VERSION */}

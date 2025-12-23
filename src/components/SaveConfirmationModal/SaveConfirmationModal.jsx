@@ -24,8 +24,18 @@ const SaveConfirmationModal = ({
   loading = false,
   voucherNo = "",
   voucherDate = "",
-  totalAmount = 0
+  totalAmount = 0,
+  cashTotals = null,
+  hasCashPayments = false
 }) => {
+  console.log('🔴 SaveConfirmationModal Props Received:', {
+    isOpen,
+    hasCashPayments,
+    cashTotals,
+    totalAmount,
+    voucherNo,
+    voucherDate
+  });
   const { userData } = useAuth() || {};
   const confirmRef = useRef(null);
   const [denominations, setDenominations] = useState(particulars);
@@ -197,6 +207,12 @@ const SaveConfirmationModal = ({
 
   useEffect(() => {
     if (isOpen) {
+      console.log('SaveConfirmationModal opened with props:', {
+        hasCashPayments,
+        cashTotals,
+        totalAmount,
+        voucherNo
+      });
       setDenominations(particulars);
       fetchLiveCash();
       
@@ -207,7 +223,7 @@ const SaveConfirmationModal = ({
         }
       }, 100);
     }
-  }, [isOpen, particulars, userData?.companyCode]);
+  }, [isOpen, particulars, userData?.companyCode, hasCashPayments, cashTotals]);
 
   // Update closing values when liveAvailable changes
   useEffect(() => {
@@ -354,7 +370,9 @@ const SaveConfirmationModal = ({
             <div className={styles.paymentSection}>
               <div className={styles.paymentRow}>
                 <div className={styles.paymentGroup}>
-                  <label className={styles.paymentLabel}>Total Amount</label>
+                  <label className={styles.paymentLabel}>
+                    {hasCashPayments ? 'Net Amount' : 'Total Amount'}
+                  </label>
                   <div className={styles.paymentInputContainer}>
                     <input
                       type="number"
