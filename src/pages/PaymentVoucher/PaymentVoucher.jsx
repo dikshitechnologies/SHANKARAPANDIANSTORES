@@ -28,6 +28,9 @@ const PaymentVoucher = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   // Save confirmation popup
+
+
+
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
 
@@ -144,7 +147,7 @@ const PaymentVoucher = () => {
   const [focusedField, setFocusedField] = useState('');
 
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('save');
+  const [activeFooterAction, setActiveFooterAction] = useState('Null');
 
   // Top action active state
   const [activeTopAction, setActiveTopAction] = useState('add');
