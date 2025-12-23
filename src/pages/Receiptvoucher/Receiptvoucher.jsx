@@ -749,10 +749,10 @@ const ReceiptVoucher = () => {
       },
       selectAccount: {
         title: 'Select Account',
-        displayFieldKeys: ['code', 'name'],
-        searchFields: ['code', 'name'],
-        headerNames: ['Code', 'Account Name'],
-        columnWidths: { code: '100px', name: '400px' },
+        displayFieldKeys: [ 'name'],
+        searchFields: ['name'],
+        headerNames: [ 'Account Name'],
+        columnWidths: {  name: 'auto' },
         data: partyList,
         fetchItems: async () => partyList,
         loading: loadingParties
@@ -1490,7 +1490,9 @@ const ReceiptVoucher = () => {
     },
     fieldGroup: {
       display: 'flex',
-      flexDirection: 'column',
+      flexDirection: 'row',
+       justifyContent: 'center',
+      alignItems: 'center',
       gap: '4px',
     },
     inlineLabel: {
@@ -1862,16 +1864,17 @@ const ReceiptVoucher = () => {
               <input
                 type="text"
                 name="balance"
-                value={voucherDetails.balance}
+                value={voucherDetails.balance + ' '+ voucherDetails.crDr}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('balance')}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'balance' ? styles.inlineInputFocused : styles.inlineInput}
+                readonly
               />
             </div>
 
             {/* CR/DR - No Label */}
-            <div style={styles.fieldGroup}>
+            {/* <div style={styles.fieldGroup}>
               <input
                 name="crDr"
                 value={voucherDetails.crDr}
@@ -1882,7 +1885,7 @@ const ReceiptVoucher = () => {
               />
             
               
-            </div>
+            </div> */}
 
 
             {/* GST Type */}

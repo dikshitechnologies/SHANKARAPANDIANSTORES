@@ -2762,10 +2762,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         }}
         title="Select Supplier"
         fetchItems={fetchSupplierItems}
-        displayFieldKeys={['code','name','city','gstType']}
-        headerNames={['Code','Name','City','GST Type']}
-        searchFields={['code','name','city','gstType']}
-        columnWidths={{ code: '20%', name: '40%', city: '20%', gstType: '20%' }}
+        displayFieldKeys={['name','city','gstType']}
+        headerNames={['Name','City','GST Type']}
+        searchFields={['name','city','gstType']}
+        columnWidths={{ name: '40%', city: '20%', gstType: '20%' }}
         searchPlaceholder="Search supplier..."
         initialSearchText={itemSearchTerm}
         onSelect={(s) => {
