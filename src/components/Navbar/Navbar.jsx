@@ -93,6 +93,9 @@ const Navbar = () => {
     { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
         { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined />, permission: 'USER_CREATION' },
         { name: 'Administration', path: '/Administration', icon: <BuildOutlined />, permission: 'ADMINISTRATION' },
+        { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <BuildOutlined />, permission: 'ITEM_GRPCREATION' },
+        { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <BuildOutlined />, permission: 'LED_GRPCREATION' },
+
 
   ];
 
