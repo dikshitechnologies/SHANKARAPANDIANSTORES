@@ -10,6 +10,18 @@ import { axiosInstance } from '../../api/apiService';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 
+const TABLE_FIELDS = [
+  'barcode',
+  'itemName',
+  'stock',
+  'mrp',
+  'uom',
+  'hsn',
+  'tax',
+  'sRate',
+  'qty'
+];
+
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -43,6 +55,7 @@ const SaleInvoice = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+ const ignoreNextInputRef = useRef(false);
 
   // Save confirmation popup
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
@@ -56,7 +69,8 @@ const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
   // Edit confirmation popup
   const [editConfirmationOpen, setEditConfirmationOpen] = useState(false);
   const [editConfirmationData, setEditConfirmationData] = useState(null);
-  
+  const [popupSearchText, setPopupSearchText] = useState('');
+
   // Delete confirmation popup
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [deleteConfirmationData, setDeleteConfirmationData] = useState(null);
@@ -315,8 +329,8 @@ const [rowToDelete, setRowToDelete] = useState(null);
           const formattedItems = itemsArray.map(item => {
             const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
             const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-            const units = item.fUnits || item.units || item.Units || item.uom || item.UOM || item.unit || item.Unit || "pcs";
-            
+           const units = item.fUnits || item.units || "";
+
             return {
               ...item,
               id: itemCode || Math.random(),
@@ -1022,7 +1036,8 @@ const handleSalesmanSelect = (salesman) => {
 
 
   // Handle item selection - MODIFIED: Don't fetch barcode to item name field, only update item name
- const handleItemSelect = async (item) => {
+// Handle item selection - MODIFIED: Don't fetch barcode to item name field, only update item name
+const handleItemSelect = async (item) => {
   ignoreNextEnterRef.current = true;
 
   if (!item || currentItemRowIndex === null) return;
@@ -1044,10 +1059,8 @@ const handleSalesmanSelect = (salesman) => {
       item.name ||
       '';
 
-    const units =
-      item.fUnits ||
-      item.uom ||
-      'pcs';
+    const units = item.fUnits || item.units || "";
+
 
     // 🔥 Fetch stock details (backup source for HSN)
     const stockInfo = await getStockByItemName(itemCode);
@@ -1063,17 +1076,23 @@ const handleSalesmanSelect = (salesman) => {
       stockInfo.HSN ||
       '';
 
+    // Don't show 0 for tax, mrp, sRate - show empty if 0
+    const formatValue = (val) => {
+      const numVal = parseFloat(val || 0);
+      return numVal === 0 ? '' : numVal.toString();
+    };
+
     updatedItems[currentItemRowIndex] = {
       ...currentItem,
       itemName,
       itemCode,
       barcode: '',
       stock: (item.stock || stockInfo.stock || 0).toString(),
-      mrp: (item.mrp || stockInfo.mrp || 0).toString(),
+      mrp: formatValue(item.mrp || stockInfo.mrp || 0),
       uom: units || stockInfo.uom || stockInfo.fUnits || '',
       hsn: resolvedHsn, // ✅ FIXED HERE
-      tax: (item.tax || stockInfo.tax || 0).toString(),
-      sRate: (item.sRate || stockInfo.rate || 0).toString(),
+      tax: formatValue(item.tax || stockInfo.tax || 0),
+      sRate: formatValue(item.sRate || stockInfo.rate || 0),
       qty: currentItem.qty || '1',
       amount: calculateAmount(
         currentItem.qty || '1',
@@ -1219,18 +1238,21 @@ const handleSalesmanSelect = (salesman) => {
       }
       
       let filtered = itemsData;
-      if (search) {
-        const searchLower = search.toLowerCase();
-        filtered = itemsData.filter(item => {
-          return (
-            (item.name && item.name.toLowerCase().includes(searchLower)) ||
-            (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
-            (item.fItemcode && item.fItemcode.toLowerCase().includes(searchLower)) ||
-            (item.itemCode && item.itemCode.toLowerCase().includes(searchLower)) ||
-            (item.popupDisplay && item.popupDisplay.toLowerCase().includes(searchLower))
-          );
-        });
-      }
+     if (search) {
+  const searchLower = search.toLowerCase().trim();
+
+  filtered = itemsData.filter(item => {
+    const name =
+      item.popupDisplay ||
+      item.displayName ||
+      item.name ||
+      '';
+
+    // ✅ ERP-style search: STARTS WITH
+    return name.toLowerCase().startsWith(searchLower);
+  });
+}
+
       
       const startIndex = (pageNum - 1) * 20;
       const endIndex = startIndex + 20;
@@ -1269,50 +1291,43 @@ const handleSalesmanSelect = (salesman) => {
     }
   };
 
-  const handleKeyDown = (e, nextRef, fieldName = '') => {
-  // Check if a letter key is pressed (A-Z, a-z)
+const handleKeyDown = (e, nextRef, fieldName = '') => {
   const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
-  
+
   if (isLetterKey) {
-    e.preventDefault(); // Prevent the letter from being typed in the field
-    
-    if (fieldName === 'salesman') {
-      openSalesmanPopup();
-      // Set search in popup after it opens
-      setTimeout(() => {
-        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
-        if (searchInput) {
-          searchInput.value = e.key;
-          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      }, 100);
-      
-    } else if (fieldName === 'custName') {
-      openCustomerPopup();
-      // Set search in popup after it opens
-      setTimeout(() => {
-        const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
-        if (searchInput) {
-          searchInput.value = e.key;
-          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      }, 100);
-    }
-  } else if (e.key === '/') {
     e.preventDefault();
-    
+
+    ignoreNextInputRef.current = true; // 🔥 BLOCK input update
+    setPopupSearchText(e.key);         // ONLY ONE LETTER
+
     if (fieldName === 'salesman') {
-      openSalesmanPopup();
-    } else if (fieldName === 'custName') {
-      openCustomerPopup();
+      setSalesmanPopupOpen(true);
     }
-  } else if (e.key === 'Enter') {
+
+    if (fieldName === 'custName') {
+      setCustomerPopupOpen(true);
+    }
+
+    return;
+  }
+
+  if (e.key === '/') {
     e.preventDefault();
-    if (nextRef && nextRef.current) {
-      nextRef.current.focus();
-    }
+    setPopupSearchText('');
+
+    if (fieldName === 'salesman') setSalesmanPopupOpen(true);
+    if (fieldName === 'custName') setCustomerPopupOpen(true);
+
+    return;
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    nextRef?.current?.focus();
   }
 };
+
+
 
   // Handle backspace in customer and salesman fields
   const handleBackspace = (e, fieldName) => {
@@ -1334,67 +1349,78 @@ const handleSalesmanSelect = (salesman) => {
     }
   };
 
-  // Handle UOM spacebar cycling
-const handleUomSpacebar   = (e, id, index) => {
-    if (e.key === ' ') {
-      e.preventDefault();
-      
-      const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
-      const currentItem = items.find(item => item.id === id);
-      const currentUom = currentItem?.uom || '';
-      let nextUom = 'pcs';
-      
-      if (currentUom && currentUom.trim() !== '') {
-        const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
-        if (currentIndex !== -1) {
-          const nextIndex = (currentIndex + 1) % uomValues.length;
-          nextUom = uomValues[nextIndex];
-        } else {
-          nextUom = 'pcs';
-        }
-      } else {
-        nextUom = 'pcs';
-      }
-      
-      setItems(items.map(item => {
-        if (item.id === id) {
-          return {
-            ...item,
-            uom: nextUom
-          };
-        }
-        return item;
-      }));
-      
-      setFocusedUomField(id);
-      setTimeout(() => {
-        setFocusedUomField(null);
-      }, 300);
-      
-      return;
-    }
-    
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const hsnInput = document.querySelector(`input[data-row="${index}"][data-field="hsn"]`);
-      if (hsnInput) {
-        hsnInput.focus();
-        return;
-      }
-    }
-  };
 
- const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-  // Check if a letter key is pressed (A-Z, a-z) in itemName field
+
+const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  const fieldIndex = TABLE_FIELDS.indexOf(currentField);
+
+  // ==========================
+  // ⬅️ LEFT ARROW
+  // ==========================
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    if (fieldIndex > 0) {
+      const prevField = TABLE_FIELDS[fieldIndex - 1];
+      document
+        .querySelector(`[data-row="${currentRowIndex}"][data-field="${prevField}"]`)
+        ?.focus();
+    }
+    return;
+  }
+
+  // ==========================
+  // ➡️ RIGHT ARROW
+  // ==========================
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    if (fieldIndex < TABLE_FIELDS.length - 1) {
+      const nextField = TABLE_FIELDS[fieldIndex + 1];
+      document
+        .querySelector(`[data-row="${currentRowIndex}"][data-field="${nextField}"]`)
+        ?.focus();
+    }
+    return;
+  }
+
+  // ==========================
+  // ⬆️ UP ARROW
+  // ==========================
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (currentRowIndex > 0) {
+      document
+        .querySelector(`[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`)
+        ?.focus();
+    }
+    return;
+  }
+
+  // ==========================
+  // ⬇️ DOWN ARROW
+  // ==========================
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (currentRowIndex < items.length - 1) {
+      document
+        .querySelector(`[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`)
+        ?.focus();
+    }
+    return;
+  }
+
+  // ==========================
+  // 🔤 LETTER → ITEM POPUP
+  // ==========================
   const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
-  
+
   if (isLetterKey && currentField === 'itemName') {
-    e.preventDefault(); // Prevent the letter from being typed in the field
+    e.preventDefault();
     openItemPopup(currentRowIndex);
-    
-    // Set search in popup after it opens
+
     setTimeout(() => {
-      const searchInput = document.querySelector('.popup-list-selector input[type="text"]');
+      const searchInput = document.querySelector(
+        '.popup-list-selector input[type="text"]'
+      );
       if (searchInput) {
         searchInput.value = e.key;
         searchInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1402,33 +1428,37 @@ const handleUomSpacebar   = (e, id, index) => {
     }, 100);
     return;
   }
-  
+
   if (e.key === '/' && currentField === 'itemName') {
     e.preventDefault();
     openItemPopup(currentRowIndex);
     return;
   }
-  
+
+  // ==========================
+  // ⏎ ENTER NAVIGATION (UNCHANGED)
+  // ==========================
   if (e.key === 'Enter') {
     e.preventDefault();
 
-    // Define field order and their next field targets
-    const fieldNavigation = {
-      'barcode': `input[data-row="${currentRowIndex}"][data-field="itemName"]`,
-      'itemName': `input[data-row="${currentRowIndex}"][data-field="stock"]`,
-      'stock': `input[data-row="${currentRowIndex}"][data-field="mrp"]`,
-      'mrp': `div[data-row="${currentRowIndex}"][data-field="uom"]`,
-      'uom': `input[data-row="${currentRowIndex}"][data-field="hsn"]`,
-      'hsn': `input[data-row="${currentRowIndex}"][data-field="tax"]`,
-      'tax': `input[data-row="${currentRowIndex}"][data-field="sRate"]`,
-      'sRate': `input[data-row="${currentRowIndex}"][data-field="qty"]`,
-      'qty': currentRowIndex < items.length - 1 
-        ? `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
-        : null
-    };
+   const fieldNavigation = {
+  barcode: `input[data-row="${currentRowIndex}"][data-field="itemName"]`,
+  itemName: `input[data-row="${currentRowIndex}"][data-field="stock"]`,
+  stock: `input[data-row="${currentRowIndex}"][data-field="mrp"]`,
+  mrp: `input[data-row="${currentRowIndex}"][data-field="uom"]`, // ✅ FIXED
+  uom: `input[data-row="${currentRowIndex}"][data-field="hsn"]`,
+  hsn: `input[data-row="${currentRowIndex}"][data-field="tax"]`,
+  tax: `input[data-row="${currentRowIndex}"][data-field="sRate"]`,
+  sRate: `input[data-row="${currentRowIndex}"][data-field="qty"]`,
+  qty:
+    currentRowIndex < items.length - 1
+      ? `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+      : null
+};
+
 
     const nextSelector = fieldNavigation[currentField];
-    
+
     if (nextSelector) {
       const nextElement = document.querySelector(nextSelector);
       if (nextElement) {
@@ -1437,32 +1467,35 @@ const handleUomSpacebar   = (e, id, index) => {
       }
     }
 
-    // Special handling for quantity field
+    // Qty → next row / add row
     if (currentField === 'qty') {
       const currentItem = items[currentRowIndex];
 
-      // If row is empty (no item selected), go to add/less
       if (!currentItem.itemName || currentItem.itemName.trim() === '') {
-        if (addLessRef && addLessRef.current) {
-          addLessRef.current.focus();
-        }
+        addLessRef?.current?.focus();
         return;
       }
 
-      // Row has data, go to next row's barcode or add new row
       if (currentRowIndex < items.length - 1) {
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-        if (nextInput) nextInput.focus();
+        document
+          .querySelector(
+            `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+          )
+          ?.focus();
       } else {
         handleAddRow();
         setTimeout(() => {
-          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
-          if (newRowInput) newRowInput.focus();
+          document
+            .querySelector(
+              `input[data-row="${items.length}"][data-field="barcode"]`
+            )
+            ?.focus();
         }, 60);
       }
     }
   }
 };
+
   
 
   const handleAddItem = async () => {
@@ -1566,6 +1599,14 @@ const handleAddRow = () => {
     return;
   }
 
+  // 🚫 BLOCK adding row if amount is 0
+  if (parseFloat(lastItem.amount || 0) === 0) {
+    toast.warning("Amount is 0. Please add SRate before adding new row", {
+      autoClose: 3000,
+    });
+    return;
+  }
+
   const newRow = {
     id: items.length + 1,
     sNo: items.length + 1,
@@ -1585,23 +1626,28 @@ const handleAddRow = () => {
   setItems(prev => [...prev, newRow]);
 };
 
-  const handleItemChange = (id, field, value) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
+ const handleItemChange = (id, field, value) => {
+  setItems(items.map(item => {
+    if (item.id === id) {
+      const updatedItem = { ...item, [field]: value };
 
-        if (field === 'qty' || field === 'sRate') {
-          const qty = field === 'qty' ? value : updatedItem.qty;
-          const sRate = field === 'sRate' ? value : updatedItem.sRate;
-          updatedItem.amount = calculateAmount(qty, sRate);
-        }
-
-        return updatedItem;
+      // Don't show 0 for tax, mrp, sRate - show empty if 0
+      if (field === 'tax' || field === 'mrp' || field === 'sRate') {
+        const numValue = parseFloat(value || 0);
+        updatedItem[field] = numValue === 0 ? '' : numValue.toString();
       }
-      return item;
-    }));
-  };
 
+      if (field === 'qty' || field === 'sRate') {
+        const qty = field === 'qty' ? value : updatedItem.qty;
+        const sRate = field === 'sRate' ? value : updatedItem.sRate;
+        updatedItem.amount = calculateAmount(qty, sRate);
+      }
+
+      return updatedItem;
+    }
+    return item;
+  }));
+};
 const handleDeleteRow = (id) => {
   const itemToDelete = items.find(item => item.id === id);
   const itemName = itemToDelete?.itemName || 'this item';
@@ -1868,16 +1914,23 @@ const handleSave = () => {
     return;
   }
 
+  // ❌ Check for items with 0 amount
+  const itemsWithZeroAmount = validItems.filter(item => parseFloat(item.amount || 0) === 0);
+  if (itemsWithZeroAmount.length > 0) {
+    toast.warning("Cannot save invoice with items having 0 amount. Please check item rates.", {
+      autoClose: 3000,
+    });
+    return;
+  }
+
   // ✅ ALL OK → Open save confirmation popup
-  const addLessValue = parseFloat(addLessAmount || 0);
-  const finalAmount = totalAmount + addLessValue;
+  const finalAmount = totalAmount; // Removed addLessAmount
 
   setSaveConfirmationData({
     invoiceNo: isEditing ? originalInvoiceNo : billDetails.billNo,
     customer: billDetails.custName,
     billDate: billDetails.billDate,
     totalAmount: totalAmount.toFixed(2),
-    addLessAmount: addLessAmount,
     finalAmount: finalAmount.toFixed(2),
     isEditing: isEditing,
   });
@@ -2538,6 +2591,19 @@ searchIconInside: {
         width: 8px;
         height: 8px;
       }
+        input[data-field="uom"] {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    text-align: center !important;
+    background: transparent !important;
+  }
+
+  input[data-field="uom"]:focus {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
       
       .sale-invoice-scrollable::-webkit-scrollbar-track {
         background-color: #f0f0f0;
@@ -2722,26 +2788,35 @@ searchIconInside: {
 
   <div style={{ position: 'relative', width: '100%', flex: 1 }}>
     <input
-      type="text"
-      style={{
-        ...(focusedField === 'salesman'
-          ? styles.inlineInputClickableFocused
-          : styles.inlineInputClickable),
-        paddingRight: '34px', // space for icon
-      }}
-      value={billDetails.salesman}
-      name="salesman"
-      onChange={handleInputChange}
-      ref={salesmanRef}
-      onClick={openSalesmanPopup}
-      onKeyDown={(e) => {
-        handleKeyDown(e, custNameRef, 'salesman');
-        handleBackspace(e, 'salesman');
-      }}
-      onFocus={() => setFocusedField('salesman')}
-      onBlur={() => setFocusedField('')}
-      
-    />
+  type="text"
+  style={{
+    ...(focusedField === 'salesman'
+      ? styles.inlineInputClickableFocused
+      : styles.inlineInputClickable),
+    paddingRight: '34px',
+  }}
+  value={billDetails.salesman}
+  name="salesman"
+
+  // ✅ FIX: block duplicate letter
+  onChange={(e) => {
+    if (ignoreNextInputRef.current) {
+      ignoreNextInputRef.current = false; // reset
+      return; // ❌ do NOT update input
+    }
+    handleInputChange(e);
+  }}
+
+  ref={salesmanRef}
+  onClick={openSalesmanPopup}
+  onKeyDown={(e) => {
+    handleKeyDown(e, custNameRef, 'salesman');
+    handleBackspace(e, 'salesman');
+  }}
+  onFocus={() => setFocusedField('salesman')}
+  onBlur={() => setFocusedField('')}
+/>
+
 
     {/* 🔍 Search Icon */}
     <div
@@ -2779,18 +2854,37 @@ searchIconInside: {
       onChange={handleInputChange}
       ref={custNameRef}
       
-     onKeyDown={(e) => {
-  if (e.key === 'Enter') {
+ onKeyDown={(e) => {
+  // ✅ ONLY "/" opens popup
+  if (e.key === '/') {
     e.preventDefault();
-
-    // 👉 Move to TOP barcode input
-    if (barcodeRef.current) {
-      barcodeRef.current.focus();
-    }
+    setPopupSearchText('');   // no pre-filled search
+    setCustomerPopupOpen(true);
+    return;
   }
 
+  // ⏭ Enter → go to barcode
+// ⏭ Enter → go to TABLE first row barcode
+if (e.key === 'Enter') {
+  e.preventDefault();
+
+  setTimeout(() => {
+    const firstRowBarcode = document.querySelector(
+      'input[data-row="0"][data-field="barcode"]'
+    );
+    if (firstRowBarcode) {
+      firstRowBarcode.focus();
+    }
+  }, 0);
+
+  return;
+}
+
+
+  // 🔙 Backspace clears customer
   handleBackspace(e, 'custName');
 }}
+
 
       
     />
@@ -2820,7 +2914,7 @@ searchIconInside: {
         e.currentTarget.style.opacity = '0.65';
         e.currentTarget.style.backgroundColor = 'transparent';
       }}
-      title="Open Customer Selection"
+      title="Press / to open Customer Selection"
     >
       <SearchIcon />
     </div>
@@ -2828,34 +2922,7 @@ searchIconInside: {
 </div>
 
 
-          {/* Barcode */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Barcode:</label>
-            <input
-              type="text"
-              style={focusedField === 'barcodeInput' ? styles.inlineInputFocused : styles.inlineInput}
-              value={billDetails.barcodeInput}
-              name="barcodeInput"
-              onChange={handleInputChange}
-              ref={barcodeRef}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddItem();
-                  // After adding item, focus on first row's barcode
-                  setTimeout(() => {
-                    const firstRowBarcode = document.querySelector('input[data-row="0"][data-field="barcode"]');
-                    if (firstRowBarcode) firstRowBarcode.focus();
-                  }, 50);
-                } else {
-                  handleKeyDown(e, addLessRef, 'barcodeInput');
-                }
-              }}
-              onFocus={() => setFocusedField('barcodeInput')}
-              onBlur={() => setFocusedField('')}
-              // placeholder="Scan or Enter Barcode"
-            />
-          </div>
+ 
         </div>
       </div>
 
@@ -2955,27 +3022,39 @@ searchIconInside: {
   </div>
 </td>
 
-                  <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
-                      value={item.stock}
-                      data-row={index}
-                      data-field="stock"
-                      onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const mrpInput = document.querySelector(`input[data-row="${index}"][data-field="mrp"]`);
-                          if (mrpInput) {
-                            mrpInput.focus();
-                            return;
-                          }
-                        }
-                        handleTableKeyDown(e, index, 'stock');
-                      }}
-                      readOnly
-                    />
-                  </td>
+                <td style={styles.td}>
+  <input
+    style={
+      focusedField === `stock-${item.id}`
+        ? styles.editableInputFocused
+        : styles.editableInput
+    }
+    value={item.stock}
+    data-row={index}
+    data-field="stock"
+    onChange={(e) =>
+      handleItemChange(item.id, 'stock', e.target.value)
+    }
+    onKeyDown={(e) => {
+      // ⏎ ENTER → move to MRP
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document
+          .querySelector(
+            `input[data-row="${index}"][data-field="mrp"]`
+          )
+          ?.focus();
+        return;
+      }
+
+      // ⬅️ ➡️ ⬆️ ⬇️ arrow navigation
+      handleTableKeyDown(e, index, 'stock');
+    }}
+    onFocus={() => setFocusedField(`stock-${item.id}`)}
+    onBlur={() => setFocusedField('')}
+  />
+</td>
+
                   <td style={styles.td}>
                     <input
                       style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
@@ -2999,107 +3078,46 @@ searchIconInside: {
                     />
                   </td>
                   <td style={styles.td}>
-                    <div style={styles.uomContainer}>
-                      <div 
-                        style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
-                        onClick={() => {
-                          const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
-                          const currentUom = item.uom || '';
-                          let nextUom = 'pcs';
-                          
-                          if (currentUom && currentUom.trim() !== '') {
-                            const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
-                            if (currentIndex !== -1) {
-                              const nextIndex = (currentIndex + 1) % uomValues.length;
-                              nextUom = uomValues[nextIndex];
-                            } else {
-                              nextUom = 'pcs';
-                            }
-                          } else {
-                            nextUom = 'pcs';
-                          }
-                          
-                          setItems(items.map(i => {
-                            if (i.id === item.id) {
-                              return {
-                                ...i,
-                                uom: nextUom
-                              };
-                            }
-                            return i;
-                          }));
-                          
-                          setFocusedUomField(item.id);
-                          setTimeout(() => {
-                            setFocusedUomField(null);
-                          }, 300);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === ' ') {
-                            e.preventDefault();
-                            
-                            const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
-                            const currentUom = item.uom || '';
-                            let nextUom = 'pcs';
-                            
-                            if (currentUom && currentUom.trim() !== '') {
-                              const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
-                              if (currentIndex !== -1) {
-                                const nextIndex = (currentIndex + 1) % uomValues.length;
-                                nextUom = uomValues[nextIndex];
-                              } else {
-                                nextUom = 'pcs';
-                              }
-                            } else {
-                              nextUom = 'pcs';
-                            }
-                            
-                            setItems(items.map(i => {
-                              if (i.id === item.id) {
-                                return {
-                                  ...i,
-                                  uom: nextUom
-                                };
-                              }
-                              return i;
-                            }));
-                            
-                            setFocusedUomField(item.id);
-                            setTimeout(() => {
-                              setFocusedUomField(null);
-                            }, 300);
-                            
-                            return;
-                          }
-                          
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const hsnInput = document.querySelector(`input[data-row="${index}"][data-field="hsn"]`);
-                            if (hsnInput) {
-                              hsnInput.focus();
-                              return;
-                            }
-                          }
-                        }}
-                        tabIndex={0}
-                        onFocus={() => {
-                          setFocusedField(`uom-${item.id}`);
-                          setFocusedUomField(item.id);
-                        }}
-                        onBlur={() => {
-                          setFocusedField('');
-                          setFocusedUomField(null);
-                        }}
-                        title="Press Space or Click to toggle units, Enter to move to HSN"
-                        data-row={index}
-                        data-field="uom"
-                      >
-                        {item.uom || ''}
-                      </div>
-                      <div style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomHintVisible : styles.uomHint}>
-                        Press Space or Click to toggle
-                      </div>
-                    </div>
+
+  <input
+    className="uom-input"
+    value={item.uom}
+    data-row={index}
+    data-field="uom"
+    onChange={(e) =>
+      handleItemChange(item.id, 'uom', e.target.value)
+    }
+    onKeyDown={(e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document
+          .querySelector(
+            `input[data-row="${index}"][data-field="hsn"]`
+          )
+          ?.focus();
+        return;
+      }
+      handleTableKeyDown(e, index, 'uom');
+    }}
+    onFocus={() => setFocusedField(`uom-${item.id}`)}
+    onBlur={() => setFocusedField('')}
+    style={{
+      border: 'none',
+      outline: 'none',
+      boxShadow: 'none',
+      backgroundColor: 'transparent',
+      textAlign: 'center',
+      width: '100%',
+      height: '100%',
+      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+    }}
+  />
+
+
+
                   </td>
                   <td style={styles.td}>
                     <input
@@ -3269,22 +3287,7 @@ searchIconInside: {
           </ActionButtons>
         </div>
         
-        {/* Add/Less Input */}
-        <div style={styles.addLessContainer}>
-          <span style={styles.addLessLabel}>Add/Less:</span>
-          <input
-            type="numeric"
-            style={focusedField === 'addLess' ? styles.addLessInputFocused : styles.addLessInput}
-            value={addLessAmount}
-            onChange={handleAddLessChange}
-            onKeyDown={handleAddLessKeyDown}
-            ref={addLessRef}
-            // placeholder="Enter amount"
-            onFocus={() => setFocusedField('addLess')}
-            onBlur={() => setFocusedField('')}
-          />
-        </div>
-        
+
         <div style={styles.totalsContainer}>
           <div style={styles.totalItem}>
             <span style={styles.totalLabel}>Total Quantity</span>
@@ -3394,6 +3397,7 @@ searchIconInside: {
         open={salesmanPopupOpen}
         onClose={() => setSalesmanPopupOpen(false)}
         onSelect={handleSalesmanSelect}
+        initialSearch={popupSearchText}
         fetchItems={(page, search) => fetchItemsForPopup(page, search, 'salesman')}
         title="Select Salesman"
         displayFieldKeys={getPopupConfig('salesman').displayFieldKeys}
