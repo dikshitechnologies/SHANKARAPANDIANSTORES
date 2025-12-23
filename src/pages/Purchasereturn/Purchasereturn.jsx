@@ -420,12 +420,12 @@ const PurchaseReturn = () => {
   // Fetch item details by item code
   const fetchItemDetailsByCode = async (itemCode) => {
     try {
-      console.log('Fetching item details for code:', itemCode);
+      // console.log('Fetching item details for code:', itemCode);
       
       const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST);
       const allItems = response?.data || [];
       
-      console.log('All items from API:', allItems);
+      // console.log('All items from API:', allItems);
       
       if (!Array.isArray(allItems) || allItems.length === 0) {
         console.warn('No items returned from API');
@@ -436,7 +436,7 @@ const PurchaseReturn = () => {
         (item.itemCode || item.code) === itemCode
       );
       
-      console.log('Matched item:', matchedItem);
+      // console.log('Matched item:', matchedItem);
       
       if (!matchedItem) {
         console.warn(`Item ${itemCode} not found in response`);
@@ -492,8 +492,8 @@ const PurchaseReturn = () => {
       const stockData = stockResponse?.data || {};
       const itemDetails = itemDetailsArray && itemDetailsArray.length > 0 ? itemDetailsArray[0] : {};
       
-      console.log('Stock API response:', stockData);
-      console.log('Item Details API response:', itemDetails);
+      // console.log('Stock API response:', stockData);
+      // console.log('Item Details API response:', itemDetails);
       
       setItems(prevItems => {
         return prevItems.map(item => {
@@ -781,13 +781,13 @@ const handleBlur = () => {
     try {
       setIsLoading(true);
       
-      console.log('Fetching purchase return details for:', voucherNo);
+      // console.log('Fetching purchase return details for:', voucherNo);
       
       const response = await axiosInstance.get(
         API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_VOUCHER_DETAILS(voucherNo)
       );
       
-      console.log('Purchase return details response:', response.data);
+      // console.log('Purchase return details response:', response.data);
       
       const data = response?.data;
       
@@ -817,7 +817,7 @@ const handleBlur = () => {
           
         };
         
-        console.log('Setting header details:', headerDetails);
+        // console.log('Setting header details:', headerDetails);
         setReturnDetails(prev => ({ ...prev, ...headerDetails }));
         if(summary.less !== undefined && summary.less !== null)
         {
@@ -896,7 +896,7 @@ const handleBlur = () => {
         setIsEditMode(true);
         setEditingBillNo(voucherNo);
         setActiveTopAction('edit');
-        console.log('Edit mode activated for voucher:', voucherNo);
+        // console.log('Edit mode activated for voucher:', voucherNo);
         
         // toast.success('Purchase return loaded successfully');
         
@@ -922,13 +922,13 @@ const handleBlur = () => {
       const compCode = userData?.companyCode || '001';
       const username = userData?.username || '';
       
-      console.log('Deleting purchase return bill:', voucherNo);
+      // console.log('Deleting purchase return bill:', voucherNo);
       
       await axiosInstance.delete(
         API_ENDPOINTS.PURCHASE_RETURN.DELETE_PURCHASE_RETURN(voucherNo, compCode)
       );
       
-      console.log('Purchase return bill deleted successfully');
+      // console.log('Purchase return bill deleted successfully');
       
       showAlertConfirmation('Purchase Return deleted successfully', () => {
         createNewForm();
@@ -1429,6 +1429,12 @@ const handleAddLessKeyDown = (e) => {
       if (!returnDetails.customerName || returnDetails.customerName.trim() === '') {
         showAlertConfirmation('Customer Name is required', null, 'warning');
         toast.warning('Customer Name is required');
+        return;
+      }
+
+      if (!addLessAmount || addLessAmount.trim() === '') {
+        showAlertConfirmation('Add/Less Amount is required', null, 'warning');
+        toast.warning('Add/Less Amount is required');
         return;
       }
 
@@ -2258,6 +2264,7 @@ const handleAddLessKeyDown = (e) => {
               onKeyDown={(e) => handleKeyDown(e, customerNameRef)}
               onFocus={() => setFocusedField('partyCode')}
               onBlur={() => setFocusedField('')}
+              readOnly
             />
           </div>
 
@@ -2347,6 +2354,7 @@ const handleAddLessKeyDown = (e) => {
               onKeyDown={(e) => handleKeyDown(e, transTypeRef)}
               onFocus={() => setFocusedField('city')}
               onBlur={() => setFocusedField('')}
+              readOnly
             />
           </div>
 
@@ -2977,7 +2985,7 @@ const handleAddLessKeyDown = (e) => {
           <ActionButtons 
             activeButton={activeTopAction} 
             onButtonClick={(type) => {
-              console.log("Top action clicked:", type);
+              // console.log("Top action clicked:", type);
               setActiveTopAction(type);
               if (type === 'add') handleClear();
               else if (type === 'edit') handleEdit();

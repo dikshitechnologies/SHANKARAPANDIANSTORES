@@ -151,7 +151,7 @@ const ReceiptVoucher = () => {
   const [focusedField, setFocusedField] = useState('');
 
   // Footer action active state
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState('add');
 
   // Screen size state
   const [screenSize, setScreenSize] = useState({

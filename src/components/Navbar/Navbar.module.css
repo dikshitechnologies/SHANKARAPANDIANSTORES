@@ -65,11 +65,7 @@
   transform: scale(1.05);
 }
 
-/* Navigation Menu */
-.nav-center-menu {
- 
-  
-}
+
 
 .nav-menu {
   display: flex;
@@ -455,6 +451,7 @@
 .mobile-dropdown-accordion {
   margin-bottom: 12px;
   width: 100%;
+  z-index: 3001;
 }
 
 .mobile-dropdown-header {
