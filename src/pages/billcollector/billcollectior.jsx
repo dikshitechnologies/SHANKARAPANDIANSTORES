@@ -94,18 +94,19 @@ function BillCollector() {
     }
   };
 
-  const container = {
-    width: "100%",
-    minHeight: "100vh",
-    backgroundColor: "#f5f7fa",
-    padding: "0",
-    margin: "0",
-    fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
-    overflowX: "hidden",
-    display: "flex",
-    flexDirection: "column",
-    WebkitOverflowScrolling: "touch"
-  };
+const container = {
+  width: "100%",
+  height: "100vh",        // FIXED viewport height
+  backgroundColor: "#f5f7fa",
+  margin: 0,
+  fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
+  overflowX: "hidden",
+  overflowY: "auto",     // ✅ ENABLE PAGE SCROLL
+  display: "flex",
+  flexDirection: "column",
+  position:"fixed"
+};
+
 
   const header = {
     width: "100%",
