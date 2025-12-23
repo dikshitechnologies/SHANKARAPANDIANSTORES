@@ -4,8 +4,9 @@ import apiService from '../../api/apiService';
 import { ActionButtons1 } from '../Buttons/ActionButtons';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
+// import { axiosInstance } from '../../api/axiosInstance';
 
-const TenderModal = ({ isOpen, onClose, billData }) => {
+const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const { userData } = useAuth() || {};
   const [activeFooterAction, setActiveFooterAction] = useState('all');
   const collectFieldRefs = useRef({});
@@ -14,6 +15,8 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
   const roundOffRef = useRef(null);
   const scrapBillNoRef = useRef(null);
   const salesReturnBillNoRef = useRef(null);
+  const upiRef = useRef(null);
+  const cardRef = useRef(null);
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: '', issue: '', closing: 0 },
     200: { available: 0, collect: '', issue: '', closing: 0 },
@@ -30,6 +33,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     billNo: '',
     salesman: '',
     date: '',
+    originalDate: '',
     grossAmt: '',
     itemDAmt: '',
     billAmount: '',
@@ -60,6 +64,7 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
         billNo: billData.billNo || '',
         salesman: billData.salesman || '',
         date: billData.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
+        originalDate: billData.date || '',
         grossAmt: billData.amount ? billData.amount.toString() : '',
         billAmount: billData.amount ? billData.amount.toString() : '',
       }));
@@ -258,6 +263,46 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
         updated.netAmount = netAmount.toFixed(2);
       }
 
+      // When Net Amount is updated, calculate the balance and issue denominations
+      if (field === 'netAmount' || field === 'roudOff' || field === 'scrapAmount' || field === 'salesReturn' || field === 'billDiscountPercent') {
+        const totalCollected = Object.entries(denominations).reduce((sum, [denom, data]) => {
+          return sum + ((Number(data.collect) || 0) * Number(denom));
+        }, 0);
+        
+        const netAmt = Number(updated.netAmount || prev.netAmount) || 0;
+        const balance = totalCollected - netAmt;
+        
+        // Update issued cash
+        updated.issuedCash = balance > 0 ? balance.toString() : '';
+        
+        // Auto-calculate issue denominations if balance is positive
+        if (balance > 0) {
+          const optimalIssue = calculateOptimalDenominations(balance);
+          setDenominations(prevDenom => {
+            const newDenom = { ...prevDenom };
+            [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+              newDenom[d] = { ...newDenom[d], issue: optimalIssue[d].toString() };
+              // Recalculate closing for each denomination
+              const col = Number(newDenom[d].collect) || 0;
+              const iss = optimalIssue[d];
+              newDenom[d].closing = newDenom[d].available + col - iss;
+            });
+            return newDenom;
+          });
+        } else {
+          // Clear issue denominations if balance is 0 or negative
+          setDenominations(prevDenom => {
+            const newDenom = { ...prevDenom };
+            [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+              newDenom[d] = { ...newDenom[d], issue: '0' };
+              const col = Number(newDenom[d].collect) || 0;
+              newDenom[d].closing = newDenom[d].available + col;
+            });
+            return newDenom;
+          });
+        }
+      }
+
       return updated;
     });
   };
@@ -277,9 +322,9 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
           collectFieldRefs.current[nextDenom].focus();
         }
       } else if (currentIndex === denomSequence.length - 1) {
-        // Last field (1), move to Save button
-        if (saveButtonRef.current) {
-          saveButtonRef.current.focus();
+        // Last field (1), move to UPI field
+        if (upiRef.current) {
+          upiRef.current.focus();
         }
       }
     }
@@ -322,6 +367,26 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
       // Move to next field
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
+      }
+    }
+  };
+
+  // Handle keydown for UPI field - move to Card field
+  const handleUPIKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (cardRef.current) {
+        cardRef.current.focus();
+      }
+    }
+  };
+
+  // Handle keydown for Card field - move to Save button
+  const handleCardKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (saveButtonRef.current) {
+        saveButtonRef.current.focus();
       }
     }
   };
@@ -386,9 +451,97 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
     }
   };
 
-  const handleSave = () => {
-    console.log('Saved:', { formData, denominations });
-    alert('✓ Tender details saved successfully!');
+  const handleSave = async () => {
+    try {
+      // Calculate net amount validation
+      const receivedCash = Number(formData.receivedCash) || 0;
+      const upi = Number(formData.upi) || 0;
+      const card = Number(formData.card) || 0;
+      
+      // Calculate total issued cash from all denominations by multiplying count * denomination value
+      const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
+        return sum + ((Number(data.issue) || 0) * Number(denom));
+      }, 0);
+      
+      // Net Amount = (Received Cash + UPI + Card) - Issued Cash
+      const calculatedNetAmount = (receivedCash + upi + card) - totalIssuedCash;
+      
+      // Get the net amount from form
+      const formNetAmount = Number(formData.netAmount) || 0;
+      
+      // Validate if the calculation matches
+      if (calculatedNetAmount !== formNetAmount) {
+        alert('Calculation mistake: Net Amount = (Received Cash + UPI + Card) - Issued Cash should equal the Net Amount field. Please verify your entries.');
+        return;
+      }
+
+      // Prepare the payload based on the API structure
+      const payload = {
+        invoiceNo: formData.billNo,
+        date: formData.originalDate ? new Date(formData.originalDate).toISOString() : new Date().toISOString(),
+        billAmount: Number(formData.granTotal) || 0,
+        givenTotal: Number(formData.receivedCash) || 0,
+        balanceGiven: Number(formData.balance) || 0,
+        fCompCode: userData?.companyCode || '001',
+        fGrossAMT: Number(formData.grossAmt) || 0,
+        fitemAMT: Number(formData.itemDAmt) || 0,
+        fBilDIS: Number(formData.billDiscAmt) || 0,
+        froundoFf: Number(formData.roudOff) || 0,
+        fScrapBillNo: formData.scrapAmountBillNo || '',
+        fscrapAMT: Number(formData.scrapAmount) || 0,
+        fsaleBillNO: formData.salesReturnBillNo || '',
+        fSalesAMT: Number(formData.salesReturn) || 0,
+        fIssueCash: Number(formData.issuedCash) || 0,
+        fupi: Number(formData.upi) || 0,
+        fcard: Number(formData.card) || 0,
+        collect: {
+          r500: Number(denominations[500].collect) || 0,
+          r200: Number(denominations[200].collect) || 0,
+          r100: Number(denominations[100].collect) || 0,
+          r50: Number(denominations[50].collect) || 0,
+          r20: Number(denominations[20].collect) || 0,
+          r10: Number(denominations[10].collect) || 0,
+          r5: Number(denominations[5].collect) || 0,
+          r2: Number(denominations[2].collect) || 0,
+          r1: Number(denominations[1].collect) || 0
+        },
+        issue: {
+          r500: Number(denominations[500].issue) || 0,
+          r200: Number(denominations[200].issue) || 0,
+          r100: Number(denominations[100].issue) || 0,
+          r50: Number(denominations[50].issue) || 0,
+          r20: Number(denominations[20].issue) || 0,
+          r10: Number(denominations[10].issue) || 0,
+          r5: Number(denominations[5].issue) || 0,
+          r2: Number(denominations[2].issue) || 0,
+          r1: Number(denominations[1].issue) || 0
+        }
+      };
+
+      console.log('Tender Payload:', payload);
+
+      // Make API call to InsertTender endpoint
+      const response = await apiService.post(
+        'BillCollector/InsertTender',
+        payload
+      );
+
+      console.log('API Response:', response);
+
+      if (response.data && response.data.success) {
+        alert('✓ ' + (response.data?.message || 'Tender details saved successfully!'));
+        onClose(); // Close the modal after successful save
+        // Call parent callback to refresh the bill list
+        if (onSaveSuccess) {
+          onSaveSuccess();
+        }
+      } else {
+        alert('Failed to save tender details: ' + (response.data?.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving tender:', error);
+      alert('Error: ' + (error.response?.data?.message || error.message || 'Failed to save tender'));
+    }
   };
 
   const handleDelete = () => {
@@ -422,8 +575,8 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
         salesReturn: '',
         netAmount: '',
         receivedCash: '',
-        issuedCash: '12614',
-        upi: '[ICICI-M-UPI]',
+        issuedCash: '',
+        upi: '',
         card: '',
         balance: '',
         isServiceCharge: false,
@@ -779,9 +932,11 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                     <label className={styles.paymentLabel}>UPI</label>
                     <div className={styles.paymentInputContainer}>
                       <input
+                        ref={upiRef}
                         type="text"
                         value={formData.upi}
                         onChange={(e) => handleInputChange('upi', e.target.value)}
+                        onKeyDown={handleUPIKeyDown}
                         className={styles.paymentInput}
                       />
                     </div>
@@ -791,9 +946,11 @@ const TenderModal = ({ isOpen, onClose, billData }) => {
                     <label className={styles.paymentLabel}>Card</label>
                     <div className={styles.paymentInputContainer}>
                       <input
+                        ref={cardRef}
                         type="number"
                         value={formData.card}
                         onChange={(e) => handleInputChange('card', e.target.value)}
+                        onKeyDown={handleCardKeyDown}
                         className={styles.paymentInput}
                       />
                     </div>

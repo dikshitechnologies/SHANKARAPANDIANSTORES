@@ -691,6 +691,7 @@ const container = {
         isOpen={isTenderModalOpen} 
         onClose={handleCloseTenderModal}
         billData={selectedBillData}
+        onSaveSuccess={() => fetchBills(pageNumber, searchInput)}
       />
 
       {/* <div style={footer}>
