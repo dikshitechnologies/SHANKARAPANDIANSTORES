@@ -918,10 +918,10 @@ const PaymentVoucher = () => {
     const configs = {
       account: {
         title: 'Select Party/Account',
-        displayFieldKeys: ['code', 'name'],
-        searchFields: ['name', 'code'],
-        headerNames: ['Code', 'Name'],
-        columnWidths: { code: '100px', name: '300px' },
+        displayFieldKeys: [ 'name'],
+        searchFields: ['name',],
+        headerNames: ['Name'],
+        columnWidths: {  name: '300px' },
         data: allParties.length > 0 ? allParties : [],
         fetchItems: async () => {
           // Check if we need to load more batches (only if we haven't reached the end)
@@ -941,10 +941,10 @@ const PaymentVoucher = () => {
       },
       cashBank: {
         title: 'Select Cash/Bank Account',
-        displayFieldKeys: ['code', 'name'],
-        searchFields: ['name', 'code'],
-        headerNames: ['Code', 'Name'],
-        columnWidths: { code: '100px', name: '300px' },
+        displayFieldKeys: [ 'name'],
+        searchFields: ['name'],
+        headerNames: [ 'Name'],
+        columnWidths: {  name: '300px' },
         data: allParties.length > 0 ? allParties : [],
         fetchItems: async () => {
           if (!hasReachedEndOfParties && !isLoadingMoreParties) {
@@ -1334,7 +1334,6 @@ const PaymentVoucher = () => {
       display: 'flex',
       flexDirection: 'column',
       gap: '12px',
-      marginBottom: '12px',
     },
     formField: {
       display: 'grid',
@@ -1345,7 +1344,9 @@ const PaymentVoucher = () => {
     },
     fieldGroup: {
       display: 'flex',
-      flexDirection: 'column',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
       gap: '4px',
     },
     inlineLabel: {
@@ -1721,18 +1722,19 @@ const PaymentVoucher = () => {
             <div style={styles.fieldGroup}>
               <label style={styles.inlineLabel}>Balance</label>
               <input
-                type="text"
+                
                 name="balance"
-                value={voucherDetails.balance || ''}
+                value={voucherDetails.balance + ' ' + (voucherDetails.crDr || '')}
                 onChange={handleInputChange}
                 onFocus={() => setFocusedField('balance')}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'balance' ? styles.inlineInputFocused : styles.inlineInput}
+                readOnly
               />
             </div>
 
             {/* CR/DR - No Label */}
-            <div style={styles.fieldGroup}>
+            {/* <div style={styles.fieldGroup}>
               <input
                 name="crDr"
                 value={voucherDetails.crDr || 'CR'}
@@ -1741,7 +1743,7 @@ const PaymentVoucher = () => {
                 onBlur={() => setFocusedField('')}
                 style={styles.inlineInput}
               />
-            </div>
+            </div> */}
 
             {/* GST Type */}
             <div style={styles.fieldGroup}>
