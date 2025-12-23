@@ -231,6 +231,9 @@ CATEGORY: {
   getSalesman: () =>`SalesmanCreation/GetSalesman`,
   getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>`ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
   getCustomers: () => `Salesinvoices/GetPartyByParent`,
+  getPurchaseStockDetailsByBarcode: (barcode) =>
+    `Salesinvoices/GetpurchaseStockDetails?barcode=${barcode}`,
+
 },
 
   Scrap_Procurement: {

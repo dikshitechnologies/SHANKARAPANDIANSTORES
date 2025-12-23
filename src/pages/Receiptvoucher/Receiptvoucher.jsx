@@ -493,9 +493,16 @@ const ReceiptVoucher = () => {
 
   // Calculate Totals whenever items change
   useEffect(() => {
-    const total = receiptItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-    setTotalAmount(total);
-  }, [receiptItems]);
+    const hasCashPayments = receiptItems.some(item => item.type === 'CASH');
+    
+    if (hasCashPayments) {
+      const cashTotals = calculateCashTotals();
+      setTotalAmount(parseFloat(cashTotals.netAmount));
+    } else {
+      const total = receiptItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+      setTotalAmount(total);
+    }
+  }, [receiptItems])
 
   // Calculate Bill Totals
   useEffect(() => {
@@ -507,7 +514,6 @@ const ReceiptVoucher = () => {
   const resetForm = () => {
     console.log('Resetting form...');
     setVoucherDetails({
-      voucherNo: '',
       gstType: 'CGST/SGST',
       date: new Date().toISOString().substring(0, 10),
       costCenter: '',
@@ -1121,6 +1127,8 @@ const ReceiptVoucher = () => {
       action: 'clear',
       isLoading: false
     });
+    resetForm();
+
   };
 
   // Handle print
@@ -1348,20 +1356,57 @@ const ReceiptVoucher = () => {
     }
   };
 
+  // Calculate cash totals separated by CR and DR
+  const calculateCashTotals = () => {
+    let crTotal = 0;
+    let drTotal = 0;
+
+    receiptItems.forEach(item => {
+      if (item.type === 'CASH' && item.amount) {
+        const amount = parseFloat(item.amount) || 0;
+        if (item.crDr === 'CR') {
+          crTotal += amount;
+        } else if (item.crDr === 'DR') {
+          drTotal += amount;
+        }
+      }
+    });
+
+    const netAmount = Math.abs(crTotal - drTotal);
+
+    const result = {
+      crTotal: crTotal.toFixed(2),
+      drTotal: drTotal.toFixed(2),
+      netAmount: netAmount.toFixed(2),
+      hasOnlyCash: receiptItems.every(item => item.type === 'CASH' || !item.type)
+    };
+
+    return result;
+  };
+
   // Handle save with confirmation
   const handleSave = async () => {
-    showSaveConfirmation();
+    const cashTotals = calculateCashTotals();
+    
+    // Check if there are CASH type payments
+    const hasCashPayments = receiptItems.some(item => item.type === 'CASH');
+    
+    if (hasCashPayments) {
+      // Show confirmation modal only for CASH payments
+      const confirmationData = {
+        cashTotals: cashTotals,
+        hasCashPayments: hasCashPayments
+      };
+      setSaveConfirmationData(confirmationData);
+      showSaveConfirmation();
+    } else {
+      // No CASH payments, proceed directly to save
+      await savePaymentVoucher();
+    }
   };
 
   // Function to show save confirmation popup
   const showSaveConfirmation = () => {
-    setSaveConfirmationData({
-      title: `${isEditing ? 'Update' : 'Create'} Receipt Voucher`,
-      voucherNo: voucherDetails.voucherNo,
-      voucherDate: voucherDetails.date,
-      particulars: particulars,
-      totalAmount: totalAmount
-    });
     setSaveConfirmationOpen(true);
   };
 
@@ -1968,6 +2013,7 @@ const ReceiptVoucher = () => {
                       onFocus={(e) => (e.target.style.border = '2px solid #1B91DA')}
                       onBlur={(e) => (e.target.style.border = 'none')}
                     >
+                      <option value="">Select</option>
                       <option value="CASH">CASH</option>
                       <option value="CHQ">CHQ</option>
                       <option value="RTGS">RTGS</option>
@@ -2327,14 +2373,16 @@ const ReceiptVoucher = () => {
       {saveConfirmationOpen && (
         <SaveConfirmationModal
           isOpen={saveConfirmationOpen}
-          title={saveConfirmationData?.title}
-          particulars={saveConfirmationData?.particulars}
-          voucherNo={saveConfirmationData?.voucherNo}
-          voucherDate={saveConfirmationData?.voucherDate}
-          onConfirm={handleConfirmedSave}
           onClose={handleCancelSave}
+          onConfirm={handleConfirmedSave}
+          title={`${isEditing ? 'Update' : 'Create'} Receipt Voucher`}
+          particulars={particulars}
           loading={isSaving}
-          totalAmount={saveConfirmationData?.totalAmount}
+          voucherNo={voucherDetails.voucherNo}
+          voucherDate={voucherDetails.date}
+          totalAmount={totalAmount}
+          cashTotals={saveConfirmationData?.cashTotals}
+          hasCashPayments={saveConfirmationData?.hasCashPayments || false}
         />
       )}
 
