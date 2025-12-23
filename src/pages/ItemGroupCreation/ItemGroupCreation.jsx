@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { api } from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
-// import { useFormPermissions } from '../../../hooks/useFormPermissions';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
+import { usePermissions } from '../../hooks/usePermissions';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const endpoints = API_ENDPOINTS.ITEM_GROUP || {};
 
-// --- Inline SVG icons (small, accessible) ---
+// --- Inline SVG icons (SAME as Item Creation) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -25,12 +29,12 @@ const Icon = {
   ),
   Search: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
+      <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
     </svg>
   ),
   Close: ({ size = 18 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
-      <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 10.59 10.59 16.88 4.29z" />
+      <path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 16.88 16.88z" />
     </svg>
   ),
   Folder: ({ size = 14 }) => (
@@ -50,7 +54,7 @@ const Icon = {
   ),
 };
 
-// --- Tree node presentational component ---
+// --- Tree node component (SAME as Item Creation) ---
 function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey }) {
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedKeys.has(node.key);
@@ -62,6 +66,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         className={`tree-row ${isSelected ? "selected" : ""}`}
         onClick={() => onSelect(node)}
         role="button"
+        tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && onSelect(node)}
       >
         {hasChildren ? (
@@ -116,18 +121,16 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
 }
 
 export default function ItemGroupCreation() {
-  // form state
+  // Your EXISTING code logic - NOT CHANGED
   const [mainGroup, setMainGroup] = useState("");
   const [subGroup, setSubGroup] = useState("");
   const [fCode, setFCode] = useState("");
-  const [actionType, setActionType] = useState("Add"); // Add | edit | delete
+  const [actionType, setActionType] = useState("Add");
 
-  // data
   const [treeData, setTreeData] = useState([]);
   const [dropdownData, setDropdownData] = useState([]);
   const [subGroupOptions, setSubGroupOptions] = useState([]);
 
-  // UI state
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
@@ -139,17 +142,25 @@ export default function ItemGroupCreation() {
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [selectedNode, setSelectedNode] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
-  const subGroupRef = useRef(null); 
-  // Get permissions for this form. Hook may not be present in workspace,
-  // use permissive fallback to avoid runtime ReferenceError.
-  const formPermissions = useMemo(() => ({ add: true, edit: true, delete: true }), []);
+  const subGroupRef = useRef(null);
+  
+  // Confirmation Popup States (ADDED to match Item Creation)
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  
+  // Get permissions (using your hook)
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission('ITEM_GROUP_CREATION'),
+    edit: hasModifyPermission('ITEM_GROUP_CREATION'),
+    delete: hasDeletePermission('ITEM_GROUP_CREATION')
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   useEffect(() => {
     loadInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // keep track of viewport to adapt tree rendering for small screens
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -190,7 +201,6 @@ export default function ItemGroupCreation() {
     }
   };
 
-  // Popup fetcher (paged + searchable) for edit selector. Some backends return the full list, so we page/filter client-side.
   const fetchPopupItems = useCallback(async (page = 1, search = '') => {
     try {
       const resp = await api.get(endpoints.getDropdown);
@@ -280,16 +290,16 @@ export default function ItemGroupCreation() {
   }, [subGroupOptions, searchDropdown]);
 
   const resetForm = () => {
-  setMainGroup("");
-  setSubGroup("");
-  setFCode("");
-  setSelectedNode(null);
-  setMessage(null);
-  setSearchDropdown("");
-  setSearchTree("");
-  setIsDropdownOpen(false);
-  setIsTreeOpen(true);
-};
+    setMainGroup("");
+    setSubGroup("");
+    setFCode("");
+    setSelectedNode(null);
+    setMessage(null);
+    setSearchDropdown("");
+    setSearchTree("");
+    setIsDropdownOpen(false);
+    setIsTreeOpen(true);
+  };
 
   const validateForSubmit = () => {
     if (!mainGroup?.trim()) {
@@ -307,106 +317,146 @@ export default function ItemGroupCreation() {
     return true;
   };
 
-  // Add / Edit / Delete handlers
-  const handleAdd = async () => {
-  // Check permission before allowing action
-  if (!formPermissions.add) {
-    setMessage({ type: "error", text: "You don't have permission to add item groups." });
-    return;
-  }
-  if (!validateForSubmit()) return;
-  if (!window.confirm("Do you want to save?")) return;
-  setSubmitting(true);
-  setMessage(null);
-  try {
-    const payload = {
-      fitemcode: "",
-      subGroup: subGroup.trim(),
-      mainGroup: mainGroup.trim(),
-      fitemlevel: "",
-    };
-    const resp = await api.post(endpoints.postCreate, payload);
-    if (resp.status === 200 || resp.status === 201) {
-      setMessage({ type: "success", text: "Saved successfully." });
-      resetForm(); // <--- Remove keepAction parameter
-      await loadInitial();
-    } else {
-      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
-    }
-  } catch (err) {
-    console.error("Add error:", err);
-    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Save failed" });
-  } finally {
-    setSubmitting(false);
-  }
-};
+  // Show confirmation popup (ADDED to match Item Creation)
+  const showConfirmationPopup = (action) => {
+    setConfirmAction(action);
+    setShowConfirmPopup(true);
+  };
 
- const handleEdit = async () => {
-  // Check permission before allowing action
-  if (!formPermissions.edit) {
-    setMessage({ type: "error", text: "You don't have permission to edit item groups." });
-    return;
-  }
-  if (!validateForSubmit()) return;
-  if (!window.confirm("Do you want to modify?")) return;
-  setSubmitting(true);
-  setMessage(null);
-  try {
-    const payload = {
-      fitemcode: fCode,
-      subGroup: subGroup.trim(),
-      mainGroup: mainGroup.trim(),
-      fitemlevel: "",
-    };
-    const resp = await api.put(endpoints.putEdit, payload);
-    if (resp.status === 200 || resp.status === 201) {
-      setMessage({ type: "success", text: "Updated successfully." });
-      setActionType("Add"); // <--- ADD THIS LINE HERE
-      resetForm(); // <--- Remove keepAction parameter
-      await loadInitial();
-    } else {
-      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
+  // Handle confirmation from popup (ADDED to match Item Creation)
+  const handleConfirmAction = async () => {
+    setShowConfirmPopup(false);
+    
+    if (confirmAction === 'clear') {
+      resetForm();
+      return;
     }
-  } catch (err) {
-    console.error("Edit error:", err);
-    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
-  } finally {
-    setSubmitting(false);
-  }
-};
+    
+    // For save, update, delete actions, proceed with validation and submission
+    if (!validateForSubmit()) {
+      return;
+    }
 
-  const handleDelete = async () => {
-  // Check permission before allowing action
-  if (!formPermissions.delete) {
-    setMessage({ type: "error", text: "You don't have permission to delete item groups." });
-    return;
-  }
-  if (!validateForSubmit()) return;
-  if (!window.confirm("Do you want to delete?")) return;
-  setSubmitting(true);
-  setMessage(null);
-  try {
-    const deleteEndpoint = typeof endpoints.delete === 'function' ? endpoints.delete(fCode) : endpoints.delete;
-    const resp = await api.delete(deleteEndpoint);
-    if (resp.status === 200 || resp.status === 201) {
-      setMessage({ type: "success", text: "Deleted successfully." });
-      setActionType("Add"); // <--- ADD THIS LINE HERE
-      resetForm(); // <--- Remove keepAction parameter
-      await loadInitial();
-    } else {
-      setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
+    // Check permissions based on action type
+    if (actionType === 'Add' && !formPermissions.add) {
+      setMessage({ type: "error", text: "You don't have permission to add item groups." });
+      return;
     }
-  } catch (err) {
-    console.error("Delete error:", err);
-    setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
-  } finally {
-    setSubmitting(false);
-  }
-};
-  const handleSubmit = async () => {
+    if (actionType === 'edit' && !formPermissions.edit) {
+      setMessage({ type: "error", text: "You don't have permission to edit item groups." });
+      return;
+    }
+    if (actionType === 'delete' && !formPermissions.delete) {
+      setMessage({ type: "error", text: "You don't have permission to delete item groups." });
+      return;
+    }
+
+    // Your original handleAdd/handleEdit/handleDelete logic
     if (actionType === "Add") await handleAdd();
     else if (actionType === "edit") await handleEdit();
     else if (actionType === "delete") await handleDelete();
+  };
+
+  const handleAdd = async () => {
+    if (!validateForSubmit()) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const payload = {
+        fitemcode: "",
+        subGroup: subGroup.trim(),
+        mainGroup: mainGroup.trim(),
+        fitemlevel: "",
+      };
+      const resp = await api.post(endpoints.postCreate, payload);
+      if (resp.status === 200 || resp.status === 201) {
+        setMessage({ type: "success", text: "Saved successfully." });
+        toast.success(`Item Group "${subGroup}" created successfully.`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        resetForm();
+        await loadInitial();
+      } else {
+        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
+      }
+    } catch (err) {
+      console.error("Add error:", err);
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Save failed" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!validateForSubmit()) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const payload = {
+        fitemcode: fCode,
+        subGroup: subGroup.trim(),
+        mainGroup: mainGroup.trim(),
+        fitemlevel: "",
+      };
+      const resp = await api.put(endpoints.putEdit, payload);
+      if (resp.status === 200 || resp.status === 201) {
+        setMessage({ type: "success", text: "Updated successfully." });
+        toast.success(`Item Group "${subGroup}" updated successfully.`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        setActionType("Add");
+        resetForm();
+        await loadInitial();
+      } else {
+        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
+      }
+    } catch (err) {
+      console.error("Edit error:", err);
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!validateForSubmit()) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const deleteEndpoint = typeof endpoints.delete === 'function' ? endpoints.delete(fCode) : endpoints.delete;
+      const resp = await api.delete(deleteEndpoint);
+      if (resp.status === 200 || resp.status === 201) {
+        setMessage({ type: "success", text: "Deleted successfully." });
+        toast.success(`Item Group "${subGroup}" deleted successfully.`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        setActionType("Add");
+        resetForm();
+        await loadInitial();
+      } else {
+        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -417,21 +467,107 @@ export default function ItemGroupCreation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fCode]);
 
+  // Get confirmation popup configuration (ADDED to match Item Creation)
+  const getConfirmationConfig = () => {
+    switch (confirmAction) {
+      case 'save':
+        return {
+          title: 'Save Item Group',
+          message: 'Are you sure you want to save this item group?',
+          confirmText: 'Save',
+          type: 'success',
+          iconSize: 24,
+          showIcon: true
+        };
+      case 'update':
+        return {
+          title: 'Update Item Group',
+          message: 'Are you sure you want to update this item group?',
+          confirmText: 'Update',
+          type: 'success',
+          iconSize: 24,
+          showIcon: true
+        };
+      case 'delete':
+        return {
+          title: 'Delete Item Group',
+          message: 'Are you sure you want to delete this item group? This action cannot be undone.',
+          confirmText: 'Delete',
+          type: 'danger',
+          iconSize: 24,
+          showIcon: true
+        };
+      case 'clear':
+        return {
+          title: 'Clear Form',
+          message: 'Are you sure you want to clear all fields? All unsaved changes will be lost.',
+          confirmText: 'Clear',
+          type: 'warning',
+          iconSize: 24,
+          showIcon: true
+        };
+      default:
+        return {
+          title: 'Confirm Action',
+          message: 'Are you sure you want to proceed?',
+          confirmText: 'Confirm',
+          type: 'default',
+          iconSize: 24,
+          showIcon: true
+        };
+    }
+  };
+
   return (
     <div className="lg-root" role="region" aria-labelledby="item-group-title">
-      {/* Google/Local font — will fallback to system fonts if blocked */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
+      {/* Check if user has any permission to access this module */}
+      {!formPermissions.add && !formPermissions.edit && !formPermissions.delete && (
+        <div style={{
+          padding: '20px',
+          margin: '20px',
+          backgroundColor: '#fee2e2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          color: '#dc2626',
+          textAlign: 'center'
+        }}>
+          <h3>Access Denied</h3>
+          <p>You do not have permission to access the Item Group Creation module.</p>
+        </div>
+      )}
+
+      {/* SAME CSS as Item Creation - ONLY CHANGED PART */}
       <style>{`
+        /* Toast notification styles */
+        .Toastify__toast-container {
+          z-index: 9999;
+        }
+        .Toastify__toast {
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          border-radius: 10px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+        .Toastify__toast--success {
+          background: linear-gradient(180deg, #f0fdf4, #dcfce7);
+          color: #064e3b;
+          border: 1px solid #bbf7d0;
+        }
+        .Toastify__toast-body {
+          font-size: 14px;
+          font-weight: 500;
+        }
+
         :root{
-          /* blue theme (user-provided) */
+          /* custom blue theme - SAME as Item Creation */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
           --glass-2: rgba(255,255,255,0.35);
-          --accent: #307AC8; /* primary */
-          --accent-2: #1B91DA; /* secondary */
-          --accent-3: #06A7EA; /* tertiary */
+          --accent: #307AC8;
+          --accent-2: #1B91DA;
+          --accent-3: #06A7EA;
           --success: #06A7EA;
           --danger: #ef4444;
           --muted: #64748b;
@@ -439,7 +575,7 @@ export default function ItemGroupCreation() {
           --glass-border: rgba(255,255,255,0.45);
         }
 
-        /* Page layout */
+        /* Page layout - SAME as Item Creation */
         .lg-root {
           min-height: 100vh;
           display: flex;
@@ -451,10 +587,10 @@ export default function ItemGroupCreation() {
           box-sizing: border-box;
         }
 
-        /* Main dashboard card (glass) */
+        /* Main dashboard card (glass) - SAME as Item Creation */
         .dashboard {
           width: 100%;
-          max-width: 1100px;
+          max-width: 700px;
           border-radius: 16px;
           padding: 20px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -463,12 +599,10 @@ export default function ItemGroupCreation() {
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
-          margin-bottom: 160px;
-          
         }
         .dashboard:hover { transform: translateY(-6px); }
 
-        /* header */
+        /* header - SAME as Item Creation */
         .top-row {
           display:flex;
           align-items:center;
@@ -494,7 +628,7 @@ export default function ItemGroupCreation() {
           font-size: 13px;
         }
 
-        /* action pills */
+        /* action pills - SAME as Item Creation */
         .actions {
           display:flex;
           gap:10px;
@@ -513,20 +647,40 @@ export default function ItemGroupCreation() {
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
           font-weight: 600;
           font-size: 13px;
+          transition: all 0.2s;
+          border: none;
         }
-        .action-pill.primary { color:white; background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
-        .action-pill.warn { color:white; background: linear-gradient(180deg,#f59e0b,#f97316); }
-        .action-pill.danger { color:white; background: linear-gradient(180deg,var(--danger),#f97373); }
+        .action-pill:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(2,6,23,0.08);
+        }
+        .action-pill:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+        .action-pill.primary { 
+          color:white; 
+          background: linear-gradient(180deg, var(--accent), var(--accent-2));
+          border: 1px solid rgba(48, 122, 200, 0.3);
+        }
+        .action-pill.warn { 
+          color:white; 
+          background: linear-gradient(180deg,#f59e0b,#f97316);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .action-pill.danger { 
+          color:white; 
+          background: linear-gradient(180deg,var(--danger),#f97373);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
 
-        /* grid layout */
         .grid {
-          display:grid;
-          grid-template-columns: 1fr 360px;
-          gap:18px;
-          align-items:start;
+          display: block;
+          width: 100%;
         }
 
-        /* left card (form) */
+        /* left card (form) - SAME as Item Creation */
         .card {
           background: rgba(255,255,255,0.85);
           border-radius: 12px;
@@ -545,7 +699,13 @@ export default function ItemGroupCreation() {
           width: 100%;
         }
 
-        .field { margin-bottom:12px; display:flex; flex-direction:column; align-items:flex-start; }
+        .field { 
+          margin-bottom:12px; 
+          display:flex; 
+          flex-direction:column; 
+          align-items:flex-start; 
+          position: relative;
+        }
 
         .row { 
           display:flex; 
@@ -554,57 +714,91 @@ export default function ItemGroupCreation() {
           width:100%;
           flex-wrap: wrap;
         }
-        .input, .search {
+        .input, .search, .select {
           flex:1;
           min-width: 0;
           padding:10px 12px;
           border-radius:10px;
-          border: 1px solid rgba(15,23,42,0.06);
+          border: 1px solid rgba(15,23,42,0.1);
           background: linear-gradient(180deg, #fff, #fbfdff);
           font-size:14px;
           color:#0f172a;
           box-sizing:border-box;
-          transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
+          transition: all 160ms ease;
           text-align: left;
+          font-family: inherit;
         }
-        .input:focus, .search:focus { outline:none; box-shadow: 0 8px 26px rgba(48,122,200,0.08); transform: translateY(-1px); border-color: rgba(48,122,200,0.25); }
-        
-        /* For the combined input+button group */
-.input-group-combined:focus-within {
-  box-shadow: 0 8px 26px rgba(48,122,200,0.08);
-  border-color: rgba(48,122,200,0.25);
-}
-
-/* Make sure the button looks disabled when needed */
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
+        .input:focus, .search:focus, .select:focus { 
+          outline:none; 
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.15); 
+          border-color: rgba(37,99,235,0.5); 
+        }
+        .input:disabled, .select:disabled {
+          background: #f1f5f9;
+          cursor: not-allowed;
+          opacity: 0.7;
+        }
 
         .btn {
           padding:10px 12px;
           border-radius:10px;
-          border:1px solid rgba(12,18,35,0.06);
+          border:1px solid rgba(12,18,35,0.1);
           background: linear-gradient(180deg,#fff,#f8fafc);
           cursor:pointer;
           min-width:86px;
           font-weight:600;
           white-space: nowrap;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .btn:hover {
+          background: linear-gradient(180deg,#f8fafc,#f1f5f9);
+        }
+        .btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
-        .controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+        .controls { 
+          display:flex; 
+          gap:10px; 
+          margin-top:10px; 
+          flex-wrap:wrap; 
+        }
 
-        /* tree panel */
+        /* tree panel - SAME as Item Creation */
         .panel {
           margin-top:8px;
           border-radius:10px;
           background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(250,251,255,0.6));
-          border: 1px solid rgba(12,18,35,0.04);
+          border: 1px solid rgba(12,18,35,0.08);
           padding:10px;
           width: 100%;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
-        .tree-scroll { max-height:260px; overflow:auto; padding-right:6px; }
+        .tree-scroll { 
+          max-height:260px; 
+          overflow:auto; 
+          padding-right:6px;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(12,18,35,0.1) transparent;
+        }
+        .tree-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .tree-scroll::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 10px;
+        }
+        .tree-scroll::-webkit-scrollbar-thumb {
+          background: rgba(12,18,35,0.15);
+          border-radius: 10px;
+          border: 2px solid transparent;
+          background-clip: padding-box;
+        }
+        .tree-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(12,18,35,0.25);
+        }
 
         .tree-row {
           display:flex;
@@ -613,10 +807,17 @@ export default function ItemGroupCreation() {
           padding:10px;
           border-radius:10px;
           cursor:pointer;
-          transition: background 160ms ease, transform 120ms ease, box-shadow 180ms ease;
+          transition: all 160ms ease;
+          margin-bottom: 2px;
         }
-        .tree-row:hover { background: linear-gradient(90deg, rgba(48,122,200,0.06), rgba(48,122,200,0.02)); transform: translateX(6px); }
-        .tree-row.selected { background: linear-gradient(90deg, rgba(15,23,42,0.03), rgba(15,23,42,0.01)); box-shadow: inset 0 0 0 1px rgba(48,122,200,0.06); }
+        .tree-row:hover { 
+          background: linear-gradient(90deg, rgba(74,222,128,0.06), rgba(74,222,128,0.02)); 
+          transform: translateX(4px); 
+        }
+        .tree-row.selected { 
+          background: linear-gradient(90deg, rgba(15,23,42,0.03), rgba(15,23,42,0.01)); 
+          box-shadow: inset 0 0 0 1px rgba(16,163,98,0.1); 
+        }
 
         .chev, .chev-placeholder {
           background:transparent;
@@ -628,45 +829,58 @@ export default function ItemGroupCreation() {
           justify-content:center;
           cursor:pointer;
           font-size:14px;
+          padding: 0;
         }
-        .chev-rot { display:inline-block; transition: transform 220ms cubic-bezier(.2,.8,.2,1); }
+        .chev-rot { 
+          display:inline-block; 
+          transition: transform 220ms cubic-bezier(.2,.8,.2,1); 
+        }
         .chev-rot.open { transform: rotate(90deg); }
 
-        .node-icon { width:22px; display:inline-flex; align-items:center; justify-content:center; color:var(--accent); }
-        .node-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; color:#0f172a; }
-
-        /* right card (preview / summary) */
-        .side {
-          display:flex;
-          flex-direction:column;
-          gap:12px;
+        .node-icon { 
+          width:22px; 
+          display:inline-flex; 
+          align-items:center; 
+          justify-content:center; 
+          color:var(--accent); 
         }
-        .stat {
-          background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(250,251,255,0.7));
-          border-radius: 12px;
-          padding:12px;
-          border: 1px solid rgba(12,18,35,0.04);
+        .node-text { 
+          white-space:nowrap; 
+          overflow:hidden; 
+          text-overflow:ellipsis; 
+          font-weight:600; 
+          color:#0f172a;
+          flex: 1;
         }
-        .muted { color: var(--muted); font-size:13px; }
 
-        /* message */
+        /* message - SAME as Item Creation */
         .message {
           margin-top:8px;
           padding:12px;
           border-radius:10px;
           font-weight:600;
+          font-size: 14px;
         }
-        .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
-        .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
+        .message.error { 
+          background: #fff1f2; 
+          color: #9f1239; 
+          border: 1px solid #ffd7da; 
+        }
+        .message.success { 
+          background: #f0fdf4; 
+          color: #064e3b; 
+          border: 1px solid #bbf7d0; 
+        }
 
-        /* submit row */
         .submit-row { 
-          display:flex; 
-          gap:12px; 
-          margin-top:14px; 
-          align-items:center; 
-          flex-wrap:wrap; 
+          display: flex; 
+          gap: 12px; 
+          margin-top: 14px; 
+          align-items: center; 
+          justify-content: flex-end;
+          width: 100%;
         }
+
         .submit-primary {
           padding:12px 16px;
           background: linear-gradient(180deg,var(--accent),var(--accent-2));
@@ -676,18 +890,41 @@ export default function ItemGroupCreation() {
           font-weight:700;
           cursor:pointer;
           min-width: 120px;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .submit-primary:hover:not(:disabled) {
+          background: linear-gradient(180deg, var(--accent-2), var(--accent-3));
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(48, 122, 200, 0.3);
+        }
+        .submit-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+          box-shadow: none !important;
         }
         .submit-clear {
           padding:10px 12px;
           background:#fff;
-          border:1px solid rgba(12,18,35,0.06);
+          border:1px solid rgba(12,18,35,0.1);
           border-radius:10px;
           cursor:pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+        .submit-clear:hover:not(:disabled) {
+          background: #f8fafc;
+          border-color: rgba(12,18,35,0.2);
+        }
+        .submit-clear:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
         
         .search-container {
           position: relative;
-          width: 80%;
+          width: 100%;
         }
 
         .search-with-clear {
@@ -697,10 +934,13 @@ export default function ItemGroupCreation() {
           border-radius: 8px;
           font-size: 14px;
           transition: all 0.2s;
+          font-family: inherit;
         }
-
-        /* constrain search input width inside panels/modals to match design */
-        .panel .search-with-clear, .modal .search-with-clear { max-width: 420px; }
+        .panel .search-with-clear,
+        .modal .search-with-clear {
+          max-width: 420px;
+          width: 100%;
+        }
 
         .search-with-clear:focus {
           outline: none;
@@ -722,6 +962,7 @@ export default function ItemGroupCreation() {
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: all 0.2s;
         }
 
         .clear-search-btn:hover {
@@ -729,42 +970,55 @@ export default function ItemGroupCreation() {
           color: #374151;
         }
 
-        /* dropdown modal (glass) */
+        /* dropdown modal (glass) - SAME as Item Creation */
         .modal-overlay {
-          position:fixed; 
-          inset:0; 
-          display:flex; 
-          align-items:center; 
-          justify-content:center; 
-          background: rgba(2,6,23,0.46); 
-          z-index:1200; 
-          padding:20px;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 16px;
         }
+        
         .modal {
-          width:100%; 
-          max-width:720px; 
-          max-height:80vh; 
-          overflow:auto; 
-          background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
-          border-radius:12px; 
-          padding:14px;
-          border:1px solid rgba(255,255,255,0.5);
-          box-shadow: 0 18px 50px rgba(2,6,23,0.36);
-          backdrop-filter: blur(8px);
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
+          max-width: 600px;
+          width: 100%;
+          max-height: 80vh;
+          overflow: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
         }
-        .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
-        .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; text-align: left; }
-        .dropdown-item:hover { background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); transform: translateX(6px); }
-        
+         
+        .dropdown-list { 
+          max-height:50vh; 
+          overflow:auto; 
+          border-top:1px solid rgba(12,18,35,0.03); 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          padding:6px 0; 
+        }
+        .dropdown-item { 
+          padding:12px; 
+          border-bottom:1px solid rgba(12,18,35,0.03); 
+          cursor:pointer; 
+          display:flex; 
+          flex-direction:column; 
+          gap:4px; 
+          transition: all 0.2s;
+        }
+        .dropdown-item:hover { 
+          background: linear-gradient(90deg, rgba(16,163,98,0.04), rgba(16,163,98,0.01)); 
+          transform: translateX(6px); 
+        }
+        .dropdown-item, .node-text { text-align: left; }
 
-        
-
-        
-
-
-
-
-        /* Responsive styles */
+        /* Responsive styles - SAME as Item Creation */
         /* Large tablets and small laptops */
         @media (max-width: 1024px) {
           .grid {
@@ -819,7 +1073,7 @@ export default function ItemGroupCreation() {
             padding: 8px 10px;
             font-size: 12px;
           }
-          .input, .search {
+          .input, .search, .select {
             padding: 8px 10px;
             font-size: 13px;
           }
@@ -879,116 +1133,114 @@ export default function ItemGroupCreation() {
       <div className="dashboard" aria-labelledby="item-group-title">
         <div className="top-row">
           <div className="title-block">
-            {/* <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg> */}
+            </svg>
             <div>
               <h2 id="item-group-title">Item Group Creation</h2>
-              <div className="subtitle muted">Add, edit, or delete item groups — organized & fast.</div>
+              <div className="subtitle muted">Create, edit, or delete item groups</div>
             </div>
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <button
-              className={`action-pill ${actionType === "Add" ? "primary" : ""}`}
-              onClick={() => { setActionType("Add"); resetForm(); }}
+            <AddButton
+              onClick={() => setActionType("Add")}
               disabled={submitting || !formPermissions.add}
-              type="button"
-              title={!formPermissions.add ? "You don't have permission to add" : "Add new item group"}
-            >
-              <Icon.Plus /> Add
-            </button>
+              isActive={actionType === "Add"}
+            />
 
-            <button
-              className={`action-pill ${actionType === "edit" ? "warn" : ""}`}
-              onClick={() => { setActionType("edit"); resetForm(); setIsPopupOpen(true); }}
+            <EditButton
+              onClick={(e) => {
+                e.currentTarget.blur();
+                setActionType("edit");
+                setIsPopupOpen(true);
+              }}
               disabled={submitting || !formPermissions.edit}
-              type="button"
-              title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing item group"}
-            >
-              <Icon.Edit /> Edit
-            </button>
+              isActive={actionType === "edit"}
+            />
 
-            <button
-              className={`action-pill ${actionType === "delete" ? "danger" : ""}`}
-              onClick={() => { setActionType("delete"); resetForm(); setIsPopupOpen(true); }}
+            <DeleteButton
+              onClick={(e) => {
+                e.currentTarget.blur();
+                setActionType("delete");
+                setIsPopupOpen(true);
+              }}
               disabled={submitting || !formPermissions.delete}
-              type="button"
-              title={!formPermissions.delete ? "You don't have permission to delete" : "Delete item group"}
-            >
-              <Icon.Trash /> Delete
-            </button>
+              isActive={actionType === "delete"}
+            />
           </div>
         </div>
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-{/* Main Group field */}
-<div className="field">
-  <label className="field-label">Main Group</label>
-  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-    <div style={{
-      display: "flex",
-      flex: 1,
-      border: "1px solid rgba(15,23,42,0.06)",
-      borderRadius: "10px",
-      overflow: "hidden",
-      background: "linear-gradient(180deg, #fff, #fbfdff)",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-    }}>
-      <input
-        className="input"
-        value={mainGroup}
-        onChange={(e) => setMainGroup(e.target.value)}
-        readOnly={actionType !== "Add"}
-        placeholder="Select Main Group"
-        disabled={submitting}
-        aria-label="Main Group"
-        style={{
-          flex: 1,
-          border: "none",
-          borderRadius: 0,
-          padding: "10px 12px",
-          minWidth: "120px",
-          fontSize: "14px",
-          outline: "none"
-        }}
-      />
-      <button
-        className="btn"
-        onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
-        disabled={submitting || actionType !== "Add"}
-        type="button"
-        aria-expanded={isTreeOpen}
-        aria-controls="group-tree"
-        style={{
-          flexShrink: 0,
-          border: "none",
-          borderLeft: "1px solid rgba(15,23,42,0.06)",
-          borderRadius: 0,
-          padding: "8px 12px",
-          minWidth: "70px",
-          fontSize: "12px",
-          fontWeight: "600",
-          background: "linear-gradient(180deg,#fff,#f8fafc)",
-          cursor: submitting || actionType !== "Add" ? "not-allowed" : "pointer",
-          color: "#0f172a",
-          transition: "all 0.2s"
-        }}
-        onMouseOver={(e) => {
-          if (!submitting && actionType === "Add") {
-            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
-          }
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
-        }}
-      >
-        {isTreeOpen ? "Close" : "Open"}
-      </button>
-    </div>
-  </div>
+            {/* Main Group field with SAME design as Item Creation */}
+            <div className="field">
+              <label className="field-label">Main Group</label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    className="input"
+                    value={mainGroup}
+                    onChange={(e) => setMainGroup(e.target.value)}
+                    readOnly={actionType !== "Add"}
+                    placeholder="Select Main Group"
+                    disabled={submitting}
+                    aria-label="Main Group"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      minWidth: "120px",
+                      fontSize: "14px",
+                      outline: "none",
+                      cursor: actionType === "Add" ? "pointer" : "default"
+                    }}
+                  />
+                  <button
+                    className="btn"
+                    onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
+                    disabled={submitting || actionType !== "Add"}
+                    type="button"
+                    aria-expanded={isTreeOpen}
+                    aria-controls="group-tree"
+                    style={{
+                      flexShrink: 0,
+                      border: "none",
+                      borderLeft: "1px solid rgba(15,23,42,0.06)",
+                      borderRadius: 0,
+                      padding: "8px 12px",
+                      minWidth: "70px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      background: "linear-gradient(180deg,#fff,#f8fafc)",
+                      cursor: submitting || actionType !== "Add" ? "not-allowed" : "pointer",
+                      color: "#0f172a",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseOver={(e) => {
+                      if (!submitting && actionType === "Add") {
+                        e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
+                    }}
+                  >
+                    {isTreeOpen ? "Close" : "Open"}
+                  </button>
+                </div>
+              </div>
+
               {isTreeOpen && (
                 isMobile ? (
                   <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
@@ -1096,43 +1348,89 @@ export default function ItemGroupCreation() {
               )}
             </div>
 
-            {/* Sub Group field */}
+            {/* Sub Group field with SAME design */}
             <div className="field">
               <label className="field-label">Sub Group</label>
               <div className="row">
                 {actionType === "Add" ? (
-  <input
-    ref={subGroupRef} // <-- ADD THIS ATTRIBUTE
-    className="input"
-    value={subGroup}
-    onChange={(e) => setSubGroup(e.target.value)}
-    placeholder="Enter Sub Group"
-    disabled={submitting}
-    aria-label="Sub Group"
-  />
-) : (
-                  <input
-                    className="input"
-                    value={subGroup}
-                    onChange={(e) => setSubGroup(e.target.value)}
-                    placeholder="Select Sub Group"
-                    disabled={submitting}
-                    readOnly={actionType === "delete"}
-                    aria-label="Sub Group"
-                  />
+                  <div style={{
+                    display: "flex",
+                    flex: 1,
+                    border: "1px solid rgba(15,23,42,0.06)",
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                    background: "linear-gradient(180deg, #fff, #fbfdff)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                  }}>
+                    <input
+                      ref={subGroupRef}
+                      className="input"
+                      value={subGroup}
+                      onChange={(e) => setSubGroup(e.target.value)}
+                      placeholder="Enter Sub Group"
+                      disabled={submitting}
+                      aria-label="Sub Group"
+                      style={{
+                        flex: 1,
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "10px 12px",
+                        minWidth: "120px",
+                        fontSize: "14px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{
+                    display: "flex",
+                    flex: 1,
+                    border: "1px solid rgba(15,23,42,0.06)",
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                    background: "linear-gradient(180deg, #fff, #fbfdff)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                  }}>
+                    <input
+                      className="input"
+                      value={subGroup}
+                      onChange={(e) => setSubGroup(e.target.value)}
+                      placeholder="Select Sub Group"
+                      disabled={submitting}
+                      readOnly={actionType === "delete"}
+                      aria-label="Sub Group"
+                      style={{
+                        flex: 1,
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "10px 12px",
+                        minWidth: "120px",
+                        fontSize: "14px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
                 )}
 
-                {/* {(actionType === "edit" || actionType === "delete") && (
+                {(actionType === "edit" || actionType === "delete") && (
                   <button
                     className="btn"
                     onClick={() => { setIsDropdownOpen(true); setIsTreeOpen(false); }}
                     type="button"
                     aria-expanded={isDropdownOpen}
                     aria-controls="subgroup-dropdown"
+                    style={{
+                      padding: "10px 12px",
+                      border: "1px solid rgba(12,18,35,0.1)",
+                      borderRadius: "10px",
+                      background: "linear-gradient(180deg,#fff,#f8fafc)",
+                      cursor: "pointer",
+                      fontWeight: "600"
+                    }}
                   >
                     <Icon.Search /> Search
                   </button>
-                )} */}
+                )}
               </div>
             </div>
 
@@ -1143,11 +1441,15 @@ export default function ItemGroupCreation() {
               </div>
             )}
 
-            {/* Submit controls */}
+            {/* Submit controls with SAME design */}
             <div className="submit-row">
               <button
                 className="submit-primary"
-                onClick={handleSubmit}
+                onClick={() => {
+                  const action = actionType === 'Add' ? 'save' : 
+                                actionType === 'edit' ? 'update' : 'delete';
+                  showConfirmationPopup(action);
+                }}
                 disabled={submitting}
                 type="button"
               >
@@ -1155,7 +1457,7 @@ export default function ItemGroupCreation() {
               </button>
               <button
                 className="submit-clear"
-                onClick={resetForm}
+                onClick={() => showConfirmationPopup('clear')}
                 disabled={submitting}
                 type="button"
               >
@@ -1163,65 +1465,16 @@ export default function ItemGroupCreation() {
               </button>
             </div>
           </div>
-
-          {/* Right side panel */}
-          <div className="side" aria-live="polite">
-            <div className="stat">
-              <div className="muted">Current Action</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{actionType}</div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Main Group</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {mainGroup || ""}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">Sub Group</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {subGroup || ""}
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="muted">F-Code</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>
-                {fCode || ""}
-              </div>
-            </div>
-
-            <div className="stat tips-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--accent)"/>
-                </svg>
-                <div style={{ fontWeight: 700 }}>Quick Tips</div>
-              </div>
-              
-              <div className="muted" style={{ fontSize: "13px", lineHeight: "1.5" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "#2563eb", fontWeight: "bold" }}>•</span>
-                  <span>Use the tree to quickly select main groups</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "#2563eb", fontWeight: "bold" }}>•</span>
-                  <span>Search groups by name in the search box</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ color: "#2563eb", fontWeight: "bold" }}>•</span>
-                  <span>For editing/deleting, use the dropdown to find sub-groups</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "#2563eb", fontWeight: "bold" }}>•</span>
-                  <span>Click folder icons to expand/collapse groups</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
+
+      {/* Confirmation Popup (ADDED to match Item Creation) */}
+      <ConfirmationPopup
+        isOpen={showConfirmPopup}
+        onClose={() => setShowConfirmPopup(false)}
+        onConfirm={handleConfirmAction}
+        {...getConfirmationConfig()}
+      />
 
       {/* Dropdown modal */}
       {isDropdownOpen && (
@@ -1286,19 +1539,18 @@ export default function ItemGroupCreation() {
         </div>
       )}
 
-      {/* Popup selector (paged + searchable) for Edit action, same style as Ledgercreation */}
+      {/* Popup selector for Edit action */}
       <PopupListSelector
         open={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
         onSelect={(item) => {
-          // item fields: fName, fParent, fCode, raw
           setMainGroup(item.fParent || '');
           setSubGroup(item.fName || '');
           setFCode(item.fCode || '');
           setIsPopupOpen(false);
         }}
         fetchItems={fetchPopupItems}
-        title="Select Item Group to Edit"
+        title={`Select Item Group to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
         displayFieldKeys={['fName', 'fParent']}
         searchFields={['fName', 'fParent']}
         headerNames={['Group Name', 'Parent']}
@@ -1309,4 +1561,3 @@ export default function ItemGroupCreation() {
     </div>
   );
 }
-

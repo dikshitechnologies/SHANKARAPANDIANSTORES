@@ -82,6 +82,61 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     }
   }, [isOpen]);
 
+  // Update closing and issue values whenever collect values change
+  useEffect(() => {
+    // Calculate total collected amount from all denominations
+    let totalCollected = 0;
+    [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+      const collectValue = Number(denominations[d].collect) || 0;
+      totalCollected += collectValue * d;
+    });
+
+    // Calculate balance
+    const netAmount = Number(formData.netAmount) || 0;
+    const balance = totalCollected - netAmount;
+
+    // Update form data with received cash and balance
+    setFormData(prev => ({
+      ...prev,
+      receivedCash: totalCollected.toString(),
+      balance: balance.toString(),
+      issuedCash: balance > 0 ? balance.toString() : ''
+    }));
+
+    // Update denominations with new closing and issue values
+    setDenominations(prevDenom => {
+      const newDenom = { ...prevDenom };
+      
+      // Recalculate closing for each denomination
+      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+        const col = Number(newDenom[d].collect) || 0;
+        const iss = Number(newDenom[d].issue) || 0;
+        newDenom[d].closing = newDenom[d].available + col - iss;
+      });
+
+      // If balance is positive, auto-calculate issue denominations
+      if (balance > 0) {
+        const optimalIssue = calculateOptimalDenominations(balance);
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+          const iss = optimalIssue[d];
+          newDenom[d] = { ...newDenom[d], issue: iss.toString() };
+          // Recalculate closing with new issue value
+          const col = Number(newDenom[d].collect) || 0;
+          newDenom[d].closing = newDenom[d].available + col - iss;
+        });
+      } else {
+        // Clear issue denominations if balance is 0 or negative
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+          newDenom[d] = { ...newDenom[d], issue: '0' };
+          const col = Number(newDenom[d].collect) || 0;
+          newDenom[d].closing = newDenom[d].available + col;
+        });
+      }
+
+      return newDenom;
+    });
+  }, [Object.values(denominations).map(d => d.collect).join(','), formData.netAmount]);
+
   // Fetch live drawer available from API
   const fetchLiveDrawer = async () => {
     try {
@@ -154,7 +209,8 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
 
   const handleDenominationChange = (denom, field, value) => {
     const updated = { ...denominations };
-    updated[denom] = { ...updated[denom], [field]: value };
+    // Store the exact value (including empty string) to maintain user input
+    updated[denom] = { ...updated[denom], [field]: value === '' ? '' : value };
     
     const collect = Number(updated[denom].collect) || 0;
     const issue = Number(updated[denom].issue) || 0;
@@ -309,11 +365,11 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
 
   // Handle keydown in collect fields for navigation
   const handleCollectFieldKeyDown = (e, currentDenom) => {
+    const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+    const currentIndex = denomSequence.indexOf(currentDenom);
+
     if (e.key === 'Enter') {
       e.preventDefault();
-      
-      const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-      const currentIndex = denomSequence.indexOf(currentDenom);
       
       if (currentIndex < denomSequence.length - 1) {
         // Move to next denomination field
@@ -326,6 +382,42 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         if (upiRef.current) {
           upiRef.current.focus();
         }
+      }
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      // Move to next denomination field (right)
+      if (currentIndex < denomSequence.length - 1) {
+        const nextDenom = denomSequence[currentIndex + 1];
+        if (collectFieldRefs.current[nextDenom]) {
+          collectFieldRefs.current[nextDenom].focus();
+        }
+      } else if (currentIndex === denomSequence.length - 1) {
+        // Last field (1), move to UPI field
+        if (upiRef.current) {
+          upiRef.current.focus();
+        }
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      // Move to previous denomination field (left)
+      if (currentIndex > 0) {
+        const prevDenom = denomSequence[currentIndex - 1];
+        if (collectFieldRefs.current[prevDenom]) {
+          collectFieldRefs.current[prevDenom].focus();
+        }
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      // Move to next row (Issue row) - same denomination
+      // For now, we'll just move to the UPI field at the end
+      if (upiRef.current) {
+        upiRef.current.focus();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      // Move to Bill Discount field when pressing up from collect row
+      if (billDiscountPercentRef.current) {
+        billDiscountPercentRef.current.focus();
       }
     }
   };
@@ -471,14 +563,38 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
       
       // Validate if the calculation matches
       if (calculatedNetAmount !== formNetAmount) {
-        alert('Calculation mistake: Net Amount = (Received Cash + UPI + Card) - Issued Cash should equal the Net Amount field. Please verify your entries.');
+        alert(' Bill Amount Mismatch. Please check the entered amounts.');
         return;
       }
 
       // Prepare the payload based on the API structure
+      // Handle date properly - create ISO string with correct local date
+      let dateToSend;
+      if (formData.originalDate) {
+        const dateObj = new Date(formData.originalDate);
+        // Get local year, month, day without timezone conversion
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const hours = String(dateObj.getHours()).padStart(2, '0');
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+        const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+        // Create ISO string manually with local date (no timezone shift)
+        dateToSend = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
+      } else {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        dateToSend = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
+      }
+      
       const payload = {
         invoiceNo: formData.billNo,
-        date: formData.originalDate ? new Date(formData.originalDate).toISOString() : new Date().toISOString(),
+        date: dateToSend,
         billAmount: Number(formData.granTotal) || 0,
         givenTotal: Number(formData.receivedCash) || 0,
         balanceGiven: Number(formData.balance) || 0,
@@ -528,7 +644,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
 
       console.log('API Response:', response);
 
-      if (response.data && response.data.success) {
+      if (response) {
         alert('✓ ' + (response.data?.message || 'Tender details saved successfully!'));
         onClose(); // Close the modal after successful save
         // Call parent callback to refresh the bill list
