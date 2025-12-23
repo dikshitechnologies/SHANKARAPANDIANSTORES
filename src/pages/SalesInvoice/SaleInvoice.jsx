@@ -1467,7 +1467,7 @@ const handleUomSpacebar   = (e, id, index) => {
 
   const handleAddItem = async () => {
     if (!billDetails.barcodeInput) {
-      alert("Please enter barcode");
+      toast.warning("Please enter barcode");
       return;
     }
 
@@ -1698,22 +1698,22 @@ const formatDateToYYYYMMDD = (dateString) => {
       setIsLoading(true);
       setError(null);
 
-      // Validate required fields
-      if (!billDetails.custName || billDetails.custName.trim() === '') {
-        if (!customerMessageShown) {
-          setCustomerMessageShown(true);
-          throw new Error('Please select a customer');
-        }
-        return;
-      }
+    // 🔒 FINAL SAFETY VALIDATION
+if (!billDetails.salesman || !billDetails.custName) {
+  throw new Error("Salesman and Customer are required");
+}
 
-      const validItems = items.filter(item => 
-        item.itemName && item.itemName.trim() && parseFloat(item.qty || 0) > 0
-      );
-      
-      if (validItems.length === 0) {
-        throw new Error('Please add at least one item with quantity');
-      }
+const validItems = items.filter(
+  item =>
+    item.itemName &&
+    item.itemName.trim() !== "" &&
+    Number(item.qty) > 0
+);
+
+if (validItems.length === 0) {
+  throw new Error("At least one item is required");
+}
+
 
       // Format date to yyyy-MM-dd (without time)
       const voucherDate = formatDateToYYYYMMDD(billDetails.billDate);
@@ -1827,19 +1827,64 @@ const formatDateToYYYYMMDD = (dateString) => {
     }
   };
 
-  // Handle save with confirmation
-  const handleSave = () => {
-    // === PERMISSION CHECK ===
-    if (!formPermissions.add && !formPermissions.edit) {
-      toast.error("You do not have permission to save invoices.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    // === END PERMISSION CHECK ===
-    showSaveConfirmation();
-  };
+const handleSave = () => {
+  // 🔐 Permission check
+  if (!formPermissions.add && !formPermissions.edit) {
+    toast.error("You do not have permission to save invoices.", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    return;
+  }
+
+  // ❌ Salesman validation
+  if (!billDetails.salesman || billDetails.salesman.trim() === "") {
+    toast.warning("Please fill the Salesman name", {
+      autoClose: 2000,
+    });
+    return;
+  }
+
+  // ❌ Customer validation
+  if (!billDetails.custName || billDetails.custName.trim() === "") {
+    toast.warning("Please fill the Customer name", {
+      autoClose: 2000,
+    });
+    return;
+  }
+
+  // ❌ Item validation
+  const validItems = items.filter(
+    item =>
+      item.itemName &&
+      item.itemName.trim() !== "" &&
+      Number(item.qty) > 0
+  );
+
+  if (validItems.length === 0) {
+    toast.warning("Please add at least one Item with quantity", {
+      autoClose: 2000,
+    });
+    return;
+  }
+
+  // ✅ ALL OK → Open save confirmation popup
+  const addLessValue = parseFloat(addLessAmount || 0);
+  const finalAmount = totalAmount + addLessValue;
+
+  setSaveConfirmationData({
+    invoiceNo: isEditing ? originalInvoiceNo : billDetails.billNo,
+    customer: billDetails.custName,
+    billDate: billDetails.billDate,
+    totalAmount: totalAmount.toFixed(2),
+    addLessAmount: addLessAmount,
+    finalAmount: finalAmount.toFixed(2),
+    isEditing: isEditing,
+  });
+
+  setSaveConfirmationOpen(true);
+};
+
 
   // Function to show save confirmation popup
   const showSaveConfirmation = () => {
@@ -2733,13 +2778,20 @@ searchIconInside: {
       name="custName"
       onChange={handleInputChange}
       ref={custNameRef}
-      // onClick={openCustomerPopup}
-      // onKeyDown={(e) => {
-      //   handleKeyDown(e, barcodeRef, 'custName');
-      //   handleBackspace(e, 'custName');
-      // }}
-      // onFocus={() => setFocusedField('custName')}
-      // onBlur={() => setFocusedField('')}
+      
+     onKeyDown={(e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+
+    // 👉 Move to TOP barcode input
+    if (barcodeRef.current) {
+      barcodeRef.current.focus();
+    }
+  }
+
+  handleBackspace(e, 'custName');
+}}
+
       
     />
 
