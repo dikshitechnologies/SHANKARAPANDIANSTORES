@@ -87,7 +87,8 @@ const SalesReturn = () => {
   const [selectedBillNumber, setSelectedBillNumber] = useState(null);
   const [selectAllItems, setSelectAllItems] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  
+  const [showConfirmApply, setShowConfirmApply] = useState(false);
+
   // 5. Confirmation Popup States
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [confirmPopupConfig, setConfirmPopupConfig] = useState({
@@ -487,6 +488,10 @@ const SalesReturn = () => {
     }
   };
 
+  const applyBillNumberCore = async () => {
+  await handleApplyBillNumber();
+};
+
   // Apply selected bill number from details popup
   const handleApplyBillNumber = async () => {
     // Get the checked items
@@ -582,11 +587,7 @@ const SalesReturn = () => {
       setLoading(false);
     }
     
-    // Close the popups
-    setBillDetailsPopupOpen(false);
-    setSelectedBillForDetails(null);
-    setCheckedBills({});
-    setBillDetailsSearchText("");
+   
     setTimeout(() => {
       barcodeRef.current?.focus();
     }, 150);
@@ -2061,6 +2062,34 @@ const SalesReturn = () => {
       }
     });
   };
+const confirmApplyBillNumber = () => {
+  // ✅ CLOSE BILL DETAILS POPUP FIRST
+  setBillDetailsPopupOpen(false);
+
+  // Optional cleanup (safe)
+  setBillPopupRowIndex(0);
+
+  // ⏳ SMALL DELAY so UI settles
+  setTimeout(() => {
+    showConfirmation({
+      title: "Confirm Apply",
+      message: "Are you sure you want to apply the selected items?",
+      type: "success",
+      confirmText: "OK",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        await applyBillNumberCore(); // ✅ Apply items
+
+        // Final cleanup AFTER OK
+        setSelectedBillForDetails(null);
+        setCheckedBills({});
+        setBillDetailsSearchText("");
+      }
+    });
+  }, 50);
+};
+
+
 
   const handleClear = () => {
     showConfirmation({
@@ -3172,28 +3201,28 @@ const SalesReturn = () => {
               onChange={handleInputChange}
               ref={barcodeRef}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
+  if (e.key === 'Enter') {
+    e.preventDefault();
 
-                  // ✅ Mark barcode-enter flow
-                  setIsBarcodeEnter(true);
+    // ✅ Mark barcode-enter flow
+    setIsBarcodeEnter(true);
 
-                  handleAddItem();
+    handleAddItem();
 
-                  // After adding item, check if we should move focus
-                  setTimeout(() => {
-                    const lastItem = items[items.length - 1];
-                    if (lastItem.itemName && lastItem.itemName.trim()) {
-                      const firstRowBarcode = document.querySelector(
-                        'input[data-row="0"][data-field="barcode"]'
-                      );
-                      if (firstRowBarcode) {
-                        firstRowBarcode.focus();
-                      }
-                    }
-                  }, 150);
-                }
-              }}
+    setTimeout(() => {
+      const lastItem = items[items.length - 1];
+      if (lastItem.itemName && lastItem.itemName.trim()) {
+        const firstRowBarcode = document.querySelector(
+          'input[data-row="0"][data-field="barcode"]'
+        );
+        if (firstRowBarcode) {
+          firstRowBarcode.focus();
+        }
+      }
+    }, 150);
+  }
+}}
+
               onFocus={() => setFocusedField('barcodeInput')}
               onBlur={() => setFocusedField('')}
               // //placeholder="Scan or Enter Barcode"
@@ -3516,17 +3545,20 @@ const SalesReturn = () => {
               >
                 cancel
               </button>
-              <button
-                style={{
-                  ...styles.customPopupFooterButton,
-                  ...styles.customPopupApplyButton,
-                  ...(Object.keys(checkedBills).filter(key => checkedBills[key]).length === 0 ? styles.customPopupApplyButtonDisabled : {}),
-                }}
-                onClick={handleApplyBillNumber}
-                disabled={Object.keys(checkedBills).filter(key => checkedBills[key]).length === 0}
-              >
-                Apply
-              </button>
+             <button
+  style={{
+    ...styles.customPopupFooterButton,
+    ...styles.customPopupApplyButton,
+    ...(Object.keys(checkedBills).filter(key => checkedBills[key]).length === 0
+      ? styles.customPopupApplyButtonDisabled
+      : {}),
+  }}
+  onClick={confirmApplyBillNumber}   // ✅ CHANGE IS HERE
+  disabled={Object.keys(checkedBills).filter(key => checkedBills[key]).length === 0}
+>
+  Apply
+</button>
+
             </div>
           </div>
         </div>
