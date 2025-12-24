@@ -376,7 +376,7 @@ export default function UserCreation() {
     setActionType("delete");
     setDeleteTargetId(userCode);
     setDeleteModalOpen(false);
-    setTimeout(() => usernameRef.current?.focus(), 1060);
+    setTimeout(() => submitRef.current?.focus(), 1060);
   };
 
   const handleAdd = async () => {

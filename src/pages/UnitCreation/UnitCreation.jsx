@@ -59,8 +59,8 @@ export default function UnitCreation() {
   
   const formPermissions = useMemo(() => ({
     add: hasAddPermission(PERMISSION_CODES.UNIT_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.UNIT_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.UNIT_CREATION)
+    Edit: hasModifyPermission(PERMISSION_CODES.UNIT_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.UNIT_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -74,7 +74,7 @@ export default function UnitCreation() {
     unitName: ""
   });
   
-  const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
+  const [actionType, setActionType] = useState("Add"); // 'Add' | 'Edit' | 'Delete'
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
 
@@ -295,7 +295,7 @@ export default function UnitCreation() {
 
   // Additional focus for when actionType changes
   useEffect(() => {
-    if (actionType === "edit" || actionType === "Add") {
+    if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
         if (unitNameRef.current) unitNameRef.current.focus();
       }, 0);
@@ -311,7 +311,7 @@ export default function UnitCreation() {
 
   const handleEdit = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to edit units." 
@@ -352,7 +352,7 @@ const confirmEdit = async () => {
     await loadInitial();
     
     setMessage({ type: "success", text: "Unit updated successfully." });
-    toast.success(`Unit "${form.unitName}" updated successfully.`);
+    // toast.success(`Unit "${form.unitName}" updated successfully.`);
     setConfirmEditOpen(false);
     resetForm();
   } catch (err) {
@@ -365,7 +365,7 @@ const confirmEdit = async () => {
 
   const handleDelete = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to delete units." 
@@ -389,7 +389,7 @@ const confirmEdit = async () => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Unit deleted successfully." });
-      toast.error(`Unit "${form.unitName}" deleted successfully.`);
+      // toast.error(`Unit "${form.unitName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
@@ -449,7 +449,7 @@ const confirmSave = async () => {
     await loadInitial();
     
     setMessage({ type: "success", text: "Unit created successfully." });
-    toast.success(`Unit "${form.unitName}" created successfully.`);
+    // toast.success(`Unit "${form.unitName}" created successfully.`);
     setConfirmSaveOpen(false);
     resetForm(true);
   } catch (err) {
@@ -462,8 +462,8 @@ const confirmSave = async () => {
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+    else if (actionType === "Edit") await handleEdit();
+    else if (actionType === "Delete") await handleDelete();
   };
 
   const resetForm = (keepAction = false) => {
@@ -489,7 +489,7 @@ const confirmSave = async () => {
 
   const handleEditRowClick = (u) => {
     setForm({ fuCode: u.uCode, unitName: u.unitName });
-    setActionType("edit");
+    setActionType("Edit");
     setEditingId(u.uCode);
     setEditModalOpen(false);
     setTimeout(() => unitNameRef.current?.focus(), 60);
@@ -514,7 +514,7 @@ const confirmSave = async () => {
 
   const handleDeleteRowClick = (u) => {
     setForm({ fuCode: u.uCode, unitName: u.unitName });
-    setActionType("delete");
+    setActionType("Delete");
     setDeleteTargetId(u.uCode);
     setDeleteModalOpen(false);
     setTimeout(() => unitNameRef.current?.focus(), 60);
@@ -1151,8 +1151,8 @@ const confirmSave = async () => {
 
           <div className="actions" role="toolbar" aria-label="actions">
             <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.edit} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.delete} isActive={actionType === "delete"} />
+            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.Edit} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.Delete} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1193,7 +1193,7 @@ const confirmSave = async () => {
                   onKeyDown={onUnitNameKeyDown}
                   disabled={loading}
                   aria-label="Unit Name"
-                  readOnly={actionType === "delete"}
+                  readOnly={actionType === "Delete"}
                 />
               </div>
             </div>
@@ -1271,7 +1271,7 @@ const confirmSave = async () => {
                           className={form.fuCode === u.uCode ? "selected" : ""}
                           onClick={() => {
                             setForm({ fuCode: u.uCode, unitName: u.unitName });
-                            setActionType("edit");
+                            setActionType("Edit");
                           }}
                         >
                           <td>{u.uCode}</td>
@@ -1323,9 +1323,10 @@ const confirmSave = async () => {
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create Unit"
-        message={`Are you sure you want to create unit "${form.unitName}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1346,9 +1347,10 @@ const confirmSave = async () => {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update Unit"
-        message={`Are you sure you want to update unit "${form.unitName}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1369,9 +1371,10 @@ const confirmSave = async () => {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Unit"
-        message={`Are you sure you want to delete unit "${form.unitName}"? This action cannot be undone.`}
+        message={`Do you want to delete unit?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
