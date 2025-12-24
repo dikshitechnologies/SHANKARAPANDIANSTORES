@@ -752,7 +752,7 @@ const Scrapprocurement = () => {
       } else {
         showConfirmation({
           title: 'Not Found',
-          message: `No voucher data found for ${voucherNo}`,
+          message: `No voucher data found`,
           type: 'warning',
           confirmText: 'OK',
           showIcon: true,
@@ -763,7 +763,7 @@ const Scrapprocurement = () => {
       console.error('Error loading voucher:', error);
       showConfirmation({
         title: 'Error',
-        message: `Failed to load voucher: ${error.message}`,
+        message: `Failed to load voucher`,
         type: 'danger',
         confirmText: 'OK',
         showIcon: true,
@@ -776,10 +776,10 @@ const Scrapprocurement = () => {
   const deleteVoucher = async (voucherNo) => {
     showConfirmation({
       title: 'Delete Voucher',
-      message: `Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`,
+      message: `Do you want to delete?`,
       type: 'danger',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      confirmText: 'Yes',
+      cancelText: 'No',
       onConfirm: async () => {
         try {
           const response = await axiosInstance.delete(
@@ -792,7 +792,7 @@ const Scrapprocurement = () => {
             
             showConfirmation({
               title: 'Success',
-              message: `Voucher ${voucherNo} deleted successfully.`,
+              message: `Deleted successfully.`,
               type: 'success',
               confirmText: 'OK',              
               showIcon: true,
@@ -801,7 +801,7 @@ const Scrapprocurement = () => {
                 handleClear();
               }
             });
-            toast.error(`Voucher ${voucherNo} deleted successfully.`);
+            // toast.error(`Voucher ${voucherNo} deleted successfully.`);
             clearFormData();
           } else {
             showConfirmation({
@@ -812,19 +812,19 @@ const Scrapprocurement = () => {
               showIcon: true,
               onConfirm: () => setShowConfirmPopup(false)
             });
-            toast.error('Failed to delete voucher. Please try again.');
+            // toast.error('Failed to delete voucher. Please try again.');
           }
         } catch (error) {
           console.error('Error deleting voucher:', error);
           showConfirmation({
             title: 'Error',
-            message: `Failed to delete voucher: ${error.response?.data?.message || error.message}`,
+            message: `Failed to delete `,
             type: 'danger',
             confirmText: 'OK',
             showIcon: true,
             onConfirm: () => setShowConfirmPopup(false)
           });
-          toast.error(`Failed to delete voucher: ${error.response?.data?.message || error.message}`);
+          // toast.error(`Failed to delete voucher: ${error.response?.data?.message || error.message}`);
         }
       }
     });
@@ -875,10 +875,9 @@ const Scrapprocurement = () => {
         }));
       }
       
-      const url = API_ENDPOINTS.Scrap_Procurement.GET_ITEMS_BY_TYPE +
-                (searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '');
+      const url = API_ENDPOINTS.Scrap_Procurement.GET_ITEM_LIST;
       const response = await axiosInstance.get(url);
-      const data = response?.data || [];
+      let data = response?.data?.data || response?.data || [];
       
       if (!Array.isArray(data)) {
         return [];
@@ -938,7 +937,7 @@ const Scrapprocurement = () => {
       
       const url = API_ENDPOINTS.SALESMAN_CREATION_ENDPOINTS.getSalesmen;
       const response = await axiosInstance.get(url);
-      const data = response?.data || [];
+      let data = response?.data?.data || response?.data || [];
       
       if (!Array.isArray(data)) {
         return [];
@@ -996,13 +995,13 @@ const Scrapprocurement = () => {
           code: customer.code || '',
           name: customer.name || '',
           custName: customer.name || '',
+          phonenumber: customer.phonenumber || '',
         }));
       }
       
-      const url = API_ENDPOINTS.sales_return.getCustomers + 
-                  (searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '');
+      const url = API_ENDPOINTS.Scrap_Procurement.GET_CUSTOMER_LIST(pageNum, pageSize);
       const response = await axiosInstance.get(url);
-      const data = response?.data || [];
+      const data = response?.data?.data || [];
       
       if (!Array.isArray(data)) {
         return [];
@@ -1013,6 +1012,7 @@ const Scrapprocurement = () => {
         code: customer.code || '',
         name: customer.name || '',
         custName: customer.name || '',
+        phonenumber: customer.phonenumber || '',
       }));
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -1044,7 +1044,7 @@ const Scrapprocurement = () => {
       const url = API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_ITEMS +
                 (searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '');
       const response = await axiosInstance.get(url);
-      const data = response?.data || [];
+      let data = response?.data?.data || response?.data || [];
       
       if (!Array.isArray(data)) {
         return [];
@@ -1259,6 +1259,17 @@ const Scrapprocurement = () => {
       }
       return item;
     }));
+
+    // If user is typing in itemName field, open popup and set search term
+    if (field === 'itemName' && value.length > 0) {
+      const currentRowIndex = items.findIndex(item => item.id === id);
+      if (currentRowIndex !== -1) {
+        setSelectedRowForItem(currentRowIndex);
+        setItemSearchTerm(value);
+        setClosedItemByUser(false);
+        setTimeout(() => setShowItemPopup(true), 100);
+      }
+    }
   };
 
   const handleTableKeyDown = (e, currentRowIndex, currentField) => {
@@ -1305,33 +1316,35 @@ const Scrapprocurement = () => {
       if (currentField === 'itemName') {
         // Check if itemName is empty in the current row
         if (isItemNameEmpty) {
+          handleSave();
+          clearFormData();
           // Show confirmation popup asking to save
-          showConfirmation({
-            title: 'Item Name Missing',
-            message: 'Item Name cannot be empty. Would you like to save the form anyway?\n\nNote: Items without Item Name will not be saved.',
-            type: 'warning',
-            confirmText: 'Save Anyway',
-            cancelText: 'Cancel',
-            onConfirm: () => {
-              // User chose to save anyway
-              setShowConfirmPopup(false);
-              // Trigger the actual save function
-              handleSave();
-              clearFormData();  
-            },
-            onCancel: () => {
-              setShowConfirmPopup(false);
-              // Focus back to itemName field so user can fix it
-              setTimeout(() => {
-                const itemNameInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="itemName"]`);
-                if (itemNameInput) {
-                  itemNameInput.focus();
-                  const fieldIndex = tableFields.indexOf('itemName');
-                  setCurrentFocus({ section: 'table', rowIndex: currentRowIndex, fieldIndex });
-                }
-              }, 100);
-            }
-          });
+          // showConfirmation({
+          //   title: 'Item Name Missing',
+          //   message: 'Item Name cannot be empty.',
+          //   type: 'warning',
+          //   confirmText: 'Save Anyway',
+          //   cancelText: 'Cancel',
+          //   onConfirm: () => {
+          //     // User chose to save anyway
+          //     setShowConfirmPopup(false);
+          //     // Trigger the actual save function
+          //     handleSave();
+          //     clearFormData();  
+          //   },
+          //   onCancel: () => {
+          //     setShowConfirmPopup(false);
+          //     // Focus back to itemName field so user can fix it
+          //     setTimeout(() => {
+          //       const itemNameInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="itemName"]`);
+          //       if (itemNameInput) {
+          //         itemNameInput.focus();
+          //         const fieldIndex = tableFields.indexOf('itemName');
+          //         setCurrentFocus({ section: 'table', rowIndex: currentRowIndex, fieldIndex });
+          //       }
+          //     }, 100);
+          //   }
+          // });
           return;
         }
       }
@@ -1382,7 +1395,7 @@ const Scrapprocurement = () => {
     if (isFirstRow) {
       showConfirmation({
         title: 'Clear First Row',
-        message: 'The first row cannot be deleted, but you can clear its contents. Would you like to clear this row instead?',
+        message: 'Do you want to clear',
         type: 'info',
         confirmText: 'Clear',
         onConfirm: () => {
@@ -1413,7 +1426,7 @@ const Scrapprocurement = () => {
 
     showConfirmation({
       title: 'Delete Item',
-      message: `Are you sure you want to delete "${itemName}"?`,
+      message: `Are you sure you want to delete?`,
       type: 'danger',
       confirmText: 'Delete',
       onConfirm: () => {
@@ -1469,7 +1482,8 @@ const Scrapprocurement = () => {
     setIsEditMode(false);
     setOriginalBillDetails(null);
     setOriginalItems(null);
-    setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 0 });
+    // setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 0 });
+    setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 1 });
   };
 
   const handleClear = () => {
@@ -1478,9 +1492,10 @@ const Scrapprocurement = () => {
     if (isEditMode) {
       showConfirmation({
         title: 'Clear Data',
-        message: 'Are you sure you want to clear all data? This will exit edit mode and discard changes.',
+        message: 'Are you sure you want to clear all data?',
         type: 'warning',
-        confirmText: 'Clear',
+        confirmText: 'Yes',
+        cancelText: 'No',
         onConfirm: () => {
           revertToOriginalData();
           setShowConfirmPopup(false);
@@ -1545,13 +1560,13 @@ const Scrapprocurement = () => {
       if (response.status === 200 || response.status === 201) {
         const mode = isCreate ? 'created' : 'updated';
         clearFormData();
-        toast.success(`Scrap Procurement data ${mode} successfully! Voucher No: ${billDetails.billNo}`);
+        // toast.success(`Scrap Procurement data ${mode} successfully! Voucher No: ${billDetails.billNo}`);
         
         ignoreNextEnterRef.current = false;
         
         showConfirmation({
           title: 'Success',
-          message: `Scrap Procurement data ${mode} successfully!\n\nVoucher No: ${billDetails.billNo}\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          message: `Scrap Procurement data ${mode} successfully!`,
           type: 'success',
           confirmText: 'OK',
           showIcon: true,
@@ -1572,19 +1587,19 @@ const Scrapprocurement = () => {
           showIcon: true,
           onConfirm: () => setShowConfirmPopup(false)
         });
-        toast.error('Failed to save data. Please try again.');
+        // toast.error('Failed to save data. Please try again.');
       }
     } catch (error) {
       console.error('Error saving scrap procurement:', error);
       showConfirmation({
         title: 'Error',
-        message: `Error saving data: ${error.response?.data?.message || error.message}`,
+        message: `Error saving data`,
         type: 'danger',
         confirmText: 'OK',
         showIcon: true,
         onConfirm: () => setShowConfirmPopup(false)
       });
-      toast.error(`Error saving data: ${error.response?.data?.message || error.message}`);
+      // toast.error(`Error saving data: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -1611,23 +1626,24 @@ const Scrapprocurement = () => {
         item.itemCode && item.itemCode.trim() !== ''
       );
       
-      // if (validItems.length === 0) {
-      //   showConfirmation({
-      //     title: 'No Items',
-      //     message: 'Please add at least one item with item name selected from the popup',
-      //     type: 'warning',
-      //     confirmText: 'OK',
-      //     showIcon: true,
-      //     onConfirm: () => setShowConfirmPopup(false)
-      //   });
-      //   return;
-      // }
+      if (validItems.length === 0) {
+        showConfirmation({
+          title: 'No Items',
+          message: 'Please add at least one item with item name selected from the popup',
+          type: 'warning',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => setShowConfirmPopup(false)
+        });
+        return;
+      }
       
       showConfirmation({
         title: 'Save Confirmation',
-        message: `Are you sure you want to ${isEditMode ? 'update' : 'save'} this voucher?\n\nVoucher No: ${billDetails.billNo}\nTotal Quantity: ${totalQty.toFixed(2)}\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        message: `Do you want to ${isEditMode ? 'modify' : 'save'}?`,
         type: isEditMode ? 'info' : 'success',
-        confirmText: isEditMode ? 'Update' : 'Save',
+        confirmText: 'Yes',
+        cancelText: 'No',
         onConfirm: async () => {
           await performSave();
           setShowConfirmPopup(false);
@@ -1636,7 +1652,7 @@ const Scrapprocurement = () => {
           if (isEditMode) {
             showConfirmation({
               title: 'Discard Changes',
-              message: 'Are you sure you want to discard all changes and revert to original data?',
+              message: 'Do you want to discard the changes?',
               type: 'warning',
               confirmText: 'Discard',
               onConfirm: () => {
@@ -2791,7 +2807,14 @@ const Scrapprocurement = () => {
         searchFields={['code','fname']}
         columnWidths={['30%','70%']}
         searchPlaceholder="Search salesman by name..."
-        initialSearchText={salesmanSearchTerm}
+        initialSearch={salesmanSearchTerm}
+        onSearchChange={(searchValue) => {
+          setSalesmanSearchTerm(searchValue);
+          setBillDetails(prev => ({
+            ...prev,
+            salesman: searchValue
+          }));
+        }}
         onSelect={(selectedSalesman) => {
           const fullName = selectedSalesman.fullName || 
                           `${selectedSalesman.fname || ''} ${selectedSalesman.lname || ''}`.trim() ||
@@ -2807,11 +2830,11 @@ const Scrapprocurement = () => {
           setSalesmanSearchTerm('');
           setActiveSearchField(null);
           
-          if (custNameRef.current) {
-            custNameRef.current.focus();
-            setFocusedField('custName');
-            setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
-          }
+          // if (custNameRef.current) {
+          //   custNameRef.current.focus();
+          //   setFocusedField('custName');
+          //   setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
+          // }
         }}
       />
       
@@ -2831,12 +2854,20 @@ const Scrapprocurement = () => {
         searchFields={['name', 'code']}
         columnWidths={['40%', '60%']}
         searchPlaceholder="Search customer by name or code..."
-        initialSearchText={customerSearchTerm}
+        initialSearch={customerSearchTerm}
+        onSearchChange={(searchValue) => {
+          setCustomerSearchTerm(searchValue);
+          setBillDetails(prev => ({
+            ...prev,
+            custName: searchValue
+          }));
+        }}
         onSelect={(selectedCustomer) => {
           setBillDetails(prev => ({
             ...prev,
             custName: selectedCustomer.name || '',
             custCode: selectedCustomer.code || '',
+            mobileNo: selectedCustomer.phonenumber || '',
           }));
           setShowCustomerPopup(false);
           setClosedByUser(false);
@@ -2867,7 +2898,14 @@ const Scrapprocurement = () => {
         searchFields={['scrapName', 'scrapCode']}
         columnWidths={['30%', '70%']}
         searchPlaceholder="Search scrap by name or code..."
-        initialSearchText={scrapSearchTerm}
+        initialSearch={scrapSearchTerm}
+        onSearchChange={(searchValue) => {
+          setScrapSearchTerm(searchValue);
+          setBillDetails(prev => ({
+            ...prev,
+            scrapProductInput: searchValue
+          }));
+        }}
         onSelect={(selectedScrap) => {
           const scrapName = selectedScrap.scrapName || selectedScrap.scrapProductName || '';
           
@@ -2901,7 +2939,6 @@ const Scrapprocurement = () => {
           setSelectedRowForItem(null);
         }}
         clearSearch={() => setCompanyQuery("")}
-        initialSearch={companyQuery}
         title="Select Item"
         fetchItems={fetchItemList}
         displayFieldKeys={['itemName']}
@@ -2909,7 +2946,18 @@ const Scrapprocurement = () => {
         searchFields={['itemName']}
         columnWidths={['100%']}
         searchPlaceholder="Search item by name..."
-        initialSearchText={itemSearchTerm}
+        initialSearch={itemSearchTerm}
+        onSearchChange={(searchValue) => {
+          setItemSearchTerm(searchValue);
+          if (selectedRowForItem !== null && items[selectedRowForItem]) {
+            const updatedItems = [...items];
+            updatedItems[selectedRowForItem] = {
+              ...updatedItems[selectedRowForItem],
+              itemName: searchValue
+            };
+            setItems(updatedItems);
+          }
+        }}
         onSelect={(selectedItem) => {
           if (selectedRowForItem !== null && items[selectedRowForItem]) {
             const updatedItems = [...items];

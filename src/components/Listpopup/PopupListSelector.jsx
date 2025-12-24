@@ -27,7 +27,8 @@ const PopupListSelector = ({
   maxHeight = '70vh',
   searchPlaceholder = 'Search...',
   initialSearch = '',
-  responsiveBreakpoint = 768 
+  responsiveBreakpoint = 768,
+  onSearchChange = null
 }) => {
   const [searchText, setSearchText] = useState('');
   const [data, setData] = useState([]);
@@ -87,11 +88,15 @@ const PopupListSelector = ({
         setPage(1);
         setHasMore(true);
         loadData(1, searchText, true);
+        // Emit search change to parent component
+        if (onSearchChange) {
+          onSearchChange(searchText);
+        }
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchText]);
+  }, [searchText, open]);
 
   // -------------------------
   // Fetch + Filter Data
