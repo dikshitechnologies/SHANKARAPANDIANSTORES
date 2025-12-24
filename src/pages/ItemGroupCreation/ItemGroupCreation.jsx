@@ -64,12 +64,26 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
     switch (e.key) {
       case "Enter":
         e.preventDefault();
-        onSelect(node);
+        if (hasChildren) {
+          // Folder node: expand/open it
+          if (!isExpanded) {
+            toggleExpand(node.key);
+          } else {
+            // If already expanded, select it
+            onSelect(node);
+          }
+        } else {
+          // Leaf node: select the item and close tree
+          onSelect(node);
+        }
         break;
       case "ArrowRight":
         e.preventDefault();
         if (hasChildren && !isExpanded) {
           toggleExpand(node.key);
+        } else if (hasChildren && isExpanded) {
+          // If already expanded, focus on first child
+          onNavigate?.("down", node.key);
         }
         break;
       case "ArrowLeft":
@@ -96,6 +110,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         role="button"
         tabIndex={isSelected ? 0 : -1}
         onKeyDown={handleKeyDown}
+        data-key={node.key}
       >
         {hasChildren ? (
           <button
@@ -172,6 +187,7 @@ export default function ItemGroupCreation() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
   const subGroupRef = useRef(null);
+  const submitRef = useRef(null);
   
   // Confirmation Popup States (ADDED to match Unit Creation)
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
@@ -373,7 +389,11 @@ export default function ItemGroupCreation() {
     const nextNode = allNodes[nextIndex];
     if (nextNode) {
       setSelectedNode(nextNode);
-      handleSelectNode(nextNode);
+      // Don't close tree on navigation, just update selection
+      setTimeout(() => {
+        const elem = document.querySelector(`[data-key="${nextNode.key}"]`);
+        elem?.focus();
+      }, 0);
     }
   }, [filteredTree, expandedKeys]);
 
@@ -1223,6 +1243,17 @@ export default function ItemGroupCreation() {
                     className="input"
                     value={mainGroup}
                     onChange={(e) => setMainGroup(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        // Open tree and focus first node
+                        setIsTreeOpen(true);
+                        setTimeout(() => {
+                          const firstNode = document.querySelector('[data-key]');
+                          firstNode?.focus();
+                        }, 0);
+                      }
+                    }}
                     readOnly={actionType !== "Add"}
                     disabled={submitting}
                     aria-label="Main Group"
@@ -1476,6 +1507,7 @@ export default function ItemGroupCreation() {
             {/* Submit controls with SAME design */}
             <div className="submit-row">
               <button
+                ref={submitRef}
                 className="submit-primary"
                 onClick={() => {
                   if (actionType === "Add") showAddConfirmation();
