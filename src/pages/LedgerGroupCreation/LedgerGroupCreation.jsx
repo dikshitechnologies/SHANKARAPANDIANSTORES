@@ -97,6 +97,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         role="button"
         tabIndex={isSelected ? 0 : -1}
         onKeyDown={handleKeyDown}
+        data-tree-key={node.key}
       >
         {hasChildren ? (
           <button
@@ -192,6 +193,8 @@ export default function LedgerGroupCreation() {
 
   // Ref for auto-focusing SubGroup input after main group selection
   const subGroupRef = useRef(null);
+  // Ref for submit button to enable keyboard navigation
+  const submitButtonRef = useRef(null);
 
   useEffect(() => {
     loadInitial();
@@ -259,7 +262,7 @@ export default function LedgerGroupCreation() {
   const handleSelectNode = (node) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
-    // Auto-close tree after selection
+    // Close tree only when explicitly selecting (Enter key)
     setIsTreeOpen(false);
     // Auto-focus SubGroup input
     setTimeout(() => subGroupRef.current?.focus(), 100);
@@ -359,30 +362,31 @@ export default function LedgerGroupCreation() {
 
   // Handle keyboard navigation for tree nodes
   const handleTreeNavigation = useCallback((direction, currentKey) => {
-    const getAllNodes = (nodes) => {
-      const result = [];
-      nodes.forEach(node => {
-        result.push(node);
-        if (expandedKeys.has(node.key) && node.children) {
-          result.push(...getAllNodes(node.children));
+    const flatten = (nodes) => {
+      let out = [];
+      nodes.forEach(n => {
+        out.push(n);
+        if (expandedKeys.has(n.key) && n.children?.length) {
+          out = out.concat(flatten(n.children));
         }
       });
-      return result;
+      return out;
     };
 
-    const allNodes = getAllNodes(filteredTree);
-    const currentIndex = allNodes.findIndex(n => n.key === currentKey);
-    
-    if (currentIndex === -1) return;
+    const list = flatten(filteredTree);
+    const idx = list.findIndex(n => n.key === currentKey);
+    if (idx === -1) return;
 
-    let nextIndex = direction === "down" ? currentIndex + 1 : currentIndex - 1;
-    if (nextIndex < 0) nextIndex = 0;
-    if (nextIndex >= allNodes.length) nextIndex = allNodes.length - 1;
+    const next = direction === "down" ? idx + 1 : idx - 1;
+    const target = list[Math.max(0, Math.min(next, list.length - 1))];
 
-    const nextNode = allNodes[nextIndex];
-    if (nextNode) {
-      setSelectedNode(nextNode);
-      handleSelectNode(nextNode);
+    if (target) {
+      setSelectedNode(target); // 🔥 only move selection, don't close tree
+      // Focus the newly selected node
+      setTimeout(() => {
+        const elem = document.querySelector(`[data-tree-key="${target.key}"]`);
+        elem?.focus();
+      }, 0);
     }
   }, [filteredTree, expandedKeys]);
 
@@ -1179,6 +1183,17 @@ export default function LedgerGroupCreation() {
         value={mainGroup}
         onChange={(e) => setMainGroup(e.target.value)}
         onFocus={() => setIsTreeOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            setIsTreeOpen(true);
+            // Focus first visible node
+            setTimeout(() => {
+              const firstNode = document.querySelector(".tree-row");
+              firstNode?.focus();
+            }, 50);
+          }
+        }}
         readOnly={actionType !== "Add"}
         disabled={submitting}
         aria-label="Main Group"
@@ -1252,7 +1267,17 @@ export default function LedgerGroupCreation() {
                         </div>
                       </div>
 
-                      <div className="tree-scroll" role="tree" aria-label="Group list">
+                      <div
+                        className="tree-scroll"
+                        role="tree"
+                        aria-label="Group list"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            setIsTreeOpen(false);
+                          }
+                        }}
+                      >
                         {loading ? (
                           <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
                         ) : filteredTree.length === 0 ? (
@@ -1296,7 +1321,17 @@ export default function LedgerGroupCreation() {
                       </div>
                     </div>
 
-                    <div className="tree-scroll" role="tree" aria-label="Group list">
+                    <div
+                      className="tree-scroll"
+                      role="tree"
+                      aria-label="Group list"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setIsTreeOpen(false);
+                        }
+                      }}
+                    >
                       {loading ? (
                         <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
                       ) : filteredTree.length === 0 ? (
@@ -1330,6 +1365,12 @@ export default function LedgerGroupCreation() {
                     className="input"
                     value={subGroup}
                     onChange={(e) => setSubGroup(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        submitButtonRef.current?.focus();
+                      }
+                    }}
                     placeholder="Enter Sub Group"
                     disabled={submitting}
                     aria-label="Sub Group"
@@ -1339,6 +1380,12 @@ export default function LedgerGroupCreation() {
                     className="input"
                     value={subGroup}
                     onChange={(e) => setSubGroup(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        submitButtonRef.current?.focus();
+                      }
+                    }}
                     placeholder="Select Sub Group"
                     disabled={submitting}
                     readOnly={actionType === "delete"}
@@ -1371,6 +1418,7 @@ export default function LedgerGroupCreation() {
             {/* Submit controls */}
             <div className="submit-row">
               <button
+                ref={submitButtonRef}
                 className="submit-primary"
                 onClick={handleSubmit}
                 disabled={submitting}
