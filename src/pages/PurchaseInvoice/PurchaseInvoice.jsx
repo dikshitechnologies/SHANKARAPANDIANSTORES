@@ -98,16 +98,16 @@ const PurchaseInvoice = () => {
       barcode: '', 
       name: '', 
       sub: '', 
-      stock: '0', 
-      mrp: '0', 
+      stock: '', 
+      mrp: '', 
       uom: '', 
       hsn: '', 
       tax: '', 
-      rate: 0, 
-      qty: '1',
+      rate: '', 
+      qty: '',
       ovrwt: '',
       avgwt: '',
-      prate: 0,
+      prate: '',
       intax: '',
       outtax: '',
       acost: '',
@@ -176,6 +176,8 @@ const PurchaseInvoice = () => {
 
   // Auth context for company code
   const { userData } = useAuth() || {};
+  // Also get fseudo from context in case userData.fseudo is missing
+  const { fseudo } = useAuth() || {};
 
   const handleNumberInput = (e) => {
   const input = e.target.value;
@@ -311,16 +313,16 @@ const handleBlur = () => {
         barcode: '', 
         name: '', 
         sub: '', 
-        stock: '0', 
-        mrp: '0', 
+        stock: '', 
+        mrp: '', 
         uom: '', 
         hsn: '', 
         tax: '', 
-        rate: 0, 
-        qty: '1',
+        rate: '', 
+        qty: '',
         ovrwt: '',
         avgwt: '',
-        prate: 0,
+        prate: '',
         intax: '',
         outtax: '',
         acost: '',
@@ -830,8 +832,10 @@ const handleBlur = () => {
   // Calculate Totals whenever items change
   useEffect(() => {
     const { net } = calculateTotals(items);
-    setNetTotal(net);
-  }, [items]);
+    const addLessValue = parseFloat(addLessAmount) || 0;
+    const finalTotal = net + addLessValue;
+    setNetTotal(finalTotal);
+  }, [items, addLessAmount]);
 
   // --- HANDLERS ---
 
@@ -847,7 +851,7 @@ const handleBlur = () => {
     return Array.isArray(data) ? data : [];
   };
 
-  // Handle Enter Key Navigation
+  // Handle Enter Key Navigation and Arrow Keys for Header Fields
   const handleKeyDown = (e, nextRef, fieldName = '') => {
     // If we're ignoring Enter (just loaded edit invoice), prevent default
     if (ignoreNextEnterRef.current && e.key === 'Enter') {
@@ -861,6 +865,46 @@ const handleBlur = () => {
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
       }
+      return;
+    }
+    
+    // Handle Right arrow - move to next field
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (nextRef && nextRef.current) {
+        nextRef.current.focus();
+      }
+      return;
+    }
+    
+    // Handle Left arrow - move to previous field
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      // Get all header input refs in order
+      const headerRefs = [
+        { ref: billNoRef, name: 'invNo' },
+        { ref: dateRef, name: 'billDate' },
+        { ref: purNoRef, name: 'purNo' },
+        { ref: invoiceNoRef, name: 'invoiceNo' },
+        { ref: purDateRef, name: 'purDate' },
+        { ref: nameRef, name: 'customerName' },
+        { ref: cityRef, name: 'city' },
+        { ref: mobileRef, name: 'mobileNo' },
+        { ref: gstNoRef, name: 'gstno' },
+        { ref: gstTypeRef, name: 'gstType' }
+      ];
+      
+      // Find current field position
+      const currentIndex = headerRefs.findIndex(h => h.name === fieldName);
+      
+      // Navigate to previous field
+      if (currentIndex > 0) {
+        const prevRef = headerRefs[currentIndex - 1].ref;
+        if (prevRef && prevRef.current) {
+          prevRef.current.focus();
+        }
+      }
+      return;
     }
   };
 
@@ -907,7 +951,7 @@ const handleBlur = () => {
       hsn: '',
       tax: 0,
       rate: 0,
-      qty: 1,
+      qty: '',
       ovrwt: '',
       avgwt: '',
       prate: 0,
@@ -934,7 +978,29 @@ const handleBlur = () => {
     const updatedItems = items.map(item => {
       if (item.id !== id) return item;
       
-      const updatedItem = { ...item, [field]: value };
+
+      let updatedItem = { ...item, [field]: value };
+
+      // Map sudo field to numbers using userData.fseudo or fseudo from context
+      if (field === 'sudo' && value) {
+        // Try userData.fseudo, then fseudo from context
+        const fseudoMap = (userData && userData.fseudo) ? userData.fseudo : (fseudo || {});
+        const letterToNum = {};
+        Object.keys(fseudoMap).forEach((key, idx) => {
+          const letter = fseudoMap[key];
+          if (typeof letter === 'string' && letter.length === 1) {
+            letterToNum[letter.toLowerCase()] = idx;
+          }
+        });
+        const mapped = value
+          .toLowerCase()
+          .split('')
+          .map(ch => (ch in letterToNum ? letterToNum[ch] : ''))
+          .join('');
+        // Always set as string for input display
+        updatedItem.profitPercent = mapped;
+        console.log('SUDO:', value, '→ profitPercent:', mapped, 'fseudoMap:', fseudoMap);
+      }
       
       // Calculate avgwt when ovrwt or qty changes
       if (field === 'ovrwt' || field === 'qty') {
@@ -957,33 +1023,31 @@ const handleBlur = () => {
         
         if (uom === 'PCS') {
           updatedItem.acost = (qty * prate).toFixed(2);
-        } else if (uom === 'KG') {
+        } else if (uom === 'KGS') {
           updatedItem.acost = (avgwt * prate).toFixed(2);
         } else {
           updatedItem.acost = updatedItem.acost || '';
         }
         
         const acost = parseFloat(updatedItem.acost) || 0;
+        const profitPercent = parseFloat(updatedItem.profitPercent) || 0;
         if (acost > 0) {
           updatedItem.ntCost = updatedItem.acost;
-          updatedItem.profitPercent = (acost * 0.05).toFixed(2);
-          updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
+          updatedItem.sRate = (acost + profitPercent).toFixed(2);
         } else {
-          updatedItem.profitPercent = '';
-          updatedItem.asRate = '';
+          updatedItem.sRate = '';
           updatedItem.ntCost = '';
         }
       }
       
       if (field === 'acost') {
         const acost = parseFloat(value) || 0;
+        const profitPercent = parseFloat(updatedItem.profitPercent) || 0;
         if (acost > 0) {
-          updatedItem.profitPercent = (acost * 0.05).toFixed(2);
-          updatedItem.asRate = (acost + parseFloat(updatedItem.profitPercent)).toFixed(2);
           updatedItem.ntCost = acost.toFixed(2);
+          updatedItem.sRate = (acost + profitPercent).toFixed(2);
         } else {
-          updatedItem.profitPercent = '';
-          updatedItem.asRate = '';
+          updatedItem.sRate = '';
           updatedItem.ntCost = '';
         }
       }
@@ -993,38 +1057,75 @@ const handleBlur = () => {
         const profitPercent = parseFloat(value) || 0;
         
         if (acost > 0) {
-          updatedItem.asRate = (acost + profitPercent).toFixed(2);
+          updatedItem.sRate = (acost + profitPercent).toFixed(2);
         } else {
-          updatedItem.asRate = '';
+          updatedItem.sRate = '';
+        }
+      }
+      
+      // Calculate NTCost = ASRate * qty if UOM is PCS
+      if (field === 'asRate' || field === 'qty' || field === 'uom') {
+        const uom = updatedItem.uom?.toUpperCase() || '';
+        const asRate = parseFloat(updatedItem.asRate) || 0;
+        const qty = parseFloat(updatedItem.qty) || 0;
+        
+        if (uom === 'PCS' && asRate > 0 && qty > 0) {
+          updatedItem.ntCost = (asRate * qty).toFixed(2);
+        } else {
+          updatedItem.ntCost = '';
         }
       }
       
       if(field === 'acost'|| field === 'sRate') {
         const acost = parseFloat(updatedItem.acost) || 0;
         const sRate = parseFloat(updatedItem.sRate) || 0;
-        if(acost > 0) {
-          updatedItem.letProfPer = ((acost / sRate) * 100).toFixed(2);
+        if(acost > 0 && sRate > 0) {
+          updatedItem.letProfPer = (((sRate - acost) / acost) * 100).toFixed(2);
+        } else {
+          updatedItem.letProfPer = '';
+        }
+      }
+
+      // Calculate PPer = (ASRate - PRate) * 100 / 100
+      if(field === 'asRate' || field === 'prate') {
+        const asRate = parseFloat(updatedItem.asRate) || 0;
+        const prate = parseFloat(updatedItem.prate) || 0;
+        if(asRate > 0 && prate > 0) {
+          updatedItem.letProfPer = ((asRate - prate) * 100 / 100).toFixed(2);
         } else {
           updatedItem.letProfPer = '';
         }
       }
       
-      if(field === 'wsPercent' || field === 'ntCost') {
+      if(field === 'wsPercent' || field === 'acost') {
         const wsPercent = parseFloat(updatedItem.wsPercent) || 0;
-        const ntCost = parseFloat(updatedItem.ntCost) || 0;
-        if(ntCost > 0) {
-          updatedItem.wsRate = ((ntCost * wsPercent) / 100).toFixed(2);
+        const acost = parseFloat(updatedItem.acost) || 0;
+        if(acost > 0) {
+          // WRate = ACost + (WS% rate of ACost)
+          // WRate = ACost + (ACost * WS% / 100)
+          updatedItem.wsRate = (acost + (acost * wsPercent / 100)).toFixed(2);
         } else {
           updatedItem.wsRate = '';
         }
       }
       
-      if(field === 'qty' || field === 'prate' || field === 'intax') {
+      if(field === 'qty' || field === 'prate' || field === 'intax' || field === 'ovrwt' || field === 'uom') {
+        const uom = updatedItem.uom?.toUpperCase() || '';
         const qty = parseFloat(updatedItem.qty) || 0;
         const prate = parseFloat(updatedItem.prate) || 0;
         const intax = parseFloat(updatedItem.intax) || 0;
-        if(qty > 0 && prate > 0) {
-          updatedItem.amt = ((qty * prate) + intax).toFixed(2);
+        const ovrwt = parseFloat(updatedItem.ovrwt) || 0;
+        
+        let baseAmount = 0;
+        
+        if (uom === 'PCS') {
+          baseAmount = qty * prate;
+        } else if (uom === 'KGS') {
+          baseAmount = ovrwt * prate;
+        }
+        
+        if (baseAmount > 0) {
+          updatedItem.amt = (baseAmount + (baseAmount * intax / 100)).toFixed(2);
         } else {
           updatedItem.amt = '';
         }
@@ -1095,25 +1196,117 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     return;
   }
 
+  // Fields in the visual order
+  const fields = [
+    'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
+    'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
+    'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
+  ];
+
+  const currentFieldIndex = fields.indexOf(currentField);
+
+  // Handle Right arrow - move to next field in the same row
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+      let nextField = fields[currentFieldIndex + 1];
+      
+      // If UOM is PCS and trying to move to ovrwt/avgwt, skip to prate
+      const currentRow = items[currentRowIndex];
+      if (currentRow.uom?.toUpperCase() === 'PCS' && (nextField === 'ovrwt' || nextField === 'avgwt')) {
+        nextField = 'prate';
+      }
+      
+      const nextInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
+         select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+      );
+      if (nextInput) {
+        nextInput.focus();
+      }
+    }
+    return;
+  }
+
+  // Handle Left arrow - move to previous field in the same row
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    if (currentFieldIndex > 0) {
+      const prevField = fields[currentFieldIndex - 1];
+      const prevInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${prevField}"], 
+         select[data-row="${currentRowIndex}"][data-field="${prevField}"]`
+      );
+      if (prevInput) {
+        prevInput.focus();
+      }
+    }
+    return;
+  }
+
+  // Handle Up arrow - move to the same field in the row above
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (currentRowIndex > 0) {
+      const prevRowInput = document.querySelector(
+        `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"], 
+         select[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
+      );
+      if (prevRowInput) {
+        prevRowInput.focus();
+      }
+    }
+    return;
+  }
+
+  // Handle Down arrow - move to the same field in the row below
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (currentRowIndex < items.length - 1) {
+      const nextRowInput = document.querySelector(
+        `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"], 
+         select[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
+      );
+      if (nextRowInput) {
+        nextRowInput.focus();
+      }
+    }
+    return;
+  }
+
   if (e.key === 'Enter') {
     e.preventDefault();
     e.stopPropagation(); // Prevent form submission or other Enter handlers
 
-    // Fields in the visual order
-    const fields = [
-      'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
-      'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
-      'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
-    ];
+    const currentRow = items[currentRowIndex];
+    
+    // If UOM is PCS and current field is ovrwt or avgwt, skip to prate
+    if (currentRow.uom?.toUpperCase() === 'PCS' && (currentField === 'ovrwt' || currentField === 'avgwt')) {
+      const prateInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="prate"]`
+      );
+      if (prateInput) {
+        prateInput.focus();
+      }
+      return;
+    }
 
-    const currentFieldIndex = fields.indexOf(currentField);
+    const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
+
+    // If Enter is pressed in qty field, move to add/less
+    if (currentField === 'qty') {
+      e.preventDefault();
+      setTimeout(() => {
+        if (addLessRef.current) {
+          addLessRef.current.focus();
+          addLessRef.current.select();
+        }
+      }, 50);
+      return;
+    }
 
     // If Enter is pressed in the amt field (last field)
     if (currentField === 'amt') {
-      // Check if particulars (name) field is empty
-      const currentRow = items[currentRowIndex];
-      const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
-
       if (isParticularsEmpty) {
         // Instead of showing confirmation, move focus to add/less field
         e.preventDefault();        
@@ -1164,7 +1357,13 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
 
     // Always move to next field if available (for non-amt fields)
     if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
+      let nextField = fields[currentFieldIndex + 1];
+      
+      // If UOM is PCS and current field would move to ovrwt/avgwt, skip to prate
+      if (currentRow.uom?.toUpperCase() === 'PCS' && (nextField === 'ovrwt' || nextField === 'avgwt')) {
+        nextField = 'prate';
+      }
+      
       const nextInput = document.querySelector(
         `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
          select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
@@ -1369,7 +1568,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const handleDeleteRow = (id) => {
     if (items.length <= 1) {
       showAlertConfirmation("Cannot delete the last row", null, 'warning');
-     
+      toast.warning("Cannot delete the last row");
       return;
 
     }
@@ -1855,7 +2054,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         }}>
           {/* Inv No */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Inv No:</label>
+            <label style={styles.inlineLabel}>Ref No:</label>
             <input 
               type="text"
               style={{
@@ -1887,14 +2086,14 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               value={billDetails.billDate}
               name="billDate"
               onChange={handleInputChange}              
-              onKeyDown={(e) => handleKeyDown(e, amountRef, 'billDate')}
+              onKeyDown={(e) => handleKeyDown(e, purNoRef, 'billDate')}
               onFocus={() => setFocusedField('billDate')}
               onBlur={() => setFocusedField('')}
             />
           </div>
 
           {/* Amount */}
-          <div style={styles.formField}>
+          {/* <div style={styles.formField}>
             <label style={styles.inlineLabel}>Amount:</label>
             <input
               type="text"
@@ -1910,11 +2109,11 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('amount')}
               onBlur={() => setFocusedField('')}
             />
-          </div>
+          </div> */}
 
           {/* Pur No */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Pur No:</label>
+            <label style={styles.inlineLabel}>Bill No:</label>
             <input
               type="text"
               name="purNo"
@@ -1964,7 +2163,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               value={billDetails.purDate}
               onChange={handleInputChange}
               ref={purDateRef}
-              onKeyDown={(e) => handleKeyDown(e, customerRef, 'purDate')}
+              onKeyDown={(e) => handleKeyDown(e, nameRef, 'purDate')}
               onFocus={() => setFocusedField('purDate')}
               onBlur={() => setFocusedField('')}
             />
@@ -1977,7 +2176,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           gridTemplateColumns: getGridColumns(),
         }}>
           {/* Party Code */}
-          <div style={styles.formField}>
+          {/* <div style={styles.formField}>
             <label style={styles.inlineLabel}>Party Code:</label>
             <input
               type="text"
@@ -1993,7 +2192,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('partyCode')}
               onBlur={() => setFocusedField('')}
             />
-          </div>
+          </div> */}
 
           {/* Customer Name */}
           <div style={styles.formField}>
@@ -2025,7 +2224,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     setItemSearchTerm(billDetails.customerName);
                     setShowSupplierPopup(true);
                   } else if (e.key === 'Enter') {
-                    handleKeyDown(e, cityRef, 'customerName');
+                    handleKeyDown(e, gstTypeRef, 'customerName');
                   }
                 }}
                 onFocus={() => setFocusedField('customerName')}
@@ -2088,28 +2287,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           </div>
 
           {/* GST Type */}
-           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>GST Type:</label>
-            <select
-              name="gstType"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'gstType' && styles.focusedInput)
-              }}
-              value={billDetails.gstType}
-              onChange={handleInputChange}
-              ref={gstTypeRef}
-              onKeyDown={(e) => handleKeyDown(e, transtypeRef, 'gstType')}
-              onFocus={() => setFocusedField('gstType')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="G">CGST/SGST</option>
-              <option value="I">IGST</option>
-            </select>
-          </div>
-
+           
           {/* Trans Type */}
-          <div style={styles.formField}>
+          {/* <div style={styles.formField}>
             <label style={styles.inlineLabel}>Trans Type:</label>
             <select
               name="transType"
@@ -2129,10 +2309,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               <option value="Cash">Cash</option>
               <option value="Credit">Credit</option>
             </select>
-          </div>
+          </div> */}
 
           {/* Invoice Amt */}
-          <div style={styles.formField}>
+          {/* <div style={styles.formField}>
             <label style={styles.inlineLabel}>Invoice Amt:</label>
             <input
               type="text"
@@ -2148,15 +2328,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('invoiceAmount')}
               onBlur={() => setFocusedField('')}
             />
-          </div>
-        </div>
-
-        {/* ROW 3 */}
-        <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
-          marginBottom: '0',
-        }}>
+          </div> */}
+        
           {/* Mobile No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Mobile No:</label>
@@ -2216,6 +2389,39 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onBlur={() => setFocusedField('')}
             />
           </div>
+
+
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>GST Type:</label>
+            <select
+              name="gstType"
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'gstType' && styles.focusedInput)
+              }}
+              value={billDetails.gstType}
+              onChange={handleInputChange}
+              ref={gstTypeRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  // Navigate to first row's name field in the table
+                  const firstRowNameInput = document.querySelector(
+                    `input[data-row="0"][data-field="name"]`
+                  );
+                  if (firstRowNameInput) {
+                    firstRowNameInput.focus();
+                  }
+                }
+              }}
+              onFocus={() => setFocusedField('gstType')}
+              onBlur={() => setFocusedField('')}
+            >
+              <option value="G">CGST/SGST</option>
+              <option value="I">IGST</option>
+            </select>
+          </div>
+
         </div>
       </div>
 
@@ -2315,17 +2521,17 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                         //   }
                         // }}
                          onKeyDown={(e) => {
-                        // Handle Enter key to move to UOM field
+                        // Handle Enter key to move to QTY field
                         if (e.key === 'Enter') {
                           e.preventDefault();
                           e.stopPropagation();
                           
-                          // Find and focus on the UOM field
-                          const uomDiv = document.querySelector(
-                            `div[data-row="${index}"][data-field="uom"]`
+                          // Find and focus on the QTY field
+                          const qtyInput = document.querySelector(
+                            `input[data-row="${index}"][data-field="qty"]`
                           );
-                          if (uomDiv) {
-                            uomDiv.focus();
+                          if (qtyInput) {
+                            qtyInput.focus();
                           }
                           return;
                         }
@@ -2373,56 +2579,11 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     <div style={styles.uomContainer}>
                       <div 
                         style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
-                        onClick={() => {
-                          const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
-                          const currentUom = item.uom || '';
-                          let nextUom = 'pcs';
-                          
-                          if (currentUom && currentUom.trim() !== '') {
-                            const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
-                            if (currentIndex !== -1) {
-                              const nextIndex = (currentIndex + 1) % uomValues.length;
-                              nextUom = uomValues[nextIndex];
-                            } else {
-                              nextUom = 'pcs';
-                            }
-                          } else {
-                            nextUom = 'pcs';
-                          }
-                          
-                          setItems(items.map(i => {
-                            if (i.id === item.id) {
-                              return {
-                                ...i,
-                                uom: nextUom
-                              };
-                            }
-                            return i;
-                          }));
-                          
-                          setFocusedUomField(item.id);
-                          setTimeout(() => {
-                            setFocusedUomField(null);
-                          }, 300);
-                        }}
-                        onKeyDown={(e) => handleUomSpacebar(e, item.id, index)}
-                        tabIndex={0}
-                        onFocus={() => {
-                          setFocusedField(`uom-${item.id}`);
-                          setFocusedUomField(item.id);
-                        }}
-                        onBlur={() => {
-                          setFocusedField('');
-                          setFocusedUomField(null);
-                        }}
-                        title="Press Space or Click to toggle units, Enter to move to Stock"
+                        title="UOM is read-only"
                         data-row={index}
                         data-field="uom"
                       >
                         {item.uom || ''}
-                      </div>
-                      <div style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomHintVisible : styles.uomHint}>
-                        Press Space or Click to toggle
                       </div>
                     </div>
                   </td>
@@ -2468,6 +2629,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.ovrwt || ''}
                       data-row={index}
                       data-field="ovrwt"
+                      disabled={item.uom?.toUpperCase() === 'PCS'}
                       onChange={(e) => handleItemChange(item.id, 'ovrwt', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'ovrwt')}
                       onFocus={() => setFocusedField(`ovrwt-${item.id}`)}
@@ -2480,6 +2642,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.avgwt || ''}
                       data-row={index}
                       data-field="avgwt"
+                      disabled={item.uom?.toUpperCase() === 'PCS'}
                       onChange={(e) => handleItemChange(item.id, 'avgwt', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'avgwt')}
                       onFocus={() => setFocusedField(`avgwt-${item.id}`)}
@@ -2767,7 +2930,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         searchFields={['name','city','gstType']}
         columnWidths={{ name: '40%', city: '20%', gstType: '20%' }}
         searchPlaceholder="Search supplier..."
-        initialSearchText={itemSearchTerm}
+        initialSearch={itemSearchTerm}
         onSelect={(s) => {
           setBillDetails(prev => ({
             ...prev,
@@ -2777,6 +2940,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             gstType: s.gstType || '',
             gstType: s.gstType || prev.gstType || 'CGST',
             mobileNo: s.phone || prev.mobileNo || '',
+            gstno: s.gstNumber || prev.gstNumber || ''
           }));
         }}
       />     
@@ -2795,7 +2959,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         searchFields={['barcode','name']}
         columnWidths={{ barcode: '50%', name: '50%' }}
         searchPlaceholder="Search by barcode or name..."
-        initialSearchText={itemSearchTerm}
+        initialSearch={itemSearchTerm}
         onSelect={handleItemCodeSelection}
       />
 
