@@ -383,17 +383,17 @@ const Company = () => {
         cpcode: company.cpCode || "",
         backupdbi: company.backupDBI || "",
         desc1: company.desc1 || "",
-        // Split pseudo code into individual fields
-        pseudo1: pseudoCode.length > 0 ? pseudoCode[0] : "",
-        pseudo2: pseudoCode.length > 1 ? pseudoCode[1] : "",
-        pseudo3: pseudoCode.length > 2 ? pseudoCode[2] : "",
-        pseudo4: pseudoCode.length > 3 ? pseudoCode[3] : "",
-        pseudo5: pseudoCode.length > 4 ? pseudoCode[4] : "",
-        pseudo6: pseudoCode.length > 5 ? pseudoCode[5] : "",
-        pseudo7: pseudoCode.length > 6 ? pseudoCode[6] : "",
-        pseudo8: pseudoCode.length > 7 ? pseudoCode[7] : "",
-        pseudo9: pseudoCode.length > 8 ? pseudoCode[8] : "",
-        pseudo10: pseudoCode.length > 9 ? pseudoCode[9] : ""
+        // Split pseudo code into individual fields - try API fields first (fseudo1-fseudo10), then split pseudoCode
+        pseudo1: company.fseudo1 || (pseudoCode.length > 0 ? pseudoCode[0] : ""),
+        pseudo2: company.fseudo2 || (pseudoCode.length > 1 ? pseudoCode[1] : ""),
+        pseudo3: company.fseudo3 || (pseudoCode.length > 2 ? pseudoCode[2] : ""),
+        pseudo4: company.fseudo4 || (pseudoCode.length > 3 ? pseudoCode[3] : ""),
+        pseudo5: company.fseudo5 || (pseudoCode.length > 4 ? pseudoCode[4] : ""),
+        pseudo6: company.fseudo6 || (pseudoCode.length > 5 ? pseudoCode[5] : ""),
+        pseudo7: company.fseudo7 || (pseudoCode.length > 6 ? pseudoCode[6] : ""),
+        pseudo8: company.fseudo8 || (pseudoCode.length > 7 ? pseudoCode[7] : ""),
+        pseudo9: company.fseudo9 || (pseudoCode.length > 8 ? pseudoCode[8] : ""),
+        pseudo10: company.fseudo10 || (pseudoCode.length > 9 ? pseudoCode[9] : "")
       });
 
       setCompanyColor(company.companyPrintColor || company.companyprintcolor || "#ff0000");
@@ -831,6 +831,17 @@ const Company = () => {
         printAddressColor: addresscolor || "#00ff00",
         // Add pseudo code to payload
         pseudoCode: pseudoCode,
+        // Add individual pseudo fields
+        fseudo1: formData.pseudo1 || "",
+        fseudo2: formData.pseudo2 || "",
+        fseudo3: formData.pseudo3 || "",
+        fseudo4: formData.pseudo4 || "",
+        fseudo5: formData.pseudo5 || "",
+        fseudo6: formData.pseudo6 || "",
+        fseudo7: formData.pseudo7 || "",
+        fseudo8: formData.pseudo8 || "",
+        fseudo9: formData.pseudo9 || "",
+        fseudo10: formData.pseudo10 || "",
         c: ""
       };
 
@@ -945,6 +956,17 @@ const Company = () => {
         printAddressColor: addresscolor || "#00ff00",
         // Add pseudo code to payload
         pseudoCode: pseudoCode,
+        // Add individual pseudo fields
+        fseudo1: formData.pseudo1 || "",
+        fseudo2: formData.pseudo2 || "",
+        fseudo3: formData.pseudo3 || "",
+        fseudo4: formData.pseudo4 || "",
+        fseudo5: formData.pseudo5 || "",
+        fseudo6: formData.pseudo6 || "",
+        fseudo7: formData.pseudo7 || "",
+        fseudo8: formData.pseudo8 || "",
+        fseudo9: formData.pseudo9 || "",
+        fseudo10: formData.pseudo10 || "",
         c: ""
       };
 
