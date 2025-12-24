@@ -1819,8 +1819,12 @@ const PaymentVoucher = () => {
                 onClick={openAccountPopup}
                 onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName', 'gstType')}
                 onKeyUp={(e) => handleBackspace(e, 'accountName')}
-                style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-                placeholder="Search A/C Name"
+                style={{
+    ...(focusedField === 'accountName'
+      ? styles.inlineInputClickableFocused
+      : styles.inlineInputClickable),
+    width: '420px'   // 👈 increase width here
+  }}placeholder="Search A/C Name"
               />
             </div>
 
