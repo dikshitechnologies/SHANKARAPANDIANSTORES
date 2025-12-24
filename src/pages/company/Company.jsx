@@ -646,9 +646,10 @@ const Company = () => {
     // ... rest of your success logic ...
     showConfirmation({
       title: "Create Company",
-      message: `Are you sure you want to create company "${formData.fcompname}"?`,
+      message: `Do you want to save?`,
       type: "success",
-      confirmText: "Create",
+      confirmText: "Yes",
+      cancelText: "No",
       onConfirm: () => {
         setShowConfirmPopup(false);
         saveData();
@@ -705,9 +706,10 @@ const Company = () => {
     
     showConfirmation({
       title: "Update Company",
-      message: `Are you sure you want to update company "${formData.fcompname}"?`,
+      message: `Do you want to modify?`,
       type: "info",
-      confirmText: "Update",
+      confirmText: "Yes",
+      cancelText: "No",
       onConfirm: () => {
         setShowConfirmPopup(false);
         updateData();
@@ -758,9 +760,10 @@ const Company = () => {
     
     showConfirmation({
       title: "Delete Company",
-      message: `Are you sure you want to delete company "${formData.fcompname}" (${formData.fcompcode})? This action cannot be undone.`,
+      message: `Do you want to delete?`,
       type: "danger",
-      confirmText: "Delete",
+      confirmText: "Yes",
+      cancelText: "No",
       onConfirm: () => {
         setShowConfirmPopup(false);
         deleteData();
@@ -863,7 +866,7 @@ const Company = () => {
         hideCancelButton: true,
         onConfirm: () => {
           setShowConfirmPopup(false);
-          toast.success(`Company "${formData.fcompname}" created successfully.`);
+          // toast.success(`Company "${formData.fcompname}" created successfully.`);
           fetchCompanyList();
           clearForm();
         },
@@ -988,7 +991,7 @@ const Company = () => {
         hideCancelButton: true,
         onConfirm: () => {
           setShowConfirmPopup(false);
-          toast.success(`Company "${formData.fcompname}" updated successfully.`);
+          // toast.success(`Company "${formData.fcompname}" updated successfully.`);
           fetchCompanyList();
           clearForm();
         },
@@ -1038,7 +1041,7 @@ const Company = () => {
         hideCancelButton: true,
         onConfirm: () => {
           setShowConfirmPopup(false);
-          toast.error(`Company "${formData.fcompname}" deleted successfully.`);
+          // toast.error(`Company "${formData.fcompname}" deleted successfully.`);
           fetchCompanyList();
           clearForm();
         },

@@ -79,6 +79,8 @@ const PurchaseReturn = () => {
   // Supplier Popup State
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
   const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState('');
+  const [billListSearchTerm, setBillListSearchTerm] = useState('');
   
   // Item Code Popup State (for selecting particulars/items)
   const [showItemCodePopup, setShowItemCodePopup] = useState(false);
@@ -3033,6 +3035,7 @@ const handleAddLessKeyDown = (e) => {
         onClose={() => {
           setShowBillListPopup(false);
           setPopupMode('');
+          setBillListSearchTerm('');
         }}
         title={popupMode === 'edit' ? 'Select Purchase Return to Edit' : 'Select Purchase Return to Delete'}
         fetchItems={fetchBillList}
@@ -3041,6 +3044,7 @@ const handleAddLessKeyDown = (e) => {
         searchFields={['voucherNo']}
         columnWidths={{ voucherNo: '100%' }}
         searchPlaceholder="Search by bill no..."
+        initialSearch={billListSearchTerm}
         onSelect={handleBillSelect}
       />
 
@@ -3197,7 +3201,7 @@ const handleAddLessKeyDown = (e) => {
         searchFields={['barcode','name']}
         columnWidths={{ barcode: '50%', name: '50%' }}
         searchPlaceholder="Search by barcode or name..."
-        initialSearchText={itemSearchTerm}
+        initialSearch={itemSearchTerm}
         onSelect={handleItemCodeSelection}
       />
 
@@ -3206,7 +3210,8 @@ const handleAddLessKeyDown = (e) => {
         open={showSupplierPopup}
         onClose={() => { 
           setShowSupplierPopup(false); 
-          setItemSearchTerm(''); 
+          setItemSearchTerm('');
+          setSupplierSearchTerm('');
         }}
         title="Select Supplier"
         fetchItems={fetchSupplierItems}
@@ -3215,7 +3220,7 @@ const handleAddLessKeyDown = (e) => {
         searchFields={['code','name','city','phone']}
         columnWidths={{ code: '20%', name: '40%', city: '20%', phone: '20%' }}
         searchPlaceholder="Search supplier..."
-        initialSearchText={itemSearchTerm}
+        initialSearch={itemSearchTerm || supplierSearchTerm}
         onSelect={(s) => {
           setReturnDetails(prev => ({
             ...prev,

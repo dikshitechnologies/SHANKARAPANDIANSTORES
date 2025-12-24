@@ -109,6 +109,12 @@ const PaymentVoucher = () => {
   // Party popup search state
   const [partySearchTerm, setPartySearchTerm] = useState('');
 
+  // CashBank popup search state
+  const [cashBankSearchTerm, setCashBankSearchTerm] = useState('');
+
+  // Voucher popup search state
+  const [voucherSearchTerm, setVoucherSearchTerm] = useState('');
+
   // 6. Data state
   const [savedVouchers, setSavedVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
@@ -1057,6 +1063,10 @@ const PaymentVoucher = () => {
       console.log(`🟠 After update, item ${id}:`, updated.find(i => i.id === id));
       return updated;
     });
+    // Track cashBank search term for popup pre-fill
+    if (field === 'cashBank') {
+      setCashBankSearchTerm(value);
+    }
   };
 
   // Handle bill item change
@@ -1819,8 +1829,12 @@ const PaymentVoucher = () => {
                 onClick={openAccountPopup}
                 onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName', 'gstType')}
                 onKeyUp={(e) => handleBackspace(e, 'accountName')}
-                style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-                placeholder="Search A/C Name"
+                style={{
+    ...(focusedField === 'accountName'
+      ? styles.inlineInputClickableFocused
+      : styles.inlineInputClickable),
+    width: '420px'   // 👈 increase width here
+  }}placeholder="Search A/C Name"
               />
             </div>
 
@@ -2294,8 +2308,10 @@ const PaymentVoucher = () => {
           onClose={() => {
             setShowCashBankPopup(false);
             setCashBankPopupContext(null);
+            setCashBankSearchTerm('');
           }}
           onSelect={handleCashBankSelect}
+          initialSearch={cashBankSearchTerm}
         />
       )}
 
@@ -2303,8 +2319,12 @@ const PaymentVoucher = () => {
         <PopupListSelector
           {...getPopupConfig('editVoucher')}
           open={editVoucherPopupOpen}
-          onClose={() => setEditVoucherPopupOpen(false)}
+          onClose={() => {
+            setEditVoucherPopupOpen(false);
+            setVoucherSearchTerm('');
+          }}
           onSelect={handleVoucherSelect}
+          initialSearch={voucherSearchTerm}
         />
       )}
 
@@ -2312,8 +2332,12 @@ const PaymentVoucher = () => {
         <PopupListSelector
           {...getPopupConfig('deleteVoucher')}
           open={deleteVoucherPopupOpen}
-          onClose={() => setDeleteVoucherPopupOpen(false)}
+          onClose={() => {
+            setDeleteVoucherPopupOpen(false);
+            setVoucherSearchTerm('');
+          }}
           onSelect={handleVoucherDelete}
+          initialSearch={voucherSearchTerm}
         />
       )}
 

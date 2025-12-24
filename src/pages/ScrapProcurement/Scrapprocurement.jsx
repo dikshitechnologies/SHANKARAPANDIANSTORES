@@ -517,6 +517,26 @@ const Scrapprocurement = () => {
               fieldIndex: currentFieldIndex + 1 
             });
           }
+        }else if (currentRowIndex < items.length - 1) {
+          // Move to next row, first field
+          const nextRowIndex = currentRowIndex + 1;
+          const firstField = tableFields[0];
+          let nextRowInput;
+          
+          if (firstField === 'uom') {
+            nextRowInput = document.querySelector(`div[data-row="${nextRowIndex}"][data-field="uom"]`);
+          } else {
+            nextRowInput = document.querySelector(`input[data-row="${nextRowIndex}"][data-field="${firstField}"]`);
+          }
+          
+          if (nextRowInput) {
+            nextRowInput.focus();
+            setCurrentFocus({ 
+              section: 'table', 
+              rowIndex: nextRowIndex, 
+              fieldIndex: 0 
+            });
+          }
         }
         break;
       
@@ -1281,7 +1301,7 @@ const Scrapprocurement = () => {
     }
 
     // Handle / key for item search popup
-    if (e.key === '/') {
+    if (currentField === 'itemName' && e.key === '/') {
       e.preventDefault();
       setSelectedRowForItem(currentRowIndex);
       setItemSearchTerm('');
@@ -1317,34 +1337,7 @@ const Scrapprocurement = () => {
         // Check if itemName is empty in the current row
         if (isItemNameEmpty) {
           handleSave();
-          clearFormData();
-          // Show confirmation popup asking to save
-          // showConfirmation({
-          //   title: 'Item Name Missing',
-          //   message: 'Item Name cannot be empty.',
-          //   type: 'warning',
-          //   confirmText: 'Save Anyway',
-          //   cancelText: 'Cancel',
-          //   onConfirm: () => {
-          //     // User chose to save anyway
-          //     setShowConfirmPopup(false);
-          //     // Trigger the actual save function
-          //     handleSave();
-          //     clearFormData();  
-          //   },
-          //   onCancel: () => {
-          //     setShowConfirmPopup(false);
-          //     // Focus back to itemName field so user can fix it
-          //     setTimeout(() => {
-          //       const itemNameInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="itemName"]`);
-          //       if (itemNameInput) {
-          //         itemNameInput.focus();
-          //         const fieldIndex = tableFields.indexOf('itemName');
-          //         setCurrentFocus({ section: 'table', rowIndex: currentRowIndex, fieldIndex });
-          //       }
-          //     }, 100);
-          //   }
-          // });
+          // Do NOT clearFormData() here! Only clear after successful save or explicit confirmation.
           return;
         }
       }
@@ -1368,17 +1361,26 @@ const Scrapprocurement = () => {
       }
 
       // If Enter is pressed in the qty field and itemName is not empty
-      if (currentField === 'qty' && !isItemNameEmpty) {
-        // Only add new row if itemName is not empty
-        handleAddRow();
-        setTimeout(() => {
-          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
-          if (newRowInput) {
-            newRowInput.focus();
-            setCurrentFocus({ section: 'table', rowIndex: items.length, fieldIndex: 0 });
+        if (currentField === 'qty' && !isItemNameEmpty) {
+          // If there is a next row, move to its first field
+          if (currentRowIndex < items.length - 1) {
+            const nextRowInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="scrapProductName"]`);
+            if (nextRowInput) {
+              nextRowInput.focus();
+              setCurrentFocus({ section: 'table', rowIndex: currentRowIndex + 1, fieldIndex: 0 });
+              return;
+            }
           }
-        }, 60);
-      }
+          // Otherwise, add a new row
+          handleAddRow();
+          setTimeout(() => {
+            const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
+            if (newRowInput) {
+              newRowInput.focus();
+              setCurrentFocus({ section: 'table', rowIndex: items.length, fieldIndex: 0 });
+            }
+          }, 60);
+        }
       
       return;
     }
@@ -1556,11 +1558,9 @@ const Scrapprocurement = () => {
         API_ENDPOINTS.Scrap_Procurement.SAVE_SCRAP_PROCUREMENT(isCreate),
         payload
       );
-
+      clearFormData(); // Clear form data only after successful save
       if (response.status === 200 || response.status === 201) {
         const mode = isCreate ? 'created' : 'updated';
-        clearFormData();
-        // toast.success(`Scrap Procurement data ${mode} successfully! Voucher No: ${billDetails.billNo}`);
         
         ignoreNextEnterRef.current = false;
         
@@ -1574,7 +1574,7 @@ const Scrapprocurement = () => {
             setShowConfirmPopup(false);
             setOriginalBillDetails(null);
             setOriginalItems(null);
-            clearFormData();
+            clearFormData(); // Clear ONLY on successful save
             setIsEditMode(false);
           }
         });
@@ -1587,7 +1587,6 @@ const Scrapprocurement = () => {
           showIcon: true,
           onConfirm: () => setShowConfirmPopup(false)
         });
-        // toast.error('Failed to save data. Please try again.');
       }
     } catch (error) {
       console.error('Error saving scrap procurement:', error);
@@ -1599,7 +1598,6 @@ const Scrapprocurement = () => {
         showIcon: true,
         onConfirm: () => setShowConfirmPopup(false)
       });
-      // toast.error(`Error saving data: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -1609,6 +1607,7 @@ const Scrapprocurement = () => {
         return;
       }
       
+      // Check required fields
       if (!billDetails.salesman || !billDetails.custName) {
         showConfirmation({
           title: 'Missing Information',
@@ -1618,7 +1617,7 @@ const Scrapprocurement = () => {
           showIcon: true,
           onConfirm: () => setShowConfirmPopup(false)
         });
-        return;
+        return; // Just return, don't clear anything
       }
       
       const validItems = items.filter(item => 
@@ -1635,9 +1634,10 @@ const Scrapprocurement = () => {
           showIcon: true,
           onConfirm: () => setShowConfirmPopup(false)
         });
-        return;
+        return; // Just return, don't clear anything
       }
       
+      // All validations passed, now show save confirmation
       showConfirmation({
         title: 'Save Confirmation',
         message: `Do you want to ${isEditMode ? 'modify' : 'save'}?`,
@@ -2213,7 +2213,7 @@ const Scrapprocurement = () => {
             />
           </div>
 
-                    {/* Customer Name */}
+          {/* Customer Name */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Customer:</label>
             <div style={{ position: 'relative', flex: 1.4 }}>
@@ -2329,6 +2329,7 @@ const Scrapprocurement = () => {
                 setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 3 });
               }}
               onBlur={() => setFocusedField('')}
+              readOnly={true}
             />
           </div>
 
@@ -2425,101 +2426,6 @@ const Scrapprocurement = () => {
               </button>
             </div>
           </div>
-
-
-
-          {/* Scrap Product Input */}
-          {/* <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Scrap Product:</label>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                type="text"
-                style={{
-                  ...styles.inlineInput,
-                  flex: 1,
-                  ...(focusedField === 'scrapProductInput' && styles.focusedInput)
-                }}
-                value={billDetails.scrapProductInput}
-                name="scrapProductInput"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  handleInputChange(e);
-                  setScrapSearchTerm(value);
-                  
-                  if (value.length > 0) {
-                    setClosedByUser(false);
-                    setActiveSearchField('scrap');
-                    setShowSalesmanPopup(false);
-                    setShowCustomerPopup(false);
-                    setTimeout(() => setShowScrapPopup(true), 300);
-                  }
-                }}
-                ref={scrapProductRef}
-                onKeyDown={(e) => {
-                  if (e.key === '/' || e.key === 'F2') {
-                    e.preventDefault();
-                    setScrapSearchTerm(billDetails.scrapProductInput);
-                    setShowScrapPopup(true);
-                  } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    // Move focus to the first field in the table
-                    const firstTableInput = document.querySelector('input[data-row="0"][data-field="scrapProductName"]');
-                    if (firstTableInput) {
-                      firstTableInput.focus();
-                      setCurrentFocus({ section: 'table', rowIndex: 0, fieldIndex: 0 });
-                    }
-                  } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    handleHeaderArrowNavigation(e, 'scrapProductInput');
-                  }
-                }}
-                onFocus={() => {
-                  setFocusedField('scrapProductInput');
-                  setActiveSearchField('scrap');
-                  setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 5 });
-                  
-                  if (billDetails.scrapProductInput.length > 0 && !showScrapPopup && !closedByUser) {
-                    setScrapSearchTerm(billDetails.scrapProductInput);
-                    setShowSalesmanPopup(false);
-                    setShowCustomerPopup(false);
-                    setTimeout(() => setShowScrapPopup(true), 100);
-                  }
-                }}
-                onBlur={() => setFocusedField('')}
-              />
-              <button
-                type="button"
-                aria-label="Search scrap product"
-                title="Search scrap product"
-                onClick={() => {
-                  setScrapSearchTerm(billDetails.scrapProductInput);
-                  setActiveSearchField('scrap');
-                  setShowScrapPopup(true);
-                }}
-                style={{
-                  position: 'absolute',
-                  right: '4px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  height: screenSize.isMobile ? '24px' : '28px',
-                  width: screenSize.isMobile ? '24px' : '28px',
-                  border: 'none',
-                  background: 'transparent',
-                  color: '#1B91DA',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  fontSize: screenSize.isMobile ? '14px' : '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  zIndex: 1,
-                }}
-              >
-                <Icon.Search size={16} />
-              </button>
-            </div>
-          </div> */}
         </div>
       </div>
 
@@ -2688,14 +2594,55 @@ const Scrapprocurement = () => {
                       value={item.tax}
                       data-row={index}
                       data-field="tax"
-                      onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'tax')}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow only numbers and empty input
+                        if (value === '' || /^[0-9]*$/.test(value)) {
+                          // Validate as user types
+                          if (value.length <= 2) { // Tax values are max 2 digits
+                            handleItemChange(item.id, 'tax', value);                            
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        handleTableKeyDown(e, index, 'tax');
+                        
+                        // Clear on Escape key
+                        if (e.key === 'Escape') {
+                          handleItemChange(item.id, 'tax', '');
+                        }
+                      }}
                       onFocus={() => {
                         setFocusedField(`tax-${item.id}`);
                         setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
                       }}
-                      onBlur={() => setFocusedField('')}
-                      step="0.01"
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        const validTaxValues = ['3', '5', '12', '18', '40'];
+                        
+                        // Validate on blur
+                        if (value !== '' && !validTaxValues.includes(value)) {
+                          showConfirmation({
+                            title: 'Invalid Tax Rate',
+                            message: 'Not a valid tax rate. Please use one of: 3%, 5%, 12%, 18%, or 40%',
+                            type: 'info',
+                            confirmText: 'OK',
+                            cancelText: '',
+                            showCancelButton: false,
+                            onConfirm: () => {
+                              setShowConfirmPopup(false);
+                              setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
+                              setTimeout(() => {
+                                const taxInput = document.querySelector(`input[data-row="${index}"][data-field="tax"]`);
+                                if (taxInput) taxInput.focus();
+                              }, 100);
+                            }
+                          });
+                        }                        
+                        setFocusedField('');
+                      }}
+                      // placeholder="3, 5, 12, 18, 40"
+                      maxLength="2"
                     />
                   </td>
                   <td style={styles.td}>
@@ -2704,7 +2651,15 @@ const Scrapprocurement = () => {
                       value={item.sRate}
                       data-row={index}
                       data-field="sRate"
-                      onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
+                      // onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow only numbers and empty input
+                        if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value))  {
+                          // Validate as user types
+                          handleItemChange(item.id, 'sRate', value);
+                        }
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
                       onFocus={() => {
                         setFocusedField(`sRate-${item.id}`);
@@ -2720,7 +2675,15 @@ const Scrapprocurement = () => {
                       value={item.qty}
                       data-row={index}
                       data-field="qty"
-                      onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
+                      // onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow only numbers and empty input
+                        if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+                          // Validate as user types
+                          handleItemChange(item.id, 'qty', value);
+                        }
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
                       onFocus={() => {
                         setFocusedField(`qty-${item.id}`);
@@ -2949,14 +2912,14 @@ const Scrapprocurement = () => {
         initialSearch={itemSearchTerm}
         onSearchChange={(searchValue) => {
           setItemSearchTerm(searchValue);
-          if (selectedRowForItem !== null && items[selectedRowForItem]) {
-            const updatedItems = [...items];
-            updatedItems[selectedRowForItem] = {
-              ...updatedItems[selectedRowForItem],
-              itemName: searchValue
-            };
-            setItems(updatedItems);
-          }
+          // if (selectedRowForItem !== null && items[selectedRowForItem]) {
+          //   const updatedItems = [...items];
+          //   updatedItems[selectedRowForItem] = {
+          //     ...updatedItems[selectedRowForItem],
+          //     itemName: searchValue
+          //   };
+          //   setItems(updatedItems);
+          // }
         }}
         onSelect={(selectedItem) => {
           if (selectedRowForItem !== null && items[selectedRowForItem]) {

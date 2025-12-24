@@ -56,10 +56,38 @@ const Icon = {
 };
 
 // --- Tree node presentational component ---
-function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey }) {
+function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey, onNavigate }) {
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedKeys.has(node.key);
   const isSelected = selectedKey === node.key;
+
+  const handleKeyDown = (e) => {
+    switch (e.key) {
+      case "Enter":
+        e.preventDefault();
+        onSelect(node);
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        if (hasChildren && !isExpanded) {
+          toggleExpand(node.key);
+        }
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        if (hasChildren && isExpanded) {
+          toggleExpand(node.key);
+        }
+        break;
+      case "ArrowDown":
+      case "ArrowUp":
+        e.preventDefault();
+        onNavigate?.(e.key === "ArrowDown" ? "down" : "up", node.key);
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <div className="tree-node" style={{ paddingLeft: `${12 + level * 16}px` }}>
@@ -67,8 +95,8 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         className={`tree-row ${isSelected ? "selected" : ""}`}
         onClick={() => onSelect(node)}
         role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && onSelect(node)}
+        tabIndex={isSelected ? 0 : -1}
+        onKeyDown={handleKeyDown}
       >
         {hasChildren ? (
           <button
@@ -113,6 +141,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
                 expandedKeys={expandedKeys}
                 toggleExpand={toggleExpand}
                 selectedKey={selectedKey}
+                onNavigate={onNavigate}
               />
             ))}
         </div>
@@ -309,7 +338,7 @@ export default function LedgerGroupCreation() {
   setSearchDropdown("");
   setSearchTree("");
   setIsDropdownOpen(false);
-  setIsTreeOpen(true); 
+  setIsTreeOpen(true);
 };
 
   const validateForSubmit = () => {
@@ -328,6 +357,35 @@ export default function LedgerGroupCreation() {
     return true;
   };
 
+  // Handle keyboard navigation for tree nodes
+  const handleTreeNavigation = useCallback((direction, currentKey) => {
+    const getAllNodes = (nodes) => {
+      const result = [];
+      nodes.forEach(node => {
+        result.push(node);
+        if (expandedKeys.has(node.key) && node.children) {
+          result.push(...getAllNodes(node.children));
+        }
+      });
+      return result;
+    };
+
+    const allNodes = getAllNodes(filteredTree);
+    const currentIndex = allNodes.findIndex(n => n.key === currentKey);
+    
+    if (currentIndex === -1) return;
+
+    let nextIndex = direction === "down" ? currentIndex + 1 : currentIndex - 1;
+    if (nextIndex < 0) nextIndex = 0;
+    if (nextIndex >= allNodes.length) nextIndex = allNodes.length - 1;
+
+    const nextNode = allNodes[nextIndex];
+    if (nextNode) {
+      setSelectedNode(nextNode);
+      handleSelectNode(nextNode);
+    }
+  }, [filteredTree, expandedKeys]);
+
   // Add / Edit / Delete handlers
   const handleAdd = async () => {
     // Check permission before allowing action
@@ -339,6 +397,7 @@ export default function LedgerGroupCreation() {
     setSubmitting(true);
     setMessage(null);
     try {
+  setActionType("Add");
       const payload = {
         fcode: "",
         subGroup: subGroup.trim(),
@@ -1207,6 +1266,7 @@ export default function LedgerGroupCreation() {
                               expandedKeys={expandedKeys}
                               toggleExpand={toggleExpand}
                               selectedKey={selectedNode?.key}
+                              onNavigate={handleTreeNavigation}
                             />
                           ))
                         )}
@@ -1217,12 +1277,12 @@ export default function LedgerGroupCreation() {
                   <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
                     <div className="row" style={{ marginBottom: 8 }}>
                       <div className="search-container">
-                        <input
+                        {/* <input
                           className="search-with-clear"
                           value={searchTree}
                           onChange={(e) => setSearchTree(e.target.value)}
                           aria-label="Search groups"
-                        />
+                        /> */}
                         {searchTree && (
                           <button
                             className="clear-search-btn"
@@ -1250,6 +1310,7 @@ export default function LedgerGroupCreation() {
                             expandedKeys={expandedKeys}
                             toggleExpand={toggleExpand}
                             selectedKey={selectedNode?.key}
+                            onNavigate={handleTreeNavigation}
                           />
                         ))
                       )}
@@ -1315,7 +1376,7 @@ export default function LedgerGroupCreation() {
                 disabled={submitting}
                 type="button"
               >
-                {submitting ? "Processing..." : actionType}
+                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
               </button>
               <button
                 className="submit-clear"
