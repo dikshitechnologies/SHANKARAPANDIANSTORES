@@ -576,6 +576,7 @@ export default function UserCreation() {
     if (!keepAction) setActionType("Add");
     
     setTimeout(() => companyRef.current?.focus(), 60);
+    setActionType("Add")
   };
 
   // Fetch items for popup list selector

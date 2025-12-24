@@ -401,6 +401,7 @@ export default function ColorCreation() {
     
     // This line already focuses on colorName field after reset - GOOD
     setTimeout(() => colorNameRef.current?.focus(), 60);
+    setActionType("Add")
   };
 
   const openEditModal = () => {
