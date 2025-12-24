@@ -50,7 +50,7 @@ const SalesReturn = () => {
     newBillNo: ''
   });
 
-  // 2. Table Items State
+  // 2. Table Items State (WRate field removed)
   const [items, setItems] = useState([
     {
       id: 1,
@@ -63,7 +63,6 @@ const SalesReturn = () => {
       hsn: '',
       tax: '',
       sRate: '',
-      rate: '',
       qty: '',
       amount: '0.00',
       itemCode: '00001'
@@ -141,7 +140,7 @@ const SalesReturn = () => {
 
   const [focusedField, setFocusedField] = useState('');
   const [activeFooterAction, setActiveFooterAction] = useState('null');
-  const [isBarcodeEnter, setIsBarcodeEnter] = useState(false);
+  const [isBarcodeEnter, setIsBarcodeEnter] = useState(false); // ✅ Correct
 
   // Track focused element position for arrow navigation
   const [focusedElement, setFocusedElement] = useState({
@@ -263,7 +262,7 @@ const SalesReturn = () => {
         newBillNo: ''
       });
 
-      // Reset items to single empty row
+      // Reset items to single empty row (WRate field removed)
       setItems([
         {
           id: 1,
@@ -276,7 +275,6 @@ const SalesReturn = () => {
           hsn: '',
           tax: '',
           sRate: '',
-          rate: '',
           qty: '',
           amount: '0.00',
           itemCode: '00001'
@@ -439,7 +437,7 @@ const SalesReturn = () => {
                       bill.code || bill.id || `BILL-${index + 1}`;
         
         const customerName = bill.customerName || bill.customer || bill.partyName || "";
-        const displayText = customerName ? `${billNo} - ${customerName}` : billNo;
+        const displayText = customerName ? `${customerName}` : billNo;
         
         return {
           id: billNo,
@@ -560,7 +558,6 @@ const SalesReturn = () => {
                 hsn: item.fHSN || item.hsn || item.hsnCode || "",
                 tax: item.fTax || item.tax || item.taxRate || "0",
                 sRate: item.fRate || item.sellingRate || item.rate || "0",
-                rate: item.fRate || item.costPrice || item.purchaseRate || "0",
                 qty: returnQty.toString(),
                 amount: (returnQty * parseFloat(item.fRate || item.rate || item.sellingRate || 0)).toFixed(2),
                 itemCode: itemCode || `0000${index + 1}`
@@ -625,7 +622,7 @@ const SalesReturn = () => {
                         bill.code || bill.id || `BILL-${((pageNum-1) * 20) + index + 1}`;
           
           const customerName = bill.customerName || bill.customer || bill.partyName || "";
-          const displayText = customerName ? `${billNo} - ${customerName}` : billNo;
+          const displayText = customerName ? `${customerName}` : billNo;
           
           return {
             id: billNo,
@@ -885,7 +882,6 @@ const SalesReturn = () => {
           hsn: (item.hsn || "").toString(),
           tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
           srate: (item.sRate || "0").toString(),
-          wrate: (item.rate || "0").toString(),
           qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
           amount: (item.amount || "0").toString(),
           netAmount: (item.amount || "0").toString()
@@ -996,7 +992,6 @@ const SalesReturn = () => {
           hsn: (item.hsn || "").toString(),
           tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
           srate: (item.sRate || "0").toString(),
-          wrate: (item.rate || "0").toString(),
           qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
           amount: (item.amount || "0").toString(),
           netAmount: (item.amount || "0").toString()
@@ -1228,7 +1223,6 @@ const SalesReturn = () => {
             hsn: item.hsn || "",
             tax: item.tax || "0",
             sRate: item.srate || item.sRate || "0",
-            rate: item.wrate || item.rate || item.srate || "0",
             qty: Math.abs(parseFloat(item.qty || 0)).toString(),
             amount: item.amount || "0",
             itemCode: item.itemCode || `0000${index + 1}`
@@ -1248,7 +1242,6 @@ const SalesReturn = () => {
           hsn: '',
           tax: '',
           sRate: '',
-          rate: '',
           qty: '',
           amount: '0.00',
           itemCode: '00001'
@@ -1353,19 +1346,18 @@ const SalesReturn = () => {
     let customerData = customers.map(customer => ({
       id: customer.code || customer.id,
       name: customer.name,
-      displayName: `${customer.code} - ${customer.name}`,
+      displayName: `${customer.name}`,
       customerCode: customer.code,
       customerName: customer.name,
       mobileNo: customer.mobile || customer.phone || ""
     }));
     
-    // Filter by search text if provided
+    // Filter by search text if provided - STARTS WITH search
     if (searchText) {
       const searchLower = searchText.toLowerCase();
       customerData = customerData.filter(customer => 
-        (customer.name && customer.name.toLowerCase().includes(searchLower)) ||
-        (customer.displayName && customer.displayName.toLowerCase().includes(searchLower)) ||
-        (customer.customerCode && customer.customerCode.toLowerCase().includes(searchLower))
+        (customer.name && customer.name.toLowerCase().startsWith(searchLower)) ||
+        (customer.displayName && customer.displayName.toLowerCase().startsWith(searchLower))
       );
     }
     
@@ -1384,18 +1376,17 @@ const SalesReturn = () => {
     let salesmanData = salesmen.map(salesman => ({
       id: salesman.fcode || salesman.code || salesman.id,
       name: salesman.fname || salesman.name,
-      displayName: `${salesman.fcode || salesman.code} - ${salesman.fname || salesman.name}`,
+      displayName: `${salesman.fname || salesman.name}`,
       salesmanCode: salesman.fcode || salesman.code,
       salesmanName: salesman.fname || salesman.name
     }));
     
-    // Filter by search text if provided
+    // Filter by search text if provided - STARTS WITH search
     if (searchText) {
       const searchLower = searchText.toLowerCase();
       salesmanData = salesmanData.filter(salesman => 
-        (salesman.name && salesman.name.toLowerCase().includes(searchLower)) ||
-        (salesman.displayName && salesman.displayName.toLowerCase().includes(searchLower)) ||
-        (salesman.salesmanCode && salesman.salesmanCode.toLowerCase().includes(searchLower))
+        (salesman.name && salesman.name.toLowerCase().startsWith(searchLower)) ||
+        (salesman.displayName && salesman.displayName.toLowerCase().startsWith(searchLower))
       );
     }
     
@@ -1415,7 +1406,7 @@ const SalesReturn = () => {
       const itemCode = item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
       const itemName = item.fItemName || item.itemName || item.name || 'Unknown Item';
       
-      const displayName = ` ${itemName}`;
+      const displayName = `${itemName}`;
       
       return {
         id: itemCode || `item-${index}`,
@@ -1427,13 +1418,12 @@ const SalesReturn = () => {
       };
     });
     
-    // Filter by search text if provided
+    // Filter by search text if provided - STARTS WITH search
     if (searchText) {
       const searchLower = searchText.toLowerCase();
       itemData = itemData.filter(item => 
-        (item.name && item.name.toLowerCase().includes(searchLower)) ||
-        (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
-        (item.itemCode && item.itemCode.toLowerCase().includes(searchLower))
+        (item.name && item.name.toLowerCase().startsWith(searchLower)) ||
+        (item.displayName && item.displayName.toLowerCase().startsWith(searchLower))
       );
     }
     
@@ -1462,7 +1452,7 @@ const SalesReturn = () => {
                          `VOUCHER-${index + 1}`;
         
         const customerName = voucher.customerName || voucher.customer || "";
-        const displayText = customerName ? `${voucherNo} - ${customerName}` : voucherNo;
+        const displayText = customerName ? `${customerName}` : voucherNo;
         
         return {
           id: voucherNo,
@@ -1505,7 +1495,7 @@ const SalesReturn = () => {
                          `VOUCHER-${index + 1}`;
         
         const customerName = voucher.customerName || voucher.customer || "";
-        const displayText = customerName ? `${voucherNo} - ${customerName}` : voucherNo;
+        const displayText = customerName ? `${customerName}` : voucherNo;
         
         return {
           id: voucherNo,
@@ -1612,7 +1602,7 @@ const SalesReturn = () => {
             setFocusedElement({
               type: 'table',
               rowIndex: selectedRowIndex,
-              fieldIndex: 9,
+              fieldIndex: 8,
               fieldName: 'qty'
             });
           }, 120);
@@ -1671,7 +1661,7 @@ const SalesReturn = () => {
                       bill.code || bill.id || `BILL-${((pageNum-1) * 20) + index + 1}`;
         
         const customerName = bill.customerName || bill.customer || bill.partyName || "";
-        const displayText = customerName ? `${billNo} - ${customerName}` : billNo;
+        const displayText = customerName ? `${customerName}` : billNo;
         
         return {
           id: billNo,
@@ -1688,9 +1678,8 @@ const SalesReturn = () => {
         const searchLower = search.toLowerCase();
         filtered = filtered.filter(item => {
           return (
-            (item.code && item.code.toLowerCase().includes(searchLower)) ||
-            (item.name && item.name.toLowerCase().includes(searchLower)) ||
-            (item.customerName && item.customerName.toLowerCase().includes(searchLower))
+            (item.name && item.name.toLowerCase().startsWith(searchLower)) ||
+            (item.customerName && item.customerName.toLowerCase().startsWith(searchLower))
           );
         });
       }
@@ -1699,11 +1688,10 @@ const SalesReturn = () => {
         if (!search) return true;
         const searchLower = search.toLowerCase();
         return (
-          (item.code && item.code.toString().toLowerCase().includes(searchLower)) ||
-          (item.name && item.name.toLowerCase().includes(searchLower)) ||
-          (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
-          (item.itemName && item.itemName.toLowerCase().includes(searchLower)) ||
-          (item.fItemName && item.fItemName.toLowerCase().includes(searchLower))
+          (item.name && item.name.toLowerCase().startsWith(searchLower)) ||
+          (item.displayName && item.displayName.toLowerCase().startsWith(searchLower)) ||
+          (item.itemName && item.itemName.toLowerCase().startsWith(searchLower)) ||
+          (item.fItemName && item.fItemName.toLowerCase().startsWith(searchLower))
         );
       });
     }
@@ -1719,7 +1707,7 @@ const SalesReturn = () => {
         displayFieldKeys: ['name'],
         searchFields: ['name'],
         headerNames: ['Customer Name'],
-        columnWidths: { code: '30%', name: '70%' },
+        columnWidths: { name: '100%' },
         searchPlaceholder: 'Search customers...',
         showApplyButton: false
       },
@@ -1727,40 +1715,40 @@ const SalesReturn = () => {
         displayFieldKeys: ['name'],
         searchFields: ['name'],
         headerNames: ['Salesman Name'],
-        columnWidths: { code: '30%', name: '70%' },
+        columnWidths: { name: '100%' },
         searchPlaceholder: 'Search salesmen...',
         showApplyButton: false
       },
       item: {
         displayFieldKeys: ['displayName'],
-        searchFields: ['displayName', 'name', 'itemName', 'code'],
+        searchFields: ['displayName', 'name', 'itemName'],
         headerNames: ['Item Name'],
         columnWidths: { displayName: '100%' },
-        searchPlaceholder: 'Search items by code or name...',
+        searchPlaceholder: 'Search items by name...',
         showApplyButton: false
       },
       billNumber: {
-        displayFieldKeys: ['code', 'customerName', 'voucherDate'],
-        searchFields: ['code', 'customerName'],
-        headerNames: ['Bill No', 'Customer', 'Date'],
-        columnWidths: { code: '30%', customerName: '50%', voucherDate: '20%' },
-        searchPlaceholder: 'Search bill number or customer...',
+        displayFieldKeys: ['name', 'voucherDate'],
+        searchFields: ['name', 'customerName'],
+        headerNames: ['Customer', 'Date'],
+        columnWidths: { name: '70%', voucherDate: '30%' },
+        searchPlaceholder: 'Search customer name...',
         showApplyButton: false
       },
       edit: {
         displayFieldKeys: ['name'],
-        searchFields: ['code', 'name', 'customerName'],
-        headerNames: ['Voucher No'],
+        searchFields: ['name', 'customerName'],
+        headerNames: ['Customer Name'],
         columnWidths: { name: '100%' },
-        searchPlaceholder: 'Search voucher number...',
+        searchPlaceholder: 'Search customer name...',
         showApplyButton: false
       },
       delete: {
         displayFieldKeys: ['name'],
-        searchFields: ['code', 'name', 'customerName'],
-        headerNames: ['Voucher No'],
+        searchFields: ['name', 'customerName'],
+        headerNames: ['Customer Name'],
         columnWidths: { name: '100%' },
-        searchPlaceholder: 'Search voucher number...',
+        searchPlaceholder: 'Search customer name...',
         showApplyButton: false
       }
     };
@@ -1776,79 +1764,103 @@ const SalesReturn = () => {
 
   // ==================== KEYBOARD NAVIGATION ====================
   useEffect(() => {
-    const handleGlobalKeyDown = (e) => {
-      // Skip if popup is open
-      if (popupOpen || billDetailsPopupOpen || showConfirmPopup) {
-        return;
-      }
-
-      // Skip if typing in input field (except Enter and Arrow keys)
-      if (
-        e.target.tagName === 'INPUT' && 
-        !['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)
-      ) {
-        return;
-      }
-
-      const { type, rowIndex, fieldIndex, fieldName } = focusedElement;
-
-      // Arrow key navigation
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+  const handleGlobalKeyDown = (e) => {
+    // Skip if popup is open
+    if (popupOpen || billDetailsPopupOpen || showConfirmPopup) {
+      // Handle Enter in confirmation popup
+      if (showConfirmPopup && e.key === 'Enter') {
         e.preventDefault();
-        
-        if (type === 'header') {
-          handleHeaderArrowNavigation(e.key, rowIndex, fieldIndex);
-        } else if (type === 'table') {
-          handleTableArrowNavigation(e.key, rowIndex, fieldIndex);
-        } else if (type === 'footer') {
-          handleFooterArrowNavigation(e.key);
+        const confirmButton = document.querySelector('.confirmation-popup button.confirm-button');
+        if (confirmButton) {
+          confirmButton.click();
         }
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        handleEnterNavigation(type, rowIndex, fieldIndex, fieldName);
-      } else if (e.key === 'Tab') {
-        // Let default Tab behavior handle focus
-        setTimeout(() => {
-          const activeElement = document.activeElement;
-          if (activeElement.tagName === 'INPUT') {
-            const dataRow = activeElement.getAttribute('data-row');
-            const dataField = activeElement.getAttribute('data-field');
+        return;
+      }
+      return;
+    }
+
+    // Skip if typing in input field (except Enter and Arrow keys)
+    if (
+      e.target.tagName === 'INPUT' && 
+      !['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)
+    ) {
+      return;
+    }
+
+    const { type, rowIndex, fieldIndex, fieldName } = focusedElement;
+
+    // Arrow key navigation
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      
+      if (type === 'header') {
+        handleHeaderArrowNavigation(e.key, rowIndex, fieldIndex);
+      } else if (type === 'table') {
+        handleTableArrowNavigation(e.key, rowIndex, fieldIndex);
+      } else if (type === 'footer') {
+        handleFooterArrowNavigation(e.key);
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // Handle Enter on Save button
+      if (type === 'footer' && fieldName === 'save') {
+        handleSave();
+        return;
+      }
+      
+      // 🔥 CRITICAL: Never open popups on Enter key
+      // Just use arrow navigation to move to next field
+      if (type === 'header') {
+        handleHeaderArrowNavigation('ArrowRight', rowIndex, fieldIndex);
+      } else if (type === 'table') {
+        handleTableArrowNavigation('ArrowRight', rowIndex, fieldIndex);
+      } else if (type === 'footer') {
+        handleFooterArrowNavigation('ArrowRight');
+      }
+    } else if (e.key === 'Tab') {
+      // Let default Tab behavior handle focus
+      setTimeout(() => {
+        const activeElement = document.activeElement;
+        if (activeElement.tagName === 'INPUT') {
+          const dataRow = activeElement.getAttribute('data-row');
+          const dataField = activeElement.getAttribute('data-field');
+          
+          if (dataRow !== null) {
+            // Table field
+            setFocusedElement({
+              type: 'table',
+              rowIndex: parseInt(dataRow),
+              fieldIndex: getTableFieldIndex(dataField),
+              fieldName: dataField
+            });
+          } else {
+            // Header field
+            const headerFields = ['billNo', 'billDate', 'mobileNo', 'salesman', 'custName', 'newBillNo'];
+            const fieldName = activeElement.name;
+            const fieldIndex = headerFields.indexOf(fieldName);
             
-            if (dataRow !== null) {
-              // Table field
+            if (fieldIndex !== -1) {
               setFocusedElement({
-                type: 'table',
-                rowIndex: parseInt(dataRow),
-                fieldIndex: getTableFieldIndex(dataField),
-                fieldName: dataField
+                type: 'header',
+                rowIndex: fieldName === 'newBillNo' || fieldName === 'custName' ? 1 : 0,
+                fieldIndex: fieldIndex,
+                fieldName: fieldName
               });
-            } else {
-              // Header field
-              const headerFields = ['billNo', 'billDate', 'mobileNo', 'salesman', 'custName', 'newBillNo'];
-              const fieldName = activeElement.name;
-              const fieldIndex = headerFields.indexOf(fieldName);
-              
-              if (fieldIndex !== -1) {
-                setFocusedElement({
-                  type: 'header',
-                  rowIndex: fieldName === 'newBillNo' || fieldName === 'custName' ? 1 : 0,
-                  fieldIndex: fieldIndex,
-                  fieldName: fieldName
-                });
-              }
             }
           }
-        }, 10);
-      }
-    };
+        }
+      }, 10);
+    }
+  };
 
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [focusedElement, popupOpen, billDetailsPopupOpen, showConfirmPopup]);
+  window.addEventListener('keydown', handleGlobalKeyDown);
+  return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+}, [focusedElement, popupOpen, billDetailsPopupOpen, showConfirmPopup]);
 
-  // Get table field index based on field name
+  // Get table field index based on field name (WRate field removed)
   const getTableFieldIndex = (fieldName) => {
-    const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty', 'amount'];
+    const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty', 'amount'];
     return fields.indexOf(fieldName);
   };
 
@@ -1919,7 +1931,7 @@ const SalesReturn = () => {
   };
 
   const handleTableArrowNavigation = (key, rowIndex, fieldIndex) => {
-    const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty', 'amount'];
+    const fields = ['barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty', 'amount'];
     
     let newRowIndex = rowIndex;
     let newFieldIndex = fieldIndex;
@@ -2045,88 +2057,80 @@ const SalesReturn = () => {
   };
 
   const handleEnterNavigation = (type, rowIndex, fieldIndex, fieldName) => {
-    if (type === 'header') {
-      if (fieldName === 'salesman') {
-        openSalesmanPopup();
-      } else if (fieldName === 'custName') {
-        openCustomerPopup();
-      } else if (fieldName === 'newBillNo') {
-        openBillNumberPopup();
-      } else {
-        // Move to next header field
-        handleHeaderArrowNavigation('ArrowRight', rowIndex, fieldIndex);
+  if (type === 'header') {
+    // 🔥 REMOVED popup opening on Enter
+    // Just move to next field
+    handleHeaderArrowNavigation('ArrowRight', rowIndex, fieldIndex);
+  } else if (type === 'table') {
+    // 🔥 REMOVED popup opening on Enter for itemName
+    if (fieldName === 'qty') {
+      // Check if item name is selected
+      const currentItem = items[rowIndex];
+      if (!currentItem.itemName || currentItem.itemName.trim() === '') {
+        toast.warning("Select item before moving to next row");
+        // Focus item name field
+        setFocusedElement({
+          type: 'table',
+          rowIndex: rowIndex,
+          fieldIndex: 1,
+          fieldName: 'itemName'
+        });
+        setTimeout(() => {
+          const input = document.querySelector(`input[data-row="${rowIndex}"][data-field="itemName"]`);
+          input?.focus();
+        }, 10);
+        return;
       }
-    } else if (type === 'table') {
-      if (fieldName === 'itemName') {
-        openItemPopup(rowIndex);
-      } else if (fieldName === 'qty') {
-        // Check if item name is selected
-        const currentItem = items[rowIndex];
-        if (!currentItem.itemName || currentItem.itemName.trim() === '') {
-          toast.warning("Select item before moving to next row");
-          // Focus item name field
-          setFocusedElement({
-            type: 'table',
-            rowIndex: rowIndex,
-            fieldIndex: 1,
-            fieldName: 'itemName'
-          });
-          setTimeout(() => {
-            const input = document.querySelector(`input[data-row="${rowIndex}"][data-field="itemName"]`);
-            input?.focus();
-          }, 10);
-          return;
-        }
 
-        if (rowIndex < items.length - 1) {
-          // Move to next row
+      if (rowIndex < items.length - 1) {
+        // Move to next row
+        setFocusedElement({
+          type: 'table',
+          rowIndex: rowIndex + 1,
+          fieldIndex: 0,
+          fieldName: 'barcode'
+        });
+        setTimeout(() => {
+          const input = document.querySelector(`input[data-row="${rowIndex + 1}"][data-field="barcode"]`);
+          input?.focus();
+        }, 10);
+      } else {
+        // Add new row
+        handleAddRow();
+        setTimeout(() => {
+          const newRowIndex = items.length;
           setFocusedElement({
             type: 'table',
-            rowIndex: rowIndex + 1,
+            rowIndex: newRowIndex,
             fieldIndex: 0,
             fieldName: 'barcode'
           });
-          setTimeout(() => {
-            const input = document.querySelector(`input[data-row="${rowIndex + 1}"][data-field="barcode"]`);
-            input?.focus();
-          }, 10);
-        } else {
-          // Add new row
-          handleAddRow();
-          setTimeout(() => {
-            const newRowIndex = items.length;
-            setFocusedElement({
-              type: 'table',
-              rowIndex: newRowIndex,
-              fieldIndex: 0,
-              fieldName: 'barcode'
-            });
-            const input = document.querySelector(`input[data-row="${newRowIndex}"][data-field="barcode"]`);
-            input?.focus();
-          }, 60);
-        }
-      } else {
-        // Move to next table field
-        handleTableArrowNavigation('ArrowRight', rowIndex, fieldIndex);
+          const input = document.querySelector(`input[data-row="${newRowIndex}"][data-field="barcode"]`);
+          input?.focus();
+        }, 60);
       }
-    } else if (type === 'footer') {
-      // Handle footer button actions
-      if (fieldName === 'add') {
-        setActiveTopAction('add');
-        handleClear();
-      } else if (fieldName === 'edit') {
-        openEditPopup();
-      } else if (fieldName === 'delete') {
-        openDeletePopup();
-      } else if (fieldName === 'clear') {
-        handleClear();
-      } else if (fieldName === 'save') {
-        handleSave();
-      } else if (fieldName === 'print') {
-        handlePrint();
-      }
+    } else {
+      // Move to next table field
+      handleTableArrowNavigation('ArrowRight', rowIndex, fieldIndex);
     }
-  };
+  } else if (type === 'footer') {
+    // Handle footer button actions
+    if (fieldName === 'add') {
+      setActiveTopAction('add');
+      handleClear();
+    } else if (fieldName === 'edit') {
+      openEditPopup();
+    } else if (fieldName === 'delete') {
+      openDeletePopup();
+    } else if (fieldName === 'clear') {
+      handleClear();
+    } else if (fieldName === 'save') {
+      handleSave();
+    } else if (fieldName === 'print') {
+      handlePrint();
+    }
+  }
+};
 
   const getHeaderInputRef = (fieldName) => {
     switch (fieldName) {
@@ -2176,78 +2180,45 @@ const SalesReturn = () => {
       } else if (fieldName === 'newBillNo') {
         openBillNumberPopup();
       }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (nextRef && nextRef.current) {
-        nextRef.current.focus();
-      }
     }
   };
 
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    // Check if a letter key is pressed (A-Z, a-z) in itemName field
-    const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  // Check if a letter key is pressed (A-Z, a-z) in itemName field
+  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+  
+  if (isLetterKey && currentField === 'itemName') {
+    e.preventDefault(); // Prevent the letter from being typed in the field
     
-    if (isLetterKey && currentField === 'itemName') {
-      e.preventDefault(); // Prevent the letter from being typed in the field
+    // Open item popup with the typed letter as initial search
+    openItemPopup(currentRowIndex, e.key);
+    return;
+  }
+  
+  if (e.key === '/' && currentField === 'itemName') {
+    e.preventDefault();
+    openItemPopup(currentRowIndex);
+    return;
+  }
+  
+  // ============ CRITICAL UPDATE: HANDLE ENTER KEY IN QTY FIELD ============
+  if (e.key === 'Enter') {
+    e.preventDefault();
+
+    const fields = [
+      'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'
+    ];
+
+    const currentFieldIndex = fields.indexOf(currentField);
+
+    if (currentField === 'qty') {
+      const currentItem = items[currentRowIndex];
       
-      // Open item popup with the typed letter as initial search
-      openItemPopup(currentRowIndex, e.key);
-      return;
-    }
-    
-    if (e.key === '/' && currentField === 'itemName') {
-      e.preventDefault();
-      openItemPopup(currentRowIndex);
-      return;
-    }
-    
-    if (e.key === 'Enter') {
-      e.preventDefault();
-
-      const fields = [
-        'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'rate', 'qty'
-      ];
-
-      const currentFieldIndex = fields.indexOf(currentField);
-
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-        if (nextInput) {
-          nextInput.focus();
-          setFocusedElement({
-            type: 'table',
-            rowIndex: currentRowIndex,
-            fieldIndex: currentFieldIndex + 1,
-            fieldName: nextField
-          });
-          return;
-        }
-      }
-
-      // Check if we're on the quantity field
-      if (currentField === 'qty') {
-        const currentItem = items[currentRowIndex];
-
-        // 🚫 BLOCK if item name not selected
-        if (!currentItem.itemName || currentItem.itemName.trim() === '') {
-          toast.warning("Select item before moving to next row");
-          // FIX: Don't focus Save button, focus item name field instead
-          const itemNameInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="itemName"]`);
-          if (itemNameInput) {
-            itemNameInput.focus();
-            setFocusedElement({
-              type: 'table',
-              rowIndex: currentRowIndex,
-              fieldIndex: 1,
-              fieldName: 'itemName'
-            });
-          }
-          return;
-        }
-
+      // Check if item name is filled
+      if (currentItem.itemName && currentItem.itemName.trim() !== '') {
+        // ✅ ItemName is filled: Goes to next row
         if (currentRowIndex < items.length - 1) {
+          // Move to next row's barcode field
           const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
           if (nextInput) {
             nextInput.focus();
@@ -2259,23 +2230,59 @@ const SalesReturn = () => {
             });
           }
         } else {
+          // Add new row
           handleAddRow();
           setTimeout(() => {
-            const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="barcode"]`);
+            const newRowIndex = items.length;
+            const newRowInput = document.querySelector(`input[data-row="${newRowIndex}"][data-field="barcode"]`);
             if (newRowInput) {
               newRowInput.focus();
               setFocusedElement({
                 type: 'table',
-                rowIndex: items.length,
+                rowIndex: newRowIndex,
                 fieldIndex: 0,
                 fieldName: 'barcode'
               });
             }
           }, 60);
         }
+      } else {
+        // 🚫 ItemName is empty: Focuses Save button
+        toast.info("Item name empty. Focusing Save button...");
+        
+        // Focus on Save button
+        setTimeout(() => {
+          const saveButton = document.querySelector('button[data-action="save"]');
+          if (saveButton) {
+            saveButton.focus();
+            setFocusedElement({
+              type: 'footer',
+              rowIndex: 0,
+              fieldIndex: 4,
+              fieldName: 'save'
+            });
+          }
+        }, 10);
+      }
+      return;
+    } else {
+      // Move to next field within same row
+      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+        const nextField = fields[currentFieldIndex + 1];
+        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          setFocusedElement({
+            type: 'table',
+            rowIndex: currentRowIndex,
+            fieldIndex: currentFieldIndex + 1,
+            fieldName: nextField
+          });
+        }
       }
     }
-  };
+  }
+};
 
   const handleAddItem = async () => {
     // This function is kept for compatibility but barcode input field is removed
@@ -2302,7 +2309,6 @@ const SalesReturn = () => {
       hsn: '',
       tax: '',
       sRate: '',
-      rate: '',
       qty: '',
       amount: '0.00',
       itemCode: `0000${items.length + 1}`
@@ -2315,14 +2321,10 @@ const SalesReturn = () => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
 
-        if (field === 'qty' || field === 'sRate' || field === 'rate') {
+        if (field === 'qty' || field === 'sRate') {
           const qty = field === 'qty' ? value : updatedItem.qty;
-          const rate = field === 'rate' ? value : (field === 'sRate' ? value : updatedItem.sRate);
+          const rate = field === 'sRate' ? value : updatedItem.sRate;
           updatedItem.amount = calculateAmount(qty, rate);
-
-          if (field === 'rate') {
-            updatedItem.sRate = value;
-          }
         }
 
         return updatedItem;
@@ -2362,7 +2364,6 @@ const SalesReturn = () => {
             hsn: '',
             tax: '',
             sRate: '',
-            rate: '',
             qty: '',
             amount: '0.00',
             itemCode: '00001'
@@ -3547,8 +3548,7 @@ const confirmApplyBillNumber = () => {
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>HSN</th>
                 <th style={styles.th}>TAX (%)</th>
-                <th style={styles.th}>SRate</th>
-                <th style={styles.th}>WRate</th>
+                <th style={styles.th}>S.Rate</th>
                 <th style={styles.th}>Qty</th>
                 <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th>
                 <th style={styles.th}>Action</th>
@@ -3742,27 +3742,6 @@ const confirmApplyBillNumber = () => {
                   </td>
                   <td style={styles.td}>
                     <input
-                      style={focusedField === `rate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.rate}
-                      data-row={index}
-                      data-field="rate"
-                      onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'rate')}
-                      onFocus={() => {
-                        setFocusedField(`rate-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 8,
-                          fieldName: 'rate'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      step="0.01"
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
                       style={focusedField === `qty-${item.id}` ? { ...styles.editableInputFocused, fontWeight: 'bold' } : { ...styles.editableInput, fontWeight: 'bold' }}
                       value={item.qty}
                       data-row={index}
@@ -3774,7 +3753,7 @@ const confirmApplyBillNumber = () => {
                         setFocusedElement({
                           type: 'table',
                           rowIndex: index,
-                          fieldIndex: 9,
+                          fieldIndex: 8,
                           fieldName: 'qty'
                         });
                       }}
@@ -3796,7 +3775,7 @@ const confirmApplyBillNumber = () => {
                         setFocusedElement({
                           type: 'table',
                           rowIndex: index,
-                          fieldIndex: 10,
+                          fieldIndex: 9,
                           fieldName: 'amount'
                         });
                       }}
@@ -3829,7 +3808,7 @@ const confirmApplyBillNumber = () => {
                         setFocusedElement({
                           type: 'table',
                           rowIndex: index,
-                          fieldIndex: 11,
+                          fieldIndex: 10,
                           fieldName: 'action'
                         });
                       }}
