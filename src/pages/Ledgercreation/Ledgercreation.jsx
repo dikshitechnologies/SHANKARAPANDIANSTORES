@@ -255,6 +255,44 @@ export default function LedgerCreation({ onCreated }) {
     }
   }, []);
 
+  // Global Enter key handler - Only Enter triggers buttons and popups
+  useEffect(() => {
+    const handleEnterKey = (e) => {
+      if (e.key === 'Enter') {
+        const focusedElement = document.activeElement;
+        
+        // Click buttons (Add, Edit, Delete, Submit, Clear)
+        if (focusedElement && (
+          focusedElement.tagName === 'BUTTON' || 
+          focusedElement.classList?.contains('submit-primary') || 
+          focusedElement.classList?.contains('submit-clear') ||
+          focusedElement.classList?.contains('action-pill')
+        )) {
+          e.preventDefault();
+          focusedElement.click();
+        }
+        // Open group tree selector on Group Name field
+        else if (focusedElement === groupNameRef.current) {
+          e.preventDefault();
+          setIsTreeOpen(true);
+          setTimeout(() => {
+            const firstNode = document.querySelector('[data-key]');
+            firstNode?.focus();
+          }, 0);
+        }
+        // Open state popup on State field
+        else if (focusedElement === stateRef.current) {
+          e.preventDefault();
+          setIsStatePopupOpen(true);
+        }
+      }
+      
+    };
+
+    window.addEventListener('keydown', handleEnterKey);
+    return () => window.removeEventListener('keydown', handleEnterKey);
+  }, []);
+
   useEffect(() => {
     loadInitial();
   }, []);
@@ -1940,13 +1978,28 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.route}
                     onChange={(e) => handleChange('route', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 9)}
-                    disabled={actionType === 'delete'}
+                    onKeyDown={(e) => {
+                      // Allow up/down arrow keys for route dropdown navigation
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        // Let browser handle native select dropdown navigation
+                        return;
+                      }
+                      // Enter key moves focus to next field (GSTIN)
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        // Move focus to GSTIN field (next field)
+                        if (gstinRef.current) {
+                          gstinRef.current.focus();
+                        }
+                      }
+                    }}
+                    // disabled={actionType === 'delete'}
+                    title="Use Up/Down arrows to select route, then press Enter to move to next field"
                   >
                     <option value="">Select Route</option>
                     <option value="Tamil Nadu">Tamil Nadu</option>
                     <option value="Chennai">Chennai</option>
-                   <option value="Puducherry">Puducherry</option>
+                    <option value="Puducherry">Puducherry</option>
                   </select>
                 </div>
 
@@ -2253,6 +2306,10 @@ export default function LedgerCreation({ onCreated }) {
             setFormData(prev => ({ ...prev, state: item.fname || item.state || '' }));
             setIsStatePopupOpen(false);
             setStateSearch('');
+            // Focus next field after state selection
+            if (emailRef.current) {
+              emailRef.current.focus();
+            }
           }}
           fetchItems={(page, search) => fetchStatesWithSearch(page, search || stateSearch)}
           title="Select State"
