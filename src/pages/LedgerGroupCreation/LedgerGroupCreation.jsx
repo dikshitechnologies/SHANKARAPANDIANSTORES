@@ -197,6 +197,7 @@ export default function LedgerGroupCreation() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   // Ref for auto-focusing SubGroup input after main group selection
+  const mainGroupRef = useRef(null);
   const subGroupRef = useRef(null);
   // Ref for submit button to enable keyboard navigation
   const submitButtonRef = useRef(null);
@@ -214,6 +215,18 @@ export default function LedgerGroupCreation() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // Effect to focus sub group input when in edit mode and sub group is selected
+  useEffect(() => {
+    if (actionType === "edit" && subGroup && fCode) {
+      // Small timeout to ensure DOM is updated
+      setTimeout(() => {
+        if (subGroupRef.current) {
+          subGroupRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [actionType, subGroup, fCode]);
 
   const loadInitial = async () => {
     setLoading(true);
@@ -508,6 +521,39 @@ const confirmDelete = async () => {
     if (actionType === "Add") await handleAdd();
     else if (actionType === "edit") await handleEdit();
     else if (actionType === "delete") await handleDelete();
+  };
+
+  // Handle keyboard navigation in Main Group input
+  const handleMainGroupKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      subGroupRef.current?.focus();
+    }
+  };
+
+  // Handle Enter key press in sub group input for edit mode
+  const handleSubGroupKeyDown = (e) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      mainGroupRef.current?.focus();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (actionType === "edit" && subGroup && fCode) {
+        // In edit mode with sub group selected, pressing Enter triggers edit
+        submitButtonRef.current?.focus();
+        
+      } else if (actionType === "Add") {
+        // In add mode, just focus submit button
+        submitButtonRef.current?.focus();
+      }
+      else if (actionType === "delete") {
+        // In delete mode, just focus submit button
+                submitButtonRef.current?.focus();
+
+      }
+      handleSubmit();
+    }
   };
 
   useEffect(() => {
@@ -1028,6 +1074,7 @@ const confirmDelete = async () => {
 
 
 
+
         /* Responsive styles */
         /* Large tablets and small laptops */
         @media (max-width: 1024px) {
@@ -1199,6 +1246,7 @@ const confirmDelete = async () => {
       backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
     }}>
       <input
+        ref={mainGroupRef}
         className="input"
         value={mainGroup}
         onChange={(e) => setMainGroup(e.target.value)}
@@ -1212,6 +1260,8 @@ const confirmDelete = async () => {
               const firstNode = document.querySelector(".tree-row");
               firstNode?.focus();
             }, 50);
+          } else {
+            handleMainGroupKeyDown(e);
           }
         }}
         readOnly={actionType !== "Add"}
@@ -1385,32 +1435,22 @@ const confirmDelete = async () => {
                     className="input"
                     value={subGroup}
                     onChange={(e) => setSubGroup(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        submitButtonRef.current?.focus();
-                      }
-                    }}
+                    onKeyDown={handleSubGroupKeyDown}
                     placeholder="Enter Sub Group"
                     disabled={submitting}
                     aria-label="Sub Group"
                   />
                 ) : (
                   <input
+                    ref={subGroupRef}
                     className="input"
                     value={subGroup}
                     onChange={(e) => setSubGroup(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        submitButtonRef.current?.focus();
-                      }
-                    }}
+                    onKeyDown={handleSubGroupKeyDown}
                     placeholder="Select Sub Group"
                     disabled={submitting}
                     readOnly={actionType === "delete"}
                     aria-label="Sub Group"
-                    // onFocus={() => setIsDropdownOpen(true)}
                   />
                 )}
 
@@ -1557,6 +1597,8 @@ const confirmDelete = async () => {
           }
         }}
       />
+
+     
     </div>
   );
 }
