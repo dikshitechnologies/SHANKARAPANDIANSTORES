@@ -229,7 +229,8 @@ CATEGORY: {
   getStockByItemName1: (itemcode) =>`Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
   getSalesman: () =>`SalesmanCreation/GetSalesman`,
   getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>`ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
-  getCustomers: () => `Salesinvoices/GetPartyByParent`,
+   getCustomers: (pageNumber = 1, pageSize = 10) =>
+    `Salesinvoices/GetPartyByParent?pageNumber=${pageNumber}&pageSize=${pageSize}`,
   getPurchaseStockDetailsByBarcode: (barcode) =>
     `Salesinvoices/GetpurchaseStockDetails?barcode=${barcode}`,
 
