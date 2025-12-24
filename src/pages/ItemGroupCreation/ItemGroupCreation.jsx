@@ -1410,7 +1410,7 @@ export default function ItemGroupCreation() {
                   </div>
                 )}
 
-                {(actionType === "edit" || actionType === "delete") && (
+                {/* {(actionType === "edit" || actionType === "delete") && (
                   <button
                     className="btn"
                     onClick={() => { setIsDropdownOpen(true); setIsTreeOpen(false); }}
@@ -1428,7 +1428,7 @@ export default function ItemGroupCreation() {
                   >
                     <Icon.Search /> Search
                   </button>
-                )}
+                )} */}
               </div>
             </div>
 
@@ -1445,7 +1445,7 @@ export default function ItemGroupCreation() {
                 className="submit-primary"
                 onClick={() => {
                   const action = actionType === 'Add' ? 'save' : 
-                                actionType === 'edit' ? 'update' : 'delete';
+                                actionType === 'edit' ? 'update' : 'Delete';
                   showConfirmationPopup(action);
                 }}
                 disabled={submitting}

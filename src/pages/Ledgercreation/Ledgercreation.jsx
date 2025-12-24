@@ -137,6 +137,8 @@ export default function LedgerCreation({ onCreated }) {
   const [lastNetworkError, setLastNetworkError] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [isStatePopupOpen, setIsStatePopupOpen] = useState(false);
+  const [stateSearch, setStateSearch] = useState('');
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -357,6 +359,79 @@ export default function LedgerCreation({ onCreated }) {
     handleChange('Hide', newValue ? '1' : '0');
   };
 
+  // Field navigation array for keyboard navigation
+  const fieldNavigation = [
+    { ref: partyNameRef, name: 'partyName', label: 'Ledger Name' },
+    { ref: groupNameRef, name: 'mainGroup', label: 'Group Name' },
+    { ref: gstTypeRef, name: 'gstType', label: 'GST Type' },
+    { ref: fStreetRef, name: 'fStreet', label: 'Street' },
+    { ref: areaRef, name: 'area', label: 'Area' },
+    { ref: cityRef, name: 'city', label: 'City' },
+    { ref: pincodeRef, name: 'pincode', label: 'Pincode' },
+    { ref: phoneRef, name: 'phone', label: 'Phone' },
+    { ref: cellNoRef, name: 'cellNo', label: 'Cell No' },
+    { ref: routeRef, name: 'route', label: 'Route' },
+    { ref: gstinRef, name: 'gstin', label: 'GSTIN' },
+    { ref: cinNoRef, name: 'cinNo', label: 'CIN No' },
+    { ref: panNoRef, name: 'panNo', label: 'PAN No' },
+    { ref: stateRef, name: 'state', label: 'State' },
+    { ref: emailRef, name: 'email', label: 'Email' },
+    { ref: shortNameRef, name: 'shortName', label: 'Short Name' },
+  ];
+
+  // Handle keyboard navigation
+  const handleKeyboardNavigation = useCallback((e, currentFieldIndex) => {
+    const isArrowDown = e.key === 'ArrowDown';
+    const isArrowUp = e.key === 'ArrowUp';
+    const isEnter = e.key === 'Enter';
+    const isArrowRight = e.key === 'ArrowRight';
+    const isArrowLeft = e.key === 'ArrowLeft';
+
+    if (isEnter) {
+      e.preventDefault();
+      // Fill all remaining fields with default values (next field focus)
+      const nextFieldIndex = (currentFieldIndex + 1) % fieldNavigation.length;
+      if (fieldNavigation[nextFieldIndex]?.ref?.current) {
+        fieldNavigation[nextFieldIndex].ref.current.focus();
+      }
+    } else if (isArrowDown || isArrowRight) {
+      e.preventDefault();
+      const nextFieldIndex = (currentFieldIndex + 1) % fieldNavigation.length;
+      if (fieldNavigation[nextFieldIndex]?.ref?.current) {
+        fieldNavigation[nextFieldIndex].ref.current.focus();
+      }
+    } else if (isArrowUp || isArrowLeft) {
+      e.preventDefault();
+      const prevFieldIndex = (currentFieldIndex - 1 + fieldNavigation.length) % fieldNavigation.length;
+      if (fieldNavigation[prevFieldIndex]?.ref?.current) {
+        fieldNavigation[prevFieldIndex].ref.current.focus();
+      }
+    }
+  }, [fieldNavigation]);
+
+  // Handle keyboard typing in State field popup (similar to ItemCreation)
+  const handleStateFieldKeyPress = (e) => {
+    // Allow navigation keys to pass through
+    if (['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape'].includes(e.key)) {
+      if (e.key === 'Escape') {
+        setIsStatePopupOpen(false);
+        setStateSearch('');
+      } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        // Allow arrow navigation
+      } else if (e.key === 'Enter') {
+        handleKeyboardNavigation(e, 13);
+      }
+      return;
+    }
+
+    // For any regular character, open popup and capture in search
+    if (!isStatePopupOpen && e.key.length === 1) {
+      e.preventDefault();
+      setStateSearch(e.key);
+      setIsStatePopupOpen(true);
+    }
+  };
+
   const validateForm = () => {
     if (!formData.partyName) {
       setMessage({ type: "error", text: 'Ledger Name is required.' });
@@ -365,6 +440,31 @@ export default function LedgerCreation({ onCreated }) {
     }
     if (!mainGroup) {
       setMessage({ type: "error", text: 'Group Name is required.' });
+      return false;
+    }
+    if (!formData.fStreet) {
+      setMessage({ type: "error", text: 'Street is required.' });
+      fStreetRef.current?.focus();
+      return false;
+    }
+    if (!formData.area) {
+      setMessage({ type: "error", text: 'Area is required.' });
+      areaRef.current?.focus();
+      return false;
+    }
+    if (!formData.city) {
+      setMessage({ type: "error", text: 'City is required.' });
+      cityRef.current?.focus();
+      return false;
+    }
+    if (!formData.pincode) {
+      setMessage({ type: "error", text: 'Pincode is required.' });
+      pincodeRef.current?.focus();
+      return false;
+    }
+    if (!formData.phone) {
+      setMessage({ type: "error", text: 'Phone No is required.' });
+      phoneRef.current?.focus();
       return false;
     }
 
@@ -425,7 +525,7 @@ export default function LedgerCreation({ onCreated }) {
     try {
       if (actionType === 'create') {
         try {
-          const response = await axiosInstance.get(`${API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.getDropdown}/1/1`);
+          const response = await axiosInstance.get(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.getDropdownPaged(1, 20, ''));
           const existingLedgers = Array.isArray(response.data) ? response.data : (response.data?.data || []);
           const isDuplicate = existingLedgers.some(ledger => 
             ledger.fAcname.toLowerCase() === formData.partyName.toLowerCase()
@@ -447,21 +547,18 @@ export default function LedgerCreation({ onCreated }) {
         fcode: formData.fCode || '',
         CustomerName: formData.partyName || '',
         GroupName: mainGroup || '',
-        GstType: formData.gstType || '',
-        route: formData.route || '',
-        duedays: formData.dueDay || '',
-        dueDate: formData.dueDate || '',
+        gstType: formData.gstType || '',
+        Route: formData.route || '',
         street: formData.fStreet || '',
         area: formData.area || '',
         city: formData.city || '',
         pincode: formData.pincode ? Number(formData.pincode) : null,
         phoneNumber: formData.phone || '',
-        cellNo: formData.cellNo || '',
-        HallmarkNo: formData.hallmark || '',
+        fcellNO: formData.cellNo || '',
         GstNo: formData.gstin || '',
         CinNo: formData.cinNo || '',
-        PanNo: formData.panNo || '',
-        state: formData.state || '',
+        PanNO: formData.panNo || '',
+        State: formData.state || '',
         ShortName: formData.shortName || '',
         Email: formData.email || '',
         Hide: formData.Hide || '',
@@ -474,6 +571,8 @@ export default function LedgerCreation({ onCreated }) {
       switch (actionType) {
         case 'create':
           response = await axiosInstance.post(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.postCreate, requestData);
+                    console.log('Create response:', response.data);
+
           toast.success('Ledger created successfully!');
           if (onCreated) {
             onCreated({
@@ -526,29 +625,7 @@ export default function LedgerCreation({ onCreated }) {
     }
   };
 
-  const fetchData = async (searchText = '') => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get(
-        API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.getDropdownPaged(1, 20, searchText),
-      );
 
-      let responseData = response.data;
-      if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
-        responseData = responseData.data || responseData.result || [];
-      }
-
-      const dataArray = Array.isArray(responseData) ? responseData : [];
-      setDataList(dataArray);
-
-    } catch (error) {
-      console.error('Fetch error:', error);
-      setMessage({ type: "error", text: 'Failed to fetch data' });
-      setDataList([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Fetch function used by PopupListSelector (paged + searchable)
   const fetchPopupItems = useCallback(async (page = 1, search = '') => {
@@ -568,6 +645,33 @@ export default function LedgerCreation({ onCreated }) {
       }));
     } catch (err) {
       console.error('fetchPopupItems error', err);
+      return [];
+    }
+  }, []);
+
+  // Fetch function for States with search
+  const fetchStatesWithSearch = useCallback(async (page = 1, search = '') => {
+    try {
+      const resp = await axiosInstance.get(
+        API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS(page, 20)
+      );
+      let items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || []);
+      
+      // Filter by search text if provided
+      if (search) {
+        items = items.filter(item => 
+          (item.fname?.toLowerCase() || '').includes(search.toLowerCase()) ||
+          (item.fcode?.toLowerCase() || '').includes(search.toLowerCase())
+        );
+      }
+
+      return items.map((it) => ({
+        ...it,
+        fcode: it.fcode ?? it.fCode,
+        fname: it.fname ?? it.fName,
+      }));
+    } catch (err) {
+      console.error('fetchStatesWithSearch error', err);
       return [];
     }
   }, []);
@@ -610,10 +714,6 @@ export default function LedgerCreation({ onCreated }) {
       resetForm(true);
     }
     setIsTreeOpen(true);
-    
-    if (type === 'edit' || type === 'delete') {
-      fetchData();
-    }
   };
 
   const handleClear = () => {
@@ -1098,6 +1198,35 @@ export default function LedgerCreation({ onCreated }) {
           color: #374151;
         }
 
+        /* Styles for input fields with built-in search icon */
+        .input-with-search {
+          position: relative;
+          width: 100%;
+        }
+        
+        .input-with-search .input {
+          width: 100%;
+          padding-right: 40px;
+          cursor: pointer;
+          background: white;
+        }
+        
+        .input-search-icon {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--accent);
+          pointer-events: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .input-with-search .input:focus + .input-search-icon {
+          color: var(--accent-2);
+        }
+
         /* dropdown modal (glass) */
         // .modal-overlay {
           
@@ -1442,6 +1571,7 @@ export default function LedgerCreation({ onCreated }) {
                 style={{ width: '100%' }}
                 value={formData.partyName}
                 onChange={(e) => handleChange('partyName', e.target.value)}
+                onKeyDown={(e) => handleKeyboardNavigation(e, 0)}
                 required
               />
             </div>
@@ -1464,6 +1594,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={mainGroup}
                     readOnly
                     onFocus={() => setIsTreeOpen(true)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 1)}
                     disabled={isSubmitting}
                     aria-label="Group Name"
                   />
@@ -1528,9 +1659,18 @@ export default function LedgerCreation({ onCreated }) {
                     className="input"
                     placeholder="G or I"
                     maxLength={1}
-                    style={{ width: '100%' }}
+                    style={{ width: '100%' , textAlign: 'center',}}
                     value={formData.gstType}
                     onChange={(e) => handleChange('gstType', e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.code === 'Space') {
+                        e.preventDefault();
+                        const newValue = formData.gstType === 'G' ? 'I' : 'G';
+                        handleChange('gstType', newValue);
+                      } else {
+                        handleKeyboardNavigation(e, 2);
+                      }
+                    }}
                   />
                 </div>
 
@@ -1543,6 +1683,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.fStreet}
                     onChange={(e) => handleChange('fStreet', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 3)}
                   />
                 </div>
 
@@ -1555,6 +1696,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.area}
                     onChange={(e) => handleChange('area', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 4)}
                   />
                 </div>
 
@@ -1567,6 +1709,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.city}
                     onChange={(e) => handleChange('city', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 5)}
                   />
                 </div>
 
@@ -1579,6 +1722,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.pincode}
                     onChange={(e) => handleChange('pincode', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 6)}
                     maxLength={6}
                   />
                 </div>
@@ -1592,6 +1736,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 7)}
                     maxLength={10}
                   />
                 </div>
@@ -1605,6 +1750,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.cellNo}
                     onChange={(e) => handleChange('cellNo', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 8)}
                     maxLength={10}
                   />
                 </div>
@@ -1620,6 +1766,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.route}
                     onChange={(e) => handleChange('route', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 9)}
                   >
                     <option value="">Select Route</option>
                     <option value="Tamil Nadu">Tamil Nadu</option>
@@ -1636,6 +1783,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.gstin}
                     onChange={(e) => handleChange('gstin', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 10)}
                   />
                 </div>
 
@@ -1648,6 +1796,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.cinNo}
                     onChange={(e) => handleChange('cinNo', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 11)}
                   />
                 </div>
 
@@ -1660,19 +1809,34 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.panNo}
                     onChange={(e) => handleChange('panNo', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 12)}
                   />
                 </div>
 
                 <div className="field">
                   <label className="field-label">State</label>
-                  <input
-                    ref={stateRef}
-                    type="text"
-                    className="input"
-                    style={{ width: '100%' }}
-                    value={formData.state}
-                    onChange={(e) => handleChange('state', e.target.value)}
-                  />
+                  <div className="input-with-search">
+                    <input
+                      ref={stateRef}
+                      type="text"
+                      className="input"
+                      style={{ width: '100%' }}
+                      value={formData.state}
+                      onChange={(e) => {
+                        handleChange('state', e.target.value);
+                      }}
+                      onClick={() => {
+                        setIsStatePopupOpen(true);
+                      }}
+                      onKeyDown={(e) => {
+                        handleStateFieldKeyPress(e);
+                      }}
+                      readOnly
+                    />
+                    <div className="input-search-icon">
+                      <Icon.Search size={16} />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="field">
@@ -1684,6 +1848,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 14)}
                   />
                 </div>
 
@@ -1696,6 +1861,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.shortName}
                     onChange={(e) => handleChange('shortName', e.target.value)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 15)}
                   />
                 </div>
               </div>
@@ -1784,8 +1950,8 @@ export default function LedgerCreation({ onCreated }) {
         onClose={() => setIsPopupOpen(false)}
         onSelect={(item) => {
           // map the selected item into the form
-          const name = item.fAcname ?? item.fAcName ?? item.fAcname;
-          const code = item.fCode ?? item.fcode;
+          const name = item.fAcname ?? item.fAcName ?? '';
+          const code = item.fCode ?? item.fcode ?? '';
           const groupValue = item.fParent ?? item.parentName ?? '';
           
           setFormData(prev => ({
@@ -1793,23 +1959,23 @@ export default function LedgerCreation({ onCreated }) {
             partyName: name || '',
             fCode: code || '',
             gstType: item.gstType || item.GstType || '',
-            route: item.route || item.Route || '',
+            route: item.fRoute || item.Route || '',
             dueDay: item.fDueDays || item.fDueDay || '',
             dueDate: item.fDueDt || item.fDueDate || '',
             fStreet: item.fStreet || item.street || '',
-            hallmark: item.fTngst || item.HallmarkNo || '',
+            hallmark: item.fFax || item.HallmarkNo || '',
             area: item.fArea || item.area || '',
-            gstin: item.fCstno || item.fGst || item.GstNo || '',
-            cinNo: item.cinNo || item.CinNo || '',
-            panNo: item.panNo || item.PanNo || '',
+            gstin: item.fTngst || item.fGst || item.GstNo || '',
+            cinNo: item.fCINNo || item.cinNo || item.CinNo || '',
+            panNo: item.fPANNO || item.panNo || item.PanNo || '',
             city: item.fCity || item.city || '',
             state: item.state || item.State || '',
             pincode: item.fPincode || item.pincode || '',
             phone: item.fPhone || item.phoneNumber || '',
-            cellNo: item.cellNo || item.CellNo || '',
+            cellNo: item.fcell || item.cellNo || item.CellNo || '',
             email: item.fMail || item.fEmail || item.Email || '',
             Hide: item.fshow || '1',
-            shortName: item.fFax || item.fShort || item.ShortName || '',
+            shortName: item.shortName || item.fShort || item.ShortName || '',
           }));
           setMainGroup(groupValue);
           setIsActive(item.fshow !== '0');
@@ -1840,6 +2006,31 @@ export default function LedgerCreation({ onCreated }) {
           type={confirmAction === 'delete' ? 'danger' : 'default'}
           showIcon={true}
           iconSize={24}
+        />
+      )}
+
+      {/* PopupListSelector for State Selection */}
+      {isStatePopupOpen && (
+        <PopupListSelector
+          open={isStatePopupOpen}
+          onClose={() => {
+            setIsStatePopupOpen(false);
+            setStateSearch('');
+          }}
+          onSelect={(item) => {
+            setFormData(prev => ({ ...prev, state: item.fname || item.state || '' }));
+            setIsStatePopupOpen(false);
+            setStateSearch('');
+          }}
+          fetchItems={(page, search) => fetchStatesWithSearch(page, search || stateSearch)}
+          title="Select State"
+          displayFieldKeys={[ 'fname']}
+          searchFields={[ 'fname']}
+          headerNames={[ 'State Name']}
+          columnWidths={{ fcode: '30%', fname: '70%' }}
+          maxHeight="60vh"
+          responsiveBreakpoint={640}
+          initialSearch={stateSearch}
         />
       )}
     </div>
