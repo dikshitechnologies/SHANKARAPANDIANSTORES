@@ -7,7 +7,6 @@ export const API_ENDPOINTS = {
 
   LEDGER_CREATION_ENDPOINTS: {
     getTree: "LedgerGroupCreation/LedgerGroupCreationGet",
-    getDropdown: "LedgerCreation/GetledgerCreationdropdowslist",
     getDropdownPaged: (page = 1, pageSize = 20, searchText = '') =>
       `LedgerCreation/GetledgerCreationdropdowslist/${page}/${pageSize}?searchText=${encodeURIComponent(searchText)}`,
     postCreate: "LedgerCreation/LedgerCreationPost",
@@ -246,6 +245,8 @@ CATEGORY: {
     GET_BILL_LIST:(fCompCode,page,pageSize)=>`ScrapProcurement/GetVouchersBillNoList?compCode=${fCompCode}&pageNumber=${page}&pageSize=${pageSize}`,
     GET_VOUCHER_BY_NO: (voucherNo) => `ScrapProcurement/GetSCRAPDETAILS/${voucherNo}/001`,
     DELETE_SCRAP_PROCUREMENT: (voucherNo) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/001`,
+    GET_CUSTOMER_LIST: (page,pageSize) => `Salesinvoices/GetPartyByParent?pageNumber=${page}&pageSize=${pageSize}`,
+    GET_ITEM_LIST : `Salesinvoices/GetItemsByType?type=SC`,
   },
     TENDER: {
     opening: "Tender/opening",

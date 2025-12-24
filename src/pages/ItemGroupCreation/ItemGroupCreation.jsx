@@ -1192,7 +1192,6 @@ export default function ItemGroupCreation() {
                     value={mainGroup}
                     onChange={(e) => setMainGroup(e.target.value)}
                     readOnly={actionType !== "Add"}
-                    placeholder="Select Main Group"
                     disabled={submitting}
                     aria-label="Main Group"
                     style={{
@@ -1206,7 +1205,7 @@ export default function ItemGroupCreation() {
                       cursor: actionType === "Add" ? "pointer" : "default"
                     }}
                   />
-                  <button
+                  {/* <button
                     className="btn"
                     onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
                     disabled={submitting || actionType !== "Add"}
@@ -1237,7 +1236,7 @@ export default function ItemGroupCreation() {
                     }}
                   >
                     {isTreeOpen ? "Close" : "Open"}
-                  </button>
+                  </button> */}
                 </div>
               </div>
 
@@ -1367,7 +1366,6 @@ export default function ItemGroupCreation() {
                       className="input"
                       value={subGroup}
                       onChange={(e) => setSubGroup(e.target.value)}
-                      placeholder="Enter Sub Group"
                       disabled={submitting}
                       aria-label="Sub Group"
                       style={{
@@ -1412,7 +1410,7 @@ export default function ItemGroupCreation() {
                   </div>
                 )}
 
-                {(actionType === "edit" || actionType === "delete") && (
+                {/* {(actionType === "edit" || actionType === "delete") && (
                   <button
                     className="btn"
                     onClick={() => { setIsDropdownOpen(true); setIsTreeOpen(false); }}
@@ -1430,7 +1428,7 @@ export default function ItemGroupCreation() {
                   >
                     <Icon.Search /> Search
                   </button>
-                )}
+                )} */}
               </div>
             </div>
 
@@ -1447,7 +1445,7 @@ export default function ItemGroupCreation() {
                 className="submit-primary"
                 onClick={() => {
                   const action = actionType === 'Add' ? 'save' : 
-                                actionType === 'edit' ? 'update' : 'delete';
+                                actionType === 'edit' ? 'update' : 'Delete';
                   showConfirmationPopup(action);
                 }}
                 disabled={submitting}

@@ -106,6 +106,9 @@ const PaymentVoucher = () => {
   const [showCashBankPopup, setShowCashBankPopup] = useState(false);
   const [cashBankPopupContext, setCashBankPopupContext] = useState(null); // { paymentItemId, index }
 
+  // Party popup search state
+  const [partySearchTerm, setPartySearchTerm] = useState('');
+
   // 6. Data state
   const [savedVouchers, setSavedVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
@@ -755,15 +758,23 @@ const PaymentVoucher = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const billFields = ['refNo', 'billNo', 'date', 'billAmount', 'paidAmount', 'balanceAmount', 'amount'];
-      const currentBill = billDetails[rowIndex];
-
-      // Get current field index
+      
+      // Currently, only the 'amount' field is editable in the bill details table
       const currentFieldIndex = billFields.indexOf('amount');
+      const nextFieldIndex = currentFieldIndex + 1;
 
-      // If at amount field, move directly to save button
-      if (currentFieldIndex >= 0) {
+      // Check if there's a next row
+      if (rowIndex < billDetails.length - 1) {
+        // Move to the same field (amount) in the next row
+        const nextBillId = billDetails[rowIndex + 1].id;
+        setTimeout(() => {
+          const nextInput = document.getElementById(`bill_${nextBillId}_amount`);
+          nextInput?.focus();
+          setCurrentBillRowIndex(rowIndex + 1);
+        }, 0);
+      } else {
+        // If at last row and last field, move to save button
         setTimeout(() => saveButtonRef.current?.focus(), 0);
-        return;
       }
     }
   };
@@ -903,6 +914,7 @@ const PaymentVoucher = () => {
       }
       
       setShowPartyPopup(false);
+      setPartySearchTerm(''); // Clear search term after selection
       // After selecting account, focus on GST Type
       setTimeout(() => {
         gstTypeRef.current?.focus();
@@ -1016,6 +1028,10 @@ const PaymentVoucher = () => {
       ...prev,
       [name]: value
     }));
+    // Track the accountName value for party popup search
+    if (name === 'accountName') {
+      setPartySearchTerm(value);
+    }
   };
 
   // Handle backspace in account field
@@ -2262,8 +2278,12 @@ const PaymentVoucher = () => {
         <PopupListSelector
           {...getPopupConfig('account')}
           open={showPartyPopup}
-          onClose={() => setShowPartyPopup(false)}
+          onClose={() => {
+            setShowPartyPopup(false);
+            setPartySearchTerm('');
+          }}
           onSelect={handleAccountSelect}
+          initialSearch={partySearchTerm}
         />
       )}
 
