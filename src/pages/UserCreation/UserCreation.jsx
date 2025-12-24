@@ -337,7 +337,10 @@ export default function UserCreation() {
 
   const handleEditRowClick = (user) => {
     // Extract user data based on API response structure
-    const companyCode = user.code || user.fCompCode || "";
+    // user.code is the USER code
+    // user.fCompCode is the COMPANY code
+    const userCode = user.code || user.id;
+    const companyCode = user.fCompCode || user.compCode || "";
     const companyName = user.compaytName || user.companyName || "";
     
     setForm({ 
@@ -346,17 +349,20 @@ export default function UserCreation() {
       username: user.userName || "", 
       password: user.password || "", 
       prefix: user.fPrefix || "",
-      userId: user.code || user.id 
+      userId: userCode
     });
     setActionType("edit");
-    setEditingId(user.code || user.id);
+    setEditingId(userCode);
     setEditModalOpen(false);
     setTimeout(() => usernameRef.current?.focus(), 1060);
   };
 
   const handleDeleteRowClick = (user) => {
     // Extract user data based on API response structure
-    const companyCode = user.code || user.fCompCode || "";
+    // user.code is the USER code
+    // user.fCompCode is the COMPANY code
+    const userCode = user.code || user.id;
+    const companyCode = user.fCompCode || user.compCode || "";
     const companyName = user.compaytName || user.companyName || "";
     
     setForm({ 
@@ -365,10 +371,10 @@ export default function UserCreation() {
       username: user.userName || "", 
       password: user.password || "", 
       prefix: user.fPrefix || "",
-      userId: user.code || user.id 
+      userId: userCode
     });
     setActionType("delete");
-    setDeleteTargetId(user.code || user.id);
+    setDeleteTargetId(userCode);
     setDeleteModalOpen(false);
     setTimeout(() => submitRef.current?.focus(), 1060);
   };
