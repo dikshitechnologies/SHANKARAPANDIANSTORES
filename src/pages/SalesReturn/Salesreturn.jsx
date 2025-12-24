@@ -127,6 +127,12 @@ const SalesReturn = () => {
   // NEW STATE: For save button validation
   const [isFormValid, setIsFormValid] = useState(false);
 
+  // Search term states for popup pre-fill
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [salesmanSearchTerm, setSalesmanSearchTerm] = useState('');
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [billSearchTerm, setBillSearchTerm] = useState('');
+
   // --- REFS ---
   const billRowRefs = useRef([]);
  
@@ -1343,6 +1349,9 @@ const SalesReturn = () => {
       return;
     }
     
+    // Set search term for PopupListSelector pre-fill
+    setCustomerSearchTerm(searchText);
+    
     let customerData = customers.map(customer => ({
       id: customer.code || customer.id,
       name: customer.name,
@@ -1352,12 +1361,12 @@ const SalesReturn = () => {
       mobileNo: customer.mobile || customer.phone || ""
     }));
     
-    // Filter by search text if provided - STARTS WITH search
+    // Filter by search text if provided - INCLUDES search
     if (searchText) {
       const searchLower = searchText.toLowerCase();
       customerData = customerData.filter(customer => 
-        (customer.name && customer.name.toLowerCase().startsWith(searchLower)) ||
-        (customer.displayName && customer.displayName.toLowerCase().startsWith(searchLower))
+        (customer.name && customer.name.toLowerCase().includes(searchLower)) ||
+        (customer.displayName && customer.displayName.toLowerCase().includes(searchLower))
       );
     }
     
@@ -1373,6 +1382,9 @@ const SalesReturn = () => {
       return;
     }
     
+    // Set search term for PopupListSelector pre-fill
+    setSalesmanSearchTerm(searchText);
+    
     let salesmanData = salesmen.map(salesman => ({
       id: salesman.fcode || salesman.code || salesman.id,
       name: salesman.fname || salesman.name,
@@ -1381,12 +1393,12 @@ const SalesReturn = () => {
       salesmanName: salesman.fname || salesman.name
     }));
     
-    // Filter by search text if provided - STARTS WITH search
+    // Filter by search text if provided - INCLUDES search
     if (searchText) {
       const searchLower = searchText.toLowerCase();
       salesmanData = salesmanData.filter(salesman => 
-        (salesman.name && salesman.name.toLowerCase().startsWith(searchLower)) ||
-        (salesman.displayName && salesman.displayName.toLowerCase().startsWith(searchLower))
+        (salesman.name && salesman.name.toLowerCase().includes(searchLower)) ||
+        (salesman.displayName && salesman.displayName.toLowerCase().includes(searchLower))
       );
     }
     
@@ -1401,6 +1413,9 @@ const SalesReturn = () => {
       toast.warning("No items available. Please try again later or enter manually.");
       return;
     }
+    
+    // Set search term for PopupListSelector pre-fill
+    setItemSearchTerm(searchText);
     
     let itemData = itemList.map((item, index) => {
       const itemCode = item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
@@ -1418,12 +1433,12 @@ const SalesReturn = () => {
       };
     });
     
-    // Filter by search text if provided - STARTS WITH search
+    // Filter by search text if provided - INCLUDES search
     if (searchText) {
       const searchLower = searchText.toLowerCase();
       itemData = itemData.filter(item => 
-        (item.name && item.name.toLowerCase().startsWith(searchLower)) ||
-        (item.displayName && item.displayName.toLowerCase().startsWith(searchLower))
+        (item.name && item.name.toLowerCase().includes(searchLower)) ||
+        (item.displayName && item.displayName.toLowerCase().includes(searchLower))
       );
     }
     
@@ -1678,8 +1693,8 @@ const SalesReturn = () => {
         const searchLower = search.toLowerCase();
         filtered = filtered.filter(item => {
           return (
-            (item.name && item.name.toLowerCase().startsWith(searchLower)) ||
-            (item.customerName && item.customerName.toLowerCase().startsWith(searchLower))
+            (item.name && item.name.toLowerCase().includes(searchLower)) ||
+            (item.customerName && item.customerName.toLowerCase().includes(searchLower))
           );
         });
       }
@@ -1688,10 +1703,10 @@ const SalesReturn = () => {
         if (!search) return true;
         const searchLower = search.toLowerCase();
         return (
-          (item.name && item.name.toLowerCase().startsWith(searchLower)) ||
-          (item.displayName && item.displayName.toLowerCase().startsWith(searchLower)) ||
-          (item.itemName && item.itemName.toLowerCase().startsWith(searchLower)) ||
-          (item.fItemName && item.fItemName.toLowerCase().startsWith(searchLower))
+          (item.name && item.name.toLowerCase().includes(searchLower)) ||
+          (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
+          (item.itemName && item.itemName.toLowerCase().includes(searchLower)) ||
+          (item.fItemName && item.fItemName.toLowerCase().includes(searchLower))
         );
       });
     }
@@ -1760,6 +1775,13 @@ const SalesReturn = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setBillDetails(prev => ({ ...prev, [name]: value }));
+    
+    // Track search terms for popup pre-fill
+    if (name === 'custName') {
+      setCustomerSearchTerm(value);
+    } else if (name === 'salesman') {
+      setSalesmanSearchTerm(value);
+    }
   };
 
   // ==================== KEYBOARD NAVIGATION ====================
@@ -2331,6 +2353,11 @@ const SalesReturn = () => {
       }
       return item;
     }));
+    
+    // Track item search term for popup pre-fill
+    if (field === 'barcode' || field === 'itemName') {
+      setItemSearchTerm(value);
+    }
   };
 
   const handleDeleteRow = (id) => {
@@ -3437,7 +3464,9 @@ const confirmApplyBillNumber = () => {
               name="salesman"
               onChange={handleInputChange}
               ref={salesmanRef}
-              onClick={() => openSalesmanPopup()}
+              onClick={() => {
+                openSalesmanPopup(billDetails.salesman);
+              }}
               onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
               onFocus={() => {
                 setFocusedField('salesman');
@@ -3476,7 +3505,9 @@ const confirmApplyBillNumber = () => {
               name="custName"
               onChange={handleInputChange}
               ref={custNameRef}
-              onClick={() => openCustomerPopup()}
+              onClick={() => {
+                openCustomerPopup(billDetails.custName);
+              }}
               onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'custName')}
               onFocus={() => {
                 setFocusedField('custName');
@@ -3586,7 +3617,9 @@ const confirmApplyBillNumber = () => {
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
-                      onClick={() => openItemPopup(index)}
+                      onClick={() => {
+                        openItemPopup(index, item.itemName);
+                      }}
                       onFocus={() => {
                         setFocusedField(`itemName-${item.id}`);
                         setFocusedElement({
@@ -3611,7 +3644,9 @@ const confirmApplyBillNumber = () => {
                         display: 'flex',
                         alignItems: 'center',
                       }}
-                      onClick={() => openItemPopup(index)}
+                      onClick={() => {
+                        openItemPopup(index, items[index].itemName);
+                      }}
                       title="Click or press / to search"
                     >
                       <SearchIcon size={14} />
@@ -3957,6 +3992,11 @@ const confirmApplyBillNumber = () => {
             setPopupData([]);
             setSelectedRowIndex(null);
             setSelectedAction("");
+            // Clear search terms on close
+            setCustomerSearchTerm('');
+            setSalesmanSearchTerm('');
+            setItemSearchTerm('');
+            setBillSearchTerm('');
           }}
           onSelect={handlePopupSelect}
           fetchItems={fetchItemsForPopup}
@@ -3966,6 +4006,12 @@ const confirmApplyBillNumber = () => {
           headerNames={getPopupConfig().headerNames}
           columnWidths={getPopupConfig().columnWidths}
           searchPlaceholder={getPopupConfig().searchPlaceholder}
+          initialSearch={
+            popupType === 'customer' ? customerSearchTerm :
+            popupType === 'salesman' ? salesmanSearchTerm :
+            popupType === 'item' ? itemSearchTerm :
+            billSearchTerm
+          }
           maxHeight="70vh"
         />
       )}
