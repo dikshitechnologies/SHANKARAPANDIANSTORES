@@ -173,9 +173,11 @@ export default function ItemGroupCreation() {
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
   const subGroupRef = useRef(null);
   
-  // Confirmation Popup States (ADDED to match Item Creation)
-  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
+  // Confirmation Popup States (ADDED to match Unit Creation)
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Get permissions (using your hook)
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
@@ -375,50 +377,72 @@ export default function ItemGroupCreation() {
     }
   }, [filteredTree, expandedKeys]);
 
-  // Show confirmation popup (ADDED to match Item Creation)
-  const showConfirmationPopup = (action) => {
-    setConfirmAction(action);
-    setShowConfirmPopup(true);
+  // Show confirmation popup for Add (ADDED to match Unit Creation)
+  const showAddConfirmation = () => {
+    setConfirmSaveOpen(true);
   };
 
-  // Handle confirmation from popup (ADDED to match Item Creation)
-  const handleConfirmAction = async () => {
-    setShowConfirmPopup(false);
+  // Handle Add confirmation (ADDED to match Unit Creation)
+  const confirmSave = async () => {
+    setConfirmSaveOpen(false);
     
-    if (confirmAction === 'clear') {
-    setActionType("Add");
-      resetForm();
-      return;
-    }
-    
-    // For save, update, delete actions, proceed with validation and submission
     if (!validateForSubmit()) {
       return;
     }
-
-    // Check permissions based on action type
-    if (actionType === 'Add' && !formPermissions.add) {
+    
+    if (!formPermissions.add) {
       setMessage({ type: "error", text: "You don't have permission to add item groups." });
       return;
     }
-    if (actionType === 'edit' && !formPermissions.edit) {
+
+    await handleAdd();
+  };
+
+  // Show confirmation popup for Edit (ADDED to match Unit Creation)
+  const showEditConfirmation = () => {
+    setConfirmEditOpen(true);
+  };
+
+  // Handle Edit confirmation (ADDED to match Unit Creation)
+  const confirmEdit = async () => {
+    setConfirmEditOpen(false);
+    
+    if (!validateForSubmit()) {
+      return;
+    }
+    
+    if (!formPermissions.edit) {
       setMessage({ type: "error", text: "You don't have permission to edit item groups." });
       return;
     }
-    if (actionType === 'delete' && !formPermissions.delete) {
+
+    await handleEdit();
+  };
+
+  // Show confirmation popup for Delete (ADDED to match Unit Creation)
+  const showDeleteConfirmation = () => {
+    setConfirmDeleteOpen(true);
+  };
+
+  // Handle Delete confirmation (ADDED to match Unit Creation)
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
+    
+    if (!validateForSubmit()) {
+      return;
+    }
+    
+    if (!formPermissions.delete) {
       setMessage({ type: "error", text: "You don't have permission to delete item groups." });
       return;
     }
 
-    // Your original handleAdd/handleEdit/handleDelete logic
-    if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+    await handleDelete();
   };
 
   const handleAdd = async () => {
     if (!validateForSubmit()) return;
-    setSubmitting(true);
+    setIsLoading(true);
     setMessage(null);
     try {
       const payload = {
@@ -429,15 +453,15 @@ export default function ItemGroupCreation() {
       };
       const resp = await api.post(endpoints.postCreate, payload);
       if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Saved successfully." });
-        toast.success(`Item Group "${subGroup}" created successfully.`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        // setMessage({ type: "success", text: "Saved successfully." });
+        // toast.success(`Item Group "${subGroup}" created successfully.`, {
+        //   position: "top-right",
+        //   autoClose: 3000,
+        //   hideProgressBar: false,
+        //   closeOnClick: true,
+        //   pauseOnHover: true,
+        //   draggable: true,
+        // });
         resetForm();
         await loadInitial();
       } else {
@@ -447,13 +471,13 @@ export default function ItemGroupCreation() {
       console.error("Add error:", err);
       setMessage({ type: "error", text: err.response?.data?.message || err.message || "Save failed" });
     } finally {
-      setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   const handleEdit = async () => {
     if (!validateForSubmit()) return;
-    setSubmitting(true);
+    setIsLoading(true);
     setMessage(null);
     try {
       const payload = {
@@ -465,14 +489,14 @@ export default function ItemGroupCreation() {
       const resp = await api.put(endpoints.putEdit, payload);
       if (resp.status === 200 || resp.status === 201) {
         setMessage({ type: "success", text: "Updated successfully." });
-        toast.success(`Item Group "${subGroup}" updated successfully.`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        // toast.success(`Item Group "${subGroup}" updated successfully.`, {
+        //   position: "top-right",
+        //   autoClose: 3000,
+        //   hideProgressBar: false,
+        //   closeOnClick: true,
+        //   pauseOnHover: true,
+        //   draggable: true,
+        // });
         setActionType("Add");
         resetForm();
         await loadInitial();
@@ -483,27 +507,27 @@ export default function ItemGroupCreation() {
       console.error("Edit error:", err);
       setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
     } finally {
-      setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   const handleDelete = async () => {
     if (!validateForSubmit()) return;
-    setSubmitting(true);
+    setIsLoading(true);
     setMessage(null);
     try {
       const deleteEndpoint = typeof endpoints.delete === 'function' ? endpoints.delete(fCode) : endpoints.delete;
       const resp = await api.delete(deleteEndpoint);
       if (resp.status === 200 || resp.status === 201) {
         setMessage({ type: "success", text: "Deleted successfully." });
-        toast.success(`Item Group "${subGroup}" deleted successfully.`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        // toast.success(`Item Group "${subGroup}" deleted successfully.`, {
+        //   position: "top-right",
+        //   autoClose: 3000,
+        //   hideProgressBar: false,
+        //   closeOnClick: true,
+        //   pauseOnHover: true,
+        //   draggable: true,
+        // });
         setActionType("Add");
         resetForm();
         await loadInitial();
@@ -514,7 +538,7 @@ export default function ItemGroupCreation() {
       console.error("Delete error:", err);
       setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
     } finally {
-      setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -525,57 +549,6 @@ export default function ItemGroupCreation() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fCode]);
-
-  // Get confirmation popup configuration (ADDED to match Item Creation)
-  const getConfirmationConfig = () => {
-    switch (confirmAction) {
-      case 'save':
-        return {
-          title: 'Save Item Group',
-          message: 'Are you sure you want to save this item group?',
-          confirmText: 'Save',
-          type: 'success',
-          iconSize: 24,
-          showIcon: true
-        };
-      case 'update':
-        return {
-          title: 'Update Item Group',
-          message: 'Are you sure you want to update this item group?',
-          confirmText: 'Update',
-          type: 'success',
-          iconSize: 24,
-          showIcon: true
-        };
-      case 'delete':
-        return {
-          title: 'Delete Item Group',
-          message: 'Are you sure you want to delete this item group? This action cannot be undone.',
-          confirmText: 'Delete',
-          type: 'danger',
-          iconSize: 24,
-          showIcon: true
-        };
-      case 'clear':
-        return {
-          title: 'Clear Form',
-          message: 'Are you sure you want to clear all fields? All unsaved changes will be lost.',
-          confirmText: 'Clear',
-          type: 'warning',
-          iconSize: 24,
-          showIcon: true
-        };
-      default:
-        return {
-          title: 'Confirm Action',
-          message: 'Are you sure you want to proceed?',
-          confirmText: 'Confirm',
-          type: 'default',
-          iconSize: 24,
-          showIcon: true
-        };
-    }
-  };
 
   return (
     <div className="lg-root" role="region" aria-labelledby="item-group-title">
@@ -1316,13 +1289,13 @@ export default function ItemGroupCreation() {
 
                       <div className="row" style={{ marginBottom: 8 }}>
                         <div className="search-container">
-                          <input
+                          {/* <input
                             className="search-with-clear"
                             placeholder="Search groups..."
                             value={searchTree}
                             onChange={(e) => setSearchTree(e.target.value)}
                             aria-label="Search groups"
-                          />
+                          /> */}
                           {searchTree && (
                             <button
                               className="clear-search-btn"
@@ -1364,13 +1337,13 @@ export default function ItemGroupCreation() {
                   <div className="panel" id="group-tree" role="tree" aria-label="Group list">
                     <div className="row" style={{ marginBottom: 8 }}>
                       <div className="search-container">
-                        <input
+                        {/* <input
                           className="search-with-clear"
                           placeholder="Search groups..."
                           value={searchTree}
                           onChange={(e) => setSearchTree(e.target.value)}
                           aria-label="Search groups"
-                        />
+                        /> */}
                         {searchTree && (
                           <button
                             className="clear-search-btn"
@@ -1505,19 +1478,22 @@ export default function ItemGroupCreation() {
               <button
                 className="submit-primary"
                 onClick={() => {
-                  const action = actionType === 'Add' ? 'save' : 
-                                actionType === 'edit' ? 'update' : 'Delete';
-                  showConfirmationPopup(action);
+                  if (actionType === "Add") showAddConfirmation();
+                  else if (actionType === "edit") showEditConfirmation();
+                  else if (actionType === "delete") showDeleteConfirmation();
                 }}
-                disabled={submitting}
+                disabled={isLoading}
                 type="button"
               >
-                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
+                {isLoading ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
               </button>
               <button
                 className="submit-clear"
-                onClick={() => showConfirmationPopup('clear')}
-                disabled={submitting}
+                onClick={() => {
+                  setActionType("Add");
+                  resetForm();
+                }}
+                disabled={isLoading}
                 type="button"
               >
                 Clear
@@ -1527,12 +1503,76 @@ export default function ItemGroupCreation() {
         </div>
       </div>
 
-      {/* Confirmation Popup (ADDED to match Item Creation) */}
+      {/* Confirmation Popup for Save */}
       <ConfirmationPopup
-        isOpen={showConfirmPopup}
-        onClose={() => setShowConfirmPopup(false)}
-        onConfirm={handleConfirmAction}
-        {...getConfirmationConfig()}
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Item Group"
+        message={`Do you want to save?`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Edit */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Item Group"
+        message={`Do you want to modify?`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Delete */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Item Group"
+        message={`Do you want to delete?`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
 
       {/* Dropdown modal */}

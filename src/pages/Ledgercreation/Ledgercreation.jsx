@@ -198,10 +198,11 @@ export default function LedgerCreation({ onCreated }) {
     delete: hasDeletePermission('LEDGER_CREATION')
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
-  // Confirmation Popup States
-  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [confirmData, setConfirmData] = useState(null);
+  // Confirmation Popup States (ADDED to match Unit Creation)
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Auto-focus Ledger Name on component mount
   useEffect(() => {
@@ -507,6 +508,69 @@ export default function LedgerCreation({ onCreated }) {
     return true;
   };
 
+  // Show confirmation popup for Create (ADDED to match Unit Creation)
+  const showCreateConfirmation = () => {
+    setConfirmSaveOpen(true);
+  };
+
+  // Handle Create confirmation (ADDED to match Unit Creation)
+  const confirmCreate = async () => {
+    setConfirmSaveOpen(false);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    if (!formPermissions.add) {
+      toast.error("You don't have permission to create ledgers.");
+      return;
+    }
+
+    await handleSubmit();
+  };
+
+  // Show confirmation popup for Edit (ADDED to match Unit Creation)
+  const showEditConfirmation = () => {
+    setConfirmEditOpen(true);
+  };
+
+  // Handle Edit confirmation (ADDED to match Unit Creation)
+  const confirmEdit = async () => {
+    setConfirmEditOpen(false);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    if (!formPermissions.edit) {
+      toast.error("You don't have permission to edit ledgers.");
+      return;
+    }
+
+    await handleSubmit();
+  };
+
+  // Show confirmation popup for Delete (ADDED to match Unit Creation)
+  const showDeleteConfirmation = () => {
+    setConfirmDeleteOpen(true);
+  };
+
+  // Handle Delete confirmation (ADDED to match Unit Creation)
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    if (!formPermissions.delete) {
+      toast.error("You don't have permission to delete ledgers.");
+      return;
+    }
+
+    await handleSubmit();
+  };
+
   const showConfirmation = (message, onConfirm) => {
     if (window.confirm(message)) {
       onConfirm();
@@ -514,25 +578,7 @@ export default function LedgerCreation({ onCreated }) {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    // Check permissions based on action type
-    if (actionType === 'create' && !formPermissions.add) {
-      toast.error("You don't have permission to create ledgers.");
-      return;
-    }
-    if (actionType === 'edit' && !formPermissions.edit) {
-      toast.error("You don't have permission to edit ledgers.");
-      return;
-    }
-    if (actionType === 'delete' && !formPermissions.delete) {
-      toast.error("You don't have permission to delete ledgers.");
-      return;
-    }
-
-    setIsSubmitting(true);
+    setIsLoading(true);
     setMessage(null);
     try {
       if (actionType === 'create') {
@@ -633,7 +679,7 @@ export default function LedgerCreation({ onCreated }) {
         toast.error(`Error: ${error.message}. Please check your connection and try again.`);
       }
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -1636,13 +1682,13 @@ export default function LedgerCreation({ onCreated }) {
             {isTreeOpen && (
               <div className="panel">
                 <div className="search-container">
-                  <input
+                  {/* <input
                     type="text"
                     className="search-with-clear"
                     placeholder="Search groups..."
                     value={searchTree}
                     onChange={(e) => setSearchTree(e.target.value)}
-                  />
+                  /> */}
                   {searchTree && (
                     <button
                       className="clear-search-btn"
@@ -1945,16 +1991,14 @@ export default function LedgerCreation({ onCreated }) {
                 ref={submitButtonRef}
                 className="submit-primary"
                 onClick={() => {
-                  if (actionType === 'delete') {
-                    showConfirmation('Are you sure you want to delete this ledger?', handleSubmit);
-                  } else {
-                    handleSubmit();
-                  }
+                  if (actionType === 'create') showCreateConfirmation();
+                  else if (actionType === 'edit') showEditConfirmation();
+                  else if (actionType === 'delete') showDeleteConfirmation();
                 }}
                 onKeyDown={(e) => handleKeyboardNavigation(e, 17)}
-                disabled={isSubmitting}
+                disabled={isLoading}
               >
-                {isSubmitting ? 'Processing...' : 
+                {isLoading ? 'Processing...' : 
                  actionType === 'create' ? 'Add' :
                  actionType === 'edit' ? 'Edit' : 'Delete'}
               </button>
@@ -1963,7 +2007,7 @@ export default function LedgerCreation({ onCreated }) {
                 className="submit-clear"
                 onClick={handleClear}
                 onKeyDown={(e) => handleKeyboardNavigation(e, 18)}
-                disabled={isSubmitting}
+                disabled={isLoading}
               >
                 Clear
               </button>
@@ -2035,23 +2079,77 @@ export default function LedgerCreation({ onCreated }) {
         responsiveBreakpoint={640}
       />
 
-      {/* Confirmation Popup */}
-      {showConfirmPopup && (
-        <ConfirmationPopup
-          title={confirmAction === 'delete' ? 'Confirm Deletion' : 'Confirm Action'}
-          message={confirmAction === 'delete' ? 'Are you sure you want to delete this ledger? This action cannot be undone.' : 'Are you sure you want to proceed?'}
-          onConfirm={() => {
-            setShowConfirmPopup(false);
-            handleSubmit();
-          }}
-          onCancel={() => setShowConfirmPopup(false)}
-          confirmText="Confirm"
-          cancelText="Cancel"
-          type={confirmAction === 'delete' ? 'danger' : 'default'}
-          showIcon={true}
-          iconSize={24}
-        />
-      )}
+      {/* Confirmation Popup for Create */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmCreate}
+        title="Create Ledger"
+        message={`Do you want to save?`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Edit */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Ledger"
+        message={`Do you want to modify?`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Delete */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Ledger"
+        message={`Do you want to delete?`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
+      />
 
       {/* PopupListSelector for State Selection */}
       {isStatePopupOpen && (
