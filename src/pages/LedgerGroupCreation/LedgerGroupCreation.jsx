@@ -309,7 +309,7 @@ export default function LedgerGroupCreation() {
   setSearchDropdown("");
   setSearchTree("");
   setIsDropdownOpen(false);
-  setIsTreeOpen(true); 
+  setIsTreeOpen(true);
 };
 
   const validateForSubmit = () => {
@@ -1217,12 +1217,12 @@ export default function LedgerGroupCreation() {
                   <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
                     <div className="row" style={{ marginBottom: 8 }}>
                       <div className="search-container">
-                        <input
+                        {/* <input
                           className="search-with-clear"
                           value={searchTree}
                           onChange={(e) => setSearchTree(e.target.value)}
                           aria-label="Search groups"
-                        />
+                        /> */}
                         {searchTree && (
                           <button
                             className="clear-search-btn"
@@ -1315,7 +1315,7 @@ export default function LedgerGroupCreation() {
                 disabled={submitting}
                 type="button"
               >
-                {submitting ? "Processing..." : actionType}
+                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
               </button>
               <button
                 className="submit-clear"

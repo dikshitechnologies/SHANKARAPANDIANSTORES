@@ -184,6 +184,9 @@ export default function LedgerCreation({ onCreated }) {
   const cinNoRef = useRef(null);
   const panNoRef = useRef(null);
   const stateRef = useRef(null);
+  const activeSwitchRef = useRef(null);
+  const submitButtonRef = useRef(null);
+  const clearButtonRef = useRef(null);
 
   // Get permissions for this form using the usePermissions hook
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
@@ -321,6 +324,10 @@ export default function LedgerCreation({ onCreated }) {
     setSelectedNode(node);
     setMainGroup(node.displayName);
     setIsTreeOpen(false);
+    // Focus on next field after selecting node
+    if (gstTypeRef.current) {
+      gstTypeRef.current.focus();
+    }
   };
 
   const handleChange = (name, value) => {
@@ -370,13 +377,15 @@ export default function LedgerCreation({ onCreated }) {
     { ref: pincodeRef, name: 'pincode', label: 'Pincode' },
     { ref: phoneRef, name: 'phone', label: 'Phone' },
     { ref: cellNoRef, name: 'cellNo', label: 'Cell No' },
-    { ref: routeRef, name: 'route', label: 'Route' },
     { ref: gstinRef, name: 'gstin', label: 'GSTIN' },
     { ref: cinNoRef, name: 'cinNo', label: 'CIN No' },
     { ref: panNoRef, name: 'panNo', label: 'PAN No' },
     { ref: stateRef, name: 'state', label: 'State' },
     { ref: emailRef, name: 'email', label: 'Email' },
     { ref: shortNameRef, name: 'shortName', label: 'Short Name' },
+    { ref: activeSwitchRef, name: 'active', label: 'Active Status' },
+    { ref: submitButtonRef, name: 'submit', label: 'Submit Button' },
+    { ref: clearButtonRef, name: 'clear', label: 'Clear Button' },
   ];
 
   // Handle keyboard navigation
@@ -389,7 +398,7 @@ export default function LedgerCreation({ onCreated }) {
 
     if (isEnter) {
       e.preventDefault();
-      // Fill all remaining fields with default values (next field focus)
+      // Move to next field
       const nextFieldIndex = (currentFieldIndex + 1) % fieldNavigation.length;
       if (fieldNavigation[nextFieldIndex]?.ref?.current) {
         fieldNavigation[nextFieldIndex].ref.current.focus();
@@ -409,7 +418,7 @@ export default function LedgerCreation({ onCreated }) {
     }
   }, [fieldNavigation]);
 
-  // Handle keyboard typing in State field popup (similar to ItemCreation)
+  // Handle keyboard typing in State field popup
   const handleStateFieldKeyPress = (e) => {
     // Allow navigation keys to pass through
     if (['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape'].includes(e.key)) {
@@ -417,7 +426,9 @@ export default function LedgerCreation({ onCreated }) {
         setIsStatePopupOpen(false);
         setStateSearch('');
       } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        // Allow arrow navigation
+        // Prevent default behavior and let popup handle navigation
+        e.preventDefault();
+        e.stopPropagation();
       } else if (e.key === 'Enter') {
         handleKeyboardNavigation(e, 13);
       }
@@ -561,7 +572,7 @@ export default function LedgerCreation({ onCreated }) {
         State: formData.state || '',
         ShortName: formData.shortName || '',
         Email: formData.email || '',
-        Hide: formData.Hide || '',
+        Hide: formData.Hide || '',  
         fCompCode: FCompCode || '',
       };
 
@@ -625,8 +636,6 @@ export default function LedgerCreation({ onCreated }) {
     }
   };
 
-
-
   // Fetch function used by PopupListSelector (paged + searchable)
   const fetchPopupItems = useCallback(async (page = 1, search = '') => {
     try {
@@ -638,10 +647,26 @@ export default function LedgerCreation({ onCreated }) {
       // Ensure we return an array of plain objects with expected fields
       return items.map((it) => ({
         ...it,
-        // normalize casing for consumers
+        // Normalize casing for consumers - ensure consistent field names
         fCode: it.fCode ?? it.fcode,
         fAcname: it.fAcname ?? it.fAcName,
         fParent: it.fParent ?? it.parentName ?? '',
+        fStreet: it.fStreet ?? it.street ?? '',
+        fArea: it.fArea ?? it.area ?? '',
+        fCity: it.fCity ?? it.city ?? '',
+        fPincode: it.fPincode ?? it.pincode ?? '',
+        fPhone: it.fPhone ?? it.fphone ?? it.phoneNumber ?? '',
+        fMail: it.fMail ?? it.fEmail ?? it.Email ?? '',
+        gstType: it.gstType ?? it.GstType ?? '',
+        fRoute: it.fRoute ?? it.Route ?? '',
+        fDueDays: it.fDueDays ?? it.fDueDay ?? '',
+        fDueDt: it.fDueDt ?? it.fDueDate ?? '',
+        fCstno: it.fCstno ?? it.fGst ?? it.GstNo ?? '',
+        fCINNo: it.fCINNo ?? it.cinNo ?? it.CinNo ?? '',
+        fPANNO: it.fPANNO ?? it.panNo ?? it.PanNo ?? '',
+        fcell: it.fcell ?? it.cellNo ?? it.CellNo ?? '',
+        fshow: it.fshow ?? '1',
+        shortName: it.shortName ?? it.fShort ?? it.ShortName ?? it.fFax ?? '',
       }));
     } catch (err) {
       console.error('fetchPopupItems error', err);
@@ -718,6 +743,9 @@ export default function LedgerCreation({ onCreated }) {
 
   const handleClear = () => {
     resetForm(false);
+    if (partyNameRef.current) {
+      partyNameRef.current.focus();
+    }
   };
 
   const filteredTree = useMemo(() => {
@@ -1336,6 +1364,7 @@ export default function LedgerCreation({ onCreated }) {
 
 
 
+
         /* Responsive styles */
         /* Large tablets and small laptops */
         @media (max-width: 1024px) {
@@ -1573,6 +1602,7 @@ export default function LedgerCreation({ onCreated }) {
                 onChange={(e) => handleChange('partyName', e.target.value)}
                 onKeyDown={(e) => handleKeyboardNavigation(e, 0)}
                 required
+                readOnly={actionType === 'delete'}
               />
             </div>
 
@@ -1671,6 +1701,7 @@ export default function LedgerCreation({ onCreated }) {
                         handleKeyboardNavigation(e, 2);
                       }
                     }}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1684,6 +1715,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.fStreet}
                     onChange={(e) => handleChange('fStreet', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 3)}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1696,7 +1728,8 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.area}
                     onChange={(e) => handleChange('area', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 4)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1709,7 +1742,8 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.city}
                     onChange={(e) => handleChange('city', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 5)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1722,8 +1756,9 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.pincode}
                     onChange={(e) => handleChange('pincode', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 6)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
                     maxLength={6}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1736,8 +1771,9 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 7)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
                     maxLength={10}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1750,8 +1786,9 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.cellNo}
                     onChange={(e) => handleChange('cellNo', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 8)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
                     maxLength={10}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
               </div>
@@ -1766,11 +1803,13 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.route}
                     onChange={(e) => handleChange('route', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 9)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 4)}
+                    disabled={actionType === 'delete'}
                   >
                     <option value="">Select Route</option>
                     <option value="Tamil Nadu">Tamil Nadu</option>
                     <option value="Chennai">Chennai</option>
+                   <option value="Puducherry">Puducherry</option>
                   </select>
                 </div>
 
@@ -1784,6 +1823,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.gstin}
                     onChange={(e) => handleChange('gstin', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 10)}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1797,6 +1837,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.cinNo}
                     onChange={(e) => handleChange('cinNo', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 11)}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1810,6 +1851,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.panNo}
                     onChange={(e) => handleChange('panNo', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 12)}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1826,11 +1868,10 @@ export default function LedgerCreation({ onCreated }) {
                         handleChange('state', e.target.value);
                       }}
                       onClick={() => {
-                        setIsStatePopupOpen(true);
+                        if (actionType !== 'delete') setIsStatePopupOpen(true);
                       }}
-                      onKeyDown={(e) => {
-                        handleStateFieldKeyPress(e);
-                      }}
+                      onKeyDown={(e) => handleKeyboardNavigation(e, 13)}
+
                       readOnly
                     />
                     <div className="input-search-icon">
@@ -1849,6 +1890,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 14)}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
 
@@ -1862,6 +1904,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.shortName}
                     onChange={(e) => handleChange('shortName', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 15)}
+                    readOnly={actionType === 'delete'}
                   />
                 </div>
               </div>
@@ -1870,18 +1913,18 @@ export default function LedgerCreation({ onCreated }) {
             {/* Active Status Switch */}
             <div className="switch-container" style={{ marginTop: '16px' }}>
               <label className="field-label" style={{ margin: 0, marginRight: 12 }}>Active Status</label>
-              <label className="switch" >
+              <label className="switch" ref={activeSwitchRef}>
                 <input
                   type="checkbox"
                   checked={isActive}
                   onChange={toggleActive}
+                  onKeyDown={(e) => handleKeyboardNavigation(e, 16)}
+                  disabled={actionType === 'delete'}
                 />
                 <span className="slider"></span>
               </label>
               <span className="muted">{isActive ? 'Active' : 'Inactive'}</span>
             </div>
-
-            
 
             {message && (
               <div className={`message ${message.type}`}>
@@ -1898,6 +1941,7 @@ export default function LedgerCreation({ onCreated }) {
 
             <div className="submit-row">
               <button
+                ref={submitButtonRef}
                 className="submit-primary"
                 onClick={() => {
                   if (actionType === 'delete') {
@@ -1906,6 +1950,7 @@ export default function LedgerCreation({ onCreated }) {
                     handleSubmit();
                   }
                 }}
+                onKeyDown={(e) => handleKeyboardNavigation(e, 17)}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Processing...' : 
@@ -1913,20 +1958,18 @@ export default function LedgerCreation({ onCreated }) {
                  actionType === 'edit' ? 'Edit' : 'Delete'}
               </button>
               <button
+                ref={clearButtonRef}
                 className="submit-clear"
                 onClick={handleClear}
+                onKeyDown={(e) => handleKeyboardNavigation(e, 18)}
                 disabled={isSubmitting}
               >
                 Clear
               </button>
             </div>
           </div>
-
-     
         </div>
       </div>
-
-
 
       {/* Modal overlay backdrop */}
       {isPopupOpen && (
@@ -1963,9 +2006,9 @@ export default function LedgerCreation({ onCreated }) {
             dueDay: item.fDueDays || item.fDueDay || '',
             dueDate: item.fDueDt || item.fDueDate || '',
             fStreet: item.fStreet || item.street || '',
-            hallmark: item.fFax || item.HallmarkNo || '',
+            hallmark: item.HallmarkNo || '',
             area: item.fArea || item.area || '',
-            gstin: item.fTngst || item.fGst || item.GstNo || '',
+            gstin: item.fCstno || item.fGst || item.GstNo || '',
             cinNo: item.fCINNo || item.cinNo || item.CinNo || '',
             panNo: item.fPANNO || item.panNo || item.PanNo || '',
             city: item.fCity || item.city || '',
@@ -1975,7 +2018,7 @@ export default function LedgerCreation({ onCreated }) {
             cellNo: item.fcell || item.cellNo || item.CellNo || '',
             email: item.fMail || item.fEmail || item.Email || '',
             Hide: item.fshow || '1',
-            shortName: item.shortName || item.fShort || item.ShortName || '',
+            shortName: item.shortName || item.fShort || item.ShortName || item.fFax || '',
           }));
           setMainGroup(groupValue);
           setIsActive(item.fshow !== '0');

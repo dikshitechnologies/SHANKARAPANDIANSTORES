@@ -1451,7 +1451,7 @@ export default function ItemGroupCreation() {
                 disabled={submitting}
                 type="button"
               >
-                {submitting ? "Processing..." : actionType}
+                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
               </button>
               <button
                 className="submit-clear"
