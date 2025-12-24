@@ -32,6 +32,20 @@ export const AuthProvider = ({ children }) => {
     return [];
   });
 
+  // Add fseudo state (top-level)
+  const [fseudo, setFseudo] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.fseudo || null;
+      }
+    } catch (err) {
+      console.warn('Failed to restore fseudo from sessionStorage:', err);
+    }
+    return null;
+  });
+
   const login = (data) => {
     const newUserData = {
       username: data.userName,
@@ -42,15 +56,18 @@ export const AuthProvider = ({ children }) => {
       images: data.images || '',
     };
     const newPermissions = data.permissions || [];
+    const newFseudo = data.fseudo || null;
 
     setUserData(newUserData);
     setPermissions(newPermissions);
+    setFseudo(newFseudo);
 
     // Persist to sessionStorage (clears on browser/tab close)
     try {
       sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
         userData: newUserData,
         permissions: newPermissions,
+        fseudo: newFseudo,
       }));
     } catch (err) {
       console.warn('Failed to persist auth data to sessionStorage:', err);
@@ -60,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUserData(null);
     setPermissions([]);
-    
+    setFseudo(null);
     // Remove from sessionStorage
     try {
       sessionStorage.removeItem(AUTH_STORAGE_KEY);
@@ -70,7 +87,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ userData, permissions, login, logout }}>
+    <AuthContext.Provider value={{ userData, permissions, fseudo, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
