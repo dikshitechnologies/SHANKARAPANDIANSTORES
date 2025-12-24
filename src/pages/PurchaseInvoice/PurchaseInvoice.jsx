@@ -1369,7 +1369,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const handleDeleteRow = (id) => {
     if (items.length <= 1) {
       showAlertConfirmation("Cannot delete the last row", null, 'warning');
-      toast.warning("Cannot delete the last row");
+     
       return;
 
     }

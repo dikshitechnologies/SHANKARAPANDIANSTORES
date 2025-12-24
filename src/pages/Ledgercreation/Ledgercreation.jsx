@@ -152,7 +152,13 @@ export default function LedgerCreation({ onCreated }) {
     city: '',
     pincode: '',
     phone: '',
+    cellNo: '',
     email: '',
+    gstType: '',
+    route: '',
+    cinNo: '',
+    panNo: '',
+    state: '',
     Hide: '1',
     fCode: '',
   });
@@ -166,10 +172,16 @@ export default function LedgerCreation({ onCreated }) {
   const cityRef = useRef(null);
   const pincodeRef = useRef(null);
   const phoneRef = useRef(null);
+  const cellNoRef = useRef(null);
   const hallmarkRef = useRef(null);
   const gstinRef = useRef(null);
   const shortNameRef = useRef(null);
   const emailRef = useRef(null);
+  const gstTypeRef = useRef(null);
+  const routeRef = useRef(null);
+  const cinNoRef = useRef(null);
+  const panNoRef = useRef(null);
+  const stateRef = useRef(null);
 
   // Get permissions for this form using the usePermissions hook
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
@@ -331,6 +343,9 @@ export default function LedgerCreation({ onCreated }) {
           dueDate: '',
         }));
       }
+    } else if (name === 'gstType' && value) {
+      // Convert to uppercase for GST Type
+      setFormData(prev => ({ ...prev, [name]: value.toUpperCase() }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -432,6 +447,8 @@ export default function LedgerCreation({ onCreated }) {
         fcode: formData.fCode || '',
         CustomerName: formData.partyName || '',
         GroupName: mainGroup || '',
+        GstType: formData.gstType || '',
+        route: formData.route || '',
         duedays: formData.dueDay || '',
         dueDate: formData.dueDate || '',
         street: formData.fStreet || '',
@@ -439,8 +456,12 @@ export default function LedgerCreation({ onCreated }) {
         city: formData.city || '',
         pincode: formData.pincode ? Number(formData.pincode) : null,
         phoneNumber: formData.phone || '',
+        cellNo: formData.cellNo || '',
         HallmarkNo: formData.hallmark || '',
         GstNo: formData.gstin || '',
+        CinNo: formData.cinNo || '',
+        PanNo: formData.panNo || '',
+        state: formData.state || '',
         ShortName: formData.shortName || '',
         Email: formData.email || '',
         Hide: formData.Hide || '',
@@ -567,7 +588,13 @@ export default function LedgerCreation({ onCreated }) {
       city: '',
       pincode: '',
       phone: '',
+      cellNo: '',
       email: '',
+      gstType: '',
+      route: '',
+      cinNo: '',
+      panNo: '',
+      state: '',
       Hide: '1',
       fCode: '',
     });
@@ -1106,7 +1133,6 @@ export default function LedgerCreation({ onCreated }) {
         /* switch styles */
         .switch-container {
           display: flex;
-          align-items: center;
           gap: 10px;
           margin-top: 16px;
           padding: 12px;
@@ -1119,7 +1145,7 @@ export default function LedgerCreation({ onCreated }) {
         .switch {
           position: relative;
           display: inline-block;
-          width: 80px;
+          width: 60px;
           height: 22px;
           margin-left: -50px;
         }
@@ -1413,7 +1439,7 @@ export default function LedgerCreation({ onCreated }) {
                 ref={partyNameRef}
                 type="text"
                 className="input"
-                placeholder="Enter ledger name"
+                style={{ width: '100%' }}
                 value={formData.partyName}
                 onChange={(e) => handleChange('partyName', e.target.value)}
                 required
@@ -1421,74 +1447,29 @@ export default function LedgerCreation({ onCreated }) {
             </div>
 
             <div className="field">
-  <label className="field-label">Group Name *</label>
-  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-    <div style={{
-      display: "flex",
-      flex: 1,
-      border: "1px solid rgba(15,23,42,0.06)",
-      borderRadius: "10px",
-      overflow: "hidden",
-      background: "linear-gradient(180deg, #fff, #fbfdff)",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-    }}>
-      <input
-        ref={groupNameRef}
-        type="text"
-        className="input"
-        placeholder="Select group"
-        value={mainGroup}
-        readOnly
-        onFocus={() => setIsTreeOpen(true)}
-        disabled={isSubmitting}
-        aria-label="Group Name"
-        style={{
-          flex: 1,
-          border: "none",
-          borderRadius: 0,
-          padding: "10px 12px",
-          minWidth: "120px",
-          fontSize: "14px",
-          outline: "none",
-          background: "transparent",
-          cursor: "pointer"
-        }}
-      />
-      <button
-        className="btn"
-        onClick={() => setIsTreeOpen(!isTreeOpen)}
-        disabled={isSubmitting}
-        type="button"
-        aria-expanded={isTreeOpen}
-        aria-controls="group-tree"
-        style={{
-          flexShrink: 0,
-          border: "none",
-          borderLeft: "1px solid rgba(15,23,42,0.06)",
-          borderRadius: 0,
-          padding: "8px 12px",
-          minWidth: "70px",
-          fontSize: "12px",
-          fontWeight: "600",
-          background: "linear-gradient(180deg,#fff,#f8fafc)",
-          cursor: isSubmitting ? "not-allowed" : "pointer",
-          color: "#0f172a",
-          transition: "all 0.2s"
-        }}
-        onMouseOver={(e) => {
-          if (!isSubmitting) {
-            e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
-          }
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
-        }}
-      >
-        {isTreeOpen ? "Close" : "Open"}
-      </button>
-    </div>
-  </div>
-</div>
+              <label className="field-label">Group Name *</label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    ref={groupNameRef}
+                    type="text"
+                    className="input"
+                    value={mainGroup}
+                    readOnly
+                    onFocus={() => setIsTreeOpen(true)}
+                    disabled={isSubmitting}
+                    aria-label="Group Name"
+                  />
+                </div>
+              </div>
+            </div>
 
             {isTreeOpen && (
               <div className="panel">
@@ -1535,154 +1516,203 @@ export default function LedgerCreation({ onCreated }) {
               </div>
             )}
 
-            <div className="form-grid">
-              <div className="field">
-                <label className="field-label">Short Name</label>
-                <input
-                  ref={shortNameRef}
-                  type="text"
-                  className="input"
-                  placeholder="Short name"
-                  value={formData.shortName}
-                  onChange={(e) => handleChange('shortName', e.target.value)}
-                />
-              </div>
+            {/* Two-column layout: Left and Right */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 32px', marginTop: '16px' }}>
+              {/* LEFT COLUMN */}
+              <div>
+                <div className="field">
+                  <label className="field-label">GST Type</label>
+                  <input
+                    ref={gstTypeRef}
+                    type="text"
+                    className="input"
+                    placeholder="G or I"
+                    maxLength={1}
+                    style={{ width: '100%' }}
+                    value={formData.gstType}
+                    onChange={(e) => handleChange('gstType', e.target.value)}
+                  />
+                </div>
 
-              <div className="field">
-                <label className="field-label">Due Days</label>
-                <input
-                  ref={dueDayRef}
-                  type="text"
-                  className="input"
-                  placeholder="Due days"
-                  value={formData.dueDay}
-                  onChange={(e) => handleChange('dueDay', e.target.value)}
-                />
-              </div>
+                <div className="field">
+                  <label className="field-label">Street *</label>
+                  <input
+                    ref={fStreetRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.fStreet}
+                    onChange={(e) => handleChange('fStreet', e.target.value)}
+                  />
+                </div>
 
-              <div className="field">
-                <label className="field-label">Due Date</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Due date"
-                  value={formData.dueDate}
-                  readOnly
-                />
-              </div>
+                <div className="field">
+                  <label className="field-label">Area *</label>
+                  <input
+                    ref={areaRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.area}
+                    onChange={(e) => handleChange('area', e.target.value)}
+                  />
+                </div>
 
-              <div className="field">
-                <label className="field-label">Hallmark No.</label>
-                <input
-                  ref={hallmarkRef}
-                  type="text"
-                  className="input"
-                  placeholder="Hallmark number"
-                  value={formData.hallmark}
-                  onChange={(e) => handleChange('hallmark', e.target.value)}
-                />
-              </div>
+                <div className="field">
+                  <label className="field-label">City *</label>
+                  <input
+                    ref={cityRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.city}
+                    onChange={(e) => handleChange('city', e.target.value)}
+                  />
+                </div>
 
-              <div className="field">
-                <label className="field-label">Street Address</label>
-                <input
-                  ref={fStreetRef}
-                  type="text"
-                  className="input"
-                  placeholder="Street address"
-                  value={formData.fStreet}
-                  onChange={(e) => handleChange('fStreet', e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label className="field-label">GSTIN</label>
-                <input
-                  ref={gstinRef}
-                  type="text"
-                  className="input"
-                  placeholder="GSTIN"
-                  value={formData.gstin}
-                  onChange={(e) => handleChange('gstin', e.target.value)}
-                />
-              </div>
+                <div className="field">
+                  <label className="field-label">Pincode *</label>
+                  <input
+                    ref={pincodeRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.pincode}
+                    onChange={(e) => handleChange('pincode', e.target.value)}
+                    maxLength={6}
+                  />
+                </div>
 
-              <div className="field">
-                <label className="field-label">Area</label>
-                <input
-                  ref={areaRef}
-                  type="text"
-                  className="input"
-                  placeholder="Area"
-                  value={formData.area}
-                  onChange={(e) => handleChange('area', e.target.value)}
-                />
-              </div>
+                <div className="field">
+                  <label className="field-label">Phone No *</label>
+                  <input
+                    ref={phoneRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.phone}
+                    onChange={(e) => handleChange('phone', e.target.value)}
+                    maxLength={10}
+                  />
+                </div>
 
-              <div className="field">
-                <label className="field-label">City</label>
-                <input
-                  ref={cityRef}
-                  type="text"
-                  className="input"
-                  placeholder="City"
-                  value={formData.city}
-                  onChange={(e) => handleChange('city', e.target.value)}
-                />
-              </div>
-
-              <div className="field">
-                <label className="field-label">Pincode</label>
-                <input
-                  ref={pincodeRef}
-                  type="text"
-                  className="input"
-                  placeholder="Pincode"
-                  value={formData.pincode}
-                  onChange={(e) => handleChange('pincode', e.target.value)}
-                  maxLength={6}
-                />
-              </div>
-
-              <div className="field">
-                <label className="field-label">Phone</label>
-                <input
-                  ref={phoneRef}
-                  type="text"
-                  className="input"
-                  placeholder="Phone number"
-                  value={formData.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
-                  maxLength={10}
-                />
-              </div>
-
-              <div className="field" style={{ gridColumn: '1 / 2' }}>
-                <label className="field-label">Email</label>
-                <input
-                  ref={emailRef}
-                  type="email"
-                  className="input"
-                  placeholder="Email address"
-                  value={formData.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                />
-              </div>
-
-              <div className="field" style={{ gridColumn: '2 / 3', display: 'flex', alignItems: 'center', justifyContent: 'flex-start',marginLeft: '-105px' }}>
-                <div className="switch-container" style={{ margin: 0 }}>
-                  <label className="field-label" style={{ margin: 0, marginRight: 12 }}>Active Status</label>
-                  <label className="switch" style={{ marginRight: 12 }}>
-                    <input
-                      type="checkbox"
-                      checked={isActive}
-                      onChange={toggleActive}
-                    />
-                    <span className="slider"></span>
-                  </label>
-                  <span className="muted">{isActive ? 'Active' : 'Inactive'}</span>
+                <div className="field">
+                  <label className="field-label">Cell No</label>
+                  <input
+                    ref={cellNoRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.cellNo}
+                    onChange={(e) => handleChange('cellNo', e.target.value)}
+                    maxLength={10}
+                  />
                 </div>
               </div>
-              
+
+              {/* RIGHT COLUMN */}
+              <div>
+                <div className="field">
+                  <label className="field-label">Route</label>
+                  <select
+                    ref={routeRef}
+                    className="select"
+                    style={{ width: '100%' }}
+                    value={formData.route}
+                    onChange={(e) => handleChange('route', e.target.value)}
+                  >
+                    <option value="">Select Route</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                    <option value="Chennai">Chennai</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label className="field-label">GSTIN</label>
+                  <input
+                    ref={gstinRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.gstin}
+                    onChange={(e) => handleChange('gstin', e.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-label">CIN No</label>
+                  <input
+                    ref={cinNoRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.cinNo}
+                    onChange={(e) => handleChange('cinNo', e.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-label">PAN No</label>
+                  <input
+                    ref={panNoRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.panNo}
+                    onChange={(e) => handleChange('panNo', e.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-label">State</label>
+                  <input
+                    ref={stateRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.state}
+                    onChange={(e) => handleChange('state', e.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-label">Email</label>
+                  <input
+                    ref={emailRef}
+                    type="email"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.email}
+                    onChange={(e) => handleChange('email', e.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-label">Short Name</label>
+                  <input
+                    ref={shortNameRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.shortName}
+                    onChange={(e) => handleChange('shortName', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Active Status Switch */}
+            <div className="switch-container" style={{ marginTop: '16px' }}>
+              <label className="field-label" style={{ margin: 0, marginRight: 12 }}>Active Status</label>
+              <label className="switch" >
+                <input
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={toggleActive}
+                />
+                <span className="slider"></span>
+              </label>
+              <span className="muted">{isActive ? 'Active' : 'Inactive'}</span>
             </div>
 
             
@@ -1713,8 +1743,8 @@ export default function LedgerCreation({ onCreated }) {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Processing...' : 
-                 actionType === 'create' ? 'Create Ledger' :
-                 actionType === 'edit' ? 'Update Ledger' : 'Delete Ledger'}
+                 actionType === 'create' ? 'Add' :
+                 actionType === 'edit' ? 'Edit' : 'Delete'}
               </button>
               <button
                 className="submit-clear"
@@ -1762,18 +1792,24 @@ export default function LedgerCreation({ onCreated }) {
             ...prev,
             partyName: name || '',
             fCode: code || '',
+            gstType: item.gstType || item.GstType || '',
+            route: item.route || item.Route || '',
             dueDay: item.fDueDays || item.fDueDay || '',
             dueDate: item.fDueDt || item.fDueDate || '',
-            fStreet: item.fStreet || '',
-            hallmark: item.fTngst || '',
-            area: item.fArea || '',
-            gstin: item.fCstno || item.fGst || '',
-            city: item.fCity || '',
-            pincode: item.fPincode || '',
-            phone: item.fPhone || '',
-            email: item.fMail || item.fEmail || '',
+            fStreet: item.fStreet || item.street || '',
+            hallmark: item.fTngst || item.HallmarkNo || '',
+            area: item.fArea || item.area || '',
+            gstin: item.fCstno || item.fGst || item.GstNo || '',
+            cinNo: item.cinNo || item.CinNo || '',
+            panNo: item.panNo || item.PanNo || '',
+            city: item.fCity || item.city || '',
+            state: item.state || item.State || '',
+            pincode: item.fPincode || item.pincode || '',
+            phone: item.fPhone || item.phoneNumber || '',
+            cellNo: item.cellNo || item.CellNo || '',
+            email: item.fMail || item.fEmail || item.Email || '',
             Hide: item.fshow || '1',
-            shortName: item.fFax || item.fShort || '',
+            shortName: item.fFax || item.fShort || item.ShortName || '',
           }));
           setMainGroup(groupValue);
           setIsActive(item.fshow !== '0');
