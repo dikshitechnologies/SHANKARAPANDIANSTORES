@@ -10,6 +10,7 @@ import { axiosInstance } from '../../api/apiService';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 
+
 const TABLE_FIELDS = [
   'barcode',
   'itemName',
@@ -559,27 +560,28 @@ const fetchCustomers = useCallback(async () => {
         }
         
         if (itemsArray.length > 0) {
-          const formattedItems = itemsArray.map((item, index) => {
-            const itemCode = item.itemcode || item.fItemcode || item.itemCode || item.code || '';
-            const itemName = item.itemName || item.fitemNme || item.fItemName || '';
-            const units = item.fUnit || item.uom || '';
-            
-            return {
-              id: index + 1,
-              sNo: index + 1,
-              barcode: '',
-              itemCode: itemCode,
-              itemName: itemName || '',
-              stock: (item.stock || item.fstock || 0).toString(),
-              mrp: (item.mrp || 0).toString(),
-              uom: units,
-              hsn: item.hsn || item.fHSN || '',
-              tax: (item.tax || item.fTax || 0).toString(),
-              sRate: (item.rate || item.fRate || item.sRate || 0).toString(),
-              qty: (item.qty || item.fTotQty || 0).toString(),
-              amount: (item.amount || item.fAmount || 0).toFixed(2)
-            };
-          });
+         // In fetchInvoiceDetails function:
+const formattedItems = itemsArray.map((item, index) => {
+  const itemCode = item.itemcode || item.fItemcode || item.itemCode || item.code || '';
+  const itemName = item.itemName || item.fitemNme || item.fItemName || '';
+  const units = item.fUnit || item.uom || '';
+  
+  return {
+    id: index + 1,
+    sNo: index + 1,
+    barcode: item.barcode || item.fBarcode || '', // Make sure barcode is loaded
+    itemCode: itemCode,
+    itemName: itemName || '',
+    stock: (item.stock || item.fstock || 0).toString(),
+    mrp: (item.mrp || 0).toString(),
+    uom: units,
+    hsn: item.hsn || item.fHSN || '',
+    tax: (item.tax || item.fTax || 0).toString(),
+    sRate: (item.rate || item.fRate || item.sRate || 0).toString(),
+    qty: (item.qty || item.fTotQty || 0).toString(),
+    amount: (item.amount || item.fAmount || 0).toFixed(2)
+  };
+});
           
           setItems(formattedItems);
         } else {
@@ -711,42 +713,43 @@ const fetchCustomers = useCallback(async () => {
     }
   };
 
-  // NEW FUNCTION: Fetch item details by barcode
-  const getPurchaseStockDetailsByBarcode = async (barcode) => {
-    if (!barcode || barcode.trim() === '') {
-      return null;
-    }
+const getPurchaseStockDetailsByBarcode = async (barcode) => {
+  if (!barcode || barcode.trim() === '') return null;
 
-    try {
-      setIsLoading(true);
-      const response = await axiosInstance.get(
-        API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getPurchaseStockDetailsByBarcode(barcode.trim())
-      );
+  try {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getPurchaseStockDetailsByBarcode(barcode.trim())
+    );
 
-      if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-        const item = response.data[0];
-        return {
-          itemcode: item.itemcode || '',
-          fItemName: item.fItemName || '',
-          qty: item.qty || 0,
-          rate: item.rate || 0,
-          amount: item.amount || 0,
-          fstock: item.fstock || 0,
-          fUnit: item.fUnit || '',
-          fHSN: item.fHSN || '',
-          inTax: item.inTax || 0,
-          mrp: item.mrp || 0,
-          success: true
-        };
-      }
-      return null;
-    } catch (err) {
-      console.error("Barcode API failed:", err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    console.log("Barcode API FULL response:", response.data);
+
+    // ✅ HANDLE REAL BACKEND RESPONSE
+    const item =
+      response?.data?.items?.[0] ||     // ✅ MOST IMPORTANT
+      response?.data?.data?.[0] ||
+      response?.data?.[0] ||
+      null;
+
+    if (!item) return null;
+
+    return {
+      barcode: item.barcode || barcode,
+      itemcode: item.itemcode || item.fItemcode || '',
+      fItemName: item.fItemName || item.itemName || '',
+      fstock: item.fstock || item.stock || 0,
+      rate: item.rate || item.sRate || 0,
+      mrp: item.mrp || 0,
+      fUnit: item.fUnit || item.uom || '',
+      fHSN: item.fHSN || item.hsn || '',
+      inTax: item.inTax || item.tax || 0,
+      success: true
+    };
+  } catch (err) {
+    console.error("Barcode API failed:", err);
+    return null;
+  }
+};
+
 
   // Initial data fetch
   useEffect(() => {
@@ -1157,7 +1160,8 @@ const fetchCustomers = useCallback(async () => {
         ...currentItem,
         itemName,
         itemCode,
-        barcode: '',
+       barcode: currentItem.barcode || "",
+
         stock: (item.stock || stockInfo.stock || 0).toString(),
         mrp: formatValue(item.mrp || stockInfo.mrp || 0),
         uom: units || stockInfo.uom || stockInfo.fUnits || '',
@@ -1321,7 +1325,7 @@ filtered = itemsData.filter(item => {
     .toString()
     .trim()                 // 🔥 remove spaces
     .toLowerCase()
-    .startsWith(searchLower); // 🔥 STARTS WITH ONLY
+    .includes(searchLower); // 🔥 STARTS WITH ONLY
 });
 
       }
@@ -1439,91 +1443,95 @@ filtered = itemsData.filter(item => {
     }
   };
 
-  // Handle barcode scanning in table
-  const handleBarcodeKeyDown = async (e, currentRowIndex) => {
-    const currentItem = items[currentRowIndex];
+// Handle barcode scanning in table
+const handleBarcodeKeyDown = async (e, currentRowIndex) => {
+  const currentItem = items[currentRowIndex];
+  
+  // If Enter is pressed on barcode field
+  if (e.key === 'Enter') {
+    e.preventDefault();
     
-    // If Enter is pressed on barcode field
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      
-      const barcode = currentItem.barcode?.trim();
-      if (!barcode || barcode === '') {
-        // If barcode is empty, move to item name field
-        document
-          .querySelector(
-            `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-          )
-          ?.focus();
-        return;
-      }
-      
-      try {
-        // Fetch item details by barcode
-        const barcodeData = await getPurchaseStockDetailsByBarcode(barcode);
-        
-        if (barcodeData) {
-          // Update the current row with barcode data
-          const updatedItems = [...items];
-          updatedItems[currentRowIndex] = {
-            ...updatedItems[currentRowIndex],
-            itemCode: barcodeData.itemcode || '',
-            itemName: barcodeData.fItemName || '',
-            stock: (barcodeData.fstock || 0).toString(),
-            mrp: (barcodeData.mrp || 0).toString(),
-            uom: barcodeData.fUnit || '',
-            hsn: barcodeData.fHSN || '',
-            tax: (barcodeData.inTax || 0).toString(),
-            sRate: (barcodeData.rate || 0).toString(),
-            qty: '1',
-            amount: calculateAmount('1', barcodeData.rate || 0)
-          };
-          
-          setItems(updatedItems);
-          
-          // Move focus to quantity field
-          setTimeout(() => {
-            document
-              .querySelector(
-                `input[data-row="${currentRowIndex}"][data-field="qty"]`
-              )
-              ?.focus();
-          }, 100);
-          
-          toast.success(`Item "${barcodeData.fItemName}" loaded from barcode`, {
-            autoClose: 1500,
-          });
-        } else {
-          toast.warning(`No item found for barcode: ${barcode}`, {
-            autoClose: 1500,
-          });
-          
-          // Move focus to item name field if barcode not found
-          document
-            .querySelector(
-              `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-            )
-            ?.focus();
-        }
-      } catch (err) {
-        console.error("Barcode fetch error:", err);
-        toast.error("Failed to fetch item by barcode", {
-          autoClose: 1500,
-        });
-        
-        // Move focus to item name field on error
-        document
-          .querySelector(
-            `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-          )
-          ?.focus();
-      }
+    const barcode = currentItem.barcode?.trim();
+    if (!barcode || barcode === '') {
+      // If barcode is empty, move to item name field
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+        )
+        ?.focus();
       return;
     }
     
-    // For other keys, use the standard table navigation
-    handleTableKeyDown(e, currentRowIndex, 'barcode');
-  };
+    try {
+      // Fetch item details by barcode
+      const barcodeData = await getPurchaseStockDetailsByBarcode(barcode);
+      
+      if (barcodeData) {
+        console.log("Barcode data received:", barcodeData); // Debug log
+        
+        // Update the current row with barcode data
+        const updatedItems = [...items];
+        updatedItems[currentRowIndex] = {
+          ...updatedItems[currentRowIndex],
+          barcode: barcode,
+          itemCode: barcodeData.itemcode || barcodeData.fItemcode || barcode, // Get item code from barcode data
+          itemName: barcodeData.fItemName || '',
+          stock: (barcodeData.fstock || 0).toString(),
+          mrp: (barcodeData.mrp || 0).toString(),
+          uom: barcodeData.fUnit || '',
+          hsn: barcodeData.fHSN || '',
+          tax: (barcodeData.inTax || 0).toString(),
+          sRate: (barcodeData.rate || 0).toString(),
+          qty: '1',
+          amount: calculateAmount('1', barcodeData.rate || 0)
+        };
+        
+        setItems(updatedItems);
+        
+        // Show success message with item code
+        toast.success(`Item "${barcodeData.fItemName}" (Code: ${barcodeData.itemcode || barcodeData.fItemcode || barcode}) loaded`, {
+          autoClose: 2000,
+        });
+        
+        // Move focus to quantity field
+        setTimeout(() => {
+          document
+            .querySelector(
+              `input[data-row="${currentRowIndex}"][data-field="qty"]`
+            )
+            ?.focus();
+        }, 100);
+      } else {
+        toast.warning(`No item found for barcode: ${barcode}`, {
+          autoClose: 1500,
+        });
+        
+        // Move focus to item name field if barcode not found
+        document
+          .querySelector(
+            `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+          )
+          ?.focus();
+      }
+    } catch (err) {
+      console.error("Barcode fetch error:", err);
+      toast.error("Failed to fetch item by barcode", {
+        autoClose: 1500,
+      });
+      
+      // Move focus to item name field on error
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+        )
+        ?.focus();
+    }
+    return;
+  }
+  
+  // For other keys, use the standard table navigation
+  handleTableKeyDown(e, currentRowIndex, 'barcode');
+};
 
   
 
@@ -1999,23 +2007,23 @@ const handleItemChange = (id, field, value) => {
         billAmount: Number(totalAmount) || 0,
         balanceAmount: 0,
         userCode: "001",
-        addLess: (addLessAmount ?? "0").toString()
+        barcode: "0010"
       };
 
-      // Prepare items data
-      const itemsData = validItems.map(item => ({
-        barcode: item.barcode || "",
-        itemName: item.itemName || "",
-        itemcode: item.itemCode || "",
-        mrp: (Number(item.mrp) || 0).toFixed(2),
-        stock: (item.stock ?? "0").toString(),
-        uom: item.uom || "pcs",
-        hsn: item.hsn || "",
-        tax: Number(item.tax) || 0,
-        rate: Number(item.sRate) || 0,
-        qty: Number(item.qty) || 0,
-        amount: Number(item.amount) || 0
-      }));
+     // Prepare items data
+const itemsData = validItems.map(item => ({
+  barcode: item.barcode || "", // Make sure barcode is included
+  itemName: item.itemName || "",
+  itemcode: item.itemCode || "",
+  mrp: (Number(item.mrp) || 0).toFixed(2),
+  stock: (item.stock ?? "0").toString(),
+  uom: item.uom || "pcs",
+  hsn: item.hsn || "",
+  tax: Number(item.tax) || 0,
+  rate: Number(item.sRate) || 0,
+  qty: Number(item.qty) || 0,
+  amount: Number(item.amount) || 0
+}));
       
       const requestData = {
         header: headerData,
@@ -2890,18 +2898,22 @@ const handleItemChange = (id, field, value) => {
       {/* --- HEADER SECTION --- */}
       <div style={styles.headerSection}>
         <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
+          display: 'flex',
+          flexWrap: 'nowrap',
+          gap: screenSize.isMobile ? '4px' : screenSize.isTablet ? '8px' : '10px',
+          marginBottom: '10px',
+          width: '100%',
+          overflowX: 'auto',
         }}>
           {/* Bill No */}
-          <div style={styles.formField}>
+          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
             <label style={styles.inlineLabel}>Bill No:</label>
             <input
               type="text"
               value={billDetails.billNo}
               name="billNo"
-              readOnly                 // ✅ always readonly
-              tabIndex={-1}            // ✅ skip keyboard focus (optional)
+              readOnly
+              tabIndex={-1}
               ref={billNoRef}
               style={{
                 ...styles.inlineInput,
@@ -2912,72 +2924,62 @@ const handleItemChange = (id, field, value) => {
             />
           </div>
 
-     {/* Bill Date */}
-<div style={styles.formField}>
-  <label style={styles.inlineLabel}>Bill Date:</label>
-
-  <input
-    type="date"
-    data-header="billDate"
-    style={
-      focusedField === 'billDate'
-        ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
-        : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
-    }
-    value={billDetails.billDate}
-    name="billDate"
-    onChange={handleInputChange}
-    ref={billDateRef}
-    onKeyDown={(e) => {
-      handleHeaderArrowNavigation(e, 'billDate'); // ⬅️ ➡️
-      handleKeyDown(e, mobileRef, 'billDate');    // ⏎ existing logic
-    }}
-    onFocus={() => setFocusedField('billDate')}
-    onBlur={() => setFocusedField('')}
-  />
-</div>
-
+          {/* Bill Date */}
+          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
+            <label style={styles.inlineLabel}>Bill Date:</label>
+            <input
+              type="date"
+              data-header="billDate"
+              style={
+                focusedField === 'billDate'
+                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+              }
+              value={billDetails.billDate}
+              name="billDate"
+              onChange={handleInputChange}
+              ref={billDateRef}
+              onKeyDown={(e) => {
+                handleHeaderArrowNavigation(e, 'billDate');
+                handleKeyDown(e, mobileRef, 'billDate');
+              }}
+              onFocus={() => setFocusedField('billDate')}
+              onBlur={() => setFocusedField('')}
+            />
+          </div>
 
           {/* Mobile No */}
-          <div style={styles.formField}>
+          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
             <label style={styles.inlineLabel}>Mobile No:</label>
             <input
               type="text"
-               data-header="mobileNo"
+              data-header="mobileNo"
               style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.mobileNo}
               name="mobileNo"
               onChange={handleInputChange}
               ref={mobileRef}
-               onKeyDown={(e) => {
-    handleHeaderArrowNavigation(e, 'mobileNo');
-    handleKeyDown(e, typeRef, 'mobileNo');
-  }}
+              onKeyDown={(e) => {
+                handleHeaderArrowNavigation(e, 'mobileNo');
+                handleKeyDown(e, typeRef, 'mobileNo');
+              }}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
             />
           </div>
 
           {/* Type */}
-          <div style={{ ...styles.formField, gap: '4px' }}>   {/* ✅ smaller gap */}
-            <label
-              style={{
-                ...styles.inlineLabel,
-                minWidth: '50px'   // ✅ ONLY Type label width reduced
-              }}
-            >
-              Type:
-            </label>
-
+          <div style={{ ...styles.formField, flex: 1, minWidth: '120px', gap: '4px' }}>
+            <label style={styles.inlineLabel}>Type:</label>
             <select
               name="type"
-               data-header="type"
+              data-header="type"
               style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.type}
               onChange={handleInputChange}
               ref={typeRef}
-             onKeyDown={(e) => {
-    handleHeaderArrowNavigation(e, 'type');
+              onKeyDown={(e) => {
+                handleHeaderArrowNavigation(e, 'type');
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   salesmanRef.current.focus();
@@ -2991,16 +2993,9 @@ const handleItemChange = (id, field, value) => {
             </select>
           </div>
 
-        </div>
-
-        <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
-        }}>
           {/* Salesman */}
-          <div style={styles.formField}>
+          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
             <label style={styles.inlineLabel}>Salesman:</label>
-
             <div style={{ position: 'relative', width: '100%', flex: 1 }}>
               <input
                 type="text"
@@ -3013,27 +3008,23 @@ const handleItemChange = (id, field, value) => {
                 }}
                 value={billDetails.salesman}
                 name="salesman"
-
-                // ✅ FIX: block duplicate letter
                 onChange={(e) => {
                   if (ignoreNextInputRef.current) {
-                    ignoreNextInputRef.current = false; // reset
-                    return; // ❌ do NOT update input
+                    ignoreNextInputRef.current = false;
+                    return;
                   }
                   handleInputChange(e);
                 }}
-
                 ref={salesmanRef}
                 onClick={openSalesmanPopup}
-               onKeyDown={(e) => {
-    handleHeaderArrowNavigation(e, 'salesman');
-    handleKeyDown(e, custNameRef, 'salesman');
-    handleBackspace(e, 'salesman'); }}
+                onKeyDown={(e) => {
+                  handleHeaderArrowNavigation(e, 'salesman');
+                  handleKeyDown(e, custNameRef, 'salesman');
+                  handleBackspace(e, 'salesman');
+                }}
                 onFocus={() => setFocusedField('salesman')}
                 onBlur={() => setFocusedField('')}
               />
-
-              {/* 🔍 Search Icon */}
               <div
                 style={{
                   position: 'absolute',
@@ -3051,10 +3042,9 @@ const handleItemChange = (id, field, value) => {
             </div>
           </div>
 
-          {/* Customer Name */}
-          <div style={styles.formField}>
+          {/* Customer */}
+          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
             <label style={styles.inlineLabel}>Customer:</label>
-
             <div style={{ position: 'relative', width: '100%', flex: 1 }}>
               <input
                 type="text"
@@ -3063,29 +3053,25 @@ const handleItemChange = (id, field, value) => {
                   ...(focusedField === 'custName'
                     ? styles.inlineInputClickableFocused
                     : styles.inlineInputClickable),
-                  paddingRight: '34px', // space for icon
+                  paddingRight: '34px',
                 }}
                 value={billDetails.custName}
                 name="custName"
                 onChange={handleInputChange}
                 ref={custNameRef}
-                
-                 onFocus={() => setFocusedField('custName')}
+                onFocus={() => setFocusedField('custName')}
                 onKeyDown={(e) => {
-                  // ✅ ONLY "/" opens popup
-                    handleHeaderArrowNavigation(e, 'custName');
-                    
+                  handleHeaderArrowNavigation(e, 'custName');
+                  
                   if (e.key === '/') {
                     e.preventDefault();
-                    setPopupSearchText('');   // no pre-filled search
+                    setPopupSearchText('');
                     setCustomerPopupOpen(true);
                     return;
                   }
 
-                  // ⏭ Enter → go to TABLE first row barcode
                   if (e.key === 'Enter') {
                     e.preventDefault();
-
                     setTimeout(() => {
                       const firstRowBarcode = document.querySelector(
                         'input[data-row="0"][data-field="barcode"]'
@@ -3094,17 +3080,12 @@ const handleItemChange = (id, field, value) => {
                         firstRowBarcode.focus();
                       }
                     }, 0);
-
                     return;
                   }
 
-                  // 🔙 Backspace clears customer
-                  
                   handleBackspace(e, 'custName');
                 }}
               />
-
-              {/* 🔍 Search Icon */}
               <div
                 onClick={openCustomerPopup}
                 style={{
@@ -3139,17 +3120,16 @@ const handleItemChange = (id, field, value) => {
 
       {/* --- TABLE SECTION --- */}
       <div style={styles.tableSection} className="sale-invoice-scrollable">
-         <div
-    style={styles.tableContainer}
-    className="sale-invoice-scrollable"
-    onKeyDown={(e) => {
-      if (e.key === 'Enter' && blockTableEnterRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }}
-  >
-          
+        <div
+          style={styles.tableContainer}
+          className="sale-invoice-scrollable"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && blockTableEnterRef.current) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
+        >
           <table style={styles.table}>
             <thead>
               <tr>
@@ -3173,12 +3153,33 @@ const handleItemChange = (id, field, value) => {
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
                     <input
-                      style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.barcode}
+                      style={
+                        focusedField === `barcode-${item.id}`
+                          ? styles.editableInputFocused
+                          : styles.editableInput
+                      }
+                      value={item.barcode ?? ""}
                       data-row={index}
                       data-field="barcode"
-                      onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
-                      onKeyDown={(e) => handleBarcodeKeyDown(e, index)}
+                      readOnly={false}
+
+                      onChange={(e) => {
+                        if (!isEditing) {
+                          handleItemChange(item.id, 'barcode', e.target.value);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (isEditing && e.key === 'Enter') {
+                          e.preventDefault();
+                          document
+                            .querySelector(
+                              `input[data-row="${index}"][data-field="itemName"]`
+                            )
+                            ?.focus();
+                          return;
+                        }
+                        handleBarcodeKeyDown(e, index);
+                      }}
                       onFocus={() => setFocusedField(`barcode-${item.id}`)}
                       onBlur={() => setFocusedField('')}
                       placeholder="Scan barcode"
@@ -3186,61 +3187,50 @@ const handleItemChange = (id, field, value) => {
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
                     <div style={{ position: 'relative', width: '100%' }}>
- <input
-  style={{
-    ...(focusedField === `itemName-${item.id}`
-      ? styles.editableInputClickableFocused
-      : styles.editableInputClickable),
-    paddingRight: '26px',
-    textAlign: 'left',
-  }}
-  value={item.itemName}
-  data-row={index}
-  data-field="itemName"
-
-  onChange={(e) => {
-    if (ignoreNextInputRef.current) {
-      ignoreNextInputRef.current = false;
-      return; // 🚫 block typing letter
-    }
-    handleItemChange(item.id, 'itemName', e.target.value);
-  }}
-
-  onKeyDown={(e) => {
-    // 🔥 SAME AS SALESMAN BEHAVIOR
-    const handled = handleItemNameLetterKey(e, index);
-    if (handled) return;
-
-    // ⏎ ⬅️ ➡️ ⬆️ ⬇️ handled here
-    handleTableKeyDown(e, index, 'itemName');
-  }}
-
-  onClick={() => openItemPopup(index)}
-  onFocus={() => setFocusedField(`itemName-${item.id}`)}
-  onBlur={() => setFocusedField('')}
-  title={`Item Code: ${item.itemCode || 'Not selected'}`}
-/>
-
-
-  {/* 🔍 Search Icon */}
-  <div
-    style={{
-      position: 'absolute',
-      right: '6px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      pointerEvents: 'none',
-      opacity: 0.6,
-      display: 'flex',
-      alignItems: 'center',
-    }}
-  >
-    <SearchIcon size={14} />
-  </div>
-</div>
-
+                      <input
+                        style={{
+                          ...(focusedField === `itemName-${item.id}`
+                            ? styles.editableInputClickableFocused
+                            : styles.editableInputClickable),
+                          paddingRight: '26px',
+                          textAlign: 'left',
+                        }}
+                        value={item.itemName}
+                        data-row={index}
+                        data-field="itemName"
+                        onChange={(e) => {
+                          if (ignoreNextInputRef.current) {
+                            ignoreNextInputRef.current = false;
+                            return;
+                          }
+                          handleItemChange(item.id, 'itemName', e.target.value);
+                        }}
+                        onKeyDown={(e) => {
+                          const handled = handleItemNameLetterKey(e, index);
+                          if (handled) return;
+                          handleTableKeyDown(e, index, 'itemName');
+                        }}
+                        onClick={() => openItemPopup(index)}
+                        onFocus={() => setFocusedField(`itemName-${item.id}`)}
+                        onBlur={() => setFocusedField('')}
+                        title={`Item Code: ${item.itemCode || 'Not selected'}`}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: '6px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          pointerEvents: 'none',
+                          opacity: 0.6,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <SearchIcon size={14} />
+                      </div>
+                    </div>
                   </td>
-
                   <td style={styles.td}>
                     <input
                       style={
@@ -3255,7 +3245,6 @@ const handleItemChange = (id, field, value) => {
                         handleItemChange(item.id, 'stock', e.target.value)
                       }
                       onKeyDown={(e) => {
-                        // ⏎ ENTER → move to MRP
                         if (e.key === 'Enter') {
                           e.preventDefault();
                           document
@@ -3265,15 +3254,12 @@ const handleItemChange = (id, field, value) => {
                             ?.focus();
                           return;
                         }
-
-                        // ⬅️ ➡️ ⬆️ ⬇️ arrow navigation
                         handleTableKeyDown(e, index, 'stock');
                       }}
                       onFocus={() => setFocusedField(`stock-${item.id}`)}
                       onBlur={() => setFocusedField('')}
                     />
                   </td>
-
                   <td style={styles.td}>
                     <input
                       style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
@@ -3297,7 +3283,6 @@ const handleItemChange = (id, field, value) => {
                     />
                   </td>
                   <td style={styles.td}>
-
                     <input
                       className="uom-input"
                       value={item.uom}
@@ -3489,21 +3474,18 @@ const handleItemChange = (id, field, value) => {
           <ActionButtons
             activeButton={activeTopAction}
             onButtonClick={(type) => {
-              setActiveTopAction(type); // ✅ only on click
-
-              if (type === 'add')  resetForm(); ;
+              setActiveTopAction(type);
+              if (type === 'add') resetForm();
               if (type === 'edit') openEditInvoicePopup();
               if (type === 'delete') openDeleteInvoicePopup();
             }}
           >
-
             <AddButton buttonType="add" disabled={!formPermissions.add} />
             <EditButton buttonType="edit" disabled={!formPermissions.edit} />
             <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
         
-
         <div style={styles.totalsContainer}>
           <div style={styles.totalItem}>
             <span style={styles.totalLabel}>Total Quantity</span>
@@ -3517,19 +3499,19 @@ const handleItemChange = (id, field, value) => {
           </div>
         </div>
        
-<div style={styles.footerButtons}>
-  <ActionButtons1
-    onClear={handleClear}
-    onSave={handleSave}
-    onPrint={handlePrint}
-    activeButton={activeFooterAction}
-    onButtonClick={(type) => setActiveFooterAction(type)}
-    ref={saveButtonRef}
-    saveButtonProps={{
-      tabIndex: 0, // Make sure it's focusable
-    }}
-  />
-</div>
+        <div style={styles.footerButtons}>
+          <ActionButtons1
+            onClear={handleClear}
+            onSave={handleSave}
+            onPrint={handlePrint}
+            activeButton={activeFooterAction}
+            onButtonClick={(type) => setActiveFooterAction(type)}
+            ref={saveButtonRef}
+            saveButtonProps={{
+              tabIndex: 0,
+            }}
+          />
+        </div>
       </div>
 
       {/* Save Confirmation Popup */}
@@ -3633,7 +3615,7 @@ const handleItemChange = (id, field, value) => {
         onSelect={handleItemSelect}
         fetchItems={(page, search) => fetchItemsForPopup(page, search, 'item')}
         title="Select Item"
-          initialSearch={popupSearchText}   
+        initialSearch={popupSearchText}   
         displayFieldKeys={getPopupConfig('item').displayFieldKeys}
         searchFields={getPopupConfig('item').searchFields}
         headerNames={getPopupConfig('item').headerNames}
@@ -3679,6 +3661,7 @@ const handleItemChange = (id, field, value) => {
         loading={loadingInvoices}
         formatRow={getPopupConfig('deleteInvoice').formatRow}
       />
+      
       {/* Row Delete Confirmation Popup */}
       <ConfirmationPopup
         isOpen={rowDeleteConfirmationOpen}

@@ -28,9 +28,6 @@ const PaymentVoucher = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   // Save confirmation popup
-
-
-
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
 
@@ -109,6 +106,12 @@ const PaymentVoucher = () => {
   // Party popup search state
   const [partySearchTerm, setPartySearchTerm] = useState('');
 
+  // CashBank popup search state
+  const [cashBankSearchTerm, setCashBankSearchTerm] = useState('');
+
+  // Voucher popup search state
+  const [voucherSearchTerm, setVoucherSearchTerm] = useState('');
+
   // 6. Data state
   const [savedVouchers, setSavedVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
@@ -127,13 +130,16 @@ const PaymentVoucher = () => {
   // --- ENTER KEY NAVIGATION STATES ---
   const [navigationStep, setNavigationStep] = useState('voucherNo');
   const [currentPaymentRowIndex, setCurrentPaymentRowIndex] = useState(0);
+  const [currentPaymentFieldIndex, setCurrentPaymentFieldIndex] = useState(0);
   const [currentBillRowIndex, setCurrentBillRowIndex] = useState(0);
 
-  // --- REFS FOR ENTER KEY NAVIGATION ---
+  // --- REFS FOR ARROW KEY NAVIGATION ---
   const voucherNoRef = useRef(null);
   const dateRef = useRef(null);
   const accountNameRef = useRef(null);
   const gstTypeRef = useRef(null);
+  const balanceRef = useRef(null);
+  
   // Payment table refs
   const paymentCashBankRefs = useRef([]);
   const paymentCrDrRefs = useRef([]);
@@ -142,6 +148,7 @@ const PaymentVoucher = () => {
   const paymentChqDtRefs = useRef([]);
   const paymentNarrationRefs = useRef([]);
   const paymentAmountRefs = useRef([]);
+  
   // Bill table refs
   const billAmountRefs = useRef([]);
   const saveButtonRef = useRef(null);
@@ -204,9 +211,445 @@ const PaymentVoucher = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ---------- API FUNCTIONS ----------
+  // ========== ARROW KEY NAVIGATION FUNCTIONS ==========
 
-  // Fetch next voucher number from API
+  // Define field order for navigation
+  const headerFields = ['voucherNo', 'date', 'accountName', 'balance', 'gstType'];
+  const paymentFields = ['cashBank', 'crDr', 'type', 'chqNo', 'chqDt', 'narration', 'amount'];
+  const billFields = ['refNo', 'billNo', 'date', 'billAmount', 'paidAmount', 'balanceAmount', 'amount'];
+
+  // Get current field index based on field type
+  const getCurrentFieldIndex = (fieldType) => {
+    if (headerFields.includes(fieldType)) {
+      return headerFields.indexOf(fieldType);
+    }
+    if (paymentFields.includes(fieldType)) {
+      return paymentFields.indexOf(fieldType);
+    }
+    if (billFields.includes(fieldType)) {
+      return billFields.indexOf(fieldType);
+    }
+    return 0;
+  };
+
+  // Navigate to next field with arrow keys
+  const navigateWithArrow = (direction, currentField, currentRow = 0, currentFieldType = '') => {
+    console.log(`Navigating ${direction} from ${currentField}, row ${currentRow}, fieldType ${currentFieldType}`);
+
+    // Handle navigation from header fields
+    if (headerFields.includes(currentField)) {
+      const currentIndex = headerFields.indexOf(currentField);
+      
+      if (direction === 'right') {
+        if (currentIndex < headerFields.length - 1) {
+          const nextField = headerFields[currentIndex + 1];
+          focusOnHeaderField(nextField);
+        } else {
+          // Move to first payment row
+          focusOnPaymentField(0, 0);
+        }
+      } else if (direction === 'left') {
+        if (currentIndex > 0) {
+          const prevField = headerFields[currentIndex - 1];
+          focusOnHeaderField(prevField);
+        }
+      } else if (direction === 'down') {
+        // Move to payment table (same column concept)
+        if (currentField === 'accountName' || currentField === 'balance') {
+          focusOnPaymentField(0, 0); // First row, first field
+        }
+      }
+    }
+    
+    // Handle navigation from payment table
+    else if (paymentFields.includes(currentFieldType)) {
+      const fieldIndex = getCurrentFieldIndex(currentFieldType);
+      
+      if (direction === 'right') {
+        if (fieldIndex < paymentFields.length - 1) {
+          // Special handling for skipping CHQ fields when type is not CHQ
+          if (currentFieldType === 'type' && paymentItems[currentRow].type !== 'CHQ') {
+            // Skip chqNo and chqDt, go to narration
+            focusOnPaymentField(currentRow, paymentFields.indexOf('narration'));
+          } else if (currentFieldType === 'chqNo' && paymentItems[currentRow].type !== 'CHQ') {
+            // Skip chqDt, go to narration
+            focusOnPaymentField(currentRow, paymentFields.indexOf('narration'));
+          } else if (currentFieldType === 'chqDt' && paymentItems[currentRow].type !== 'CHQ') {
+            // Go to narration
+            focusOnPaymentField(currentRow, paymentFields.indexOf('narration'));
+          } else {
+            focusOnPaymentField(currentRow, fieldIndex + 1);
+          }
+        } else {
+          // Last field in row, move to next row if exists
+          if (currentRow < paymentItems.length - 1) {
+            focusOnPaymentField(currentRow + 1, 0);
+          } else {
+            // Move to bill table
+            focusOnBillField(0, billFields.indexOf('amount'));
+          }
+        }
+      } else if (direction === 'left') {
+        if (fieldIndex > 0) {
+          // Special handling for skipping CHQ fields
+          if (currentFieldType === 'narration' && paymentItems[currentRow].type !== 'CHQ') {
+            // Skip back over chqDt and chqNo if type is not CHQ
+            focusOnPaymentField(currentRow, paymentFields.indexOf('type'));
+          } else {
+            focusOnPaymentField(currentRow, fieldIndex - 1);
+          }
+        } else {
+          // First field in row, move to previous row or header
+          if (currentRow > 0) {
+            focusOnPaymentField(currentRow - 1, paymentFields.length - 1);
+          } else {
+            // Move to last header field
+            focusOnHeaderField(headerFields[headerFields.length - 1]);
+          }
+        }
+      } else if (direction === 'down') {
+        if (currentRow < paymentItems.length - 1) {
+          focusOnPaymentField(currentRow + 1, fieldIndex);
+        } else {
+          // Move to bill table (same column concept)
+          focusOnBillField(0, Math.min(fieldIndex, billFields.length - 1));
+        }
+      } else if (direction === 'up') {
+        if (currentRow > 0) {
+          focusOnPaymentField(currentRow - 1, fieldIndex);
+        } else {
+          // Move to header (accountName or balance based on column)
+          if (fieldIndex <= 1) { // cashBank or crDr
+            focusOnHeaderField('accountName');
+          } else {
+            focusOnHeaderField('gstType');
+          }
+        }
+      }
+    }
+    
+    // Handle navigation from bill table
+    else if (billFields.includes(currentFieldType)) {
+      const fieldIndex = getCurrentFieldIndex(currentFieldType);
+      
+      if (direction === 'right') {
+        // Only amount field is editable in bill table
+        if (fieldIndex < billFields.length - 1) {
+          focusOnBillField(currentRow, fieldIndex + 1);
+        } else {
+          // Last field, move to next row
+          if (currentRow < billDetails.length - 1) {
+            focusOnBillField(currentRow + 1, billFields.indexOf('amount'));
+          } else {
+            // Move to save button
+            saveButtonRef.current?.focus();
+          }
+        }
+      } else if (direction === 'left') {
+        if (fieldIndex > 0) {
+          focusOnBillField(currentRow, fieldIndex - 1);
+        } else {
+          // First field, move to previous row or payment table
+          if (currentRow > 0) {
+            focusOnBillField(currentRow - 1, billFields.length - 1);
+          } else {
+            // Move to last payment row
+            const lastPaymentRow = paymentItems.length - 1;
+            focusOnPaymentField(lastPaymentRow, paymentFields.length - 1);
+          }
+        }
+      } else if (direction === 'down') {
+        if (currentRow < billDetails.length - 1) {
+          focusOnBillField(currentRow + 1, fieldIndex);
+        } else {
+          // Move to save button
+          saveButtonRef.current?.focus();
+        }
+      } else if (direction === 'up') {
+        if (currentRow > 0) {
+          focusOnBillField(currentRow - 1, fieldIndex);
+        } else {
+          // Move to payment table (last row)
+          const lastPaymentRow = paymentItems.length - 1;
+          focusOnPaymentField(lastPaymentRow, Math.min(fieldIndex, paymentFields.length - 1));
+        }
+      }
+    }
+  };
+
+  // Focus on header field
+  const focusOnHeaderField = (fieldName) => {
+    setNavigationStep(fieldName);
+    setFocusedField(fieldName);
+    
+    setTimeout(() => {
+      switch (fieldName) {
+        case 'voucherNo':
+          voucherNoRef.current?.focus();
+          break;
+        case 'date':
+          dateRef.current?.focus();
+          break;
+        case 'accountName':
+          accountNameRef.current?.focus();
+          break;
+        case 'balance':
+          balanceRef.current?.focus();
+          break;
+        case 'gstType':
+          gstTypeRef.current?.focus();
+          break;
+      }
+    }, 10);
+  };
+
+  // Focus on payment field
+  const focusOnPaymentField = (rowIndex, fieldIndex) => {
+    const fieldName = paymentFields[fieldIndex];
+    setCurrentPaymentRowIndex(rowIndex);
+    setCurrentPaymentFieldIndex(fieldIndex);
+    setNavigationStep('payment' + fieldName);
+    
+    setTimeout(() => {
+      const fieldId = `payment_${paymentItems[rowIndex].id}_${fieldName}`;
+      const element = document.getElementById(fieldId);
+      if (element) {
+        element.focus();
+        element.select?.();
+      }
+    }, 10);
+  };
+
+  // Focus on bill field
+  const focusOnBillField = (rowIndex, fieldIndex) => {
+    const fieldName = billFields[fieldIndex];
+    setCurrentBillRowIndex(rowIndex);
+    setNavigationStep('bill' + fieldName);
+    
+    setTimeout(() => {
+      const fieldId = `bill_${billDetails[rowIndex].id}_${fieldName}`;
+      const element = document.getElementById(fieldId);
+      if (element) {
+        element.focus();
+        element.select?.();
+      }
+    }, 10);
+  };
+
+  // ========== ENHANCED KEYDOWN HANDLERS WITH ARROW SUPPORT ==========
+
+  // Handle keydown in header fields with arrow support
+  const handleHeaderFieldKeyDown = (e, currentField) => {
+    // Arrow key navigation
+    if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      const direction = e.key.replace('Arrow', '').toLowerCase();
+      navigateWithArrow(direction, currentField);
+      return;
+    }
+    
+    // Enter key navigation (existing functionality)
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      switch (currentField) {
+        case 'voucherNo':
+          dateRef.current?.focus();
+          setNavigationStep('date');
+          break;
+          
+        case 'date':
+          accountNameRef.current?.focus();
+          setNavigationStep('accountName');
+          break;
+          
+        case 'accountName':
+          gstTypeRef.current?.focus();
+          setNavigationStep('gstType');
+          break;
+          
+        case 'gstType':
+          if (paymentCashBankRefs.current[0]) {
+            paymentCashBankRefs.current[0].focus();
+            setNavigationStep('paymentCashBank');
+            setCurrentPaymentRowIndex(0);
+          }
+          break;
+      }
+    }
+    
+    // Open popup on typing in account name
+    if (currentField === 'accountName' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
+      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        setTimeout(() => {
+          openAccountPopup();
+        }, 100);
+      }
+    }
+  };
+
+  // Handle keydown in payment fields with arrow support
+  const handlePaymentFieldKeyDown = (e, rowIndex, fieldType) => {
+    // Arrow key navigation
+    if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      navigateWithArrow(e.key.replace('Arrow', '').toLowerCase(), '', rowIndex, fieldType);
+      return;
+    }
+    
+    // Existing Enter key navigation
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentItem = paymentItems[rowIndex];
+
+      // Check if Cash/Bank is empty
+      const isCashBankEmpty = !currentItem.cashBank.trim();
+
+      // Special case: If at cashBank field and it's empty, skip to reference bill amount field
+      if (fieldType === 'cashBank' && isCashBankEmpty) {
+        if (billDetails.length > 0) {
+          setCurrentBillRowIndex(0);
+          setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+        } else {
+          setTimeout(() => saveButtonRef.current?.focus(), 0);
+        }
+        return;
+      }
+
+      // Special case: If at amount field and amount is not entered, don't move to next row
+      if (fieldType === 'amount' && (!currentItem.amount || parseFloat(currentItem.amount) <= 0)) {
+        return;
+      }
+
+      // Move to next field in same row
+      const currentFieldIndex = paymentFields.indexOf(fieldType);
+      if (currentFieldIndex < paymentFields.length - 1) {
+        // Special case for skipping CHQ fields
+        if (fieldType === 'type' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `payment_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
+        } 
+        else if (fieldType === 'chqNo' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `payment_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
+        }
+        else if (fieldType === 'chqDt' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `payment_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
+        }
+        else {
+          const nextFieldId = `payment_${currentItem.id}_${paymentFields[currentFieldIndex + 1]}`;
+          setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
+        }
+      } else {
+        // Last field in current row
+        if (rowIndex < paymentItems.length - 1) {
+          const nextItem = paymentItems[rowIndex + 1];
+          
+          if (!nextItem.cashBank.trim()) {
+            if (billDetails.length > 0) {
+              setCurrentBillRowIndex(0);
+              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+            } else {
+              setTimeout(() => saveButtonRef.current?.focus(), 0);
+            }
+          } else {
+            const nextFieldId = `payment_${nextItem.id}_${paymentFields[0]}`;
+            setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
+          }
+        } else {
+          if (currentItem.cashBank.trim() && currentItem.amount && parseFloat(currentItem.amount) > 0) {
+            const newId = Math.max(...paymentItems.map(item => item.id), 0) + 1;
+            setPaymentItems(prev => [
+              ...prev,
+              {
+                id: newId,
+                sNo: prev.length + 1,
+                cashBank: '',
+                cashBankCode: '',
+                crDr: 'CR',
+                type: '',
+                chqNo: '',
+                chqDt: '',
+                narration: '',
+                amount: '0.00'
+              }
+            ]);
+            setTimeout(() => {
+              document.getElementById(`payment_${newId}_cashBank`)?.focus();
+            }, 0);
+          } else {
+            if (billDetails.length > 0) {
+              setCurrentBillRowIndex(0);
+              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+            } else {
+              setTimeout(() => saveButtonRef.current?.focus(), 0);
+            }
+          }
+        }
+      }
+    }
+    
+    // Open Cash/Bank popup on typing
+    if (fieldType === 'cashBank' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
+      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        setTimeout(() => {
+          openCashBankPopup(paymentItems[rowIndex].id, rowIndex);
+        }, 100);
+      }
+    }
+  };
+
+  // Handle bill amount keydown with arrow support
+  const handleBillAmountKeyDown = (e, rowIndex) => {
+    // Arrow key navigation
+    if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      navigateWithArrow(e.key.replace('Arrow', '').toLowerCase(), '', rowIndex, 'amount');
+      return;
+    }
+    
+    // Existing Enter key navigation
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // Check if there's a next row
+      if (rowIndex < billDetails.length - 1) {
+        const nextBillId = billDetails[rowIndex + 1].id;
+        setTimeout(() => {
+          const nextInput = document.getElementById(`bill_${nextBillId}_amount`);
+          nextInput?.focus();
+          setCurrentBillRowIndex(rowIndex + 1);
+        }, 0);
+      } else {
+        setTimeout(() => saveButtonRef.current?.focus(), 0);
+      }
+    }
+  };
+
+  // Handle Save button keydown with arrow support
+  const handleSaveButtonKeyDown = (e) => {
+    // Arrow key navigation from save button
+    if (['ArrowLeft', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      if (billDetails.length > 0) {
+        focusOnBillField(billDetails.length - 1, billFields.indexOf('amount'));
+      } else if (paymentItems.length > 0) {
+        focusOnPaymentField(paymentItems.length - 1, paymentFields.length - 1);
+      }
+      return;
+    }
+    
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    }
+  };
+
+  // ========== REST OF THE CODE REMAINS THE SAME ==========
+  // (All the existing API functions, handlers, and state management code remains unchanged)
+
+  // ---------- API FUNCTIONS ----------
   const fetchNextVoucherNo = useCallback(async () => {
     try {
       if (!userData?.companyCode) {
@@ -231,7 +674,6 @@ const PaymentVoucher = () => {
     }
   }, [userData?.companyCode]);
 
-  // Fetch pending bills for selected party
   const fetchPendingBills = useCallback(async (partyCode) => {
     try {
       if (!partyCode || !userData?.companyCode) return;
@@ -240,11 +682,9 @@ const PaymentVoucher = () => {
       const url = API_ENDPOINTS.PAYMENTVOUCHER.GETPENDINGBILLS(partyCode, userData.companyCode);
       const response = await apiService.get(url);
       
-      // API returns array directly, not wrapped in .data
       const bills = Array.isArray(response) ? response : (response?.data || []);
       
       if (Array.isArray(bills) && bills.length > 0) {
-        // Map pending bills to table 2 (Reference Bill Details)
         const mappedBills = bills.map((bill, idx) => ({
           id: idx + 1,
           sNo: idx + 1,
@@ -279,7 +719,6 @@ const PaymentVoucher = () => {
     }
   }, [userData?.companyCode]);
 
-  // Fetch saved vouchers for Edit/Delete popups
   const fetchSavedVouchers = useCallback(async (page = 1, search = '') => {
     try {
       if (!userData?.companyCode) return;
@@ -287,24 +726,18 @@ const PaymentVoucher = () => {
       const url = API_ENDPOINTS.PAYMENTVOUCHER.GETBILLNUMLIST(userData.companyCode);
       const response = await apiService.get(url);
       
-      // Handle different response formats
       let voucherList = [];
       if (Array.isArray(response)) {
-        // API returns array directly
         voucherList = response;
       } else if (Array.isArray(response?.data)) {
-        // API returns data in .data property
         voucherList = response.data;
       } else if (response?.data?.data && Array.isArray(response.data.data)) {
-        // API returns data in .data.data property
         voucherList = response.data.data;
       }
       
       if (Array.isArray(voucherList) && voucherList.length > 0) {
-        // Map API response to expected format (ensure invoiceNo field exists)
         const mappedVouchers = voucherList.map(v => ({
           ...v,
-          // Ensure invoiceNo exists for display
           invoiceNo: v.invoiceNo || v.voucherNo || v.billNo || ''
         }));
         
@@ -326,7 +759,6 @@ const PaymentVoucher = () => {
     }
   }, [userData?.companyCode]);
 
-  // Fetch voucher details for editing
   const fetchVoucherDetails = async (voucherNo) => {
     try {
       setIsLoading(true);
@@ -336,7 +768,6 @@ const PaymentVoucher = () => {
       if (response?.bledger) {
         const ledger = response.bledger;
         
-        // Helper function to safely format date
         const safeFormatDate = (dateValue) => {
           if (!dateValue) return new Date().toISOString().substring(0, 10);
           try {
@@ -364,7 +795,6 @@ const PaymentVoucher = () => {
           balance: (ledger.fBillAmt || 0).toString()
         });
         
-        // Map ledger details to payment items
         if (response?.ledgers && Array.isArray(response.ledgers)) {
           const items = response.ledgers.map((item, idx) => ({
             id: idx + 1,
@@ -383,7 +813,6 @@ const PaymentVoucher = () => {
           setPaymentItems(items);
         }
 
-        // Load particulars from salesTransaction if available
         if (response?.salesTransaction) {
           const sales = response.salesTransaction;
           setParticulars({
@@ -408,7 +837,6 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Delete voucher from database
   const deleteVoucher = async (voucherNo) => {
     try {
       setIsLoading(true);
@@ -429,7 +857,6 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Function to fetch parties with pagination
   const fetchPartiesWithPagination = useCallback(async (page = 1) => {
     if (page === 1) {
       setIsLoading(true);
@@ -455,7 +882,6 @@ const PaymentVoucher = () => {
           phone: party.phone || '',
         }));
         
-        // Accumulate data - replace if page 1, append otherwise
         if (page === 1) {
           setAllParties(formattedData);
           setPartyCurrentPage(1);
@@ -464,12 +890,10 @@ const PaymentVoucher = () => {
           setPartyCurrentPage(page);
         }
         
-        // If we got less than 20 items, we've reached the end
         if (data.length < 20) {
           setHasReachedEndOfParties(true);
         }
       } else if (page > 1) {
-        // No data returned, we've reached the end
         setHasReachedEndOfParties(true);
       }
     } catch (err) {
@@ -483,22 +907,17 @@ const PaymentVoucher = () => {
     }
   }, [userData?.companyCode]);
 
-  // Initial data fetch on component mount and when userData changes
   useEffect(() => {
     if (userData?.companyCode) {
       fetchNextVoucherNo();
-      // Load first batch of parties (page 1)
       fetchPartiesWithPagination(1);     
     }
   }, [userData?.companyCode, fetchNextVoucherNo, fetchPartiesWithPagination]);
 
-  // Calculate Payment Details Totals whenever items change
   useEffect(() => {
-    // Check if there are any CASH type payments
     const hasCashPayments = paymentItems.some(item => item.type === 'CASH');
     
     if (hasCashPayments) {
-      // For CASH payments, calculate net amount (CR - DR)
       let crTotal = 0;
       let drTotal = 0;
       
@@ -513,23 +932,19 @@ const PaymentVoucher = () => {
         }
       });
       
-      // Net amount is the absolute difference
       const netAmount = Math.abs(crTotal - drTotal);
       setTotalAmount(netAmount);
     } else {
-      // For non-CASH payments, use simple sum
       const total = paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
       setTotalAmount(total);
     }
   }, [paymentItems]);
 
-  // Calculate Bill Details Totals
   useEffect(() => {
     const total = billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0);
     setBillTotalAmount(total);
   }, [billDetails]);
 
-  // Reset form to empty state
   const resetForm = () => {
     setVoucherDetails({
       voucherNo: '',
@@ -575,7 +990,6 @@ const PaymentVoucher = () => {
     setCurrentPaymentRowIndex(0);
     setCurrentBillRowIndex(0);
     
-    // Focus on date field after reset
     setTimeout(() => {
       if (dateRef.current) {
         dateRef.current.focus();
@@ -585,211 +999,7 @@ const PaymentVoucher = () => {
     fetchNextVoucherNo();
   };
 
-  // --- ENTER KEY NAVIGATION HANDLERS ---
-
-  // Handle Enter in header fields
-  const handleHeaderFieldKeyDown = (e, currentField, nextField) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      
-      switch (currentField) {
-        case 'voucherNo':
-          dateRef.current?.focus();
-          setNavigationStep('date');
-          break;
-          
-        case 'date':
-          accountNameRef.current?.focus();
-          setNavigationStep('accountName');
-          break;
-          
-        case 'accountName':
-          gstTypeRef.current?.focus();
-          setNavigationStep('gstType');
-          break;
-          
-        case 'gstType':
-          // Go to first payment row's Cash/Bank field
-          if (paymentCashBankRefs.current[0]) {
-            paymentCashBankRefs.current[0].focus();
-            setNavigationStep('paymentCashBank');
-            setCurrentPaymentRowIndex(0);
-          }
-          break;
-      }
-    }
-    
-    // Open popup on typing in account name
-    if (currentField === 'accountName' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
-      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
-        setTimeout(() => {
-          openAccountPopup();
-        }, 100);
-      }
-    }
-  };
-
-  // Handle Enter in payment table fields
-  // Handle payment table keydown with Enter key navigation - Similar to Receipt Voucher
-  const handlePaymentFieldKeyDown = (e, rowIndex, fieldType, value = '') => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const paymentFields = ['cashBank', 'crDr', 'type', 'chqNo', 'chqDt', 'narration', 'amount'];
-      const currentItem = paymentItems[rowIndex];
-
-      // Get current field index
-      const currentFieldIndex = paymentFields.indexOf(fieldType);
-
-      // Check if Cash/Bank is empty
-      const isCashBankEmpty = !currentItem.cashBank.trim();
-
-      // Special case: If at cashBank field and it's empty, skip to reference bill amount field
-      if (fieldType === 'cashBank' && isCashBankEmpty) {
-        if (billDetails.length > 0) {
-          setCurrentBillRowIndex(0);
-          setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
-        } else {
-          // If no bill rows, go to save button
-          setTimeout(() => saveButtonRef.current?.focus(), 0);
-        }
-        return;
-      }
-
-      // Special case: If at amount field and amount is not entered (0 or empty), don't move to next row
-      if (fieldType === 'amount' && (!currentItem.amount || parseFloat(currentItem.amount) <= 0)) {
-        // Don't move to next row - stay in same field
-        return;
-      }
-
-      // Move to next field in same row
-      if (currentFieldIndex < paymentFields.length - 1) {
-        // Special case for payment table: if Type is not CHQ, skip Chq No and Chq Dt
-        if (fieldType === 'type' && currentItem.type !== 'CHQ') {
-          // Skip to narration
-          const narrationFieldId = `payment_${currentItem.id}_narration`;
-          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
-        } 
-        // Special case: when moving from chqNo to chqDt and type is not CHQ, skip to narration
-        else if (fieldType === 'chqNo' && currentItem.type !== 'CHQ') {
-          const narrationFieldId = `payment_${currentItem.id}_narration`;
-          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
-        }
-        // Special case: when moving from chqDt and type is not CHQ, skip to narration
-        else if (fieldType === 'chqDt' && currentItem.type !== 'CHQ') {
-          const narrationFieldId = `payment_${currentItem.id}_narration`;
-          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
-        }
-        else {
-          // Normal navigation to next field
-          const nextFieldId = `payment_${currentItem.id}_${paymentFields[currentFieldIndex + 1]}`;
-          setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
-        }
-      } else {
-        // Last field in current row (Amount field)
-        // Check if next row exists and has cash/bank
-        if (rowIndex < paymentItems.length - 1) {
-          const nextItem = paymentItems[rowIndex + 1];
-          
-          // Check if next row has cash/bank
-          if (!nextItem.cashBank.trim()) {
-            // Next row has empty cash/bank, skip to reference bill amount
-            if (billDetails.length > 0) {
-              setCurrentBillRowIndex(0);
-              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
-            } else {
-              // If no bill rows, go to save button
-              setTimeout(() => saveButtonRef.current?.focus(), 0);
-            }
-          } else {
-            // Next row has cash/bank, go to it
-            const nextFieldId = `payment_${nextItem.id}_${paymentFields[0]}`;
-            setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
-          }
-        } else {
-          // Last row, check if we should add new row or go to bill details
-          // Only add new row if current row has cash/bank and amount
-          if (currentItem.cashBank.trim() && currentItem.amount && parseFloat(currentItem.amount) > 0) {
-            // Add new row and focus on its cash/bank
-            const newId = Math.max(...paymentItems.map(item => item.id), 0) + 1;
-            setPaymentItems(prev => [
-              ...prev,
-              {
-                id: newId,
-                sNo: prev.length + 1,
-                cashBank: '',
-                cashBankCode: '',
-                crDr: 'CR',
-                type: '',
-                chqNo: '',
-                chqDt: '',
-                narration: '',
-                amount: '0.00'
-              }
-            ]);
-            // Focus on cash/bank of new row
-            setTimeout(() => {
-              document.getElementById(`payment_${newId}_cashBank`)?.focus();
-            }, 0);
-          } else {
-            // Don't add new row, go to bill details or save button
-            if (billDetails.length > 0) {
-              setCurrentBillRowIndex(0);
-              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
-            } else {
-              setTimeout(() => saveButtonRef.current?.focus(), 0);
-            }
-          }
-        }
-      }
-    }
-    
-    // Open Cash/Bank popup on typing
-    if (fieldType === 'cashBank' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
-      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
-        setTimeout(() => {
-          openCashBankPopup(paymentItems[rowIndex].id, rowIndex);
-        }, 100);
-      }
-    }
-  };
-
-  // Handle bill table keydown with Enter key navigation
-  const handleBillAmountKeyDown = (e, rowIndex, value = '') => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const billFields = ['refNo', 'billNo', 'date', 'billAmount', 'paidAmount', 'balanceAmount', 'amount'];
-      
-      // Currently, only the 'amount' field is editable in the bill details table
-      const currentFieldIndex = billFields.indexOf('amount');
-      const nextFieldIndex = currentFieldIndex + 1;
-
-      // Check if there's a next row
-      if (rowIndex < billDetails.length - 1) {
-        // Move to the same field (amount) in the next row
-        const nextBillId = billDetails[rowIndex + 1].id;
-        setTimeout(() => {
-          const nextInput = document.getElementById(`bill_${nextBillId}_amount`);
-          nextInput?.focus();
-          setCurrentBillRowIndex(rowIndex + 1);
-        }, 0);
-      } else {
-        // If at last row and last field, move to save button
-        setTimeout(() => saveButtonRef.current?.focus(), 0);
-      }
-    }
-  };
-
-  // Handle Save button keydown
-  const handleSaveButtonKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSave();
-    }
-  };
-
   // --- POPUP HANDLERS ---
-
-  // Open edit voucher popup
   const openEditVoucherPopup = async () => {
     try {
       setLoadingVouchers(true);
@@ -803,7 +1013,6 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Open delete voucher popup
   const openDeleteVoucherPopup = async () => {
     try {
       setLoadingVouchers(true);
@@ -817,11 +1026,9 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Handle voucher selection for editing
   const handleVoucherSelect = async (selectedVoucher) => {
     try {
       setIsEditing(true);
-      // Use invoiceNo if available, otherwise fall back to voucherNo
       const voucherNo = selectedVoucher.invoiceNo || selectedVoucher.voucherNo;
       setOriginalVoucherNo(voucherNo);
       await fetchVoucherDetails(voucherNo);
@@ -832,10 +1039,8 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Handle voucher deletion
   const handleVoucherDelete = async (selectedVoucher) => {
     try {
-      // Use invoiceNo if available, otherwise fall back to voucherNo
       const voucherNo = selectedVoucher.invoiceNo || selectedVoucher.voucherNo;
       await deleteVoucher(voucherNo);
       setDeleteVoucherPopupOpen(false);
@@ -845,7 +1050,6 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Open account/party popup
   const openAccountPopup = async () => {
     try {
       if (allParties.length === 0) {
@@ -858,7 +1062,6 @@ const PaymentVoucher = () => {
         const response = await apiService.get(url);
         const data = response?.data?.data || response?.data || [];
         if (Array.isArray(data) && data.length > 0) {
-          // Format the data for popup display
           const formattedData = data.map((party, index) => ({
             id: party.code || `party-${index}`,
             code: party.code || '',
@@ -878,7 +1081,6 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Handle party/account selection
   const handleAccountSelect = async (account) => {
     try {
       setVoucherDetails(prev => ({
@@ -887,13 +1089,11 @@ const PaymentVoucher = () => {
         accountCode: account.code || account.accountCode || ''
       }));
       
-      // Fetch pending bills for this party using the code field
       const partyCode = account.code || account.accountCode;
       
       if (partyCode) {
         await fetchPendingBills(partyCode);
         
-        // Fetch party balance for the selected account
         try {
           const balanceUrl = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
           const balanceResponse = await apiService.getSilent(balanceUrl);
@@ -914,8 +1114,7 @@ const PaymentVoucher = () => {
       }
       
       setShowPartyPopup(false);
-      setPartySearchTerm(''); // Clear search term after selection
-      // After selecting account, focus on GST Type
+      setPartySearchTerm('');
       setTimeout(() => {
         gstTypeRef.current?.focus();
         setNavigationStep('gstType');
@@ -925,14 +1124,12 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Handle Cash/Bank selection from popup
   const handleCashBankSelect = (party) => {
     if (cashBankPopupContext) {
       const { paymentItemId, index } = cashBankPopupContext;
       handlePaymentItemChange(paymentItemId, 'cashBank', party.name || party.accountName || '');
       handlePaymentItemChange(paymentItemId, 'cashBankCode', party.code || party.accountCode || '');
       
-      // After selecting Cash/Bank, focus on Cr/Dr field
       setTimeout(() => {
         if (paymentCrDrRefs.current[index]) {
           paymentCrDrRefs.current[index].focus();
@@ -944,13 +1141,11 @@ const PaymentVoucher = () => {
     setCashBankPopupContext(null);
   };
 
-  // Open Cash/Bank popup
   const openCashBankPopup = (paymentItemId, index) => {
     setCashBankPopupContext({ paymentItemId, index });
     setShowCashBankPopup(true);
   };
 
-  // Get popup configuration
   const getPopupConfig = (type) => {
     const configs = {
       account: {
@@ -961,7 +1156,6 @@ const PaymentVoucher = () => {
         columnWidths: {  name: '300px' },
         data: allParties.length > 0 ? allParties : [],
         fetchItems: async () => {
-          // Check if we need to load more batches (only if we haven't reached the end)
           if (!hasReachedEndOfParties && !isLoadingMoreParties) {
             await fetchPartiesWithPagination(partyCurrentPage + 1);
           }
@@ -970,7 +1164,6 @@ const PaymentVoucher = () => {
         loading: isLoading || isLoadingMoreParties,
         hasMoreData: !hasReachedEndOfParties,
         onLoadMore: () => {
-          // Only load more if we haven't reached the end
           if (!hasReachedEndOfParties && !isLoadingMoreParties) {
             fetchPartiesWithPagination(partyCurrentPage + 1);
           }
@@ -1021,20 +1214,17 @@ const PaymentVoucher = () => {
     return configs[type];
   };
 
-  // --- HANDLERS ---
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setVoucherDetails(prev => ({
       ...prev,
       [name]: value
     }));
-    // Track the accountName value for party popup search
     if (name === 'accountName') {
       setPartySearchTerm(value);
     }
   };
 
-  // Handle backspace in account field
   const handleBackspace = (e, fieldName) => {
     if (e.key === 'Backspace') {
       if (fieldName === 'accountName') {
@@ -1047,7 +1237,6 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Handle payment item change
   const handlePaymentItemChange = (id, field, value) => {
     console.log(`🟠 handlePaymentItemChange called: id=${id}, field=${field}, value=${value}`);
     setPaymentItems(prev => {
@@ -1057,9 +1246,11 @@ const PaymentVoucher = () => {
       console.log(`🟠 After update, item ${id}:`, updated.find(i => i.id === id));
       return updated;
     });
+    if (field === 'cashBank') {
+      setCashBankSearchTerm(value);
+    }
   };
 
-  // Handle bill item change
   const handleBillItemChange = (id, field, value) => {
     setBillDetails(prev =>
       prev.map(bill =>
@@ -1068,7 +1259,6 @@ const PaymentVoucher = () => {
     );
   };
 
-  // Handle delete payment row
   const handleDeletePaymentRow = (id) => {
     if (paymentItems.length === 1) {
       setError('At least one payment item is required');
@@ -1083,7 +1273,6 @@ const PaymentVoucher = () => {
     });
   };
 
-  // Handle delete bill row
   const handleDeleteBillRow = (id) => {
     setBillDetails(prev => {
       const filtered = prev.filter(bill => bill.id !== id);
@@ -1094,7 +1283,6 @@ const PaymentVoucher = () => {
     });
   };
 
-  // Handle add payment row
   const handleAddPaymentRow = () => {
     const newId = Math.max(...paymentItems.map(item => item.id), 0) + 1;
     const newSNo = paymentItems.length + 1;
@@ -1115,7 +1303,6 @@ const PaymentVoucher = () => {
     ]);
   };
 
-  // Handle add bill row
   const handleAddBillRow = () => {
     const newId = Math.max(...billDetails.map(bill => bill.id), 0) + 1;
     const newSNo = billDetails.length + 1;
@@ -1135,29 +1322,24 @@ const PaymentVoucher = () => {
     ]);
   };
 
-  // Handle edit click - opens edit voucher popup
   const handleEditClick = () => {
     openEditVoucherPopup();
   };
 
-  // Handle delete click - opens delete voucher popup
   const handleDeleteClick = () => {
     openDeleteVoucherPopup();
   };
 
-  // Handle clear - clears current form
   const handleClear = () => {
     resetForm();
   };
 
-  // Format date to yyyy-MM-dd
   const formatDateToYYYYMMDD = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toISOString().substring(0, 10);
   };
 
-  // ========== SAVE FUNCTION ==========
   const savePaymentVoucher = async (updatedParticulars = null) => {
     try {
       if (!voucherDetails.voucherNo) {
@@ -1176,10 +1358,8 @@ const PaymentVoucher = () => {
         return;
       }
 
-      // Filter payment items - only include items with cashBank and amount > 0
       const validPaymentItems = paymentItems.filter(item => item.cashBank && parseFloat(item.amount) > 0);
       
-      // Check if at least one valid payment item exists
       if (validPaymentItems.length === 0) {
         setError('At least one payment item with Cash/Bank account and amount is required');
         toast.error('At least one payment item with Cash/Bank account and amount is required', { autoClose: 3000 });
@@ -1188,24 +1368,18 @@ const PaymentVoucher = () => {
 
       setIsSaving(true);
 
-      // Use passed particulars or fall back to state
       const particularsToUse = updatedParticulars || particulars;
 
-      // Calculate givenTotal from COLLECT values (amount given by customer)
       let givenTotal = 0;
       const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
       
       denominations.forEach(denom => {
-        // Get the COLLECT value for this denomination (string key)
         const denomKey = denom.toString();
         const collectValue = particularsToUse[denomKey]?.collect;
         const collectCount = parseInt(collectValue) || 0;
         givenTotal += collectCount * denom;
       });
       
-      // Calculate balanceGiven (change given to customer)
-      // Formula: totalAmt = givenTotal - balanceGiven
-      // So: balanceGiven = givenTotal - totalAmt
       const balanceGiven = givenTotal - totalAmount;
 
       const payload = {
@@ -1274,7 +1448,6 @@ const PaymentVoucher = () => {
     } catch (err) {
       console.error('Error saving voucher:', err);
       
-      // Handle 409 Conflict (voucher already exists)
       if (err.response?.status === 409) {
         const errorMsg = 'Payment Voucher already exists';
         setError(errorMsg);
@@ -1291,12 +1464,10 @@ const PaymentVoucher = () => {
     }
   };
 
-  // Calculate cash totals separated by CR and DR
   const calculateCashTotals = () => {
     let crTotal = 0;
     let drTotal = 0;
 
-    // DEBUG: Log each item's type field in detail
     console.log('🔍 DEBUG - Payment Items Array Length:', paymentItems.length);
     paymentItems.forEach((item, idx) => {
       console.log(`  Item ${idx}:`, {
@@ -1310,7 +1481,6 @@ const PaymentVoucher = () => {
       });
     });
 
-    // Filter payment items with type 'CASH' and sum by CR/DR
     paymentItems.forEach(item => {
       if (item.type === 'CASH' && item.amount) {
         const amount = parseFloat(item.amount) || 0;
@@ -1322,7 +1492,6 @@ const PaymentVoucher = () => {
       }
     });
 
-    // Calculate net amount (absolute difference)
     const netAmount = Math.abs(crTotal - drTotal);
 
     const result = {
@@ -1336,15 +1505,12 @@ const PaymentVoucher = () => {
     return result;
   };
 
-  // Handle save with confirmation
   const handleSave = async () => {
     const cashTotals = calculateCashTotals();
     
-    // Check if there are CASH type payments
     const hasCashPayments = paymentItems.some(item => item.type === 'CASH');
     
     if (hasCashPayments) {
-      // Show confirmation modal only for CASH payments
       const confirmationData = {
         cashTotals: cashTotals,
         hasCashPayments: hasCashPayments
@@ -1352,24 +1518,19 @@ const PaymentVoucher = () => {
       setSaveConfirmationData(confirmationData);
       showSaveConfirmation();
     } else {
-      // No CASH payments, proceed directly to save
       await savePaymentVoucher();
     }
   };
 
-  // Function to show save confirmation popup using SaveConfirmationModal
   const showSaveConfirmation = () => {
     setSaveConfirmationOpen(true);
   };
 
-  // Function to handle confirmed save
   const handleConfirmedSave = async (updatedParticulars) => {
     setSaveConfirmationOpen(false);
-    // Pass updatedParticulars directly to savePaymentVoucher to avoid async state update issues
     await savePaymentVoucher(updatedParticulars);
   };
 
-  // Function to cancel save
   const handleCancelSave = () => {
     setSaveConfirmationOpen(false);
     setSaveConfirmationData(null);
@@ -1778,7 +1939,7 @@ const PaymentVoucher = () => {
                 }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'voucherNo' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'voucherNo', 'date')}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'voucherNo')}
                 readOnly
               />
             </div>
@@ -1798,7 +1959,7 @@ const PaymentVoucher = () => {
                 }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'date' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'date', 'accountName')}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'date')}
               />
             </div>
 
@@ -1817,9 +1978,14 @@ const PaymentVoucher = () => {
                 }}
                 onBlur={() => setFocusedField('')}
                 onClick={openAccountPopup}
-                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName', 'gstType')}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName')}
                 onKeyUp={(e) => handleBackspace(e, 'accountName')}
-                style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
+                style={{
+    ...(focusedField === 'accountName'
+      ? styles.inlineInputClickableFocused
+      : styles.inlineInputClickable),
+    width: '420px'
+  }}
                 placeholder="Search A/C Name"
               />
             </div>
@@ -1828,28 +1994,20 @@ const PaymentVoucher = () => {
             <div style={styles.fieldGroup}>
               <label style={styles.inlineLabel}>Balance</label>
               <input
-                
+                ref={balanceRef}
                 name="balance"
                 value={voucherDetails.balance + ' ' + (voucherDetails.crDr || '')}
                 onChange={handleInputChange}
-                onFocus={() => setFocusedField('balance')}
+                onFocus={() => {
+                  setFocusedField('balance');
+                  setNavigationStep('balance');
+                }}
                 onBlur={() => setFocusedField('')}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'balance')}
                 style={focusedField === 'balance' ? styles.inlineInputFocused : styles.inlineInput}
                 readOnly
               />
             </div>
-
-            {/* CR/DR - No Label */}
-            {/* <div style={styles.fieldGroup}>
-              <input
-                name="crDr"
-                value={voucherDetails.crDr || 'CR'}
-                onChange={handleInputChange}
-                onFocus={() => setFocusedField('crDr')}
-                onBlur={() => setFocusedField('')}
-                style={styles.inlineInput}
-              />
-            </div> */}
 
             {/* GST Type */}
             <div style={styles.fieldGroup}>
@@ -1865,7 +2023,7 @@ const PaymentVoucher = () => {
                 }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'gstType' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'gstType', 'paymentCashBank')}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'gstType')}
               >
                 <option>CGST/SGST</option>
                 <option>IGST</option>
@@ -1904,7 +2062,7 @@ const PaymentVoucher = () => {
                       type="text"
                       value={item.cashBank}
                       onChange={(e) => handlePaymentItemChange(item.id, 'cashBank', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'cashBank', item.cashBank)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'cashBank')}
                       onClick={() => openCashBankPopup(item.id, index)}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
@@ -1923,7 +2081,7 @@ const PaymentVoucher = () => {
                       id={`payment_${item.id}_crDr`}
                       value={item.crDr}
                       onChange={(e) => handlePaymentItemChange(item.id, 'crDr', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'crDr', item.crDr)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'crDr')}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
                         setNavigationStep('paymentCrDr');
@@ -1945,7 +2103,7 @@ const PaymentVoucher = () => {
                         console.log(`🟠 SELECT onChange fired: item.id=${item.id}, e.target.value="${e.target.value}"`);
                         handlePaymentItemChange(item.id, 'type', e.target.value);
                       }}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'type', item.type)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'type')}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
                         setNavigationStep('paymentType');
@@ -1969,7 +2127,7 @@ const PaymentVoucher = () => {
                       type="text"
                       value={item.chqNo}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqNo', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqNo', item.chqNo)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqNo')}
                       disabled={item.type !== 'CHQ'}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
@@ -1990,7 +2148,7 @@ const PaymentVoucher = () => {
                       type="date"
                       value={item.chqDt}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqDt', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqDt', item.chqDt)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqDt')}
                       disabled={item.type !== 'CHQ'}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
@@ -2011,7 +2169,7 @@ const PaymentVoucher = () => {
                       type="text"
                       value={item.narration}
                       onChange={(e) => handlePaymentItemChange(item.id, 'narration', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'narration', item.narration)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'narration')}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
                         setNavigationStep('paymentNarration');
@@ -2027,7 +2185,7 @@ const PaymentVoucher = () => {
                       id={`payment_${item.id}_amount`}
                       value={item.amount}
                       onChange={(e) => handlePaymentItemChange(item.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'amount', item.amount)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'amount')}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
                         setNavigationStep('paymentAmount');
@@ -2090,7 +2248,6 @@ const PaymentVoucher = () => {
         {/* REFERENCE BILL DETAILS TABLE */}
         <div style={{...styles.tableContainer, marginTop: 0, marginBottom: 0, margin: 0, marginLeft: 0, marginRight: 0, width: '100%', flex: 1}}>
           <h2 style={{
-            // margin: '0 0 12px 0',
             padding: '12px 16px 0 26px',
             color: '#1B91DA',
             fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
@@ -2171,7 +2328,7 @@ const PaymentVoucher = () => {
                       id={`bill_${bill.id}_amount`}
                       value={bill.amount || ''}
                       onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handleBillAmountKeyDown(e, index, bill.amount)}
+                      onKeyDown={(e) => handleBillAmountKeyDown(e, index)}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
                         setNavigationStep('billAmount');
@@ -2294,8 +2451,10 @@ const PaymentVoucher = () => {
           onClose={() => {
             setShowCashBankPopup(false);
             setCashBankPopupContext(null);
+            setCashBankSearchTerm('');
           }}
           onSelect={handleCashBankSelect}
+          initialSearch={cashBankSearchTerm}
         />
       )}
 
@@ -2303,8 +2462,12 @@ const PaymentVoucher = () => {
         <PopupListSelector
           {...getPopupConfig('editVoucher')}
           open={editVoucherPopupOpen}
-          onClose={() => setEditVoucherPopupOpen(false)}
+          onClose={() => {
+            setEditVoucherPopupOpen(false);
+            setVoucherSearchTerm('');
+          }}
           onSelect={handleVoucherSelect}
+          initialSearch={voucherSearchTerm}
         />
       )}
 
@@ -2312,8 +2475,12 @@ const PaymentVoucher = () => {
         <PopupListSelector
           {...getPopupConfig('deleteVoucher')}
           open={deleteVoucherPopupOpen}
-          onClose={() => setDeleteVoucherPopupOpen(false)}
+          onClose={() => {
+            setDeleteVoucherPopupOpen(false);
+            setVoucherSearchTerm('');
+          }}
           onSelect={handleVoucherDelete}
+          initialSearch={voucherSearchTerm}
         />
       )}
 
