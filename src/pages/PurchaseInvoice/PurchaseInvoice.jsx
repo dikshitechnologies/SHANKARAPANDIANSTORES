@@ -1294,16 +1294,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
 
     // If Enter is pressed in qty field, move to add/less
-    if (currentField === 'qty') {
-      e.preventDefault();
-      setTimeout(() => {
-        if (addLessRef.current) {
-          addLessRef.current.focus();
-          addLessRef.current.select();
-        }
-      }, 50);
-      return;
-    }
+    // if (currentField === 'qty') {
+    //   e.preventDefault();
+    //   setTimeout(() => {
+    //     if (addLessRef.current) {
+    //       addLessRef.current.focus();
+    //       addLessRef.current.select();
+    //     }
+    //   }, 50);
+    //   return;
+    // }
 
     // If Enter is pressed in the amt field (last field)
     if (currentField === 'amt') {
@@ -2468,6 +2468,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.barcode}
                       data-row={index}
+                      readOnly
                       data-field="barcode"
                       onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
@@ -2593,6 +2594,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.stock}
                       data-row={index}
                       data-field="stock"
+                      readOnly
                       onChange={(e) => handleItemChange(item.id, 'stock', parseFloat(e.target.value) || 0)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
                        onFocus={() => setFocusedField(`stock-${item.id}`)}
@@ -2609,6 +2611,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
                       onFocus={() => setFocusedField(`hsn-${item.id}`)}
                       onBlur={() => setFocusedField('')}
+                      readOnly
                     />
                   </td>
                   <td style={styles.td}>
@@ -2683,6 +2686,15 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                             'Invalid tax value. Please enter 3, 5, 12, 18, or 40',
                             () => {
                               handleItemChange(item.id, 'intax', '');
+                              // Focus back on the field after alert
+                              setTimeout(() => {
+                                const intaxInput = document.querySelector(
+                                  `input[data-row="${index}"][data-field="intax"]`
+                                );
+                                if (intaxInput) {
+                                  intaxInput.focus();
+                                }
+                              }, 100);
                             },
                             'warning'
                           );
@@ -2698,10 +2710,38 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.outtax || ''}
                       data-row={index}
                       data-field="outtax"
-                      onChange={(e) => handleItemChange(item.id, 'outtax', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const validTaxValues = ['3', '5', '12', '18', '40'];
+                        if (value === '' || /^[0-9]*$/.test(value)) {
+                          handleItemChange(item.id, 'outtax', value);
+                        }
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'outtax')}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        const validTaxValues = ['3', '5', '12', '18', '40'];
+                        if (value !== '' && !validTaxValues.includes(value)) {
+                          showAlertConfirmation(
+                            'Invalid tax value. Please enter 3, 5, 12, 18, or 40',
+                            () => {
+                              handleItemChange(item.id, 'outtax', '');
+                              // Focus back on the field after alert
+                              setTimeout(() => {
+                                const outtaxInput = document.querySelector(
+                                  `input[data-row="${index}"][data-field="outtax"]`
+                                );
+                                if (outtaxInput) {
+                                  outtaxInput.focus();
+                                }
+                              }, 100);
+                            },
+                            'warning'
+                          );
+                          
+                        }
+                      }}
                       onFocus={() => setFocusedField(`outtax-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={styles.td}>
