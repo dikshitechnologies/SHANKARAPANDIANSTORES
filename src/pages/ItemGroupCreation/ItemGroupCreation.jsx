@@ -345,6 +345,18 @@ export default function ItemGroupCreation() {
     setIsDropdownOpen(false);
     setIsTreeOpen(true);
   };
+    const resetForm1 = () => {
+    setMainGroup("");
+    setSubGroup("");
+    setFCode("");
+    setSelectedNode(null);
+    setMessage(null);
+    setSearchDropdown("");
+    setSearchTree("");
+    setIsDropdownOpen(false);
+    setIsTreeOpen(true);
+    setActionType("Add");
+  };
 
   const validateForSubmit = () => {
     if (!mainGroup?.trim()) {
@@ -1425,7 +1437,7 @@ export default function ItemGroupCreation() {
               </button>
               <button
                 className="submit-clear"
-                onClick={resetForm}
+                onClick={resetForm1}
                 disabled={submitting}
                 type="button"
               >
