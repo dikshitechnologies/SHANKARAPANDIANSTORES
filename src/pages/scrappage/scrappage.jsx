@@ -406,6 +406,7 @@ export default function ScrapPage() {
     if (!keepAction) setActionType("Add");
     
     setTimeout(() => scrapNameRef.current?.focus(), 60);
+    setActionType("Add")
   };
 
   const openEditModal = () => {

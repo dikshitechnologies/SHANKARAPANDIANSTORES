@@ -395,6 +395,7 @@ const submitRef = useRef(null);
     
     // Focus back to sizeName field after reset
     setTimeout(() => sizeNameRef.current?.focus(), 60);
+    setActionType("Add")
   };
 
   const openEditModal = () => {

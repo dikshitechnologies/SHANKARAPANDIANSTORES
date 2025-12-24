@@ -56,10 +56,40 @@ const Icon = {
 };
 
 // --- Tree node component ---
-function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey }) {
+function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey, onNavigate }) {
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedKeys.has(node.key);
   const isSelected = selectedKey === node.key;
+
+  const handleKeyDown = (e) => {
+    switch (e.key) {
+      case "Enter":
+        e.preventDefault();
+        if (hasChildren && !isExpanded) {
+          toggleExpand(node.key);
+        } else {
+          onSelect(node);
+        }
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        if (hasChildren && !isExpanded) {
+          toggleExpand(node.key);
+        }
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        if (hasChildren && isExpanded) {
+          toggleExpand(node.key);
+        }
+        break;
+      case "ArrowUp":
+      case "ArrowDown":
+        e.preventDefault();
+        onNavigate?.(e.key === "ArrowUp" ? "up" : "down", node.key);
+        break;
+    }
+  };
 
   return (
     <div className="tree-node" style={{ paddingLeft: `${12 + level * 16}px` }}>
@@ -68,14 +98,8 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         onClick={() => onSelect(node)}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            onSelect(node);
-          } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-            // Allow tree navigation to handle arrow keys
-            e.stopPropagation();
-          }
-        }}
+        data-key={node.key}
+        onKeyDown={handleKeyDown}
       >
         {hasChildren ? (
           <button
@@ -120,6 +144,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
                 expandedKeys={expandedKeys}
                 toggleExpand={toggleExpand}
                 selectedKey={selectedKey}
+                onNavigate={onNavigate}
               />
             ))}
         </div>
@@ -1096,6 +1121,42 @@ const handleKeyNavigation = (e) => {
     };
     return filter(treeData);
   }, [treeData, searchTree]);
+
+  const handleTreeNavigation = useCallback((direction, currentKey) => {
+    const getAllNodes = (nodes) => {
+      const result = [];
+      for (const node of nodes) {
+        result.push(node);
+        if (expandedKeys.has(node.key) && node.children) {
+          result.push(...getAllNodes(node.children));
+        }
+      }
+      return result;
+    };
+
+    const allNodes = getAllNodes(filteredTree);
+    const currentIndex = allNodes.findIndex(n => n.key === currentKey);
+    
+    if (direction === "up") {
+      const newIndex = Math.max(0, currentIndex - 1);
+      const newNode = allNodes[newIndex];
+      if (newNode) {
+        setSelectedNode(newNode);
+        setTimeout(() => {
+          document.querySelector(`[data-key="${newNode.key}"]`)?.focus();
+        }, 0);
+      }
+    } else if (direction === "down") {
+      const newIndex = Math.min(allNodes.length - 1, currentIndex + 1);
+      const newNode = allNodes[newIndex];
+      if (newNode) {
+        setSelectedNode(newNode);
+        setTimeout(() => {
+          document.querySelector(`[data-key="${newNode.key}"]`)?.focus();
+        }, 0);
+      }
+    }
+  }, [filteredTree, expandedKeys]);
 
   // Custom fetch functions that include the initial search
   const fetchBrandsWithSearch = useCallback(async (page = 1, search = '') => {
@@ -2116,87 +2177,23 @@ const handleKeyNavigation = (e) => {
           isInitialFocusRef.current = false;
         }}
         onKeyDown={(e) => {
-          // Type letters → Tree opens (for single key presses)
-          if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
-            setIsTreeOpen(true);
-          }
-          
-          // Handle arrow keys and Enter when tree is open
-          if (isTreeOpen && filteredTree.length > 0) {
-            const treeItems = document.querySelectorAll('.tree-row');
-            
-            switch(e.key) {
-              case 'ArrowDown':
-                e.preventDefault();
-                // Find current selected index
-                let currentIndex = -1;
-                treeItems.forEach((item, index) => {
-                  if (item.classList.contains('selected')) {
-                    currentIndex = index;
-                  }
-                });
-                
-                // Select next item or first if none selected
-                const nextIndex = currentIndex < treeItems.length - 1 ? currentIndex + 1 : 0;
-                if (treeItems[nextIndex]) {
-                  // Remove selection from all
-                  treeItems.forEach(item => item.classList.remove('selected'));
-                  // Add selection to next
-                  treeItems[nextIndex].classList.add('selected');
-                  // Update selected node
-                  const nextNode = filteredTree[nextIndex];
-                  if (nextNode) {
-                    setSelectedNode(nextNode);
-                  }
-                  // Scroll into view
-                  treeItems[nextIndex].scrollIntoView({ block: 'nearest' });
+          // Enter key opens tree and focuses first node
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (!isTreeOpen) {
+              setIsTreeOpen(true);
+              setTimeout(() => {
+                const firstNode = filteredTree[0];
+                if (firstNode) {
+                  setSelectedNode(firstNode);
+                  document.querySelector(`[data-key="${firstNode.key}"]`)?.focus();
                 }
-                break;
-                
-              case 'ArrowUp':
-                e.preventDefault();
-                // Find current selected index
-                let currentIdx = -1;
-                treeItems.forEach((item, index) => {
-                  if (item.classList.contains('selected')) {
-                    currentIdx = index;
-                  }
-                });
-                
-                // Select previous item or last if none selected
-                const prevIndex = currentIdx > 0 ? currentIdx - 1 : treeItems.length - 1;
-                if (treeItems[prevIndex]) {
-                  // Remove selection from all
-                  treeItems.forEach(item => item.classList.remove('selected'));
-                  // Add selection to previous
-                  treeItems[prevIndex].classList.add('selected');
-                  // Update selected node
-                  const prevNode = filteredTree[prevIndex];
-                  if (prevNode) {
-                    setSelectedNode(prevNode);
-                  }
-                  // Scroll into view
-                  treeItems[prevIndex].scrollIntoView({ block: 'nearest' });
-                }
-                break;
-                
-              case 'Enter':
-                e.preventDefault();
-                // Press Enter → Select highlighted
-                if (selectedNode) {
-                  handleSelectNode(selectedNode);
-                  setIsTreeOpen(false);
-                  setTimeout(() => {
-      itemNameRef.current?.focus();
-    }, 10);
-                }
-                break;
-                
-              case 'Escape':
-                e.preventDefault();
-                setIsTreeOpen(false);
-                break;
+              }, 0);
             }
+          }
+          // Type letters → Tree opens (for single key presses)
+          else if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
+            setIsTreeOpen(true);
           }
         }}
         disabled={isSubmitting}
@@ -2281,6 +2278,7 @@ const handleKeyNavigation = (e) => {
                   expandedKeys={expandedKeys}
                   toggleExpand={toggleExpand}
                   selectedKey={selectedNode?.key}
+                  onNavigate={handleTreeNavigation}
                 />
               ))
             )}
@@ -2340,6 +2338,7 @@ const handleKeyNavigation = (e) => {
                   expandedKeys={expandedKeys}
                   toggleExpand={toggleExpand}
                   selectedKey={selectedNode?.key}
+                  onNavigate={handleTreeNavigation}
                 />
               ))
             )}
