@@ -133,6 +133,11 @@ const ReceiptVoucher = () => {
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [lastTypedValue, setLastTypedValue] = useState('');
 
+  // Search term states for popup pre-fill
+  const [accountSearchTerm, setAccountSearchTerm] = useState('');
+  const [cashBankSearchTerm, setCashBankSearchTerm] = useState('');
+  const [voucherSearchTerm, setVoucherSearchTerm] = useState('');
+
   // Track current bill row for navigation
   const [currentBillRowIndex, setCurrentBillRowIndex] = useState(0);
 
@@ -780,6 +785,7 @@ const ReceiptVoucher = () => {
   const handleAccountNameChange = (e) => {
     const value = e.target.value;
     handleInputChange(e);
+    setAccountSearchTerm(value); // Track search term
     
     // Clear existing timeout
     if (typingTimeout) {
@@ -802,6 +808,7 @@ const ReceiptVoucher = () => {
         item.id === itemId ? { ...item, cashBank: value } : item
       )
     );
+    setCashBankSearchTerm(value); // Track search term
     
     // Clear existing timeout
     if (typingTimeout) {
@@ -2307,7 +2314,10 @@ const ReceiptVoucher = () => {
       {editVoucherPopupOpen && (
         <PopupListSelector
           open={editVoucherPopupOpen}
-          onClose={() => setEditVoucherPopupOpen(false)}
+          onClose={() => {
+            setEditVoucherPopupOpen(false);
+            setVoucherSearchTerm('');
+          }}
           onSelect={handleVoucherSelect}
           fetchItems={getPopupConfig('editVoucher').fetchItems}
           title={getPopupConfig('editVoucher').title}
@@ -2315,6 +2325,7 @@ const ReceiptVoucher = () => {
           searchFields={getPopupConfig('editVoucher').searchFields}
           headerNames={getPopupConfig('editVoucher').headerNames}
           columnWidths={getPopupConfig('editVoucher').columnWidths}
+          initialSearch={voucherSearchTerm}
           tableStyles={{
             headerBackground: 'linear-gradient(135deg, #307AC8 0%, #06A7EA 100%)',
             itemHoverBackground: 'rgba(48, 122, 200, 0.1)',
@@ -2329,7 +2340,10 @@ const ReceiptVoucher = () => {
       {deleteVoucherPopupOpen && (
         <PopupListSelector
           open={deleteVoucherPopupOpen}
-          onClose={() => setDeleteVoucherPopupOpen(false)}
+          onClose={() => {
+            setDeleteVoucherPopupOpen(false);
+            setVoucherSearchTerm('');
+          }}
           onSelect={handleVoucherDelete}
           fetchItems={getPopupConfig('deleteVoucher').fetchItems}
           title={getPopupConfig('deleteVoucher').title}
@@ -2337,6 +2351,7 @@ const ReceiptVoucher = () => {
           searchFields={getPopupConfig('deleteVoucher').searchFields}
           headerNames={getPopupConfig('deleteVoucher').headerNames}
           columnWidths={getPopupConfig('deleteVoucher').columnWidths}
+          initialSearch={voucherSearchTerm}
           tableStyles={{
             headerBackground: 'linear-gradient(135deg, #307AC8 0%, #06A7EA 100%)',
             itemHoverBackground: 'rgba(48, 122, 200, 0.1)',
@@ -2351,7 +2366,11 @@ const ReceiptVoucher = () => {
       {accountPopupOpen && (
         <PopupListSelector
           open={accountPopupOpen}
-          onClose={() => setAccountPopupOpen(false)}
+          onClose={() => {
+            setAccountPopupOpen(false);
+            setAccountSearchTerm('');
+            setCashBankSearchTerm('');
+          }}
           onSelect={handleAccountSelect}
           fetchItems={getPopupConfig('selectAccount').fetchItems}
           title={getPopupConfig('selectAccount').title}
@@ -2359,6 +2378,7 @@ const ReceiptVoucher = () => {
           searchFields={getPopupConfig('selectAccount').searchFields}
           headerNames={getPopupConfig('selectAccount').headerNames}
           columnWidths={getPopupConfig('selectAccount').columnWidths}
+          initialSearch={accountPopupContext === 'header' ? accountSearchTerm : cashBankSearchTerm}
           tableStyles={{
             headerBackground: 'linear-gradient(135deg, #307AC8 0%, #06A7EA 100%)',
             itemHoverBackground: 'rgba(48, 122, 200, 0.1)',
