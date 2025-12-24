@@ -56,16 +56,19 @@ const SaleInvoice = () => {
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const ignoreNextInputRef = useRef(false);
+ const saveButtonRef = useRef(null);
+ const blockTableEnterRef = useRef(false);
+
 
   // Save confirmation popup
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
   // Clear confirmation popup
   const [clearConfirmationOpen, setClearConfirmationOpen] = useState(false);
-
+  
   // Print confirmation popup
   const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
-
+ 
   // Edit confirmation popup
   const [editConfirmationOpen, setEditConfirmationOpen] = useState(false);
   const [editConfirmationData, setEditConfirmationData] = useState(null);
@@ -80,6 +83,7 @@ const SaleInvoice = () => {
   
   // Add/Less amount state
   const [addLessAmount, setAddLessAmount] = useState('');
+  const warnedEmptyRowRef = useRef({});
 
   // Track if we're editing an existing invoice
   const [isEditing, setIsEditing] = useState(false);
@@ -178,6 +182,33 @@ const SaleInvoice = () => {
   const barcodeRef = useRef(null);
   const addLessRef = useRef(null);
 
+  const HEADER_FIELDS = ['billDate', 'mobileNo', 'type', 'salesman', 'custName'];
+  
+  const handleItemNameLetterKey = (e, rowIndex) => {
+  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+
+  if (isLetterKey) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    ignoreNextInputRef.current = true;
+    setPopupSearchText(e.key);   // 🔥 prefill search
+    setCurrentItemRowIndex(rowIndex);
+    setItemPopupOpen(true);
+    return true;
+  }
+
+  if (e.key === '/') {
+    e.preventDefault();
+    setPopupSearchText('');
+    setCurrentItemRowIndex(rowIndex);
+    setItemPopupOpen(true);
+    return true;
+  }
+
+  return false;
+};
+
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
 
@@ -268,35 +299,38 @@ const SaleInvoice = () => {
     }
   }, [isEditing, billDetails.billNo]);
 
-  // Fetch customers from backend API
-  const fetchCustomers = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError("");
-      
-      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getCustomers();
-      
-      const response = await axiosInstance.get(endpoint);
-      
-      if (response && Array.isArray(response.data)) {
-        const formattedCustomers = response.data.map(customer => ({
-          id: customer.code || customer.id,
-          code: customer.code,
-          name: customer.name,
-          originalCode: customer.code,
-          displayName: customer.name
-        }));
-        
-        setCustomerList(formattedCustomers);
-      } else {
-        setCustomerList([]);
-      }
-    } catch (err) {
-      setCustomerList([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+const fetchCustomers = useCallback(async () => {
+  try {
+    setIsLoading(true);
+    setError("");
+
+    // ✅ CALL WITH PAGINATION
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getCustomers(1, 50)
+    );
+
+    // ✅ BACKEND RETURNS { data: [...] }
+    const rawCustomers = Array.isArray(response?.data?.data)
+      ? response.data.data
+      : [];
+
+    const formattedCustomers = rawCustomers.map(customer => ({
+      id: customer.code || customer.partyCode || customer.id,
+      code: customer.code || customer.partyCode,
+      name: customer.name || customer.partyName,
+      originalCode: customer.code || customer.partyCode,
+      displayName: customer.name || customer.partyName
+    }));
+
+    setCustomerList(formattedCustomers);
+  } catch (err) {
+    console.error("Customer fetch failed:", err);
+    setCustomerList([]);
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
+
 
   // Fetch salesmen from backend API
   const fetchSalesmen = useCallback(async () => {
@@ -1274,18 +1308,22 @@ const SaleInvoice = () => {
       
       let filtered = itemsData;
       if (search) {
-        const searchLower = search.toLowerCase().trim();
+       const searchLower = (search || '').trim().toLowerCase();
 
-        filtered = itemsData.filter(item => {
-          const name =
-            item.popupDisplay ||
-            item.displayName ||
-            item.name ||
-            '';
+filtered = itemsData.filter(item => {
+  const name =
+    item.itemName ||        // ✅ your API field
+    item.fitemNme ||        // ✅ fallback
+    item.name ||            // ✅ fallback
+    '';
 
-          // ✅ ERP-style search: STARTS WITH
-          return name.toLowerCase().startsWith(searchLower);
-        });
+  return name
+    .toString()
+    .trim()                 // 🔥 remove spaces
+    .toLowerCase()
+    .startsWith(searchLower); // 🔥 STARTS WITH ONLY
+});
+
       }
       
       const startIndex = (pageNum - 1) * 20;
@@ -1361,6 +1399,26 @@ const SaleInvoice = () => {
     }
   };
 
+  const handleHeaderArrowNavigation = (e, fieldName) => {
+  const index = HEADER_FIELDS.indexOf(fieldName);
+  if (index === -1) return;
+
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    const prev = HEADER_FIELDS[index - 1];
+    if (prev) {
+      document.querySelector(`[data-header="${prev}"]`)?.focus();
+    }
+  }
+
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    const next = HEADER_FIELDS[index + 1];
+    if (next) {
+      document.querySelector(`[data-header="${next}"]`)?.focus();
+    }
+  }
+};
   // Handle backspace in customer and salesman fields
   const handleBackspace = (e, fieldName) => {
     if (e.key === 'Backspace') {
@@ -1467,161 +1525,168 @@ const SaleInvoice = () => {
     handleTableKeyDown(e, currentRowIndex, 'barcode');
   };
 
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    const fieldIndex = TABLE_FIELDS.indexOf(currentField);
-    const currentItem = items[currentRowIndex];
+  
 
-    // 🚫 BLOCK ENTER IF ITEM NAME IS EMPTY
-    if (
-      e.key === 'Enter' &&
-      currentField === 'itemName' &&
-      (!currentItem.itemName || currentItem.itemName.trim() === '')
-    ) {
-      e.preventDefault();
+const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  const fieldIndex = TABLE_FIELDS.indexOf(currentField);
+  const currentItem = items[currentRowIndex];
 
-      toast.warning("Please select Item Name first", {
-        autoClose: 1500,
-      });
+  const hasItemName =
+    currentItem.itemName && currentItem.itemName.trim() !== "";
 
-      // 🔁 keep focus on Item Name
-      setTimeout(() => {
-        document
-          .querySelector(
-            `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-          )
-          ?.focus();
-      }, 0);
+  // ⏎ ENTER KEY
+  if (e.key === "Enter") {
+    e.preventDefault();
+    e.stopPropagation();
 
-      return; // ⛔ STOP ALL NAVIGATION
-    }
+    // 🚫 ITEM NAME EMPTY
+    if (!hasItemName) {
 
-    // 🔒 BLOCK navigation for other fields if Item Name not selected
-    if (
-      currentField !== 'itemName' &&
-      (!currentItem.itemName || currentItem.itemName.trim() === '')
-    ) {
-      e.preventDefault();
-      return;
-    }
+      // ✅ ROW 1 (index 0)
+      if (currentRowIndex === 0) {
 
-    // ==========================
-    // ⬅️ LEFT ARROW
-    // ==========================
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      if (fieldIndex > 0) {
-        const prevField = TABLE_FIELDS[fieldIndex - 1];
-        document
-          .querySelector(
-            `[data-row="${currentRowIndex}"][data-field="${prevField}"]`
-          )
-          ?.focus();
-      }
-      return;
-    }
+        // 🔔 FIRST ENTER → warning only
+        if (!warnedEmptyRowRef.current[0]) {
+          warnedEmptyRowRef.current[0] = true;
 
-    // ==========================
-    // ➡️ RIGHT ARROW
-    // ==========================
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      if (fieldIndex < TABLE_FIELDS.length - 1) {
-        const nextField = TABLE_FIELDS[fieldIndex + 1];
-        document
-          .querySelector(
-            `[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-          )
-          ?.focus();
-      }
-      return;
-    }
+          toast.warning("Item Name is required", {
+            autoClose: 1500,
+            position: "top-right",
+          });
 
-    // ==========================
-    // ⬆️ UP ARROW
-    // ==========================
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (currentRowIndex > 0) {
-        document
-          .querySelector(
-            `[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
-          )
-          ?.focus();
-      }
-      return;
-    }
+          setTimeout(() => {
+            document
+              .querySelector(
+                `input[data-row="0"][data-field="itemName"]`
+              )
+              ?.focus();
+          }, 0);
 
-    // ==========================
-    // ⬇️ DOWN ARROW
-    // ==========================
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (currentRowIndex < items.length - 1) {
-        document
-          .querySelector(
-            `[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
-          )
-          ?.focus();
-      }
-      return;
-    }
-
-    // ==========================
-    // 🔤 LETTER → ITEM POPUP
-    // ==========================
-    const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
-
-    if (isLetterKey && currentField === 'itemName') {
-      e.preventDefault();
-      openItemPopup(currentRowIndex);
-
-      setTimeout(() => {
-        const searchInput = document.querySelector(
-          '.popup-list-selector input[type="text"]'
-        );
-        if (searchInput) {
-          searchInput.value = e.key;
-          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
         }
-      }, 100);
+
+        // 🔁 ALWAYS stay on Item Name for ROW 1
+setTimeout(() => {
+  document
+    .querySelector(
+      `input[data-row="0"][data-field="itemName"]`
+    )
+    ?.focus();
+}, 0);
+
+return;
+
+      }
+
+      // ✅ ROW 2, 3, 4...
+      saveButtonRef.current?.focus();
       return;
     }
 
-    if (e.key === '/' && currentField === 'itemName') {
-      e.preventDefault();
-      openItemPopup(currentRowIndex);
-      return;
-    }
+    // ✅ NORMAL FIELD FLOW
+    const fieldNavigation = {
+      barcode: "itemName",
+      itemName: "stock",
+      stock: "mrp",
+      mrp: "uom",
+      uom: "hsn",
+      hsn: "tax",
+      tax: "sRate",
+      sRate: "qty",
+    };
 
-    // ==========================
-    // ⏎ ENTER NAVIGATION (VALID ITEM)
-    // ==========================
-    if (e.key === 'Enter') {
-      e.preventDefault();
-
-      const fieldNavigation = {
-        barcode: 'itemName',
-        itemName: 'stock',
-        stock: 'mrp',
-        mrp: 'uom',
-        uom: 'hsn',
-        hsn: 'tax',
-        tax: 'sRate',
-        sRate: 'qty',
-      };
-
-      const nextField = fieldNavigation[currentField];
-
-      if (nextField) {
-        document
-          .querySelector(
-            `input[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-          )
-          ?.focus();
+    // ✅ QTY → ADD ROW
+    if (currentField === "qty") {
+      if (!currentItem.qty || Number(currentItem.qty) <= 0) {
+        toast.warning("Please enter quantity", {
+          autoClose: 1500,
+          position: "top-right",
+        });
         return;
       }
+
+      handleAddRow();
+      setTimeout(() => {
+        document
+          .querySelector(
+            `input[data-row="${items.length}"][data-field="barcode"]`
+          )
+          ?.focus();
+      }, 80);
+      return;
     }
-  };
+
+    const nextField = fieldNavigation[currentField];
+    if (nextField) {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+        )
+        ?.focus();
+    }
+    return;
+  }
+
+  // ⬅️ LEFT
+  if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    if (fieldIndex > 0) {
+      const prev = TABLE_FIELDS[fieldIndex - 1];
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${prev}"]`
+        )
+        ?.focus();
+    }
+    return;
+  }
+
+  // ➡️ RIGHT
+  if (e.key === "ArrowRight") {
+    e.preventDefault();
+    if (fieldIndex < TABLE_FIELDS.length - 1) {
+      const next = TABLE_FIELDS[fieldIndex + 1];
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${next}"]`
+        )
+        ?.focus();
+    }
+    return;
+  }
+
+  // ⬆️ UP
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    if (currentRowIndex > 0) {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
+        )
+        ?.focus();
+    }
+    return;
+  }
+
+  // ⬇️ DOWN
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    if (currentRowIndex < items.length - 1) {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
+        )
+        ?.focus();
+    }
+    return;
+  }
+
+  // / → ITEM POPUP
+  if (e.key === "/" && currentField === "itemName") {
+    e.preventDefault();
+    openItemPopup(currentRowIndex);
+  }
+};
 
   const handleAddItem = async () => {
     if (!billDetails.barcodeInput) {
@@ -1781,29 +1846,31 @@ const SaleInvoice = () => {
 
     setItems(prev => [...prev, newRow]);
   };
+const handleItemChange = (id, field, value) => {
 
-  const handleItemChange = (id, field, value) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
+  // ✅ RESET EMPTY-ROW WARNING WHEN ITEM NAME IS TYPED
+  if (field === 'itemName' && value.trim() !== '') {
+    warnedEmptyRowRef.current[id - 1] = false;
+  }
 
-        // Don't show 0 for tax, mrp, sRate - show empty if 0
-        if (field === 'tax' || field === 'mrp' || field === 'sRate') {
-          const numValue = parseFloat(value || 0);
-          updatedItem[field] = numValue === 0 ? '' : numValue.toString();
-        }
+  setItems(items.map(item => {
+    if (item.id === id) {
+      const updatedItem = { ...item, [field]: value };
 
-        if (field === 'qty' || field === 'sRate') {
-          const qty = field === 'qty' ? value : updatedItem.qty;
-          const sRate = field === 'sRate' ? value : updatedItem.sRate;
-          updatedItem.amount = calculateAmount(qty, sRate);
-        }
-
-        return updatedItem;
+      if (field === 'qty' || field === 'sRate') {
+        updatedItem.amount = calculateAmount(
+          field === 'qty' ? value : updatedItem.qty,
+          field === 'sRate' ? value : updatedItem.sRate
+        );
       }
-      return item;
-    }));
-  };
+
+      return updatedItem;
+    }
+    return item;
+  }));
+};
+
+
 
   const handleDeleteRow = (id) => {
     const itemToDelete = items.find(item => item.id === id);
@@ -1954,6 +2021,7 @@ const SaleInvoice = () => {
         header: headerData,
         items: itemsData
       };
+      console.log("Request Data:", requestData);
       
       // Determine if this is an insert or update
       const isInsert = !isEditing;
@@ -2844,33 +2912,47 @@ const SaleInvoice = () => {
             />
           </div>
 
-          {/* Bill Date */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Bill Date:</label>
-            <input
-              type="date"
-              style={focusedField === 'billDate' ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' } : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
-              value={billDetails.billDate}
-              name="billDate"
-              onChange={handleInputChange}
-              ref={billDateRef}
-              onKeyDown={(e) => handleKeyDown(e, mobileRef, 'billDate')}
-              onFocus={() => setFocusedField('billDate')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
+     {/* Bill Date */}
+<div style={styles.formField}>
+  <label style={styles.inlineLabel}>Bill Date:</label>
+
+  <input
+    type="date"
+    data-header="billDate"
+    style={
+      focusedField === 'billDate'
+        ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+        : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+    }
+    value={billDetails.billDate}
+    name="billDate"
+    onChange={handleInputChange}
+    ref={billDateRef}
+    onKeyDown={(e) => {
+      handleHeaderArrowNavigation(e, 'billDate'); // ⬅️ ➡️
+      handleKeyDown(e, mobileRef, 'billDate');    // ⏎ existing logic
+    }}
+    onFocus={() => setFocusedField('billDate')}
+    onBlur={() => setFocusedField('')}
+  />
+</div>
+
 
           {/* Mobile No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Mobile No:</label>
             <input
               type="text"
+               data-header="mobileNo"
               style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.mobileNo}
               name="mobileNo"
               onChange={handleInputChange}
               ref={mobileRef}
-              onKeyDown={(e) => handleKeyDown(e, typeRef, 'mobileNo')}
+               onKeyDown={(e) => {
+    handleHeaderArrowNavigation(e, 'mobileNo');
+    handleKeyDown(e, typeRef, 'mobileNo');
+  }}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
             />
@@ -2889,11 +2971,13 @@ const SaleInvoice = () => {
 
             <select
               name="type"
+               data-header="type"
               style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
               value={billDetails.type}
               onChange={handleInputChange}
               ref={typeRef}
-              onKeyDown={(e) => {
+             onKeyDown={(e) => {
+    handleHeaderArrowNavigation(e, 'type');
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   salesmanRef.current.focus();
@@ -2920,6 +3004,7 @@ const SaleInvoice = () => {
             <div style={{ position: 'relative', width: '100%', flex: 1 }}>
               <input
                 type="text"
+                data-header="salesman"
                 style={{
                   ...(focusedField === 'salesman'
                     ? styles.inlineInputClickableFocused
@@ -2940,10 +3025,10 @@ const SaleInvoice = () => {
 
                 ref={salesmanRef}
                 onClick={openSalesmanPopup}
-                onKeyDown={(e) => {
-                  handleKeyDown(e, custNameRef, 'salesman');
-                  handleBackspace(e, 'salesman');
-                }}
+               onKeyDown={(e) => {
+    handleHeaderArrowNavigation(e, 'salesman');
+    handleKeyDown(e, custNameRef, 'salesman');
+    handleBackspace(e, 'salesman'); }}
                 onFocus={() => setFocusedField('salesman')}
                 onBlur={() => setFocusedField('')}
               />
@@ -2973,6 +3058,7 @@ const SaleInvoice = () => {
             <div style={{ position: 'relative', width: '100%', flex: 1 }}>
               <input
                 type="text"
+                data-header="custName"
                 style={{
                   ...(focusedField === 'custName'
                     ? styles.inlineInputClickableFocused
@@ -2984,8 +3070,11 @@ const SaleInvoice = () => {
                 onChange={handleInputChange}
                 ref={custNameRef}
                 
+                 onFocus={() => setFocusedField('custName')}
                 onKeyDown={(e) => {
                   // ✅ ONLY "/" opens popup
+                    handleHeaderArrowNavigation(e, 'custName');
+                    
                   if (e.key === '/') {
                     e.preventDefault();
                     setPopupSearchText('');   // no pre-filled search
@@ -3010,6 +3099,7 @@ const SaleInvoice = () => {
                   }
 
                   // 🔙 Backspace clears customer
+                  
                   handleBackspace(e, 'custName');
                 }}
               />
@@ -3049,7 +3139,17 @@ const SaleInvoice = () => {
 
       {/* --- TABLE SECTION --- */}
       <div style={styles.tableSection} className="sale-invoice-scrollable">
-        <div style={styles.tableContainer} className="sale-invoice-scrollable">
+         <div
+    style={styles.tableContainer}
+    className="sale-invoice-scrollable"
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' && blockTableEnterRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }}
+  >
+          
           <table style={styles.table}>
             <thead>
               <tr>
@@ -3086,52 +3186,59 @@ const SaleInvoice = () => {
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
                     <div style={{ position: 'relative', width: '100%' }}>
-                      <input
-                        style={{
-                          ...(focusedField === `itemName-${item.id}`
-                            ? styles.editableInputClickableFocused
-                            : styles.editableInputClickable),
-                          paddingRight: '26px',
-                          textAlign: 'left',
-                        }}
-                        value={item.itemName}
-                        
-                        data-row={index}
-                        data-field="itemName"
-                        onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const stockInput = document.querySelector(`input[data-row="${index}"][data-field="stock"]`);
-                            if (stockInput) {
-                              stockInput.focus();
-                              return;
-                            }
-                          }
-                          handleTableKeyDown(e, index, 'itemName');
-                        }}
-                        onClick={() => openItemPopup(index)}
-                        onFocus={() => setFocusedField(`itemName-${item.id}`)}
-                        onBlur={() => setFocusedField('')}
-                        title={`Item Code: ${item.itemCode || 'Not selected'}`}
-                      />
+ <input
+  style={{
+    ...(focusedField === `itemName-${item.id}`
+      ? styles.editableInputClickableFocused
+      : styles.editableInputClickable),
+    paddingRight: '26px',
+    textAlign: 'left',
+  }}
+  value={item.itemName}
+  data-row={index}
+  data-field="itemName"
 
-                      {/* 🔍 Search Icon */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          right: '6px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          pointerEvents: 'none',
-                          opacity: 0.6,
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <SearchIcon size={14} />
-                      </div>
-                    </div>
+  onChange={(e) => {
+    if (ignoreNextInputRef.current) {
+      ignoreNextInputRef.current = false;
+      return; // 🚫 block typing letter
+    }
+    handleItemChange(item.id, 'itemName', e.target.value);
+  }}
+
+  onKeyDown={(e) => {
+    // 🔥 SAME AS SALESMAN BEHAVIOR
+    const handled = handleItemNameLetterKey(e, index);
+    if (handled) return;
+
+    // ⏎ ⬅️ ➡️ ⬆️ ⬇️ handled here
+    handleTableKeyDown(e, index, 'itemName');
+  }}
+
+  onClick={() => openItemPopup(index)}
+  onFocus={() => setFocusedField(`itemName-${item.id}`)}
+  onBlur={() => setFocusedField('')}
+  title={`Item Code: ${item.itemCode || 'Not selected'}`}
+/>
+
+
+  {/* 🔍 Search Icon */}
+  <div
+    style={{
+      position: 'absolute',
+      right: '6px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      pointerEvents: 'none',
+      opacity: 0.6,
+      display: 'flex',
+      alignItems: 'center',
+    }}
+  >
+    <SearchIcon size={14} />
+  </div>
+</div>
+
                   </td>
 
                   <td style={styles.td}>
@@ -3409,15 +3516,20 @@ const SaleInvoice = () => {
             </span>
           </div>
         </div>
-        <div style={styles.footerButtons}>
-          <ActionButtons1
-            onClear={handleClear}
-            onSave={handleSave}
-            onPrint={handlePrint}
-            activeButton={activeFooterAction}
-            onButtonClick={(type) => setActiveFooterAction(type)}
-          />
-        </div>
+       
+<div style={styles.footerButtons}>
+  <ActionButtons1
+    onClear={handleClear}
+    onSave={handleSave}
+    onPrint={handlePrint}
+    activeButton={activeFooterAction}
+    onButtonClick={(type) => setActiveFooterAction(type)}
+    ref={saveButtonRef}
+    saveButtonProps={{
+      tabIndex: 0, // Make sure it's focusable
+    }}
+  />
+</div>
       </div>
 
       {/* Save Confirmation Popup */}
@@ -3521,6 +3633,7 @@ const SaleInvoice = () => {
         onSelect={handleItemSelect}
         fetchItems={(page, search) => fetchItemsForPopup(page, search, 'item')}
         title="Select Item"
+          initialSearch={popupSearchText}   
         displayFieldKeys={getPopupConfig('item').displayFieldKeys}
         searchFields={getPopupConfig('item').searchFields}
         headerNames={getPopupConfig('item').headerNames}
