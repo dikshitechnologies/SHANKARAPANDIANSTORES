@@ -338,17 +338,17 @@ export default function LedgerGroupCreation() {
 
   // resetForm now keeps the tree open by default (user requested always open)
   const resetForm = () => {
-  setMainGroup("");
-  setSubGroup("");
-  setFCode("");
-  setSelectedNode(null);
-  setMessage(null);
-  setSearchDropdown("");
-  setSearchTree("");
-  setIsDropdownOpen(false);
-  setIsTreeOpen(true);
-};
-setActionType("Add")
+    setMainGroup("");
+    setSubGroup("");
+    setFCode("");
+    setSelectedNode(null);
+    setMessage(null);
+    setSearchDropdown("");
+    setSearchTree("");
+    setIsDropdownOpen(false);
+    setIsTreeOpen(true);
+  };
+
   const validateForSubmit = () => {
     if (!mainGroup?.trim()) {
       setMessage({ type: "error", text: "Please select a Main Group." });
