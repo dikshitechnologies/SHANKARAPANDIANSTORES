@@ -1636,6 +1636,23 @@ const Scrapprocurement = () => {
         });
         return; // Just return, don't clear anything
       }
+
+      // Validate amount and qty only for rows with itemName filled
+      const invalidRows = items.filter(item => {
+        if (!item.itemName || item.itemName.trim() === '') return false;
+        return !item.amount || item.amount.trim() === '' || !item.qty || item.qty.trim() === '';
+      });
+      if (invalidRows.length > 0) {
+        showConfirmation({
+          title: 'Missing Information',
+          message: 'Please fill in required fields: amount and quantity for all items with item name selected',
+          type: 'warning',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => setShowConfirmPopup(false)
+        });
+        return; // Just return, don't clear anything
+      }
       
       // All validations passed, now show save confirmation
       showConfirmation({
