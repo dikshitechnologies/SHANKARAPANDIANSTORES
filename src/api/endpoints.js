@@ -7,7 +7,6 @@ export const API_ENDPOINTS = {
 
   LEDGER_CREATION_ENDPOINTS: {
     getTree: "LedgerGroupCreation/LedgerGroupCreationGet",
-    getDropdown: "LedgerCreation/GetledgerCreationdropdowslist",
     getDropdownPaged: (page = 1, pageSize = 20, searchText = '') =>
       `LedgerCreation/GetledgerCreationdropdowslist/${page}/${pageSize}?searchText=${encodeURIComponent(searchText)}`,
     postCreate: "LedgerCreation/LedgerCreationPost",
