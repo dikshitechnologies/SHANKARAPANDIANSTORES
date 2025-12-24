@@ -348,7 +348,7 @@ export default function LedgerGroupCreation() {
   setIsDropdownOpen(false);
   setIsTreeOpen(true);
 };
-
+setActionType("Add")
   const validateForSubmit = () => {
     if (!mainGroup?.trim()) {
       setMessage({ type: "error", text: "Please select a Main Group." });
