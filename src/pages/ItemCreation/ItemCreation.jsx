@@ -374,12 +374,13 @@ const ItemCreation = ({ onCreated }) => {
     handleChange('pieceRate', newValue ? 'Y' : 'N');
   };
 
-// UPDATED: Arrow key navigation throughout the form
+// UPDATED: Arrow key navigation throughout the form including LEFT and RIGHT
+// UPDATED: Arrow key navigation throughout the form including LEFT and RIGHT
 const handleKeyNavigation = (e) => {
   const key = e.key;
   
-  // Handle arrow keys and Enter for navigation
-  if (['ArrowDown', 'ArrowUp', 'Enter'].includes(key)) {
+  // Handle all arrow keys and Enter for navigation
+  if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(key)) {
     // If tree is open and we're in tree navigation, let tree handle it
     if (isTreeOpen && (e.target.closest('.tree-scroll') || e.target === groupNameRef.current)) {
       return;
@@ -390,7 +391,35 @@ const handleKeyNavigation = (e) => {
       return;
     }
     
-    e.preventDefault();
+    // Check if we're in a text input that should allow cursor movement
+    const isTextInput = e.target.tagName === 'INPUT' && e.target.type === 'text';
+    const isTextarea = e.target.tagName === 'TEXTAREA';
+    
+    // For LEFT/RIGHT arrows in text inputs/areas, allow normal cursor movement
+    // unless the cursor is at the beginning/end of the text
+    if ((key === 'ArrowLeft' || key === 'ArrowRight') && (isTextInput || isTextarea)) {
+      // Get cursor position
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      const value = e.target.value;
+      
+      // For LEFT arrow: only navigate if cursor is at beginning AND no text selected
+      if (key === 'ArrowLeft' && start === 0 && end === 0) {
+        e.preventDefault();
+        // Allow navigation to previous field
+      } 
+      // For RIGHT arrow: only navigate if cursor is at end AND no text selected
+      else if (key === 'ArrowRight' && start === value.length && end === value.length) {
+        e.preventDefault();
+        // Allow navigation to next field
+      } else {
+        // Let the browser handle cursor movement within the text
+        return;
+      }
+    } else {
+      // For all other cases, prevent default
+      e.preventDefault();
+    }
     
     try {
       const container = e.currentTarget;
@@ -418,6 +447,7 @@ const handleKeyNavigation = (e) => {
       const active = document.activeElement;
       const index = elements.indexOf(active);
 
+      // Handle DOWN arrow and Enter (for moving forward)
       if (key === 'ArrowDown' || (key === 'Enter' && active.tagName !== 'BUTTON')) {
         // ✅ Move to next field (or first if none focused)
         if (index >= 0 && index < elements.length - 1) {
@@ -434,7 +464,9 @@ const handleKeyNavigation = (e) => {
           // If at last element, loop to first
           elements[0].focus();
         }
-      } else if (key === 'ArrowUp') {
+      } 
+      // Handle UP arrow (for moving backward)
+      else if (key === 'ArrowUp') {
         // ✅ Move to previous field (or last if none focused)
         if (index > 0) {
           const prevElement = elements[index - 1];
@@ -451,12 +483,34 @@ const handleKeyNavigation = (e) => {
           elements[elements.length - 1].focus();
         }
       }
+      // Handle RIGHT arrow (same as DOWN for navigation)
+      else if (key === 'ArrowRight') {
+        // ✅ Move to next field (or first if none focused)
+        if (index >= 0 && index < elements.length - 1) {
+          const nextElement = elements[index + 1];
+          nextElement.focus();
+        } else if (index === -1) {
+          elements[0].focus();
+        } else if (index === elements.length - 1) {
+          elements[0].focus();
+        }
+      }
+      // Handle LEFT arrow (same as UP for navigation)
+      else if (key === 'ArrowLeft') {
+        // ✅ Move to previous field (or last if none focused)
+        if (index > 0) {
+          elements[index - 1].focus();
+        } else if (index === 0) {
+          elements[elements.length - 1].focus();
+        } else if (index === -1) {
+          elements[elements.length - 1].focus();
+        }
+      }
     } catch (err) {
       console.warn('Keyboard navigation error', err);
     }
   }
 };
-
 
 
   const getMaxPrefixFromAPI = async () => {
