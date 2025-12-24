@@ -514,7 +514,6 @@ const ReceiptVoucher = () => {
   const resetForm = () => {
     console.log('Resetting form...');
     setVoucherDetails({
-      voucherNo: '',
       gstType: 'CGST/SGST',
       date: new Date().toISOString().substring(0, 10),
       costCenter: '',
@@ -1128,6 +1127,8 @@ const ReceiptVoucher = () => {
       action: 'clear',
       isLoading: false
     });
+    resetForm();
+
   };
 
   // Handle print

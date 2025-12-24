@@ -219,7 +219,7 @@ const container = {
     flex: 'none',
     display: 'flex',
     flexDirection: 'column',
-    maxHeight: isMobile ? '390px' : '490px',
+    maxHeight: isMobile ? '60vh' : '75vh',
   };
 
   const tableStyle = {
@@ -602,7 +602,7 @@ const container = {
           onBlur={() => setIsFocused(false)}
           style={isFocused ? billNoBoxFocus : billNoBox}
         />
-        <div style={{ marginLeft: "auto", display: "flex", gap: "12px" }}>
+        {/* <div style={{ marginLeft: "auto", display: "flex", gap: "12px" }}>
           <div style={statCard}>
             <div style={statValue}>{totalCount}</div>
             <div style={statLabel}>Total Bills</div>
@@ -611,7 +611,7 @@ const container = {
             <div style={{...statValue, color: "#307AC8"}}>₹{bills.reduce((sum, bill) => sum + (bill.amount || 0), 0).toLocaleString('en-IN')}</div>
             <div style={statLabel}>Total Amount</div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       <div style={tableContainer}>

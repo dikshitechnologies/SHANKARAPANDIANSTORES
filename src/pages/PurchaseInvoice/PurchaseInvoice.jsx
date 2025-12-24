@@ -98,16 +98,16 @@ const PurchaseInvoice = () => {
       barcode: '', 
       name: '', 
       sub: '', 
-      stock: '', 
-      mrp: '', 
+      stock: '0', 
+      mrp: '0', 
       uom: '', 
       hsn: '', 
       tax: '', 
-      rate: '', 
-      qty: '',
+      rate: 0, 
+      qty: '1',
       ovrwt: '',
       avgwt: '',
-      prate: '',
+      prate: 0,
       intax: '',
       outtax: '',
       acost: '',
@@ -1002,8 +1002,8 @@ const handleBlur = () => {
       if(field === 'acost'|| field === 'sRate') {
         const acost = parseFloat(updatedItem.acost) || 0;
         const sRate = parseFloat(updatedItem.sRate) || 0;
-        if(acost > 0 && sRate > 0) {
-          updatedItem.letProfPer = (((sRate - acost) / acost) * 100).toFixed(2);
+        if(acost > 0) {
+          updatedItem.letProfPer = ((acost / sRate) * 100).toFixed(2);
         } else {
           updatedItem.letProfPer = '';
         }
@@ -1855,7 +1855,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         }}>
           {/* Inv No */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Ref No:</label>
+            <label style={styles.inlineLabel}>Inv No:</label>
             <input 
               type="text"
               style={{
@@ -1894,7 +1894,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           </div>
 
           {/* Amount */}
-          {/* <div style={styles.formField}>
+          <div style={styles.formField}>
             <label style={styles.inlineLabel}>Amount:</label>
             <input
               type="text"
@@ -1910,11 +1910,11 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('amount')}
               onBlur={() => setFocusedField('')}
             />
-          </div> */}
+          </div>
 
           {/* Pur No */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Bill No:</label>
+            <label style={styles.inlineLabel}>Pur No:</label>
             <input
               type="text"
               name="purNo"
@@ -1977,7 +1977,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           gridTemplateColumns: getGridColumns(),
         }}>
           {/* Party Code */}
-          {/* <div style={styles.formField}>
+          <div style={styles.formField}>
             <label style={styles.inlineLabel}>Party Code:</label>
             <input
               type="text"
@@ -1993,7 +1993,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('partyCode')}
               onBlur={() => setFocusedField('')}
             />
-          </div> */}
+          </div>
 
           {/* Customer Name */}
           <div style={styles.formField}>
@@ -2088,9 +2088,28 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           </div>
 
           {/* GST Type */}
-           
+           <div style={styles.formField}>
+            <label style={styles.inlineLabel}>GST Type:</label>
+            <select
+              name="gstType"
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'gstType' && styles.focusedInput)
+              }}
+              value={billDetails.gstType}
+              onChange={handleInputChange}
+              ref={gstTypeRef}
+              onKeyDown={(e) => handleKeyDown(e, transtypeRef, 'gstType')}
+              onFocus={() => setFocusedField('gstType')}
+              onBlur={() => setFocusedField('')}
+            >
+              <option value="G">CGST/SGST</option>
+              <option value="I">IGST</option>
+            </select>
+          </div>
+
           {/* Trans Type */}
-          {/* <div style={styles.formField}>
+          <div style={styles.formField}>
             <label style={styles.inlineLabel}>Trans Type:</label>
             <select
               name="transType"
@@ -2110,10 +2129,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               <option value="Cash">Cash</option>
               <option value="Credit">Credit</option>
             </select>
-          </div> */}
+          </div>
 
           {/* Invoice Amt */}
-          {/* <div style={styles.formField}>
+          <div style={styles.formField}>
             <label style={styles.inlineLabel}>Invoice Amt:</label>
             <input
               type="text"
@@ -2129,8 +2148,15 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('invoiceAmount')}
               onBlur={() => setFocusedField('')}
             />
-          </div> */}
-        
+          </div>
+        </div>
+
+        {/* ROW 3 */}
+        <div style={{
+          ...styles.gridRow,
+          gridTemplateColumns: getGridColumns(),
+          marginBottom: '0',
+        }}>
           {/* Mobile No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Mobile No:</label>
@@ -2190,28 +2216,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onBlur={() => setFocusedField('')}
             />
           </div>
-
-
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>GST Type:</label>
-            <select
-              name="gstType"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'gstType' && styles.focusedInput)
-              }}
-              value={billDetails.gstType}
-              onChange={handleInputChange}
-              ref={gstTypeRef}
-              onKeyDown={(e) => handleKeyDown(e, transtypeRef, 'gstType')}
-              onFocus={() => setFocusedField('gstType')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="G">CGST/SGST</option>
-              <option value="I">IGST</option>
-            </select>
-          </div>
-
         </div>
       </div>
 
@@ -2773,7 +2777,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             gstType: s.gstType || '',
             gstType: s.gstType || prev.gstType || 'CGST',
             mobileNo: s.phone || prev.mobileNo || '',
-            gstno: s.gstNumber || prev.gstNumber || ''
           }));
         }}
       />     

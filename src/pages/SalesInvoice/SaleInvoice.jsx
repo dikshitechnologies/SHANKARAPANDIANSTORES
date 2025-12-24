@@ -55,16 +55,16 @@ const SaleInvoice = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
- const ignoreNextInputRef = useRef(false);
+  const ignoreNextInputRef = useRef(false);
 
   // Save confirmation popup
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
   // Clear confirmation popup
-const [clearConfirmationOpen, setClearConfirmationOpen] = useState(false);
+  const [clearConfirmationOpen, setClearConfirmationOpen] = useState(false);
 
-// Print confirmation popup
-const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
+  // Print confirmation popup
+  const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
 
   // Edit confirmation popup
   const [editConfirmationOpen, setEditConfirmationOpen] = useState(false);
@@ -80,11 +80,33 @@ const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
   
   // Add/Less amount state
   const [addLessAmount, setAddLessAmount] = useState('');
- 
 
   // Track if we're editing an existing invoice
   const [isEditing, setIsEditing] = useState(false);
   const [originalInvoiceNo, setOriginalInvoiceNo] = useState('');
+
+  const validateItemSelected = (rowIndex) => {
+    const item = items[rowIndex];
+
+    if (!item.itemName || item.itemName.trim() === '') {
+      toast.warning("Please select Item Name first", {
+        autoClose: 1500,
+      });
+
+      // 🔁 force focus back to Item Name
+      setTimeout(() => {
+        document
+          .querySelector(
+            `input[data-row="${rowIndex}"][data-field="itemName"]`
+          )
+          ?.focus();
+      }, 0);
+
+      return false;
+    }
+
+    return true;
+  };
 
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -125,8 +147,8 @@ const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
 
   // Row delete confirmation popup
-const [rowDeleteConfirmationOpen, setRowDeleteConfirmationOpen] = useState(false);
-const [rowToDelete, setRowToDelete] = useState(null);
+  const [rowDeleteConfirmationOpen, setRowDeleteConfirmationOpen] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState(null);
 
   // 4. Popup States
   const [customerPopupOpen, setCustomerPopupOpen] = useState(false);
@@ -329,7 +351,7 @@ const [rowToDelete, setRowToDelete] = useState(null);
           const formattedItems = itemsArray.map(item => {
             const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
             const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-           const units = item.fUnits || item.units || "";
+            const units = item.fUnits || item.units || "";
 
             return {
               ...item,
@@ -346,7 +368,7 @@ const [rowToDelete, setRowToDelete] = useState(null);
               stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
               mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
               uom: units,
-             hsn: item.fhsn || item.hsn || item.hsnCode || "",
+              hsn: item.fhsn || item.hsn || item.hsnCode || "",
               tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
               sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
               displayName: itemName, // Changed: Show only item name, not code
@@ -428,7 +450,7 @@ const [rowToDelete, setRowToDelete] = useState(null);
         });
       
       // ✅ ALWAYS keep savedInvoices in sync
-setSavedInvoices(formattedInvoices);
+      setSavedInvoices(formattedInvoices);
 
       
       let finalResults = formattedInvoices;
@@ -479,14 +501,10 @@ setSavedInvoices(formattedInvoices);
         setIsEditing(true);
         setOriginalInvoiceNo(voucherNo);
         
-  const billDate = formatDateToYYYYMMDD(
-  header.billDate || header.voucherDate
-);
+        const billDate = formatDateToYYYYMMDD(
+          header.billDate || header.voucherDate
+        );
 
-
-        
-
-        
         setBillDetails(prev => ({
           ...prev,
           billNo: voucherNo,
@@ -585,18 +603,17 @@ setSavedInvoices(formattedInvoices);
                        response.data.message !== "Delete failed" &&
                        !response.data.error;
         
-if (success) {
-  // ✅ If deleted invoice is currently opened, reset everything safely
-  if (voucherNo === billDetails.billNo) {
-    resetForm();
-    setIsEditing(false);
-    setOriginalInvoiceNo('');
-   
-  }
+        if (success) {
+          // ✅ If deleted invoice is currently opened, reset everything safely
+          if (voucherNo === billDetails.billNo) {
+            resetForm();
+            setIsEditing(false);
+            setOriginalInvoiceNo('');
+          }
 
-  return { success: true, message: "Invoice deleted successfully" };
-}
-else {
+          return { success: true, message: "Invoice deleted successfully" };
+        }
+        else {
           const errorMsg = response.data.message || response.data.error || "Delete failed";
           throw new Error(errorMsg);
         }
@@ -612,54 +629,90 @@ else {
     }
   };
 
- // ✅ CORRECT: Get stock using FULL itemCode and read finalStock properly
-const getStockByItemName = async (itemCode) => {
-  if (!itemCode || itemCode.trim() === '') {
-    return { 
-      stock: '0',
-      itemName: '',
-      mrp: '0',
-      uom: '',
-      fUnits: '',
-      hsn: '',
-      tax: '0',
-      rate: '0'
-    };
-  }
+  // ✅ CORRECT: Get stock using FULL itemCode and read finalStock properly
+  const getStockByItemName = async (itemCode) => {
+    if (!itemCode || itemCode.trim() === '') {
+      return { 
+        stock: '0',
+        itemName: '',
+        mrp: '0',
+        uom: '',
+        fUnits: '',
+        hsn: '',
+        tax: '0',
+        rate: '0'
+      };
+    }
 
-  try {
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getStockByItemName1(itemCode.trim())
-    );
+    try {
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getStockByItemName1(itemCode.trim())
+      );
 
-    const data = response?.data;
-    const item = data?.items?.[0]; // ✅ API returns array
+      const data = response?.data;
+      const item = data?.items?.[0]; // ✅ API returns array
 
-    return {
-      stock: (item?.finalStock ?? 0).toString(), // ✅ FIXED
-      itemName: item?.itemName || '',
-      mrp: item?.preRate || '0',
-      uom: item?.units || '',
-      fUnits: item?.units || '',
-      hsn: item?.hsn || '',
-      tax: item?.tax || '0',
-      rate: item?.preRate || '0'
-    };
-  } catch (err) {
-    console.error("Stock API failed:", err);
-    return { 
-      stock: '0',
-      itemName: '',
-      mrp: '0',
-      uom: '',
-      fUnits: '',
-      hsn: '',
-      tax: '0',
-      rate: '0'
-    };
-  }
-};
+      return {
+        stock: (item?.finalStock ?? 0).toString(), // ✅ FIXED
+        itemName: item?.itemName || '',
+        mrp: item?.preRate || '0',
+        uom: item?.units || '',
+        fUnits: item?.units || '',
+        hsn: item?.hsn || '',
+        tax: item?.tax || '0',
+        rate: item?.preRate || '0'
+      };
+    } catch (err) {
+      console.error("Stock API failed:", err);
+      return { 
+        stock: '0',
+        itemName: '',
+        mrp: '0',
+        uom: '',
+        fUnits: '',
+        hsn: '',
+        tax: '0',
+        rate: '0'
+      };
+    }
+  };
 
+  // NEW FUNCTION: Fetch item details by barcode
+  const getPurchaseStockDetailsByBarcode = async (barcode) => {
+    if (!barcode || barcode.trim() === '') {
+      return null;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getPurchaseStockDetailsByBarcode(barcode.trim())
+      );
+
+      if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const item = response.data[0];
+        return {
+          itemcode: item.itemcode || '',
+          fItemName: item.fItemName || '',
+          qty: item.qty || 0,
+          rate: item.rate || 0,
+          amount: item.amount || 0,
+          fstock: item.fstock || 0,
+          fUnit: item.fUnit || '',
+          fHSN: item.fHSN || '',
+          inTax: item.inTax || 0,
+          mrp: item.mrp || 0,
+          success: true
+        };
+      }
+      return null;
+    } catch (err) {
+      console.error("Barcode API failed:", err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Initial data fetch
   useEffect(() => {
@@ -759,15 +812,6 @@ const getStockByItemName = async (itemCode) => {
       
       setEditInvoicePopupOpen(true);
       
-    // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
-      toast.error("You do not have permission to delete invoices.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    // === END PERMISSION CHECK ===
     } catch (err) {
       setEditInvoicePopupOpen(true);
     } finally {
@@ -810,35 +854,35 @@ const getStockByItemName = async (itemCode) => {
       
       if (invoiceData) {
         if (invoiceData) {
-  // 🔒 block Enter key once after edit load
-  ignoreNextEnterRef.current = true;
+          // 🔒 block Enter key once after edit load
+          ignoreNextEnterRef.current = true;
 
-  // ✅ move cursor to Bill Date
-  setTimeout(() => {
-    if (billDateRef.current) {
-      billDateRef.current.focus();
-    }
-    ignoreNextEnterRef.current = false;
-  }, 300);
+          // ✅ move cursor to Bill Date
+          setTimeout(() => {
+            if (billDateRef.current) {
+              billDateRef.current.focus();
+            }
+            ignoreNextEnterRef.current = false;
+          }, 300);
 
-  const addLessValue = parseFloat(addLessAmount || 0);
-  const finalAmount = totalAmount + addLessValue;
+          const addLessValue = parseFloat(addLessAmount || 0);
+          const finalAmount = totalAmount + addLessValue;
 
-  setEditConfirmationData({
-    invoiceNo: selectedInvoice.voucherNo,
-    customer: billDetails.custName,
-    billDate: billDetails.billDate,
-    totalAmount: totalAmount.toFixed(2),
-    addLessAmount: addLessAmount,
-    finalAmount: finalAmount.toFixed(2),
-    itemCount: items.filter(
-      item => item.itemName && item.itemName.trim()
-    ).length
-  });
+          setEditConfirmationData({
+            invoiceNo: selectedInvoice.voucherNo,
+            customer: billDetails.custName,
+            billDate: billDetails.billDate,
+            totalAmount: totalAmount.toFixed(2),
+            addLessAmount: addLessAmount,
+            finalAmount: finalAmount.toFixed(2),
+            itemCount: items.filter(
+              item => item.itemName && item.itemName.trim()
+            ).length
+          });
 
-  setEditConfirmationOpen(true);
-  setEditInvoicePopupOpen(false);
-}
+          setEditConfirmationOpen(true);
+          setEditInvoicePopupOpen(false);
+        }
 
         // Show edit confirmation popup
         const addLessValue = parseFloat(addLessAmount || 0);
@@ -886,81 +930,78 @@ const getStockByItemName = async (itemCode) => {
   };
 
   // Handle confirmed delete
-const handleConfirmedDelete = async () => {
-  if (!deleteConfirmationData) return;
+  const handleConfirmedDelete = async () => {
+    if (!deleteConfirmationData) return;
 
-  try {
-    await deleteInvoice(deleteConfirmationData.invoiceNo);
+    try {
+      await deleteInvoice(deleteConfirmationData.invoiceNo);
 
-    toast.success(
-      `Invoice ${deleteConfirmationData.invoiceNo} deleted successfully`,
-      { autoClose: 2500 }
-    );
-
-    setDeleteConfirmationOpen(false);
-
-    // ✅ RESET FORM (clears data)
-    resetForm();
-
-    // ✅ FETCH ONLY NEXT BILL NUMBER
-    await fetchNextBillNo();
-
-  } catch (err) {
-    alert(`Failed to delete invoice: ${err.message}`);
-    setDeleteConfirmationOpen(false);
-  }
-};
-
-
-const fetchInvoicesForPopup = async (pageNum, search) => {
-  try {
-    setLoadingInvoices(true);
-
-    // 🔹 Fetch from backend page-wise
-    const endpoint =
-      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getBillList("001", pageNum, 20);
-
-    const response = await axiosInstance.get(endpoint);
-
-    let invoiceData = [];
-
-    if (response?.data?.data && Array.isArray(response.data.data)) {
-      invoiceData = response.data.data;
-    } else if (Array.isArray(response.data)) {
-      invoiceData = response.data;
-    }
-
-    let formatted = invoiceData.map(inv => {
-      const voucherNo = inv.billNo || inv.voucherNo || "";
-      return {
-        id: voucherNo,
-        voucherNo,
-        name: voucherNo,
-        displayName: voucherNo,
-        customerName: inv.customerName || "",
-        date: inv.voucherDate || "",
-        totalAmount: inv.billAmt || 0,
-      };
-    });
-
-    // 🔍 Apply search
-    if (search && search.trim()) {
-      const s = search.toLowerCase();
-      formatted = formatted.filter(i =>
-        i.voucherNo.toLowerCase().includes(s)
+      toast.success(
+        `Invoice ${deleteConfirmationData.invoiceNo} deleted successfully`,
+        { autoClose: 2500 }
       );
+
+      setDeleteConfirmationOpen(false);
+
+      // ✅ RESET FORM (clears data)
+      resetForm();
+
+      // ✅ FETCH ONLY NEXT BILL NUMBER
+      await fetchNextBillNo();
+
+    } catch (err) {
+      alert(`Failed to delete invoice: ${err.message}`);
+      setDeleteConfirmationOpen(false);
     }
+  };
 
-    return formatted;
-  } catch (err) {
-    console.error("Popup invoice fetch failed", err);
-    return [];
-  } finally {
-    setLoadingInvoices(false);
-  }
-};
+  const fetchInvoicesForPopup = async (pageNum, search) => {
+    try {
+      setLoadingInvoices(true);
 
+      // 🔹 Fetch from backend page-wise
+      const endpoint =
+        API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getBillList("001", pageNum, 20);
 
+      const response = await axiosInstance.get(endpoint);
+
+      let invoiceData = [];
+
+      if (response?.data?.data && Array.isArray(response.data.data)) {
+        invoiceData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        invoiceData = response.data;
+      }
+
+      let formatted = invoiceData.map(inv => {
+        const voucherNo = inv.billNo || inv.voucherNo || "";
+        return {
+          id: voucherNo,
+          voucherNo,
+          name: voucherNo,
+          displayName: voucherNo,
+          customerName: inv.customerName || "",
+          date: inv.voucherDate || "",
+          totalAmount: inv.billAmt || 0,
+        };
+      });
+
+      // 🔍 Apply search
+      if (search && search.trim()) {
+        const s = search.toLowerCase();
+        formatted = formatted.filter(i =>
+          i.voucherNo.toLowerCase().includes(s)
+        );
+      }
+
+      return formatted;
+    } catch (err) {
+      console.error("Popup invoice fetch failed", err);
+      return [];
+    } finally {
+      setLoadingInvoices(false);
+    }
+  };
 
   // Open customer popup
   const openCustomerPopup = () => {
@@ -994,124 +1035,119 @@ const fetchInvoicesForPopup = async (pageNum, search) => {
   };
 
   // Handle customer selection
-const handleCustomerSelect = (customer) => {
-  ignoreNextEnterRef.current = true;
+  const handleCustomerSelect = (customer) => {
+    ignoreNextEnterRef.current = true;
 
-  if (customer) {
-    setBillDetails(prev => ({
-      ...prev,
-      custName: customer.name,
-      custCode: customer.originalCode || customer.code,
-      partyCode: customer.originalCode || customer.code
-    }));
-  }
+    if (customer) {
+      setBillDetails(prev => ({
+        ...prev,
+        custName: customer.name,
+        custCode: customer.originalCode || customer.code,
+        partyCode: customer.originalCode || customer.code
+      }));
+    }
 
-  setCustomerPopupOpen(false);
-
-  setTimeout(() => {
-    ignoreNextEnterRef.current = false;
-  }, 200);
-};
-
-
-  // Handle salesman selection
-const handleSalesmanSelect = (salesman) => {
-  ignoreNextEnterRef.current = true; // 🔴 ADD THIS
-
-  if (salesman) {
-    setBillDetails(prev => ({
-      ...prev,
-      salesman: salesman.name,
-      salesmanCode: salesman.originalCode || salesman.code
-    }));
-  }
-
-  setSalesmanPopupOpen(false);
-
-  // 🔁 reset after popup closes
-  setTimeout(() => {
-    ignoreNextEnterRef.current = false;
-  }, 200);
-};
-
-
-  // Handle item selection - MODIFIED: Don't fetch barcode to item name field, only update item name
-// Handle item selection - MODIFIED: Don't fetch barcode to item name field, only update item name
-const handleItemSelect = async (item) => {
-  ignoreNextEnterRef.current = true;
-
-  if (!item || currentItemRowIndex === null) return;
-
-  try {
-    const updatedItems = [...items];
-    const currentItem = updatedItems[currentItemRowIndex];
-
-    const itemCode =
-      item.fItemcode ||
-      item.itemCode ||
-      item.code ||
-      item.originalCode ||
-      '';
-
-    const itemName =
-      item.fItemName ||
-      item.itemName ||
-      item.name ||
-      '';
-
-    const units = item.fUnits || item.units || "";
-
-
-    // 🔥 Fetch stock details (backup source for HSN)
-    const stockInfo = await getStockByItemName(itemCode);
-
-    // ✅ BULLETPROOF HSN RESOLUTION
-    const resolvedHsn =
-      item.hsn ||
-      item.hsnCode ||
-      item.HsnCode ||
-      item.HSN ||
-      stockInfo.hsn ||
-      stockInfo.hsnCode ||
-      stockInfo.HSN ||
-      '';
-
-    // Don't show 0 for tax, mrp, sRate - show empty if 0
-    const formatValue = (val) => {
-      const numVal = parseFloat(val || 0);
-      return numVal === 0 ? '' : numVal.toString();
-    };
-
-    updatedItems[currentItemRowIndex] = {
-      ...currentItem,
-      itemName,
-      itemCode,
-      barcode: '',
-      stock: (item.stock || stockInfo.stock || 0).toString(),
-      mrp: formatValue(item.mrp || stockInfo.mrp || 0),
-      uom: units || stockInfo.uom || stockInfo.fUnits || '',
-      hsn: resolvedHsn, // ✅ FIXED HERE
-      tax: formatValue(item.tax || stockInfo.tax || 0),
-      sRate: formatValue(item.sRate || stockInfo.rate || 0),
-      qty: currentItem.qty || '1',
-      amount: calculateAmount(
-        currentItem.qty || '1',
-        item.sRate || stockInfo.rate || 0
-      )
-    };
-
-    setItems(updatedItems);
-  } catch (err) {
-    console.error("Item select failed:", err);
-  } finally {
-    setItemPopupOpen(false);
+    setCustomerPopupOpen(false);
 
     setTimeout(() => {
       ignoreNextEnterRef.current = false;
     }, 200);
-  }
-};
+  };
 
+  // Handle salesman selection
+  const handleSalesmanSelect = (salesman) => {
+    ignoreNextEnterRef.current = true; // 🔴 ADD THIS
+
+    if (salesman) {
+      setBillDetails(prev => ({
+        ...prev,
+        salesman: salesman.name,
+        salesmanCode: salesman.originalCode || salesman.code
+      }));
+    }
+
+    setSalesmanPopupOpen(false);
+
+    // 🔁 reset after popup closes
+    setTimeout(() => {
+      ignoreNextEnterRef.current = false;
+    }, 200);
+  };
+
+  // Handle item selection - MODIFIED: Don't fetch barcode to item name field, only update item name
+  const handleItemSelect = async (item) => {
+    ignoreNextEnterRef.current = true;
+
+    if (!item || currentItemRowIndex === null) return;
+
+    try {
+      const updatedItems = [...items];
+      const currentItem = updatedItems[currentItemRowIndex];
+
+      const itemCode =
+        item.fItemcode ||
+        item.itemCode ||
+        item.code ||
+        item.originalCode ||
+        '';
+
+      const itemName =
+        item.fItemName ||
+        item.itemName ||
+        item.name ||
+        '';
+
+      const units = item.fUnits || item.units || "";
+
+      // 🔥 Fetch stock details (backup source for HSN)
+      const stockInfo = await getStockByItemName(itemCode);
+
+      // ✅ BULLETPROOF HSN RESOLUTION
+      const resolvedHsn =
+        item.hsn ||
+        item.hsnCode ||
+        item.HsnCode ||
+        item.HSN ||
+        stockInfo.hsn ||
+        stockInfo.hsnCode ||
+        stockInfo.HSN ||
+        '';
+
+      // Don't show 0 for tax, mrp, sRate - show empty if 0
+      const formatValue = (val) => {
+        const numVal = parseFloat(val || 0);
+        return numVal === 0 ? '' : numVal.toString();
+      };
+
+      updatedItems[currentItemRowIndex] = {
+        ...currentItem,
+        itemName,
+        itemCode,
+        barcode: '',
+        stock: (item.stock || stockInfo.stock || 0).toString(),
+        mrp: formatValue(item.mrp || stockInfo.mrp || 0),
+        uom: units || stockInfo.uom || stockInfo.fUnits || '',
+        hsn: resolvedHsn, // ✅ FIXED HERE
+        tax: formatValue(item.tax || stockInfo.tax || 0),
+        sRate: formatValue(item.sRate || stockInfo.rate || 0),
+        qty: currentItem.qty || '1',
+        amount: calculateAmount(
+          currentItem.qty || '1',
+          item.sRate || stockInfo.rate || 0
+        )
+      };
+
+      setItems(updatedItems);
+    } catch (err) {
+      console.error("Item select failed:", err);
+    } finally {
+      setItemPopupOpen(false);
+
+      setTimeout(() => {
+        ignoreNextEnterRef.current = false;
+      }, 200);
+    }
+  };
 
   // Get popup configuration
   const getPopupConfig = (type) => {
@@ -1200,13 +1236,12 @@ const handleItemSelect = async (item) => {
             itemName: item.fItemName || item.itemName,
             code: item.fItemcode || item.itemCode,
             name: item.fItemName || item.itemName,
-             hsn: item.hsn || item.fhsn || "",
+            hsn: item.hsn || item.fhsn || "",
             originalCode: item.fItemcode || item.itemCode,
             barcode: item.barcode,
             stock: item.stock,
             mrp: item.mrp,
             uom: item.uom,
-            
             tax: item.tax,
             sRate: item.sRate,
             displayName: item.fItemName || item.itemName,
@@ -1238,21 +1273,20 @@ const handleItemSelect = async (item) => {
       }
       
       let filtered = itemsData;
-     if (search) {
-  const searchLower = search.toLowerCase().trim();
+      if (search) {
+        const searchLower = search.toLowerCase().trim();
 
-  filtered = itemsData.filter(item => {
-    const name =
-      item.popupDisplay ||
-      item.displayName ||
-      item.name ||
-      '';
+        filtered = itemsData.filter(item => {
+          const name =
+            item.popupDisplay ||
+            item.displayName ||
+            item.name ||
+            '';
 
-    // ✅ ERP-style search: STARTS WITH
-    return name.toLowerCase().startsWith(searchLower);
-  });
-}
-
+          // ✅ ERP-style search: STARTS WITH
+          return name.toLowerCase().startsWith(searchLower);
+        });
+      }
       
       const startIndex = (pageNum - 1) * 20;
       const endIndex = startIndex + 20;
@@ -1291,43 +1325,41 @@ const handleItemSelect = async (item) => {
     }
   };
 
-const handleKeyDown = (e, nextRef, fieldName = '') => {
-  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+  const handleKeyDown = (e, nextRef, fieldName = '') => {
+    const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
 
-  if (isLetterKey) {
-    e.preventDefault();
+    if (isLetterKey) {
+      e.preventDefault();
 
-    ignoreNextInputRef.current = true; // 🔥 BLOCK input update
-    setPopupSearchText(e.key);         // ONLY ONE LETTER
+      ignoreNextInputRef.current = true; // 🔥 BLOCK input update
+      setPopupSearchText(e.key);         // ONLY ONE LETTER
 
-    if (fieldName === 'salesman') {
-      setSalesmanPopupOpen(true);
+      if (fieldName === 'salesman') {
+        setSalesmanPopupOpen(true);
+      }
+
+      if (fieldName === 'custName') {
+        setCustomerPopupOpen(true);
+      }
+
+      return;
     }
 
-    if (fieldName === 'custName') {
-      setCustomerPopupOpen(true);
+    if (e.key === '/') {
+      e.preventDefault();
+      setPopupSearchText('');
+
+      if (fieldName === 'salesman') setSalesmanPopupOpen(true);
+      if (fieldName === 'custName') setCustomerPopupOpen(true);
+
+      return;
     }
 
-    return;
-  }
-
-  if (e.key === '/') {
-    e.preventDefault();
-    setPopupSearchText('');
-
-    if (fieldName === 'salesman') setSalesmanPopupOpen(true);
-    if (fieldName === 'custName') setCustomerPopupOpen(true);
-
-    return;
-  }
-
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    nextRef?.current?.focus();
-  }
-};
-
-
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      nextRef?.current?.focus();
+    }
+  };
 
   // Handle backspace in customer and salesman fields
   const handleBackspace = (e, fieldName) => {
@@ -1349,154 +1381,247 @@ const handleKeyDown = (e, nextRef, fieldName = '') => {
     }
   };
 
-
-
-const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-  const fieldIndex = TABLE_FIELDS.indexOf(currentField);
-
-  // ==========================
-  // ⬅️ LEFT ARROW
-  // ==========================
-  if (e.key === 'ArrowLeft') {
-    e.preventDefault();
-    if (fieldIndex > 0) {
-      const prevField = TABLE_FIELDS[fieldIndex - 1];
-      document
-        .querySelector(`[data-row="${currentRowIndex}"][data-field="${prevField}"]`)
-        ?.focus();
-    }
-    return;
-  }
-
-  // ==========================
-  // ➡️ RIGHT ARROW
-  // ==========================
-  if (e.key === 'ArrowRight') {
-    e.preventDefault();
-    if (fieldIndex < TABLE_FIELDS.length - 1) {
-      const nextField = TABLE_FIELDS[fieldIndex + 1];
-      document
-        .querySelector(`[data-row="${currentRowIndex}"][data-field="${nextField}"]`)
-        ?.focus();
-    }
-    return;
-  }
-
-  // ==========================
-  // ⬆️ UP ARROW
-  // ==========================
-  if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (currentRowIndex > 0) {
-      document
-        .querySelector(`[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`)
-        ?.focus();
-    }
-    return;
-  }
-
-  // ==========================
-  // ⬇️ DOWN ARROW
-  // ==========================
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (currentRowIndex < items.length - 1) {
-      document
-        .querySelector(`[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`)
-        ?.focus();
-    }
-    return;
-  }
-
-  // ==========================
-  // 🔤 LETTER → ITEM POPUP
-  // ==========================
-  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
-
-  if (isLetterKey && currentField === 'itemName') {
-    e.preventDefault();
-    openItemPopup(currentRowIndex);
-
-    setTimeout(() => {
-      const searchInput = document.querySelector(
-        '.popup-list-selector input[type="text"]'
-      );
-      if (searchInput) {
-        searchInput.value = e.key;
-        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    }, 100);
-    return;
-  }
-
-  if (e.key === '/' && currentField === 'itemName') {
-    e.preventDefault();
-    openItemPopup(currentRowIndex);
-    return;
-  }
-
-  // ==========================
-  // ⏎ ENTER NAVIGATION (UNCHANGED)
-  // ==========================
-  if (e.key === 'Enter') {
-    e.preventDefault();
-
-   const fieldNavigation = {
-  barcode: `input[data-row="${currentRowIndex}"][data-field="itemName"]`,
-  itemName: `input[data-row="${currentRowIndex}"][data-field="stock"]`,
-  stock: `input[data-row="${currentRowIndex}"][data-field="mrp"]`,
-  mrp: `input[data-row="${currentRowIndex}"][data-field="uom"]`, // ✅ FIXED
-  uom: `input[data-row="${currentRowIndex}"][data-field="hsn"]`,
-  hsn: `input[data-row="${currentRowIndex}"][data-field="tax"]`,
-  tax: `input[data-row="${currentRowIndex}"][data-field="sRate"]`,
-  sRate: `input[data-row="${currentRowIndex}"][data-field="qty"]`,
-  qty:
-    currentRowIndex < items.length - 1
-      ? `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
-      : null
-};
-
-
-    const nextSelector = fieldNavigation[currentField];
-
-    if (nextSelector) {
-      const nextElement = document.querySelector(nextSelector);
-      if (nextElement) {
-        nextElement.focus();
+  // Handle barcode scanning in table
+  const handleBarcodeKeyDown = async (e, currentRowIndex) => {
+    const currentItem = items[currentRowIndex];
+    
+    // If Enter is pressed on barcode field
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      const barcode = currentItem.barcode?.trim();
+      if (!barcode || barcode === '') {
+        // If barcode is empty, move to item name field
+        document
+          .querySelector(
+            `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+          )
+          ?.focus();
         return;
       }
+      
+      try {
+        // Fetch item details by barcode
+        const barcodeData = await getPurchaseStockDetailsByBarcode(barcode);
+        
+        if (barcodeData) {
+          // Update the current row with barcode data
+          const updatedItems = [...items];
+          updatedItems[currentRowIndex] = {
+            ...updatedItems[currentRowIndex],
+            itemCode: barcodeData.itemcode || '',
+            itemName: barcodeData.fItemName || '',
+            stock: (barcodeData.fstock || 0).toString(),
+            mrp: (barcodeData.mrp || 0).toString(),
+            uom: barcodeData.fUnit || '',
+            hsn: barcodeData.fHSN || '',
+            tax: (barcodeData.inTax || 0).toString(),
+            sRate: (barcodeData.rate || 0).toString(),
+            qty: '1',
+            amount: calculateAmount('1', barcodeData.rate || 0)
+          };
+          
+          setItems(updatedItems);
+          
+          // Move focus to quantity field
+          setTimeout(() => {
+            document
+              .querySelector(
+                `input[data-row="${currentRowIndex}"][data-field="qty"]`
+              )
+              ?.focus();
+          }, 100);
+          
+          toast.success(`Item "${barcodeData.fItemName}" loaded from barcode`, {
+            autoClose: 1500,
+          });
+        } else {
+          toast.warning(`No item found for barcode: ${barcode}`, {
+            autoClose: 1500,
+          });
+          
+          // Move focus to item name field if barcode not found
+          document
+            .querySelector(
+              `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+            )
+            ?.focus();
+        }
+      } catch (err) {
+        console.error("Barcode fetch error:", err);
+        toast.error("Failed to fetch item by barcode", {
+          autoClose: 1500,
+        });
+        
+        // Move focus to item name field on error
+        document
+          .querySelector(
+            `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+          )
+          ?.focus();
+      }
+      return;
+    }
+    
+    // For other keys, use the standard table navigation
+    handleTableKeyDown(e, currentRowIndex, 'barcode');
+  };
+
+  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    const fieldIndex = TABLE_FIELDS.indexOf(currentField);
+    const currentItem = items[currentRowIndex];
+
+    // 🚫 BLOCK ENTER IF ITEM NAME IS EMPTY
+    if (
+      e.key === 'Enter' &&
+      currentField === 'itemName' &&
+      (!currentItem.itemName || currentItem.itemName.trim() === '')
+    ) {
+      e.preventDefault();
+
+      toast.warning("Please select Item Name first", {
+        autoClose: 1500,
+      });
+
+      // 🔁 keep focus on Item Name
+      setTimeout(() => {
+        document
+          .querySelector(
+            `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+          )
+          ?.focus();
+      }, 0);
+
+      return; // ⛔ STOP ALL NAVIGATION
     }
 
-    // Qty → next row / add row
-    if (currentField === 'qty') {
-      const currentItem = items[currentRowIndex];
+    // 🔒 BLOCK navigation for other fields if Item Name not selected
+    if (
+      currentField !== 'itemName' &&
+      (!currentItem.itemName || currentItem.itemName.trim() === '')
+    ) {
+      e.preventDefault();
+      return;
+    }
 
-      if (!currentItem.itemName || currentItem.itemName.trim() === '') {
-        addLessRef?.current?.focus();
-        return;
+    // ==========================
+    // ⬅️ LEFT ARROW
+    // ==========================
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (fieldIndex > 0) {
+        const prevField = TABLE_FIELDS[fieldIndex - 1];
+        document
+          .querySelector(
+            `[data-row="${currentRowIndex}"][data-field="${prevField}"]`
+          )
+          ?.focus();
       }
+      return;
+    }
 
+    // ==========================
+    // ➡️ RIGHT ARROW
+    // ==========================
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (fieldIndex < TABLE_FIELDS.length - 1) {
+        const nextField = TABLE_FIELDS[fieldIndex + 1];
+        document
+          .querySelector(
+            `[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+          )
+          ?.focus();
+      }
+      return;
+    }
+
+    // ==========================
+    // ⬆️ UP ARROW
+    // ==========================
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (currentRowIndex > 0) {
+        document
+          .querySelector(
+            `[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
+          )
+          ?.focus();
+      }
+      return;
+    }
+
+    // ==========================
+    // ⬇️ DOWN ARROW
+    // ==========================
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
       if (currentRowIndex < items.length - 1) {
         document
           .querySelector(
-            `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+            `[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
           )
           ?.focus();
-      } else {
-        handleAddRow();
-        setTimeout(() => {
-          document
-            .querySelector(
-              `input[data-row="${items.length}"][data-field="barcode"]`
-            )
-            ?.focus();
-        }, 60);
+      }
+      return;
+    }
+
+    // ==========================
+    // 🔤 LETTER → ITEM POPUP
+    // ==========================
+    const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
+
+    if (isLetterKey && currentField === 'itemName') {
+      e.preventDefault();
+      openItemPopup(currentRowIndex);
+
+      setTimeout(() => {
+        const searchInput = document.querySelector(
+          '.popup-list-selector input[type="text"]'
+        );
+        if (searchInput) {
+          searchInput.value = e.key;
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 100);
+      return;
+    }
+
+    if (e.key === '/' && currentField === 'itemName') {
+      e.preventDefault();
+      openItemPopup(currentRowIndex);
+      return;
+    }
+
+    // ==========================
+    // ⏎ ENTER NAVIGATION (VALID ITEM)
+    // ==========================
+    if (e.key === 'Enter') {
+      e.preventDefault();
+
+      const fieldNavigation = {
+        barcode: 'itemName',
+        itemName: 'stock',
+        stock: 'mrp',
+        mrp: 'uom',
+        uom: 'hsn',
+        hsn: 'tax',
+        tax: 'sRate',
+        sRate: 'qty',
+      };
+
+      const nextField = fieldNavigation[currentField];
+
+      if (nextField) {
+        document
+          .querySelector(
+            `input[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+          )
+          ?.focus();
+        return;
       }
     }
-  }
-};
-
-  
+  };
 
   const handleAddItem = async () => {
     if (!billDetails.barcodeInput) {
@@ -1505,39 +1630,70 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     }
 
     try {
-      const existingItemInList = itemList.find(item => 
-        item.barcode === billDetails.barcodeInput || 
-        item.itemCode === billDetails.barcodeInput ||
-        item.code === billDetails.barcodeInput
-      );
-
-      if (existingItemInList) {
-        handleAddItemFromLocal(existingItemInList);
-      } else {
-        const stockInfo = await getStockByItemName(billDetails.barcodeInput);
+      // First try to fetch from barcode API
+      const barcodeData = await getPurchaseStockDetailsByBarcode(billDetails.barcodeInput);
+      
+      if (barcodeData) {
+        // Add item from barcode API
+        const newItem = {
+          id: items.length + 1,
+          sNo: items.length + 1,
+          barcode: billDetails.barcodeInput,
+          itemCode: barcodeData.itemcode || billDetails.barcodeInput,
+          itemName: barcodeData.fItemName || '',
+          stock: (barcodeData.fstock || 0).toString(),
+          mrp: (barcodeData.mrp || 0).toString(),
+          uom: barcodeData.fUnit || '',
+          hsn: barcodeData.fHSN || '',
+          tax: (barcodeData.inTax || 0).toString(),
+          sRate: (barcodeData.rate || 0).toString(),
+          qty: '1',
+          amount: calculateAmount('1', barcodeData.rate || 0)
+        };
         
-        if (stockInfo.itemName) {
-          const newItem = {
-            id: items.length + 1,
-            sNo: items.length + 1,
-            barcode: billDetails.barcodeInput,
-            itemCode: billDetails.barcodeInput,
-            itemName: stockInfo.itemName,
-            stock: stockInfo.stock || '0',
-            mrp: stockInfo.mrp || '0',
-            uom: stockInfo.fUnits || stockInfo.uom || '',
-            hsn: stockInfo.hsn || '',
-            tax: stockInfo.tax || '0',
-            sRate: stockInfo.rate || '0',
-            qty: '1',
-            amount: calculateAmount('1', stockInfo.rate || '0')
-          };
-          
-          setItems([...items, newItem]);
-          setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
-          if (barcodeRef.current) barcodeRef.current.focus();
+        setItems([...items, newItem]);
+        setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
+        if (barcodeRef.current) barcodeRef.current.focus();
+        
+        toast.success(`Item "${barcodeData.fItemName}" added from barcode`, {
+          autoClose: 1500,
+        });
+      } else {
+        // If barcode API fails, try local lookup
+        const existingItemInList = itemList.find(item => 
+          item.barcode === billDetails.barcodeInput || 
+          item.itemCode === billDetails.barcodeInput ||
+          item.code === billDetails.barcodeInput
+        );
+
+        if (existingItemInList) {
+          handleAddItemFromLocal(existingItemInList);
         } else {
-          alert("Item not found. Please check the barcode.");
+          const stockInfo = await getStockByItemName(billDetails.barcodeInput);
+          
+          if (stockInfo.itemName) {
+            const newItem = {
+              id: items.length + 1,
+              sNo: items.length + 1,
+              barcode: billDetails.barcodeInput,
+              itemCode: billDetails.barcodeInput,
+              itemName: stockInfo.itemName,
+              stock: stockInfo.stock || '0',
+              mrp: stockInfo.mrp || '0',
+              uom: stockInfo.fUnits || stockInfo.uom || '',
+              hsn: stockInfo.hsn || '',
+              tax: stockInfo.tax || '0',
+              sRate: stockInfo.rate || '0',
+              qty: '1',
+              amount: calculateAmount('1', stockInfo.rate || '0')
+            };
+            
+            setItems([...items, newItem]);
+            setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
+            if (barcodeRef.current) barcodeRef.current.focus();
+          } else {
+            alert("Item not found. Please check the barcode.");
+          }
         }
       }
     } catch (err) {
@@ -1590,91 +1746,26 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
-const handleAddRow = () => {
-  const lastItem = items[items.length - 1];
+  const handleAddRow = () => {
+    const lastItem = items[items.length - 1];
 
-  // 🚫 BLOCK adding row if item name is empty
-  if (!lastItem.itemName || lastItem.itemName.trim() === '') {
-    toast.warning("Please select an item before adding a new row");
-    return;
-  }
-
-  // 🚫 BLOCK adding row if amount is 0
-  if (parseFloat(lastItem.amount || 0) === 0) {
-    toast.warning("Amount is 0. Please add SRate before adding new row", {
-      autoClose: 3000,
-    });
-    return;
-  }
-
-  const newRow = {
-    id: items.length + 1,
-    sNo: items.length + 1,
-    barcode: '',
-    itemCode: '',
-    itemName: '',
-    stock: '',
-    mrp: '',
-    uom: '',
-    hsn: '',
-    tax: '',
-    sRate: '',
-    qty: '',
-    amount: '0.00'
-  };
-
-  setItems(prev => [...prev, newRow]);
-};
-
- const handleItemChange = (id, field, value) => {
-  setItems(items.map(item => {
-    if (item.id === id) {
-      const updatedItem = { ...item, [field]: value };
-
-      // Don't show 0 for tax, mrp, sRate - show empty if 0
-      if (field === 'tax' || field === 'mrp' || field === 'sRate') {
-        const numValue = parseFloat(value || 0);
-        updatedItem[field] = numValue === 0 ? '' : numValue.toString();
-      }
-
-      if (field === 'qty' || field === 'sRate') {
-        const qty = field === 'qty' ? value : updatedItem.qty;
-        const sRate = field === 'sRate' ? value : updatedItem.sRate;
-        updatedItem.amount = calculateAmount(qty, sRate);
-      }
-
-      return updatedItem;
+    // 🚫 BLOCK adding row if item name is empty
+    if (!lastItem.itemName || lastItem.itemName.trim() === '') {
+      toast.warning("Please select an item before adding a new row");
+      return;
     }
-    return item;
-  }));
-};
-const handleDeleteRow = (id) => {
-  const itemToDelete = items.find(item => item.id === id);
-  const itemName = itemToDelete?.itemName || 'this item';
-  const barcode = itemToDelete?.barcode ? `(Barcode: ${itemToDelete.barcode})` : '';
-  
-  // Set the item to delete and show confirmation popup
-  setRowToDelete({ id, itemName, barcode });
-  setRowDeleteConfirmationOpen(true);
-};
 
-// Handle confirmed row deletion
-const handleConfirmedRowDelete = () => {
-  if (!rowToDelete) return;
-  
-  const { id } = rowToDelete;
-  
-  if (items.length > 1) {
-    const filteredItems = items.filter(item => item.id !== id);
-    const updatedItems = filteredItems.map((item, index) => ({
-      ...item,
-      sNo: index + 1
-    }));
-    setItems(updatedItems);
-  } else {
-    const clearedItem = {
-      id: 1,
-      sNo: 1,
+    // 🚫 BLOCK adding row if amount is 0
+    if (parseFloat(lastItem.amount || 0) === 0) {
+      toast.warning("Amount is 0. Please add SRate before adding new row", {
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    const newRow = {
+      id: items.length + 1,
+      sNo: items.length + 1,
       barcode: '',
       itemCode: '',
       itemName: '',
@@ -1687,51 +1778,115 @@ const handleConfirmedRowDelete = () => {
       qty: '',
       amount: '0.00'
     };
-    setItems([clearedItem]);
-  }
-  
-  // Close popup and reset
-  setRowDeleteConfirmationOpen(false);
-  setRowToDelete(null);
-};
 
-const handleClear = () => {
-  setClearConfirmationOpen(true);
-};
-const handleConfirmedClear = () => {
-  setClearConfirmationOpen(false);
-  resetForm();
-};
+    setItems(prev => [...prev, newRow]);
+  };
 
+  const handleItemChange = (id, field, value) => {
+    setItems(items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
 
-const formatDateToYYYYMMDD = (dateString) => {
-  if (!dateString) {
+        // Don't show 0 for tax, mrp, sRate - show empty if 0
+        if (field === 'tax' || field === 'mrp' || field === 'sRate') {
+          const numValue = parseFloat(value || 0);
+          updatedItem[field] = numValue === 0 ? '' : numValue.toString();
+        }
+
+        if (field === 'qty' || field === 'sRate') {
+          const qty = field === 'qty' ? value : updatedItem.qty;
+          const sRate = field === 'sRate' ? value : updatedItem.sRate;
+          updatedItem.amount = calculateAmount(qty, sRate);
+        }
+
+        return updatedItem;
+      }
+      return item;
+    }));
+  };
+
+  const handleDeleteRow = (id) => {
+    const itemToDelete = items.find(item => item.id === id);
+    const itemName = itemToDelete?.itemName || 'this item';
+    const barcode = itemToDelete?.barcode ? `(Barcode: ${itemToDelete.barcode})` : '';
+    
+    // Set the item to delete and show confirmation popup
+    setRowToDelete({ id, itemName, barcode });
+    setRowDeleteConfirmationOpen(true);
+  };
+
+  // Handle confirmed row deletion
+  const handleConfirmedRowDelete = () => {
+    if (!rowToDelete) return;
+    
+    const { id } = rowToDelete;
+    
+    if (items.length > 1) {
+      const filteredItems = items.filter(item => item.id !== id);
+      const updatedItems = filteredItems.map((item, index) => ({
+        ...item,
+        sNo: index + 1
+      }));
+      setItems(updatedItems);
+    } else {
+      const clearedItem = {
+        id: 1,
+        sNo: 1,
+        barcode: '',
+        itemCode: '',
+        itemName: '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        sRate: '',
+        qty: '',
+        amount: '0.00'
+      };
+      setItems([clearedItem]);
+    }
+    
+    // Close popup and reset
+    setRowDeleteConfirmationOpen(false);
+    setRowToDelete(null);
+  };
+
+  const handleClear = () => {
+    setClearConfirmationOpen(true);
+  };
+
+  const handleConfirmedClear = () => {
+    setClearConfirmationOpen(false);
+    resetForm();
+  };
+
+  const formatDateToYYYYMMDD = (dateString) => {
+    if (!dateString) {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    // ✅ Already correct format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+
+    // ✅ Handle: DD-MM-YYYY or DD/MM/YYYY
+    if (/^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(dateString)) {
+      const [day, month, year] = dateString.split(/[\/-]/);
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    // ✅ Handle: DD-MM-YYYY HH:mm:ss or DD/MM/YYYY HH:mm:ss
+    if (/^\d{2}[\/-]\d{2}[\/-]\d{4}\s+/.test(dateString)) {
+      const datePart = dateString.split(' ')[0];
+      const [day, month, year] = datePart.split(/[\/-]/);
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    console.warn("Unrecognized date format:", dateString);
     return new Date().toISOString().split('T')[0];
-  }
-
-  // ✅ Already correct format
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    return dateString;
-  }
-
-  // ✅ Handle: DD-MM-YYYY or DD/MM/YYYY
-  if (/^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(dateString)) {
-    const [day, month, year] = dateString.split(/[\/-]/);
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  }
-
-  // ✅ Handle: DD-MM-YYYY HH:mm:ss or DD/MM/YYYY HH:mm:ss
-  if (/^\d{2}[\/-]\d{2}[\/-]\d{4}\s+/.test(dateString)) {
-    const datePart = dateString.split(' ')[0];
-    const [day, month, year] = datePart.split(/[\/-]/);
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  }
-
-  console.warn("Unrecognized date format:", dateString);
-  return new Date().toISOString().split('T')[0];
-};
-
-
+  };
 
   // ========== SAVE FUNCTION ==========
   const saveSalesInvoice = async () => {
@@ -1744,42 +1899,41 @@ const formatDateToYYYYMMDD = (dateString) => {
       setIsLoading(true);
       setError(null);
 
-    // 🔒 FINAL SAFETY VALIDATION
-if (!billDetails.salesman || !billDetails.custName) {
-  throw new Error("Salesman and Customer are required");
-}
+      // 🔒 FINAL SAFETY VALIDATION
+      if (!billDetails.salesman || !billDetails.custName) {
+        throw new Error("Salesman and Customer are required");
+      }
 
-const validItems = items.filter(
-  item =>
-    item.itemName &&
-    item.itemName.trim() !== "" &&
-    Number(item.qty) > 0
-);
+      const validItems = items.filter(
+        item =>
+          item.itemName &&
+          item.itemName.trim() !== "" &&
+          Number(item.qty) > 0
+      );
 
-if (validItems.length === 0) {
-  throw new Error("At least one item is required");
-}
-
+      if (validItems.length === 0) {
+        throw new Error("At least one item is required");
+      }
 
       // Format date to yyyy-MM-dd (without time)
       const voucherDate = formatDateToYYYYMMDD(billDetails.billDate);
 
-  const headerData = {
-  voucherNo: billDetails.billNo || "",
-  billDate: voucherDate,      // ✅ CORRECT FIELD
-  voucherDate: voucherDate,   // ✅ KEEP BOTH (SAFE)
-  mobileNumber: billDetails.mobileNo || "",
-  salesmanName: billDetails.salesman || "",
-  salesCode: billDetails.salesmanCode || "",
-  selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
-  customerName: billDetails.custName || "",
-  customercode: billDetails.custCode || "",
-  compCode: "001",
-  billAmount: Number(totalAmount) || 0,
-  balanceAmount: 0,
-  userCode: "001",
-  addLess: (addLessAmount ?? "0").toString()
-};
+      const headerData = {
+        voucherNo: billDetails.billNo || "",
+        billDate: voucherDate,      // ✅ CORRECT FIELD
+        voucherDate: voucherDate,   // ✅ KEEP BOTH (SAFE)
+        mobileNumber: billDetails.mobileNo || "",
+        salesmanName: billDetails.salesman || "",
+        salesCode: billDetails.salesmanCode || "",
+        selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
+        customerName: billDetails.custName || "",
+        customercode: billDetails.custCode || "",
+        compCode: "001",
+        billAmount: Number(totalAmount) || 0,
+        balanceAmount: 0,
+        userCode: "001",
+        addLess: (addLessAmount ?? "0").toString()
+      };
 
       // Prepare items data
       const itemsData = validItems.map(item => ({
@@ -1801,8 +1955,6 @@ if (validItems.length === 0) {
         items: itemsData
       };
       
-
-      
       // Determine if this is an insert or update
       const isInsert = !isEditing;
       
@@ -1822,11 +1974,10 @@ if (validItems.length === 0) {
         const message = response.data.message || `Invoice ${isEditing ? 'updated' : 'saved'} successfully`;
         const savedBillNo = response.data.voucherNo || billDetails.billNo;
         
-       toast.success(
-  `Invoice ${isEditing ? "updated" : "saved"} successfully\nInvoice No: ${savedBillNo}`,
-  { autoClose: 3000 }
-);
-
+        toast.success(
+          `Invoice ${isEditing ? "updated" : "saved"} successfully\nInvoice No: ${savedBillNo}`,
+          { autoClose: 3000 }
+        );
         
         // Refresh saved invoices list
         await fetchSavedInvoices(1, '');
@@ -1873,71 +2024,70 @@ if (validItems.length === 0) {
     }
   };
 
-const handleSave = () => {
-  // 🔐 Permission check
-  if (!formPermissions.add && !formPermissions.edit) {
-    toast.error("You do not have permission to save invoices.", {
-      position: "top-right",
-      autoClose: 3000,
+  const handleSave = () => {
+    // 🔐 Permission check
+    if (!formPermissions.add && !formPermissions.edit) {
+      toast.error("You do not have permission to save invoices.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    // ❌ Salesman validation
+    if (!billDetails.salesman || billDetails.salesman.trim() === "") {
+      toast.warning("Please fill the Salesman name", {
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    // ❌ Customer validation
+    if (!billDetails.custName || billDetails.custName.trim() === "") {
+      toast.warning("Please fill the Customer name", {
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    // ❌ Item validation
+    const validItems = items.filter(
+      item =>
+        item.itemName &&
+        item.itemName.trim() !== "" &&
+        Number(item.qty) > 0
+    );
+
+    if (validItems.length === 0) {
+      toast.warning("Please add at least one Item with quantity", {
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    // ❌ Check for items with 0 amount
+    const itemsWithZeroAmount = validItems.filter(item => parseFloat(item.amount || 0) === 0);
+    if (itemsWithZeroAmount.length > 0) {
+      toast.warning("Cannot save invoice with items having 0 amount. Please check item rates.", {
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    // ✅ ALL OK → Open save confirmation popup
+    const finalAmount = totalAmount; // Removed addLessAmount
+
+    setSaveConfirmationData({
+      invoiceNo: isEditing ? originalInvoiceNo : billDetails.billNo,
+      customer: billDetails.custName,
+      billDate: billDetails.billDate,
+      totalAmount: totalAmount.toFixed(2),
+      finalAmount: finalAmount.toFixed(2),
+      isEditing: isEditing,
     });
-    return;
-  }
 
-  // ❌ Salesman validation
-  if (!billDetails.salesman || billDetails.salesman.trim() === "") {
-    toast.warning("Please fill the Salesman name", {
-      autoClose: 2000,
-    });
-    return;
-  }
-
-  // ❌ Customer validation
-  if (!billDetails.custName || billDetails.custName.trim() === "") {
-    toast.warning("Please fill the Customer name", {
-      autoClose: 2000,
-    });
-    return;
-  }
-
-  // ❌ Item validation
-  const validItems = items.filter(
-    item =>
-      item.itemName &&
-      item.itemName.trim() !== "" &&
-      Number(item.qty) > 0
-  );
-
-  if (validItems.length === 0) {
-    toast.warning("Please add at least one Item with quantity", {
-      autoClose: 2000,
-    });
-    return;
-  }
-
-  // ❌ Check for items with 0 amount
-  const itemsWithZeroAmount = validItems.filter(item => parseFloat(item.amount || 0) === 0);
-  if (itemsWithZeroAmount.length > 0) {
-    toast.warning("Cannot save invoice with items having 0 amount. Please check item rates.", {
-      autoClose: 3000,
-    });
-    return;
-  }
-
-  // ✅ ALL OK → Open save confirmation popup
-  const finalAmount = totalAmount; // Removed addLessAmount
-
-  setSaveConfirmationData({
-    invoiceNo: isEditing ? originalInvoiceNo : billDetails.billNo,
-    customer: billDetails.custName,
-    billDate: billDetails.billDate,
-    totalAmount: totalAmount.toFixed(2),
-    finalAmount: finalAmount.toFixed(2),
-    isEditing: isEditing,
-  });
-
-  setSaveConfirmationOpen(true);
-};
-
+    setSaveConfirmationOpen(true);
+  };
 
   // Function to show save confirmation popup
   const showSaveConfirmation = () => {
@@ -1945,33 +2095,27 @@ const handleSave = () => {
       return;
     }
     
-   if (!billDetails.custName) {
-  if (
-  items.length === 0 ||
-  items.every(item => !item.itemName || parseFloat(item.qty || 0) <= 0)
-) {
-  toast.warning("Please add a customer Name", {
-    position: "top-right",
-    autoClose: 2000,
-  });
-  }
-  return;
-}
+    if (!billDetails.custName) {
+      if (
+        items.length === 0 ||
+        items.every(item => !item.itemName || parseFloat(item.qty || 0) <= 0)
+      ) {
+        toast.warning("Please add a customer Name", {
+          position: "top-right",
+          autoClose: 2000,
+        });
+      }
+      return;
+    }
 
-if (
-  items.length === 0 ||
-  items.every(item => !item.itemName || parseFloat(item.qty || 0) <= 0)
-) {
-  toast.warning("Please add at least one item with quantity", {
-    position: "top-right",
-    autoClose: 2000,
-  });
-  return;
-}
-
-    
-    if (items.length === 0 || items.every(item => !item.itemName || parseFloat(item.qty || 0) <= 0)) {
-      alert('Please add at least one item with quantity');
+    if (
+      items.length === 0 ||
+      items.every(item => !item.itemName || parseFloat(item.qty || 0) <= 0)
+    ) {
+      toast.warning("Please add at least one item with quantity", {
+        position: "top-right",
+        autoClose: 2000,
+      });
       return;
     }
     
@@ -2006,16 +2150,16 @@ if (
     await saveSalesInvoice();
   };
 
- const handlePrint = () => {
-  setPrintConfirmationOpen(true);
-};
+  const handlePrint = () => {
+    setPrintConfirmationOpen(true);
+  };
 
-const handleConfirmedPrint = () => {
-  setPrintConfirmationOpen(false);
+  const handleConfirmedPrint = () => {
+    setPrintConfirmationOpen(false);
 
-  // 🔹 Replace with your actual print logic
-  window.print();
-};
+    // 🔹 Replace with your actual print logic
+    window.print();
+  };
 
   // --- RESPONSIVE STYLES ---
   const TYPOGRAPHY = {
@@ -2028,21 +2172,21 @@ const handleConfirmedPrint = () => {
       xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
     },
     inputWithIconWrapper: {
-  position: "relative",
-  width: "100%",
-  flex: 1,
-},
+      position: "relative",
+      width: "100%",
+      flex: 1,
+    },
 
-searchIconInside: {
-  position: "absolute",
-  right: "10px",
-  top: "50%",
-  transform: "translateY(-50%)",
-  pointerEvents: "none",
-  display: "flex",
-  alignItems: "center",
-  opacity: 0.7,
-},
+    searchIconInside: {
+      position: "absolute",
+      right: "10px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      pointerEvents: "none",
+      display: "flex",
+      alignItems: "center",
+      opacity: 0.7,
+    },
 
     fontWeight: {
       normal: 400,
@@ -2102,18 +2246,16 @@ searchIconInside: {
       display: 'flex',
       alignItems: 'center',
       gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '8px' : '10px',
-      
     },
-   inlineLabel: {
-  fontFamily: TYPOGRAPHY.fontFamily,
-  fontSize: TYPOGRAPHY.fontSize.sm,
-  fontWeight: TYPOGRAPHY.fontWeight.semibold,
-  color: '#333',
-  minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px', // ✅ REDUCED
-  whiteSpace: 'nowrap',
-  flexShrink: 0,
-},
-
+    inlineLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px', // ✅ REDUCED
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+    },
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
@@ -2635,11 +2777,6 @@ searchIconInside: {
         
         box-shadow: none !important;
       }
-      
-      
-        
-
-
     `;
     document.head.appendChild(style);
     
@@ -2659,18 +2796,18 @@ searchIconInside: {
   };
 
   return (
-   <div
-  style={styles.container}
-  className="sale-invoice-scrollable"
-  onKeyDown={(e) => {
-    // Only block Enter if it's from popup selection
-    if (ignoreNextEnterRef.current && e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
-      ignoreNextEnterRef.current = false; // Reset immediately
-    }
-  }}
->
+    <div
+      style={styles.container}
+      className="sale-invoice-scrollable"
+      onKeyDown={(e) => {
+        // Only block Enter if it's from popup selection
+        if (ignoreNextEnterRef.current && e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          ignoreNextEnterRef.current = false; // Reset immediately
+        }
+      }}
+    >
 
       {error && <div style={styles.errorContainer}>Error: {error}</div>}
       
@@ -2688,27 +2825,24 @@ searchIconInside: {
           ...styles.gridRow,
           gridTemplateColumns: getGridColumns(),
         }}>
-        {/* Bill No */}
-<div style={styles.formField}>
-  <label style={styles.inlineLabel}>Bill No:</label>
-  <input
-    type="text"
-    value={billDetails.billNo}
-    name="billNo"
-    readOnly                 // ✅ always readonly
-    tabIndex={-1}            // ✅ skip keyboard focus (optional)
-    ref={billNoRef}
-    style={{
-      ...styles.inlineInput,
-     
-      cursor: "not-allowed",
-      fontWeight: "600"
-    }}
-    // placeholder="Auto-generated"
-    title="Auto-generated invoice number"
-  />
-</div>
-
+          {/* Bill No */}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Bill No:</label>
+            <input
+              type="text"
+              value={billDetails.billNo}
+              name="billNo"
+              readOnly                 // ✅ always readonly
+              tabIndex={-1}            // ✅ skip keyboard focus (optional)
+              ref={billNoRef}
+              style={{
+                ...styles.inlineInput,
+                cursor: "not-allowed",
+                fontWeight: "600"
+              }}
+              title="Auto-generated invoice number"
+            />
+          </div>
 
           {/* Bill Date */}
           <div style={styles.formField}>
@@ -2719,8 +2853,6 @@ searchIconInside: {
               value={billDetails.billDate}
               name="billDate"
               onChange={handleInputChange}
-
-
               ref={billDateRef}
               onKeyDown={(e) => handleKeyDown(e, mobileRef, 'billDate')}
               onFocus={() => setFocusedField('billDate')}
@@ -2741,40 +2873,39 @@ searchIconInside: {
               onKeyDown={(e) => handleKeyDown(e, typeRef, 'mobileNo')}
               onFocus={() => setFocusedField('mobileNo')}
               onBlur={() => setFocusedField('')}
-              // placeholder="Mobile No"
             />
           </div>
 
-{/* Type */}
-<div style={{ ...styles.formField, gap: '4px' }}>   {/* ✅ smaller gap */}
-  <label
-    style={{
-      ...styles.inlineLabel,
-      minWidth: '50px'   // ✅ ONLY Type label width reduced
-    }}
-  >
-    Type:
-  </label>
+          {/* Type */}
+          <div style={{ ...styles.formField, gap: '4px' }}>   {/* ✅ smaller gap */}
+            <label
+              style={{
+                ...styles.inlineLabel,
+                minWidth: '50px'   // ✅ ONLY Type label width reduced
+              }}
+            >
+              Type:
+            </label>
 
-  <select
-    name="type"
-    style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
-    value={billDetails.type}
-    onChange={handleInputChange}
-    ref={typeRef}
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        salesmanRef.current.focus();
-      }
-    }}
-    onFocus={() => setFocusedField('type')}
-    onBlur={() => setFocusedField('')}
-  >
-    <option value="Retail">Retail</option>
-    <option value="Wholesale">Wholesale</option>
-  </select>
-</div>
+            <select
+              name="type"
+              style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
+              value={billDetails.type}
+              onChange={handleInputChange}
+              ref={typeRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  salesmanRef.current.focus();
+                }
+              }}
+              onFocus={() => setFocusedField('type')}
+              onBlur={() => setFocusedField('')}
+            >
+              <option value="Retail">Retail</option>
+              <option value="Wholesale">Wholesale</option>
+            </select>
+          </div>
 
         </div>
 
@@ -2783,146 +2914,136 @@ searchIconInside: {
           gridTemplateColumns: getGridColumns(),
         }}>
           {/* Salesman */}
-     <div style={styles.formField}>
-  <label style={styles.inlineLabel}>Salesman:</label>
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Salesman:</label>
 
-  <div style={{ position: 'relative', width: '100%', flex: 1 }}>
-    <input
-  type="text"
-  style={{
-    ...(focusedField === 'salesman'
-      ? styles.inlineInputClickableFocused
-      : styles.inlineInputClickable),
-    paddingRight: '34px',
-  }}
-  value={billDetails.salesman}
-  name="salesman"
+            <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+              <input
+                type="text"
+                style={{
+                  ...(focusedField === 'salesman'
+                    ? styles.inlineInputClickableFocused
+                    : styles.inlineInputClickable),
+                  paddingRight: '34px',
+                }}
+                value={billDetails.salesman}
+                name="salesman"
 
-  // ✅ FIX: block duplicate letter
-  onChange={(e) => {
-    if (ignoreNextInputRef.current) {
-      ignoreNextInputRef.current = false; // reset
-      return; // ❌ do NOT update input
-    }
-    handleInputChange(e);
-  }}
+                // ✅ FIX: block duplicate letter
+                onChange={(e) => {
+                  if (ignoreNextInputRef.current) {
+                    ignoreNextInputRef.current = false; // reset
+                    return; // ❌ do NOT update input
+                  }
+                  handleInputChange(e);
+                }}
 
-  ref={salesmanRef}
-  onClick={openSalesmanPopup}
-  onKeyDown={(e) => {
-    handleKeyDown(e, custNameRef, 'salesman');
-    handleBackspace(e, 'salesman');
-  }}
-  onFocus={() => setFocusedField('salesman')}
-  onBlur={() => setFocusedField('')}
-/>
+                ref={salesmanRef}
+                onClick={openSalesmanPopup}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, custNameRef, 'salesman');
+                  handleBackspace(e, 'salesman');
+                }}
+                onFocus={() => setFocusedField('salesman')}
+                onBlur={() => setFocusedField('')}
+              />
 
-
-    {/* 🔍 Search Icon */}
-    <div
-      style={{
-        position: 'absolute',
-        right: '10px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        pointerEvents: 'none',
-        opacity: 0.65,
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
-      <SearchIcon />
-    </div>
-  </div>
-</div>
+              {/* 🔍 Search Icon */}
+              <div
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  opacity: 0.65,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <SearchIcon />
+              </div>
+            </div>
+          </div>
 
           {/* Customer Name */}
-<div style={styles.formField}>
-  <label style={styles.inlineLabel}>Customer:</label>
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Customer:</label>
 
-  <div style={{ position: 'relative', width: '100%', flex: 1 }}>
-    <input
-      type="text"
-      style={{
-        ...(focusedField === 'custName'
-          ? styles.inlineInputClickableFocused
-          : styles.inlineInputClickable),
-        paddingRight: '34px', // space for icon
-      }}
-      value={billDetails.custName}
-      name="custName"
-      onChange={handleInputChange}
-      ref={custNameRef}
-      
- onKeyDown={(e) => {
-  // ✅ ONLY "/" opens popup
-  if (e.key === '/') {
-    e.preventDefault();
-    setPopupSearchText('');   // no pre-filled search
-    setCustomerPopupOpen(true);
-    return;
-  }
+            <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+              <input
+                type="text"
+                style={{
+                  ...(focusedField === 'custName'
+                    ? styles.inlineInputClickableFocused
+                    : styles.inlineInputClickable),
+                  paddingRight: '34px', // space for icon
+                }}
+                value={billDetails.custName}
+                name="custName"
+                onChange={handleInputChange}
+                ref={custNameRef}
+                
+                onKeyDown={(e) => {
+                  // ✅ ONLY "/" opens popup
+                  if (e.key === '/') {
+                    e.preventDefault();
+                    setPopupSearchText('');   // no pre-filled search
+                    setCustomerPopupOpen(true);
+                    return;
+                  }
 
-  // ⏭ Enter → go to barcode
-// ⏭ Enter → go to TABLE first row barcode
-if (e.key === 'Enter') {
-  e.preventDefault();
+                  // ⏭ Enter → go to TABLE first row barcode
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
 
-  setTimeout(() => {
-    const firstRowBarcode = document.querySelector(
-      'input[data-row="0"][data-field="barcode"]'
-    );
-    if (firstRowBarcode) {
-      firstRowBarcode.focus();
-    }
-  }, 0);
+                    setTimeout(() => {
+                      const firstRowBarcode = document.querySelector(
+                        'input[data-row="0"][data-field="barcode"]'
+                      );
+                      if (firstRowBarcode) {
+                        firstRowBarcode.focus();
+                      }
+                    }, 0);
 
-  return;
-}
+                    return;
+                  }
 
+                  // 🔙 Backspace clears customer
+                  handleBackspace(e, 'custName');
+                }}
+              />
 
-  // 🔙 Backspace clears customer
-  handleBackspace(e, 'custName');
-}}
-
-
-      
-    />
-
-    {/* 🔍 Search Icon */}
-    <div
-      onClick={openCustomerPopup}
-      style={{
-        position: 'absolute',
-        right: '10px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        pointerEvents: 'auto',
-        opacity: 0.65,
-        display: 'flex',
-        alignItems: 'center',
-      
-        padding: '6px',
-        borderRadius: '4px',
-        transition: 'all 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.opacity = '1';
-        e.currentTarget.style.backgroundColor = 'rgba(27, 145, 218, 0.1)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.opacity = '0.65';
-        e.currentTarget.style.backgroundColor = 'transparent';
-      }}
-      title="Press / to open Customer Selection"
-    >
-      <SearchIcon />
-    </div>
-  </div>
-</div>
-
-
- 
+              {/* 🔍 Search Icon */}
+              <div
+                onClick={openCustomerPopup}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'auto',
+                  opacity: 0.65,
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '6px',
+                  borderRadius: '4px',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                  e.currentTarget.style.backgroundColor = 'rgba(27, 145, 218, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '0.65';
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+                title="Press / to open Customer Selection"
+              >
+                <SearchIcon />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2957,103 +3078,94 @@ if (e.key === 'Enter') {
                       data-row={index}
                       data-field="barcode"
                       onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const itemNameInput = document.querySelector(`input[data-row="${index}"][data-field="itemName"]`);
-                          if (itemNameInput) {
-                            itemNameInput.focus();
-                            return;
-                          }
-                        }
-                        handleTableKeyDown(e, index, 'barcode');
-                      }}
+                      onKeyDown={(e) => handleBarcodeKeyDown(e, index)}
                       onFocus={() => setFocusedField(`barcode-${item.id}`)}
                       onBlur={() => setFocusedField('')}
+                      placeholder="Scan barcode"
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
-  <div style={{ position: 'relative', width: '100%' }}>
-    <input
-      style={{
-        ...(focusedField === `itemName-${item.id}`
-          ? styles.editableInputClickableFocused
-          : styles.editableInputClickable),
-        paddingRight: '26px',
-        textAlign: 'left',
-      }}
-      value={item.itemName}
-      
-      data-row={index}
-      data-field="itemName"
-      onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          const stockInput = document.querySelector(`input[data-row="${index}"][data-field="stock"]`);
-          if (stockInput) {
-            stockInput.focus();
-            return;
-          }
-        }
-        handleTableKeyDown(e, index, 'itemName');
-      }}
-      onClick={() => openItemPopup(index)}
-      onFocus={() => setFocusedField(`itemName-${item.id}`)}
-      onBlur={() => setFocusedField('')}
-      title={`Item Code: ${item.itemCode || 'Not selected'}`}
-    />
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        style={{
+                          ...(focusedField === `itemName-${item.id}`
+                            ? styles.editableInputClickableFocused
+                            : styles.editableInputClickable),
+                          paddingRight: '26px',
+                          textAlign: 'left',
+                        }}
+                        value={item.itemName}
+                        
+                        data-row={index}
+                        data-field="itemName"
+                        onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const stockInput = document.querySelector(`input[data-row="${index}"][data-field="stock"]`);
+                            if (stockInput) {
+                              stockInput.focus();
+                              return;
+                            }
+                          }
+                          handleTableKeyDown(e, index, 'itemName');
+                        }}
+                        onClick={() => openItemPopup(index)}
+                        onFocus={() => setFocusedField(`itemName-${item.id}`)}
+                        onBlur={() => setFocusedField('')}
+                        title={`Item Code: ${item.itemCode || 'Not selected'}`}
+                      />
 
-    {/* 🔍 Search Icon */}
-    <div
-      style={{
-        position: 'absolute',
-        right: '6px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        pointerEvents: 'none',
-        opacity: 0.6,
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
-      <SearchIcon size={14} />
-    </div>
-  </div>
-</td>
+                      {/* 🔍 Search Icon */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: '6px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          pointerEvents: 'none',
+                          opacity: 0.6,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <SearchIcon size={14} />
+                      </div>
+                    </div>
+                  </td>
 
-                <td style={styles.td}>
-  <input
-    style={
-      focusedField === `stock-${item.id}`
-        ? styles.editableInputFocused
-        : styles.editableInput
-    }
-    value={item.stock}
-    data-row={index}
-    data-field="stock"
-    onChange={(e) =>
-      handleItemChange(item.id, 'stock', e.target.value)
-    }
-    onKeyDown={(e) => {
-      // ⏎ ENTER → move to MRP
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        document
-          .querySelector(
-            `input[data-row="${index}"][data-field="mrp"]`
-          )
-          ?.focus();
-        return;
-      }
+                  <td style={styles.td}>
+                    <input
+                      style={
+                        focusedField === `stock-${item.id}`
+                          ? styles.editableInputFocused
+                          : styles.editableInput
+                      }
+                      value={item.stock}
+                      data-row={index}
+                      data-field="stock"
+                      onChange={(e) =>
+                        handleItemChange(item.id, 'stock', e.target.value)
+                      }
+                      onKeyDown={(e) => {
+                        // ⏎ ENTER → move to MRP
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          document
+                            .querySelector(
+                              `input[data-row="${index}"][data-field="mrp"]`
+                            )
+                            ?.focus();
+                          return;
+                        }
 
-      // ⬅️ ➡️ ⬆️ ⬇️ arrow navigation
-      handleTableKeyDown(e, index, 'stock');
-    }}
-    onFocus={() => setFocusedField(`stock-${item.id}`)}
-    onBlur={() => setFocusedField('')}
-  />
-</td>
+                        // ⬅️ ➡️ ⬆️ ⬇️ arrow navigation
+                        handleTableKeyDown(e, index, 'stock');
+                      }}
+                      onFocus={() => setFocusedField(`stock-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
+                    />
+                  </td>
 
                   <td style={styles.td}>
                     <input
@@ -3079,45 +3191,42 @@ if (e.key === 'Enter') {
                   </td>
                   <td style={styles.td}>
 
-  <input
-    className="uom-input"
-    value={item.uom}
-    data-row={index}
-    data-field="uom"
-    onChange={(e) =>
-      handleItemChange(item.id, 'uom', e.target.value)
-    }
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        document
-          .querySelector(
-            `input[data-row="${index}"][data-field="hsn"]`
-          )
-          ?.focus();
-        return;
-      }
-      handleTableKeyDown(e, index, 'uom');
-    }}
-    onFocus={() => setFocusedField(`uom-${item.id}`)}
-    onBlur={() => setFocusedField('')}
-    style={{
-      border: 'none',
-      outline: 'none',
-      boxShadow: 'none',
-      backgroundColor: 'transparent',
-      textAlign: 'center',
-      width: '100%',
-      height: '100%',
-      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.xs,
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
-    }}
-  />
-
-
-
+                    <input
+                      className="uom-input"
+                      value={item.uom}
+                      data-row={index}
+                      data-field="uom"
+                      onChange={(e) =>
+                        handleItemChange(item.id, 'uom', e.target.value)
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          document
+                            .querySelector(
+                              `input[data-row="${index}"][data-field="hsn"]`
+                            )
+                            ?.focus();
+                          return;
+                        }
+                        handleTableKeyDown(e, index, 'uom');
+                      }}
+                      onFocus={() => setFocusedField(`uom-${item.id}`)}
+                      onBlur={() => setFocusedField('')}
+                      style={{
+                        border: 'none',
+                        outline: 'none',
+                        boxShadow: 'none',
+                        backgroundColor: 'transparent',
+                        textAlign: 'center',
+                        width: '100%',
+                        height: '100%',
+                        minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+                        fontFamily: TYPOGRAPHY.fontFamily,
+                        fontSize: TYPOGRAPHY.fontSize.xs,
+                        fontWeight: TYPOGRAPHY.fontWeight.medium,
+                      }}
+                    />
                   </td>
                   <td style={styles.td}>
                     <input
@@ -3210,56 +3319,56 @@ if (e.key === 'Enter') {
                       readOnly
                     />
                   </td>
-                <td style={styles.td}>
-  <button
-    aria-label="Delete row"
-    title="Delete row"
-    style={{
-      backgroundColor: 'transparent',
-      color: '#dc3545',
-      border: 'none',
-      padding: 0,
-      borderRadius: '2px',
-      width: '100%',
-      height: '100%',
-      cursor: 'pointer',
-      fontSize: screenSize.isMobile ? '12px' : '14px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'color 0.15s ease, background-color 0.15s ease',
-      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
-    }}
-    onClick={() => handleDeleteRow(item.id)}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.backgroundColor = '#fee';
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.backgroundColor = 'transparent';
-    }}
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={screenSize.isMobile ? "16" : "18"}
-      height={screenSize.isMobile ? "16" : "18"}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#dc3545"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      style={{ display: 'block', margin: 'auto' }}
-    >
-      <polyline points="3 6 5 6 21 6"></polyline>
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-      <path d="M10 11v6"></path>
-      <path d="M14 11v6"></path>
-      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-    </svg>
-  </button>
-</td>
+                  <td style={styles.td}>
+                    <button
+                      aria-label="Delete row"
+                      title="Delete row"
+                      style={{
+                        backgroundColor: 'transparent',
+                        color: '#dc3545',
+                        border: 'none',
+                        padding: 0,
+                        borderRadius: '2px',
+                        width: '100%',
+                        height: '100%',
+                        cursor: 'pointer',
+                        fontSize: screenSize.isMobile ? '12px' : '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'color 0.15s ease, background-color 0.15s ease',
+                        minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+                      }}
+                      onClick={() => handleDeleteRow(item.id)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#fee';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width={screenSize.isMobile ? "16" : "18"}
+                        height={screenSize.isMobile ? "16" : "18"}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#dc3545"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                        focusable="false"
+                        style={{ display: 'block', margin: 'auto' }}
+                      >
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                        <path d="M10 11v6"></path>
+                        <path d="M14 11v6"></path>
+                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -3279,7 +3388,7 @@ if (e.key === 'Enter') {
               if (type === 'edit') openEditInvoicePopup();
               if (type === 'delete') openDeleteInvoicePopup();
             }}
->
+          >
 
             <AddButton buttonType="add" disabled={!formPermissions.add} />
             <EditButton buttonType="edit" disabled={!formPermissions.edit} />
@@ -3317,7 +3426,6 @@ if (e.key === 'Enter') {
         onClose={() => setSaveConfirmationOpen(false)}
         onConfirm={handleConfirmedSave}
         title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
-       
         confirmText={saveConfirmationData?.isEditing ? "CONFIRM UPDATE" : "CONFIRM SAVE"}
         cancelText="Cancel"
         type={saveConfirmationData?.isEditing ? "warning" : "success"}
@@ -3326,32 +3434,30 @@ if (e.key === 'Enter') {
         borderColor={saveConfirmationData?.isEditing ? "#ffc107" : "#1B91DA"}
       />
       {/* Clear Confirmation Popup */}
-<ConfirmationPopup
-  isOpen={clearConfirmationOpen}
-  onClose={() => setClearConfirmationOpen(false)}
-  onConfirm={handleConfirmedClear}
-  title="Clear Sales Invoice"
-  message="Are you sure you want to clear all unsaved data?"
-  confirmText="CLEAR"
-  cancelText="Cancel"
-  type="warning"
-  showIcon={true}
-  borderColor="#ffc107"
-/>
-{/* Print Confirmation Popup */}
-<ConfirmationPopup
-  isOpen={printConfirmationOpen}
-  onClose={() => setPrintConfirmationOpen(false)}
-  onConfirm={handleConfirmedPrint}
-  title="Print Sales Invoice"
- 
-  confirmText="PRINT"
-  cancelText="Cancel"
-  type="default"
-  showIcon={true}
-  borderColor="#1B91DA"
-/>
-
+      <ConfirmationPopup
+        isOpen={clearConfirmationOpen}
+        onClose={() => setClearConfirmationOpen(false)}
+        onConfirm={handleConfirmedClear}
+        title="Clear Sales Invoice"
+        message="Are you sure you want to clear all unsaved data?"
+        confirmText="CLEAR"
+        cancelText="Cancel"
+        type="warning"
+        showIcon={true}
+        borderColor="#ffc107"
+      />
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={printConfirmationOpen}
+        onClose={() => setPrintConfirmationOpen(false)}
+        onConfirm={handleConfirmedPrint}
+        title="Print Sales Invoice"
+        confirmText="PRINT"
+        cancelText="Cancel"
+        type="default"
+        showIcon={true}
+        borderColor="#1B91DA"
+      />
 
       {/* Delete Confirmation Popup */}
       <ConfirmationPopup
@@ -3428,10 +3534,9 @@ if (e.key === 'Enter') {
         open={editInvoicePopupOpen}
         onClose={() => setEditInvoicePopupOpen(false)}
         onSelect={handleInvoiceSelect}
-       fetchItems={(page, search) =>
-  fetchInvoicesForPopup(page, search)
-}
-
+        fetchItems={(page, search) =>
+          fetchInvoicesForPopup(page, search)
+        }
         title="Select Invoice to Edit"
         displayFieldKeys={getPopupConfig('editInvoice').displayFieldKeys}
         searchFields={getPopupConfig('editInvoice').searchFields}
@@ -3449,9 +3554,8 @@ if (e.key === 'Enter') {
         onClose={() => setDeleteInvoicePopupOpen(false)}
         onSelect={handleInvoiceDelete}
         fetchItems={(page, search) =>
-  fetchInvoicesForPopup(page, search)
-}
-
+          fetchInvoicesForPopup(page, search)
+        }
         title="Select Invoice to Delete"
         displayFieldKeys={getPopupConfig('deleteInvoice').displayFieldKeys}
         searchFields={getPopupConfig('deleteInvoice').searchFields}
@@ -3463,27 +3567,27 @@ if (e.key === 'Enter') {
         formatRow={getPopupConfig('deleteInvoice').formatRow}
       />
       {/* Row Delete Confirmation Popup */}
-<ConfirmationPopup
-  isOpen={rowDeleteConfirmationOpen}
-  onClose={() => {
-    setRowDeleteConfirmationOpen(false);
-    setRowToDelete(null);
-  }}
-  onConfirm={handleConfirmedRowDelete}
-  title="Delete Item Row"
-  message={
-    rowToDelete 
-    ? `Are you sure you want to delete "${rowToDelete.itemName}" ${rowToDelete.barcode}?\n\nThis action cannot be undone!`
-    : "Are you sure you want to delete this item?"
-  }
-  confirmText="DELETE"
-  cancelText="Cancel"
-  type="danger"
-  showIcon={true}
-  showLoading={false}
-  borderColor="#dc3545"
-  confirmButtonStyle={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
-/>
+      <ConfirmationPopup
+        isOpen={rowDeleteConfirmationOpen}
+        onClose={() => {
+          setRowDeleteConfirmationOpen(false);
+          setRowToDelete(null);
+        }}
+        onConfirm={handleConfirmedRowDelete}
+        title="Delete Item Row"
+        message={
+          rowToDelete 
+          ? `Are you sure you want to delete "${rowToDelete.itemName}" ${rowToDelete.barcode}?\n\nThis action cannot be undone!`
+          : "Are you sure you want to delete this item?"
+        }
+        confirmText="DELETE"
+        cancelText="Cancel"
+        type="danger"
+        showIcon={true}
+        showLoading={false}
+        borderColor="#dc3545"
+        confirmButtonStyle={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
+      />
       
     </div>
   );
