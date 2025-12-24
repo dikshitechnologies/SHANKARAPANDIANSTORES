@@ -140,6 +140,7 @@ export const SaveButton = React.forwardRef(({ onClick, disabled, isActive, butto
   <button 
     ref={ref}
      type="button"
+      data-action="save"
     {...props}
     style={{ 
       ...styles.btn, 

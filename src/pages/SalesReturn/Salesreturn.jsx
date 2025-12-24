@@ -84,6 +84,7 @@ const SalesReturn = () => {
   const [selectAllItems, setSelectAllItems] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showConfirmApply, setShowConfirmApply] = useState(false);
+ const blockGlobalEnterRef = useRef(false);
 
   // 5. Confirmation Popup States
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
@@ -1800,8 +1801,22 @@ const SalesReturn = () => {
       } else if (type === 'footer') {
         handleFooterArrowNavigation(e.key);
       }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
+   
+  } else if (e.key === 'Enter') {
+
+  // 🔥 LET TABLE HANDLE ENTER
+  if (focusedElement.type === 'table') {
+    return;
+  }
+
+  if (blockGlobalEnterRef.current) {
+    blockGlobalEnterRef.current = false;
+    return;
+  }
+
+  e.preventDefault();
+
+
       
       // Handle Enter on Save button
       if (type === 'footer' && fieldName === 'save') {
@@ -2066,21 +2081,32 @@ const SalesReturn = () => {
     if (fieldName === 'qty') {
       // Check if item name is selected
       const currentItem = items[rowIndex];
-      if (!currentItem.itemName || currentItem.itemName.trim() === '') {
-        toast.warning("Select item before moving to next row");
-        // Focus item name field
-        setFocusedElement({
-          type: 'table',
-          rowIndex: rowIndex,
-          fieldIndex: 1,
-          fieldName: 'itemName'
-        });
-        setTimeout(() => {
-          const input = document.querySelector(`input[data-row="${rowIndex}"][data-field="itemName"]`);
-          input?.focus();
-        }, 10);
-        return;
-      }
+     if (!currentItem.itemName || currentItem.itemName.trim() === '') {
+  e.preventDefault();
+  blockGlobalEnterRef.current = true; // 🔥 BLOCK GLOBAL HANDLER
+
+  toast.info("Item name empty. Moving to Save.");
+
+  setTimeout(() => {
+    const saveBtn = document.querySelector('button[data-action="save"]');
+
+    if (saveBtn) {
+      saveBtn.focus();
+
+      setActiveFooterAction('save');
+
+      setFocusedElement({
+        type: 'footer',
+        rowIndex: 0,
+        fieldIndex: 4,
+        fieldName: 'save'
+      });
+    }
+  }, 10);
+
+  return;
+}
+
 
       if (rowIndex < items.length - 1) {
         // Move to next row
@@ -2183,106 +2209,118 @@ const SalesReturn = () => {
     }
   };
 
- const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-  // Check if a letter key is pressed (A-Z, a-z) in itemName field
-  const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
-  
-  if (isLetterKey && currentField === 'itemName') {
-    e.preventDefault(); // Prevent the letter from being typed in the field
-    
-    // Open item popup with the typed letter as initial search
-    openItemPopup(currentRowIndex, e.key);
+const handleTableKeyDown = (e, rowIndex, field) => {
+  const currentItem = items[rowIndex];
+
+  // 🔹 Letter opens item popup
+  if (
+    field === 'itemName' &&
+    e.key.length === 1 &&
+    /^[a-zA-Z]$/.test(e.key)
+  ) {
+    e.preventDefault();
+    openItemPopup(rowIndex, e.key);
     return;
   }
-  
-  if (e.key === '/' && currentField === 'itemName') {
+
+  // 🔹 Slash opens item popup
+  if (field === 'itemName' && e.key === '/') {
     e.preventDefault();
-    openItemPopup(currentRowIndex);
+    openItemPopup(rowIndex);
     return;
   }
-  
-  // ============ CRITICAL UPDATE: HANDLE ENTER KEY IN QTY FIELD ============
-  if (e.key === 'Enter') {
-    e.preventDefault();
 
-    const fields = [
-      'barcode', 'itemName', 'stock', 'mrp', 'uom', 'hsn', 'tax', 'sRate', 'qty'
-    ];
+  if (e.key !== 'Enter') return;
 
-    const currentFieldIndex = fields.indexOf(currentField);
+  e.preventDefault();
 
-    if (currentField === 'qty') {
-      const currentItem = items[currentRowIndex];
-      
-      // Check if item name is filled
-      if (currentItem.itemName && currentItem.itemName.trim() !== '') {
-        // ✅ ItemName is filled: Goes to next row
-        if (currentRowIndex < items.length - 1) {
-          // Move to next row's barcode field
-          const nextInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`);
-          if (nextInput) {
-            nextInput.focus();
-            setFocusedElement({
-              type: 'table',
-              rowIndex: currentRowIndex + 1,
-              fieldIndex: 0,
-              fieldName: 'barcode'
-            });
-          }
-        } else {
-          // Add new row
-          handleAddRow();
-          setTimeout(() => {
-            const newRowIndex = items.length;
-            const newRowInput = document.querySelector(`input[data-row="${newRowIndex}"][data-field="barcode"]`);
-            if (newRowInput) {
-              newRowInput.focus();
-              setFocusedElement({
-                type: 'table',
-                rowIndex: newRowIndex,
-                fieldIndex: 0,
-                fieldName: 'barcode'
-              });
-            }
-          }, 60);
-        }
-      } else {
-        // 🚫 ItemName is empty: Focuses Save button
-        toast.info("Item name empty. Focusing Save button...");
-        
-        // Focus on Save button
-        setTimeout(() => {
-          const saveButton = document.querySelector('button[data-action="save"]');
-          if (saveButton) {
-            saveButton.focus();
-            setFocusedElement({
-              type: 'footer',
-              rowIndex: 0,
-              fieldIndex: 4,
-              fieldName: 'save'
-            });
-          }
-        }, 10);
-      }
+  // ===========================
+  // 🔹 FIRST ROW (rowIndex === 0)
+  // ===========================
+  if (rowIndex === 0) {
+    if (field === 'qty') {
+      handleAddRow();
+
+      setTimeout(() => {
+        const input = document.querySelector(
+          `input[data-row="1"][data-field="barcode"]`
+        );
+        input?.focus();
+        setFocusedElement({
+          type: 'table',
+          rowIndex: 1,
+          fieldIndex: 0,
+          fieldName: 'barcode'
+        });
+      }, 60);
       return;
-    } else {
-      // Move to next field within same row
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-        if (nextInput) {
-          nextInput.focus();
-          setFocusedElement({
-            type: 'table',
-            rowIndex: currentRowIndex,
-            fieldIndex: currentFieldIndex + 1,
-            fieldName: nextField
-          });
-        }
-      }
     }
+
+    // normal navigation
+    handleTableArrowNavigation(
+      'ArrowRight',
+      rowIndex,
+      getTableFieldIndex(field)
+    );
+    return;
   }
+
+  // ===========================
+  // 🔹 SECOND / NEXT ROWS
+  // ===========================
+  if (field === 'itemName' && !currentItem.itemName?.trim()) {
+    toast.info("Item name empty. Moving to Save.");
+
+    blockGlobalEnterRef.current = true;
+
+    setTimeout(() => {
+      const saveBtn = document.querySelector(
+        'button[data-action="save"]'
+      );
+
+      if (saveBtn) {
+        saveBtn.focus();
+        setActiveFooterAction('save');
+        setFocusedElement({
+          type: 'footer',
+          rowIndex: 0,
+          fieldIndex: 4,
+          fieldName: 'save'
+        });
+      }
+    }, 20);
+    return;
+  }
+
+  // 🔹 Qty → add row
+  if (field === 'qty') {
+    handleAddRow();
+
+    setTimeout(() => {
+      const nextRow = items.length;
+      const input = document.querySelector(
+        `input[data-row="${nextRow}"][data-field="barcode"]`
+      );
+      input?.focus();
+      setFocusedElement({
+        type: 'table',
+        rowIndex: nextRow,
+        fieldIndex: 0,
+        fieldName: 'barcode'
+      });
+    }, 60);
+    return;
+  }
+
+  // 🔹 Normal navigation
+  handleTableArrowNavigation(
+    'ArrowRight',
+    rowIndex,
+    getTableFieldIndex(field)
+  );
 };
+
+
 
   const handleAddItem = async () => {
     // This function is kept for compatibility but barcode input field is removed
@@ -2373,32 +2411,20 @@ const SalesReturn = () => {
       }
     });
   };
-const confirmApplyBillNumber = () => {
-  // ✅ CLOSE BILL DETAILS POPUP FIRST
+const handleApplyBillDirect = async () => {
+  // 🔹 Close Bill Details popup
   setBillDetailsPopupOpen(false);
 
-  // Optional cleanup (safe)
+  // 🔹 Apply selected items immediately
+  await applyBillNumberCore();
+
+  // 🔹 Cleanup
+  setSelectedBillForDetails(null);
+  setCheckedBills({});
+  setBillDetailsSearchText("");
   setBillPopupRowIndex(0);
-
-  // ⏳ SMALL DELAY so UI settles
-  setTimeout(() => {
-    showConfirmation({
-      title: "Confirm Apply",
-      message: "Are you sure you want to apply the selected items?",
-      type: "success",
-      confirmText: "OK",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        await applyBillNumberCore(); // ✅ Apply items
-
-        // Final cleanup AFTER OK
-        setSelectedBillForDetails(null);
-        setCheckedBills({});
-        setBillDetailsSearchText("");
-      }
-    });
-  }, 50);
 };
+
 
 
 
@@ -3928,19 +3954,20 @@ const confirmApplyBillNumber = () => {
               >
                 cancel
               </button>
-             <button
+        <button
   style={{
     ...styles.customPopupFooterButton,
     ...styles.customPopupApplyButton,
-    ...(Object.keys(checkedBills).filter(key => checkedBills[key]).length === 0
-      ? styles.customPopupApplyButtonDisabled
-      : {}),
   }}
-  onClick={confirmApplyBillNumber}   // ✅ CHANGE IS HERE
-  disabled={Object.keys(checkedBills).filter(key => checkedBills[key]).length === 0}
+  disabled={
+    Object.keys(checkedBills).filter(k => checkedBills[k]).length === 0
+  }
+  onClick={handleApplyBillDirect}
 >
   Apply
 </button>
+
+
 
             </div>
           </div>
