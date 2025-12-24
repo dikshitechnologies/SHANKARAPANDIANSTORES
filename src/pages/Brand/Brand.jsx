@@ -58,9 +58,9 @@ export default function BrandPage() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.BRAND_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.BRAND_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.BRAND_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.BRAND_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.BRAND_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.BRAND_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -249,7 +249,7 @@ export default function BrandPage() {
 
   // Additional focus for when actionType changes
   useEffect(() => {
-    if (actionType === "edit" || actionType === "Add") {
+    if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
         if (brandNameRef.current) brandNameRef.current.focus();
       }, 0);
@@ -264,7 +264,7 @@ export default function BrandPage() {
 
   const handleEdit = () => { // Remove async
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to edit brands." 
@@ -291,7 +291,7 @@ export default function BrandPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Brand updated successfully." });
-      toast.success(`Brand "${form.brandName}" updated successfully.`);
+      // toast.success(`Brand "${form.brandName}" updated successfully.`);
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
@@ -303,7 +303,7 @@ export default function BrandPage() {
 
   const handleDelete = () => { // Remove async
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to delete brands." 
@@ -326,7 +326,7 @@ export default function BrandPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Brand deleted successfully." });
-      toast.success(`Brand "${form.brandName}" deleted successfully.`);
+      // toast.success(`Brand "${form.brandName}" deleted successfully.`);
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -344,7 +344,7 @@ export default function BrandPage() {
 
   const handleAdd = () => { // Remove async - FIXED
     // === PERMISSION CHECK ===
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to create brands." 
@@ -393,7 +393,7 @@ export default function BrandPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Brand created successfully." });
-      toast.success(`Brand "${form.brandName}" created successfully.`);
+      // toast.success(`Brand "${form.brandName}" created successfully.`);
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {
@@ -406,9 +406,9 @@ export default function BrandPage() {
   const handleSubmit = () => { // Remove async - FIXED
     if (actionType === "Add") {
       handleAdd(); // This will show confirmSaveOpen popup
-    } else if (actionType === "edit") {
+    } else if (actionType === "Edit") {
       handleEdit(); // This will show confirmEditOpen popup
-    } else if (actionType === "delete") {
+    } else if (actionType === "Delete") {
       handleDelete(); // This will show confirmDeleteOpen popup
     }
   };
@@ -435,7 +435,7 @@ export default function BrandPage() {
 
   const handleEditRowClick = (b) => {
     setForm({ brandCode: b.brandCode, brandName: b.brandName });
-    setActionType("edit");
+    setActionType("Edit");
     setEditingId(b.brandCode);
     setEditModalOpen(false);
     setTimeout(() => brandNameRef.current?.focus(), 60);
@@ -463,7 +463,7 @@ export default function BrandPage() {
 
   const handleDeleteRowClick = (b) => {
     setForm({ brandCode: b.brandCode, brandName: b.brandName });
-    setActionType("delete");
+    setActionType("Delete");
     setDeleteTargetId(b.brandCode);
     setDeleteModalOpen(false);
     setTimeout(() => brandNameRef.current?.focus(), 60);
@@ -1073,8 +1073,8 @@ export default function BrandPage() {
 
           <div className="actions" role="toolbar" aria-label="actions">
             <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "delete"} />
+            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1114,7 +1114,7 @@ export default function BrandPage() {
                   onKeyDown={onBrandNameKeyDown}
                   disabled={loading}
                   aria-label="Brand Name"
-                  readOnly={actionType === "delete"}
+                  readOnly={actionType === "Delete"}
                 />
               </div>
             </div>
@@ -1196,7 +1196,7 @@ export default function BrandPage() {
                               brandCode: b.brandCode, 
                               brandName: b.brandName
                             });
-                            setActionType("edit");
+                            setActionType("Edit");
                           }}
                         >
                           <td>{b.brandCode}</td>
@@ -1215,7 +1215,7 @@ export default function BrandPage() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Brand" : "Delete Brand"}
+                {actionType === "Add" ? "Create New" : actionType === "Edit" ? "Edit Brand" : "Delete Brand"}
               </div>
             </div>
 
@@ -1301,9 +1301,10 @@ export default function BrandPage() {
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create Brand"
-        message={`Are you sure you want to create brand "${form.brandName}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1324,9 +1325,10 @@ export default function BrandPage() {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update Brand"
-        message={`Are you sure you want to update brand "${form.brandName}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1347,9 +1349,10 @@ export default function BrandPage() {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Brand"
-        message={`Are you sure you want to delete brand "${form.brandName}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{

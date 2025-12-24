@@ -65,9 +65,9 @@ export default function ProductPage() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.PRODUCT_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.PRODUCT_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.PRODUCT_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.PRODUCT_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.PRODUCT_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.PRODUCT_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -81,7 +81,7 @@ export default function ProductPage() {
     fproductname: ""
   });
   
-  const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
+  const [actionType, setActionType] = useState("Add"); // 'Add' | 'Edit' | 'Delete'
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
 
@@ -273,7 +273,7 @@ export default function ProductPage() {
 
   // Additional focus for when actionType changes
   useEffect(() => {
-    if (actionType === "edit" || actionType === "Add") {
+    if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
         if (productNameRef.current) productNameRef.current.focus();
       }, 0);
@@ -288,7 +288,7 @@ export default function ProductPage() {
 
   const handleEdit = () => { // Remove async
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ type: "error", text: "You do not have permission to edit products." });
       return;
     }
@@ -312,7 +312,7 @@ export default function ProductPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Product updated successfully." });
-      toast.success(`Product "${form.fproductname}" updated successfully.`);
+      // toast.success(`Product "${form.fproductname}" updated successfully.`);
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
@@ -324,7 +324,7 @@ export default function ProductPage() {
 
   const handleDelete = () => { // Remove async
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ type: "error", text: "You do not have permission to delete products." });
       return;
     }
@@ -344,7 +344,7 @@ export default function ProductPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Product deleted successfully." });
-      toast.success(`Product "${form.fproductname}" deleted successfully.`);
+      // toast.success(`Product "${form.fproductname}" deleted successfully.`);
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -362,7 +362,7 @@ export default function ProductPage() {
 
   const handleAdd = () => { // Remove async - FIXED
     // === PERMISSION CHECK ===
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       setMessage({ type: "error", text: "You do not have permission to create products." });
       return;
     }
@@ -408,7 +408,7 @@ export default function ProductPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Product created successfully." });
-      toast.success(`Product "${form.fproductname}" created successfully.`);
+      // toast.success(`Product "${form.fproductname}" created successfully.`);
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {
@@ -421,9 +421,9 @@ export default function ProductPage() {
   const handleSubmit = () => { // Remove async - FIXED
     if (actionType === "Add") {
       handleAdd(); // This will show confirmSaveOpen popup
-    } else if (actionType === "edit") {
+    } else if (actionType === "Edit") {
       handleEdit(); // This will show confirmEditOpen popup
-    } else if (actionType === "delete") {
+    } else if (actionType === "Delete") {
       handleDelete(); // This will show confirmDeleteOpen popup
     }
   };
@@ -450,7 +450,7 @@ export default function ProductPage() {
 
   const handleEditRowClick = (p) => {
     setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
-    setActionType("edit");
+    setActionType("Edit");
     setEditingId(p.fproductcode);
     setEditModalOpen(false);
     setTimeout(() => productNameRef.current?.focus(), 60);
@@ -464,7 +464,7 @@ export default function ProductPage() {
 
   const handleDeleteRowClick = (p) => {
     setForm({ fproductcode: p.fproductcode, fproductname: p.fproductname });
-    setActionType("delete");
+    setActionType("Delete");
     setDeleteTargetId(p.fproductcode);
     setDeleteModalOpen(false);
     setTimeout(() => productNameRef.current?.focus(), 60);
@@ -1086,9 +1086,9 @@ export default function ProductPage() {
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.edit} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.delete} isActive={actionType === "delete"} />
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.Add} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.Edit} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.Delete} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1128,7 +1128,7 @@ export default function ProductPage() {
                   onKeyDown={onProductNameKeyDown}
                   disabled={loading}
                   aria-label="Product Name"
-                  readOnly={actionType === "delete"}
+                  readOnly={actionType === "Delete"}
                 />
               </div>
             </div>
@@ -1210,7 +1210,7 @@ export default function ProductPage() {
                               fproductcode: p.fproductcode, 
                               fproductname: p.fproductname
                             });
-                            setActionType("edit");
+                            setActionType("Edit");
                           }}
                         >
                           <td>{p.fproductcode}</td>
@@ -1229,7 +1229,7 @@ export default function ProductPage() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Product" : "Delete Product"}
+                {actionType === "Add" ? "Create New" : actionType === "Edit" ? "Edit Product" : "Delete Product"}
               </div>
             </div>
 
@@ -1315,9 +1315,10 @@ export default function ProductPage() {
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create Product"
-        message={`Are you sure you want to create product "${form.fproductname}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1338,9 +1339,10 @@ export default function ProductPage() {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update Product"
-        message={`Are you sure you want to update product "${form.fproductname}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1361,9 +1363,10 @@ export default function ProductPage() {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Product"
-        message={`Are you sure you want to delete product "${form.fproductname}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{

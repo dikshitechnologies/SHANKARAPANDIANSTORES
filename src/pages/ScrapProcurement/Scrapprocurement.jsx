@@ -2329,6 +2329,7 @@ const Scrapprocurement = () => {
                 setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 3 });
               }}
               onBlur={() => setFocusedField('')}
+              readOnly={true}
             />
           </div>
 

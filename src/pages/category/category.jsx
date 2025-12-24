@@ -64,9 +64,9 @@ export default function CategoryPage() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.CATEGORY_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.CATEGORY_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.CATEGORY_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.CATEGORY_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.CATEGORY_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.CATEGORY_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -277,7 +277,7 @@ export default function CategoryPage() {
 
   // Additional focus for when actionType changes
   useEffect(() => {
-    if (actionType === "edit" || actionType === "Add") {
+    if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
         if (catNameRef.current) catNameRef.current.focus();
       }, 0);
@@ -292,7 +292,7 @@ export default function CategoryPage() {
 
   const handleEdit = () => { // Remove async
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to edit categories." 
@@ -319,7 +319,7 @@ export default function CategoryPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Category updated successfully." });
-      toast.success(`Category "${form.catName}" updated successfully.`);
+      // toast.success(`Category "${form.catName}" updated successfully.`);
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
@@ -331,7 +331,7 @@ export default function CategoryPage() {
 
   const handleDelete = () => { // Remove async
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to delete categories." 
@@ -354,7 +354,7 @@ export default function CategoryPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Category deleted successfully." });
-      toast.success(`Category "${form.catName}" deleted successfully.`);
+      // toast.success(`Category "${form.catName}" deleted successfully.`);
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -372,7 +372,7 @@ export default function CategoryPage() {
 
   const handleAdd = () => { // Remove async - FIXED
     // === PERMISSION CHECK ===
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to create categories." 
@@ -421,7 +421,7 @@ export default function CategoryPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Category created successfully." });
-      toast.success(`Category "${form.catName}" created successfully.`);
+      // toast.success(`Category "${form.catName}" created successfully.`);
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {
@@ -434,9 +434,9 @@ export default function CategoryPage() {
   const handleSubmit = () => { // Remove async - FIXED
     if (actionType === "Add") {
       handleAdd(); // This will show confirmSaveOpen popup
-    } else if (actionType === "edit") {
+    } else if (actionType === "Edit") {
       handleEdit(); // This will show confirmEditOpen popup
-    } else if (actionType === "delete") {
+    } else if (actionType === "Delete") {
       handleDelete(); // This will show confirmDeleteOpen popup
     }
   };
@@ -463,7 +463,7 @@ export default function CategoryPage() {
 
   const handleEditRowClick = (c) => {
     setForm({ catCode: c.catCode, catName: c.catName });
-    setActionType("edit");
+    setActionType("Edit");
     setEditingId(c.catCode);
     setEditModalOpen(false);
     setTimeout(() => catNameRef.current?.focus(), 60);
@@ -477,7 +477,7 @@ export default function CategoryPage() {
 
   const handleDeleteRowClick = (c) => {
     setForm({ catCode: c.catCode, catName: c.catName });
-    setActionType("delete");
+    setActionType("Delete");
     setDeleteTargetId(c.catCode);
     setDeleteModalOpen(false);
     setTimeout(() => catNameRef.current?.focus(), 60);
@@ -1100,8 +1100,8 @@ export default function CategoryPage() {
 
           <div className="actions" role="toolbar" aria-label="actions">
             <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "delete"} />
+            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1141,7 +1141,7 @@ export default function CategoryPage() {
                   onKeyDown={onCatNameKeyDown}
                   disabled={loading}
                   aria-label="Category Name"
-                  readOnly={actionType === "delete"}
+                  readOnly={actionType === "Delete"}
                 />
               </div>
             </div>
@@ -1223,7 +1223,7 @@ export default function CategoryPage() {
                               catCode: c.catCode, 
                               catName: c.catName
                             });
-                            setActionType("edit");
+                            setActionType("Edit");
                           }}
                         >
                           <td>{c.catCode}</td>
@@ -1242,7 +1242,7 @@ export default function CategoryPage() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Category" : "Delete Category"}
+                {actionType === "Add" ? "Create New" : actionType === "Edit" ? "Edit Category" : "Delete Category"}
               </div>
             </div>
 
@@ -1328,9 +1328,10 @@ export default function CategoryPage() {
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create Category"
-        message={`Are you sure you want to create category "${form.catName}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1351,9 +1352,10 @@ export default function CategoryPage() {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update Category"
-        message={`Are you sure you want to update category "${form.catName}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1374,9 +1376,10 @@ export default function CategoryPage() {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Category"
-        message={`Are you sure you want to delete category "${form.catName}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
