@@ -54,9 +54,9 @@ export default function SalesmanCreation() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.SALESMAN_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.SALESMAN_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.SALESMAN_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.SALESMAN_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.SALESMAN_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.SALESMAN_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -230,7 +230,7 @@ export default function SalesmanCreation() {
 
   // Additional focus for when actionType changes
   useEffect(() => {
-    if (actionType === "edit" || actionType === "Add") {
+    if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
         if (salesmanNameRef.current) salesmanNameRef.current.focus();
       }, 0);
@@ -245,7 +245,7 @@ export default function SalesmanCreation() {
 
   const handleEdit = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ type: "error", text: "You do not have permission to edit salesmen." });
       return;
     }
@@ -267,7 +267,7 @@ export default function SalesmanCreation() {
         setMessage({ type: "success", text: result.message });
       } else {
         setMessage({ type: "success", text: "Salesman updated successfully." });
-        toast.success(`Salesman "${form.salesmanName}" updated successfully.`);
+        // toast.success(`Salesman "${form.salesmanName}" updated successfully.`);
       }
       
       // Refresh the list
@@ -285,7 +285,7 @@ export default function SalesmanCreation() {
 
   const handleDelete = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ type: "error", text: "You do not have permission to delete salesmen." });
       return;
     }
@@ -307,7 +307,7 @@ export default function SalesmanCreation() {
         setMessage({ type: "success", text: result.message });
       } else {
         setMessage({ type: "success", text: "Salesman deleted successfully." });
-        toast.success(`Salesman "${form.salesmanName}" deleted successfully.`);
+        // toast.success(`Salesman "${form.salesmanName}" deleted successfully.`);
       }
       
       // Refresh the list
@@ -332,7 +332,7 @@ export default function SalesmanCreation() {
 
   const handleAdd = async () => {
   // === PERMISSION CHECK ===
-  if (!formPermissions.add) {
+  if (!formPermissions.Add) {
     setMessage({ type: "error", text: "You do not have permission to create salesmen." });
     return;
   }
@@ -387,7 +387,7 @@ export default function SalesmanCreation() {
         setMessage({ type: "success", text: result.message });
       } else {
         setMessage({ type: "success", text: "Salesman created successfully." });
-        toast.success(`Salesman "${form.salesmanName}" created successfully.`);
+        // toast.success(`Salesman "${form.salesmanName}" created successfully.`);
       }
       
       // Refresh the list and get next code
@@ -415,8 +415,8 @@ export default function SalesmanCreation() {
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+    else if (actionType === "Edit") await handleEdit();
+    else if (actionType === "Delete") await handleDelete();
   };
 
   const resetForm = (keepAction = false) => {
@@ -440,7 +440,7 @@ export default function SalesmanCreation() {
 
   const handleEditRowClick = (s) => {
     setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
-    setActionType("edit");
+    setActionType("Edit");
     setEditingId(s.salesmanCode);
     setEditModalOpen(false);
     setTimeout(() => salesmanNameRef.current?.focus(), 60);
@@ -468,7 +468,7 @@ export default function SalesmanCreation() {
 
   const handleDeleteRowClick = (s) => {
     setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
-    setActionType("delete");
+    setActionType("Delete");
     setDeleteTargetId(s.salesmanCode);
     setDeleteModalOpen(false);
     setTimeout(() => salesmanNameRef.current?.focus(), 60);
@@ -1063,9 +1063,9 @@ export default function SalesmanCreation() {
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.edit} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.delete} isActive={actionType === "delete"} />
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.Add} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.Edit} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.Delete} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1105,7 +1105,7 @@ export default function SalesmanCreation() {
                   onKeyDown={onSalesmanNameKeyDown}
                   disabled={loading}
                   aria-label="Salesman Name"
-                  readOnly={actionType === "delete"}
+                  readOnly={actionType === "Delete"}
                 />
               </div>
             </div>
@@ -1187,7 +1187,7 @@ export default function SalesmanCreation() {
                           className={form.salesmanCode === s.salesmanCode ? "selected" : ""}
                           onClick={() => {
                             setForm({ salesmanCode: s.salesmanCode, salesmanName: s.salesmanName });
-                            setActionType("edit");
+                            setActionType("Edit");
                           }}
                         >
                           <td>{s.salesmanCode}</td>
@@ -1237,9 +1237,10 @@ export default function SalesmanCreation() {
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create Salesman"
-        message={`Are you sure you want to create salesman "${form.salesmanName}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1260,9 +1261,10 @@ export default function SalesmanCreation() {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update Salesman"
-        message={`Are you sure you want to update salesman "${form.salesmanName}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1283,9 +1285,10 @@ export default function SalesmanCreation() {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Salesman"
-        message={`Are you sure you want to delete salesman "${form.salesmanName}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{

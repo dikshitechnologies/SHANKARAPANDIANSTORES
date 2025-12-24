@@ -65,9 +65,9 @@ export default function StateCreation() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.STATE_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.STATE_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.STATE_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.STATE_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.STATE_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.STATE_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -402,12 +402,12 @@ useEffect(() => {
 
 // Additional focus for when actionType changes
 useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  if (actionType === "Edit" || actionType === "Add") {
     const timer = setTimeout(() => {
       if (stateNameRef.current) {
         stateNameRef.current.focus();
         // Also select the text when in edit mode for easier editing
-        if (actionType === "edit") {
+        if (actionType === "Edit") {
           stateNameRef.current.select();
         }
       }
@@ -454,7 +454,7 @@ useEffect(() => {
 
   const handleEdit = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to edit states." 
@@ -488,7 +488,7 @@ useEffect(() => {
       if (response?.status !== "unchanged") {
         await loadInitial();
         setMessage({ type: "success", text: "State updated successfully." });
-          toast.success(`State "${form.stateName}" updated successfully.`);
+          // toast.success(`State "${form.stateName}" updated successfully.`);
       }
       resetForm(true);
       setConfirmEditOpen(false);
@@ -501,7 +501,7 @@ useEffect(() => {
 
   const handleDelete = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to delete states." 
@@ -523,7 +523,7 @@ useEffect(() => {
       await deleteState(form.fuCode);
       await loadInitial();
       setMessage({ type: "success", text: "State deleted successfully." });
-       toast.success(`State "${form.stateName}" deleted successfully.`);
+      //  toast.success(`State "${form.stateName}" deleted successfully.`);
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -535,7 +535,7 @@ useEffect(() => {
 
  const handleAdd = async () => {
   // === PERMISSION CHECK ===
-  if (!formPermissions.add) {
+  if (!formPermissions.Add) {
     setMessage({ 
       type: "error", 
       text: "You do not have permission to create states." 
@@ -576,7 +576,7 @@ useEffect(() => {
       await createState(stateData);
       await loadInitial();
       setMessage({ type: "success", text: "State created successfully." });
-       toast.success(`State "${form.stateName}" created successfully.`);
+      //  toast.success(`State "${form.stateName}" created successfully.`);
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {
@@ -588,8 +588,8 @@ useEffect(() => {
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+    else if (actionType === "Edit") await handleEdit();
+    else if (actionType === "Delete") await handleDelete();
   };
 
 const resetForm = (keepAction = false) => {
@@ -619,7 +619,7 @@ const handleEditRowClick = (s) => {
     stateName: s.stateName || s.fname || s.StateName,
     originalStateName: s.stateName || s.fname || s.StateName
   });
-  setActionType("edit");
+  setActionType("Edit");
   setEditingId(s.fuCode || s.fcode || s.uCode || s.FCode);
   setEditModalOpen(false);
   setTimeout(() => {
@@ -653,7 +653,7 @@ const handleDeleteRowClick = (s) => {
     stateName: s.stateName || s.fname || s.StateName,
     originalStateName: s.stateName || s.fname || s.StateName
   });
-  setActionType("delete");
+  setActionType("Delete");
   setDeleteTargetId(s.fuCode || s.fcode || s.uCode || s.FCode);
   setDeleteModalOpen(false);
   setTimeout(() => stateNameRef.current?.focus(), 60); // GOOD
@@ -732,7 +732,7 @@ const handleDeleteRowClick = (s) => {
   };
 
   const isCurrentNameDuplicate = useMemo(() => {
-    if (actionType !== "edit" || !form.stateName || !form.originalStateName) return false;
+    if (actionType !== "Edit" || !form.stateName || !form.originalStateName) return false;
     if (form.stateName === form.originalStateName) return false;
     return isStateNameDuplicate(form.stateName, form.fuCode);
   }, [form.stateName, form.originalStateName, form.fuCode, actionType, isStateNameDuplicate]);
@@ -1232,9 +1232,9 @@ const handleDeleteRowClick = (s) => {
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.edit} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.delete} isActive={actionType === "delete"} />
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.Add} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.Edit} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.Delete} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1253,7 +1253,7 @@ const handleDeleteRowClick = (s) => {
                   onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
                   placeholder="State code (auto-generated)"
                   onKeyDown={onStateCodeKeyDown}
-                  disabled={loading || actionType === "edit" || actionType === "delete"}
+                  disabled={loading || actionType === "Edit" || actionType === "Delete"}
                   aria-label="State Code"
                   readOnly={true}
                 />
@@ -1265,7 +1265,7 @@ const handleDeleteRowClick = (s) => {
             <div className="field">
               <label className="field-label">
                 State Name <span className="asterisk">*</span>
-                {isCurrentNameDuplicate && actionType === "edit" && (
+                {isCurrentNameDuplicate && actionType === "Edit" && (
                   <span className="validation-warning">
                     <Icon.Info size={14} />
                     This name already exists for another state!
@@ -1283,10 +1283,10 @@ const handleDeleteRowClick = (s) => {
                   onKeyDown={onStateNameKeyDown}
                   disabled={loading}
                   aria-label="State Name"
-                  readOnly={actionType === "delete"}
+                  readOnly={actionType === "Delete"}
                 />
               </div>
-              {actionType === "edit" && form.originalStateName && (
+              {actionType === "Edit" && form.originalStateName && (
                 <div className="muted" style={{ fontSize: "14px", marginTop: "4px" }}>
                   Original name: <strong>{form.originalStateName}</strong>
                 </div>
@@ -1306,12 +1306,12 @@ const handleDeleteRowClick = (s) => {
                 className="submit-primary"
                 ref={submitRef}
                 onClick={handleSubmit}
-                disabled={loading || (actionType === "edit" && isCurrentNameDuplicate)}
+                disabled={loading || (actionType === "Edit" && isCurrentNameDuplicate)}
                 type="button"
               >
                 {loading ? "Processing..." : 
                   actionType === "Add" ? "Create" : 
-                  actionType === "edit" ? "Update" : "Delete"}
+                  actionType === "Edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"
@@ -1385,7 +1385,7 @@ const handleDeleteRowClick = (s) => {
                                 stateName: s.stateName || s.fname,
                                 originalStateName: s.stateName || s.fname
                               });
-                              setActionType("edit");
+                              setActionType("Edit");
                             }}
                             style={{ cursor: "pointer" }}
                           >
@@ -1483,9 +1483,10 @@ const handleDeleteRowClick = (s) => {
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create State"
-        message={`Are you sure you want to create state "${form.stateName}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1506,9 +1507,10 @@ const handleDeleteRowClick = (s) => {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update State"
-        message={`Are you sure you want to update state "${form.stateName}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1529,9 +1531,10 @@ const handleDeleteRowClick = (s) => {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete State"
-        message={`Are you sure you want to delete state "${form.stateName}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{

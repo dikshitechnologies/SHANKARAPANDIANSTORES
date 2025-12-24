@@ -58,9 +58,9 @@ export default function SizeCreation() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.SIZE_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.SIZE_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.SIZE_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.SIZE_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.SIZE_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.SIZE_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -212,7 +212,7 @@ const submitRef = useRef(null);
 
   // Additional focus for when actionType changes
   useEffect(() => {
-    if (actionType === "edit" || actionType === "Add") {
+    if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
         if (sizeNameRef.current) sizeNameRef.current.focus();
       }, 0);
@@ -227,7 +227,7 @@ const submitRef = useRef(null);
 
   const handleEdit = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to edit sizes." 
@@ -268,7 +268,7 @@ const submitRef = useRef(null);
       await loadInitial();
       
       setMessage({ type: "success", text: "Size updated successfully." });
-      toast.success(`Size "${form.sizeName}" updated successfully.`);
+      // toast.success(`Size "${form.sizeName}" updated successfully.`);
       setConfirmEditOpen(false);
       resetForm();
     } catch (err) {
@@ -281,7 +281,7 @@ const submitRef = useRef(null);
 
   const handleDelete = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to delete sizes." 
@@ -292,7 +292,7 @@ const submitRef = useRef(null);
 
     if (!form.fuCode) {
       setMessage({ type: "error", text: "Please select a size to delete." });
-      toast.error("Please select a size to delete.");
+      // toast.error("Please select a size to delete.");
       return;
     }
 
@@ -307,7 +307,7 @@ const submitRef = useRef(null);
       await loadInitial();
       
       setMessage({ type: "success", text: "Size deleted successfully." });
-      toast.error(`Size "${form.sizeName}" deleted successfully.`);
+      // toast.error(`Size "${form.sizeName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
@@ -326,7 +326,7 @@ const submitRef = useRef(null);
 
   const handleAdd = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to create sizes." 
@@ -365,7 +365,7 @@ const submitRef = useRef(null);
       await loadInitial();
       
       setMessage({ type: "success", text: "Size created successfully." });
-      toast.success(`Size "${form.sizeName}" created successfully.`);
+      // toast.success(`Size "${form.sizeName}" created successfully.`);
       setConfirmSaveOpen(false);
       resetForm(true);
     } catch (err) {
@@ -378,8 +378,8 @@ const submitRef = useRef(null);
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+    else if (actionType === "Edit") await handleEdit();
+    else if (actionType === "Delete") await handleDelete();
   };
 
   const resetForm = (keepAction = false) => {
@@ -408,7 +408,7 @@ const submitRef = useRef(null);
       fuCode: size.fcode || size.fCode || size.fuCode, 
       sizeName: size.fsize || size.sizeName 
     });
-    setActionType("edit");
+    setActionType("Edit");
     setEditingId(size.fcode || size.fCode || size.fuCode);
     setEditModalOpen(false);
     setTimeout(() => sizeNameRef.current?.focus(), 60);
@@ -439,7 +439,7 @@ const submitRef = useRef(null);
       fuCode: size.fcode || size.fCode || size.fuCode, 
       sizeName: size.fsize || size.sizeName 
     });
-    setActionType("delete");
+    setActionType("Delete");
     setDeleteTargetId(size.fcode || size.fCode || size.fuCode);
     setDeleteModalOpen(false);
     setTimeout(() => sizeNameRef.current?.focus(), 60);
@@ -1044,9 +1044,9 @@ const submitRef = useRef(null);
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.edit} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.delete} isActive={actionType === "delete"} />
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.Add} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.Edit} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.Delete} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1172,7 +1172,7 @@ const submitRef = useRef(null);
                               fuCode: getSizeCode(s), 
                               sizeName: getSizeName(s) 
                             });
-                            setActionType("edit");
+                            setActionType("Edit");
                           }}
                         >
                           <td>{getSizeCode(s)}</td>
@@ -1220,9 +1220,10 @@ const submitRef = useRef(null);
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create Size"
-        message={`Are you sure you want to create size "${form.sizeName}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1243,9 +1244,10 @@ const submitRef = useRef(null);
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update Size"
-        message={`Are you sure you want to update size "${form.sizeName}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1266,9 +1268,10 @@ const submitRef = useRef(null);
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Size"
-        message={`Are you sure you want to delete size "${form.sizeName}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
