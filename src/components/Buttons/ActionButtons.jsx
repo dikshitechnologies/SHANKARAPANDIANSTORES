@@ -74,7 +74,7 @@ export const ActionButtons1 = React.forwardRef(({ onClear, onSave, onPrint, acti
   return (
     <div style={styles.buttonContainer}>
       <ClearButton onClick={handleClick('clear', onClear)} disabled={disabledClear} isActive={activeButton === 'all' || activeButton === 'clear'} />
-      <SaveButton ref={ref} onClick={handleClick('save', onSave)} disabled={disabledSave} isActive={activeButton === 'all' || activeButton === 'save'} />
+      <SaveButton ref={ref} type="button" onClick={handleClick('save', onSave)} disabled={disabledSave} isActive={activeButton === 'all' || activeButton === 'save'} />
       <PrintButton onClick={handleClick('print', onPrint)} disabled={disabledPrint} isActive={activeButton === 'all' || activeButton === 'print'} />
     </div>
   );
@@ -136,9 +136,11 @@ export const ClearButton = ({ onClick, disabled, isActive, buttonType = 'clear' 
   </button>
 );
 
-export const SaveButton = React.forwardRef(({ onClick, disabled, isActive, buttonType = 'save' }, ref) => (
+export const SaveButton = React.forwardRef(({ onClick, disabled, isActive, buttonType = 'save', ...props }, ref) => (
   <button 
     ref={ref}
+     type="button"
+    {...props}
     style={{ 
       ...styles.btn, 
       ...(!isActive ? styles.inactiveBtn : styles.saveBtn),
@@ -146,6 +148,7 @@ export const SaveButton = React.forwardRef(({ onClick, disabled, isActive, butto
     }} 
     onClick={onClick}
     disabled={disabled}
+    tabIndex={0}  // Make sure it's focusable
   >
     <SaveIcon /> Save
   </button>
