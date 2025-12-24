@@ -1294,16 +1294,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
 
     // If Enter is pressed in qty field, move to add/less
-    if (currentField === 'qty') {
-      e.preventDefault();
-      setTimeout(() => {
-        if (addLessRef.current) {
-          addLessRef.current.focus();
-          addLessRef.current.select();
-        }
-      }, 50);
-      return;
-    }
+    // if (currentField === 'qty') {
+    //   e.preventDefault();
+    //   setTimeout(() => {
+    //     if (addLessRef.current) {
+    //       addLessRef.current.focus();
+    //       addLessRef.current.select();
+    //     }
+    //   }, 50);
+    //   return;
+    // }
 
     // If Enter is pressed in the amt field (last field)
     if (currentField === 'amt') {
@@ -2468,6 +2468,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.barcode}
                       data-row={index}
+                      readOnly
                       data-field="barcode"
                       onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
@@ -2593,6 +2594,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.stock}
                       data-row={index}
                       data-field="stock"
+                      readOnly
                       onChange={(e) => handleItemChange(item.id, 'stock', parseFloat(e.target.value) || 0)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
                        onFocus={() => setFocusedField(`stock-${item.id}`)}
@@ -2609,6 +2611,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
                       onFocus={() => setFocusedField(`hsn-${item.id}`)}
                       onBlur={() => setFocusedField('')}
+                      readOnly
                     />
                   </td>
                   <td style={styles.td}>
