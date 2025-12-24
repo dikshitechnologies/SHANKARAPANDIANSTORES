@@ -1121,7 +1121,6 @@ export default function LedgerGroupCreation() {
         onChange={(e) => setMainGroup(e.target.value)}
         onFocus={() => setIsTreeOpen(true)}
         readOnly={actionType !== "Add"}
-        placeholder="Select Main Group"
         disabled={submitting}
         aria-label="Main Group"
         style={{ 
@@ -1132,7 +1131,7 @@ export default function LedgerGroupCreation() {
           minWidth: "0" // Important for flex shrinking
         }}
       />
-      <button
+      {/* <button
         className="btn"
         onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
         disabled={submitting || actionType !== "Add"}
@@ -1152,8 +1151,8 @@ export default function LedgerGroupCreation() {
           cursor: submitting || actionType !== "Add" ? "not-allowed" : "pointer"
         }}
       >
-        {isTreeOpen ? "Close" : "Open"}
-      </button>
+      {isTreeOpen ? "Close" : "Open"} 
+       </button> */} 
     </div>
   </div>
 
@@ -1220,7 +1219,6 @@ export default function LedgerGroupCreation() {
                       <div className="search-container">
                         <input
                           className="search-with-clear"
-                          placeholder="Search groups..."
                           value={searchTree}
                           onChange={(e) => setSearchTree(e.target.value)}
                           aria-label="Search groups"
