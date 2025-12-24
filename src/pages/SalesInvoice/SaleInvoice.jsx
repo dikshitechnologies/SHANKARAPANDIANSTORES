@@ -973,10 +973,10 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
     try {
       await deleteInvoice(deleteConfirmationData.invoiceNo);
 
-      toast.success(
-        `Invoice ${deleteConfirmationData.invoiceNo} deleted successfully`,
-        { autoClose: 2500 }
-      );
+      // toast.success(
+      //   `Invoice ${deleteConfirmationData.invoiceNo} deleted successfully`,
+      //   { autoClose: 2500 }
+      // );
 
       setDeleteConfirmationOpen(false);
 
@@ -1488,10 +1488,7 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
         
         setItems(updatedItems);
         
-        // Show success message with item code
-        toast.success(`Item "${barcodeData.fItemName}" (Code: ${barcodeData.itemcode || barcodeData.fItemcode || barcode}) loaded`, {
-          autoClose: 2000,
-        });
+      
         
         // Move focus to quantity field
         setTimeout(() => {
@@ -1728,9 +1725,9 @@ return;
         setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
         if (barcodeRef.current) barcodeRef.current.focus();
         
-        toast.success(`Item "${barcodeData.fItemName}" added from barcode`, {
-          autoClose: 1500,
-        });
+        // toast.success(`Item "${barcodeData.fItemName}" added from barcode`, {
+        //   autoClose: 1500,
+        // });
       } else {
         // If barcode API fails, try local lookup
         const existingItemInList = itemList.find(item => 
@@ -2007,7 +2004,6 @@ const handleItemChange = (id, field, value) => {
         billAmount: Number(totalAmount) || 0,
         balanceAmount: 0,
         userCode: "001",
-        barcode: "0010"
       };
 
      // Prepare items data
@@ -2050,10 +2046,10 @@ const itemsData = validItems.map(item => ({
         const message = response.data.message || `Invoice ${isEditing ? 'updated' : 'saved'} successfully`;
         const savedBillNo = response.data.voucherNo || billDetails.billNo;
         
-        toast.success(
-          `Invoice ${isEditing ? "updated" : "saved"} successfully\nInvoice No: ${savedBillNo}`,
-          { autoClose: 3000 }
-        );
+        // toast.success(
+        //   `Invoice ${isEditing ? "updated" : "saved"} successfully\nInvoice No: ${savedBillNo}`,
+        //   { autoClose: 3000 }
+        // );
         
         // Refresh saved invoices list
         await fetchSavedInvoices(1, '');
@@ -3161,8 +3157,7 @@ const itemsData = validItems.map(item => ({
                       value={item.barcode ?? ""}
                       data-row={index}
                       data-field="barcode"
-                      readOnly={false}
-
+                      readOnly={isEditing}
                       onChange={(e) => {
                         if (!isEditing) {
                           handleItemChange(item.id, 'barcode', e.target.value);

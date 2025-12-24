@@ -64,8 +64,7 @@ const SalesReturn = () => {
       tax: '',
       sRate: '',
       qty: '',
-      amount: '0.00',
-      itemCode: '00001'
+      itemCode: ''
     }
   ]);
 
@@ -284,7 +283,7 @@ const SalesReturn = () => {
           sRate: '',
           qty: '',
           amount: '0.00',
-          itemCode: '00001'
+          itemCode: ''
         }
       ]);
 
@@ -409,6 +408,7 @@ const SalesReturn = () => {
 
   // Fetch details for specific bill
   const fetchBillDetailsForPopup = async (billNo) => {
+   
     try {
       setIsLoadingDetails(prev => ({ ...prev, [billNo]: true }));
       
@@ -504,6 +504,7 @@ const SalesReturn = () => {
   // Apply selected bill number from details popup
   const handleApplyBillNumber = async () => {
     // Get the checked items
+
     const checkedItems = Object.keys(checkedBills).filter(key => checkedBills[key]);
     
     if (!checkedItems || checkedItems.length === 0) {
@@ -548,7 +549,7 @@ const SalesReturn = () => {
           if (filteredItems.length > 0) {
             const transformedItems = filteredItems.map((item, index) => {
               const itemCode = item.fItemcode || item.itemCode || item.productCode || "";
-              const itemName = item.fitemNme || item.itemName || item.productName || "";
+              const itemName = item.fitemNme || item.itemName || item.barcode || item.productName || "";
               const originalQty = parseFloat(item.fTotQty || item.qty || item.quantity || 0);
               
               const returnQty = Math.abs(originalQty);
@@ -557,7 +558,7 @@ const SalesReturn = () => {
               return {
                 id: index + 1,
                 sNo: index + 1,
-                barcode:'' ,
+                barcode:item.barcode,
                 itemName: itemName,
                 stock: item.fstock || item.stock || "0",
                 mrp: item.mrp || item.maxRetailPrice || "0.00",
@@ -573,10 +574,10 @@ const SalesReturn = () => {
             
             setItems(transformedItems);
             
-            toast.success(
-              `Selected items from ${voucherNo} applied successfully!\n${filteredItems.length} items loaded for return.`,
-              { autoClose: 3000 }
-            );
+            // toast.success(
+            //   `Selected items from ${voucherNo} applied successfully!\n${filteredItems.length} items loaded for return.`,
+            //   { autoClose: 3000 }
+            // );
           } else {
             toast.warning("No items selected. Please check at least one item checkbox.");
           }
@@ -823,33 +824,87 @@ const SalesReturn = () => {
   };
 
   const fetchItemByBarcode = async (barcode) => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      const foundItem = itemList.find(item => 
-        item.itemCode === barcode || 
-        item.code === barcode ||
-        item.fItemcode === barcode
-      );
-      
-      if (foundItem) {
-        return foundItem;
-      }
-      
-      const response = await apiService.get(`ItemCreation/GetItemByBarcode/${barcode}`);
-      if (response) {
-        return response;
-      }
-      
-      return null;
-    } catch (err) {
-      console.error("Error fetching item by barcode:", err);
-      return null;
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+
+    // 1️⃣ Check already loaded items
+    const foundItem = itemList.find(item =>
+      item.itemCode === barcode ||
+      item.code === barcode ||
+      item.fItemcode === barcode
+    );
+
+    if (foundItem) return foundItem;
+
+    // 2️⃣ API call
+    const response = await apiService.get(
+      `Salesinvoices/GetpurchaseStockDetails?barcode=${encodeURIComponent(barcode)}`
+    );
+console.log("Barcode API response:", response);
+    // ✅ IMPORTANT FIX
+    if (response) {
+      return response;
     }
-  };
+
+    return null;
+  } catch (err) {
+    console.error("Barcode API error:", err);
+    return null;
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleBarcodeEnter = async (rowIndex, barcode) => {
+  const effectiveBarcode = (barcode || '').trim();
+  console.log("Handling barcode enter for:", effectiveBarcode);
+  if (!effectiveBarcode) return;
+
+  try {
+    const item = await fetchItemByBarcode(effectiveBarcode);
+
+    if (!item) {
+      toast.warning("Item not found for this barcode");
+      return;
+    }
+
+    
+    setItems(prev => {
+      const updated = [...prev];
+
+      updated[rowIndex] = {
+        ...updated[rowIndex],
+        barcode: effectiveBarcode, // ✅ FIXED
+        itemCode: item[0].itemcode ||"",
+        itemName: item[0].fItemName || "",
+        stock: item[0].fstock || "0",
+        mrp: item[0].mrp || "",
+        uom: item[0].fUnit || item[0].fUnit || "",
+        hsn: item[0].fHSN || item[0].fHSN || "",
+        tax: item[0].inTax ||  "",
+        sRate: item[0].rate || "0",
+        qty: item[0].qty || "",
+        amount: calculateAmount("1", item[0].rate || item[0].fRate || 0),
+      };
+
+      console.log("Updated item after barcode fetch:", updated[rowIndex]);
+
+      return updated;
+    });
+
+    // 👉 Move focus to Qty
+    setTimeout(() => {
+      document
+        .querySelector(`input[data-row="${rowIndex}"][data-field="qty"]`)
+        ?.focus();
+    }, 120);
+
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to fetch item by barcode");
+  }
+};
+
 
   // ==================== CREATE SALES RETURN ====================
   const createSalesReturn = async () => {
@@ -901,10 +956,10 @@ const SalesReturn = () => {
       const response = await apiService.post(endpoint, requestData);
       
       if (response && response.success) {
-        toast.success(
-          `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
-          { autoClose: 3000 }
-        );
+        // toast.success(
+        //   `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+        //   { autoClose: 3000 }
+        // );
         
         // Reset form after successful creation
         await resetForm();
@@ -1011,10 +1066,10 @@ const SalesReturn = () => {
       const response = await apiService.post(endpoint, requestData);
       
       if (response && response.success) {
-        toast.success(
-          `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
-          { autoClose: 3000 }
-        );
+        // toast.success(
+        //   `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+        //   { autoClose: 3000 }
+        // );
         
         // Reset form after successful update
         await resetForm();
@@ -1115,10 +1170,10 @@ const SalesReturn = () => {
       }
       
       if (response && response.success) {
-        toast.success(
-          `Sales Return ${voucherNo} deleted successfully!`,
-          { autoClose: 3000 }
-        );
+        // toast.success(
+        //   `Sales Return ${voucherNo} deleted successfully!`,
+        //   { autoClose: 3000 }
+        // );
         await fetchVoucherList();
         
         // Reset form after successful delete
@@ -1251,12 +1306,12 @@ const SalesReturn = () => {
           sRate: '',
           qty: '',
           amount: '0.00',
-          itemCode: '00001'
+          itemCode: ''
         }]);
       }
       setShouldFocusBillDate(true);
 
-      toast.success(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
+    //  toast.success(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
       
     } catch (err) {
       console.error("Error loading voucher for editing:", err);
@@ -1826,8 +1881,11 @@ const SalesReturn = () => {
    
   } else if (e.key === 'Enter') {
 
-  // 🔥 LET TABLE HANDLE ENTER
-  if (focusedElement.type === 'table') {
+  // ✅ ALLOW BARCODE ENTER
+  if (
+    focusedElement.type === 'table' &&
+    focusedElement.fieldName === 'barcode'
+  ) {
     return;
   }
 
@@ -1837,6 +1895,7 @@ const SalesReturn = () => {
   }
 
   e.preventDefault();
+
 
 
       
@@ -2371,7 +2430,7 @@ const handleTableKeyDown = (e, rowIndex, field) => {
       sRate: '',
       qty: '',
       amount: '0.00',
-      itemCode: `0000${items.length + 1}`
+      itemCode: ''
     };
     setItems([...items, newRow]);
   };
@@ -2431,7 +2490,7 @@ const handleTableKeyDown = (e, rowIndex, field) => {
             sRate: '',
             qty: '',
             amount: '0.00',
-            itemCode: '00001'
+            itemCode: ''
           };
           setItems([clearedItem]);
         }
@@ -2600,8 +2659,8 @@ const handleApplyBillDirect = async () => {
     formField: {
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      flexWrap: 'wrap',
+     
+      
       position: 'relative',
     },
     inlineLabel: {
@@ -3255,6 +3314,7 @@ const handleApplyBillDirect = async () => {
   };
 
   const renderBillDetailsContent = () => {
+
     const billNo = selectedBillForDetails;
     if (!billNo) return null;
 
@@ -3300,6 +3360,7 @@ const handleApplyBillDirect = async () => {
                   onChange={(e) => handleSelectAll(e.target.checked)}
                 />
               </th>
+              <th style={thStyle}>barcode</th>
               <th style={thStyle}>Item Name</th>
               <th style={thStyle}>Qty</th>
               <th style={thStyle}>Unit</th>
@@ -3309,6 +3370,7 @@ const handleApplyBillDirect = async () => {
           </thead>
 
           <tbody>
+             
             {itemsArray.map((item, idx) => {
               const key = item.fItemcode || item.itemCode;
               return (
@@ -3337,11 +3399,12 @@ const handleApplyBillDirect = async () => {
                       }
                     />
                   </td>
-
+                   <td style={tdStyle}>{item.barcode || item.barcode}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>
                     {item.fitemNme || item.itemName}
                   </td>
                   <td style={tdStyle}>{item.fTotQty || item.qty}</td>
+                
                   <td style={tdStyle}>{item.fUnit || item.uom}</td>
                   <td style={tdStyle}>₹{item.fRate || item.rate}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>
@@ -3398,198 +3461,218 @@ const handleApplyBillDirect = async () => {
         hideCancelButton={false}
       />
 
-      {/* --- HEADER SECTION --- */}
-      <div style={styles.headerSection}>
-        {/* ROW 1 */}
-        <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
-        }}>
-          {/* Bill No (EXISTING - Auto-generated) */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Bill No:</label>
-            <input
-              type="text"
-              style={focusedField === 'billNo' ? styles.inlineInputFocused : styles.inlineInput}
-              value={billDetails.billNo}
-              name="billNo"
-              onChange={handleInputChange}
-              ref={billNoRef}
-              onKeyDown={(e) => handleKeyDown(e, billDateRef)}
-              onFocus={() => {
-                setFocusedField('billNo');
-                setFocusedElement({
-                  type: 'header',
-                  rowIndex: 0,
-                  fieldIndex: 0,
-                  fieldName: 'billNo'
-                });
-              }}
-              onBlur={() => setFocusedField('')}
-              // //placeholder="Auto-generated"
-              readOnly
-            />
-          </div>
+   {/* --- HEADER SECTION --- */}
+<div style={styles.headerSection}>
+  {/* SINGLE ROW with all 6 fields */}
+  <div style={{
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
+    gap: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '16px',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '10px',
+    width: '100%'
+  }}>
+    
+    {/* Bill No (EXISTING - Auto-generated) */}
+    <div style={{
+      ...styles.formField,
+      flex: '1 1 auto',
+      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+    }}>
+      <label style={styles.inlineLabel}>Bill No:</label>
+      <input
+        type="text"
+        style={focusedField === 'billNo' ? styles.inlineInputFocused : styles.inlineInput}
+        value={billDetails.billNo}
+        name="billNo"
+        onChange={handleInputChange}
+        ref={billNoRef}
+        onKeyDown={(e) => handleKeyDown(e, billDateRef)}
+        onFocus={() => {
+          setFocusedField('billNo');
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 0,
+            fieldName: 'billNo'
+          });
+        }}
+        onBlur={() => setFocusedField('')}
+        readOnly
+      />
+    </div>
 
-          {/* Bill Date */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Bill Date:</label>
-            <input
-              type="date"
-              style={focusedField === 'billDate' ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' } : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
-              value={billDetails.billDate}
-              name="billDate"
-              onChange={handleInputChange}
-              ref={billDateRef}
-              onKeyDown={(e) => handleKeyDown(e, mobileRef)}
-              onFocus={() => {
-                setFocusedField('billDate');
-                setFocusedElement({
-                  type: 'header',
-                  rowIndex: 0,
-                  fieldIndex: 1,
-                  fieldName: 'billDate'
-                });
-              }}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
+    {/* Bill Date */}
+    <div style={{
+      ...styles.formField,
+      flex: '1 1 auto',
+      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+    }}>
+      <label style={styles.inlineLabel}>Bill Date:</label>
+      <input
+        type="date"
+        style={focusedField === 'billDate' ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' } : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
+        value={billDetails.billDate}
+        name="billDate"
+        onChange={handleInputChange}
+        ref={billDateRef}
+        onKeyDown={(e) => handleKeyDown(e, mobileRef)}
+        onFocus={() => {
+          setFocusedField('billDate');
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 1,
+            fieldName: 'billDate'
+          });
+        }}
+        onBlur={() => setFocusedField('')}
+      />
+    </div>
 
-          {/* Mobile No */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Mobile No:</label>
-            <input
-              type="text"
-              style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
-              value={billDetails.mobileNo}
-              name="mobileNo"
-              onChange={handleInputChange}
-              ref={mobileRef}
-              onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
-              onFocus={() => {
-                setFocusedField('mobileNo');
-                setFocusedElement({
-                  type: 'header',
-                  rowIndex: 0,
-                  fieldIndex: 2,
-                  fieldName: 'mobileNo'
-                });
-              }}
-              onBlur={() => setFocusedField('')}
-              // //placeholder="Mobile No"
-            />
-          </div>
+    {/* Mobile No */}
+    <div style={{
+      ...styles.formField,
+      flex: '1 1 auto',
+      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+    }}>
+      <label style={styles.inlineLabel}>Mobile No:</label>
+      <input
+        type="text"
+        style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
+        value={billDetails.mobileNo}
+        name="mobileNo"
+        onChange={handleInputChange}
+        ref={mobileRef}
+        onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
+        onFocus={() => {
+          setFocusedField('mobileNo');
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 2,
+            fieldName: 'mobileNo'
+          });
+        }}
+        onBlur={() => setFocusedField('')}
+      />
+    </div>
 
-          {/* Salesman */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Salesman:</label>
-            <input
-              type="text"
-              style={focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-              value={billDetails.salesman}
-              name="salesman"
-              onChange={handleInputChange}
-              ref={salesmanRef}
-              onClick={() => {
-                openSalesmanPopup(billDetails.salesman);
-              }}
-              onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
-              onFocus={() => {
-                setFocusedField('salesman');
-                setFocusedElement({
-                  type: 'header',
-                  rowIndex: 0,
-                  fieldIndex: 3,
-                  fieldName: 'salesman'
-                });
-              }}
-              onBlur={() => setFocusedField('')}
-              
-              readOnly
-            />
-            <div 
-              style={styles.searchIconInside}
-              title="Click or press / to search"
-            >
-              <SearchIcon />
-            </div>
-          </div>
-        </div>
-
-        {/* ROW 2 */}
-        <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
-        }}>
-          {/* Customer Name */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Customer:</label>
-            <input
-              type="text"
-              style={focusedField === 'custName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-              value={billDetails.custName}
-              name="custName"
-              onChange={handleInputChange}
-              ref={custNameRef}
-              onClick={() => {
-                openCustomerPopup(billDetails.custName);
-              }}
-              onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'custName')}
-              onFocus={() => {
-                setFocusedField('custName');
-                setFocusedElement({
-                  type: 'header',
-                  rowIndex: 1,
-                  fieldIndex: 0,
-                  fieldName: 'custName'
-                });
-              }}
-              onBlur={() => setFocusedField('')}
-              //placeholder="Search customer"
-              readOnly
-            />
-            <div 
-              style={styles.searchIconInside}
-              title="Click or press / to search"
-            >
-              <SearchIcon />
-            </div>
-          </div>
-
-          {/* NEW Bill No Field (Near Barcode) - Custom Popup */}
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Bill No:</label>
-            <input
-              type="text"
-              style={focusedField === 'newBillNo' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-              value={billDetails.newBillNo}
-              name="newBillNo"
-              onChange={handleInputChange}
-              ref={newBillNoRef}
-              onClick={openBillNumberPopup}
-              onKeyDown={(e) => handleKeyDown(e, null, 'newBillNo')}
-              onFocus={() => {
-                setFocusedField('newBillNo');
-                setFocusedElement({
-                  type: 'header',
-                  rowIndex: 1,
-                  fieldIndex: 1,
-                  fieldName: 'newBillNo'
-                });
-              }}
-              onBlur={() => setFocusedField('')}
-              //placeholder="Select bill number"
-              readOnly
-            />
-            <div 
-              style={styles.searchIconInside}
-              title="Click or press / to search"
-            >
-              <SearchIcon />
-            </div>
-          </div>
-        </div>
+    {/* Salesman */}
+    <div style={{
+      ...styles.formField,
+      flex: '1 1 auto',
+      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+    }}>
+      <label style={styles.inlineLabel}>Salesman:</label>
+      <input
+        type="text"
+        style={focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
+        value={billDetails.salesman}
+        name="salesman"
+        onChange={handleInputChange}
+        ref={salesmanRef}
+        onClick={() => {
+          openSalesmanPopup(billDetails.salesman);
+        }}
+        onKeyDown={(e) => handleKeyDown(e, custNameRef, 'salesman')}
+        onFocus={() => {
+          setFocusedField('salesman');
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 3,
+            fieldName: 'salesman'
+          });
+        }}
+        onBlur={() => setFocusedField('')}
+        readOnly
+      />
+      <div 
+        style={styles.searchIconInside}
+        title="Click or press / to search"
+      >
+        <SearchIcon />
       </div>
+    </div>
+
+    {/* Customer Name */}
+    <div style={{
+      ...styles.formField,
+      flex: '1 1 auto',
+      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+    }}>
+      <label style={styles.inlineLabel}>Customer:</label>
+      <input
+        type="text"
+        style={focusedField === 'custName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
+        value={billDetails.custName}
+        name="custName"
+        onChange={handleInputChange}
+        ref={custNameRef}
+        onClick={() => {
+          openCustomerPopup(billDetails.custName);
+        }}
+        onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'custName')}
+        onFocus={() => {
+          setFocusedField('custName');
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 4,
+            fieldName: 'custName'
+          });
+        }}
+        onBlur={() => setFocusedField('')}
+        readOnly
+      />
+      <div 
+        style={styles.searchIconInside}
+        title="Click or press / to search"
+      >
+        <SearchIcon />
+      </div>
+    </div>
+
+    {/* NEW Bill No Field */}
+    <div style={{
+      ...styles.formField,
+      flex: '1 1 auto',
+      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+    }}>
+      <label style={styles.inlineLabel}>Bill No:</label>
+      <input
+        type="text"
+        style={focusedField === 'newBillNo' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
+        value={billDetails.newBillNo}
+        name="newBillNo"
+        onChange={handleInputChange}
+        ref={newBillNoRef}
+        onClick={openBillNumberPopup}
+        onKeyDown={(e) => handleKeyDown(e, null, 'newBillNo')}
+        onFocus={() => {
+          setFocusedField('newBillNo');
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 5,
+            fieldName: 'newBillNo'
+          });
+        }}
+        onBlur={() => setFocusedField('')}
+        readOnly
+      />
+      <div 
+        style={styles.searchIconInside}
+        title="Click or press / to search"
+      >
+        <SearchIcon />
+      </div>
+    </div>
+  </div>
+</div>
 
       {/* --- TABLE SECTION --- */}
       <div style={styles.tableSection} className="sales-return-scrollable">
@@ -3617,23 +3700,31 @@ const handleApplyBillDirect = async () => {
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
                     <input
-                      style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.barcode}
-                      data-row={index}
-                      data-field="barcode"
-                      onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
-                      onFocus={() => {
-                        setFocusedField(`barcode-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 0,
-                          fieldName: 'barcode'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                    />
+  style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
+  value={item.barcode}
+  data-row={index}
+  data-field="barcode"
+  onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
+  onKeyDown={async (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      await handleBarcodeEnter(index, item.barcode);
+    } else {
+      handleTableKeyDown(e, index, 'barcode');
+    }
+  }}
+  onFocus={() => {
+    setFocusedField(`barcode-${item.id}`);
+    setFocusedElement({
+      type: 'table',
+      rowIndex: index,
+      fieldIndex: 0,
+      fieldName: 'barcode'
+    });
+  }}
+  onBlur={() => setFocusedField('')}
+/>
+
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer, position: 'relative' }}>
                     <input
