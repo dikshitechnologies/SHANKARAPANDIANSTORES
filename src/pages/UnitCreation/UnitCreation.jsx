@@ -479,6 +479,8 @@ const confirmSave = async () => {
     
     // This line already focuses on unitName field after reset - GOOD
     setTimeout(() => unitNameRef.current?.focus(), 60);
+    setActionType("Add")
+    
   };
 
   const openEditModal = () => {
