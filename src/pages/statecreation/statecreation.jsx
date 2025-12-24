@@ -601,10 +601,11 @@ const resetForm = (keepAction = false) => {
   setEditQuery("");
   setDeleteQuery("");
   setMessage(null);
-  if (!keepAction) setActionType("Add");
+  if (!keepAction) ;
   
   // This line already focuses on stateName field after reset - GOOD
   setTimeout(() => stateNameRef.current?.focus(), 60);
+  setActionType("Add")
 };
 
   const openEditModal = () => {
