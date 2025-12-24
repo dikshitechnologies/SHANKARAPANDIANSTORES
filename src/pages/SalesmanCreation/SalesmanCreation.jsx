@@ -430,6 +430,7 @@ export default function SalesmanCreation() {
     setMessage(null);
     if (!keepAction) setActionType("Add");
     setTimeout(() => salesmanNameRef.current?.focus(), 60);
+    setActionType("Add")
   };
 
   const openEditModal = () => {

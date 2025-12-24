@@ -407,6 +407,7 @@ useEffect(() => {
   
   // This line already focuses on modelName field after reset - GOOD
   setTimeout(() => modelNameRef.current?.focus(), 60);
+  setActionType("Add")
 };
 
   const openEditModal = () => {

@@ -425,6 +425,7 @@ export default function BrandPage() {
     if (!keepAction) setActionType("Add");
     
     setTimeout(() => brandNameRef.current?.focus(), 60);
+    setActionType("Add")
   };
 
   const openEditModal = () => {
