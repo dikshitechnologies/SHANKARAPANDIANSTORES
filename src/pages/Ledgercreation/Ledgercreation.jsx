@@ -55,10 +55,52 @@ const Icon = {
 };
 
 // --- Tree node component ---
-function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey }) {
+function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey, onNavigate }) {
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedKeys.has(node.key);
   const isSelected = selectedKey === node.key;
+
+  const handleKeyDown = (e) => {
+    switch (e.key) {
+      case "Enter":
+        e.preventDefault();
+        if (hasChildren) {
+          // Folder node: expand/open it
+          if (!isExpanded) {
+            toggleExpand(node.key);
+          } else {
+            // If already expanded, select it
+            onSelect(node);
+          }
+        } else {
+          // Leaf node: select the item and close tree
+          onSelect(node);
+        }
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        if (hasChildren && !isExpanded) {
+          toggleExpand(node.key);
+        } else if (hasChildren && isExpanded) {
+          // If already expanded, focus on first child
+          onNavigate?.("down", node.key);
+        }
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        if (hasChildren && isExpanded) {
+          toggleExpand(node.key);
+        }
+        break;
+      case "ArrowDown":
+      case "ArrowUp":
+        e.preventDefault();
+        onNavigate?.(e.key === "ArrowDown" ? "down" : "up", node.key);
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <div className="tree-node" style={{ paddingLeft: `${12 + level * 16}px` }}>
@@ -66,8 +108,9 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         className={`tree-row ${isSelected ? "selected" : ""}`}
         onClick={() => onSelect(node)}
         role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && onSelect(node)}
+        tabIndex={isSelected ? 0 : -1}
+        onKeyDown={handleKeyDown}
+        data-key={node.key}
       >
         {hasChildren ? (
           <button
@@ -112,6 +155,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
                 expandedKeys={expandedKeys}
                 toggleExpand={toggleExpand}
                 selectedKey={selectedKey}
+                onNavigate={onNavigate}
               />
             ))}
         </div>
@@ -809,6 +853,39 @@ export default function LedgerCreation({ onCreated }) {
     };
     return filter(treeData);
   }, [treeData, searchTree]);
+
+  // Handle keyboard navigation for tree nodes
+  const handleTreeNavigation = useCallback((direction, currentKey) => {
+    const getAllNodes = (nodes) => {
+      const result = [];
+      nodes.forEach(node => {
+        result.push(node);
+        if (expandedKeys.has(node.key) && node.children) {
+          result.push(...getAllNodes(node.children));
+        }
+      });
+      return result;
+    };
+
+    const allNodes = getAllNodes(filteredTree);
+    const currentIndex = allNodes.findIndex(n => n.key === currentKey);
+    
+    if (currentIndex === -1) return;
+
+    let nextIndex = direction === "down" ? currentIndex + 1 : currentIndex - 1;
+    if (nextIndex < 0) nextIndex = 0;
+    if (nextIndex >= allNodes.length) nextIndex = allNodes.length - 1;
+
+    const nextNode = allNodes[nextIndex];
+    if (nextNode) {
+      setSelectedNode(nextNode);
+      // Don't close tree on navigation, just update selection
+      setTimeout(() => {
+        const elem = document.querySelector(`[data-key="${nextNode.key}"]`);
+        elem?.focus();
+      }, 0);
+    }
+  }, [filteredTree, expandedKeys]);
 
   return (
     <div className="lg-root" role="region" aria-labelledby="ledger-title">
@@ -1647,7 +1724,19 @@ export default function LedgerCreation({ onCreated }) {
                 style={{ width: '100%' }}
                 value={formData.partyName}
                 onChange={(e) => handleChange('partyName', e.target.value)}
-                onKeyDown={(e) => handleKeyboardNavigation(e, 0)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // Open tree and focus first node
+                    setIsTreeOpen(true);
+                    setTimeout(() => {
+                      const firstNode = document.querySelector('[data-key]');
+                      firstNode?.focus();
+                    }, 0);
+                  } else {
+                    handleKeyboardNavigation(e, 0);
+                  }
+                }}
                 required
                 readOnly={actionType === 'delete'}
               />
@@ -1717,6 +1806,7 @@ export default function LedgerCreation({ onCreated }) {
                         expandedKeys={expandedKeys}
                         toggleExpand={toggleExpand}
                         selectedKey={selectedNode?.key}
+                        onNavigate={handleTreeNavigation}
                       />
                     ))
                   )}
