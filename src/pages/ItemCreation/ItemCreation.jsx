@@ -2798,8 +2798,8 @@ const handleKeyNavigation = (e) => {
                 type="button"
               >
                 {isSubmitting ? "Processing..." : 
-                 actionType === 'create' ? 'Save' : 
-                 actionType === 'edit' ? 'Update' : 'Delete'}
+                 actionType === 'create' ? 'Add' : 
+                 actionType === 'edit' ? 'Edit' : 'Delete'}
               </button>
               <button
                 className="submit-clear"
