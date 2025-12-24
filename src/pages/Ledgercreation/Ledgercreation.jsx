@@ -377,6 +377,7 @@ export default function LedgerCreation({ onCreated }) {
     { ref: pincodeRef, name: 'pincode', label: 'Pincode' },
     { ref: phoneRef, name: 'phone', label: 'Phone' },
     { ref: cellNoRef, name: 'cellNo', label: 'Cell No' },
+    { ref: routeRef, name: 'route', label: 'Route' },
     { ref: gstinRef, name: 'gstin', label: 'GSTIN' },
     { ref: cinNoRef, name: 'cinNo', label: 'CIN No' },
     { ref: panNoRef, name: 'panNo', label: 'PAN No' },
@@ -1728,7 +1729,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.area}
                     onChange={(e) => handleChange('area', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 4)}
                     readOnly={actionType === 'delete'}
                   />
                 </div>
@@ -1742,7 +1743,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.city}
                     onChange={(e) => handleChange('city', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 5)}
                     readOnly={actionType === 'delete'}
                   />
                 </div>
@@ -1756,7 +1757,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.pincode}
                     onChange={(e) => handleChange('pincode', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 6)}
                     maxLength={6}
                     readOnly={actionType === 'delete'}
                   />
@@ -1771,7 +1772,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 7)}
                     maxLength={10}
                     readOnly={actionType === 'delete'}
                   />
@@ -1786,7 +1787,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.cellNo}
                     onChange={(e) => handleChange('cellNo', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, )}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 8)}
                     maxLength={10}
                     readOnly={actionType === 'delete'}
                   />
@@ -1803,7 +1804,7 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.route}
                     onChange={(e) => handleChange('route', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 4)}
+                    onKeyDown={(e) => handleKeyboardNavigation(e, 9)}
                     disabled={actionType === 'delete'}
                   >
                     <option value="">Select Route</option>
