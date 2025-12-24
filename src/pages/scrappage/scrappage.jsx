@@ -57,9 +57,9 @@ export default function ScrapPage() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.SCRAP_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.SCRAP_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.SCRAP_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.SCRAP_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.SCRAP_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.SCRAP_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -231,7 +231,7 @@ export default function ScrapPage() {
 
   // Additional focus for when actionType changes
   useEffect(() => {
-    if (actionType === "edit" || actionType === "Add") {
+    if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
         if (scrapNameRef.current) scrapNameRef.current.focus();
       }, 0);
@@ -246,7 +246,7 @@ export default function ScrapPage() {
 
   const handleEdit = () => { // Remove async
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ type: "error", text: "You do not have permission to edit scraps." });
       return;
     }
@@ -277,7 +277,7 @@ export default function ScrapPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Scrap item updated successfully." });
-      toast.success(`Scrap item "${form.scrapName}" updated successfully.`);
+      // toast.success(`Scrap item "${form.scrapName}" updated successfully.`);
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
@@ -289,7 +289,7 @@ export default function ScrapPage() {
 
   const handleDelete = () => { // Remove async
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ type: "error", text: "You do not have permission to delete scraps." });
       return;
     }
@@ -309,7 +309,7 @@ export default function ScrapPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Scrap item deleted successfully." });
-      toast.success(`Scrap item "${form.scrapName}" deleted successfully.`);
+      // toast.success(`Scrap item "${form.scrapName}" deleted successfully.`);
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -327,7 +327,7 @@ export default function ScrapPage() {
 
   const handleAdd = () => { // Remove async - FIXED
     // === PERMISSION CHECK ===
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       setMessage({ type: "error", text: "You do not have permission to create scraps." });
       return;
     }
@@ -373,7 +373,7 @@ export default function ScrapPage() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Scrap item created successfully." });
-      toast.success(`Scrap item "${form.scrapName}" created successfully.`);
+      // toast.success(`Scrap item "${form.scrapName}" created successfully.`);
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {
@@ -386,9 +386,9 @@ export default function ScrapPage() {
   const handleSubmit = () => { // Remove async - FIXED
     if (actionType === "Add") {
       handleAdd(); // This will show confirmSaveOpen popup
-    } else if (actionType === "edit") {
+    } else if (actionType === "Edit") {
       handleEdit(); // This will show confirmEditOpen popup
-    } else if (actionType === "delete") {
+    } else if (actionType === "Delete") {
       handleDelete(); // This will show confirmDeleteOpen popup
     }
   };
@@ -418,7 +418,7 @@ export default function ScrapPage() {
   const handleEditRowClick = (s) => {
     setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
     setOriginalScrapName(s.scrapName);
-    setActionType("edit");
+    setActionType("Edit");
     setEditingId(s.scrapCode);
     setEditModalOpen(false);
     setTimeout(() => scrapNameRef.current?.focus(), 60);
@@ -446,7 +446,7 @@ export default function ScrapPage() {
 
   const handleDeleteRowClick = (s) => {
     setForm({ scrapCode: s.scrapCode, scrapName: s.scrapName });
-    setActionType("delete");
+    setActionType("Delete");
     setDeleteTargetId(s.scrapCode);
     setDeleteModalOpen(false);
     setTimeout(() => scrapNameRef.current?.focus(), 60);
@@ -1054,9 +1054,9 @@ export default function ScrapPage() {
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.edit} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.delete} isActive={actionType === "delete"} />
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.Add} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.Edit} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.Delete} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1096,7 +1096,7 @@ export default function ScrapPage() {
                   onKeyDown={onScrapNameKeyDown}
                   disabled={loading}
                   aria-label="Scrap Name"
-                  readOnly={actionType === "delete"}
+                  readOnly={actionType === "Delete"}
                 />
               </div>
             </div>
@@ -1191,7 +1191,7 @@ export default function ScrapPage() {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "edit" ? "Edit Scrap" : "Delete Scrap"}
+                {actionType === "Add" ? "Create New" : actionType === "Edit" ? "Edit Scrap" : "Delete Scrap"}
               </div>
             </div>
 
@@ -1206,7 +1206,7 @@ export default function ScrapPage() {
               <div className="muted">Scrap Name</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
                 {form.scrapName || "Not set"}
-                {originalScrapName && actionType === "edit" && (
+                {originalScrapName && actionType === "Edit" && (
                   <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
                     Original: {originalScrapName}
                   </div>
@@ -1282,9 +1282,10 @@ export default function ScrapPage() {
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create Scrap Item"
-        message={`Are you sure you want to create scrap item "${form.scrapName}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1305,9 +1306,10 @@ export default function ScrapPage() {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update Scrap Item"
-        message={`Are you sure you want to update scrap item "${form.scrapName}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1328,9 +1330,10 @@ export default function ScrapPage() {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Scrap Item"
-        message={`Are you sure you want to delete scrap item "${form.scrapName}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{

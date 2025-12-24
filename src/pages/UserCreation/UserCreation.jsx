@@ -418,7 +418,7 @@ export default function UserCreation() {
       await fetchUsers();
 
       setSuccessMessage("User created successfully.");
-      toast.success(`User "${form.username}" created successfully.`);
+      // toast.success(`User "${form.username}" created successfully.`);
       setConfirmSaveOpen(false);
       resetForm();
 
@@ -485,7 +485,7 @@ export default function UserCreation() {
       
       setEditingId(null);
       setSuccessMessage("User updated successfully.");
-      toast.success(`User "${form.username}" updated successfully.`);
+      // toast.success(`User "${form.username}" updated successfully.`);
       setConfirmEditOpen(false);
       resetForm();
     } catch (err) {
@@ -523,7 +523,7 @@ export default function UserCreation() {
       
       setDeleteTargetId(null);
       setSuccessMessage("User deleted successfully.");
-      toast.success(`User "${form.username}" deleted successfully.`);
+      // toast.success(`User "${form.username}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
@@ -1499,10 +1499,10 @@ export default function UserCreation() {
         isOpen={confirmSaveOpen}
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
-        title="Create User"
-        message={`Are you sure you want to create user "${form.username}"? This action cannot be undone.`}
+        title="Create  User"
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isProcessing ? "Creating..." : "Create"}
+        confirmText={isProcessing ? "Creating..." : "Yes"}
         showLoading={isProcessing}
         disableBackdropClose={isProcessing}
         customStyles={{
@@ -1523,9 +1523,9 @@ export default function UserCreation() {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update User"
-        message={`Are you sure you want to update user "${form.username}"? This action cannot be undone.`}
+         message={`Do you want to modify?`}
         type="warning"
-        confirmText={isProcessing ? "Updating..." : "Update"}
+        confirmText={isProcessing ? "Updating..." : "Yes"}
         showLoading={isProcessing}
         disableBackdropClose={isProcessing}
         customStyles={{
@@ -1546,9 +1546,9 @@ export default function UserCreation() {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete User"
-        message={`Are you sure you want to delete user "${form.username}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isProcessing ? "Deleting..." : "Delete"}
+        confirmText={isProcessing ? "Deleting..." : "Yes"}
         showLoading={isProcessing}
         disableBackdropClose={isProcessing}
         customStyles={{
