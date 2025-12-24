@@ -1289,13 +1289,13 @@ export default function ItemGroupCreation() {
 
                       <div className="row" style={{ marginBottom: 8 }}>
                         <div className="search-container">
-                          <input
+                          {/* <input
                             className="search-with-clear"
                             placeholder="Search groups..."
                             value={searchTree}
                             onChange={(e) => setSearchTree(e.target.value)}
                             aria-label="Search groups"
-                          />
+                          /> */}
                           {searchTree && (
                             <button
                               className="clear-search-btn"
@@ -1337,13 +1337,13 @@ export default function ItemGroupCreation() {
                   <div className="panel" id="group-tree" role="tree" aria-label="Group list">
                     <div className="row" style={{ marginBottom: 8 }}>
                       <div className="search-container">
-                        <input
+                        {/* <input
                           className="search-with-clear"
                           placeholder="Search groups..."
                           value={searchTree}
                           onChange={(e) => setSearchTree(e.target.value)}
                           aria-label="Search groups"
-                        />
+                        /> */}
                         {searchTree && (
                           <button
                             className="clear-search-btn"

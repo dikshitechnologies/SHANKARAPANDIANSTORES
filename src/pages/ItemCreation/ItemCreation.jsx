@@ -2232,7 +2232,7 @@ const handleKeyNavigation = (e) => {
 
           <div className="row" style={{ marginBottom: 8 }}>
             <div className="search-container">
-              <input
+              {/* <input
                 className="search-with-clear"
                 placeholder="Search groups..."
                 value={searchTree}
@@ -2244,7 +2244,7 @@ const handleKeyNavigation = (e) => {
                     setIsTreeOpen(false);
                   }
                 }}
-              />
+              /> */}
               {searchTree && (
                 <button
                   className="clear-search-btn"
@@ -2291,7 +2291,7 @@ const handleKeyNavigation = (e) => {
       <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
         <div className="row" style={{ marginBottom: 8 }}>
           <div className="search-container">
-            <input
+            {/* <input
               className="search-with-clear"
               placeholder="Search groups..."
               value={searchTree}
@@ -2303,7 +2303,7 @@ const handleKeyNavigation = (e) => {
                   setIsTreeOpen(false);
                 }
               }}
-            />
+            /> */}
             {searchTree && (
               <button
                 className="clear-search-btn"

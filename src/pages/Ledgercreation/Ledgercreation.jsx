@@ -1682,13 +1682,13 @@ export default function LedgerCreation({ onCreated }) {
             {isTreeOpen && (
               <div className="panel">
                 <div className="search-container">
-                  <input
+                  {/* <input
                     type="text"
                     className="search-with-clear"
                     placeholder="Search groups..."
                     value={searchTree}
                     onChange={(e) => setSearchTree(e.target.value)}
-                  />
+                  /> */}
                   {searchTree && (
                     <button
                       className="clear-search-btn"
