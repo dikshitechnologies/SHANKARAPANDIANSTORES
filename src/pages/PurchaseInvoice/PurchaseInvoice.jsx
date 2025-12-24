@@ -266,6 +266,21 @@ const handleBlur = () => {
     });
   };
 
+  // Helper: Numeric field validation (allows only numbers with optional decimal)
+  const handleNumericInput = (value) => {
+    // Allow empty string
+    if (value === '') return '';
+    
+    // Allow only numbers and one decimal point
+    const sanitized = value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+    
+    // Validate it's a valid number format
+    if (/^\d*\.?\d*$/.test(sanitized)) {
+      return sanitized;
+    }
+    return '';
+  };
+
   // Helper: Fetch next invoice number
   const fetchNextInvNo = async () => {
     try {
@@ -574,7 +589,7 @@ const handleBlur = () => {
             hsn: '', 
             tax: '', 
             rate: 0, 
-            qty: '1',
+            qty: '0',
             ovrwt: '',
             avgwt: '',
             prate: 0,
@@ -604,10 +619,50 @@ const handleBlur = () => {
         // 🔴 SET IGNORE ENTER FLAG
         ignoreNextEnterRef.current = true;
         
-        // ✅ MOVE CURSOR TO BILL DATE AFTER LOADING EDIT INVOICE
+        // Add a new empty row for data entry
+        const newRow = {
+          id: (itemsData?.length || 0) + 2,
+          barcode: '',
+          name: '',
+          sub: '',
+          stock: 0,
+          mrp: 0,
+          uom: '',
+          hsn: '',
+          tax: 0,
+          rate: 0,
+          qty: '',
+          ovrwt: '',
+          avgwt: '',
+          prate: 0,
+          intax: '',
+          outtax: '',
+          acost: '',
+          sudo: '',
+          profitPercent: '',
+          preRT: '',
+          sRate: '',
+          asRate: '',
+          letProfPer: '',
+          ntCost: '',
+          wsPercent: '',
+          wsRate: '',
+          amt: '',
+          min: '',
+          max: ''
+        };
+        
+        // Add new row to items
+        setItems(prevItems => [...prevItems, newRow]);
+        
+        // ✅ MOVE CURSOR TO NEW ROW'S NAME FIELD AFTER LOADING EDIT INVOICE
         setTimeout(() => {
-          if (dateRef.current) {
-            dateRef.current.focus();
+          const newRowIndex = (itemsData?.length || 0);
+          const nameInput = document.querySelector(
+            `input[data-row="${newRowIndex}"][data-field="name"]`
+          );
+          if (nameInput) {
+            nameInput.focus();
           }
           // Reset the flag after focus
           setTimeout(() => {
@@ -1326,7 +1381,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       if (currentRowIndex < items.length - 1) {
         // Move to next row
         const nextRowInput = document.querySelector(
-          `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+          `input[data-row="${currentRowIndex + 1}"][data-field="name"]`
         );
         if (nextRowInput) {
           nextRowInput.focus();
@@ -2522,17 +2577,25 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                         //   }
                         // }}
                          onKeyDown={(e) => {
-                        // Handle Enter key to move to QTY field
+                        // Handle Enter key to move to QTY field or Add/Less if row missed
                         if (e.key === 'Enter') {
                           e.preventDefault();
                           e.stopPropagation();
                           
-                          // Find and focus on the QTY field
-                          const qtyInput = document.querySelector(
-                            `input[data-row="${index}"][data-field="qty"]`
-                          );
-                          if (qtyInput) {
-                            qtyInput.focus();
+                          // Check if row is missed (name field is empty)
+                          if (!item.name || item.name.trim() === '') {
+                            // Skip to Add/Less field
+                            if (addLessRef.current) {
+                              addLessRef.current.focus();
+                            }
+                          } else {
+                            // Find and focus on the QTY field
+                            const qtyInput = document.querySelector(
+                              `input[data-row="${index}"][data-field="qty"]`
+                            );
+                            if (qtyInput) {
+                              qtyInput.focus();
+                            }
                           }
                           return;
                         }
@@ -2633,7 +2696,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       data-row={index}
                       data-field="ovrwt"
                       disabled={item.uom?.toUpperCase() === 'PCS'}
-                      onChange={(e) => handleItemChange(item.id, 'ovrwt', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'ovrwt', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'ovrwt')}
                       onFocus={() => setFocusedField(`ovrwt-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2646,7 +2709,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       data-row={index}
                       data-field="avgwt"
                       disabled={item.uom?.toUpperCase() === 'PCS'}
-                      onChange={(e) => handleItemChange(item.id, 'avgwt', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'avgwt', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'avgwt')}
                       onFocus={() => setFocusedField(`avgwt-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2750,7 +2813,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.acost || ''}
                       data-row={index}
                       data-field="acost"
-                      onChange={(e) => handleItemChange(item.id, 'acost', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'acost', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'acost')}
                       onFocus={() => setFocusedField(`acost-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2762,10 +2825,36 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.sudo || ''}
                       data-row={index}
                       data-field="sudo"
-                      onChange={(e) => handleItemChange(item.id, 'sudo', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.toUpperCase();
+                        // Only allow letters, max 2 characters
+                        if (/^[A-Z]{0,2}$/.test(value)) {
+                          handleItemChange(item.id, 'sudo', value);
+                        }
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sudo')}
+                      onBlur={(e) => {
+                        const value = e.target.value.toUpperCase();
+                        if (value !== '' && !/^[A-Z]{2}$/.test(value)) {
+                          showAlertConfirmation(
+                            'Sudo must be exactly 2 letters (no numbers)',
+                            () => {
+                              handleItemChange(item.id, 'sudo', '');
+                              // Focus back on the field after alert
+                              setTimeout(() => {
+                                const sudoInput = document.querySelector(
+                                  `input[data-row="${index}"][data-field="sudo"]`
+                                );
+                                if (sudoInput) {
+                                  sudoInput.focus();
+                                }
+                              }, 100);
+                            },
+                            'warning'
+                          );
+                        }
+                      }}
                       onFocus={() => setFocusedField(`sudo-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
                     />
                   </td>
                   <td style={styles.td}>
@@ -2778,6 +2867,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'profitPercent')}
                       onFocus={() => setFocusedField(`profitPercent-${item.id}`)}
                       onBlur={() => setFocusedField('')}
+                      readOnly
                     />
                   </td>
                   <td style={styles.td}>
@@ -2786,7 +2876,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.preRT || ''}
                       data-row={index}
                       data-field="preRT"
-                      onChange={(e) => handleItemChange(item.id, 'preRT', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'preRT', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'preRT')}
                       onFocus={() => setFocusedField(`preRT-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2798,7 +2888,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.sRate || ''}
                       data-row={index}
                       data-field="sRate"
-                      onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'sRate', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
                       onFocus={() => setFocusedField(`sRate-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2810,7 +2900,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.asRate || ''}
                       data-row={index}
                       data-field="asRate"
-                      onChange={(e) => handleItemChange(item.id, 'asRate', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'asRate', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'asRate')}
                       onFocus={() => setFocusedField(`asRate-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2834,7 +2924,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.letProfPer || ''}
                       data-row={index}
                       data-field="letProfPer"
-                      onChange={(e) => handleItemChange(item.id, 'letProfPer', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'letProfPer', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'letProfPer')}
                       onFocus={() => setFocusedField(`letProfPer-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2846,7 +2936,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.ntCost || ''}
                       data-row={index}
                       data-field="ntCost"
-                      onChange={(e) => handleItemChange(item.id, 'ntCost', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'ntCost', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'ntCost')}
                       onFocus={() => setFocusedField(`ntCost-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2858,7 +2948,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.wsPercent || ''}
                       data-row={index}
                       data-field="wsPercent"
-                      onChange={(e) => handleItemChange(item.id, 'wsPercent', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'wsPercent', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsPercent')}
                       onFocus={() => setFocusedField(`wsPercent-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2870,7 +2960,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.wsRate || ''}
                       data-row={index}
                       data-field="wsRate"
-                      onChange={(e) => handleItemChange(item.id, 'wsRate', e.target.value)}
+                      onChange={(e) => handleItemChange(item.id, 'wsRate', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
                       onFocus={() => setFocusedField(`wsRate-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2882,7 +2972,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.amt || ''}
                       data-row={index}
                       data-field="amt"
-                      onChange={(e) => handleItemChange(item.id, 'amt', e.target.value)}
+                      readOnly
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'amt')}
                       onFocus={() => setFocusedField(`amt-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2945,6 +3035,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         onClose={() => {
           setShowBillListPopup(false);
           setPopupMode('');
+          setItemSearchTerm('');
         }}
         title={popupMode === 'edit' ? 'Select Purchase to Edit' : 'Select Purchase to Delete'}
         fetchItems={fetchBillList}
@@ -2961,7 +3052,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         open={showSupplierPopup}
         onClose={() => { 
           setShowSupplierPopup(false); 
-          setItemSearchTerm(''); 
+          setItemSearchTerm('');
+          setBillDetails(prev => ({ ...prev, customerName: '' }));
         }}
         title="Select Supplier"
         fetchItems={fetchSupplierItems}
@@ -2991,6 +3083,13 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         onClose={() => {
           setShowItemCodePopup(false);
           setItemSearchTerm('');
+          if (selectedRowId) {
+            setItems(prevItems => 
+              prevItems.map(item => 
+                item.id === selectedRowId ? { ...item, name: '' } : item
+              )
+            );
+          }
         }}
         title="Select Item Code"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search || itemSearchTerm)}
