@@ -453,6 +453,7 @@ export default function CategoryPage() {
     if (!keepAction) setActionType("Add");
     
     setTimeout(() => catNameRef.current?.focus(), 60);
+    setActionType("Add")
   };
 
   const openEditModal = () => {

@@ -58,9 +58,9 @@ export default function ColorCreation() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.COLOR_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.COLOR_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.COLOR_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.COLOR_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.COLOR_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.COLOR_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -219,7 +219,7 @@ export default function ColorCreation() {
 
   // Additional focus for when actionType changes
   useEffect(() => {
-    if (actionType === "edit" || actionType === "Add") {
+    if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
         if (colorNameRef.current) colorNameRef.current.focus();
       }, 0);
@@ -234,7 +234,7 @@ export default function ColorCreation() {
 
   const handleEdit = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to edit colors." 
@@ -273,7 +273,7 @@ export default function ColorCreation() {
       await updateColor(colorData);
       await loadInitial();      
       setMessage({ type: "success", text: "Color updated successfully." });
-      toast.success(`Color "${form.colourName}" updated successfully.`);  
+      // toast.success(`Color "${form.colourName}" updated successfully.`);  
       setConfirmEditOpen(false);
       resetForm();
     } catch (err) {
@@ -286,7 +286,7 @@ export default function ColorCreation() {
 
   const handleDelete = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to delete colors." 
@@ -310,7 +310,7 @@ export default function ColorCreation() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Color deleted successfully." });
-      toast.error(`Color "${form.colourName}" deleted successfully.`);
+      // toast.error(`Color "${form.colourName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
@@ -329,7 +329,7 @@ export default function ColorCreation() {
 
   const handleAdd = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to create colors." 
@@ -371,7 +371,7 @@ export default function ColorCreation() {
       await loadInitial();
       
       setMessage({ type: "success", text: "Color created successfully." });
-      toast.success(`Color "${form.colourName}" created successfully.`);
+      // toast.success(`Color "${form.colourName}" created successfully.`);
       setConfirmSaveOpen(false);
       resetForm(true);
     } catch (err) {
@@ -384,8 +384,8 @@ export default function ColorCreation() {
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+    else if (actionType === "Edit") await handleEdit();
+    else if (actionType === "Delete") await handleDelete();
   };
 
   const resetForm = (keepAction = false) => {
@@ -401,6 +401,7 @@ export default function ColorCreation() {
     
     // This line already focuses on colorName field after reset - GOOD
     setTimeout(() => colorNameRef.current?.focus(), 60);
+    setActionType("Add")
   };
 
   const openEditModal = () => {
@@ -414,7 +415,7 @@ export default function ColorCreation() {
       colourCode: color.colourCode, 
       colourName: color.colourName 
     });
-    setActionType("edit");
+    setActionType("Edit");
     setEditingId(color.colourCode);
     setEditModalOpen(false);
     setTimeout(() => colorNameRef.current?.focus(), 60); // GOOD
@@ -445,7 +446,7 @@ export default function ColorCreation() {
       colourCode: color.colourCode, 
       colourName: color.colourName 
     });
-    setActionType("delete");
+    setActionType("Delete");
     setDeleteTargetId(color.colourCode);
     setDeleteModalOpen(false);
     setTimeout(() => colorNameRef.current?.focus(), 60); // GOOD
@@ -1053,8 +1054,8 @@ export default function ColorCreation() {
 
           <div className="actions" role="toolbar" aria-label="actions">
             <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "delete"} />
+            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1095,7 +1096,7 @@ export default function ColorCreation() {
                     onKeyDown={onColorNameKeyDown}
                     disabled={loading}
                     aria-label="Color Name"
-                    readOnly={actionType === "delete"}
+                    readOnly={actionType === "Delete"}
                   />
                 </div>
               </div>
@@ -1179,7 +1180,7 @@ export default function ColorCreation() {
                               colourCode: getColorCode(s), 
                               colourName: getColorName(s) 
                             });
-                            setActionType("edit");
+                            setActionType("Edit");
                           }}
                         >
                           <td>{getColorCode(s)}</td>
@@ -1228,9 +1229,10 @@ export default function ColorCreation() {
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create Color"
-        message={`Are you sure you want to create color "${form.colourName}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1251,9 +1253,10 @@ export default function ColorCreation() {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update Color"
-        message={`Are you sure you want to update color "${form.colourName}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1274,9 +1277,10 @@ export default function ColorCreation() {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Color"
-        message={`Are you sure you want to delete color "${form.colourName}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{

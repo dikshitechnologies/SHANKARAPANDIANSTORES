@@ -96,6 +96,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         role="button"
         tabIndex={isSelected ? 0 : -1}
         onKeyDown={handleKeyDown}
+        data-tree-key={node.key}
       >
         {hasChildren ? (
           <button
@@ -171,11 +172,14 @@ export default function ItemGroupCreation() {
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [selectedNode, setSelectedNode] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
+  const mainGroupRef = useRef(null);
   const subGroupRef = useRef(null);
+  const submitButtonRef = useRef(null);
   
-  // Confirmation Popup States (ADDED to match Item Creation)
-  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
+  // Confirmation Popup States (ADDED to match Unit Creation)
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   
   // Get permissions (using your hook)
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
@@ -197,6 +201,18 @@ export default function ItemGroupCreation() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // Effect to focus sub group input when in edit mode and sub group is selected
+  useEffect(() => {
+    if (actionType === "edit" && subGroup && fCode) {
+      // Small timeout to ensure DOM is updated
+      setTimeout(() => {
+        if (subGroupRef.current) {
+          subGroupRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [actionType, subGroup, fCode]);
 
   const loadInitial = async () => {
     setLoading(true);
@@ -348,79 +364,51 @@ export default function ItemGroupCreation() {
 
   // Handle keyboard navigation for tree nodes
   const handleTreeNavigation = useCallback((direction, currentKey) => {
-    const getAllNodes = (nodes) => {
-      const result = [];
-      nodes.forEach(node => {
-        result.push(node);
-        if (expandedKeys.has(node.key) && node.children) {
-          result.push(...getAllNodes(node.children));
+    const flatten = (nodes) => {
+      let out = [];
+      nodes.forEach(n => {
+        out.push(n);
+        if (expandedKeys.has(n.key) && n.children?.length) {
+          out = out.concat(flatten(n.children));
         }
       });
-      return result;
+      return out;
     };
 
-    const allNodes = getAllNodes(filteredTree);
-    const currentIndex = allNodes.findIndex(n => n.key === currentKey);
-    
-    if (currentIndex === -1) return;
+    const list = flatten(filteredTree);
+    const idx = list.findIndex(n => n.key === currentKey);
+    if (idx === -1) return;
 
-    let nextIndex = direction === "down" ? currentIndex + 1 : currentIndex - 1;
-    if (nextIndex < 0) nextIndex = 0;
-    if (nextIndex >= allNodes.length) nextIndex = allNodes.length - 1;
+    const next = direction === "down" ? idx + 1 : idx - 1;
+    const target = list[Math.max(0, Math.min(next, list.length - 1))];
 
-    const nextNode = allNodes[nextIndex];
-    if (nextNode) {
-      setSelectedNode(nextNode);
-      handleSelectNode(nextNode);
+    if (target) {
+      setSelectedNode(target); // 🔥 only move selection, don't close tree
+      // Focus the newly selected node
+      setTimeout(() => {
+        const elem = document.querySelector(`[data-tree-key="${target.key}"]`);
+        elem?.focus();
+      }, 0);
     }
   }, [filteredTree, expandedKeys]);
 
-  // Show confirmation popup (ADDED to match Item Creation)
-  const showConfirmationPopup = (action) => {
-    setConfirmAction(action);
-    setShowConfirmPopup(true);
-  };
-
-  // Handle confirmation from popup (ADDED to match Item Creation)
-  const handleConfirmAction = async () => {
-    setShowConfirmPopup(false);
-    
-    if (confirmAction === 'clear') {
-    setActionType("Add");
-      resetForm();
-      return;
-    }
-    
-    // For save, update, delete actions, proceed with validation and submission
-    if (!validateForSubmit()) {
-      return;
-    }
-
-    // Check permissions based on action type
-    if (actionType === 'Add' && !formPermissions.add) {
-      setMessage({ type: "error", text: "You don't have permission to add item groups." });
-      return;
-    }
-    if (actionType === 'edit' && !formPermissions.edit) {
-      setMessage({ type: "error", text: "You don't have permission to edit item groups." });
-      return;
-    }
-    if (actionType === 'delete' && !formPermissions.delete) {
-      setMessage({ type: "error", text: "You don't have permission to delete item groups." });
-      return;
-    }
-
-    // Your original handleAdd/handleEdit/handleDelete logic
-    if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
-  };
-
+  // Add / Edit / Delete handlers
   const handleAdd = async () => {
+    // Check permission before allowing action
+    if (!formPermissions.add) {
+      toast.error("You don't have permission to add item groups.");
+      return;
+    }
     if (!validateForSubmit()) return;
+    setConfirmSaveOpen(true);
+  };
+
+  const confirmSave = async () => {
+    setConfirmSaveOpen(false);
     setSubmitting(true);
     setMessage(null);
     try {
+      setActionType("Add");
       const payload = {
         fitemcode: "",
         subGroup: subGroup.trim(),
@@ -429,30 +417,32 @@ export default function ItemGroupCreation() {
       };
       const resp = await api.post(endpoints.postCreate, payload);
       if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Saved successfully." });
-        toast.success(`Item Group "${subGroup}" created successfully.`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        // toast.success("Item group created successfully.");
         resetForm();
         await loadInitial();
       } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
+        toast.error(`Unexpected server response: ${resp.status}`);
       }
     } catch (err) {
-      console.error("Add error:", err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Save failed" });
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Save failed");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleEdit = async () => {
+    // Check permission before allowing action
+    if (!formPermissions.edit) {
+      toast.error("You don't have permission to edit item groups.");
+      return;
+    }
     if (!validateForSubmit()) return;
+    setConfirmEditOpen(true);
+  };
+
+  const confirmEdit = async () => {
+    setConfirmEditOpen(false);
     setSubmitting(true);
     setMessage(null);
     try {
@@ -464,57 +454,90 @@ export default function ItemGroupCreation() {
       };
       const resp = await api.put(endpoints.putEdit, payload);
       if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Updated successfully." });
-        toast.success(`Item Group "${subGroup}" updated successfully.`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        // toast.success("Item group updated successfully.");
         setActionType("Add");
         resetForm();
         await loadInitial();
       } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
+        toast.error(`Unexpected server response: ${resp.status}`);
       }
     } catch (err) {
-      console.error("Edit error:", err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Update failed");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
+    // Check permission before allowing action
+    if (!formPermissions.delete) {
+      toast.error("You don't have permission to delete item groups.");
+      return;
+    }
     if (!validateForSubmit()) return;
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
     setSubmitting(true);
     setMessage(null);
     try {
       const deleteEndpoint = typeof endpoints.delete === 'function' ? endpoints.delete(fCode) : endpoints.delete;
       const resp = await api.delete(deleteEndpoint);
       if (resp.status === 200 || resp.status === 201) {
-        setMessage({ type: "success", text: "Deleted successfully." });
-        toast.success(`Item Group "${subGroup}" deleted successfully.`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        // toast.success("Item group deleted successfully.");
         setActionType("Add");
         resetForm();
         await loadInitial();
       } else {
-        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
+        toast.error(`Unexpected server response: ${resp.status}`);
       }
     } catch (err) {
-      console.error("Delete error:", err);
-      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Delete failed");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (actionType === "Add") await handleAdd();
+    else if (actionType === "edit") await handleEdit();
+    else if (actionType === "delete") await handleDelete();
+  };
+
+  // Handle keyboard navigation in Main Group input
+  const handleMainGroupKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      subGroupRef.current?.focus();
+    }
+  };
+
+  // Handle Enter key press in sub group input for edit mode
+ const handleSubGroupKeyDown = (e) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      mainGroupRef.current?.focus();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (actionType === "edit" && subGroup && fCode) {
+        // In edit mode with sub group selected, pressing Enter triggers edit
+        submitButtonRef.current?.focus();
+        
+      } else if (actionType === "Add") {
+        // In add mode, just focus submit button
+        submitButtonRef.current?.focus();
+      }
+      else if (actionType === "delete") {
+        // In delete mode, just focus submit button
+                submitButtonRef.current?.focus();
+
+      }
+      handleSubmit();
     }
   };
 
@@ -525,57 +548,6 @@ export default function ItemGroupCreation() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fCode]);
-
-  // Get confirmation popup configuration (ADDED to match Item Creation)
-  const getConfirmationConfig = () => {
-    switch (confirmAction) {
-      case 'save':
-        return {
-          title: 'Save Item Group',
-          message: 'Are you sure you want to save this item group?',
-          confirmText: 'Save',
-          type: 'success',
-          iconSize: 24,
-          showIcon: true
-        };
-      case 'update':
-        return {
-          title: 'Update Item Group',
-          message: 'Are you sure you want to update this item group?',
-          confirmText: 'Update',
-          type: 'success',
-          iconSize: 24,
-          showIcon: true
-        };
-      case 'delete':
-        return {
-          title: 'Delete Item Group',
-          message: 'Are you sure you want to delete this item group? This action cannot be undone.',
-          confirmText: 'Delete',
-          type: 'danger',
-          iconSize: 24,
-          showIcon: true
-        };
-      case 'clear':
-        return {
-          title: 'Clear Form',
-          message: 'Are you sure you want to clear all fields? All unsaved changes will be lost.',
-          confirmText: 'Clear',
-          type: 'warning',
-          iconSize: 24,
-          showIcon: true
-        };
-      default:
-        return {
-          title: 'Confirm Action',
-          message: 'Are you sure you want to proceed?',
-          confirmText: 'Confirm',
-          type: 'default',
-          iconSize: 24,
-          showIcon: true
-        };
-    }
-  };
 
   return (
     <div className="lg-root" role="region" aria-labelledby="item-group-title">
@@ -651,15 +623,16 @@ export default function ItemGroupCreation() {
           width: 100%;
           max-width: 700px;
           border-radius: 16px;
-          padding: 20px;
+          padding: 24px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          margin-bottom: 160px;
         }
-        .dashboard:hover { transform: translateY(-6px); }
+        .dashboard:hover { transform: translateY(-2px); }
 
         /* header - SAME as Item Creation */
         .top-row {
@@ -667,13 +640,14 @@ export default function ItemGroupCreation() {
           align-items:center;
           justify-content:space-between;
           gap:12px;
-          margin-bottom: 18px;
+          margin-bottom: 24px;
           flex-wrap: wrap;
         }
         .title-block {
           display:flex;
-          align-items: center;
-          gap:12px;
+          flex-direction: row;
+          align-items: flex-start;
+          gap: 4px;
         }
         .title-block h2 {
           margin:0;
@@ -934,7 +908,7 @@ export default function ItemGroupCreation() {
         .submit-row { 
           display: flex; 
           gap: 12px; 
-          margin-top: 14px; 
+          margin-top: 16px; 
           align-items: center; 
           justify-content: flex-end;
           width: 100%;
@@ -971,6 +945,7 @@ export default function ItemGroupCreation() {
           cursor:pointer;
           font-family: inherit;
           transition: all 0.2s;
+          font-weight: 600;
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
@@ -1204,29 +1179,31 @@ export default function ItemGroupCreation() {
 
           <div className="actions" role="toolbar" aria-label="actions">
             <AddButton
-              onClick={() => setActionType("Add")}
+              onClick={() => { setActionType("Add"); resetForm(); }}
               disabled={submitting || !formPermissions.add}
-              isActive={actionType === "Add"}
+              isActive={actionType === 'Add'}
             />
 
             <EditButton
               onClick={(e) => {
                 e.currentTarget.blur();
                 setActionType("edit");
+                resetForm();
                 setIsPopupOpen(true);
               }}
               disabled={submitting || !formPermissions.edit}
-              isActive={actionType === "edit"}
+              isActive={actionType === 'edit'}
             />
 
             <DeleteButton
               onClick={(e) => {
                 e.currentTarget.blur();
                 setActionType("delete");
+                resetForm();
                 setIsPopupOpen(true);
               }}
               disabled={submitting || !formPermissions.delete}
-              isActive={actionType === "delete"}
+              isActive={actionType === 'delete'}
             />
           </div>
         </div>
@@ -1236,66 +1213,45 @@ export default function ItemGroupCreation() {
             {/* Main Group field with SAME design as Item Creation */}
             <div className="field">
               <label className="field-label">Main Group</label>
-              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-                <div style={{
-                  display: "flex",
-                  flex: 1,
+              <div className="row" style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  display: "flex", 
+                  flex: 1, 
                   border: "1px solid rgba(15,23,42,0.06)",
                   borderRadius: "10px",
                   overflow: "hidden",
-                  background: "linear-gradient(180deg, #fff, #fbfdff)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                  backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
                 }}>
                   <input
+                    ref={mainGroupRef}
                     className="input"
                     value={mainGroup}
                     onChange={(e) => setMainGroup(e.target.value)}
+                    onFocus={() => setIsTreeOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        setIsTreeOpen(true);
+                        // Focus first visible node
+                        setTimeout(() => {
+                          const firstNode = document.querySelector(".tree-row");
+                          firstNode?.focus();
+                        }, 50);
+                      } else {
+                        handleMainGroupKeyDown(e);
+                      }
+                    }}
                     readOnly={actionType !== "Add"}
                     disabled={submitting}
                     aria-label="Main Group"
-                    style={{
+                    style={{ 
                       flex: 1,
                       border: "none",
-                      borderRadius: 0,
+                      borderRadius: "0",
                       padding: "10px 12px",
-                      minWidth: "120px",
-                      fontSize: "14px",
-                      outline: "none",
-                      cursor: actionType === "Add" ? "pointer" : "default"
+                      minWidth: "0"
                     }}
                   />
-                  {/* <button
-                    className="btn"
-                    onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
-                    disabled={submitting || actionType !== "Add"}
-                    type="button"
-                    aria-expanded={isTreeOpen}
-                    aria-controls="group-tree"
-                    style={{
-                      flexShrink: 0,
-                      border: "none",
-                      borderLeft: "1px solid rgba(15,23,42,0.06)",
-                      borderRadius: 0,
-                      padding: "8px 12px",
-                      minWidth: "70px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      background: "linear-gradient(180deg,#fff,#f8fafc)",
-                      cursor: submitting || actionType !== "Add" ? "not-allowed" : "pointer",
-                      color: "#0f172a",
-                      transition: "all 0.2s"
-                    }}
-                    onMouseOver={(e) => {
-                      if (!submitting && actionType === "Add") {
-                        e.currentTarget.style.background = "linear-gradient(180deg,#f8fafc,#f1f5f9)";
-                      }
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.background = "linear-gradient(180deg,#fff,#f8fafc)";
-                    }}
-                  >
-                    {isTreeOpen ? "Close" : "Open"}
-                  </button> */}
                 </div>
               </div>
 
@@ -1336,7 +1292,17 @@ export default function ItemGroupCreation() {
                         </div>
                       </div>
 
-                      <div className="tree-scroll" role="tree" aria-label="Group list">
+                      <div
+                        className="tree-scroll"
+                        role="tree"
+                        aria-label="Group list"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            setIsTreeOpen(false);
+                          }
+                        }}
+                      >
                         {loading ? (
                           <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
                         ) : filteredTree.length === 0 ? (
@@ -1346,10 +1312,7 @@ export default function ItemGroupCreation() {
                             <TreeNode
                               key={node.key}
                               node={node}
-                              onSelect={(n) => {
-                                handleSelectNode(n);
-                                setIsTreeOpen(false);
-                              }}
+                              onSelect={(n) => { handleSelectNode(n); setIsTreeOpen(false); }}
                               expandedKeys={expandedKeys}
                               toggleExpand={toggleExpand}
                               selectedKey={selectedNode?.key}
@@ -1361,16 +1324,9 @@ export default function ItemGroupCreation() {
                     </div>
                   </div>
                 ) : (
-                  <div className="panel" id="group-tree" role="tree" aria-label="Group list">
+                  <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
                     <div className="row" style={{ marginBottom: 8 }}>
                       <div className="search-container">
-                        <input
-                          className="search-with-clear"
-                          placeholder="Search groups..."
-                          value={searchTree}
-                          onChange={(e) => setSearchTree(e.target.value)}
-                          aria-label="Search groups"
-                        />
                         {searchTree && (
                           <button
                             className="clear-search-btn"
@@ -1384,7 +1340,17 @@ export default function ItemGroupCreation() {
                       </div>
                     </div>
 
-                    <div className="tree-scroll">
+                    <div
+                      className="tree-scroll"
+                      role="tree"
+                      aria-label="Group list"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setIsTreeOpen(false);
+                        }
+                      }}
+                    >
                       {loading ? (
                         <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
                       ) : filteredTree.length === 0 ? (
@@ -1408,88 +1374,34 @@ export default function ItemGroupCreation() {
               )}
             </div>
 
-            {/* Sub Group field with SAME design */}
+            {/* Sub Group field */}
             <div className="field">
               <label className="field-label">Sub Group</label>
               <div className="row">
                 {actionType === "Add" ? (
-                  <div style={{
-                    display: "flex",
-                    flex: 1,
-                    border: "1px solid rgba(15,23,42,0.06)",
-                    borderRadius: "10px",
-                    overflow: "hidden",
-                    background: "linear-gradient(180deg, #fff, #fbfdff)",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                  }}>
-                    <input
-                      ref={subGroupRef}
-                      className="input"
-                      value={subGroup}
-                      onChange={(e) => setSubGroup(e.target.value)}
-                      disabled={submitting}
-                      aria-label="Sub Group"
-                      style={{
-                        flex: 1,
-                        border: "none",
-                        borderRadius: 0,
-                        padding: "10px 12px",
-                        minWidth: "120px",
-                        fontSize: "14px",
-                        outline: "none"
-                      }}
-                    />
-                  </div>
+                  <input
+                    ref={subGroupRef}
+                    className="input"
+                    value={subGroup}
+                    onChange={(e) => setSubGroup(e.target.value)}
+                    onKeyDown={handleSubGroupKeyDown}
+                    placeholder="Enter Sub Group"
+                    disabled={submitting}
+                    aria-label="Sub Group"
+                  />
                 ) : (
-                  <div style={{
-                    display: "flex",
-                    flex: 1,
-                    border: "1px solid rgba(15,23,42,0.06)",
-                    borderRadius: "10px",
-                    overflow: "hidden",
-                    background: "linear-gradient(180deg, #fff, #fbfdff)",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                  }}>
-                    <input
-                      className="input"
-                      value={subGroup}
-                      onChange={(e) => setSubGroup(e.target.value)}
-                      placeholder="Select Sub Group"
-                      disabled={submitting}
-                      readOnly={actionType === "delete"}
-                      aria-label="Sub Group"
-                      style={{
-                        flex: 1,
-                        border: "none",
-                        borderRadius: 0,
-                        padding: "10px 12px",
-                        minWidth: "120px",
-                        fontSize: "14px",
-                        outline: "none"
-                      }}
-                    />
-                  </div>
+                  <input
+                    ref={subGroupRef}
+                    className="input"
+                    value={subGroup}
+                    onChange={(e) => setSubGroup(e.target.value)}
+                    onKeyDown={handleSubGroupKeyDown}
+                    placeholder="Select Sub Group"
+                    disabled={submitting}
+                    readOnly={actionType === "delete"}
+                    aria-label="Sub Group"
+                  />
                 )}
-
-                {/* {(actionType === "edit" || actionType === "delete") && (
-                  <button
-                    className="btn"
-                    onClick={() => { setIsDropdownOpen(true); setIsTreeOpen(false); }}
-                    type="button"
-                    aria-expanded={isDropdownOpen}
-                    aria-controls="subgroup-dropdown"
-                    style={{
-                      padding: "10px 12px",
-                      border: "1px solid rgba(12,18,35,0.1)",
-                      borderRadius: "10px",
-                      background: "linear-gradient(180deg,#fff,#f8fafc)",
-                      cursor: "pointer",
-                      fontWeight: "600"
-                    }}
-                  >
-                    <Icon.Search /> Search
-                  </button>
-                )} */}
               </div>
             </div>
 
@@ -1500,15 +1412,12 @@ export default function ItemGroupCreation() {
               </div>
             )}
 
-            {/* Submit controls with SAME design */}
+            {/* Submit controls */}
             <div className="submit-row">
               <button
+                ref={submitButtonRef}
                 className="submit-primary"
-                onClick={() => {
-                  const action = actionType === 'Add' ? 'save' : 
-                                actionType === 'edit' ? 'update' : 'Delete';
-                  showConfirmationPopup(action);
-                }}
+                onClick={handleSubmit}
                 disabled={submitting}
                 type="button"
               >
@@ -1516,7 +1425,7 @@ export default function ItemGroupCreation() {
               </button>
               <button
                 className="submit-clear"
-                onClick={() => showConfirmationPopup('clear')}
+                onClick={resetForm}
                 disabled={submitting}
                 type="button"
               >
@@ -1527,12 +1436,76 @@ export default function ItemGroupCreation() {
         </div>
       </div>
 
-      {/* Confirmation Popup (ADDED to match Item Creation) */}
+      {/* Confirmation Popup for Add */}
       <ConfirmationPopup
-        isOpen={showConfirmPopup}
-        onClose={() => setShowConfirmPopup(false)}
-        onConfirm={handleConfirmAction}
-        {...getConfirmationConfig()}
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Item Group"
+        message="Do you want to save?"
+        type="success"
+        confirmText={submitting ? "Creating..." : "Yes"}
+        cancelText="No"
+        showLoading={submitting}
+        disableBackdropClose={submitting}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Edit */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Item Group"
+        message="Do you want to modify?"
+        type="warning"
+        confirmText={submitting ? "Updating..." : "Yes"}
+        cancelText="No"
+        showLoading={submitting}
+        disableBackdropClose={submitting}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Delete */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Item Group"
+        message="Do you want to delete?"
+        type="danger"
+        confirmText={submitting ? "Deleting..." : "Yes"}
+        cancelText="No"
+        showLoading={submitting}
+        disableBackdropClose={submitting}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
 
       {/* Dropdown modal */}
@@ -1598,7 +1571,7 @@ export default function ItemGroupCreation() {
         </div>
       )}
 
-      {/* Popup selector for Edit action */}
+      {/* Popup selector for Edit/Delete action */}
       <PopupListSelector
         open={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
@@ -1607,6 +1580,7 @@ export default function ItemGroupCreation() {
           setSubGroup(item.fName || '');
           setFCode(item.fCode || '');
           setIsPopupOpen(false);
+          setIsTreeOpen(true);
         }}
         fetchItems={fetchPopupItems}
         title={`Select Item Group to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}

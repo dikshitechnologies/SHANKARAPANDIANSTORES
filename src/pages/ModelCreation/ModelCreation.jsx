@@ -58,9 +58,9 @@ export default function ModelCreation() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.MODEL_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.MODEL_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.MODEL_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.MODEL_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.MODEL_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.MODEL_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
@@ -227,7 +227,7 @@ useEffect(() => {
 
 // Additional focus for when actionType changes
 useEffect(() => {
-  if (actionType === "edit" || actionType === "Add") {
+  if (actionType === "Edit" || actionType === "Add") {
     const timer = setTimeout(() => {
       if (modelNameRef.current) modelNameRef.current.focus();
     }, 0);
@@ -246,7 +246,7 @@ useEffect(() => {
 
   const handleEdit = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to edit models." 
@@ -276,7 +276,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Model updated successfully." });
-      toast.success(`Model "${form.modelName}" updated successfully.`);
+      // toast.success(`Model "${form.modelName}" updated successfully.`);
       setConfirmEditOpen(false);
       resetForm();
     } catch (err) {
@@ -290,7 +290,7 @@ useEffect(() => {
 
   const handleDelete = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to delete models." 
@@ -314,7 +314,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Model deleted successfully." });
-      toast.error(`Model "${form.modelName}" deleted successfully.`);
+      // toast.error(`Model "${form.modelName}" deleted successfully.`);
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
@@ -337,7 +337,7 @@ useEffect(() => {
 
   const handleAdd = async () => {
     // === PERMISSION CHECK ===
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       setMessage({ 
         type: "error", 
         text: "You do not have permission to create models." 
@@ -368,7 +368,7 @@ useEffect(() => {
       await loadInitial();
       
       setMessage({ type: "success", text: "Model created successfully." });
-      toast.success(`Model "${form.modelName}" created successfully.`);
+      // toast.success(`Model "${form.modelName}" created successfully.`);
       setConfirmSaveOpen(false);
       resetForm(true);
     } catch (err) {
@@ -390,8 +390,8 @@ useEffect(() => {
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+    else if (actionType === "Edit") await handleEdit();
+    else if (actionType === "Delete") await handleDelete();
   };
 
   const resetForm = (keepAction = false) => {
@@ -407,6 +407,7 @@ useEffect(() => {
   
   // This line already focuses on modelName field after reset - GOOD
   setTimeout(() => modelNameRef.current?.focus(), 60);
+  setActionType("Add")
 };
 
   const openEditModal = () => {
@@ -425,7 +426,7 @@ useEffect(() => {
     fuCode: modelCode, 
     modelName: modelName 
   });
-  setActionType("edit");
+  setActionType("Edit");
   setEditingId(modelCode);
   setEditModalOpen(false);
   setTimeout(() => modelNameRef.current?.focus(), 60); // GOOD
@@ -465,7 +466,7 @@ useEffect(() => {
     fuCode: modelCode, 
     modelName: modelName 
   });
-  setActionType("delete");
+  setActionType("Delete");
   setDeleteTargetId(modelCode);
   setDeleteModalOpen(false);
   setTimeout(() => modelNameRef.current?.focus(), 60); // GOOD
@@ -1085,9 +1086,9 @@ useEffect(() => {
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.edit} isActive={actionType === "edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.delete} isActive={actionType === "delete"} />
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.Add} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.Edit} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.Delete} isActive={actionType === "Delete"} />
           </div>
         </div>
 
@@ -1128,7 +1129,7 @@ useEffect(() => {
                     onKeyDown={onModelNameKeyDown}
                     disabled={loading}
                     aria-label="Model Name"
-                    readOnly={actionType === "delete"}
+                    readOnly={actionType === "Delete"}
                   />
                 </div>
               </div>
@@ -1212,7 +1213,7 @@ useEffect(() => {
                               fuCode: getModelCode(s), 
                               modelName: getModelName(s) 
                             });
-                            setActionType("edit");
+                            setActionType("Edit");
                           }}
                         >
                           <td>{getModelCode(s)}</td>
@@ -1262,9 +1263,10 @@ useEffect(() => {
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
         title="Create Model"
-        message={`Are you sure you want to create model "${form.modelName}"? This action cannot be undone.`}
+        message={`Do you want to save?`}
         type="success"
-        confirmText={isLoading ? "Creating..." : "Create"}
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1285,9 +1287,10 @@ useEffect(() => {
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
         title="Update Model"
-        message={`Are you sure you want to update model "${form.modelName}"? This action cannot be undone.`}
+        message={`Do you want to modify?`}
         type="warning"
-        confirmText={isLoading ? "Updating..." : "Update"}
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{
@@ -1308,9 +1311,10 @@ useEffect(() => {
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Model"
-        message={`Are you sure you want to delete model "${form.modelName}"? This action cannot be undone.`}
+        message={`Do you want to delete?`}
         type="danger"
-        confirmText={isLoading ? "Deleting..." : "Delete"}
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
         showLoading={isLoading}
         disableBackdropClose={isLoading}
         customStyles={{

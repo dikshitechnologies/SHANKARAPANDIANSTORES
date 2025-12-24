@@ -56,10 +56,40 @@ const Icon = {
 };
 
 // --- Tree node component ---
-function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey }) {
+function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selectedKey, onNavigate }) {
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedKeys.has(node.key);
   const isSelected = selectedKey === node.key;
+
+  const handleKeyDown = (e) => {
+    switch (e.key) {
+      case "Enter":
+        e.preventDefault();
+        if (hasChildren && !isExpanded) {
+          toggleExpand(node.key);
+        } else {
+          onSelect(node);
+        }
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        if (hasChildren && !isExpanded) {
+          toggleExpand(node.key);
+        }
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        if (hasChildren && isExpanded) {
+          toggleExpand(node.key);
+        }
+        break;
+      case "ArrowUp":
+      case "ArrowDown":
+        e.preventDefault();
+        onNavigate?.(e.key === "ArrowUp" ? "up" : "down", node.key);
+        break;
+    }
+  };
 
   return (
     <div className="tree-node" style={{ paddingLeft: `${12 + level * 16}px` }}>
@@ -68,14 +98,8 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         onClick={() => onSelect(node)}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            onSelect(node);
-          } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-            // Allow tree navigation to handle arrow keys
-            e.stopPropagation();
-          }
-        }}
+        data-key={node.key}
+        onKeyDown={handleKeyDown}
       >
         {hasChildren ? (
           <button
@@ -120,6 +144,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
                 expandedKeys={expandedKeys}
                 toggleExpand={toggleExpand}
                 selectedKey={selectedKey}
+                onNavigate={onNavigate}
               />
             ))}
         </div>
@@ -152,7 +177,11 @@ const ItemCreation = ({ onCreated }) => {
   const [message, setMessage] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
   
-  // Confirmation Popup States
+  // Confirmation Popup States (ADDED to match Unit Creation)
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
@@ -579,6 +608,69 @@ const handleKeyNavigation = (e) => {
     return true;
   };
 
+  // Show confirmation popup for Create (ADDED to match Unit Creation)
+  const showCreateConfirmation = () => {
+    setConfirmSaveOpen(true);
+  };
+
+  // Handle Create confirmation (ADDED to match Unit Creation)
+  const confirmCreate = async () => {
+    setConfirmSaveOpen(false);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    if (!formPermissions.add) {
+      setMessage({ type: "error", text: "You don't have permission to create items." });
+      return;
+    }
+
+    await handleConfirmAction('create');
+  };
+
+  // Show confirmation popup for Edit (ADDED to match Unit Creation)
+  const showEditConfirmation = () => {
+    setConfirmEditOpen(true);
+  };
+
+  // Handle Edit confirmation (ADDED to match Unit Creation)
+  const confirmEdit = async () => {
+    setConfirmEditOpen(false);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    if (!formPermissions.edit) {
+      setMessage({ type: "error", text: "You don't have permission to edit items." });
+      return;
+    }
+
+    await handleConfirmAction('edit');
+  };
+
+  // Show confirmation popup for Delete (ADDED to match Unit Creation)
+  const showDeleteConfirmation = () => {
+    setConfirmDeleteOpen(true);
+  };
+
+  // Handle Delete confirmation (ADDED to match Unit Creation)
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    if (!formPermissions.delete) {
+      setMessage({ type: "error", text: "You don't have permission to delete items." });
+      return;
+    }
+
+    await handleConfirmAction('delete');
+  };
+
   // Show confirmation popup
   const showConfirmationPopup = (action, data = null) => {
     setConfirmAction(action);
@@ -587,34 +679,8 @@ const handleKeyNavigation = (e) => {
   };
 
   // Handle confirmation from popup - UPDATED with toast notifications
-  const handleConfirmAction = async () => {
-    setShowConfirmPopup(false);
-    
-    if (confirmAction === 'clear') {
-      handleClear();
-      return;
-    }
-    
-    // For save, update, delete actions, proceed with validation and submission
-    if (!validateForm()) {
-      return;
-    }
-
-    // Check permissions based on action type
-    if (actionType === 'create' && !formPermissions.add) {
-      setMessage({ type: "error", text: "You don't have permission to create items." });
-      return;
-    }
-    if (actionType === 'edit' && !formPermissions.edit) {
-      setMessage({ type: "error", text: "You don't have permission to edit items." });
-      return;
-    }
-    if (actionType === 'delete' && !formPermissions.delete) {
-      setMessage({ type: "error", text: "You don't have permission to delete items." });
-      return;
-    }
-
-    setIsSubmitting(true);
+  const handleConfirmAction = async (actionType) => {
+    setIsLoading(true);
     setMessage(null);
     
     try {
@@ -675,7 +741,7 @@ const handleKeyNavigation = (e) => {
 
         default:
           setMessage({ type: "error", text: 'Invalid action type' });
-          setIsSubmitting(false);
+          setIsLoading(false);
           return;
       }
 
@@ -684,14 +750,7 @@ const handleKeyNavigation = (e) => {
       handleClear();
       
       // Show success toast notification - ADDED
-      toast.success(successMessage, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      
       
     } catch (error) {
       console.error('Submit error:', error);
@@ -717,7 +776,7 @@ const handleKeyNavigation = (e) => {
         setMessage({ type: "error", text: `Error: ${error.message}. Please check your connection and try again.` });
       }
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -1062,6 +1121,42 @@ const handleKeyNavigation = (e) => {
     };
     return filter(treeData);
   }, [treeData, searchTree]);
+
+  const handleTreeNavigation = useCallback((direction, currentKey) => {
+    const getAllNodes = (nodes) => {
+      const result = [];
+      for (const node of nodes) {
+        result.push(node);
+        if (expandedKeys.has(node.key) && node.children) {
+          result.push(...getAllNodes(node.children));
+        }
+      }
+      return result;
+    };
+
+    const allNodes = getAllNodes(filteredTree);
+    const currentIndex = allNodes.findIndex(n => n.key === currentKey);
+    
+    if (direction === "up") {
+      const newIndex = Math.max(0, currentIndex - 1);
+      const newNode = allNodes[newIndex];
+      if (newNode) {
+        setSelectedNode(newNode);
+        setTimeout(() => {
+          document.querySelector(`[data-key="${newNode.key}"]`)?.focus();
+        }, 0);
+      }
+    } else if (direction === "down") {
+      const newIndex = Math.min(allNodes.length - 1, currentIndex + 1);
+      const newNode = allNodes[newIndex];
+      if (newNode) {
+        setSelectedNode(newNode);
+        setTimeout(() => {
+          document.querySelector(`[data-key="${newNode.key}"]`)?.focus();
+        }, 0);
+      }
+    }
+  }, [filteredTree, expandedKeys]);
 
   // Custom fetch functions that include the initial search
   const fetchBrandsWithSearch = useCallback(async (page = 1, search = '') => {
@@ -2082,87 +2177,23 @@ const handleKeyNavigation = (e) => {
           isInitialFocusRef.current = false;
         }}
         onKeyDown={(e) => {
-          // Type letters → Tree opens (for single key presses)
-          if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
-            setIsTreeOpen(true);
-          }
-          
-          // Handle arrow keys and Enter when tree is open
-          if (isTreeOpen && filteredTree.length > 0) {
-            const treeItems = document.querySelectorAll('.tree-row');
-            
-            switch(e.key) {
-              case 'ArrowDown':
-                e.preventDefault();
-                // Find current selected index
-                let currentIndex = -1;
-                treeItems.forEach((item, index) => {
-                  if (item.classList.contains('selected')) {
-                    currentIndex = index;
-                  }
-                });
-                
-                // Select next item or first if none selected
-                const nextIndex = currentIndex < treeItems.length - 1 ? currentIndex + 1 : 0;
-                if (treeItems[nextIndex]) {
-                  // Remove selection from all
-                  treeItems.forEach(item => item.classList.remove('selected'));
-                  // Add selection to next
-                  treeItems[nextIndex].classList.add('selected');
-                  // Update selected node
-                  const nextNode = filteredTree[nextIndex];
-                  if (nextNode) {
-                    setSelectedNode(nextNode);
-                  }
-                  // Scroll into view
-                  treeItems[nextIndex].scrollIntoView({ block: 'nearest' });
+          // Enter key opens tree and focuses first node
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (!isTreeOpen) {
+              setIsTreeOpen(true);
+              setTimeout(() => {
+                const firstNode = filteredTree[0];
+                if (firstNode) {
+                  setSelectedNode(firstNode);
+                  document.querySelector(`[data-key="${firstNode.key}"]`)?.focus();
                 }
-                break;
-                
-              case 'ArrowUp':
-                e.preventDefault();
-                // Find current selected index
-                let currentIdx = -1;
-                treeItems.forEach((item, index) => {
-                  if (item.classList.contains('selected')) {
-                    currentIdx = index;
-                  }
-                });
-                
-                // Select previous item or last if none selected
-                const prevIndex = currentIdx > 0 ? currentIdx - 1 : treeItems.length - 1;
-                if (treeItems[prevIndex]) {
-                  // Remove selection from all
-                  treeItems.forEach(item => item.classList.remove('selected'));
-                  // Add selection to previous
-                  treeItems[prevIndex].classList.add('selected');
-                  // Update selected node
-                  const prevNode = filteredTree[prevIndex];
-                  if (prevNode) {
-                    setSelectedNode(prevNode);
-                  }
-                  // Scroll into view
-                  treeItems[prevIndex].scrollIntoView({ block: 'nearest' });
-                }
-                break;
-                
-              case 'Enter':
-                e.preventDefault();
-                // Press Enter → Select highlighted
-                if (selectedNode) {
-                  handleSelectNode(selectedNode);
-                  setIsTreeOpen(false);
-                  setTimeout(() => {
-      itemNameRef.current?.focus();
-    }, 10);
-                }
-                break;
-                
-              case 'Escape':
-                e.preventDefault();
-                setIsTreeOpen(false);
-                break;
+              }, 0);
             }
+          }
+          // Type letters → Tree opens (for single key presses)
+          else if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
+            setIsTreeOpen(true);
           }
         }}
         disabled={isSubmitting}
@@ -2198,7 +2229,7 @@ const handleKeyNavigation = (e) => {
 
           <div className="row" style={{ marginBottom: 8 }}>
             <div className="search-container">
-              <input
+              {/* <input
                 className="search-with-clear"
                 placeholder="Search groups..."
                 value={searchTree}
@@ -2210,7 +2241,7 @@ const handleKeyNavigation = (e) => {
                     setIsTreeOpen(false);
                   }
                 }}
-              />
+              /> */}
               {searchTree && (
                 <button
                   className="clear-search-btn"
@@ -2247,6 +2278,7 @@ const handleKeyNavigation = (e) => {
                   expandedKeys={expandedKeys}
                   toggleExpand={toggleExpand}
                   selectedKey={selectedNode?.key}
+                  onNavigate={handleTreeNavigation}
                 />
               ))
             )}
@@ -2257,7 +2289,7 @@ const handleKeyNavigation = (e) => {
       <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
         <div className="row" style={{ marginBottom: 8 }}>
           <div className="search-container">
-            <input
+            {/* <input
               className="search-with-clear"
               placeholder="Search groups..."
               value={searchTree}
@@ -2269,7 +2301,7 @@ const handleKeyNavigation = (e) => {
                   setIsTreeOpen(false);
                 }
               }}
-            />
+            /> */}
             {searchTree && (
               <button
                 className="clear-search-btn"
@@ -2306,6 +2338,7 @@ const handleKeyNavigation = (e) => {
                   expandedKeys={expandedKeys}
                   toggleExpand={toggleExpand}
                   selectedKey={selectedNode?.key}
+                  onNavigate={handleTreeNavigation}
                 />
               ))
             )}
@@ -2790,21 +2823,21 @@ const handleKeyNavigation = (e) => {
                   }
 
                   // Show confirmation popup based on action type
-                  const action = actionType === 'create' ? 'save' : 
-                                actionType === 'edit' ? 'update' : 'delete';
-                  showConfirmationPopup(action);
+                  if (actionType === 'create') showCreateConfirmation();
+                  else if (actionType === 'edit') showEditConfirmation();
+                  else if (actionType === 'delete') showDeleteConfirmation();
                 }}
-                disabled={isSubmitting}
+                disabled={isLoading}
                 type="button"
               >
-                {isSubmitting ? "Processing..." : 
+                {isLoading ? "Processing..." : 
                  actionType === 'create' ? 'Add' : 
                  actionType === 'edit' ? 'Edit' : 'Delete'}
               </button>
               <button
                 className="submit-clear"
-                onClick={() => showConfirmationPopup('clear')}
-                disabled={isSubmitting}
+                onClick={() => handleClear()}
+                disabled={isLoading}
                 type="button"
               >
                 Clear
@@ -2816,12 +2849,76 @@ const handleKeyNavigation = (e) => {
         </div>
       </div>
 
-      {/* Confirmation Popup */}
+      {/* Confirmation Popup for Create */}
       <ConfirmationPopup
-        isOpen={showConfirmPopup}
-        onClose={() => setShowConfirmPopup(false)}
-        onConfirm={handleConfirmAction}
-        {...getConfirmationConfig()}
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmCreate}
+        title="Create Item"
+        message={`Do you want to save?`}
+        type="success"
+        confirmText={isLoading ? "Creating..." : "Yes"}
+        cancelText="No"
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Edit */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Item"
+        message={`Do you want to modify?`}
+        type="warning"
+        confirmText={isLoading ? "Updating..." : "Yes"}
+        cancelText="No"
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Delete */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Item"
+        message={`Do you want to delete item?`}
+        type="danger"
+        confirmText={isLoading ? "Deleting..." : "Yes"}
+        cancelText="No"
+        showLoading={isLoading}
+        disableBackdropClose={isLoading}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
       />
 
       {/* PopupListSelector for Brand Selection */}

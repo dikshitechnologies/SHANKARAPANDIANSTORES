@@ -440,6 +440,7 @@ export default function ProductPage() {
     if (!keepAction) setActionType("Add");
     
     setTimeout(() => productNameRef.current?.focus(), 60);
+    setActionType("Add")
   };
 
   const openEditModal = () => {

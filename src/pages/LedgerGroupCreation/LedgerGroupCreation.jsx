@@ -97,6 +97,7 @@ function TreeNode({ node, level = 0, onSelect, expandedKeys, toggleExpand, selec
         role="button"
         tabIndex={isSelected ? 0 : -1}
         onKeyDown={handleKeyDown}
+        data-tree-key={node.key}
       >
         {hasChildren ? (
           <button
@@ -189,9 +190,17 @@ export default function LedgerGroupCreation() {
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
+  
+  // Separate confirmation popups for Add, Edit, Delete
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   // Ref for auto-focusing SubGroup input after main group selection
+  const mainGroupRef = useRef(null);
   const subGroupRef = useRef(null);
+  // Ref for submit button to enable keyboard navigation
+  const submitButtonRef = useRef(null);
 
   useEffect(() => {
     loadInitial();
@@ -206,6 +215,18 @@ export default function LedgerGroupCreation() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // Effect to focus sub group input when in edit mode and sub group is selected
+  useEffect(() => {
+    if (actionType === "edit" && subGroup && fCode) {
+      // Small timeout to ensure DOM is updated
+      setTimeout(() => {
+        if (subGroupRef.current) {
+          subGroupRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [actionType, subGroup, fCode]);
 
   const loadInitial = async () => {
     setLoading(true);
@@ -259,7 +280,7 @@ export default function LedgerGroupCreation() {
   const handleSelectNode = (node) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
-    // Auto-close tree after selection
+    // Close tree only when explicitly selecting (Enter key)
     setIsTreeOpen(false);
     // Auto-focus SubGroup input
     setTimeout(() => subGroupRef.current?.focus(), 100);
@@ -330,16 +351,16 @@ export default function LedgerGroupCreation() {
 
   // resetForm now keeps the tree open by default (user requested always open)
   const resetForm = () => {
-  setMainGroup("");
-  setSubGroup("");
-  setFCode("");
-  setSelectedNode(null);
-  setMessage(null);
-  setSearchDropdown("");
-  setSearchTree("");
-  setIsDropdownOpen(false);
-  setIsTreeOpen(true);
-};
+    setMainGroup("");
+    setSubGroup("");
+    setFCode("");
+    setSelectedNode(null);
+    setMessage(null);
+    setSearchDropdown("");
+    setSearchTree("");
+    setIsDropdownOpen(false);
+    setIsTreeOpen(true);
+  };
 
   const validateForSubmit = () => {
     if (!mainGroup?.trim()) {
@@ -359,30 +380,31 @@ export default function LedgerGroupCreation() {
 
   // Handle keyboard navigation for tree nodes
   const handleTreeNavigation = useCallback((direction, currentKey) => {
-    const getAllNodes = (nodes) => {
-      const result = [];
-      nodes.forEach(node => {
-        result.push(node);
-        if (expandedKeys.has(node.key) && node.children) {
-          result.push(...getAllNodes(node.children));
+    const flatten = (nodes) => {
+      let out = [];
+      nodes.forEach(n => {
+        out.push(n);
+        if (expandedKeys.has(n.key) && n.children?.length) {
+          out = out.concat(flatten(n.children));
         }
       });
-      return result;
+      return out;
     };
 
-    const allNodes = getAllNodes(filteredTree);
-    const currentIndex = allNodes.findIndex(n => n.key === currentKey);
-    
-    if (currentIndex === -1) return;
+    const list = flatten(filteredTree);
+    const idx = list.findIndex(n => n.key === currentKey);
+    if (idx === -1) return;
 
-    let nextIndex = direction === "down" ? currentIndex + 1 : currentIndex - 1;
-    if (nextIndex < 0) nextIndex = 0;
-    if (nextIndex >= allNodes.length) nextIndex = allNodes.length - 1;
+    const next = direction === "down" ? idx + 1 : idx - 1;
+    const target = list[Math.max(0, Math.min(next, list.length - 1))];
 
-    const nextNode = allNodes[nextIndex];
-    if (nextNode) {
-      setSelectedNode(nextNode);
-      handleSelectNode(nextNode);
+    if (target) {
+      setSelectedNode(target); // 🔥 only move selection, don't close tree
+      // Focus the newly selected node
+      setTimeout(() => {
+        const elem = document.querySelector(`[data-tree-key="${target.key}"]`);
+        elem?.focus();
+      }, 0);
     }
   }, [filteredTree, expandedKeys]);
 
@@ -394,19 +416,24 @@ export default function LedgerGroupCreation() {
       return;
     }
     if (!validateForSubmit()) return;
+    setConfirmSaveOpen(true);
+  };
+
+  const confirmSave = async () => {
+    setConfirmSaveOpen(false);
     setSubmitting(true);
     setMessage(null);
     try {
-  setActionType("Add");
+      setActionType("Add");
       const payload = {
         fcode: "",
         subGroup: subGroup.trim(),
         mainGroup: mainGroup.trim(),
         faclevel: "",
       };
-  const resp = await api.post(endpoints.postCreate || endpoints.postAdd, payload);
+      const resp = await api.post(endpoints.postCreate || endpoints.postAdd, payload);
       if (resp.status === 200 || resp.status === 201) {
-        toast.success("Ledger group created successfully.");
+        // toast.success("Ledger group created successfully.");
         resetForm();
         await loadInitial();
       } else {
@@ -427,6 +454,11 @@ export default function LedgerGroupCreation() {
     return;
   }
   if (!validateForSubmit()) return;
+  setConfirmEditOpen(true);
+};
+
+const confirmEdit = async () => {
+  setConfirmEditOpen(false);
   setSubmitting(true);
   setMessage(null);
   try {
@@ -438,7 +470,7 @@ export default function LedgerGroupCreation() {
     };
     const resp = await api.put(endpoints.putEdit, payload);
     if (resp.status === 200 || resp.status === 201) {
-      toast.success("Ledger group updated successfully.");
+      // toast.success("Ledger group updated successfully.");
       setActionType("Add");
       resetForm();
       await loadInitial();
@@ -460,12 +492,17 @@ export default function LedgerGroupCreation() {
     return;
   }
   if (!validateForSubmit()) return;
+  setConfirmDeleteOpen(true);
+};
+
+const confirmDelete = async () => {
+  setConfirmDeleteOpen(false);
   setSubmitting(true);
   setMessage(null);
   try {
     const resp = await api.delete(endpoints.delete(fCode));
     if (resp.status === 200 || resp.status === 201) {
-      toast.success("Ledger group deleted successfully.");
+      // toast.success("Ledger group deleted successfully.");
       setActionType("Add");
       resetForm();
       await loadInitial();
@@ -484,6 +521,39 @@ export default function LedgerGroupCreation() {
     if (actionType === "Add") await handleAdd();
     else if (actionType === "edit") await handleEdit();
     else if (actionType === "delete") await handleDelete();
+  };
+
+  // Handle keyboard navigation in Main Group input
+  const handleMainGroupKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      subGroupRef.current?.focus();
+    }
+  };
+
+  // Handle Enter key press in sub group input for edit mode
+  const handleSubGroupKeyDown = (e) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      mainGroupRef.current?.focus();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (actionType === "edit" && subGroup && fCode) {
+        // In edit mode with sub group selected, pressing Enter triggers edit
+        submitButtonRef.current?.focus();
+        
+      } else if (actionType === "Add") {
+        // In add mode, just focus submit button
+        submitButtonRef.current?.focus();
+      }
+      else if (actionType === "delete") {
+        // In delete mode, just focus submit button
+                submitButtonRef.current?.focus();
+
+      }
+      handleSubmit();
+    }
   };
 
   useEffect(() => {
@@ -1004,6 +1074,7 @@ export default function LedgerGroupCreation() {
 
 
 
+
         /* Responsive styles */
         /* Large tablets and small laptops */
         @media (max-width: 1024px) {
@@ -1175,10 +1246,24 @@ export default function LedgerGroupCreation() {
       backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
     }}>
       <input
+        ref={mainGroupRef}
         className="input"
         value={mainGroup}
         onChange={(e) => setMainGroup(e.target.value)}
         onFocus={() => setIsTreeOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            setIsTreeOpen(true);
+            // Focus first visible node
+            setTimeout(() => {
+              const firstNode = document.querySelector(".tree-row");
+              firstNode?.focus();
+            }, 50);
+          } else {
+            handleMainGroupKeyDown(e);
+          }
+        }}
         readOnly={actionType !== "Add"}
         disabled={submitting}
         aria-label="Main Group"
@@ -1252,7 +1337,17 @@ export default function LedgerGroupCreation() {
                         </div>
                       </div>
 
-                      <div className="tree-scroll" role="tree" aria-label="Group list">
+                      <div
+                        className="tree-scroll"
+                        role="tree"
+                        aria-label="Group list"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            setIsTreeOpen(false);
+                          }
+                        }}
+                      >
                         {loading ? (
                           <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
                         ) : filteredTree.length === 0 ? (
@@ -1296,7 +1391,17 @@ export default function LedgerGroupCreation() {
                       </div>
                     </div>
 
-                    <div className="tree-scroll" role="tree" aria-label="Group list">
+                    <div
+                      className="tree-scroll"
+                      role="tree"
+                      aria-label="Group list"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setIsTreeOpen(false);
+                        }
+                      }}
+                    >
                       {loading ? (
                         <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
                       ) : filteredTree.length === 0 ? (
@@ -1330,20 +1435,22 @@ export default function LedgerGroupCreation() {
                     className="input"
                     value={subGroup}
                     onChange={(e) => setSubGroup(e.target.value)}
+                    onKeyDown={handleSubGroupKeyDown}
                     placeholder="Enter Sub Group"
                     disabled={submitting}
                     aria-label="Sub Group"
                   />
                 ) : (
                   <input
+                    ref={subGroupRef}
                     className="input"
                     value={subGroup}
                     onChange={(e) => setSubGroup(e.target.value)}
+                    onKeyDown={handleSubGroupKeyDown}
                     placeholder="Select Sub Group"
                     disabled={submitting}
                     readOnly={actionType === "delete"}
                     aria-label="Sub Group"
-                    // onFocus={() => setIsDropdownOpen(true)}
                   />
                 )}
 
@@ -1371,6 +1478,7 @@ export default function LedgerGroupCreation() {
             {/* Submit controls */}
             <div className="submit-row">
               <button
+                ref={submitButtonRef}
                 className="submit-primary"
                 onClick={handleSubmit}
                 disabled={submitting}
@@ -1418,23 +1526,79 @@ export default function LedgerGroupCreation() {
         responsiveBreakpoint={640}
       />
 
-      {/* Confirmation Popup */}
-      {showConfirmPopup && (
-        <ConfirmationPopup
-          title={confirmAction === 'delete' ? 'Confirm Deletion' : 'Confirm Action'}
-          message={confirmAction === 'delete' ? 'Are you sure you want to delete this ledger group? This action cannot be undone.' : 'Are you sure you want to proceed?'}
-          onConfirm={() => {
-            setShowConfirmPopup(false);
-            handleSubmit();
-          }}
-          onCancel={() => setShowConfirmPopup(false)}
-          confirmText="Confirm"
-          cancelText="Cancel"
-          type={confirmAction === 'delete' ? 'danger' : 'default'}
-          showIcon={true}
-          iconSize={24}
-        />
-      )}
+      {/* Confirmation Popup for Add */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Create Ledger Group"
+        message="Do you want to save?"
+        type="success"
+        confirmText={submitting ? "Creating..." : "Yes"}
+        cancelText="No"
+        showLoading={submitting}
+        disableBackdropClose={submitting}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #06A7EA'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #307AC8ff, #06A7EAff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Edit */}
+      <ConfirmationPopup
+        isOpen={confirmEditOpen}
+        onClose={() => setConfirmEditOpen(false)}
+        onConfirm={confirmEdit}
+        title="Update Ledger Group"
+        message="Do you want to modify?"
+        type="warning"
+        confirmText={submitting ? "Updating..." : "Yes"}
+        cancelText="No"
+        showLoading={submitting}
+        disableBackdropClose={submitting}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #F59E0B'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #F59E0Bff, #FBBF24ff)'
+            }
+          }
+        }}
+      />
+
+      {/* Confirmation Popup for Delete */}
+      <ConfirmationPopup
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Ledger Group"
+        message="Do you want to delete?"
+        type="danger"
+        confirmText={submitting ? "Deleting..." : "Yes"}
+        cancelText="No"
+        showLoading={submitting}
+        disableBackdropClose={submitting}
+        customStyles={{
+          modal: {
+            borderTop: '4px solid #EF4444'
+          },
+          confirmButton: {
+            style: {
+              background: 'linear-gradient(90deg, #EF4444ff, #F87171ff)'
+            }
+          }
+        }}
+      />
+
+     
     </div>
   );
 }
