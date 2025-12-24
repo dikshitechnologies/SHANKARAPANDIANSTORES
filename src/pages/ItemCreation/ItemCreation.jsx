@@ -2825,147 +2825,146 @@ const handleKeyNavigation = (e) => {
       />
 
       {/* PopupListSelector for Brand Selection */}
-      <PopupListSelector
-        open={isBrandPopupOpen}
-        onClose={() => {
-          setIsBrandPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
-        }}
-        onSelect={(item) => {
-          setFormData(prev => ({ ...prev, brand: item.fname || '' }));
-          setFieldCodes(prev => ({ ...prev, brandCode: item.fcode || '' }));
-          setIsBrandPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
-        }}
-        fetchItems={fetchBrandsWithSearch}
-        title="Select Brand"
-        displayFieldKeys={['fcode', 'fname']}
-        searchFields={['fcode', 'fname']}
-        headerNames={['Code', 'Brand Name']}
-        columnWidths={{ fcode: '30%', fname: '70%' }}
-        maxHeight="60vh"
-        responsiveBreakpoint={640}
-        initialSearch={initialPopupSearch.brand} // PASS INITIAL SEARCH TO POPUP
-      />
+     <PopupListSelector
+  open={isBrandPopupOpen}
+  onClose={() => {
+    setIsBrandPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
+  }}
+  onSelect={(item) => {
+    setFormData(prev => ({ ...prev, brand: item.fname || '' }));
+    setFieldCodes(prev => ({ ...prev, brandCode: item.fcode || '' }));
+    setIsBrandPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
+  }}
+  fetchItems={fetchBrandsWithSearch}
+  title="Select Brand"
+  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+  searchFields={['fname', 'fcode']}
+  headerNames={['Brand Name']}  // CHANGED: Single header for name only
+  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+  maxHeight="60vh"
+  responsiveBreakpoint={640}
+  initialSearch={initialPopupSearch.brand}
+/>
 
       {/* PopupListSelector for Category Selection */}
-      <PopupListSelector
-        open={isCategoryPopupOpen}
-        onClose={() => {
-          setIsCategoryPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, category: '' }));
-        }}
-        onSelect={(item) => {
-          setFormData(prev => ({ ...prev, category: item.fname || '' }));
-          setFieldCodes(prev => ({ ...prev, categoryCode: item.fcode || '' }));
-          setIsCategoryPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, category: '' }));
-        }}
-        fetchItems={fetchCategoriesWithSearch}
-        title="Select Category"
-        displayFieldKeys={['fcode', 'fname']}
-        searchFields={['fcode', 'fname']}
-        headerNames={['Code', 'Category Name']}
-        columnWidths={{ fcode: '30%', fname: '70%' }}
-        maxHeight="60vh"
-        responsiveBreakpoint={640}
-        initialSearch={initialPopupSearch.category} // PASS INITIAL SEARCH TO POPUP
-      />
+     <PopupListSelector
+  open={isCategoryPopupOpen}
+  onClose={() => {
+    setIsCategoryPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, category: '' }));
+  }}
+  onSelect={(item) => {
+    setFormData(prev => ({ ...prev, category: item.fname || '' }));
+    setFieldCodes(prev => ({ ...prev, categoryCode: item.fcode || '' }));
+    setIsCategoryPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, category: '' }));
+  }}
+  fetchItems={fetchCategoriesWithSearch}
+  title="Select Category"
+  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+  searchFields={['fname', 'fcode']}
+  headerNames={['Category Name']}  // CHANGED: Single header for name only
+  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+  maxHeight="60vh"
+  responsiveBreakpoint={640}
+  initialSearch={initialPopupSearch.category}
+/>
 
       {/* PopupListSelector for Product Selection */}
       <PopupListSelector
-        open={isProductPopupOpen}
-        onClose={() => {
-          setIsProductPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, product: '' }));
-        }}
-        onSelect={(item) => {
-          setFormData(prev => ({ ...prev, product: item.fname || '' }));
-          setFieldCodes(prev => ({ ...prev, productCode: item.fcode || '' }));
-          setIsProductPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, product: '' }));
-        }}
-        fetchItems={fetchProductsWithSearch}
-        title="Select Product"
-        displayFieldKeys={['fcode', 'fname']}
-        searchFields={['fcode', 'fname']}
-        headerNames={['Code', 'Product Name']}
-        columnWidths={{ fcode: '30%', fname: '70%' }}
-        maxHeight="60vh"
-        responsiveBreakpoint={640}
-        initialSearch={initialPopupSearch.product} // PASS INITIAL SEARCH TO POPUP
-      />
-
+  open={isProductPopupOpen}
+  onClose={() => {
+    setIsProductPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, product: '' }));
+  }}
+  onSelect={(item) => {
+    setFormData(prev => ({ ...prev, product: item.fname || '' }));
+    setFieldCodes(prev => ({ ...prev, productCode: item.fcode || '' }));
+    setIsProductPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, product: '' }));
+  }}
+  fetchItems={fetchProductsWithSearch}
+  title="Select Product"
+  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+  searchFields={['fname', 'fcode']}
+  headerNames={['Product Name']}  // CHANGED: Single header for name only
+  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+  maxHeight="60vh"
+  responsiveBreakpoint={640}
+  initialSearch={initialPopupSearch.product}
+/>
       {/* PopupListSelector for Model Selection */}
       <PopupListSelector
-        open={isModelPopupOpen}
-        onClose={() => {
-          setIsModelPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, model: '' }));
-        }}
-        onSelect={(item) => {
-          setFormData(prev => ({ ...prev, model: item.fname || '' }));
-          setFieldCodes(prev => ({ ...prev, modelCode: item.fcode || '' }));
-          setIsModelPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, model: '' }));
-        }}
-        fetchItems={fetchModelsWithSearch}
-        title="Select Model"
-        displayFieldKeys={['fcode', 'fname']}
-        searchFields={['fcode', 'fname']}
-        headerNames={['Code', 'Model Name']}
-        columnWidths={{ fcode: '30%', fname: '70%' }}
-        maxHeight="60vh"
-        responsiveBreakpoint={640}
-        initialSearch={initialPopupSearch.model} // PASS INITIAL SEARCH TO POPUP
-      />
-
+  open={isModelPopupOpen}
+  onClose={() => {
+    setIsModelPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, model: '' }));
+  }}
+  onSelect={(item) => {
+    setFormData(prev => ({ ...prev, model: item.fname || '' }));
+    setFieldCodes(prev => ({ ...prev, modelCode: item.fcode || '' }));
+    setIsModelPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, model: '' }));
+  }}
+  fetchItems={fetchModelsWithSearch}
+  title="Select Model"
+  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+  searchFields={['fname', 'fcode']}
+  headerNames={['Model Name']}  // CHANGED: Single header for name only
+  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+  maxHeight="60vh"
+  responsiveBreakpoint={640}
+  initialSearch={initialPopupSearch.model}
+/>
       {/* PopupListSelector for Size Selection */}
-      <PopupListSelector
-        open={isSizePopupOpen}
-        onClose={() => {
-          setIsSizePopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, size: '' }));
-        }}
-        onSelect={(item) => {
-          setFormData(prev => ({ ...prev, size: item.fname || '' }));
-          setFieldCodes(prev => ({ ...prev, sizeCode: item.fcode || '' }));
-          setIsSizePopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, size: '' }));
-        }}
-        fetchItems={fetchSizesWithSearch}
-        title="Select Size"
-        displayFieldKeys={['fcode', 'fname']}
-        searchFields={['fcode', 'fname']}
-        headerNames={['Code', 'Size Name']}
-        columnWidths={{ fcode: '30%', fname: '70%' }}
-        maxHeight="60vh"
-        responsiveBreakpoint={640}
-        initialSearch={initialPopupSearch.size} // PASS INITIAL SEARCH TO POPUP
-      />
+     <PopupListSelector
+  open={isSizePopupOpen}
+  onClose={() => {
+    setIsSizePopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, size: '' }));
+  }}
+  onSelect={(item) => {
+    setFormData(prev => ({ ...prev, size: item.fname || '' }));
+    setFieldCodes(prev => ({ ...prev, sizeCode: item.fcode || '' }));
+    setIsSizePopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, size: '' }));
+  }}
+  fetchItems={fetchSizesWithSearch}
+  title="Select Size"
+  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+  searchFields={['fname', 'fcode']}
+  headerNames={['Size Name']}  // CHANGED: Single header for name only
+  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+  maxHeight="60vh"
+  responsiveBreakpoint={640}
+  initialSearch={initialPopupSearch.size}
+/>
+
 
       {/* PopupListSelector for Unit Selection */}
       <PopupListSelector
-        open={isUnitPopupOpen}
-        onClose={() => {
-          setIsUnitPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
-        }}
-        onSelect={(item) => {
-          setFormData(prev => ({ ...prev, unit: item.fname || '', unitCode: item.fcode || '' }));
-          setIsUnitPopupOpen(false);
-          setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
-        }}
-        fetchItems={fetchUnitsWithSearch}
-        title="Select Unit"
-        displayFieldKeys={['fname', 'fcode']}
-        searchFields={['fname', 'fcode']}
-        headerNames={['Unit Name', 'Code']}
-        columnWidths={{ fname: '60%', fcode: '40%' }}
-        maxHeight="60vh"
-        responsiveBreakpoint={640}
-        initialSearch={initialPopupSearch.unit} // PASS INITIAL SEARCH TO POPUP
-      />
+  open={isUnitPopupOpen}
+  onClose={() => {
+    setIsUnitPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
+  }}
+  onSelect={(item) => {
+    setFormData(prev => ({ ...prev, unit: item.fname || '', unitCode: item.fcode || '' }));
+    setIsUnitPopupOpen(false);
+    setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
+  }}
+  fetchItems={fetchUnitsWithSearch}
+  title="Select Unit"
+  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+  searchFields={['fname', 'fcode']}
+  headerNames={['Unit Name']}  // CHANGED: Single header for name only
+  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+  maxHeight="60vh"
+  responsiveBreakpoint={640}
+  initialSearch={initialPopupSearch.unit}
+/>
 
       {/* PopupListSelector for Edit/Delete actions - FIXED VERSION */}
       <PopupListSelector
