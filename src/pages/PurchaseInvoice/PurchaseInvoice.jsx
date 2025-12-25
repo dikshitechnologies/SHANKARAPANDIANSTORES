@@ -899,7 +899,7 @@ const handleBlur = () => {
           params: {
             voucherNo: voucherNo,
             compCode: compCode,
-            user: username
+            user: compCode
           }
         }
       );
@@ -936,6 +936,12 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
+
+  // Reset scroll position on component mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    console.log('PurchaseInvoice component mounted');
+  }, []);
 
   // Fetch next invoice number and auto barcode on mount
   useEffect(() => {
@@ -1184,10 +1190,6 @@ const calculateItem = (item) => {
     amt
   };
 };
-useEffect(() => {
-  setItems(prev => prev.map(calculateItem));
-}, [items]);
-
 
   // Handle UOM spacebar cycling (same as SalesInvoice)
   const handleUomSpacebar = (e, id, index) => {
@@ -1467,7 +1469,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           subTotal: totals.subTotal,
           refName: billDetails.customerName || '',
           compCode: compCode,
-          user: username || '001',
+          user: compCode,
           gstType: billDetails.gstType || 'G',
         },
         iledger: {
