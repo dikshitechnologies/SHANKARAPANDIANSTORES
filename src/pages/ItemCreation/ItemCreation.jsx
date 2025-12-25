@@ -235,6 +235,9 @@ const ItemCreation = ({ onCreated }) => {
   const [isSizePopupOpen, setIsSizePopupOpen] = useState(false);
   const [isUnitPopupOpen, setIsUnitPopupOpen] = useState(false);
 
+  // Track active field for close icon visibility
+  const [activeField, setActiveField] = useState(null);
+
   // Search terms for each popup - NEW: Track initial search for each popup
   const [initialPopupSearch, setInitialPopupSearch] = useState({
     brand: '',
@@ -982,6 +985,40 @@ const handleKeyNavigation = (e) => {
   // NEW: Handle keyboard typing in popup fields - UPDATED SIMPLIFIED VERSION
   const handlePopupFieldKeyPress = (field, e) => {
     const key = e.key;
+    
+    // Handle Backspace to clear the field
+    if (key === 'Backspace') {
+      e.preventDefault();
+      
+      // Clear the field value and code
+      switch(field) {
+        case 'brand':
+          setFormData(prev => ({ ...prev, brand: '' }));
+          setFieldCodes(prev => ({ ...prev, brandCode: '' }));
+          break;
+        case 'category':
+          setFormData(prev => ({ ...prev, category: '' }));
+          setFieldCodes(prev => ({ ...prev, categoryCode: '' }));
+          break;
+        case 'product':
+          setFormData(prev => ({ ...prev, product: '' }));
+          setFieldCodes(prev => ({ ...prev, productCode: '' }));
+          break;
+        case 'model':
+          setFormData(prev => ({ ...prev, model: '' }));
+          setFieldCodes(prev => ({ ...prev, modelCode: '' }));
+          break;
+        case 'size':
+          setFormData(prev => ({ ...prev, size: '' }));
+          setFieldCodes(prev => ({ ...prev, sizeCode: '' }));
+          break;
+        case 'unit':
+          setFormData(prev => ({ ...prev, unit: '' }));
+          setFieldCodes(prev => ({ ...prev, unitCode: '' }));
+          break;
+      }
+      return;
+    }
     
     // Only handle letter keys (a-z, A-Z) and number keys (0-9)
     if (key.length === 1 && /^[a-zA-Z0-9]$/.test(key)) {
@@ -1922,6 +1959,36 @@ const handleKeyNavigation = (e) => {
           color: var(--accent-2);
         }
 
+        /* Clear button styling */
+        .input-clear-btn {
+          position: absolute;
+          right: 40px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: transparent;
+          border: none;
+          padding: 4px 8px;
+          cursor: pointer;
+          color: var(--muted);
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+          z-index: 1;
+        }
+
+        .input-clear-btn:hover:not(:disabled) {
+          background: rgba(0, 0, 0, 0.05);
+          color: var(--accent);
+          opacity: 1;
+        }
+
+        .input-clear-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
         /* Compact Max & Min fields layout */
         .field .row input[placeholder="Max"],
         .field .row input[placeholder="Min"] {
@@ -2249,7 +2316,7 @@ const handleKeyNavigation = (e) => {
                   type="button"
                   aria-label="Clear search"
                 >
-                  <Icon.Close size={16} />
+                
                 </button>
               )}
             </div>
@@ -2309,7 +2376,7 @@ const handleKeyNavigation = (e) => {
                 type="button"
                 aria-label="Clear search"
               >
-                <Icon.Close size={16} />
+              
               </button>
             )}
           </div>
@@ -2430,11 +2497,27 @@ const handleKeyNavigation = (e) => {
                     onChange={(e) => handleChange('brand', e.target.value)}
                     onClick={() => setIsBrandPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('brand', e)}
-                   
+                    onFocus={() => setActiveField('brand')}
+                    onBlur={() => setActiveField(null)}
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Brand"
                   />
+                  {formData.brand && activeField === 'brand' && (
+                    <button
+                      type="button"
+                      className="input-clear-btn"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, brand: '' }));
+                        setFieldCodes(prev => ({ ...prev, brandCode: '' }));
+                      }}
+                      title="Clear brand selection"
+                      disabled={isSubmitting}
+                      aria-label="Clear brand"
+                    >
+                    
+                    </button>
+                  )}
                   <div className="input-search-icon">
                     <Icon.Search size={16} />
                   </div>
@@ -2452,12 +2535,27 @@ const handleKeyNavigation = (e) => {
                     onChange={(e) => handleChange('category', e.target.value)}
                     onClick={() => setIsCategoryPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('category', e)}
-                   
-                    
+                    onFocus={() => setActiveField('category')}
+                    onBlur={() => setActiveField(null)}
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Category"
                   />
+                  {formData.category && activeField === 'category' && (
+                    <button
+                      type="button"
+                      className="input-clear-btn"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, category: '' }));
+                        setFieldCodes(prev => ({ ...prev, categoryCode: '' }));
+                      }}
+                      title="Clear category selection"
+                      disabled={isSubmitting}
+                      aria-label="Clear category"
+                    >
+                    
+                    </button>
+                  )}
                   <div className="input-search-icon">
                     <Icon.Search size={16} />
                   </div>
@@ -2475,11 +2573,27 @@ const handleKeyNavigation = (e) => {
                     onChange={(e) => handleChange('product', e.target.value)}
                     onClick={() => setIsProductPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('product', e)}
-                    
+                    onFocus={() => setActiveField('product')}
+                    onBlur={() => setActiveField(null)}
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Product"
                   />
+                  {formData.product && activeField === 'product' && (
+                    <button
+                      type="button"
+                      className="input-clear-btn"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, product: '' }));
+                        setFieldCodes(prev => ({ ...prev, productCode: '' }));
+                      }}
+                      title="Clear product selection"
+                      disabled={isSubmitting}
+                      aria-label="Clear product"
+                    >
+                    
+                    </button>
+                  )}
                   <div className="input-search-icon">
                     <Icon.Search size={16} />
                   </div>
@@ -2497,11 +2611,27 @@ const handleKeyNavigation = (e) => {
                     onChange={(e) => handleChange('model', e.target.value)}
                     onClick={() => setIsModelPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('model', e)}
-                    
+                    onFocus={() => setActiveField('model')}
+                    onBlur={() => setActiveField(null)}
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Model"
                   />
+                  {formData.model && activeField === 'model' && (
+                    <button
+                      type="button"
+                      className="input-clear-btn"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, model: '' }));
+                        setFieldCodes(prev => ({ ...prev, modelCode: '' }));
+                      }}
+                      title="Clear model selection"
+                      disabled={isSubmitting}
+                      aria-label="Clear model"
+                    >
+                    
+                    </button>
+                  )}
                   <div className="input-search-icon">
                     <Icon.Search size={16} />
                   </div>
@@ -2519,11 +2649,27 @@ const handleKeyNavigation = (e) => {
                     onChange={(e) => handleChange('size', e.target.value)}
                     onClick={() => setIsSizePopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('size', e)}
-                    
+                    onFocus={() => setActiveField('size')}
+                    onBlur={() => setActiveField(null)}
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Size"
                   />
+                  {formData.size && activeField === 'size' && (
+                    <button
+                      type="button"
+                      className="input-clear-btn"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, size: '' }));
+                        setFieldCodes(prev => ({ ...prev, sizeCode: '' }));
+                      }}
+                      title="Clear size selection"
+                      disabled={isSubmitting}
+                      aria-label="Clear size"
+                    >
+                    
+                    </button>
+                  )}
                   <div className="input-search-icon">
                     <Icon.Search size={16} />
                   </div>
@@ -2541,11 +2687,27 @@ const handleKeyNavigation = (e) => {
                     onChange={(e) => handleChange('unit', e.target.value)}
                     onClick={() => setIsUnitPopupOpen(true)}
                     onKeyDown={(e) => handlePopupFieldKeyPress('unit', e)}
-                    
+                    onFocus={() => setActiveField('unit')}
+                    onBlur={() => setActiveField(null)}
                     disabled={isSubmitting}
                     readOnly
                     aria-label="Units"
                   />
+                  {formData.unit && activeField === 'unit' && (
+                    <button
+                      type="button"
+                      className="input-clear-btn"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, unit: '' }));
+                        setFieldCodes(prev => ({ ...prev, unitCode: '' }));
+                      }}
+                      title="Clear unit selection"
+                      disabled={isSubmitting}
+                      aria-label="Clear unit"
+                    >
+                    
+                    </button>
+                  )}
                   <div className="input-search-icon">
                     <Icon.Search size={16} />
                   </div>
