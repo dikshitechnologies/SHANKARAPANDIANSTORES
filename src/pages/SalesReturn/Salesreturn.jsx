@@ -3830,6 +3830,7 @@ const handleApplyBillDirect = async () => {
                   <td style={styles.td}>
                     <input
   style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
+  
   value={item.barcode}
   data-row={index}
   data-field="barcode"
@@ -3922,6 +3923,7 @@ const handleApplyBillDirect = async () => {
                   </td>
                   <td style={styles.td}>
   <input
+   readOnly
     style={
       focusedField === `stock-${item.id}`
         ? styles.editableInputFocused
@@ -3949,6 +3951,7 @@ const handleApplyBillDirect = async () => {
 
                   <td style={styles.td}>
                     <input
+                     readOnly
                       style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.mrp}
                       data-row={index}
@@ -3969,6 +3972,7 @@ const handleApplyBillDirect = async () => {
                   </td>
                   <td style={styles.td}>
                     <input
+                     readOnly
                       style={focusedField === `uom-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.uom}
                       data-row={index}
@@ -3989,6 +3993,7 @@ const handleApplyBillDirect = async () => {
                   </td>
                   <td style={styles.td}>
                     <input
+                     readOnly
                       style={focusedField === `hsn-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.hsn}
                       data-row={index}
