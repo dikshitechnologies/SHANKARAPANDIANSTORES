@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './TenderModal.module.css';
 import apiService from '../../api/apiService';
 import { ActionButtons1 } from '../Buttons/ActionButtons';
+import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 // import { axiosInstance } from '../../api/axiosInstance';
@@ -9,6 +10,8 @@ import { useAuth } from '../../context/AuthContext';
 const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const { userData } = useAuth() || {};
   const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const collectFieldRefs = useRef({});
   const saveButtonRef = useRef(null);
   const billDiscountPercentRef = useRef(null);
@@ -127,7 +130,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
       } else {
         // Clear issue denominations if balance is 0 or negative
         [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-          newDenom[d] = { ...newDenom[d], issue: '0' };
+          newDenom[d] = { ...newDenom[d], issue: '' };
           const col = Number(newDenom[d].collect) || 0;
           newDenom[d].closing = newDenom[d].available + col;
         });
@@ -543,8 +546,14 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    // Just show the confirmation popup
+    setConfirmSaveOpen(true);
+  };
+
+  const confirmSave = async () => {
     try {
+      setIsSaving(true);
       // Calculate net amount validation
       const receivedCash = Number(formData.receivedCash) || 0;
       const upi = Number(formData.upi) || 0;
@@ -645,18 +654,26 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
       console.log('API Response:', response);
 
       if (response) {
-        alert('✓ ' + (response.data?.message || 'Tender details saved successfully!'));
-        onClose(); // Close the modal after successful save
+        setConfirmSaveOpen(false);
+        // Close modal and reload page
+        setTimeout(() => {
+          onClose();
+          window.location.reload();
+        }, 300);
         // Call parent callback to refresh the bill list
         if (onSaveSuccess) {
           onSaveSuccess();
         }
       } else {
+        setConfirmSaveOpen(false);
         alert('Failed to save tender details: ' + (response.data?.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error saving tender:', error);
+      setConfirmSaveOpen(false);
       alert('Error: ' + (error.response?.data?.message || error.message || 'Failed to save tender'));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1139,6 +1156,20 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
           </div>
         </div>
       </div>
+
+      {/* Save Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={confirmSave}
+        title="Save Tender"
+        message={`Do you want to save?`}
+        type="success"
+        confirmText={isSaving ? "Saving..." : "Yes"}
+        cancelText="No"
+        showLoading={isSaving}
+        disableBackdropClose={isSaving}
+      />
     </div>
   );
 };
