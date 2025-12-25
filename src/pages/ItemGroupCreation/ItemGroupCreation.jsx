@@ -1697,7 +1697,9 @@ export default function ItemGroupCreation() {
           setSubGroup(item.fName || '');
           setFCode(item.fCode || '');
           setIsPopupOpen(false);
-          setIsTreeOpen(false); // Keep tree closed
+          setIsTreeOpen(true);
+
+           // Keep tree closed
         }}
         fetchItems={fetchPopupItems}
         title={`Select Item Group to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
