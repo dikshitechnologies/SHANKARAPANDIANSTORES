@@ -167,7 +167,7 @@ export default function LedgerGroupCreation() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  // *** Tree starts CLOSED now ***
+  // *** Tree starts OPEN by default ***
   const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
@@ -390,23 +390,23 @@ export default function LedgerGroupCreation() {
   }, [subGroupOptions, searchDropdown]);
 
   // resetForm now keeps the tree closed by default
-  const resetForm = () => {
-    setMainGroup("");
-    setSubGroup("");
-    setFCode("");
-    setSelectedNode(null);
-    setMessage(null);
-    setSearchDropdown("");
-    setSearchTree("");
-    setIsDropdownOpen(false);
-    setIsTreeOpen(false); // Keep tree closed
-    // Focus Main Group input after reset
-    setTimeout(() => {
-      if (mainGroupRef.current) {
-        mainGroupRef.current.focus();
-      }
-    }, 100);
-  };
+  // const resetForm = () => {
+  //   setMainGroup("");
+  //   setSubGroup("");
+  //   setFCode("");
+  //   setSelectedNode(null);
+  //   setMessage(null);
+  //   setSearchDropdown("");
+  //   setSearchTree("");
+  //   setIsDropdownOpen(false);
+  //   setIsTreeOpen(true); // Keep tree closed
+  //   // Focus Main Group input after reset
+  //   setTimeout(() => {
+  //     if (mainGroupRef.current) {
+  //       mainGroupRef.current.focus();
+  //     }
+  //   }, 100);
+  // };
 
   const resetForm1 = () => {
     setMainGroup("");
@@ -417,7 +417,7 @@ export default function LedgerGroupCreation() {
     setSearchDropdown("");
     setSearchTree("");
     setIsDropdownOpen(false);
-    setIsTreeOpen(false); // Keep tree closed
+    setIsTreeOpen(true); // Keep tree closed
     setActionType("Add");
     // Focus Main Group input after reset
     setTimeout(() => {
@@ -537,7 +537,7 @@ export default function LedgerGroupCreation() {
       if (resp.status === 200 || resp.status === 201) {
         // toast.success("Ledger group updated successfully.");
         setActionType("Add");
-        resetForm();
+        resetForm1();
         await loadInitial();
       } else {
         toast.error(`Unexpected server response: ${resp.status}`);
@@ -1356,7 +1356,7 @@ export default function LedgerGroupCreation() {
 
               {isTreeOpen && (
                 isMobile ? (
-                  <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
+                  <div className="modal-overlay" onClick={() => setIsTreeOpen(true)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                         <h3 style={{ margin: 0, fontSize: 18 }}>Groups</h3>
