@@ -44,7 +44,7 @@ export const usePermissions = () => {
   const hasAddPermission = (formName) => {
     // Admin users have all permissions
     if (isAdmin()) {
-      console.log(`✅ User is ADMIN for ${formName} - returning true`);
+      // console.log(`✅ User is ADMIN for ${formName} - returning true`);
       return true;
     }
 
