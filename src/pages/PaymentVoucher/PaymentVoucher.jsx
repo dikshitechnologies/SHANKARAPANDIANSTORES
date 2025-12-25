@@ -1382,6 +1382,13 @@ const PaymentVoucher = () => {
 
       const particularsToUse = updatedParticulars || particulars;
 
+      // Check if there are CASH type payments
+      const hasCashPayments = paymentItems.some(item => {
+        const typeValue = (item.type || '').toString().trim().toUpperCase();
+        const hasAmount = item.amount && parseFloat(item.amount) > 0;
+        return typeValue === 'CASH' && hasAmount;
+      });
+
       let givenTotal = 0;
       let issuedTotal = 0;
       const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
@@ -1397,23 +1404,25 @@ const PaymentVoucher = () => {
         issuedTotal += issueCount * denom;
       });
       
-      // Check if the formula is satisfied: NET AMOUNT = COLLECTED AMOUNT - ISSUED AMOUNT
-      const netAmount = givenTotal - issuedTotal;
-      if (Math.abs(netAmount - totalAmount) > 0.01) {
-        const errorMessage = `Net amount not tallying`;
-        setError(errorMessage);
-        setConfirmationPopup({
-          isOpen: true,
-          title: 'Validation Error',
-          message: errorMessage,
-          type: 'warning',
-          confirmText: 'OK',
-          cancelText: null,
-          action: null,
-          isLoading: false
-        });
-        setIsSaving(false);
-        return;
+      // **VALIDATION: Net Amount = Collected Amount - Issued Amount (ONLY FOR CASH PAYMENTS)**
+      if (hasCashPayments) {
+        const netAmount = givenTotal - issuedTotal;
+        if (Math.abs(netAmount - totalAmount) > 0.01) {
+          const errorMessage = `Net amount not tallying`;
+          setError(errorMessage);
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: errorMessage,
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          setIsSaving(false);
+          return;
+        }
       }
       
       const balanceGiven = givenTotal - totalAmount;
