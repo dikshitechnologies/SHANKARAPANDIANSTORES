@@ -1264,52 +1264,19 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
 
     // If Enter is pressed in the amt field (last field)
     if (currentField === 'amt') {
-      if (isParticularsEmpty) {
-        // Instead of showing confirmation, move focus to add/less field
-        e.preventDefault();        
-              
-        // Move focus to add/less field
-        setTimeout(() => {
-          if (addLessRef.current) {
-            addLessRef.current.focus();
-            addLessRef.current.select(); // Optional: select text for easy editing
-          }
-        }, 50);
-        return;
-      }
+      e.preventDefault();
       
-      // If particulars is not empty, move to next row or add new row
-      // Check if we're on the last row
-      if (currentRowIndex < items.length - 1) {
-        // Move to next row
-        const nextRowInput = document.querySelector(
-          `input[data-row="${currentRowIndex + 1}"][data-field="name"]`
+      // Always add new row and focus on barcode field
+      handleAddRow();
+      setTimeout(() => {
+        const newRowInput = document.querySelector(
+          `input[data-row="${items.length}"][data-field="name"]`
         );
-        if (nextRowInput) {
-          nextRowInput.focus();
+        if (newRowInput) {
+          newRowInput.focus();
         }
-        return;
-      } else {
-        // We're on the last row, add new row if particulars is filled
-        if (currentRow.name && currentRow.name.trim() !== '') {
-          handleAddRow();
-          setTimeout(() => {
-            const newRowInput = document.querySelector(
-              `input[data-row="${items.length}"][data-field="barcode"]`
-            );
-            if (newRowInput) newRowInput.focus();
-          }, 60);
-        } else {
-          // If last row and particulars empty, move to add/less field
-          setTimeout(() => {
-            if (addLessRef.current) {
-              addLessRef.current.focus();
-              addLessRef.current.select();
-            }
-          }, 50);
-        }
-        return;
-      }
+      }, 60);
+      return;
     }
 
     // Always move to next field if available (for non-amt fields)
