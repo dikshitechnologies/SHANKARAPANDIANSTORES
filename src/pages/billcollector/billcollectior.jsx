@@ -104,7 +104,7 @@ const container = {
   overflowY: "auto",     // ✅ ENABLE PAGE SCROLL
   display: "flex",
   flexDirection: "column",
-  position:"fixed"
+  
 };
 
 
@@ -141,6 +141,7 @@ const container = {
     gap: isMobile ? "12px" : "16px",
     border: "1px solid #e5e7eb",
     borderBottom: "none"
+
   };
 
   const billNoBox = {
@@ -385,6 +386,7 @@ const container = {
     zIndex: 1000,
     backdropFilter: "blur(8px)",
     animation: "fadeIn 0.3s ease-out"
+    
   };
 
   const modalContent = {
