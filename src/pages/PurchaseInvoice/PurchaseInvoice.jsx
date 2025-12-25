@@ -323,6 +323,25 @@ const handleBlur = () => {
     return true;
   };
 
+  // State to store auto-generated barcode
+  const [autoBarcode, setAutoBarcode] = useState('');
+
+  // Helper: Fetch auto-generated barcode
+  const fetchAutoBarcode = async () => {
+    try {
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.PURCHASE_INVOICE.AUTO_GENERATE_BARCODE
+      );
+      console.log(response);
+      if (response?.data?.barcode) {
+        setAutoBarcode(response.data.barcode);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch auto barcode, using default:', err);
+      setAutoBarcode('');
+    }
+  };
+
   // Helper: Fetch next invoice number
   const fetchNextInvNo = async () => {
     try {
@@ -892,9 +911,10 @@ const handleBlur = () => {
     }
   };
 
-  // Fetch next invoice number on mount
+  // Fetch next invoice number and auto barcode on mount
   useEffect(() => {
     fetchNextInvNo();
+    fetchAutoBarcode();
   }, [userData]);
 
   useEffect(() => {
@@ -1437,8 +1457,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           add3: billDetails.city || '',
           add4: billDetails.mobileNo || '',
         },
-        items: items.map((it) => ({
-          itemCode: it.barcode || '',
+        items: items.map((it) => ({          
+          barCode: it.barcode || autoBarcode,
+          itemCode: it.itemcode|| '',
           qty: toNumber(it.qty),
           rate: toNumber(it.prate),
           amount: toNumber(it.amt),
@@ -2392,7 +2413,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             <thead>
               <tr>
                 <th style={styles.th}>S.NO</th>
-                <th style={styles.th}>PCode</th>
+                <th style={styles.th}>Barcode</th>
                 <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Particulars</th>
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>Stock</th>

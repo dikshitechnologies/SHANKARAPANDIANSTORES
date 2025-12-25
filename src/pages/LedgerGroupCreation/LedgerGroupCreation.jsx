@@ -222,7 +222,7 @@ export default function LedgerGroupCreation() {
 
   // Effect to focus sub group input when in edit mode and sub group is selected
   useEffect(() => {
-    if (actionType === "edit" && subGroup && fCode) {
+    if (actionType === "Edit" && subGroup && fCode) {
       // Small timeout to ensure DOM is updated
       setTimeout(() => {
         if (subGroupRef.current) {
@@ -418,7 +418,7 @@ export default function LedgerGroupCreation() {
     setSearchTree("");
     setIsDropdownOpen(false);
     setIsTreeOpen(true); // Keep tree closed
-    setActionType("Add");
+    setActionType("Add"); // Reset to Add action mode
     // Focus Main Group input after reset
     setTimeout(() => {
       if (mainGroupRef.current) {
@@ -432,11 +432,11 @@ export default function LedgerGroupCreation() {
       setMessage({ type: "error", text: "Please select a Main Group." });
       return false;
     }
-    if (actionType !== "delete" && !subGroup?.trim()) {
+    if (actionType !== "Delete" && !subGroup?.trim()) {
       setMessage({ type: "error", text: "Please enter/select a Sub Group." });
       return false;
     }
-    if ((actionType === "edit" || actionType === "delete") && !fCode) {
+    if ((actionType === "Edit" || actionType === "Delete") && !fCode) {
       setMessage({ type: "error", text: `Select a Sub Group to ${actionType}.` });
       return false;
     }
@@ -499,7 +499,7 @@ export default function LedgerGroupCreation() {
       const resp = await api.post(endpoints.postCreate || endpoints.postAdd, payload);
       if (resp.status === 200 || resp.status === 201) {
         // toast.success("Ledger group created successfully.");
-        resetForm();
+        resetForm1();
         await loadInitial();
       } else {
         toast.error(`Unexpected server response: ${resp.status}`);
@@ -514,7 +514,7 @@ export default function LedgerGroupCreation() {
 
   const handleEdit = async () => {
     // Check permission before allowing action
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       toast.error("You don't have permission to edit ledger groups.");
       return;
     }
@@ -552,7 +552,7 @@ export default function LedgerGroupCreation() {
 
   const handleDelete = async () => {
     // Check permission before allowing action
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       toast.error("You don't have permission to delete ledger groups.");
       return;
     }
@@ -569,7 +569,7 @@ export default function LedgerGroupCreation() {
       if (resp.status === 200 || resp.status === 201) {
         // toast.success("Ledger group deleted successfully.");
         setActionType("Add");
-        resetForm();
+        resetForm1();
         await loadInitial();
       } else {
         toast.error(`Unexpected server response: ${resp.status}`);
@@ -584,8 +584,8 @@ export default function LedgerGroupCreation() {
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+    else if (actionType === "Edit") await handleEdit();
+    else if (actionType === "Delete") await handleDelete();
   };
 
   // Handle keyboard navigation in Main Group input
@@ -1260,7 +1260,7 @@ export default function LedgerGroupCreation() {
 
           <div className="actions" role="toolbar" aria-label="actions">
             <AddButton
-              onClick={() => { setActionType("Add"); resetForm(); }}
+              onClick={() => { setActionType("Add"); resetForm1(); }}
               disabled={submitting || !formPermissions.Add}
               isActive={actionType === 'Add'}
             />
@@ -1269,8 +1269,14 @@ export default function LedgerGroupCreation() {
               onClick={(e) => {
                 e.currentTarget.blur();
                 setActionType("Edit");
-                resetForm();
+                // Don't reset form - user needs to select an item first
+                setMainGroup("");
+                setSubGroup("");
+                setFCode("");
+                setSelectedNode(null);
+                setMessage(null);
                 setIsDropdownOpen(true);
+               
               }}
               disabled={submitting || !formPermissions.Edit}
               isActive={actionType === 'Edit'}
@@ -1280,7 +1286,12 @@ export default function LedgerGroupCreation() {
               onClick={(e) => {
                 e.currentTarget.blur();
                 setActionType("Delete");
-                resetForm();
+                // Don't reset form - user needs to select an item first
+                setMainGroup("");
+                setSubGroup("");
+                setFCode("");
+                setSelectedNode(null);
+                setMessage(null);
                 setIsDropdownOpen(true);
               }}
               disabled={submitting || !formPermissions.Delete}
@@ -1540,7 +1551,7 @@ export default function LedgerGroupCreation() {
                 disabled={submitting}
                 type="button"
               >
-                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
+                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"
@@ -1567,7 +1578,7 @@ export default function LedgerGroupCreation() {
           setFCode(code || '');
           if (item.parentName) setMainGroup(item.parentName);
           setIsDropdownOpen(false);
-          setIsTreeOpen(false); // Keep tree closed
+          setIsTreeOpen(true); // Keep tree closed
         }}
         fetchItems={fetchDropdownItems}
         title="Select Sub Group"

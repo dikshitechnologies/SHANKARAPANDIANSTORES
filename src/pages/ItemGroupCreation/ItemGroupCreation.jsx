@@ -5,6 +5,7 @@ import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -183,12 +184,14 @@ export default function ItemGroupCreation() {
   
   // Get permissions (using your hook)
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
-  const formPermissions = useMemo(() => ({
-    add: hasAddPermission('ITEM_GROUP_CREATION'),
-    edit: hasModifyPermission('ITEM_GROUP_CREATION'),
-    delete: hasDeletePermission('ITEM_GROUP_CREATION')
-  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
-
+   
+   // Get permissions for LEDGER_GROUP_CREATION form
+   const formPermissions = useMemo(() => ({
+     Add: hasAddPermission(PERMISSION_CODES.ITEM_GRPCREATION),
+     Edit: hasModifyPermission(PERMISSION_CODES.ITEM_GRPCREATION),
+     Delete: hasDeletePermission(PERMISSION_CODES.ITEM_GRPCREATION)
+   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+ 
   useEffect(() => {
     loadInitial();
     // Focus Main Group input on initial load
@@ -208,7 +211,7 @@ export default function ItemGroupCreation() {
 
   // Effect to focus sub group input when in edit mode and sub group is selected
   useEffect(() => {
-    if (actionType === "edit" && subGroup && fCode) {
+    if (actionType === "Edit" && subGroup && fCode) {
       // Small timeout to ensure DOM is updated
       setTimeout(() => {
         if (subGroupRef.current) {
@@ -415,11 +418,11 @@ export default function ItemGroupCreation() {
       setMessage({ type: "error", text: "Please select a Main Group." });
       return false;
     }
-    if (actionType !== "delete" && !subGroup?.trim()) {
+    if (actionType !== "Delete" && !subGroup?.trim()) {
       setMessage({ type: "error", text: "Please enter/select a Sub Group." });
       return false;
     }
-    if ((actionType === "edit" || actionType === "delete") && !fCode) {
+    if ((actionType === "Edit" || actionType === "Delete") && !fCode) {
       setMessage({ type: "error", text: `Select a Sub Group to ${actionType}.` });
       return false;
     }
@@ -459,7 +462,7 @@ export default function ItemGroupCreation() {
   // Add / Edit / Delete handlers
   const handleAdd = async () => {
     // Check permission before allowing action
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       toast.error("You don't have permission to add item groups.");
       return;
     }
@@ -497,7 +500,7 @@ export default function ItemGroupCreation() {
 
   const handleEdit = async () => {
     // Check permission before allowing action
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       toast.error("You don't have permission to edit item groups.");
       return;
     }
@@ -535,7 +538,7 @@ export default function ItemGroupCreation() {
 
   const handleDelete = async () => {
     // Check permission before allowing action
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       toast.error("You don't have permission to delete item groups.");
       return;
     }
@@ -568,8 +571,8 @@ export default function ItemGroupCreation() {
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
-    else if (actionType === "edit") await handleEdit();
-    else if (actionType === "delete") await handleDelete();
+    else if (actionType === "Edit") await handleEdit();
+    else if (actionType === "Delete") await handleDelete();
   };
 
   // Handle keyboard navigation in Main Group input
@@ -589,7 +592,7 @@ export default function ItemGroupCreation() {
     } else if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
-      if (actionType === "edit" && subGroup && fCode) {
+      if (actionType === "Edit" && subGroup && fCode) {
         // In edit mode with sub group selected, pressing Enter triggers edit
         submitButtonRef.current?.focus();
         
@@ -597,7 +600,7 @@ export default function ItemGroupCreation() {
         // In add mode, just focus submit button
         submitButtonRef.current?.focus();
       }
-      else if (actionType === "delete") {
+      else if (actionType === "Delete") {
         // In delete mode, just focus submit button
                 submitButtonRef.current?.focus();
 
@@ -1245,30 +1248,30 @@ export default function ItemGroupCreation() {
           <div className="actions" role="toolbar" aria-label="actions">
             <AddButton
               onClick={() => { setActionType("Add"); resetForm(); }}
-              disabled={submitting || !formPermissions.add}
+              disabled={submitting || !formPermissions.Add}
               isActive={actionType === 'Add'}
             />
 
             <EditButton
               onClick={(e) => {
                 e.currentTarget.blur();
-                setActionType("edit");
+                setActionType("Edit");
                 resetForm();
                 setIsPopupOpen(true);
               }}
-              disabled={submitting || !formPermissions.edit}
-              isActive={actionType === 'edit'}
+              disabled={submitting || !formPermissions.Edit}
+              isActive={actionType === 'Edit'}
             />
 
             <DeleteButton
               onClick={(e) => {
                 e.currentTarget.blur();
-                setActionType("delete");
+                setActionType("Delete");
                 resetForm();
                 setIsPopupOpen(true);
               }}
-              disabled={submitting || !formPermissions.delete}
-              isActive={actionType === 'delete'}
+              disabled={submitting || !formPermissions.Delete}
+              isActive={actionType === 'Delete'}
             />
           </div>
         </div>
