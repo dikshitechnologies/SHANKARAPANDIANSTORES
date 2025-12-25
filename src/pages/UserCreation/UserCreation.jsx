@@ -1365,7 +1365,7 @@ export default function UserCreation() {
                   disabled={loading || isProcessing}
                   type="button"
                 >
-                  {isProcessing ? "Processing..." : actionType === "Add" ? "Create" : actionType}
+                  {loading ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
                 </button>
                 <button
                   className="submit-clear"
