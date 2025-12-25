@@ -39,7 +39,7 @@ import CashManagement from './pages/CashManagement/CashManagement'
 import AmountIssue from './pages/AmountIssue/AmountIssue'
 import Receiptvoucher from './pages/Receiptvoucher/Receiptvoucher'
 import PaymentVoucher from './pages/PaymentVoucher/PaymentVoucher'
-import RouteCreation from './pages/Route/Routecreation';
+// import RouteCreation from './pages/Route/Routecreation';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -122,7 +122,7 @@ function App() {
           <Route path="/payment-voucher" element={<ProtectedRoute><LayoutWithNavbar><PaymentVoucher /></LayoutWithNavbar></ProtectedRoute>} />
           {/* <Route path="/transactions/cash-management" element={<ProtectedRoute><LayoutWithNavbar><CashManagement /></LayoutWithNavbar></ProtectedRoute>} /> */}
           <Route path="/transactions/receipt-voucher" element={<ProtectedRoute><LayoutWithNavbar><Receiptvoucher /></LayoutWithNavbar></ProtectedRoute>} />
-          <Route path="/masters/route-creation" element={<ProtectedRoute><LayoutWithNavbar><RouteCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          {/* <Route path="/masters/route-creation" element={<ProtectedRoute><LayoutWithNavbar><RouteCreation /></LayoutWithNavbar></ProtectedRoute>} /> */}
    
     </Routes>
      <ToastContainer
