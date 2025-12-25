@@ -1300,7 +1300,7 @@ const Company = () => {
                         />
                       </div>
                       <div className="input-group">
-                        <label>Company Name *</label>
+                        <label>Company Name <span className="asterisk">*</span></label>
                         <input
                           type="text"
                           ref={companyNameRef}
@@ -1463,7 +1463,7 @@ const Company = () => {
                     </div>
                     <div className="row2">
                       <div className="input-group">
-                        <label>User Name *</label>
+                        <label>User Name <span className="asterisk">*</span></label>
                         <input
                           type="text"
                           ref={usernameRef}
@@ -1474,7 +1474,7 @@ const Company = () => {
                         />
                       </div>
                       <div className="input-group">
-                        <label>Password *</label>
+                        <label>Password <span className="asterisk">*</span></label>
                         <input    
                           type="password"
                           ref={passwordRef}
@@ -1485,7 +1485,7 @@ const Company = () => {
                         />
                       </div>
                       <div className="input-group">
-                        <label>Confirm Password *</label>
+                        <label>Confirm Password <span className="asterisk">*</span></label>
                         <input  
                           type="password"
                           ref={confirmPasswordRef}

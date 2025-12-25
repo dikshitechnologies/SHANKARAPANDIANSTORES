@@ -5,6 +5,15 @@ export const API_ENDPOINTS = {
       `Login/GetCompanyUserInfo?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
   },
 
+  ROUTE_CREATION: {
+    GET_NEXT_ROUTE_CODE: 'RouteCreation/getNextRouteFcode',
+    GET_ROUTES_PAGED: (pageNumber = 1, pageSize = 10, search = '') =>
+      `RouteCreation/GetRoutesPaged?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
+    CREATE_ROUTE: 'RouteCreation/RoteCreation',
+    UPDATE_ROUTE: 'RouteCreation/RouteUpdate',
+    DELETE_ROUTE: (code) => `RouteCreation/DeleteRoute/${code}`,
+  },
+
   LEDGER_CREATION_ENDPOINTS: {
     getTree: "LedgerGroupCreation/LedgerGroupCreationGet",
     getDropdownPaged: (page = 1, pageSize = 20, searchText = '') =>

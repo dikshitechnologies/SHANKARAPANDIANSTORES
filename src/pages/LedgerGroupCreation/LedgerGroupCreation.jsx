@@ -167,7 +167,7 @@ export default function LedgerGroupCreation() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  // *** Tree starts CLOSED now ***
+  // *** Tree starts OPEN by default ***
   const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
@@ -390,23 +390,23 @@ export default function LedgerGroupCreation() {
   }, [subGroupOptions, searchDropdown]);
 
   // resetForm now keeps the tree closed by default
-  const resetForm = () => {
-    setMainGroup("");
-    setSubGroup("");
-    setFCode("");
-    setSelectedNode(null);
-    setMessage(null);
-    setSearchDropdown("");
-    setSearchTree("");
-    setIsDropdownOpen(false);
-    setIsTreeOpen(false); // Keep tree closed
-    // Focus Main Group input after reset
-    setTimeout(() => {
-      if (mainGroupRef.current) {
-        mainGroupRef.current.focus();
-      }
-    }, 100);
-  };
+  // const resetForm = () => {
+  //   setMainGroup("");
+  //   setSubGroup("");
+  //   setFCode("");
+  //   setSelectedNode(null);
+  //   setMessage(null);
+  //   setSearchDropdown("");
+  //   setSearchTree("");
+  //   setIsDropdownOpen(false);
+  //   setIsTreeOpen(true); // Keep tree closed
+  //   // Focus Main Group input after reset
+  //   setTimeout(() => {
+  //     if (mainGroupRef.current) {
+  //       mainGroupRef.current.focus();
+  //     }
+  //   }, 100);
+  // };
 
   const resetForm1 = () => {
     setMainGroup("");
@@ -417,7 +417,7 @@ export default function LedgerGroupCreation() {
     setSearchDropdown("");
     setSearchTree("");
     setIsDropdownOpen(false);
-    setIsTreeOpen(false); // Keep tree closed
+    setIsTreeOpen(true); // Keep tree closed
     setActionType("Add");
     // Focus Main Group input after reset
     setTimeout(() => {
@@ -476,7 +476,7 @@ export default function LedgerGroupCreation() {
   // Add / Edit / Delete handlers
   const handleAdd = async () => {
     // Check permission before allowing action
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       toast.error("You don't have permission to add ledger groups.");
       return;
     }
@@ -537,7 +537,7 @@ export default function LedgerGroupCreation() {
       if (resp.status === 200 || resp.status === 201) {
         // toast.success("Ledger group updated successfully.");
         setActionType("Add");
-        resetForm();
+        resetForm1();
         await loadInitial();
       } else {
         toast.error(`Unexpected server response: ${resp.status}`);
@@ -605,7 +605,7 @@ export default function LedgerGroupCreation() {
     } else if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
-      if (actionType === "edit" && subGroup && fCode) {
+      if (actionType === "Edit" && subGroup && fCode) {
         // In edit mode with sub group selected, pressing Enter triggers edit
         submitButtonRef.current?.focus();
         
@@ -613,7 +613,7 @@ export default function LedgerGroupCreation() {
         // In add mode, just focus submit button
         submitButtonRef.current?.focus();
       }
-      else if (actionType === "delete") {
+      else if (actionType === "Delete") {
         // In delete mode, just focus submit button
         submitButtonRef.current?.focus();
       }
@@ -1261,30 +1261,30 @@ export default function LedgerGroupCreation() {
           <div className="actions" role="toolbar" aria-label="actions">
             <AddButton
               onClick={() => { setActionType("Add"); resetForm(); }}
-              disabled={submitting || !formPermissions.add}
+              disabled={submitting || !formPermissions.Add}
               isActive={actionType === 'Add'}
             />
 
             <EditButton
               onClick={(e) => {
                 e.currentTarget.blur();
-                setActionType("edit");
+                setActionType("Edit");
                 resetForm();
                 setIsDropdownOpen(true);
               }}
-              disabled={submitting || !formPermissions.edit}
-              isActive={actionType === 'edit'}
+              disabled={submitting || !formPermissions.Edit}
+              isActive={actionType === 'Edit'}
             />
 
             <DeleteButton
               onClick={(e) => {
                 e.currentTarget.blur();
-                setActionType("delete");
+                setActionType("Delete");
                 resetForm();
                 setIsDropdownOpen(true);
               }}
-              disabled={submitting || !formPermissions.delete}
-              isActive={actionType === 'delete'}
+              disabled={submitting || !formPermissions.Delete}
+              isActive={actionType === 'Delete'}
             />
           </div>
         </div>
@@ -1356,7 +1356,7 @@ export default function LedgerGroupCreation() {
 
               {isTreeOpen && (
                 isMobile ? (
-                  <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
+                  <div className="modal-overlay" onClick={() => setIsTreeOpen(true)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                         <h3 style={{ margin: 0, fontSize: 18 }}>Groups</h3>
@@ -1540,8 +1540,7 @@ export default function LedgerGroupCreation() {
                 disabled={submitting}
                 type="button"
               >
-                {/* {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)} */}
-                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "edit" ? "Update" : "Delete"}
+                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
               </button>
               <button
                 className="submit-clear"
