@@ -1114,6 +1114,13 @@ const ReceiptVoucher = () => {
 
   // Open edit voucher popup
   const openEditVoucherPopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      toast.error('You do not have permission to edit receipt vouchers.', { autoClose: 3000 });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+    
     try {
       setLoadingVouchers(true);
       await fetchSavedVouchers(1, '');
@@ -1129,6 +1136,13 @@ const ReceiptVoucher = () => {
 
   // Open delete voucher popup
   const openDeleteVoucherPopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      toast.error('You do not have permission to delete receipt vouchers.', { autoClose: 3000 });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+    
     setLoadingVouchers(true);
     try {
       await fetchSavedVouchers(1, '');
@@ -1824,6 +1838,17 @@ const ReceiptVoucher = () => {
 
   // Handle save with confirmation
   const handleSave = async () => {
+    // === PERMISSION CHECK ===
+    const action = isEditing ? 'edit' : 'add';
+    const hasPermission = action === 'add' ? formPermissions.add : formPermissions.edit;
+    
+    if (!hasPermission) {
+      const actionText = action === 'add' ? 'create' : 'modify';
+      toast.error(`You do not have permission to ${actionText} receipt vouchers.`, { autoClose: 3000 });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+    
     const cashTotals = calculateCashTotals();
     
     // Check if there are CASH type payments (only items with amount)
