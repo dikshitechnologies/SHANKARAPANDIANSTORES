@@ -1291,7 +1291,7 @@ export default function ItemGroupCreation() {
                         handleMainGroupKeyDown(e);
                       }
                     }}
-                    readOnly={actionType !== "Add"}
+                    readOnly={true}
                     disabled={submitting}
                     aria-label="Main Group"
                     style={{ 

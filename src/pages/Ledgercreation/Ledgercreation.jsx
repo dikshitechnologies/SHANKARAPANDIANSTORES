@@ -1064,6 +1064,10 @@ export default function LedgerCreation({ onCreated }) {
           text-align: left;
           width: 100%;
         }
+        .asterisk {
+          color: var(--danger);
+          font-weight: 700;
+        }
 
         .field {
           margin-bottom:12px;
@@ -1727,7 +1731,7 @@ export default function LedgerCreation({ onCreated }) {
         <div className="grid">
           <div className="card">
             <div className="field">
-              <label className="field-label">Ledger Name *</label>
+              <label className="field-label">Ledger Name <span className="asterisk">*</span></label>
               <input
                 ref={partyNameRef}
                 type="text"
@@ -1754,7 +1758,7 @@ export default function LedgerCreation({ onCreated }) {
             </div>
 
             <div className="field">
-              <label className="field-label">Group Name *</label>
+              <label className="field-label">Group Name <span className="asterisk">*</span></label>
               <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
                 <div style={{
                   display: "flex",
@@ -1854,7 +1858,7 @@ export default function LedgerCreation({ onCreated }) {
                 </div>
 
                 <div className="field">
-                  <label className="field-label">Street *</label>
+                  <label className="field-label">Street <span className="asterisk">*</span></label>
                   <input
                     ref={fStreetRef}
                     type="text"
@@ -1868,7 +1872,7 @@ export default function LedgerCreation({ onCreated }) {
                 </div>
 
                 <div className="field">
-                  <label className="field-label">Area *</label>
+                  <label className="field-label">Area <span className="asterisk">*</span></label>
                   <input
                     ref={areaRef}
                     type="text"
@@ -1882,7 +1886,7 @@ export default function LedgerCreation({ onCreated }) {
                 </div>
 
                 <div className="field">
-                  <label className="field-label">City *</label>
+                  <label className="field-label">City <span className="asterisk">*</span></label>
                   <input
                     ref={cityRef}
                     type="text"
@@ -1896,7 +1900,7 @@ export default function LedgerCreation({ onCreated }) {
                 </div>
 
                 <div className="field">
-                  <label className="field-label">Pincode *</label>
+                  <label className="field-label">Pincode <span className="asterisk">*</span></label>
                   <input
                     ref={pincodeRef}
                     type="text"
@@ -1911,7 +1915,7 @@ export default function LedgerCreation({ onCreated }) {
                 </div>
 
                 <div className="field">
-                  <label className="field-label">Phone No *</label>
+                  <label className="field-label">Phone No <span className="asterisk">*</span></label>
                   <input
                     ref={phoneRef}
                     type="text"
