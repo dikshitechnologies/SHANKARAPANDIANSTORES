@@ -2763,7 +2763,30 @@ const handleKeyNavigation = (e) => {
                       handleChange('costPrice', value);
                     }
                   }}
-                  
+                 onKeyDown={(e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation(); // 🔥 THIS IS THE KEY FIX
+
+    // Validation
+    if (!formData.itemName) {
+      setMessage({ type: "error", text: 'Please enter Item Name.' });
+      itemNameRef.current?.focus();
+      return;
+    }
+
+    if (!mainGroup) {
+      setMessage({ type: "error", text: 'Please select Group Name.' });
+      return;
+    }
+
+    // 🔔 ONLY OPEN CONFIRMATION (NO SAVE)
+    if (actionType === 'create') showCreateConfirmation();
+    else if (actionType === 'edit') showEditConfirmation();
+    else if (actionType === 'delete') showDeleteConfirmation();
+  }
+}}
+
                   disabled={isSubmitting}
                   aria-label="Cost Price"
                     style={{ textAlign: "center" ,width:300}}
@@ -2787,7 +2810,28 @@ const handleKeyNavigation = (e) => {
                       handleChange('sellingPrice', value);
                     }
                   }}
-                  
+                 onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.stopPropagation(); // 🔥 REQUIRED
+
+                  if (!formData.itemName) {
+                    setMessage({ type: "error", text: 'Please enter Item Name.' });
+                    itemNameRef.current?.focus();
+                    return;
+                  }
+
+                  if (!mainGroup) {
+                    setMessage({ type: "error", text: 'Please select Group Name.' });
+                    return;
+                  }
+
+                  if (actionType === 'create') showCreateConfirmation();
+                  else if (actionType === 'edit') showEditConfirmation();
+                  else if (actionType === 'delete') showDeleteConfirmation();
+                }
+              }}
+
                   disabled={isSubmitting}
                   aria-label="Selling Price"
                     style={{ textAlign: "center" ,width:300}}
