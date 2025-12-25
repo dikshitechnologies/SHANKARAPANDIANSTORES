@@ -2712,41 +2712,45 @@ const handleKeyNavigation = (e) => {
 
               {/* Units */}
               <div className="field">
-                <label className="field-label">Units</label>
-                <div className="input-with-search">
-                  <input
-                    ref={unitRef}
-                    className="input"
-                    value={formData.unit}
-                    onChange={(e) => handleChange('unit', e.target.value)}
-                    onClick={() => setIsUnitPopupOpen(true)}
-                    onKeyDown={(e) => handlePopupFieldKeyPress('unit', e)}
-                    onFocus={() => setActiveField('unit')}
-                    onBlur={() => setActiveField(null)}
-                    disabled={isSubmitting}
-                    readOnly
-                    aria-label="Units"
-                  />
-                  {formData.unit && activeField === 'unit' && (
-                    <button
-                      type="button"
-                      className="input-clear-btn"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, unit: '' }));
-                        setFieldCodes(prev => ({ ...prev, unitCode: '' }));
-                      }}
-                      title="Clear unit selection"
-                      disabled={isSubmitting}
-                      aria-label="Clear unit"
-                    >
-                    
-                    </button>
-                  )}
-                  <div className="input-search-icon">
-                    <Icon.Search size={16} />
-                  </div>
-                </div>
-              </div>
+  <label className="field-label">
+    Units
+    <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+  </label>
+  <div className="input-with-search">
+    <input
+      ref={unitRef}
+      className="input"
+      value={formData.unit}
+      onChange={(e) => handleChange('unit', e.target.value)}
+      onClick={() => setIsUnitPopupOpen(true)}
+      onKeyDown={(e) => handlePopupFieldKeyPress('unit', e)}
+      onFocus={() => setActiveField('unit')}
+      onBlur={() => setActiveField(null)}
+      disabled={isSubmitting}
+      readOnly
+      aria-label="Units"
+      required
+    />
+    {formData.unit && activeField === 'unit' && (
+      <button
+        type="button"
+        className="input-clear-btn"
+        onClick={() => {
+          setFormData(prev => ({ ...prev, unit: '' }));
+          setFieldCodes(prev => ({ ...prev, unitCode: '' }));
+        }}
+        title="Clear unit selection"
+        disabled={isSubmitting}
+        aria-label="Clear unit"
+      >
+      
+      </button>
+    )}
+    <div className="input-search-icon">
+      <Icon.Search size={16} />
+    </div>
+  </div>
+</div>
 
               {/* LEFT SIDE: Min */}
               <div className="field">
@@ -2779,8 +2783,11 @@ const handleKeyNavigation = (e) => {
               </div>
 
               {/* LEFT SIDE: HSN Code */}
-             <div className="field">
-  <label className="field-label">HSN Code</label>
+           <div className="field">
+  <label className="field-label">
+    HSN Code
+    <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+  </label>
   <input
     ref={hsnCodeRef}
     className="input"
@@ -2796,9 +2803,9 @@ const handleKeyNavigation = (e) => {
     aria-label="HSN Code"
     title="Alphanumeric HSN Code (max 20 characters)"
     style={{ textAlign: "center", width: 300 }}
+    required
   />
 </div>
-
               {/* RIGHT SIDE: Type Dropdown - MOVED to replace Piece Rate */}
           <div className="field">
   <label className="field-label">Type</label>
@@ -2915,38 +2922,41 @@ const handleKeyNavigation = (e) => {
 </div>
 
               {/* RIGHT SIDE: GST% */}
-              <div className="field">
-                <label className="field-label">GST%</label>
-                <input
-                  ref={gstinRef}
-                  className="input"
-                  value={formData.gstin}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Allow empty or numbers only
-                    if (/^\d{0,2}$/.test(value)) {
-                      handleChange('gstin', value);
-                    }
-                  }}
-                  onBlur={() => {
-                    // Validate GST value when user leaves the field
-                    const allowedGSTValues = ['3', '5', '12', '18', '28'];
-                    const gstValue = formData.gstin;
-                    if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
-                      // Show error message
-                      setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
-                      // Clear invalid value
-                      handleChange('gstin', '');
-                      // Focus back to show error
-                      setTimeout(() => gstinRef.current?.focus(), 10);
-                    }
-                  }}
-                 
-                  disabled={isSubmitting || !gstChecked}
-                  aria-label="GST Percentage"
-                    style={{ textAlign: "center" ,width:300}}
-                />
-              </div>
+            <div className="field">
+  <label className="field-label">
+    GST%
+    <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+  </label>
+  <input
+    ref={gstinRef}
+    className="input"
+    value={formData.gstin}
+    onChange={(e) => {
+      const value = e.target.value;
+      // Allow empty or numbers only
+      if (/^\d{0,2}$/.test(value)) {
+        handleChange('gstin', value);
+      }
+    }}
+    onBlur={() => {
+      // Validate GST value when user leaves the field
+      const allowedGSTValues = ['3', '5', '12', '18', '28'];
+      const gstValue = formData.gstin;
+      if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
+        // Show error message
+        setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
+        // Clear invalid value
+        handleChange('gstin', '');
+        // Focus back to show error
+        setTimeout(() => gstinRef.current?.focus(), 10);
+      }
+    }}
+    disabled={isSubmitting || !gstChecked}
+    aria-label="GST Percentage"
+    style={{ textAlign: "center", width: 300 }}
+    required
+  />
+</div>
 
               {/* LEFT SIDE: Manual Prefix Checkbox */}
              <div className="field">

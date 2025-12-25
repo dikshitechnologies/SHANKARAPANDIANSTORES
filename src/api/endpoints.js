@@ -157,6 +157,7 @@ export const API_ENDPOINTS = {
     GET_PURCHASE_DETAILS: "PurchaseInvoice/GetPurchaseDetails",
     GET_ITEM_CODE_LIST: "Salesinvoices/GetItemsByType?type=FG",
     GET_ITEM_DETAILS_BY_CODE: (itemCode) => `Salesinvoices/GetStockByItemName?itemcode=${itemCode}&billType=FG`,
+    AUTO_GENERATE_BARCODE: "barcodeGenerate/AutoGenerateBarcode",
   },
 
 
