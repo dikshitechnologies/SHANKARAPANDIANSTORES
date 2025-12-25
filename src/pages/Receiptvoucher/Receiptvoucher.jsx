@@ -1619,6 +1619,13 @@ const ReceiptVoucher = () => {
       // Use updatedParticulars if provided (from modal), otherwise use state particulars
       const particularsToUse = updatedParticulars || particulars;
       
+      // Check if there are CASH type payments
+      const hasCashPayments = receiptItems.some(item => {
+        const typeValue = (item.type || '').toString().trim().toUpperCase();
+        const hasAmount = item.amount && parseFloat(item.amount) > 0;
+        return typeValue === 'CASH' && hasAmount;
+      });
+      
       // Calculate givenTotal from COLLECT values (amount collected)
       let givenTotal = 0;
       const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
@@ -1635,6 +1642,39 @@ const ReceiptVoucher = () => {
       // Formula: totalAmt = givenTotal - balanceGiven
       // So: balanceGiven = givenTotal - totalAmt
       const balanceGiven = givenTotal - totalAmount;
+      
+      // Calculate issued total from ISSUE values
+      let issuedTotal = 0;
+      denominations.forEach(denom => {
+        const denomKey = denom.toString();
+        const issueValue = particularsToUse[denomKey]?.issue;
+        const issueCount = parseInt(issueValue) || 0;
+        issuedTotal += issueCount * denom;
+      });
+      
+      // **VALIDATION: Net Amount = Collected Amount - Issued Amount (ONLY FOR CASH PAYMENTS)**
+      if (hasCashPayments) {
+        const netAmount = givenTotal - issuedTotal;
+        
+        // Check if the formula is satisfied
+        if (Math.abs(netAmount - totalAmount) > 0.01) { // Using small tolerance for floating point
+          const errorMessage = `Net amount not tallying`;
+          setError(errorMessage);
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: errorMessage,
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          setIsSaving(false);
+          setIsLoading(false);
+          return;
+        }
+      }
       
       // Also update state if we received updatedParticulars
       if (updatedParticulars) {
@@ -1786,8 +1826,12 @@ const ReceiptVoucher = () => {
   const handleSave = async () => {
     const cashTotals = calculateCashTotals();
     
-    // Check if there are CASH type payments
-    const hasCashPayments = receiptItems.some(item => item.type === 'CASH');
+    // Check if there are CASH type payments (only items with amount)
+    const hasCashPayments = receiptItems.some(item => {
+      const typeValue = (item.type || '').toString().trim().toUpperCase();
+      const hasAmount = item.amount && parseFloat(item.amount) > 0;
+      return typeValue === 'CASH' && hasAmount;
+    });
     
     if (hasCashPayments) {
       // Show confirmation modal only for CASH payments
