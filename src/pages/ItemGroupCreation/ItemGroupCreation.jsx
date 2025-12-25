@@ -222,7 +222,7 @@ export default function ItemGroupCreation() {
   }, [actionType, subGroup, fCode]);
 
    useEffect(() => {
-    if (actionType === "delete" && subGroup && fCode) {
+    if (actionType === "Delete" && subGroup && fCode) {
       // Small timeout to ensure DOM is updated
       setTimeout(() => {
         if (subGroupRef.current) {
