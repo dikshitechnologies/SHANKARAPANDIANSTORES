@@ -1313,7 +1313,7 @@ const handleKeyNavigation = (e) => {
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       {/* Check if user has any permission to access this module */}
-      {!formPermissions.add && !formPermissions.edit && !formPermissions.delete && (
+      {/* {!formPermissions.add && !formPermissions.edit && !formPermissions.delete && (
         <div style={{
           padding: '20px',
           margin: '20px',
@@ -1326,7 +1326,7 @@ const handleKeyNavigation = (e) => {
           <h3>Access Denied</h3>
           <p>You do not have permission to access the Item Creation module.</p>
         </div>
-      )}
+      )} */}
 
       <style>{`
         /* Toast notification styles - ADDED */
