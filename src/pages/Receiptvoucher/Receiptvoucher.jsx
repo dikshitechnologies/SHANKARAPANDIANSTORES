@@ -1636,6 +1636,37 @@ const ReceiptVoucher = () => {
       // So: balanceGiven = givenTotal - totalAmt
       const balanceGiven = givenTotal - totalAmount;
       
+      // Calculate issued total from ISSUE values
+      let issuedTotal = 0;
+      denominations.forEach(denom => {
+        const denomKey = denom.toString();
+        const issueValue = particularsToUse[denomKey]?.issue;
+        const issueCount = parseInt(issueValue) || 0;
+        issuedTotal += issueCount * denom;
+      });
+      
+      // **VALIDATION: Net Amount = Collected Amount - Issued Amount**
+      const netAmount = givenTotal - issuedTotal;
+      
+      // Check if the formula is satisfied
+      if (Math.abs(netAmount - totalAmount) > 0.01) { // Using small tolerance for floating point
+        const errorMessage = `Net amount not tallying`;
+        setError(errorMessage);
+        setConfirmationPopup({
+          isOpen: true,
+          title: 'Validation Error',
+          message: errorMessage,
+          type: 'warning',
+          confirmText: 'OK',
+          cancelText: null,
+          action: null,
+          isLoading: false
+        });
+        setIsSaving(false);
+        setIsLoading(false);
+        return;
+      }
+      
       // Also update state if we received updatedParticulars
       if (updatedParticulars) {
         setParticulars(updatedParticulars);
