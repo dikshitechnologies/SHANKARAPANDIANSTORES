@@ -74,7 +74,7 @@ const ReceiptVoucher = () => {
       chqNo: '',
       chqDt: '',
       narration: '',
-      amount: '0.00'
+      amount: ''
     }
   ]);
 
@@ -89,7 +89,7 @@ const ReceiptVoucher = () => {
       billAmount: '0.00',
       paidAmount: '0.00',
       balanceAmount: '0.00',
-      amount: '0.00'
+      amount: ''
     }
   ]);
 
@@ -141,6 +141,11 @@ const ReceiptVoucher = () => {
   // Track current bill row for navigation
   const [currentBillRowIndex, setCurrentBillRowIndex] = useState(0);
 
+  // --- ENTER KEY NAVIGATION STATES ---
+  const [navigationStep, setNavigationStep] = useState('voucherNo');
+  const [currentReceiptRowIndex, setCurrentReceiptRowIndex] = useState(0);
+  const [currentReceiptFieldIndex, setCurrentReceiptFieldIndex] = useState(0);
+
   // Auth context for company code
   const { userData } = useAuth() || {};
 
@@ -148,9 +153,21 @@ const ReceiptVoucher = () => {
   const voucherNoRef = useRef(null);
   const dateRef = useRef(null);
   const accountNameRef = useRef(null);
+  const balanceRef = useRef(null);
   const gstTypeRef = useRef(null);
-  const cashBankRef = useRef(null);
   const saveButtonRef = useRef(null);
+  
+  // Receipt table refs
+  const receiptCashBankRefs = useRef([]);
+  const receiptCrDrRefs = useRef([]);
+  const receiptTypeRefs = useRef([]);
+  const receiptChqNoRefs = useRef([]);
+  const receiptChqDtRefs = useRef([]);
+  const receiptNarrationRefs = useRef([]);
+  const receiptAmountRefs = useRef([]);
+  
+  // Bill table refs
+  const billAmountRefs = useRef([]);
 
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
@@ -207,6 +224,503 @@ const ReceiptVoucher = () => {
     handleResize();
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Initialize refs arrays
+  useEffect(() => {
+    receiptCashBankRefs.current = receiptCashBankRefs.current.slice(0, receiptItems.length);
+    receiptCrDrRefs.current = receiptCrDrRefs.current.slice(0, receiptItems.length);
+    receiptTypeRefs.current = receiptTypeRefs.current.slice(0, receiptItems.length);
+    receiptChqNoRefs.current = receiptChqNoRefs.current.slice(0, receiptItems.length);
+    receiptChqDtRefs.current = receiptChqDtRefs.current.slice(0, receiptItems.length);
+    receiptNarrationRefs.current = receiptNarrationRefs.current.slice(0, receiptItems.length);
+    receiptAmountRefs.current = receiptAmountRefs.current.slice(0, receiptItems.length);
+    billAmountRefs.current = billAmountRefs.current.slice(0, billDetails.length);
+  }, [receiptItems.length, billDetails.length]);
+
+  // ========== ARROW KEY NAVIGATION FUNCTIONS ==========
+
+  // Define field order for navigation
+  const headerFields = ['voucherNo', 'date', 'accountName', 'balance', 'gstType'];
+  const receiptFields = ['cashBank', 'crDr', 'type', 'chqNo', 'chqDt', 'narration', 'amount'];
+  const billFields = ['refNo', 'billNo', 'date', 'billAmount', 'paidAmount', 'balanceAmount', 'amount'];
+
+  // Get current field index based on field type
+  const getCurrentFieldIndex = (fieldType) => {
+    if (headerFields.includes(fieldType)) {
+      return headerFields.indexOf(fieldType);
+    }
+    if (receiptFields.includes(fieldType)) {
+      return receiptFields.indexOf(fieldType);
+    }
+    if (billFields.includes(fieldType)) {
+      return billFields.indexOf(fieldType);
+    }
+    return 0;
+  };
+
+  // Navigate to next field with arrow keys
+  const navigateWithArrow = (direction, currentField, currentRow = 0, currentFieldType = '') => {
+    console.log(`Navigating ${direction} from ${currentField}, row ${currentRow}, fieldType ${currentFieldType}`);
+
+    // Handle navigation from header fields
+    if (headerFields.includes(currentField)) {
+      const currentIndex = headerFields.indexOf(currentField);
+      
+      if (direction === 'right') {
+        if (currentIndex < headerFields.length - 1) {
+          const nextField = headerFields[currentIndex + 1];
+          focusOnHeaderField(nextField);
+        } else {
+          // Move to first receipt row
+          focusOnReceiptField(0, 0);
+        }
+      } else if (direction === 'left') {
+        if (currentIndex > 0) {
+          const prevField = headerFields[currentIndex - 1];
+          focusOnHeaderField(prevField);
+        }
+      } else if (direction === 'down') {
+        // Move to receipt table (same column concept)
+        if (currentField === 'accountName' || currentField === 'balance') {
+          focusOnReceiptField(0, 0); // First row, first field
+        }
+      }
+    }
+    
+    // Handle navigation from receipt table
+    else if (receiptFields.includes(currentFieldType)) {
+      const fieldIndex = getCurrentFieldIndex(currentFieldType);
+      
+      if (direction === 'right') {
+        if (fieldIndex < receiptFields.length - 1) {
+          // Special handling for skipping CHQ fields when type is not CHQ
+          if (currentFieldType === 'type' && receiptItems[currentRow].type !== 'CHQ') {
+            // Skip chqNo and chqDt, go to narration
+            focusOnReceiptField(currentRow, receiptFields.indexOf('narration'));
+          } else if (currentFieldType === 'chqNo' && receiptItems[currentRow].type !== 'CHQ') {
+            // Skip chqDt, go to narration
+            focusOnReceiptField(currentRow, receiptFields.indexOf('narration'));
+          } else if (currentFieldType === 'chqDt' && receiptItems[currentRow].type !== 'CHQ') {
+            // Go to narration
+            focusOnReceiptField(currentRow, receiptFields.indexOf('narration'));
+          } else {
+            focusOnReceiptField(currentRow, fieldIndex + 1);
+          }
+        } else {
+          // Last field in row, move to next row if exists
+          if (currentRow < receiptItems.length - 1) {
+            focusOnReceiptField(currentRow + 1, 0);
+          } else {
+            // Move to bill table
+            focusOnBillField(0, billFields.indexOf('amount'));
+          }
+        }
+      } else if (direction === 'left') {
+        if (fieldIndex > 0) {
+          // Special handling for skipping CHQ fields
+          if (currentFieldType === 'narration' && receiptItems[currentRow].type !== 'CHQ') {
+            // Skip back over chqDt and chqNo if type is not CHQ
+            focusOnReceiptField(currentRow, receiptFields.indexOf('type'));
+          } else {
+            focusOnReceiptField(currentRow, fieldIndex - 1);
+          }
+        } else {
+          // First field in row, move to previous row or header
+          if (currentRow > 0) {
+            focusOnReceiptField(currentRow - 1, receiptFields.length - 1);
+          } else {
+            // Move to last header field
+            focusOnHeaderField(headerFields[headerFields.length - 1]);
+          }
+        }
+      } else if (direction === 'down') {
+        if (currentRow < receiptItems.length - 1) {
+          focusOnReceiptField(currentRow + 1, fieldIndex);
+        } else {
+          // Move to bill table (same column concept)
+          focusOnBillField(0, Math.min(fieldIndex, billFields.length - 1));
+        }
+      } else if (direction === 'up') {
+        if (currentRow > 0) {
+          focusOnReceiptField(currentRow - 1, fieldIndex);
+        } else {
+          // Move to header (accountName or balance based on column)
+          if (fieldIndex <= 1) { // cashBank or crDr
+            focusOnHeaderField('accountName');
+          } else {
+            focusOnHeaderField('gstType');
+          }
+        }
+      }
+    }
+    
+    // Handle navigation from bill table
+    else if (billFields.includes(currentFieldType)) {
+      const fieldIndex = getCurrentFieldIndex(currentFieldType);
+      
+      if (direction === 'right') {
+        // Only amount field is editable in bill table
+        if (fieldIndex < billFields.length - 1) {
+          focusOnBillField(currentRow, fieldIndex + 1);
+        } else {
+          // Last field, move to next row
+          if (currentRow < billDetails.length - 1) {
+            focusOnBillField(currentRow + 1, billFields.indexOf('amount'));
+          } else {
+            // Move to save button
+            saveButtonRef.current?.focus();
+          }
+        }
+      } else if (direction === 'left') {
+        if (fieldIndex > 0) {
+          focusOnBillField(currentRow, fieldIndex - 1);
+        } else {
+          // First field, move to previous row or receipt table
+          if (currentRow > 0) {
+            focusOnBillField(currentRow - 1, billFields.length - 1);
+          } else {
+            // Move to last receipt row
+            const lastReceiptRow = receiptItems.length - 1;
+            focusOnReceiptField(lastReceiptRow, receiptFields.length - 1);
+          }
+        }
+      } else if (direction === 'down') {
+        if (currentRow < billDetails.length - 1) {
+          focusOnBillField(currentRow + 1, fieldIndex);
+        } else {
+          // Move to save button
+          saveButtonRef.current?.focus();
+        }
+      } else if (direction === 'up') {
+        if (currentRow > 0) {
+          focusOnBillField(currentRow - 1, fieldIndex);
+        } else {
+          // Move to receipt table (last row)
+          const lastReceiptRow = receiptItems.length - 1;
+          focusOnReceiptField(lastReceiptRow, Math.min(fieldIndex, receiptFields.length - 1));
+        }
+      }
+    }
+  };
+
+  // Focus on header field
+  const focusOnHeaderField = (fieldName) => {
+    setNavigationStep(fieldName);
+    setFocusedField(fieldName);
+    
+    setTimeout(() => {
+      switch (fieldName) {
+        case 'voucherNo':
+          voucherNoRef.current?.focus();
+          break;
+        case 'date':
+          dateRef.current?.focus();
+          break;
+        case 'accountName':
+          accountNameRef.current?.focus();
+          break;
+        case 'balance':
+          balanceRef.current?.focus();
+          break;
+        case 'gstType':
+          gstTypeRef.current?.focus();
+          break;
+      }
+    }, 10);
+  };
+
+  // Focus on receipt field
+  const focusOnReceiptField = (rowIndex, fieldIndex) => {
+    const fieldName = receiptFields[fieldIndex];
+    setCurrentReceiptRowIndex(rowIndex);
+    setCurrentReceiptFieldIndex(fieldIndex);
+    setNavigationStep('receipt' + fieldName);
+    
+    setTimeout(() => {
+      const fieldId = `receipt_${receiptItems[rowIndex].id}_${fieldName}`;
+      const element = document.getElementById(fieldId);
+      if (element) {
+        element.focus();
+        element.select?.();
+      }
+    }, 10);
+  };
+
+  // Focus on bill field
+  const focusOnBillField = (rowIndex, fieldIndex) => {
+    const fieldName = billFields[fieldIndex];
+    setCurrentBillRowIndex(rowIndex);
+    setNavigationStep('bill' + fieldName);
+    
+    setTimeout(() => {
+      const fieldId = `bill_${billDetails[rowIndex].id}_${fieldName}`;
+      const element = document.getElementById(fieldId);
+      if (element) {
+        element.focus();
+        element.select?.();
+      }
+    }, 10);
+  };
+
+  // ========== ENHANCED KEYDOWN HANDLERS WITH ARROW SUPPORT ==========
+
+  // Handle keydown in header fields with arrow support
+  const handleHeaderFieldKeyDown = (e, currentField) => {
+    // Arrow key navigation
+    if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      const direction = e.key.replace('Arrow', '').toLowerCase();
+      navigateWithArrow(direction, currentField);
+      return;
+    }
+    
+    // Enter key navigation (existing functionality)
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      switch (currentField) {
+        case 'voucherNo':
+          dateRef.current?.focus();
+          setNavigationStep('date');
+          break;
+          
+        case 'date':
+          accountNameRef.current?.focus();
+          setNavigationStep('accountName');
+          break;
+          
+        case 'accountName':
+          gstTypeRef.current?.focus();
+          setNavigationStep('gstType');
+          break;
+          
+        case 'gstType':
+          if (receiptItems.length > 0) {
+            focusOnReceiptField(0, 0);
+          }
+          break;
+      }
+    }
+    
+    // Open popup on typing in account name
+    if (currentField === 'accountName' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
+      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        setTimeout(() => {
+          setAccountPopupOpen(true);
+        }, 100);
+      }
+    }
+  };
+
+  // Handle keydown in receipt fields with arrow support
+  const handleReceiptFieldKeyDown = (e, rowIndex, fieldType) => {
+    // Arrow key navigation
+    if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      navigateWithArrow(e.key.replace('Arrow', '').toLowerCase(), '', rowIndex, fieldType);
+      return;
+    }
+    
+    // Existing Enter key navigation
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentItem = receiptItems[rowIndex];
+
+      // Check if Cash/Bank is empty
+      const isCashBankEmpty = !currentItem.cashBank.trim();
+
+      // Special case: If at cashBank field and it's empty, skip to reference bill amount field
+      if (fieldType === 'cashBank' && isCashBankEmpty) {
+        if (billDetails.length > 0) {
+          setCurrentBillRowIndex(0);
+          setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+        } else {
+          setTimeout(() => saveButtonRef.current?.focus(), 0);
+        }
+        return;
+      }
+
+      // Special case: If at amount field and amount is not entered, don't move to next row
+      if (fieldType === 'amount' && (!currentItem.amount || parseFloat(currentItem.amount) <= 0)) {
+        return;
+      }
+
+      // Move to next field in same row
+      const currentFieldIndex = receiptFields.indexOf(fieldType);
+      if (currentFieldIndex < receiptFields.length - 1) {
+        // Special case for skipping CHQ fields
+        if (fieldType === 'type' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `receipt_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
+        } 
+        else if (fieldType === 'chqNo' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `receipt_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
+        }
+        else if (fieldType === 'chqDt' && currentItem.type !== 'CHQ') {
+          const narrationFieldId = `receipt_${currentItem.id}_narration`;
+          setTimeout(() => document.getElementById(narrationFieldId)?.focus(), 0);
+        }
+        else {
+          const nextFieldId = `receipt_${currentItem.id}_${receiptFields[currentFieldIndex + 1]}`;
+          setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
+        }
+      } else {
+        // Last field in current row
+        if (rowIndex < receiptItems.length - 1) {
+          const nextItem = receiptItems[rowIndex + 1];
+          
+          if (!nextItem.cashBank.trim()) {
+            if (billDetails.length > 0) {
+              setCurrentBillRowIndex(0);
+              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+            } else {
+              setTimeout(() => saveButtonRef.current?.focus(), 0);
+            }
+          } else {
+            const nextFieldId = `receipt_${nextItem.id}_${receiptFields[0]}`;
+            setTimeout(() => document.getElementById(nextFieldId)?.focus(), 0);
+          }
+        } else {
+          if (currentItem.cashBank.trim() && currentItem.amount && parseFloat(currentItem.amount) > 0) {
+            const newId = Math.max(...receiptItems.map(item => item.id), 0) + 1;
+            setReceiptItems(prev => [
+              ...prev,
+              {
+                id: newId,
+                sNo: prev.length + 1,
+                cashBank: '',
+                cashBankCode: '',
+                crDr: 'CR',
+                type: '',
+                chqNo: '',
+                chqDt: '',
+                narration: '',
+                amount: ''
+              }
+            ]);
+            setTimeout(() => {
+              document.getElementById(`receipt_${newId}_cashBank`)?.focus();
+            }, 0);
+          } else {
+            if (billDetails.length > 0) {
+              setCurrentBillRowIndex(0);
+              setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+            } else {
+              setTimeout(() => saveButtonRef.current?.focus(), 0);
+            }
+          }
+        }
+      }
+    }
+    
+    // Open Cash/Bank popup on typing
+    if (fieldType === 'cashBank' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
+      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        setTimeout(() => {
+          setCashBankSearchTerm('');
+          setAccountPopupContext({ itemId: receiptItems[rowIndex].id, field: 'cashBank', rowIndex });
+          setAccountPopupOpen(true);
+        }, 100);
+      }
+    }
+  };
+
+  // Handle bill amount keydown with arrow support
+  const handleBillAmountKeyDown = (e, rowIndex) => {
+    // Arrow key navigation
+    if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      navigateWithArrow(e.key.replace('Arrow', '').toLowerCase(), '', rowIndex, 'amount');
+      return;
+    }
+    
+    // Existing Enter key navigation
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // Check if there's a next row
+      if (rowIndex < billDetails.length - 1) {
+        const nextBillId = billDetails[rowIndex + 1].id;
+        setTimeout(() => {
+          const nextInput = document.getElementById(`bill_${nextBillId}_amount`);
+          nextInput?.focus();
+          setCurrentBillRowIndex(rowIndex + 1);
+        }, 0);
+      } else {
+        setTimeout(() => saveButtonRef.current?.focus(), 0);
+      }
+    }
+  };
+
+  // Handle bill table keydown with Enter and Arrow key navigation
+  const handleBillTableKeyDown = (e, rowIndex, fieldName) => {
+    // Handle arrow keys
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+      const fieldIndex = billFields.indexOf(fieldName);
+      navigateWithArrow(e.key, 'bill', rowIndex, fieldIndex);
+      return;
+    }
+    
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentBill = billDetails[rowIndex];
+      const currentFieldIndex = billFields.indexOf(fieldName);
+
+      // If at amount field, move directly to save button
+      if (fieldName === 'amount') {
+        setTimeout(() => {
+          saveButtonRef.current?.focus();
+          setCurrentBillRowIndex(rowIndex);
+        }, 0);
+        return;
+      }
+
+      // Move to next field in same row
+      if (currentFieldIndex < billFields.length - 1) {
+        const nextFieldId = `bill_${currentBill.id}_${billFields[currentFieldIndex + 1]}`;
+        setTimeout(() => {
+          document.getElementById(nextFieldId)?.focus();
+          setCurrentBillRowIndex(rowIndex);
+        }, 0);
+      } else {
+        // Last field in current row, move to next row
+        if (rowIndex < billDetails.length - 1) {
+          const nextBill = billDetails[rowIndex + 1];
+          const nextFieldId = `bill_${nextBill.id}_${billFields[0]}`;
+          setTimeout(() => {
+            document.getElementById(nextFieldId)?.focus();
+            setCurrentBillRowIndex(rowIndex + 1);
+          }, 0);
+        } else {
+          // Last row, move to save button
+          setTimeout(() => {
+            saveButtonRef.current?.focus();
+          }, 0);
+        }
+      }
+    }
+  };
+
+  // Handle Save button keydown with arrow support
+  const handleSaveButtonKeyDown = (e) => {
+    // Arrow key navigation from save button
+    if (['ArrowLeft', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      if (billDetails.length > 0) {
+        focusOnBillField(billDetails.length - 1, billFields.indexOf('amount'));
+      } else if (receiptItems.length > 0) {
+        focusOnReceiptField(receiptItems.length - 1, receiptFields.length - 1);
+      }
+      return;
+    }
+    
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    }
+  };
 
   // ---------- API FUNCTIONS ----------
 
@@ -551,7 +1065,7 @@ const ReceiptVoucher = () => {
         chqNo: '',
         chqDt: '',
         narration: '',
-        amount: '0.00'
+        amount: ''
       }
     ]);
     setBillDetails([
@@ -564,7 +1078,7 @@ const ReceiptVoucher = () => {
         billAmount: '0.00',
         paidAmount: '0.00',
         balanceAmount: '0.00',
-        amount: '0.00'
+        amount: ''
       }
     ]);
     setParticulars({
@@ -866,265 +1380,6 @@ const ReceiptVoucher = () => {
       setTypingTimeout(timeout);
     }
   };
-
-  // --- ARROW KEY NAVIGATION FUNCTIONS ---
-  
-  // Header fields mapping
-  const headerFields = ['voucherNo', 'date', 'accountName', 'balance', 'gstType'];
-  
-  // Receipt table fields mapping
-  const receiptFields = ['cashBank', 'crDr', 'type', 'chqNo', 'chqDt', 'narration', 'amount', 'remove'];
-  
-  // Bill table fields mapping
-  const billFields = ['refNo', 'billNo', 'date', 'billAmount', 'paidAmount', 'balanceAmount', 'amount'];
-
-  // Navigate to next field based on arrow key
-  const navigateWithArrow = (direction, currentSection, currentRow, currentCol) => {
-    let nextSection = currentSection;
-    let nextRow = currentRow;
-    let nextCol = currentCol;
-    let nextElementId = '';
-
-    switch (direction) {
-      case 'ArrowRight':
-        // Move right
-        if (currentSection === 'header') {
-          if (currentCol < headerFields.length - 1) {
-            nextCol = currentCol + 1;
-          } else {
-            // Move to first row of receipt table
-            nextSection = 'receipt';
-            nextRow = 0;
-            nextCol = 0;
-          }
-        } else if (currentSection === 'receipt') {
-          if (currentCol < receiptFields.length - 1) {
-            nextCol = currentCol + 1;
-          } else {
-            // Move to next row, same column
-            if (currentRow < receiptItems.length - 1) {
-              nextRow = currentRow + 1;
-              nextCol = 0;
-            } else {
-              // Move to bill table
-              nextSection = 'bill';
-              nextRow = 0;
-              nextCol = 0;
-            }
-          }
-        } else if (currentSection === 'bill') {
-          if (currentCol < billFields.length - 1) {
-            nextCol = currentCol + 1;
-          } else {
-            // Move to next row, same column
-            if (currentRow < billDetails.length - 1) {
-              nextRow = currentRow + 1;
-              nextCol = 0;
-            } else {
-              // Move to save button
-              nextSection = 'footer';
-              nextRow = 0;
-              nextCol = 0;
-            }
-          }
-        }
-        break;
-
-      case 'ArrowLeft':
-        // Move left
-        if (currentSection === 'header') {
-          if (currentCol > 0) {
-            nextCol = currentCol - 1;
-          }
-        } else if (currentSection === 'receipt') {
-          if (currentCol > 0) {
-            nextCol = currentCol - 1;
-          } else {
-            // Move to header
-            nextSection = 'header';
-            nextRow = 0;
-            nextCol = headerFields.length - 1;
-          }
-        } else if (currentSection === 'bill') {
-          if (currentCol > 0) {
-            nextCol = currentCol - 1;
-          } else {
-            // Move to last row of receipt table
-            nextSection = 'receipt';
-            nextRow = receiptItems.length - 1;
-            nextCol = receiptFields.length - 1;
-          }
-        }
-        break;
-
-      case 'ArrowDown':
-        // Move down (only within tables)
-        if (currentSection === 'header') {
-          // Move to receipt table
-          nextSection = 'receipt';
-          nextRow = 0;
-          nextCol = Math.min(currentCol, receiptFields.length - 1);
-        } else if (currentSection === 'receipt') {
-          if (currentRow < receiptItems.length - 1) {
-            nextRow = currentRow + 1;
-          } else {
-            // Move to bill table
-            nextSection = 'bill';
-            nextRow = 0;
-            nextCol = Math.min(currentCol, billFields.length - 1);
-          }
-        } else if (currentSection === 'bill') {
-          if (currentRow < billDetails.length - 1) {
-            nextRow = currentRow + 1;
-          } else {
-            // Move to save button
-            nextSection = 'footer';
-            nextRow = 0;
-            nextCol = 0;
-          }
-        }
-        break;
-
-      case 'ArrowUp':
-        // Move up (only within tables)
-        if (currentSection === 'receipt') {
-          if (currentRow > 0) {
-            nextRow = currentRow - 1;
-          } else {
-            // Move to header
-            nextSection = 'header';
-            nextRow = 0;
-            nextCol = Math.min(currentCol, headerFields.length - 1);
-          }
-        } else if (currentSection === 'bill') {
-          if (currentRow > 0) {
-            nextRow = currentRow - 1;
-          } else {
-            // Move to receipt table
-            nextSection = 'receipt';
-            nextRow = receiptItems.length - 1;
-            nextCol = Math.min(currentCol, receiptFields.length - 1);
-          }
-        } else if (currentSection === 'footer') {
-          // Move to bill table
-          nextSection = 'bill';
-          nextRow = billDetails.length - 1;
-          nextCol = 0;
-        }
-        break;
-    }
-
-    // Generate element ID based on section
-    if (nextSection === 'header') {
-      const fieldName = headerFields[nextCol];
-      nextElementId = fieldName;
-      
-      // Focus the element
-      setTimeout(() => {
-        if (fieldName === 'voucherNo') voucherNoRef.current?.focus();
-        else if (fieldName === 'date') dateRef.current?.focus();
-        else if (fieldName === 'accountName') accountNameRef.current?.focus();
-        else if (fieldName === 'gstType') gstTypeRef.current?.focus();
-        else if (fieldName === 'balance') {
-          // Balance field doesn't have a ref, find by name
-          document.querySelector(`input[name="balance"]`)?.focus();
-        }
-      }, 10);
-      
-    } else if (nextSection === 'receipt') {
-      const item = receiptItems[nextRow];
-      const fieldName = receiptFields[nextCol];
-      nextElementId = `receipt_${item.id}_${fieldName}`;
-      
-      // Skip remove button (it's not focusable)
-      if (fieldName === 'remove') {
-        // Move to next field instead
-        return navigateWithArrow('ArrowRight', currentSection, currentRow, currentCol);
-      }
-      
-      setTimeout(() => {
-        document.getElementById(nextElementId)?.focus();
-      }, 10);
-      
-    } else if (nextSection === 'bill') {
-      const bill = billDetails[nextRow];
-      const fieldName = billFields[nextCol];
-      nextElementId = `bill_${bill.id}_${fieldName}`;
-      
-      setTimeout(() => {
-        document.getElementById(nextElementId)?.focus();
-      }, 10);
-      
-    } else if (nextSection === 'footer') {
-      nextElementId = 'saveButton';
-      setTimeout(() => {
-        saveButtonRef.current?.focus();
-      }, 10);
-    }
-
-    // Update current focus state
-    setCurrentFocus({
-      section: nextSection,
-      rowIndex: nextRow,
-      colIndex: nextCol,
-      elementId: nextElementId
-    });
-  };
-
-  // Handle keydown with Enter and Arrow key navigation
-  const handleKeyDown = (e, nextRef, fieldName = '', section = 'header', rowIndex = 0, colIndex = 0) => {
-    // Handle arrow keys
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-      navigateWithArrow(e.key, section, rowIndex, colIndex);
-      return;
-    }
-    
-    // Handle Enter key (existing functionality)
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      
-      if (fieldName === 'voucherNo') {
-        dateRef.current?.focus();
-        setCurrentFocus({
-          section: 'header',
-          rowIndex: 0,
-          colIndex: 1,
-          elementId: 'date'
-        });
-      } else if (fieldName === 'date') {
-        accountNameRef.current?.focus();
-        setCurrentFocus({
-          section: 'header',
-          rowIndex: 0,
-          colIndex: 2,
-          elementId: 'accountName'
-        });
-      } else if (fieldName === 'accountName') {
-        gstTypeRef.current?.focus();
-        setCurrentFocus({
-          section: 'header',
-          rowIndex: 0,
-          colIndex: 4,
-          elementId: 'gstType'
-        });
-      } else if (fieldName === 'gstType') {
-        // Move to first cash/bank field in first row
-        if (receiptItems.length > 0) {
-          setTimeout(() => {
-            document.getElementById(`receipt_${receiptItems[0].id}_cashBank`)?.focus();
-            setCurrentFocus({
-              section: 'receipt',
-              rowIndex: 0,
-              colIndex: 0,
-              elementId: `receipt_${receiptItems[0].id}_cashBank`
-            });
-          }, 0);
-        }
-      }
-    }
-  };
-
   // Handle receipt item change
   const handleReceiptItemChange = (id, field, value) => {
     setReceiptItems(prev =>
@@ -1138,7 +1393,7 @@ const ReceiptVoucher = () => {
   const handleBillItemChange = (id, field, value) => {
     setBillDetails(prev =>
       prev.map(bill =>
-        bill.id === id ? { ...bill, [field]: value } : item
+        bill.id === id ? { ...bill, [field]: value } : bill
       )
     );
   };
@@ -1198,7 +1453,7 @@ const ReceiptVoucher = () => {
         chqNo: '',
         chqDt: '',
         narration: '',
-        amount: '0.00'
+        amount: ''
       }
     ]);
   };
@@ -1218,288 +1473,9 @@ const ReceiptVoucher = () => {
         billAmount: '0.00',
         paidAmount: '0.00',
         balanceAmount: '0.00',
-        amount: '0.00'
+        amount: ''
       }
     ]);
-  };
-
-  // Handle receipt table keydown with Enter and Arrow key navigation
-  const handleReceiptTableKeyDown = (e, currentRowIndex, currentField) => {
-    const fieldIndex = receiptFields.indexOf(currentField);
-    
-    // Handle arrow keys
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-      navigateWithArrow(e.key, 'receipt', currentRowIndex, fieldIndex);
-      return;
-    }
-    
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const currentItem = receiptItems[currentRowIndex];
-
-      // Get current field index
-      const currentFieldIndex = receiptFields.indexOf(currentField);
-
-      // Check if Cash/Bank is empty
-      const isCashBankEmpty = !currentItem.cashBank.trim();
-
-      // Special case: If at cashBank field and it's empty, skip to reference bill amount field
-      if (currentField === 'cashBank' && isCashBankEmpty) {
-        if (billDetails.length > 0) {
-          setCurrentBillRowIndex(0);
-          setTimeout(() => {
-            document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus();
-            setCurrentFocus({
-              section: 'bill',
-              rowIndex: 0,
-              colIndex: 6, // amount is 7th field
-              elementId: `bill_${billDetails[0].id}_amount`
-            });
-          }, 0);
-        } else {
-          // If no bill rows, go to save button
-          setTimeout(() => {
-            saveButtonRef.current?.focus();
-            setCurrentFocus({
-              section: 'footer',
-              rowIndex: 0,
-              colIndex: 0,
-              elementId: 'saveButton'
-            });
-          }, 0);
-        }
-        return;
-      }
-
-      // Special case: If at amount field and amount is not entered (0 or empty), don't move to next row
-      if (currentField === 'amount' && (!currentItem.amount || parseFloat(currentItem.amount) <= 0)) {
-        // Don't move to next row - stay in same field
-        return;
-      }
-
-      // Move to next field in same row
-      if (currentFieldIndex < receiptFields.length - 1) {
-        // Special case for receipt table: if Type is not CHQ, skip Chq No and Chq Dt
-        if (currentField === 'type' && currentItem.type !== 'CHQ') {
-          // Skip to narration
-          const narrationFieldId = `receipt_${currentItem.id}_narration`;
-          setTimeout(() => {
-            document.getElementById(narrationFieldId)?.focus();
-            setCurrentFocus({
-              section: 'receipt',
-              rowIndex: currentRowIndex,
-              colIndex: 5, // narration is 6th field
-              elementId: narrationFieldId
-            });
-          }, 0);
-        } 
-        // Special case: when moving from chqNo to chqDt and type is not CHQ, skip to narration
-        else if (currentField === 'chqNo' && currentItem.type !== 'CHQ') {
-          const narrationFieldId = `receipt_${currentItem.id}_narration`;
-          setTimeout(() => {
-            document.getElementById(narrationFieldId)?.focus();
-            setCurrentFocus({
-              section: 'receipt',
-              rowIndex: currentRowIndex,
-              colIndex: 5, // narration is 6th field
-              elementId: narrationFieldId
-            });
-          }, 0);
-        }
-        // Special case: when moving from chqDt and type is not CHQ, skip to narration
-        else if (currentField === 'chqDt' && currentItem.type !== 'CHQ') {
-          const narrationFieldId = `receipt_${currentItem.id}_narration`;
-          setTimeout(() => {
-            document.getElementById(narrationFieldId)?.focus();
-            setCurrentFocus({
-              section: 'receipt',
-              rowIndex: currentRowIndex,
-              colIndex: 5, // narration is 6th field
-              elementId: narrationFieldId
-            });
-          }, 0);
-        }
-        else {
-          // Normal navigation to next field
-          const nextFieldId = `receipt_${currentItem.id}_${receiptFields[currentFieldIndex + 1]}`;
-          setTimeout(() => {
-            document.getElementById(nextFieldId)?.focus();
-            setCurrentFocus({
-              section: 'receipt',
-              rowIndex: currentRowIndex,
-              colIndex: currentFieldIndex + 1,
-              elementId: nextFieldId
-            });
-          }, 0);
-        }
-      } else {
-        // Last field in current row (Amount field)
-        // Check if next row exists and has cash/bank
-        if (currentRowIndex < receiptItems.length - 1) {
-          const nextItem = receiptItems[currentRowIndex + 1];
-          
-          // Check if next row has cash/bank
-          if (!nextItem.cashBank.trim()) {
-            // Next row has empty cash/bank, skip to reference bill amount
-            if (billDetails.length > 0) {
-              setCurrentBillRowIndex(0);
-              setTimeout(() => {
-                document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus();
-                setCurrentFocus({
-                  section: 'bill',
-                  rowIndex: 0,
-                  colIndex: 6, // amount is 7th field
-                  elementId: `bill_${billDetails[0].id}_amount`
-                });
-              }, 0);
-            } else {
-              // If no bill rows, go to save button
-              setTimeout(() => {
-                saveButtonRef.current?.focus();
-                setCurrentFocus({
-                  section: 'footer',
-                  rowIndex: 0,
-                  colIndex: 0,
-                  elementId: 'saveButton'
-                });
-              }, 0);
-            }
-          } else {
-            // Next row has cash/bank, go to it
-            const nextFieldId = `receipt_${nextItem.id}_${receiptFields[0]}`;
-            setTimeout(() => {
-              document.getElementById(nextFieldId)?.focus();
-              setCurrentFocus({
-                section: 'receipt',
-                rowIndex: currentRowIndex + 1,
-                colIndex: 0,
-                elementId: nextFieldId
-              });
-            }, 0);
-          }
-        } else {
-          // Last row, check if we should add new row or go to bill details
-          // Only add new row if current row has cash/bank and amount
-          if (currentItem.cashBank.trim() && currentItem.amount && parseFloat(currentItem.amount) > 0) {
-            // Add new row and focus on its cash/bank
-            const newId = Math.max(...receiptItems.map(item => item.id), 0) + 1;
-            setReceiptItems(prev => [
-              ...prev,
-              {
-                id: newId,
-                sNo: prev.length + 1,
-                cashBank: '',
-                crDr: 'CR',
-                type: '',
-                chqNo: '',
-                chqDt: '',
-                narration: '',
-                amount: '0.00'
-              }
-            ]);
-            // Focus on cash/bank of new row
-            setTimeout(() => {
-              document.getElementById(`receipt_${newId}_cashBank`)?.focus();
-              setCurrentFocus({
-                section: 'receipt',
-                rowIndex: receiptItems.length, // New row index
-                colIndex: 0,
-                elementId: `receipt_${newId}_cashBank`
-              });
-            }, 0);
-          } else {
-            // Don't add new row, go to bill details or save button
-            if (billDetails.length > 0) {
-              setCurrentBillRowIndex(0);
-              setTimeout(() => {
-                document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus();
-                setCurrentFocus({
-                  section: 'bill',
-                  rowIndex: 0,
-                  colIndex: 6, // amount is 7th field
-                  elementId: `bill_${billDetails[0].id}_amount`
-                });
-              }, 0);
-            } else {
-              setTimeout(() => {
-                saveButtonRef.current?.focus();
-                setCurrentFocus({
-                  section: 'footer',
-                  rowIndex: 0,
-                  colIndex: 0,
-                  elementId: 'saveButton'
-                });
-              }, 0);
-            }
-          }
-        }
-      }
-    }
-  };
-
-  // Handle bill table keydown with Enter and Arrow key navigation
-  const handleBillTableKeyDown = (e, currentRowIndex, currentField) => {
-    const fieldIndex = billFields.indexOf(currentField);
-    
-    // Handle arrow keys
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-      navigateWithArrow(e.key, 'bill', currentRowIndex, fieldIndex);
-      return;
-    }
-    
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const currentBill = billDetails[currentRowIndex];
-
-      // Get current field index
-      const currentFieldIndex = billFields.indexOf(currentField);
-
-      // If at amount field, move directly to save button
-      if (currentField === 'amount') {
-        setTimeout(() => {
-          saveButtonRef.current?.focus();
-          setCurrentFocus({
-            section: 'footer',
-            rowIndex: 0,
-            colIndex: 0,
-            elementId: 'saveButton'
-          });
-        }, 0);
-        return;
-      }
-
-      // Move to next field in same row
-      if (currentFieldIndex < billFields.length - 1) {
-        const nextFieldId = `bill_${currentBill.id}_${billFields[currentFieldIndex + 1]}`;
-        setTimeout(() => {
-          document.getElementById(nextFieldId)?.focus();
-          setCurrentFocus({
-            section: 'bill',
-            rowIndex: currentRowIndex,
-            colIndex: currentFieldIndex + 1,
-            elementId: nextFieldId
-          });
-        }, 0);
-      } else {
-        // Last field in current row (shouldn't reach here as amount moves to save button)
-        if (currentRowIndex < billDetails.length - 1) {
-          const nextBill = billDetails[currentRowIndex + 1];
-          const nextFieldId = `bill_${nextBill.id}_${billFields[0]}`;
-          setTimeout(() => {
-            document.getElementById(nextFieldId)?.focus();
-            setCurrentFocus({
-              section: 'bill',
-              rowIndex: currentRowIndex + 1,
-              colIndex: 0,
-              elementId: nextFieldId
-            });
-          }, 0);
-          setCurrentBillRowIndex(currentRowIndex + 1);
-        }
-      }
-    }
   };
 
   // Handle amount blur in receipt table
@@ -2116,6 +2092,9 @@ const ReceiptVoucher = () => {
       backgroundColor: 'transparent',
       outline: 'none',
       transition: 'border-color 0.2s ease',
+      /* Hide number spinners for all browsers */
+      WebkitAppearance: 'none',
+      MozAppearance: 'textfield',
     },
     editableInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -2257,6 +2236,18 @@ const ReceiptVoucher = () => {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        /* Hide number spinners in amount fields */
+        input[type="number"] {
+          -webkit-appearance: none;
+          -moz-appearance: textfield;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+      `}</style>
       {/* LOADING OVERLAY */}
       {isLoading && (
         <div style={styles.loadingOverlay}>
@@ -2283,16 +2274,11 @@ const ReceiptVoucher = () => {
                 onChange={handleInputChange}
                 onFocus={() => {
                   setFocusedField('voucherNo');
-                  setCurrentFocus({
-                    section: 'header',
-                    rowIndex: 0,
-                    colIndex: 0,
-                    elementId: 'voucherNo'
-                  });
+                  setNavigationStep('voucherNo');
                 }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'voucherNo' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleKeyDown(e, dateRef, 'voucherNo', 'header', 0, 0)}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'voucherNo')}
                 readOnly
               />
             </div>
@@ -2308,16 +2294,11 @@ const ReceiptVoucher = () => {
                 onChange={handleInputChange}
                 onFocus={() => {
                   setFocusedField('date');
-                  setCurrentFocus({
-                    section: 'header',
-                    rowIndex: 0,
-                    colIndex: 1,
-                    elementId: 'date'
-                  });
+                  setNavigationStep('date');
                 }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'date' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleKeyDown(e, accountNameRef, 'date', 'header', 0, 1)}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'date')}
               />
             </div>
 
@@ -2332,16 +2313,11 @@ const ReceiptVoucher = () => {
                 onChange={handleAccountNameChange}
                 onFocus={() => {
                   setFocusedField('accountName');
-                  setCurrentFocus({
-                    section: 'header',
-                    rowIndex: 0,
-                    colIndex: 2,
-                    elementId: 'accountName'
-                  });
+                  setNavigationStep('accountName');
                 }}
                 onBlur={() => setFocusedField('')}
                 onClick={() => openAccountPopup('header', voucherDetails.accountName)}
-                onKeyDown={(e) => handleKeyDown(e, gstTypeRef, 'accountName', 'header', 0, 2)}
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName')}
                 style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
                 placeholder="Select Account"
               />
@@ -2359,17 +2335,12 @@ const ReceiptVoucher = () => {
                 onChange={handleInputChange}
                 onFocus={() => {
                   setFocusedField('balance');
-                  setCurrentFocus({
-                    section: 'header',
-                    rowIndex: 0,
-                    colIndex: 3,
-                    elementId: 'balance'
-                  });
+                  setNavigationStep('balance');
                 }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'balance' ? styles.inlineInputFocused : styles.inlineInput}
-                readonly
-                onKeyDown={(e) => handleKeyDown(e, null, 'balance', 'header', 0, 3)}
+                readOnly
+                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'balance')}
               />
             </div>
 
@@ -2383,19 +2354,18 @@ const ReceiptVoucher = () => {
                 onChange={handleInputChange}
                 onFocus={() => {
                   setFocusedField('gstType');
-                  setCurrentFocus({
-                    section: 'header',
-                    rowIndex: 0,
-                    colIndex: 4,
-                    elementId: 'gstType'
-                  });
                 }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'gstType' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleKeyDown(e, null, 'gstType', 'header', 0, 4)}
+                onKeyDown={(e) => {
+                  if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+                    return; // Let browser handle arrow keys in dropdown
+                  }
+                  handleHeaderFieldKeyDown(e, 'gstType');
+                }}
               >
-                <option>CGST/SGST</option>
-                <option>IGST</option>
+                <option value="CGST/SGST">CGST/SGST</option>
+                <option value="IGST">IGST</option>
               </select>
             </div>
           </div>
@@ -2430,16 +2400,10 @@ const ReceiptVoucher = () => {
                       type="text"
                       value={item.cashBank}
                       onChange={(e) => handleCashBankChange(item.id, e.target.value)}
-                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'cashBank')}
+                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'cashBank')}
                       style={styles.editableInput}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
-                        setCurrentFocus({
-                          section: 'receipt',
-                          rowIndex: index,
-                          colIndex: 0,
-                          elementId: `receipt_${item.id}_cashBank`
-                        });
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
                       placeholder="Type to search"
@@ -2450,21 +2414,20 @@ const ReceiptVoucher = () => {
                       id={`receipt_${item.id}_crDr`}
                       value={item.crDr}
                       onChange={(e) => handleReceiptItemChange(item.id, 'crDr', e.target.value)}
-                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'crDr')}
+                      onKeyDown={(e) => {
+                        if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+                          return; // Let browser handle arrow keys in dropdown
+                        }
+                        handleReceiptFieldKeyDown(e, index, 'crDr');
+                      }}
                       style={styles.editableInput}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
-                        setCurrentFocus({
-                          section: 'receipt',
-                          rowIndex: index,
-                          colIndex: 1,
-                          elementId: `receipt_${item.id}_crDr`
-                        });
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
                     >
-                      <option>CR</option>
-                      <option>DR</option>
+                      <option value="CR">CR</option>
+                      <option value="DR">DR</option>
                     </select>
                   </td>
                   <td style={styles.td}>
@@ -2472,16 +2435,15 @@ const ReceiptVoucher = () => {
                       id={`receipt_${item.id}_type`}
                       value={item.type}
                       onChange={(e) => handleReceiptItemChange(item.id, 'type', e.target.value)}
-                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'type')}
+                      onKeyDown={(e) => {
+                        if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+                          return; // Let browser handle arrow keys in dropdown
+                        }
+                        handleReceiptFieldKeyDown(e, index, 'type');
+                      }}
                       style={styles.editableInput}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
-                        setCurrentFocus({
-                          section: 'receipt',
-                          rowIndex: index,
-                          colIndex: 2,
-                          elementId: `receipt_${item.id}_type`
-                        });
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
                     >
@@ -2499,7 +2461,7 @@ const ReceiptVoucher = () => {
                       type="text"
                       value={item.chqNo}
                       onChange={(e) => handleReceiptItemChange(item.id, 'chqNo', e.target.value)}
-                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'chqNo')}
+                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqNo')}
                       disabled={item.type !== 'CHQ'}
                       style={{
                         ...styles.editableInput,
@@ -2508,12 +2470,6 @@ const ReceiptVoucher = () => {
                       onFocus={(e) => {
                         if (item.type === 'CHQ') {
                           e.target.style.border = '2px solid #1B91DA';
-                          setCurrentFocus({
-                            section: 'receipt',
-                            rowIndex: index,
-                            colIndex: 3,
-                            elementId: `receipt_${item.id}_chqNo`
-                          });
                         }
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -2525,7 +2481,7 @@ const ReceiptVoucher = () => {
                       type="date"
                       value={item.chqDt}
                       onChange={(e) => handleReceiptItemChange(item.id, 'chqDt', e.target.value)}
-                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'chqDt')}
+                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqDt')}
                       disabled={item.type !== 'CHQ'}
                       style={{
                         ...styles.editableInput,
@@ -2534,12 +2490,6 @@ const ReceiptVoucher = () => {
                       onFocus={(e) => {
                         if (item.type === 'CHQ') {
                           e.target.style.border = '2px solid #1B91DA';
-                          setCurrentFocus({
-                            section: 'receipt',
-                            rowIndex: index,
-                            colIndex: 4,
-                            elementId: `receipt_${item.id}_chqDt`
-                          });
                         }
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
@@ -2551,16 +2501,10 @@ const ReceiptVoucher = () => {
                       type="text"
                       value={item.narration}
                       onChange={(e) => handleReceiptItemChange(item.id, 'narration', e.target.value)}
-                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'narration')}
+                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'narration')}
                       style={styles.editableInput}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
-                        setCurrentFocus({
-                          section: 'receipt',
-                          rowIndex: index,
-                          colIndex: 5,
-                          elementId: `receipt_${item.id}_narration`
-                        });
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
                     />
@@ -2568,10 +2512,10 @@ const ReceiptVoucher = () => {
                   <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
                     <input
                       id={`receipt_${item.id}_amount`}
-                      
+                      type="number"
                       value={item.amount}
                       onChange={(e) => handleReceiptItemChange(item.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handleReceiptTableKeyDown(e, index, 'amount')}
+                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'amount')}
                       onBlur={(e) => {
                         e.target.style.border = 'none';
                         handleAmountBlur(item.id, item.amount, index);
@@ -2579,12 +2523,6 @@ const ReceiptVoucher = () => {
                       style={styles.editableInput}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
-                        setCurrentFocus({
-                          section: 'receipt',
-                          rowIndex: index,
-                          colIndex: 6,
-                          elementId: `receipt_${item.id}_amount`
-                        });
                       }}
                     />
                   </td>
