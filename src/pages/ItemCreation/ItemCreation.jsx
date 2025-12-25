@@ -1474,6 +1474,10 @@ const handleKeyNavigation = (e) => {
           background: linear-gradient(180deg,var(--danger),#f97373);
           border: 1px solid rgba(239, 68, 68, 0.3);
         }
+           .asterisk {
+          color: var(--danger);
+          font-weight: 700;
+        }
 
         .grid {
   display: block;
@@ -2226,7 +2230,7 @@ const handleKeyNavigation = (e) => {
           <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
             {/* Group Name field */}
         <div className="field">
-  <label className="field-label">Group Name *</label>
+  <label className="field-label">Group Name <span className="asterisk">*</span></label>
   <div className="row" style={{ display: "flex", alignItems: "center" }}>
     <div style={{ 
       display: "flex", 
@@ -2263,6 +2267,7 @@ const handleKeyNavigation = (e) => {
           }
         }}
         disabled={isSubmitting}
+        readOnly={true}
         aria-label="Group Name"
         style={{ 
           flex: 1,
@@ -2445,7 +2450,7 @@ const handleKeyNavigation = (e) => {
 </div>
             {/* Item Name field */}
             <div className="field">
-              <label className="field-label">Item Name *</label>
+              <label className="field-label">Item Name <span className="asterisk">*</span></label>
               <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
                 <div style={{
                   display: "flex",
@@ -3095,8 +3100,8 @@ const handleKeyNavigation = (e) => {
                 type="button"
               >
                 {isLoading ? "Processing..." : 
-                 actionType === 'create' ? 'Add' : 
-                 actionType === 'edit' ? 'Edit' : 'Delete'}
+                 actionType === 'create' ? 'Save' : 
+                 actionType === 'edit' ? 'Update' : 'Delete'}
               </button>
               <button
                 className="submit-clear"
