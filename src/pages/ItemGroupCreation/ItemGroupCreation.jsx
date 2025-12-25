@@ -218,6 +218,17 @@ export default function ItemGroupCreation() {
     }
   }, [actionType, subGroup, fCode]);
 
+   useEffect(() => {
+    if (actionType === "delete" && subGroup && fCode) {
+      // Small timeout to ensure DOM is updated
+      setTimeout(() => {
+        if (subGroupRef.current) {
+          subGroupRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [actionType, subGroup, fCode]);
+
   // Add click outside handler to close tree
   useEffect(() => {
     const handleClickOutside = (event) => {
