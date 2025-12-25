@@ -236,7 +236,7 @@ body {
 }
 
 .submit-primary {
-    padding: 10px 12px;
+    padding: 12px 16px;
     background: linear-gradient(90deg, #307AC8ff, #06A7EAff);
     border: none;
     color: white;
@@ -245,8 +245,7 @@ body {
     font-family: inherit;
     transition: all 0.2s;
     font-weight: 600;
-    min-height: 42px;
-    flex: 1;
+    min-width: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -274,8 +273,6 @@ body {
     font-family: inherit;
     transition: all 0.2s;
     font-weight: 600;
-    min-height: 42px;
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
