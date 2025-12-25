@@ -604,7 +604,7 @@ export default function LedgerCreation({ onCreated }) {
     }
     
     if (!formPermissions.add) {
-      toast.error("You don't have permission to create ledgers.");
+      // toast.error("You don't have permission to create ledgers.");
       return;
     }
 
@@ -625,7 +625,7 @@ export default function LedgerCreation({ onCreated }) {
     }
     
     if (!formPermissions.edit) {
-      toast.error("You don't have permission to edit ledgers.");
+      // toast.error("You don't have permission to edit ledgers.");
       return;
     }
 
@@ -646,7 +646,7 @@ export default function LedgerCreation({ onCreated }) {
     }
     
     if (!formPermissions.delete) {
-      toast.error("You don't have permission to delete ledgers.");
+      // toast.error("You don't have permission to delete ledgers.");
       return;
     }
 
@@ -671,13 +671,13 @@ export default function LedgerCreation({ onCreated }) {
             ledger.fAcname.toLowerCase() === formData.partyName.toLowerCase()
           );
           if (isDuplicate) {
-            toast.error('A ledger with this name already exists. Please choose a different name.');
+            // toast.error('A ledger with this name already exists. Please choose a different name.');
             setIsSubmitting(false);
             return;
           }
         } catch (error) {
           console.error('Error checking for duplicates:', error);
-          toast.error('Failed to verify ledger uniqueness. Please try again.');
+          // toast.error('Failed to verify ledger uniqueness. Please try again.');
           setIsSubmitting(false);
           return;
         }
@@ -713,7 +713,7 @@ export default function LedgerCreation({ onCreated }) {
           response = await axiosInstance.post(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.postCreate, requestData);
                     console.log('Create response:', response.data);
 
-          toast.success('Ledger created successfully!');
+          // toast.success('Ledger created successfully!');
           if (onCreated) {
             onCreated({
               name: requestData.CustomerName,
@@ -723,18 +723,18 @@ export default function LedgerCreation({ onCreated }) {
           break;
         case 'edit':
           response = await axiosInstance.put(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.putEdit, requestData);
-          toast.success('Ledger updated successfully!');
+          // toast.success('Ledger updated successfully!');
           break;
         case 'delete':
           if (!formData.fCode) {
-            toast.error('fCode is required for deletion');
+            // toast.error('fCode is required for deletion');
             return;
           }
           response = await axiosInstance.delete(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.delete(formData.fCode));
-          toast.success('Ledger deleted successfully!');
+          // toast.success('Ledger deleted successfully!');
           break;
         default:
-          toast.error('Invalid action type');
+          // toast.error('Invalid action type');
           return;
       }
 
@@ -742,23 +742,13 @@ export default function LedgerCreation({ onCreated }) {
         handleClear();
         await fetchTreeData();
       } else {
-        toast.error('Failed to process request');
+        // toast.error('Failed to process request');
       }
     } catch (error) {
       console.error('Submit error:', error);
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data?.message || 'An unexpected server error occurred.';
-
-        if (status === 409) {
-          toast.error('Concurrent modification detected. Please refresh and try again.');
-        } else {
-          toast.error(`Error ${status}: ${message}`);
-        }
-      } else if (error.request) {
-        toast.error('No response received from the server. Please check your network connection.');
-      } else {
-        toast.error(`Error: ${error.message}. Please check your connection and try again.`);
       }
     } finally {
       setIsLoading(false);
@@ -931,24 +921,6 @@ export default function LedgerCreation({ onCreated }) {
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
-        /* Toast notification styles - ADDED */
-        .Toastify__toast-container {
-          z-index: 9999;
-        }
-        .Toastify__toast {
-          font-family: 'Inter', system-ui, -apple-system, sans-serif;
-          border-radius: 10px;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-        }
-        .Toastify__toast--success {
-          background: linear-gradient(180deg, #f0fdf4, #dcfce7);
-          color: #064e3b;
-          border: 1px solid #bbf7d0;
-        }
-        .Toastify__toast-body {
-          font-size: 14px;
-          font-weight: 500;
-        }
 
         :root{
           /* blue theme (user-provided) */
@@ -2142,8 +2114,8 @@ export default function LedgerCreation({ onCreated }) {
                 disabled={isLoading}
               >
                 {isLoading ? 'Processing...' : 
-                 actionType === 'create' ? 'Add' :
-                 actionType === 'edit' ? 'Edit' : 'Delete'}
+                 actionType === 'create' ? 'Save' :
+                 actionType === 'edit' ? 'Update' : 'Delete'}
               </button>
               <button
                 ref={clearButtonRef}

@@ -164,7 +164,7 @@ export default function ItemGroupCreation() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [isTreeOpen, setIsTreeOpen] = useState(false); // Tree starts closed
+  const [isTreeOpen, setIsTreeOpen] = useState(true); // Tree starts closed
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
@@ -1507,7 +1507,8 @@ export default function ItemGroupCreation() {
                 disabled={submitting}
                 type="button"
               >
-                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
+                {/* {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)} */}
+                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"

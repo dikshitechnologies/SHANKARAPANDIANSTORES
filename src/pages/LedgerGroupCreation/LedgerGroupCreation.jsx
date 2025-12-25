@@ -167,7 +167,7 @@ export default function LedgerGroupCreation() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   // *** Tree starts CLOSED now ***
-  const [isTreeOpen, setIsTreeOpen] = useState(false);
+  const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
   const [searchDropdown, setSearchDropdown] = useState("");
@@ -1522,7 +1522,8 @@ export default function LedgerGroupCreation() {
                 disabled={submitting}
                 type="button"
               >
-                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
+                {/* {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)} */}
+                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"
