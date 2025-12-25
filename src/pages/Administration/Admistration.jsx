@@ -373,6 +373,14 @@ const Administration = () => {
     setUserSearchTerm("");
 
     const id = user.id;
+    
+    // If selecting the same user again, clear the selection and show empty
+    if (selectedUserId === id) {
+      setSelectedUserId("0");
+      localStorage.setItem(LS_LAST_USER, "0");
+      return;
+    }
+    
     setSelectedUserId(id);
     localStorage.setItem(LS_LAST_USER, id);
 
