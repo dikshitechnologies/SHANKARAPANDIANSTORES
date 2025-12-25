@@ -1469,6 +1469,7 @@ const Company = () => {
                           onKeyDown={(e) => handleKeyDown(e, 'fdescription')}
                           placeholder="Y or N"
                           style={{ textAlign: "center" }}
+                          disabled={selectedAction === "delete"}
                         />
                       </div>
                       <div className="input-group">
@@ -1484,6 +1485,7 @@ const Company = () => {
                           onKeyDown={(e) => handleKeyDown(e, 'fprintgap')}
                           placeholder="Y or N"
                           style={{ textAlign: "center" }}
+                          disabled={selectedAction === "delete"}
                         />
                       </div>
                     </div>
@@ -1513,6 +1515,7 @@ const Company = () => {
                           onKeyDown={(e) => handleKeyDown(e, 'fdefaultmode')}
                           placeholder="T or N"
                           style={{ textAlign: "center" }}
+                          disabled={selectedAction === "delete"}
                         />
                       </div>
                       <div className="input-group">
