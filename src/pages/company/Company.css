@@ -188,6 +188,11 @@ body {
     color: var(--text-primary);
     text-align: left;
 }
+.asterisk 
+{
+    color: #ef4444;
+    font-weight: 700;
+}
 
 .required-field label::after {
     content: " *";

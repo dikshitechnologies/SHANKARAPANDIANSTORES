@@ -1306,6 +1306,7 @@ export default function ItemGroupCreation() {
                         handleMainGroupKeyDown(e);
                       }
                     }}
+                    readOnly={true}
                     disabled={submitting}
                     aria-label="Main Group"
                     style={{ 
@@ -1315,7 +1316,7 @@ export default function ItemGroupCreation() {
                       padding: "10px 12px",
                       minWidth: "0"
                     }}
-                    readOnly
+                    
                   />
                   <button
                     onClick={() => setIsTreeOpen(!isTreeOpen)}
