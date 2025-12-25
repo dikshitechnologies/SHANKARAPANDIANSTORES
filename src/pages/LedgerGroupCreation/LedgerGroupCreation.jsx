@@ -1540,7 +1540,8 @@ export default function LedgerGroupCreation() {
                 disabled={submitting}
                 type="button"
               >
-                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
+                {/* {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)} */}
+                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"

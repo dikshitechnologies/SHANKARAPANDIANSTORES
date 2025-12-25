@@ -548,13 +548,13 @@ const handleBlur = () => {
             id: index + 1,
             barcode: item.itemCode || item.fid || '',
             name: item.itemname || item.fName || '',
-            stock: item.stock || '0',
-            mrp: item.mrp || '0',
+            stock: item.stock || '',
+            mrp: item.mrp || '',
             uom: item.fUnit || item.unit || '',
             hsn: item.fhsn || item.hsn || '',
             tax: item.fTax || item.tax || '',
-            prate: item.rate || 0,
-            qty: item.qty || '1',
+            prate: item.rate || '',
+            qty: item.qty || '',
             ovrwt: item.ovrWt || '',
             avgwt: item.avgWt || '',
             intax: item.inTax || '',
@@ -583,16 +583,16 @@ const handleBlur = () => {
             barcode: '', 
             name: '', 
             sub: '', 
-            stock: '0', 
-            mrp: '0', 
+            stock: '', 
+            mrp: '', 
             uom: '', 
             hsn: '', 
             tax: '', 
-            rate: 0, 
-            qty: '0',
+            rate: '', 
+            qty: '',
             ovrwt: '',
             avgwt: '',
-            prate: 0,
+            prate: '',
             intax: '',
             outtax: '',
             acost: '',
@@ -625,16 +625,16 @@ const handleBlur = () => {
           barcode: '',
           name: '',
           sub: '',
-          stock: 0,
-          mrp: 0,
+          stock: '',
+          mrp: '',
           uom: '',
           hsn: '',
-          tax: 0,
-          rate: 0,
+          tax: '',
+          rate: '',
           qty: '',
           ovrwt: '',
           avgwt: '',
-          prate: 0,
+          prate: '',
           intax: '',
           outtax: '',
           acost: '',
@@ -752,8 +752,8 @@ const handleBlur = () => {
               stock: stockData.finalStock !== undefined && stockData.finalStock !== null ? stockData.finalStock : itemDetails.stock || '0',
               uom: itemDetails.uom || selectedItem.uom || item.uom || '',
               hsn: stockData.hsn || itemDetails.hsn || selectedItem.hsn || item.hsn || '',
-              preRT: itemDetails.preRT || selectedItem.preRT || item.preRT || '0',
-              prate: itemDetails.preRT || selectedItem.preRT || item.prate || '0',
+              preRT: itemDetails.preRT || selectedItem.preRT || item.preRT || '',
+              prate: itemDetails.preRT || selectedItem.preRT || item.prate || '',
               brand: stockData.brand || itemDetails.brand || '',
               category: stockData.category || itemDetails.category || '',
               model: stockData.model || itemDetails.model || '',
@@ -778,8 +778,8 @@ const handleBlur = () => {
               name: selectedItem.name || '',
               uom: selectedItem.uom || item.uom || '',
               hsn: selectedItem.hsn || item.hsn || '',
-              preRT: selectedItem.preRT || item.preRT || '0',
-              prate: selectedItem.preRT || item.prate || '0',
+              preRT: selectedItem.preRT || item.preRT || '',
+              prate: selectedItem.preRT || item.prate || '',
             };
           }
           return item;
@@ -1000,16 +1000,16 @@ const handleBlur = () => {
       barcode: '',
       name: '',
       sub: '',
-      stock: 0,
-      mrp: 0,
+      stock: '',
+      mrp: '',
       uom: '',
       hsn: '',
-      tax: 0,
-      rate: 0,
+      tax: '',
+      rate: '',
       qty: '',
       ovrwt: '',
       avgwt: '',
-      prate: 0,
+      prate: '',
       intax: '',
       outtax: '',
       acost: '',
@@ -1030,167 +1030,76 @@ const handleBlur = () => {
   };
 
   const handleItemChange = (id, field, value) => {
-    const updatedItems = items.map(item => {
-      if (item.id !== id) return item;
-      
+  setItems(prev =>
+    prev.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    )
+  );
+};
 
-      let updatedItem = { ...item, [field]: value };
+const calculateItem = (item) => {
+  const qty   = +item.qty || 0;
+  const ovrwt = +item.ovrwt || 0;
+  const prate = +item.prate || 0;
+  const asRate = +item.asRate || 0;
+  const intax = +item.intax || 0;
+  const wsPercent = +item.wsPercent || 0;
+  const uom = item.uom?.toUpperCase() || "";
 
-      // Map sudo field to numbers using userData.fseudo or fseudo from context
-      if (field === 'sudo' && value) {
-        // Try userData.fseudo, then fseudo from context
-        const fseudoMap = (userData && userData.fseudo) ? userData.fseudo : (fseudo || {});
-        const letterToNum = {};
-        Object.keys(fseudoMap).forEach((key, idx) => {
-          const letter = fseudoMap[key];
-          if (typeof letter === 'string' && letter.length === 1) {
-            letterToNum[letter.toLowerCase()] = idx;
-          }
-        });
-        const mapped = value
-          .toLowerCase()
-          .split('')
-          .map(ch => (ch in letterToNum ? letterToNum[ch] : ''))
-          .join('');
-        // Always set as string for input display
-        updatedItem.profitPercent = mapped;
-        console.log('SUDO:', value, '→ profitPercent:', mapped, 'fseudoMap:', fseudoMap);
-      }
-      
-      // Calculate avgwt when ovrwt or qty changes
-      if (field === 'ovrwt' || field === 'qty') {
-        const ovrwt = parseFloat(updatedItem.ovrwt) || 0;
-        const qty = parseFloat(updatedItem.qty) || 1;
-        
-        if (qty > 0) {
-          updatedItem.avgwt = (ovrwt / qty).toFixed(2);
-        } else {
-          updatedItem.avgwt = '';
-        }
-      }
-      
-      // Calculate acost based on uom, prate, qty, and avgwt
-      if (field === 'uom' || field === 'prate' || field === 'qty' || field === 'avgwt') {
-        const uom = updatedItem.uom?.toUpperCase() || '';
-        const prate = parseFloat(updatedItem.prate) || 0;
-        const qty = parseFloat(updatedItem.qty) || 0;
-        const avgwt = parseFloat(updatedItem.avgwt) || 0;
-        
-        if (uom === 'PCS') {
-          updatedItem.acost = (qty * prate).toFixed(2);
-        } else if (uom === 'KGS') {
-          updatedItem.acost = (avgwt * prate).toFixed(2);
-        } else {
-          updatedItem.acost = updatedItem.acost || '';
-        }
-        
-        const acost = parseFloat(updatedItem.acost) || 0;
-        const profitPercent = parseFloat(updatedItem.profitPercent) || 0;
-        if (acost > 0) {
-          updatedItem.ntCost = updatedItem.acost;
-          updatedItem.sRate = (acost + profitPercent).toFixed(2);
-        } else {
-          updatedItem.sRate = '';
-          updatedItem.ntCost = '';
-        }
-      }
-      
-      if (field === 'acost') {
-        const acost = parseFloat(value) || 0;
-        const profitPercent = parseFloat(updatedItem.profitPercent) || 0;
-        if (acost > 0) {
-          updatedItem.ntCost = acost.toFixed(2);
-          updatedItem.sRate = (acost + profitPercent).toFixed(2);
-        } else {
-          updatedItem.sRate = '';
-          updatedItem.ntCost = '';
-        }
-      }
-      
-      if (field === 'profitPercent') {
-        const acost = parseFloat(updatedItem.acost) || 0;
-        const profitPercent = parseFloat(value) || 0;
-        
-        if (acost > 0) {
-          updatedItem.sRate = (acost + profitPercent).toFixed(2);
-        } else {
-          updatedItem.sRate = '';
-        }
-      }
-      
-      // Calculate NTCost = ASRate * qty if UOM is PCS
-      if (field === 'asRate' || field === 'qty' || field === 'uom') {
-        const uom = updatedItem.uom?.toUpperCase() || '';
-        const asRate = parseFloat(updatedItem.asRate) || 0;
-        const qty = parseFloat(updatedItem.qty) || 0;
-        
-        if (uom === 'PCS' && asRate > 0 && qty > 0) {
-          updatedItem.ntCost = (asRate * qty).toFixed(2);
-        } else {
-          updatedItem.ntCost = '';
-        }
-      }
-      
-      if(field === 'acost'|| field === 'sRate') {
-        const acost = parseFloat(updatedItem.acost) || 0;
-        const sRate = parseFloat(updatedItem.sRate) || 0;
-        if(acost > 0 && sRate > 0) {
-          updatedItem.letProfPer = (((sRate - acost) / acost) * 100).toFixed(2);
-        } else {
-          updatedItem.letProfPer = '';
-        }
-      }
+  /* ---------- SUDO → profitPercent ---------- */
+  const fseudoMap = userData?.fseudo || fseudo || {};
+  const letterToNum = Object.values(fseudoMap).reduce((a, l, i) => {
+    if (typeof l === "string") a[l.toLowerCase()] = i;
+    return a;
+  }, {});
 
-      // Calculate PPer = (ASRate - PRate) * 100 / 100
-      if(field === 'asRate' || field === 'prate') {
-        const asRate = parseFloat(updatedItem.asRate) || 0;
-        const prate = parseFloat(updatedItem.prate) || 0;
-        if(asRate > 0 && prate > 0) {
-          updatedItem.letProfPer = ((asRate - prate) * 100 / 100).toFixed(2);
-        } else {
-          updatedItem.letProfPer = '';
-        }
-      }
-      
-      if(field === 'wsPercent' || field === 'acost') {
-        const wsPercent = parseFloat(updatedItem.wsPercent) || 0;
-        const acost = parseFloat(updatedItem.acost) || 0;
-        if(acost > 0) {
-          // WRate = ACost + (WS% rate of ACost)
-          // WRate = ACost + (ACost * WS% / 100)
-          updatedItem.wsRate = (acost + (acost * wsPercent / 100)).toFixed(2);
-        } else {
-          updatedItem.wsRate = '';
-        }
-      }
-      
-      if(field === 'qty' || field === 'prate' || field === 'intax' || field === 'ovrwt' || field === 'uom') {
-        const uom = updatedItem.uom?.toUpperCase() || '';
-        const qty = parseFloat(updatedItem.qty) || 0;
-        const prate = parseFloat(updatedItem.prate) || 0;
-        const intax = parseFloat(updatedItem.intax) || 0;
-        const ovrwt = parseFloat(updatedItem.ovrwt) || 0;
-        
-        let baseAmount = 0;
-        
-        if (uom === 'PCS') {
-          baseAmount = qty * prate;
-        } else if (uom === 'KGS') {
-          baseAmount = ovrwt * prate;
-        }
-        
-        if (baseAmount > 0) {
-          updatedItem.amt = (baseAmount + (baseAmount * intax / 100)).toFixed(2);
-        } else {
-          updatedItem.amt = '';
-        }
-      }
-      
-      return updatedItem;
-    });
-    
-    setItems(updatedItems);
+  // Convert sudo letters to profit percent
+  // Only convert if sudo has valid letters, otherwise use profitPercent field value or 0
+  const profitPercent = item.sudo && item.sudo.trim()
+    ? item.sudo.toLowerCase().split("").map(c => letterToNum[c] ?? "").filter(v => v !== "").join("")
+    : (+item.profitPercent || 0);
+
+  /* ---------- CORE CALCULATIONS ---------- */
+  const avgwt = qty ? (ovrwt / qty).toFixed(2) : "";
+
+  // ACost calculation priority: AvgWt * PRate > Qty * PRate > 0
+  const acost = avgwt && +avgwt > 0
+    ? (+avgwt || 0) * prate
+    : qty ? qty * prate
+    : 0;
+
+  const sRate = acost ? (acost + +profitPercent).toFixed(2) : "";
+  const ntCost = acost ? acost.toFixed(2) : "";
+
+  const letProfPer =
+    asRate && acost ? ((asRate - acost) * 100 / 100).toFixed(2)
+    : "";
+
+  const wsRate = acost
+    ? (acost + acost * wsPercent / 100).toFixed(2)
+    : "";
+
+  // Amt = InTax % of NTCost + NTCost
+  const amt = ntCost
+    ? (parseFloat(ntCost) + parseFloat(ntCost) * intax / 100).toFixed(2)
+    : "";
+
+  return {
+    ...item,
+    profitPercent,
+    avgwt,
+    acost: acost ? acost.toFixed(2) : "",
+    sRate,
+    ntCost,
+    letProfPer,
+    wsRate,
+    amt
   };
+};
+useEffect(() => {
+  setItems(prev => prev.map(calculateItem));
+}, [items]);
+
 
   // Handle UOM spacebar cycling (same as SalesInvoice)
   const handleUomSpacebar = (e, id, index) => {
@@ -1264,13 +1173,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   if (e.key === 'ArrowRight') {
     e.preventDefault();
     if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      let nextField = fields[currentFieldIndex + 1];
-      
-      // If UOM is PCS and trying to move to ovrwt/avgwt, skip to prate
-      const currentRow = items[currentRowIndex];
-      if (currentRow.uom?.toUpperCase() === 'PCS' && (nextField === 'ovrwt' || nextField === 'avgwt')) {
-        nextField = 'prate';
-      }
+      const nextField = fields[currentFieldIndex + 1];
       
       const nextInput = document.querySelector(
         `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
@@ -1278,6 +1181,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       );
       if (nextInput) {
         nextInput.focus();
+        if (nextInput.tagName === 'INPUT') {
+          nextInput.select();
+        }
       }
     }
     return;
@@ -1294,6 +1200,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       );
       if (prevInput) {
         prevInput.focus();
+        if (prevInput.tagName === 'INPUT') {
+          prevInput.select();
+        }
       }
     }
     return;
@@ -1309,6 +1218,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       );
       if (prevRowInput) {
         prevRowInput.focus();
+        if (prevRowInput.tagName === 'INPUT') {
+          prevRowInput.select();
+        }
       }
     }
     return;
@@ -1324,6 +1236,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       );
       if (nextRowInput) {
         nextRowInput.focus();
+        if (nextRowInput.tagName === 'INPUT') {
+          nextRowInput.select();
+        }
       }
     }
     return;
@@ -1334,19 +1249,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     e.stopPropagation(); // Prevent form submission or other Enter handlers
 
     const currentRow = items[currentRowIndex];
-    
-    // If UOM is PCS and current field is ovrwt or avgwt, skip to prate
-    if (currentRow.uom?.toUpperCase() === 'PCS' && (currentField === 'ovrwt' || currentField === 'avgwt')) {
-      const prateInput = document.querySelector(
-        `input[data-row="${currentRowIndex}"][data-field="prate"]`
-      );
-      if (prateInput) {
-        prateInput.focus();
-      }
-      return;
-    }
-
-    const isParticularsEmpty = !currentRow.name || currentRow.name.trim() === '';
 
     // If Enter is pressed in qty field, move to add/less
     // if (currentField === 'qty') {
@@ -1362,62 +1264,24 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
 
     // If Enter is pressed in the amt field (last field)
     if (currentField === 'amt') {
-      if (isParticularsEmpty) {
-        // Instead of showing confirmation, move focus to add/less field
-        e.preventDefault();        
-              
-        // Move focus to add/less field
-        setTimeout(() => {
-          if (addLessRef.current) {
-            addLessRef.current.focus();
-            addLessRef.current.select(); // Optional: select text for easy editing
-          }
-        }, 50);
-        return;
-      }
+      e.preventDefault();
       
-      // If particulars is not empty, move to next row or add new row
-      // Check if we're on the last row
-      if (currentRowIndex < items.length - 1) {
-        // Move to next row
-        const nextRowInput = document.querySelector(
-          `input[data-row="${currentRowIndex + 1}"][data-field="name"]`
+      // Always add new row and focus on barcode field
+      handleAddRow();
+      setTimeout(() => {
+        const newRowInput = document.querySelector(
+          `input[data-row="${items.length}"][data-field="name"]`
         );
-        if (nextRowInput) {
-          nextRowInput.focus();
+        if (newRowInput) {
+          newRowInput.focus();
         }
-        return;
-      } else {
-        // We're on the last row, add new row if particulars is filled
-        if (currentRow.name && currentRow.name.trim() !== '') {
-          handleAddRow();
-          setTimeout(() => {
-            const newRowInput = document.querySelector(
-              `input[data-row="${items.length}"][data-field="barcode"]`
-            );
-            if (newRowInput) newRowInput.focus();
-          }, 60);
-        } else {
-          // If last row and particulars empty, move to add/less field
-          setTimeout(() => {
-            if (addLessRef.current) {
-              addLessRef.current.focus();
-              addLessRef.current.select();
-            }
-          }, 50);
-        }
-        return;
-      }
+      }, 60);
+      return;
     }
 
     // Always move to next field if available (for non-amt fields)
     if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      let nextField = fields[currentFieldIndex + 1];
-      
-      // If UOM is PCS and current field would move to ovrwt/avgwt, skip to prate
-      if (currentRow.uom?.toUpperCase() === 'PCS' && (nextField === 'ovrwt' || nextField === 'avgwt')) {
-        nextField = 'prate';
-      }
+      const nextField = fields[currentFieldIndex + 1];
       
       const nextInput = document.querySelector(
         `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
@@ -2129,7 +1993,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
 
           {/* Bill Date */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Bill Date:</label>
+            <label style={styles.inlineLabel}>Entry Date:</label>
             <input
               type="date"
               style={{
@@ -2179,14 +2043,14 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               value={billDetails.purNo}
               onChange={handleInputChange}
               ref={purNoRef}
-              onKeyDown={(e) => handleKeyDown(e, invoiceNoRef, 'purNo')}
+              onKeyDown={(e) => handleKeyDown(e, gstTypeRef, 'purNo')}
               onFocus={() => setFocusedField('purNo')}
               onBlur={() => setFocusedField('')}
             />
           </div>
 
           {/* Invoice No */}
-          <div style={styles.formField}>
+          {/* <div style={styles.formField}>
             <label style={styles.inlineLabel}>Invoice No:</label>
             <input
               type="text"
@@ -2202,11 +2066,11 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('invoiceNo')}
               onBlur={() => setFocusedField('')}
             />
-          </div>
+          </div> */}
 
           {/* Pur Date */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Pur Date:</label>
+            <label style={styles.inlineLabel}>Bill Date:</label>
             <input
               type="date"
               name="purDate"
@@ -2222,6 +2086,27 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('purDate')}
               onBlur={() => setFocusedField('')}
             />
+          </div>
+
+
+           <div style={styles.formField}>
+            <label style={styles.inlineLabel}>GST Type:</label>
+            <select
+              name="gstType"
+              style={{
+                ...styles.inlineInput,
+                ...(focusedField === 'gstType' && styles.focusedInput)
+              }}
+              value={billDetails.gstType}
+              onChange={handleInputChange}
+              ref={gstTypeRef}
+              onKeyDown={(e) => handleKeyDown(e, nameRef, 'gstType')}
+              onFocus={() => setFocusedField('gstType')}
+              onBlur={() => setFocusedField('')}
+            >
+              <option value="G">CGST/SGST</option>
+              <option value="I">IGST</option>
+            </select>
           </div>
         </div>
 
@@ -2250,7 +2135,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           </div> */}
 
           {/* Customer Name */}
-          <div style={styles.formField}>
+          <div style={{ ...styles.formField, gridColumn: 'span 2' }}>
             <label style={styles.inlineLabel}>Name:</label>
             <div style={{ position: 'relative', display: 'flex', flex: 1 }}>
               <input
@@ -2279,7 +2164,14 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     setItemSearchTerm(billDetails.customerName);
                     setShowSupplierPopup(true);
                   } else if (e.key === 'Enter') {
-                    handleKeyDown(e, gstTypeRef, 'customerName');
+                    e.preventDefault();
+                    // Navigate to first row's name field in the table
+                    const firstRowNameInput = document.querySelector(
+                      `input[data-row="0"][data-field="name"]`
+                    );
+                    if (firstRowNameInput) {
+                      firstRowNameInput.focus();
+                    }
                   }
                 }}
                 onFocus={() => setFocusedField('customerName')}
@@ -2323,7 +2215,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           </div>
 
           {/* City */}
-          <div style={styles.formField}>
+          {/* <div style={styles.formField}>
             <label style={styles.inlineLabel}>City:</label>
             <input
               type="text"
@@ -2339,7 +2231,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('city')}
               onBlur={() => setFocusedField('')}
             />
-          </div>
+          </div> */}
 
           {/* GST Type */}
            
@@ -2446,36 +2338,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           </div>
 
 
-          <div style={styles.formField}>
-            <label style={styles.inlineLabel}>GST Type:</label>
-            <select
-              name="gstType"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'gstType' && styles.focusedInput)
-              }}
-              value={billDetails.gstType}
-              onChange={handleInputChange}
-              ref={gstTypeRef}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  // Navigate to first row's name field in the table
-                  const firstRowNameInput = document.querySelector(
-                    `input[data-row="0"][data-field="name"]`
-                  );
-                  if (firstRowNameInput) {
-                    firstRowNameInput.focus();
-                  }
-                }
-              }}
-              onFocus={() => setFocusedField('gstType')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="G">CGST/SGST</option>
-              <option value="I">IGST</option>
-            </select>
-          </div>
+         
 
         </div>
       </div>
@@ -2612,10 +2475,21 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       />
                       <button
                         type="button"
+                        tabIndex="-1"
                         aria-label="Search item details"
                         title="Click to select item from list"
                         onClick={() => {
                           handleItemCodeSelect(item.id, item.name);
+                        }}
+                        onFocus={(e) => {
+                          // Skip focus on button, return to input field
+                          const nameInput = document.querySelector(
+                            `input[data-row="${index}"][data-field="name"]`
+                          );
+                          if (nameInput) {
+                            e.preventDefault();
+                            nameInput.focus();
+                          }
                         }}
                         style={{
                           position: 'absolute',
@@ -2683,7 +2557,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.qty}
                       data-row={index}
                       data-field="qty"
-                      onChange={(e) => handleItemChange(item.id, 'qty', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleItemChange(item.id, 'qty', parseFloat(e.target.value) || '')}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
                       onFocus={() => setFocusedField(`qty-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2695,7 +2569,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.ovrwt || ''}
                       data-row={index}
                       data-field="ovrwt"
-                      disabled={item.uom?.toUpperCase() === 'PCS'}
+                      
                       onChange={(e) => handleItemChange(item.id, 'ovrwt', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'ovrwt')}
                       onFocus={() => setFocusedField(`ovrwt-${item.id}`)}
@@ -2707,8 +2581,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       style={focusedField === `avgwt-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.avgwt || ''}
                       data-row={index}
-                      data-field="avgwt"
-                      disabled={item.uom?.toUpperCase() === 'PCS'}
+                      data-field="avgwt"                      
                       onChange={(e) => handleItemChange(item.id, 'avgwt', handleNumericInput(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'avgwt')}
                       onFocus={() => setFocusedField(`avgwt-${item.id}`)}
@@ -2721,7 +2594,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.prate || ''}
                       data-row={index}
                       data-field="prate"
-                      onChange={(e) => handleItemChange(item.id, 'prate', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleItemChange(item.id, 'prate', parseFloat(e.target.value) )}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'prate')}
                       onFocus={() => setFocusedField(`prate-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2830,6 +2703,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                         // Only allow letters, max 2 characters
                         if (/^[A-Z]{0,2}$/.test(value)) {
                           handleItemChange(item.id, 'sudo', value);
+                          // If clearing sudo, also clear profitPercent
+                          if (value === '') {
+                            handleItemChange(item.id, 'profitPercent', '');
+                          }
                         }
                       }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sudo')}
@@ -2912,7 +2789,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.mrp}
                       data-row={index}
                       data-field="mrp"
-                      onChange={(e) => handleItemChange(item.id, 'mrp', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleItemChange(item.id, 'mrp', parseFloat(e.target.value))}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'mrp')}
                       onFocus={() => setFocusedField(`mrp-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -3053,7 +2930,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         onClose={() => { 
           setShowSupplierPopup(false); 
           setItemSearchTerm('');
-          setBillDetails(prev => ({ ...prev, customerName: '' }));
         }}
         title="Select Supplier"
         fetchItems={fetchSupplierItems}
@@ -3069,7 +2945,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             partyCode: s.code || '',
             customerName: s.name || '',
             city: s.city || '',
-            gstType: s.gstType || '',
             gstType: s.gstType || prev.gstType || 'CGST',
             mobileNo: s.phone || prev.mobileNo || '',
             gstno: s.gstNumber || prev.gstNumber || ''

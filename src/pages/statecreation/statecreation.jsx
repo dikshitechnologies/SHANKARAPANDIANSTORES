@@ -1287,11 +1287,11 @@ const handleDeleteRowClick = (s) => {
                   readOnly={actionType === "Delete"}
                 />
               </div>
-              {actionType === "Edit" && form.originalStateName && (
+              {/* {actionType === "Edit" && form.originalStateName && (
                 <div className="muted" style={{ fontSize: "14px", marginTop: "4px" }}>
                   Original name: <strong>{form.originalStateName}</strong>
                 </div>
-              )}
+              )} */}
             </div>
 
             {/* Message display */}
@@ -1311,7 +1311,7 @@ const handleDeleteRowClick = (s) => {
                 type="button"
               >
                 {loading ? "Processing..." : 
-                  actionType === "Add" ? "Create" : 
+                  actionType === "Add" ? "Save" : 
                   actionType === "Edit" ? "Update" : "Delete"}
               </button>
               <button
@@ -1329,7 +1329,6 @@ const handleDeleteRowClick = (s) => {
               <div className="row" style={{ justifyContent: "space-between", marginBottom: "10px" }}>
                 <div className="muted">Existing States</div>
                 <div className="muted" style={{ fontSize: "14px" }}>
-                  {states.length} states loaded • {hasMore ? "Scroll for more" : "All states loaded"}
                 </div>
               </div>
               
@@ -1398,7 +1397,7 @@ const handleDeleteRowClick = (s) => {
                     </table>
                     
                     {/* Infinite Scroll Loader */}
-                    <div className="infinite-scroll-loader">
+                    {/* <div className="infinite-scroll-loader">
                       {loadingMore ? (
                         <>
                           <svg className="spinner" width="24" height="24" viewBox="0 0 24 24">
@@ -1421,7 +1420,7 @@ const handleDeleteRowClick = (s) => {
                       ) : (
                         <div>All states loaded ✓</div>
                       )}
-                    </div>
+                    </div> */}
                   </>
                 )}
               </div>
