@@ -221,6 +221,17 @@ export default function ItemGroupCreation() {
     }
   }, [actionType, subGroup, fCode]);
 
+   useEffect(() => {
+    if (actionType === "delete" && subGroup && fCode) {
+      // Small timeout to ensure DOM is updated
+      setTimeout(() => {
+        if (subGroupRef.current) {
+          subGroupRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [actionType, subGroup, fCode]);
+
   // Add click outside handler to close tree
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -1527,7 +1538,7 @@ export default function ItemGroupCreation() {
                 type="button"
               >
                 {/* {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)} */}
-                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "edit" ? "Update" : "Delete"}
+                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"
