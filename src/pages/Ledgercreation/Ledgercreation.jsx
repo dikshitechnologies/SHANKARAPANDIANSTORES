@@ -5,6 +5,7 @@ import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
 import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/ActionButtons";
 import { usePermissions } from "../../hooks/usePermissions";
+import { PERMISSION_CODES } from "../../constants/permissions";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -237,9 +238,9 @@ export default function LedgerCreation({ onCreated }) {
   
   // Get permissions for LEDGER_CREATION form
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission('LEDGER_CREATION'),
-    edit: hasModifyPermission('LEDGER_CREATION'),
-    delete: hasDeletePermission('LEDGER_CREATION')
+    Add: hasAddPermission(PERMISSION_CODES.LEDGER_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.LEDGER_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.LEDGER_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // Confirmation Popup States (ADDED to match Unit Creation)
@@ -603,8 +604,8 @@ export default function LedgerCreation({ onCreated }) {
       return;
     }
     
-    if (!formPermissions.add) {
-      // toast.error("You don't have permission to create ledgers.");
+    if (!formPermissions.Add) {
+      toast.error("You don't have permission to create ledgers.");
       return;
     }
 
@@ -624,8 +625,8 @@ export default function LedgerCreation({ onCreated }) {
       return;
     }
     
-    if (!formPermissions.edit) {
-      // toast.error("You don't have permission to edit ledgers.");
+    if (!formPermissions.Edit) {
+      toast.error("You don't have permission to edit ledgers.");
       return;
     }
 
@@ -645,8 +646,8 @@ export default function LedgerCreation({ onCreated }) {
       return;
     }
     
-    if (!formPermissions.delete) {
-      // toast.error("You don't have permission to delete ledgers.");
+    if (!formPermissions.Delete) {
+      toast.error("You don't have permission to delete ledgers.");
       return;
     }
 
@@ -1697,7 +1698,7 @@ export default function LedgerCreation({ onCreated }) {
           <div className="actions" role="toolbar" aria-label="actions">
             <AddButton
               onClick={() => changeActionType('create')}
-              disabled={isSubmitting || !formPermissions.add}
+              disabled={isSubmitting || !formPermissions.Add}
               isActive={actionType === 'create'}
             />
 
@@ -1707,7 +1708,7 @@ export default function LedgerCreation({ onCreated }) {
                 changeActionType('edit');
                 setIsPopupOpen(true);
               }}
-              disabled={isSubmitting || !formPermissions.edit}
+              disabled={isSubmitting || !formPermissions.Edit}
               isActive={actionType === 'edit'}
             />
 
@@ -1717,7 +1718,7 @@ export default function LedgerCreation({ onCreated }) {
                 changeActionType('delete');
                 setIsPopupOpen(true);
               }}
-              disabled={isSubmitting || !formPermissions.delete}
+              disabled={isSubmitting || !formPermissions.Delete}
               isActive={actionType === 'delete'}
             />
           </div>
