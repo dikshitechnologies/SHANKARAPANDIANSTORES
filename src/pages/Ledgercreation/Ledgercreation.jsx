@@ -169,7 +169,7 @@ export default function LedgerCreation({ onCreated }) {
   // State management
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isTreeOpen, setIsTreeOpen] = useState(false);
+  const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [actionType, setActionType] = useState('create');
@@ -306,6 +306,21 @@ export default function LedgerCreation({ onCreated }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Helper function to recursively collect all node keys
+  const getAllNodeKeys = (nodes) => {
+    const keys = new Set();
+    const collect = (items) => {
+      items.forEach((item) => {
+        keys.add(item.key);
+        if (item.children && item.children.length > 0) {
+          collect(item.children);
+        }
+      });
+    };
+    collect(nodes);
+    return keys;
+  };
+
   const loadInitial = async () => {
     setLoading(true);
     setLastNetworkError(null);
@@ -330,7 +345,7 @@ export default function LedgerCreation({ onCreated }) {
       
       const transformedData = transformApiData(response.data);
       setTreeData(transformedData);
-      setExpandedKeys(new Set(transformedData.map(item => item.key)));
+      setExpandedKeys(getAllNodeKeys(transformedData));
     } catch (error) {
       console.error('Tree data fetch error:', error);
       // Store network error details for debugging in UI

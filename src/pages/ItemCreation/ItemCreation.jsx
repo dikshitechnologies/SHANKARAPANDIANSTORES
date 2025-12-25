@@ -166,7 +166,7 @@ const ItemCreation = ({ onCreated }) => {
   // State management
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isTreeOpen, setIsTreeOpen] = useState(false);
+  const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [actionType, setActionType] = useState('create');
@@ -299,6 +299,21 @@ const ItemCreation = ({ onCreated }) => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Helper function to recursively collect all node keys
+  const getAllNodeKeys = (nodes) => {
+    const keys = new Set();
+    const collect = (items) => {
+      items.forEach((item) => {
+        keys.add(item.key);
+        if (item.children && item.children.length > 0) {
+          collect(item.children);
+        }
+      });
+    };
+    collect(nodes);
+    return keys;
+  };
+
   const loadInitial = async () => {
     setLoading(true);
     try {
@@ -340,7 +355,7 @@ const ItemCreation = ({ onCreated }) => {
         
         const treeData = transformTreeData(data);
         setTreeData(treeData);
-        setExpandedKeys(new Set(treeData.map(item => item.key)));
+        setExpandedKeys(getAllNodeKeys(treeData));
         console.log('Transformed tree data:', treeData);
       } else {
         console.warn('Unexpected API response format or empty data:', data);

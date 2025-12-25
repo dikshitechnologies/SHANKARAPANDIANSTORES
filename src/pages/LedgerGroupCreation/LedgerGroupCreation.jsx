@@ -5,6 +5,7 @@ import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/ActionButtons';
 import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -167,7 +168,7 @@ export default function LedgerGroupCreation() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   // *** Tree starts CLOSED now ***
-  const [isTreeOpen, setIsTreeOpen] = useState(false);
+  const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
   const [searchDropdown, setSearchDropdown] = useState("");
@@ -180,9 +181,9 @@ export default function LedgerGroupCreation() {
   
   // Get permissions for LEDGER_GROUP_CREATION form
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission('LEDGER_GROUP_CREATION'),
-    edit: hasModifyPermission('LEDGER_GROUP_CREATION'),
-    delete: hasDeletePermission('LEDGER_GROUP_CREATION')
+    Add: hasAddPermission(PERMISSION_CODES.LED_GRPCREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.LED_GRPCREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.LED_GRPCREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // Confirmation Popup States
@@ -252,13 +253,28 @@ export default function LedgerGroupCreation() {
     };
   }, [isTreeOpen]);
 
+  // Helper function to recursively collect all node keys
+  const getAllNodeKeys = (nodes) => {
+    const keys = new Set();
+    const collect = (items) => {
+      items.forEach((item) => {
+        keys.add(item.key);
+        if (item.children && item.children.length > 0) {
+          collect(item.children);
+        }
+      });
+    };
+    collect(nodes);
+    return keys;
+  };
+
   const loadInitial = async () => {
     setLoading(true);
     try {
       const [treeResp, ddResp] = await Promise.all([api.get(endpoints.getTree), api.get(endpoints.getDropdown)]);
       const tree = transformApiData(treeResp.data || []);
       setTreeData(tree);
-      setExpandedKeys(new Set(tree.map((n) => n.key)));
+      setExpandedKeys(getAllNodeKeys(tree));
       setDropdownData(Array.isArray(ddResp.data) ? ddResp.data : []);
       setSubGroupOptions(
         (Array.isArray(ddResp.data) ? ddResp.data : []).map((item) => ({
@@ -1292,7 +1308,8 @@ export default function LedgerGroupCreation() {
                     className="input"
                     value={mainGroup}
                     onChange={(e) => setMainGroup(e.target.value)}
-                    onFocus={() => {}} // Tree doesn't open on focus
+                    onFocus={() => {}}
+ // Tree doesn't open on focus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -1306,7 +1323,6 @@ export default function LedgerGroupCreation() {
                         handleMainGroupKeyDown(e);
                       }
                     }}
-                    readOnly={actionType !== "Add"}
                     disabled={submitting}
                     aria-label="Main Group"
                     style={{ 
@@ -1316,6 +1332,8 @@ export default function LedgerGroupCreation() {
                       padding: "10px 12px",
                       minWidth: "0"
                     }}
+                   readOnly
+
                   />
                   <button
                     onClick={() => setIsTreeOpen(!isTreeOpen)}
@@ -1412,7 +1430,7 @@ export default function LedgerGroupCreation() {
                   <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
                     {/* Header with close button for desktop */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div className="search-container">
+                      {/* <div className="search-container">
                         <input
                           className="search-with-clear"
                           placeholder="Search groups..."
@@ -1430,14 +1448,14 @@ export default function LedgerGroupCreation() {
                             <Icon.Close size={16} />
                           </button>
                         )}
-                      </div>
-                      <button
+                      </div> */}
+                      {/* <button
                         onClick={() => setIsTreeOpen(false)}
                         style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, marginLeft: 8 }}
                         aria-label="Close tree"
                       >
                         <Icon.Close size={18} />
-                      </button>
+                      </button> */}
                     </div>
 
                     <div
