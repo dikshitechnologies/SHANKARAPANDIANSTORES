@@ -27,6 +27,19 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// ENTER key field order (exact as you want)
+const ENTER_FIELDS = [
+  'barcode',
+  'itemName',
+  'stock',
+  'mrp',
+  'hsn',
+  'tax',
+  'sRate',
+  'qty'
+];
+
+
 const SalesReturn = () => {
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
@@ -857,53 +870,68 @@ console.log("Barcode API response:", response);
 
 const handleBarcodeEnter = async (rowIndex, barcode) => {
   const effectiveBarcode = (barcode || '').trim();
-  console.log("Handling barcode enter for:", effectiveBarcode);
   if (!effectiveBarcode) return;
 
   try {
     const item = await fetchItemByBarcode(effectiveBarcode);
 
-    if (!item) {
+    if (!item || !item[0]) {
       toast.warning("Item not found for this barcode");
       return;
     }
 
-    
     setItems(prev => {
       const updated = [...prev];
 
       updated[rowIndex] = {
         ...updated[rowIndex],
-        barcode: effectiveBarcode, // ✅ FIXED
-        itemCode: item[0].itemcode ||"",
+
+        // ✅ set only SAFE fields
+        barcode: effectiveBarcode,
+        itemCode: item[0].itemcode || "",
         itemName: item[0].fItemName || "",
         stock: item[0].fstock || "0",
         mrp: item[0].mrp || "",
-        uom: item[0].fUnit || item[0].fUnit || "",
-        hsn: item[0].fHSN || item[0].fHSN || "",
-        tax: item[0].inTax ||  "",
+        uom: item[0].fUnit || "",
+        hsn: item[0].fHSN || "",
         sRate: item[0].rate || "0",
-        qty: item[0].qty || "",
-        amount: calculateAmount("1", item[0].rate || item[0].fRate || 0),
-      };
 
-      console.log("Updated item after barcode fetch:", updated[rowIndex]);
+        // ❌ DO NOT TOUCH qty & tax
+        qty: updated[rowIndex].qty || "",
+        tax: updated[rowIndex].tax || "",
+
+        // amount should depend on qty entered by user
+        amount: calculateAmount(
+          updated[rowIndex].qty || 0,
+          item[0].rate || 0
+        )
+      };
 
       return updated;
     });
 
-    // 👉 Move focus to Qty
-    setTimeout(() => {
-      document
-        .querySelector(`input[data-row="${rowIndex}"][data-field="qty"]`)
-        ?.focus();
-    }, 120);
+  // ✅ MOVE TO ITEM NAME (NOT QTY)
+setTimeout(() => {
+  const input = document.querySelector(
+    `input[data-row="${rowIndex}"][data-field="itemName"]`
+  );
+  input?.focus();
+
+  setFocusedElement({
+    type: 'table',
+    rowIndex,
+    fieldIndex: 1,
+    fieldName: 'itemName'
+  });
+}, 120);
+
 
   } catch (err) {
     console.error(err);
     toast.error("Failed to fetch item by barcode");
   }
 };
+
 
 
   // ==================== CREATE SALES RETURN ====================
@@ -2166,7 +2194,7 @@ const handleBarcodeEnter = async (rowIndex, barcode) => {
   e.preventDefault();
   blockGlobalEnterRef.current = true; // 🔥 BLOCK GLOBAL HANDLER
 
-  toast.info("Item name empty. Moving to Save.");
+  // toast.info("Item name empty. Moving to Save.");
 
   setTimeout(() => {
     const saveBtn = document.querySelector('button[data-action="save"]');
@@ -2312,45 +2340,14 @@ const handleTableKeyDown = (e, rowIndex, field) => {
   }
 
   if (e.key !== 'Enter') return;
-
   e.preventDefault();
 
-  // ===========================
-  // 🔹 FIRST ROW (rowIndex === 0)
-  // ===========================
-  if (rowIndex === 0) {
-    if (field === 'qty') {
-      handleAddRow();
-
-      setTimeout(() => {
-        const input = document.querySelector(
-          `input[data-row="1"][data-field="barcode"]`
-        );
-        input?.focus();
-        setFocusedElement({
-          type: 'table',
-          rowIndex: 1,
-          fieldIndex: 0,
-          fieldName: 'barcode'
-        });
-      }, 60);
-      return;
-    }
-
-    // normal navigation
-    handleTableArrowNavigation(
-      'ArrowRight',
-      rowIndex,
-      getTableFieldIndex(field)
-    );
-    return;
-  }
-
-  // ===========================
-  // 🔹 SECOND / NEXT ROWS
-  // ===========================
-  if (field === 'itemName' && !currentItem.itemName?.trim()) {
-    toast.info("Item name empty. Moving to Save.");
+  // 🚨 RULE: ItemName EMPTY → SAVE
+  if (
+    field === 'itemName' &&
+    (!currentItem.itemName || !currentItem.itemName.trim())
+  ) {
+    // toast.info("Item name empty. Moving to Save");
 
     blockGlobalEnterRef.current = true;
 
@@ -2358,7 +2355,6 @@ const handleTableKeyDown = (e, rowIndex, field) => {
       const saveBtn = document.querySelector(
         'button[data-action="save"]'
       );
-
       if (saveBtn) {
         saveBtn.focus();
         setActiveFooterAction('save');
@@ -2373,7 +2369,7 @@ const handleTableKeyDown = (e, rowIndex, field) => {
     return;
   }
 
-  // 🔹 Qty → add row
+  // 🔹 Qty → Add row → Barcode
   if (field === 'qty') {
     handleAddRow();
 
@@ -2393,13 +2389,27 @@ const handleTableKeyDown = (e, rowIndex, field) => {
     return;
   }
 
-  // 🔹 Normal navigation
-  handleTableArrowNavigation(
-    'ArrowRight',
-    rowIndex,
-    getTableFieldIndex(field)
-  );
+  // 🔹 NORMAL ENTER FLOW (FIELD BY FIELD)
+  const currentIndex = ENTER_FIELDS.indexOf(field);
+
+  if (currentIndex !== -1 && currentIndex < ENTER_FIELDS.length - 1) {
+    const nextField = ENTER_FIELDS[currentIndex + 1];
+
+    setTimeout(() => {
+      const input = document.querySelector(
+        `input[data-row="${rowIndex}"][data-field="${nextField}"]`
+      );
+      input?.focus();
+      setFocusedElement({
+        type: 'table',
+        rowIndex,
+        fieldIndex: getTableFieldIndex(nextField),
+        fieldName: nextField
+      });
+    }, 10);
+  }
 };
+
 
 
 
@@ -3461,7 +3471,7 @@ const handleApplyBillDirect = async () => {
         hideCancelButton={false}
       />
 
-   {/* --- HEADER SECTION --- */}
+ {/* --- HEADER SECTION --- */}
 <div style={styles.headerSection}>
   {/* SINGLE ROW with all 6 fields */}
   <div style={{
@@ -3479,12 +3489,26 @@ const handleApplyBillDirect = async () => {
     <div style={{
       ...styles.formField,
       flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+               'calc(16.66% - 13.33px)',
+      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                'calc(16.66% - 13.33px)',
+      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                 'calc(16.66% - 13.33px)'
     }}>
       <label style={styles.inlineLabel}>Bill No:</label>
       <input
         type="text"
-        style={focusedField === 'billNo' ? styles.inlineInputFocused : styles.inlineInput}
+        style={{
+          ...(focusedField === 'billNo' ? styles.inlineInputFocused : styles.inlineInput),
+          padding: screenSize.isMobile ? '10px 8px' : 
+                  screenSize.isTablet ? '8px 10px' : 
+                  '8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit'
+        }}
         value={billDetails.billNo}
         name="billNo"
         onChange={handleInputChange}
@@ -3508,12 +3532,26 @@ const handleApplyBillDirect = async () => {
     <div style={{
       ...styles.formField,
       flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+               'calc(16.66% - 13.33px)',
+      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                'calc(16.66% - 13.33px)',
+      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                 'calc(16.66% - 13.33px)'
     }}>
       <label style={styles.inlineLabel}>Bill Date:</label>
       <input
         type="date"
-        style={focusedField === 'billDate' ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' } : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }}
+        style={{
+          ...(focusedField === 'billDate' ? styles.inlineInputFocused : styles.inlineInput),
+          padding: screenSize.isMobile ? '10px 8px' : 
+                  screenSize.isTablet ? '8px 10px' : 
+                  '8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit'
+        }}
         value={billDetails.billDate}
         name="billDate"
         onChange={handleInputChange}
@@ -3536,12 +3574,26 @@ const handleApplyBillDirect = async () => {
     <div style={{
       ...styles.formField,
       flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+               'calc(16.66% - 13.33px)',
+      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                'calc(16.66% - 13.33px)',
+      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                 'calc(16.66% - 13.33px)'
     }}>
       <label style={styles.inlineLabel}>Mobile No:</label>
       <input
         type="text"
-        style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
+        style={{
+          ...(focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput),
+          padding: screenSize.isMobile ? '10px 8px' : 
+                  screenSize.isTablet ? '8px 10px' : 
+                  '8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit'
+        }}
         value={billDetails.mobileNo}
         name="mobileNo"
         onChange={handleInputChange}
@@ -3564,12 +3616,26 @@ const handleApplyBillDirect = async () => {
     <div style={{
       ...styles.formField,
       flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+               'calc(16.66% - 13.33px)',
+      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                'calc(16.66% - 13.33px)',
+      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                 'calc(16.66% - 13.33px)'
     }}>
       <label style={styles.inlineLabel}>Salesman:</label>
       <input
         type="text"
-        style={focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
+        style={{
+          ...(focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable),
+          padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
+                  screenSize.isTablet ? '8px 35px 8px 10px' : 
+                  '8px 35px 8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit'
+        }}
         value={billDetails.salesman}
         name="salesman"
         onChange={handleInputChange}
@@ -3591,7 +3657,11 @@ const handleApplyBillDirect = async () => {
         readOnly
       />
       <div 
-        style={styles.searchIconInside}
+        style={{
+          ...styles.searchIconInside,
+          right: screenSize.isMobile ? '8px' : '10px',
+          fontSize: screenSize.isMobile ? '16px' : '18px'
+        }}
         title="Click or press / to search"
       >
         <SearchIcon />
@@ -3602,12 +3672,26 @@ const handleApplyBillDirect = async () => {
     <div style={{
       ...styles.formField,
       flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+               'calc(16.66% - 13.33px)',
+      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                'calc(16.66% - 13.33px)',
+      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                 'calc(16.66% - 13.33px)'
     }}>
       <label style={styles.inlineLabel}>Customer:</label>
       <input
         type="text"
-        style={focusedField === 'custName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
+        style={{
+          ...(focusedField === 'custName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable),
+          padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
+                  screenSize.isTablet ? '8px 35px 8px 10px' : 
+                  '8px 35px 8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit'
+        }}
         value={billDetails.custName}
         name="custName"
         onChange={handleInputChange}
@@ -3629,7 +3713,11 @@ const handleApplyBillDirect = async () => {
         readOnly
       />
       <div 
-        style={styles.searchIconInside}
+        style={{
+          ...styles.searchIconInside,
+          right: screenSize.isMobile ? '8px' : '10px',
+          fontSize: screenSize.isMobile ? '16px' : '18px'
+        }}
         title="Click or press / to search"
       >
         <SearchIcon />
@@ -3640,12 +3728,26 @@ const handleApplyBillDirect = async () => {
     <div style={{
       ...styles.formField,
       flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 10px)' : screenSize.isTablet ? 'calc(33.33% - 12px)' : 'calc(16.66% - 16px)'
+      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+               'calc(16.66% - 13.33px)',
+      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                'calc(16.66% - 13.33px)',
+      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
+                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
+                 'calc(16.66% - 13.33px)'
     }}>
       <label style={styles.inlineLabel}>Bill No:</label>
       <input
         type="text"
-        style={focusedField === 'newBillNo' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
+        style={{
+          ...(focusedField === 'newBillNo' ? styles.inlineInputClickableFocused : styles.inlineInputClickable),
+          padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
+                  screenSize.isTablet ? '8px 35px 8px 10px' : 
+                  '8px 35px 8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit'
+        }}
         value={billDetails.newBillNo}
         name="newBillNo"
         onChange={handleInputChange}
@@ -3665,7 +3767,11 @@ const handleApplyBillDirect = async () => {
         readOnly
       />
       <div 
-        style={styles.searchIconInside}
+        style={{
+          ...styles.searchIconInside,
+          right: screenSize.isMobile ? '8px' : '10px',
+          fontSize: screenSize.isMobile ? '16px' : '18px'
+        }}
         title="Click or press / to search"
       >
         <SearchIcon />
@@ -3770,26 +3876,32 @@ const handleApplyBillDirect = async () => {
                     </div>
                   </td>
                   <td style={styles.td}>
-                    <input
-                      style={styles.editableInput}
-                      value={item.stock}
-                      data-row={index}
-                      data-field="stock"
-                      onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
-                      onFocus={() => {
-                        setFocusedField(`stock-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 2,
-                          fieldName: 'stock'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      readOnly
-                    />
-                  </td>
+  <input
+    style={
+      focusedField === `stock-${item.id}`
+        ? styles.editableInputFocused
+        : styles.editableInput
+    }
+    value={item.stock}
+    data-row={index}
+    data-field="stock"
+    onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
+    onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
+    onFocus={() => {
+      setFocusedField(`stock-${item.id}`);
+      setFocusedElement({
+        type: 'table',
+        rowIndex: index,
+        fieldIndex: 2,
+        fieldName: 'stock'
+      });
+    }}
+    onBlur={() => setFocusedField('')}
+    inputMode="numeric"
+    placeholder="Stock"
+  />
+</td>
+
                   <td style={styles.td}>
                     <input
                       style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
