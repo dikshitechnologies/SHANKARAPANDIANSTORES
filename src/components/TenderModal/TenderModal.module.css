@@ -216,6 +216,17 @@
   box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
 }
 
+/* Remove spinner arrows from number inputs */
+.inputField::-webkit-outer-spin-button,
+.inputField::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.inputField[type=number] {
+  -moz-appearance: textfield;
+}
+
 /* Special Fields */
 .readonlyField {
   background: #fafafa;
@@ -406,6 +417,17 @@
   box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.06);
 }
 
+/* Remove spinner arrows from number inputs */
+.tableInput::-webkit-outer-spin-button,
+.tableInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tableInput[type=number] {
+  -moz-appearance: textfield;
+}
+
 /* Payment Section */
 .paymentSection {
   background: white;
@@ -465,6 +487,17 @@
   box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
 }
 
+/* Remove spinner arrows from number inputs */
+.paymentInput::-webkit-outer-spin-button,
+.paymentInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.paymentInput[type=number] {
+  -moz-appearance: textfield;
+}
+
 .readonlyPayment {
   background: #fafafa;
   color: #666;
@@ -517,6 +550,17 @@
   border: 1.5px solid #cfcfcf;
   border-radius: 3px;
   font-size: 13px;
+}
+
+/* Remove spinner arrows from number inputs */
+.serviceAmountInput::-webkit-outer-spin-button,
+.serviceAmountInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.serviceAmountInput[type=number] {
+  -moz-appearance: textfield;
 }
 
 /* Footer */

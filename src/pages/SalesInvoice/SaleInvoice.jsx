@@ -2892,227 +2892,274 @@ const itemsData = validItems.map(item => ({
       )}
 
       {/* --- HEADER SECTION --- */}
-      <div style={styles.headerSection}>
-        <div style={{
-          display: 'flex',
-          flexWrap: 'nowrap',
-          gap: screenSize.isMobile ? '4px' : screenSize.isTablet ? '8px' : '10px',
-          marginBottom: '10px',
-          width: '100%',
-          overflowX: 'auto',
-        }}>
-          {/* Bill No */}
-          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
-            <label style={styles.inlineLabel}>Bill No:</label>
-            <input
-              type="text"
-              value={billDetails.billNo}
-              name="billNo"
-              readOnly
-              tabIndex={-1}
-              ref={billNoRef}
-              style={{
-                ...styles.inlineInput,
-                cursor: "not-allowed",
-                fontWeight: "600"
-              }}
-              title="Auto-generated invoice number"
-            />
-          </div>
+<div style={styles.headerSection}>
+  <div style={{
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
+    marginBottom: screenSize.isMobile ? '12px' : '15px',
+    width: '100%',
+    alignItems: 'flex-start'
+  }}>
+    {/* Bill No - First row on mobile */}
+    <div style={{ 
+      ...styles.formField, 
+      flex: screenSize.isMobile ? '1 1 100%' : '1',
+      minWidth: screenSize.isMobile ? '100%' : '120px',
+      maxWidth: screenSize.isMobile ? '100%' : 'none',
+      order: screenSize.isMobile ? 1 : 0
+    }}>
+      <label style={styles.inlineLabel}>Bill No:</label>
+      <input
+        type="text"
+        value={billDetails.billNo}
+        name="billNo"
+        readOnly
+        tabIndex={-1}
+        ref={billNoRef}
+        style={{
+          ...styles.inlineInput,
+          cursor: "not-allowed",
+          fontWeight: "600",
+          fontSize: screenSize.isMobile ? '14px' : 'inherit',
+          padding: screenSize.isMobile ? '10px 12px' : '8px 10px'
+        }}
+        title="Auto-generated invoice number"
+      />
+    </div>
 
-          {/* Bill Date */}
-          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
-            <label style={styles.inlineLabel}>Bill Date:</label>
-            <input
-              type="date"
-              data-header="billDate"
-              style={
-                focusedField === 'billDate'
-                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
-                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
-              }
-              value={billDetails.billDate}
-              name="billDate"
-              onChange={handleInputChange}
-              ref={billDateRef}
-              onKeyDown={(e) => {
-                handleHeaderArrowNavigation(e, 'billDate');
-                handleKeyDown(e, mobileRef, 'billDate');
-              }}
-              onFocus={() => setFocusedField('billDate')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
+    {/* Bill Date - First row on mobile */}
+    <div style={{ 
+      ...styles.formField, 
+      flex: screenSize.isMobile ? '1 1 calc(50% - 4px)' : '1',
+      minWidth: screenSize.isMobile ? '140px' : '120px',
+      order: screenSize.isMobile ? 2 : 0
+    }}>
+      <label style={styles.inlineLabel}>Bill Date:</label>
+      <input
+        type="date"
+        data-header="billDate"
+        style={{
+          ...(focusedField === 'billDate'
+            ? styles.inlineInputFocused
+            : styles.inlineInput),
+          padding: screenSize.isMobile ? '10px 12px' : '8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit'
+        }}
+        value={billDetails.billDate}
+        name="billDate"
+        onChange={handleInputChange}
+        ref={billDateRef}
+        onKeyDown={(e) => {
+          handleHeaderArrowNavigation(e, 'billDate');
+          handleKeyDown(e, mobileRef, 'billDate');
+        }}
+        onFocus={() => setFocusedField('billDate')}
+        onBlur={() => setFocusedField('')}
+      />
+    </div>
 
-          {/* Mobile No */}
-          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
-            <label style={styles.inlineLabel}>Mobile No:</label>
-            <input
-              type="text"
-              data-header="mobileNo"
-              style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
-              value={billDetails.mobileNo}
-              name="mobileNo"
-              onChange={handleInputChange}
-              ref={mobileRef}
-              onKeyDown={(e) => {
-                handleHeaderArrowNavigation(e, 'mobileNo');
-                handleKeyDown(e, typeRef, 'mobileNo');
-              }}
-              onFocus={() => setFocusedField('mobileNo')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
+    {/* Mobile No - Second row on mobile */}
+    <div style={{ 
+      ...styles.formField, 
+      flex: screenSize.isMobile ? '1 1 calc(50% - 4px)' : '1',
+      minWidth: screenSize.isMobile ? '140px' : '120px',
+      order: screenSize.isMobile ? 3 : 0
+    }}>
+      <label style={styles.inlineLabel}>Mobile No:</label>
+      <input
+        type="text"
+        data-header="mobileNo"
+        style={{
+          ...(focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput),
+          padding: screenSize.isMobile ? '10px 12px' : '8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit'
+        }}
+        value={billDetails.mobileNo}
+        name="mobileNo"
+        onChange={handleInputChange}
+        ref={mobileRef}
+        onKeyDown={(e) => {
+          handleHeaderArrowNavigation(e, 'mobileNo');
+          handleKeyDown(e, typeRef, 'mobileNo');
+        }}
+        onFocus={() => setFocusedField('mobileNo')}
+        onBlur={() => setFocusedField('')}
+      />
+    </div>
 
-          {/* Type */}
-          <div style={{ ...styles.formField, flex: 1, minWidth: '120px', gap: '4px' }}>
-            <label style={styles.inlineLabel}>Type:</label>
-            <select
-              name="type"
-              data-header="type"
-              style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
-              value={billDetails.type}
-              onChange={handleInputChange}
-              ref={typeRef}
-              onKeyDown={(e) => {
-                handleHeaderArrowNavigation(e, 'type');
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  salesmanRef.current.focus();
-                }
-              }}
-              onFocus={() => setFocusedField('type')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="Retail">Retail</option>
-              <option value="Wholesale">Wholesale</option>
-            </select>
-          </div>
+    {/* Type - Second row on mobile */}
+    <div style={{ 
+      ...styles.formField, 
+      flex: screenSize.isMobile ? '1 1 calc(50% - 4px)' : '1',
+      minWidth: screenSize.isMobile ? '140px' : '120px',
+      gap: '4px',
+      order: screenSize.isMobile ? 4 : 0
+    }}>
+      <label style={styles.inlineLabel}>Type:</label>
+      <select
+        name="type"
+        data-header="type"
+        style={{
+          ...(focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput),
+          padding: screenSize.isMobile ? '10px 12px' : '8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit',
+          height: screenSize.isMobile ? '42px' : 'auto'
+        }}
+        value={billDetails.type}
+        onChange={handleInputChange}
+        ref={typeRef}
+        onKeyDown={(e) => {
+          handleHeaderArrowNavigation(e, 'type');
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            salesmanRef.current.focus();
+          }
+        }}
+        onFocus={() => setFocusedField('type')}
+        onBlur={() => setFocusedField('')}
+      >
+        <option value="Retail">Retail</option>
+        <option value="Wholesale">Wholesale</option>
+      </select>
+    </div>
 
-          {/* Salesman */}
-          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
-            <label style={styles.inlineLabel}>Salesman:</label>
-            <div style={{ position: 'relative', width: '100%', flex: 1 }}>
-              <input
-                type="text"
-                data-header="salesman"
-                style={{
-                  ...(focusedField === 'salesman'
-                    ? styles.inlineInputClickableFocused
-                    : styles.inlineInputClickable),
-                  paddingRight: '34px',
-                }}
-                value={billDetails.salesman}
-                name="salesman"
-                onChange={(e) => {
-                  if (ignoreNextInputRef.current) {
-                    ignoreNextInputRef.current = false;
-                    return;
-                  }
-                  handleInputChange(e);
-                }}
-                ref={salesmanRef}
-                onClick={openSalesmanPopup}
-                onKeyDown={(e) => {
-                  handleHeaderArrowNavigation(e, 'salesman');
-                  handleKeyDown(e, custNameRef, 'salesman');
-                  handleBackspace(e, 'salesman');
-                }}
-                onFocus={() => setFocusedField('salesman')}
-                onBlur={() => setFocusedField('')}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'none',
-                  opacity: 0.65,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <SearchIcon />
-              </div>
-            </div>
-          </div>
-
-          {/* Customer */}
-          <div style={{ ...styles.formField, flex: 1, minWidth: '120px' }}>
-            <label style={styles.inlineLabel}>Customer:</label>
-            <div style={{ position: 'relative', width: '100%', flex: 1 }}>
-              <input
-                type="text"
-                data-header="custName"
-                style={{
-                  ...(focusedField === 'custName'
-                    ? styles.inlineInputClickableFocused
-                    : styles.inlineInputClickable),
-                  paddingRight: '34px',
-                }}
-                value={billDetails.custName}
-                name="custName"
-                onChange={handleInputChange}
-                ref={custNameRef}
-                onFocus={() => setFocusedField('custName')}
-                onKeyDown={(e) => {
-                  handleHeaderArrowNavigation(e, 'custName');
-                  
-                  if (e.key === '/') {
-                    e.preventDefault();
-                    setPopupSearchText('');
-                    setCustomerPopupOpen(true);
-                    return;
-                  }
-
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    setTimeout(() => {
-                      const firstRowBarcode = document.querySelector(
-                        'input[data-row="0"][data-field="barcode"]'
-                      );
-                      if (firstRowBarcode) {
-                        firstRowBarcode.focus();
-                      }
-                    }, 0);
-                    return;
-                  }
-
-                  handleBackspace(e, 'custName');
-                }}
-              />
-              <div
-                onClick={openCustomerPopup}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'auto',
-                  opacity: 0.65,
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '6px',
-                  borderRadius: '4px',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '1';
-                  e.currentTarget.style.backgroundColor = 'rgba(27, 145, 218, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '0.65';
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-                title="Press / to open Customer Selection"
-              >
-                <SearchIcon />
-              </div>
-            </div>
-          </div>
+    {/* Salesman - Third row on mobile */}
+    <div style={{ 
+      ...styles.formField, 
+      flex: screenSize.isMobile ? '1 1 100%' : '1',
+      minWidth: screenSize.isMobile ? '100%' : '120px',
+      order: screenSize.isMobile ? 5 : 0
+    }}>
+      <label style={styles.inlineLabel}>Salesman:</label>
+      <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+        <input
+          type="text"
+          data-header="salesman"
+          style={{
+            ...(focusedField === 'salesman'
+              ? styles.inlineInputClickableFocused
+              : styles.inlineInputClickable),
+            padding: screenSize.isMobile ? '10px 40px 10px 12px' : '8px 34px 8px 10px',
+            fontSize: screenSize.isMobile ? '14px' : 'inherit'
+          }}
+          value={billDetails.salesman}
+          name="salesman"
+          onChange={(e) => {
+            if (ignoreNextInputRef.current) {
+              ignoreNextInputRef.current = false;
+              return;
+            }
+            handleInputChange(e);
+          }}
+          ref={salesmanRef}
+          onClick={openSalesmanPopup}
+          onKeyDown={(e) => {
+            handleHeaderArrowNavigation(e, 'salesman');
+            handleKeyDown(e, custNameRef, 'salesman');
+            handleBackspace(e, 'salesman');
+          }}
+          onFocus={() => setFocusedField('salesman')}
+          onBlur={() => setFocusedField('')}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            right: screenSize.isMobile ? '12px' : '10px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            pointerEvents: 'none',
+            opacity: 0.65,
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <SearchIcon />
         </div>
       </div>
+    </div>
+
+    {/* Customer - Fourth row on mobile */}
+    <div style={{ 
+      ...styles.formField, 
+      flex: screenSize.isMobile ? '1 1 100%' : '1',
+      minWidth: screenSize.isMobile ? '100%' : '120px',
+      order: screenSize.isMobile ? 6 : 0
+    }}>
+      <label style={styles.inlineLabel}>Customer:</label>
+      <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+        <input
+          type="text"
+          data-header="custName"
+          style={{
+            ...(focusedField === 'custName'
+              ? styles.inlineInputClickableFocused
+              : styles.inlineInputClickable),
+            padding: screenSize.isMobile ? '10px 40px 10px 12px' : '8px 34px 8px 10px',
+            fontSize: screenSize.isMobile ? '14px' : 'inherit'
+          }}
+          value={billDetails.custName}
+          name="custName"
+          onChange={handleInputChange}
+          ref={custNameRef}
+          onFocus={() => setFocusedField('custName')}
+          onKeyDown={(e) => {
+            handleHeaderArrowNavigation(e, 'custName');
+            
+            if (e.key === '/') {
+              e.preventDefault();
+              setPopupSearchText('');
+              setCustomerPopupOpen(true);
+              return;
+            }
+
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              setTimeout(() => {
+                const firstRowBarcode = document.querySelector(
+                  'input[data-row="0"][data-field="barcode"]'
+                );
+                if (firstRowBarcode) {
+                  firstRowBarcode.focus();
+                }
+              }, 0);
+              return;
+            }
+
+            handleBackspace(e, 'custName');
+          }}
+        />
+        <div
+          onClick={openCustomerPopup}
+          style={{
+            position: 'absolute',
+            right: screenSize.isMobile ? '12px' : '10px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            pointerEvents: 'auto',
+            opacity: 0.65,
+            display: 'flex',
+            alignItems: 'center',
+            padding: screenSize.isMobile ? '8px' : '6px',
+            borderRadius: '4px',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '1';
+            e.currentTarget.style.backgroundColor = 'rgba(27, 145, 218, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '0.65';
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+          title="Press / to open Customer Selection"
+        >
+          <SearchIcon />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
       {/* --- TABLE SECTION --- */}
       <div style={styles.tableSection} className="sale-invoice-scrollable">
