@@ -12,6 +12,7 @@ import DesignCreation from '../pages/DesignCreation/DesignCreation';
 import CashManagement from '../pages/CashManagement/CashManagement';
 import AmountIssue from '../pages/AmountIssue/AmountIssue';
 import PaymentVoucher from '../pages/PaymentVoucher/PaymentVoucher';
+import RouteCreationPage from '../pages/Route/Routecreation';
 import { useAuth } from '../context/AuthContext';
 
 const AppRoutes = () => {
@@ -33,6 +34,7 @@ const AppRoutes = () => {
         <Route path="/design-creation" element={<ProtectedRoute><DesignCreation /></ProtectedRoute>} />
         <Route path="/amount-issue" element={<ProtectedRoute><AmountIssue /></ProtectedRoute>} />
         <Route path="/payment-voucher" element={<ProtectedRoute><PaymentVoucher /></ProtectedRoute>} />
+        <Route path="/route-creation" element={<ProtectedRoute><RouteCreationPage /></ProtectedRoute>} />
         {/* Add more routes here */}
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         {/* <Route path="/products" element={<Products />} /> */}
