@@ -1539,18 +1539,36 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const hasItemName =
     currentItem.itemName && currentItem.itemName.trim() !== "";
 
+  const isLastRow = currentRowIndex === items.length - 1;
+
+  // ======================================================
   // ⏎ ENTER KEY
+  // ======================================================
   if (e.key === "Enter") {
     e.preventDefault();
     e.stopPropagation();
 
-    // 🚫 ITEM NAME EMPTY
+    // ---------------------------------------------
+    // ✅ LAST ROW + ITEM NAME EMPTY → GO TO SAVE
+    // ---------------------------------------------
+    if (isLastRow && !hasItemName) {
+      // unblock table enter (important)
+      if (blockTableEnterRef?.current !== undefined) {
+        blockTableEnterRef.current = false;
+      }
+
+      setTimeout(() => {
+        saveButtonRef.current?.focus();
+      }, 0);
+
+      return;
+    }
+
+    // ---------------------------------------------
+    // 🚫 ITEM NAME EMPTY (ROW 0 SPECIAL LOGIC)
+    // ---------------------------------------------
     if (!hasItemName) {
-
-      // ✅ ROW 1 (index 0)
       if (currentRowIndex === 0) {
-
-        // 🔔 FIRST ENTER → warning only
         if (!warnedEmptyRowRef.current[0]) {
           warnedEmptyRowRef.current[0] = true;
 
@@ -1570,25 +1588,25 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           return;
         }
 
-        // 🔁 ALWAYS stay on Item Name for ROW 1
-setTimeout(() => {
-  document
-    .querySelector(
-      `input[data-row="0"][data-field="itemName"]`
-    )
-    ?.focus();
-}, 0);
+        setTimeout(() => {
+          document
+            .querySelector(
+              `input[data-row="0"][data-field="itemName"]`
+            )
+            ?.focus();
+        }, 0);
 
-return;
-
+        return;
       }
 
-      // ✅ ROW 2, 3, 4...
+      // other rows (non-last) → go to save
       saveButtonRef.current?.focus();
       return;
     }
 
+    // ---------------------------------------------
     // ✅ NORMAL FIELD FLOW
+    // ---------------------------------------------
     const fieldNavigation = {
       barcode: "itemName",
       itemName: "stock",
@@ -1600,7 +1618,9 @@ return;
       sRate: "qty",
     };
 
-    // ✅ QTY → ADD ROW
+    // ---------------------------------------------
+    // ✅ QTY → ROW-BY-ROW NAVIGATION
+    // ---------------------------------------------
     if (currentField === "qty") {
       if (!currentItem.qty || Number(currentItem.qty) <= 0) {
         toast.warning("Please enter quantity", {
@@ -1610,6 +1630,21 @@ return;
         return;
       }
 
+      const nextRowIndex = currentRowIndex + 1;
+
+      // 👉 Go to next row barcode if exists
+      if (items[nextRowIndex]) {
+        setTimeout(() => {
+          document
+            .querySelector(
+              `input[data-row="${nextRowIndex}"][data-field="barcode"]`
+            )
+            ?.focus();
+        }, 0);
+        return;
+      }
+
+      // 👉 No next row → add new row
       handleAddRow();
       setTimeout(() => {
         document
@@ -1617,10 +1652,14 @@ return;
             `input[data-row="${items.length}"][data-field="barcode"]`
           )
           ?.focus();
-      }, 80);
+      }, 0);
+
       return;
     }
 
+    // ---------------------------------------------
+    // ✅ MOVE TO NEXT FIELD IN SAME ROW
+    // ---------------------------------------------
     const nextField = fieldNavigation[currentField];
     if (nextField) {
       document
@@ -1629,10 +1668,13 @@ return;
         )
         ?.focus();
     }
+
     return;
   }
 
+  // ======================================================
   // ⬅️ LEFT
+  // ======================================================
   if (e.key === "ArrowLeft") {
     e.preventDefault();
     if (fieldIndex > 0) {
@@ -1646,7 +1688,9 @@ return;
     return;
   }
 
+  // ======================================================
   // ➡️ RIGHT
+  // ======================================================
   if (e.key === "ArrowRight") {
     e.preventDefault();
     if (fieldIndex < TABLE_FIELDS.length - 1) {
@@ -1660,7 +1704,9 @@ return;
     return;
   }
 
+  // ======================================================
   // ⬆️ UP
+  // ======================================================
   if (e.key === "ArrowUp") {
     e.preventDefault();
     if (currentRowIndex > 0) {
@@ -1673,7 +1719,9 @@ return;
     return;
   }
 
+  // ======================================================
   // ⬇️ DOWN
+  // ======================================================
   if (e.key === "ArrowDown") {
     e.preventDefault();
     if (currentRowIndex < items.length - 1) {
@@ -1686,7 +1734,9 @@ return;
     return;
   }
 
+  // ======================================================
   // / → ITEM POPUP
+  // ======================================================
   if (e.key === "/" && currentField === "itemName") {
     e.preventDefault();
     openItemPopup(currentRowIndex);
@@ -3275,6 +3325,7 @@ const itemsData = validItems.map(item => ({
                   </td>
                   <td style={styles.td}>
                     <input
+                    readOnly
                       style={
                         focusedField === `stock-${item.id}`
                           ? styles.editableInputFocused
@@ -3304,6 +3355,8 @@ const itemsData = validItems.map(item => ({
                   </td>
                   <td style={styles.td}>
                     <input
+                    readOnly
+
                       style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.mrp}
                       data-row={index}
@@ -3326,6 +3379,8 @@ const itemsData = validItems.map(item => ({
                   </td>
                   <td style={styles.td}>
                     <input
+                    readOnly
+
                       className="uom-input"
                       value={item.uom}
                       data-row={index}
@@ -3364,6 +3419,8 @@ const itemsData = validItems.map(item => ({
                   </td>
                   <td style={styles.td}>
                     <input
+                    readOnly
+
                       style={focusedField === `hsn-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.hsn}
                       data-row={index}
@@ -3562,7 +3619,7 @@ const itemsData = validItems.map(item => ({
         onClose={() => setSaveConfirmationOpen(false)}
         onConfirm={handleConfirmedSave}
         title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
-        confirmText={saveConfirmationData?.isEditing ? "CONFIRM UPDATE" : "CONFIRM SAVE"}
+        confirmText={saveConfirmationData?.isEditing ? " UPDATE" : " SAVE"}
         cancelText="Cancel"
         type={saveConfirmationData?.isEditing ? "warning" : "success"}
         showIcon={true}
@@ -3575,7 +3632,7 @@ const itemsData = validItems.map(item => ({
         onClose={() => setClearConfirmationOpen(false)}
         onConfirm={handleConfirmedClear}
         title="Clear Sales Invoice"
-        message="Are you sure you want to clear all unsaved data?"
+        message="Are you sure you want to clear?"
         confirmText="CLEAR"
         cancelText="Cancel"
         type="warning"
@@ -3602,15 +3659,9 @@ const itemsData = validItems.map(item => ({
         onConfirm={handleConfirmedDelete}
         title="Confirm DELETE Invoice"
         message={
-          deleteConfirmationData ? 
-          `Invoice No: ${deleteConfirmationData.invoiceNo}\n` +
-          `Customer: ${deleteConfirmationData.customer}\n` +
-          `Date: ${deleteConfirmationData.billDate}\n` +
-          `Total Amount: ₹${parseFloat(deleteConfirmationData.totalAmount || 0).toFixed(2)}\n\n` +
-          `WARNING: This action cannot be undone!`
-          : "Are you sure you want to delete this invoice?"
+          "Are you sure you want to delete? "
         }
-        confirmText="CONFIRM DELETE"
+        confirmText=" DELETE"
         cancelText="Cancel"
         type="danger"
         showIcon={true}
@@ -3715,7 +3766,7 @@ const itemsData = validItems.map(item => ({
         title="Delete Item Row"
         message={
           rowToDelete 
-          ? `Are you sure you want to delete "${rowToDelete.itemName}" ${rowToDelete.barcode}?\n\nThis action cannot be undone!`
+          ? `Are you sure you want to delete?`
           : "Are you sure you want to delete this item?"
         }
         confirmText="DELETE"

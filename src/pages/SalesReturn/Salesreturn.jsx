@@ -1721,7 +1721,7 @@ setTimeout(() => {
         
         showConfirmation({
           title: "Confirm Delete",
-          message: `Are you sure you want to delete`,
+          message: `Are you sure you want to delete?`,
           type: "danger",
           confirmText: "Delete",
           cancelText: "Cancel",
@@ -2313,8 +2313,9 @@ setTimeout(() => {
 
 const handleTableKeyDown = (e, rowIndex, field) => {
   const currentItem = items[rowIndex];
+  const isLastRow = rowIndex === items.length - 1;
 
-  // 🔹 Letter opens item popup
+  // 🔹 LETTER → ITEM POPUP
   if (
     field === 'itemName' &&
     e.key.length === 1 &&
@@ -2325,23 +2326,25 @@ const handleTableKeyDown = (e, rowIndex, field) => {
     return;
   }
 
-  // 🔹 Slash opens item popup
+  // 🔹 SLASH → ITEM POPUP
   if (field === 'itemName' && e.key === '/') {
     e.preventDefault();
     openItemPopup(rowIndex);
     return;
   }
 
+  // 🔹 ONLY HANDLE ENTER BELOW
   if (e.key !== 'Enter') return;
-  e.preventDefault();
 
-  // 🚨 RULE: ItemName EMPTY → SAVE
+  e.preventDefault();
+  e.stopPropagation();
+
+  // =====================================================
+  // 🚨 RULE 1: itemName EMPTY → GO TO SAVE
+  // =====================================================
   if (
-    field === 'itemName' &&
     (!currentItem.itemName || !currentItem.itemName.trim())
   ) {
-    // toast.info("Item name empty. Moving to Save");
-
     blockGlobalEnterRef.current = true;
 
     setTimeout(() => {
@@ -2359,32 +2362,57 @@ const handleTableKeyDown = (e, rowIndex, field) => {
         });
       }
     }, 20);
+
     return;
   }
 
-  // 🔹 Qty → Add row → Barcode
+  // =====================================================
+  // 🚨 RULE 2: QTY FIELD LOGIC
+  // =====================================================
   if (field === 'qty') {
+    // If NOT last row → move to next row barcode
+    if (!isLastRow) {
+      setTimeout(() => {
+        const input = document.querySelector(
+          `input[data-row="${rowIndex + 1}"][data-field="barcode"]`
+        );
+        input?.focus();
+
+        setFocusedElement({
+          type: 'table',
+          rowIndex: rowIndex + 1,
+          fieldIndex: 0,
+          fieldName: 'barcode'
+        });
+      }, 20);
+      return;
+    }
+
+    // LAST ROW + item exists → ADD NEW ROW
     handleAddRow();
 
     setTimeout(() => {
-      const nextRow = items.length;
+      const newRowIndex = items.length;
       const input = document.querySelector(
-        `input[data-row="${nextRow}"][data-field="barcode"]`
+        `input[data-row="${newRowIndex}"][data-field="barcode"]`
       );
       input?.focus();
+
       setFocusedElement({
         type: 'table',
-        rowIndex: nextRow,
+        rowIndex: newRowIndex,
         fieldIndex: 0,
         fieldName: 'barcode'
       });
     }, 60);
+
     return;
   }
 
-  // 🔹 NORMAL ENTER FLOW (FIELD BY FIELD)
+  // =====================================================
+  // 🔹 NORMAL FIELD FLOW (ENTER_FIELDS)
+  // =====================================================
   const currentIndex = ENTER_FIELDS.indexOf(field);
-
   if (currentIndex !== -1 && currentIndex < ENTER_FIELDS.length - 1) {
     const nextField = ENTER_FIELDS[currentIndex + 1];
 
@@ -2393,6 +2421,7 @@ const handleTableKeyDown = (e, rowIndex, field) => {
         `input[data-row="${rowIndex}"][data-field="${nextField}"]`
       );
       input?.focus();
+
       setFocusedElement({
         type: 'table',
         rowIndex,
@@ -2402,6 +2431,7 @@ const handleTableKeyDown = (e, rowIndex, field) => {
     }, 10);
   }
 };
+
 
 
 
@@ -2567,9 +2597,9 @@ const handleApplyBillDirect = async () => {
 
     showConfirmation({
       title: `${actionText} Sales Return`,
-      message: `Are you sure you want to ${actionType} this sales return?\n\nVoucher No: ${billDetails.billNo}\nTotal Amount: ₹${totalAmount.toFixed(2)}`,
+      message: `Are you sure you want to save?`,
       type: "success",
-      confirmText: actionText,
+      confirmText: "save",
       cancelText: "Cancel",
       onConfirm: async () => {
         try {
@@ -3787,7 +3817,7 @@ const handleApplyBillDirect = async () => {
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>HSN</th>
                 <th style={styles.th}>TAX (%)</th>
-                <th style={styles.th}>S.Rate</th>
+                <th style={styles.th}>SRate</th>
                 <th style={styles.th}>Qty</th>
                 <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th>
                 <th style={styles.th}>Action</th>

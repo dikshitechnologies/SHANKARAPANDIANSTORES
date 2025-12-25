@@ -2267,6 +2267,7 @@ const handleKeyNavigation = (e) => {
           }
         }}
         disabled={isSubmitting}
+        readOnly={true}
         aria-label="Group Name"
         style={{ 
           flex: 1,
