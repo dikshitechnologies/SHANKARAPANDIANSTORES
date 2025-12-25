@@ -79,7 +79,7 @@ const Navbar = () => {
     // { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
         { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <BuildOutlined />, permission: 'LED_GRPCREATION' },
     { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <BuildOutlined />, permission: 'ITEM_GRPCREATION' },
-    { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined />, permission: 'Ledger_CREATION' },
+    { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined />, permission: 'LEDGER_CREATION' },
     { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined />, permission: 'ITEM_CREATION' },
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined />, permission: 'UNIT_CREATION' },
     { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined />, permission: 'COMPANY_CREATION' },
