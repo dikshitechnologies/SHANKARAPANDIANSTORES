@@ -164,7 +164,7 @@ export default function ItemGroupCreation() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [isTreeOpen, setIsTreeOpen] = useState(false); // Tree starts closed
+  const [isTreeOpen, setIsTreeOpen] = useState(true); // Tree starts closed
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
@@ -239,6 +239,21 @@ export default function ItemGroupCreation() {
     };
   }, [isTreeOpen]);
 
+  // Helper function to recursively collect all node keys
+  const getAllNodeKeys = (nodes) => {
+    const keys = new Set();
+    const collect = (items) => {
+      items.forEach((item) => {
+        keys.add(item.key);
+        if (item.children && item.children.length > 0) {
+          collect(item.children);
+        }
+      });
+    };
+    collect(nodes);
+    return keys;
+  };
+
   const loadInitial = async () => {
     setLoading(true);
     try {
@@ -252,7 +267,7 @@ export default function ItemGroupCreation() {
       
       const tree = transformApiData(treeResp.data || []);
       setTreeData(tree);
-      setExpandedKeys(new Set(tree.map((n) => n.key)));
+      setExpandedKeys(getAllNodeKeys(tree));
       setDropdownData(Array.isArray(ddResp.data) ? ddResp.data : []);
       setSubGroupOptions(
         (Array.isArray(ddResp.data) ? ddResp.data : []).map((item) => ({
@@ -604,7 +619,7 @@ export default function ItemGroupCreation() {
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       {/* Check if user has any permission to access this module */}
-      {!formPermissions.add && !formPermissions.edit && !formPermissions.delete && (
+      {/* {!formPermissions.add && !formPermissions.edit && !formPermissions.delete && (
         <div style={{
           padding: '20px',
           margin: '20px',
@@ -617,7 +632,7 @@ export default function ItemGroupCreation() {
           <h3>Access Denied</h3>
           <p>You do not have permission to access the Item Group Creation module.</p>
         </div>
-      )}
+      )} */}
 
       {/* SAME CSS as Item Creation - ONLY CHANGED PART */}
       <style>{`
@@ -1291,7 +1306,7 @@ export default function ItemGroupCreation() {
                         handleMainGroupKeyDown(e);
                       }
                     }}
-                    readOnly={actionType !== "Add"}
+                    readOnly={true}
                     disabled={submitting}
                     aria-label="Main Group"
                     style={{ 
@@ -1301,6 +1316,7 @@ export default function ItemGroupCreation() {
                       padding: "10px 12px",
                       minWidth: "0"
                     }}
+                    
                   />
                   <button
                     onClick={() => setIsTreeOpen(!isTreeOpen)}
@@ -1396,7 +1412,7 @@ export default function ItemGroupCreation() {
                 ) : (
                   <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
                     {/* Header with close button for desktop */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    {/* <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                       <div className="search-container">
                         <input
                           className="search-with-clear"
@@ -1423,7 +1439,7 @@ export default function ItemGroupCreation() {
                       >
                         <Icon.Close size={18} />
                       </button>
-                    </div>
+                    </div> */}
 
                     <div
                       className="tree-scroll"
@@ -1507,7 +1523,8 @@ export default function ItemGroupCreation() {
                 disabled={submitting}
                 type="button"
               >
-                {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)}
+                {/* {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)} */}
+                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"

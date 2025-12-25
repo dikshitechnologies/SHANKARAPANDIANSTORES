@@ -28,7 +28,7 @@ import { PERMISSION_CODES } from "../../constants/permissions";
 
 // Get endpoints from your configuration
 const USERS_URL = API_ENDPOINTS.ADMINISTRATION.USER_LIST;
-const GET_PERMS_URL = API_ENDPOINTS.ADMINISTRATION.GET_PERMISSIONS_BY_USER;
+const GET_PERMS_URL_FUNC = API_ENDPOINTS.ADMINISTRATION.GET_PERMISSIONS_BY_USER;
 const INSERT_BATCH_URL = API_ENDPOINTS.ADMINISTRATION.ADMIN_BATCH_INSERT;
 const DELETE_URL = API_ENDPOINTS.ADMINISTRATION.DELETE_PERMISSIONS;
 // Updated item lists with proper database permission names
@@ -227,41 +227,10 @@ const Administration = () => {
     if (!code) return null;
 
     try {
-      // Try different parameter formats
-      let response;
-
-      // Try with fUcode parameter
-      try {
-        response = await axiosInstance.get(GET_PERMS_URL, {
-          params: { fUcode: code }
-        });
-        return response.data;
-      } catch (error1) {
-        // Try with userCode parameter
-        try {
-          response = await axiosInstance.get(GET_PERMS_URL, {
-            params: { userCode: code }
-          });
-          return response.data;
-        } catch (error2) {
-          // Try as part of URL
-          try {
-            response = await axiosInstance.get(`${GET_PERMS_URL}/${code}`);
-            return response.data;
-          } catch (error3) {
-            // Try with query parameter in different format
-            try {
-              response = await axiosInstance.get(GET_PERMS_URL, {
-                params: { UserCode: code }
-              });
-              return response.data;
-            } catch (error4) {
-              console.error("All permission fetch attempts failed");
-              return null;
-            }
-          }
-        }
-      }
+      // Call the endpoint function with the user code
+      const endpoint = GET_PERMS_URL_FUNC(code);
+      const response = await axiosInstance.get(endpoint);
+      return response.data;
     } catch (error) {
       console.error("Error fetching permissions:", error);
       return null;

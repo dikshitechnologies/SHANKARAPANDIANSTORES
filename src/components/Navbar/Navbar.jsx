@@ -79,7 +79,7 @@ const Navbar = () => {
     // { name: 'Popup List Selector Example', path: '/popup-list-selector-example', icon: <AppstoreOutlined /> },
         { name: 'Ledger Group Creation', path: '/masters/ledger-group-creation', icon: <BuildOutlined />, permission: 'LED_GRPCREATION' },
     { name: 'Item Group Creation', path: '/masters/item-group-creation', icon: <BuildOutlined />, permission: 'ITEM_GRPCREATION' },
-    { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined />, permission: 'Ledger_CREATION' },
+    { name: 'Ledger Creation', path: '/masters/ledger-creation', icon: <DatabaseOutlined />, permission: 'LEDGER_CREATION' },
     { name: 'Item Creation', path: '/masters/ItemCreation', icon: <BuildOutlined />, permission: 'ITEM_CREATION' },
     { name: 'Unit Creation', path: '/masters/unit-creation', icon: <TeamOutlined />, permission: 'UNIT_CREATION' },
     { name: 'Company Creation', path: '/masters/company-creation', icon: <BuildOutlined />, permission: 'COMPANY_CREATION' },
@@ -90,7 +90,7 @@ const Navbar = () => {
     { name: 'Size Creation', path: '/masters/size-creation', icon: <TeamOutlined />, permission: 'SIZE_CREATION' },
     { name: 'Color Creation', path: '/masters/color-creation', icon: <TeamOutlined />, permission: 'COLOR_CREATION' },
     { name: 'State Creation', path: '/masters/Statecreation', icon: <BuildOutlined />, permission: 'STATE_CREATION' },
-
+    { name: 'Route Creation', path: '/masters/route-creation', icon: <BuildOutlined />, permission: 'ROUTE_CREATION' },
   { name: 'Model Creation', path: '/masters/model-creation', icon: <TeamOutlined />, permission: 'MODEL_CREATION' },
     { name: 'Salesman Creation', path: '/masters/SalesmanCreation', icon: <UserOutlined />, permission: 'SALESMAN_CREATION' },
     { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },

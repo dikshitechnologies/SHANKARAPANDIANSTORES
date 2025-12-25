@@ -9,7 +9,7 @@ import { PERMISSION_CODES } from '../../constants/permissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// --- Inline SVG icons (matching ItemGroupCreation style) ---
+// --- Inline SVG icons (matching DesignCreation style) ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -53,28 +53,28 @@ const Icon = {
   ),
 };
 
-export default function UnitCreation() {
+export default function RouteCreationPage() {
   // ---------- Permissions ----------
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.UNIT_CREATION),
-    Edit: hasModifyPermission(PERMISSION_CODES.UNIT_CREATION),
-    Delete: hasDeletePermission(PERMISSION_CODES.UNIT_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.ROUTE_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.ROUTE_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.ROUTE_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
-  const [units, setUnits] = useState([]);
+  const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    fuCode: "", 
-    unitName: ""
+    routeCode: "", 
+    routeName: ""
   });
   
-  const [actionType, setActionType] = useState("Add"); // 'Add' | 'Edit' | 'Delete'
+  const [actionType, setActionType] = useState("Add"); // 'Add' | 'edit' | 'delete'
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
 
@@ -88,62 +88,36 @@ export default function UnitCreation() {
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
-  const unitCodeRef = useRef(null);
-  const unitNameRef = useRef(null);
-  const submitRef = useRef(null);
+  const routeCodeRef = useRef(null);
+  const routeNameRef = useRef(null);
+  const submitButtonRef = useRef(null);
 
   // Screen width state for responsive design
   const [screenWidth, setScreenWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Confirmation popup states
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [confirmEditOpen, setConfirmEditOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Base URL for API
-
   // ---------- API functions ----------
-  const fetchNextUnitCode = async () => {
+  const fetchRoutes = async (pageNumber = 1, pageSize = 10, search = '') => {
     try {
       setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.NEXT_SIZE_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, fuCode: data.trim() }));
-      } else if (data && (data.nextBillNo || data.fcode || data.fuCode)) {
-        setForm(prev => ({ ...prev, fuCode: data.nextBillNo || data.fcode || data.fuCode }));
-      }
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load next unit code" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUnits = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GET_SIZE_ITEMS);
-      setUnits(data || []);
+      const endpoint = API_ENDPOINTS.ROUTE_CREATION.GET_ROUTES_PAGED(pageNumber, pageSize, search);
+      const data = await apiService.get(endpoint);
+      // API returns data directly with routeCode and routeName
+      const transformedData = Array.isArray(data.data) ? data.data.map(item => ({
+        routeCode: item.routeCode || '',
+        routeName: item.routeName || ''
+      })) : [];
+      setRoutes(transformedData);
       setMessage(null);
+      return transformedData;
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to load units" });
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getUnitByCode = async (code) => {
-    try {
-      setLoading(true);
-      const data = await apiService.get(API_ENDPOINTS.UNITCREATION.GETUNITCODE(code));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch unit" });
+      setMessage({ type: "error", text: "Failed to load routes" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -151,122 +125,95 @@ export default function UnitCreation() {
     }
   };
 
-  const createUnit = async (unitData) => {
+  const getNextRouteCode = async () => {
     try {
       setLoading(true);
-      const data = await apiService.post(API_ENDPOINTS.UNITCREATION.CREATE_SIZE, unitData);
+      const data = await apiService.get(API_ENDPOINTS.ROUTE_CREATION.GET_NEXT_ROUTE_CODE);
+      const nextCode = data.code || "0001";
+      setForm(prev => ({ ...prev, routeCode: nextCode }));
+      return nextCode;
+    } catch (err) {
+      // Fallback to a default
+      setForm(prev => ({ ...prev, routeCode: "0001" }));
+      return "0001";
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRouteByCode = async (code) => {
+    try {
+      setLoading(true);
+      // Filter from existing items since API doesn't have a specific endpoint
+      const route = routes.find(r => r.routeCode === code);
+      return route || null;
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to fetch route" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createRoute = async (routeData) => {
+    try {
+      setLoading(true);
+      // Send route data with correct field names
+      const apiData = {
+        routeCode: routeData.routeCode,
+        routeName: routeData.routeName
+      };
+      const data = await apiService.post(API_ENDPOINTS.ROUTE_CREATION.CREATE_ROUTE, apiData);
       return data;
     } catch (err) {
-      // Check if this is a validation error from the backend
-      if (err.response?.status === 400 || err.response?.status === 422) {
-        // Extract the specific error message from the response
-        const errorMessage = err.response?.data?.message || 
-                            err.response?.data?.error || 
-                            err.message;
-        
-        // Check if it's a duplicate unit name error
-        if (errorMessage.toLowerCase().includes("already exists") || 
-            errorMessage.toLowerCase().includes("duplicate") ||
-            errorMessage.toLowerCase().includes("exist")) {
-          setMessage({ 
-            type: "error", 
-            text: "A unit with this name already exists. Please choose a different name." 
-          });
-        } else {
-          setMessage({ 
-            type: "error", 
-            text: errorMessage || "Validation failed. Please check your input." 
-          });
-        }
-        
-        // If you want to extract specific field errors
-        if (err.response?.data?.errors) {
-          const fieldErrors = err.response.data.errors;
-          // Handle field-specific errors if needed
-          console.log("Field errors:", fieldErrors);
-        }
-      } else {
-        setMessage({ type: "error", text: "Failed to create unit" });
-      }
+      setMessage({ type: "error", text: "Failed to create route" });
+      console.error("API Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateRoute = async (routeData) => {
+    try {
+      setLoading(true);
+      console.log("Sending update data:", routeData);
       
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateUnit = async (unitData) => {
-    try {
-      setLoading(true);
-      const data = await apiService.put(API_ENDPOINTS.UNITCREATION.UPDATE_SIZE(unitData.fuCode), unitData);
-      return data;
-    } catch (err) {
-      // Check if this is a validation error from the backend
-      if (err.response?.status === 400 || err.response?.status === 422) {
-        const errorMessage = err.response?.data?.message || 
-                            err.response?.data?.error || 
-                            err.message;
-        
-        // Check if it's a duplicate unit name error
-        if (errorMessage.toLowerCase().includes("already exists") || 
-            errorMessage.toLowerCase().includes("duplicate") ||
-            errorMessage.toLowerCase().includes("exist")) {
-          setMessage({ 
-            type: "error", 
-            text: "A unit with this name already exists. Please choose a different name." 
-          });
-        } else {
-          setMessage({ 
-            type: "error", 
-            text: errorMessage || "Validation failed. Please check your input." 
-          });
-        }
-      } else {
-        setMessage({ type: "error", text: "Failed to update unit" });
-      }
+      // Send route data with correct field names
+      const apiData = {
+        routeCode: routeData.routeCode,
+        routeName: routeData.routeName
+      };
       
-      console.error("API Error:", err);
+      const response = await apiService.put(API_ENDPOINTS.ROUTE_CREATION.UPDATE_ROUTE, apiData);
+      console.log("Update response:", response);
+      
+      if (typeof response === 'string' && response.includes("successfully")) {
+        return { success: true, message: response };
+      }
+      return response;
+    } catch (err) {
+      console.error("Update error details:", err.response || err);
+      setMessage({ type: "error", text: err.message || "Failed to update route" });
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteUnit = async (unitCode) => {
+  const deleteRoute = async (routeCode) => {
     try {
       setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.UNITCREATION.DELETE_SIZE(unitCode));
+      const data = await apiService.del(API_ENDPOINTS.ROUTE_CREATION.DELETE_ROUTE(routeCode));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete unit" });
+      setMessage({ type: "error", text: err.message || "Failed to delete route" });
       console.error("API Error:", err);
       throw err;
     } finally {
       setLoading(false);
     }
-  };
-
-  // ---------- Validation function ----------
-  const validateUnitName = (name) => {
-    if (!name || name.trim() === "") {
-      return "Unit name is required";
-    }
-    if (name.length > 6) {
-      return "Unit name cannot exceed 6 characters";
-    }
-    return null;
-  };
-
-  // Check if unit name already exists
-  const checkUnitNameExists = (unitName, currentUnitCode = null) => {
-    const normalizedUnitName = unitName.trim().toLowerCase();
-    const existingUnit = units.find(u => 
-      u.unitName && 
-      u.unitName.trim().toLowerCase() === normalizedUnitName &&
-      u.uCode !== currentUnitCode // Exclude current unit when editing
-    );
-    return existingUnit;
   };
 
   // ---------- effects ----------
@@ -283,122 +230,102 @@ export default function UnitCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Focus on unit name field on initial load/reload
+  // Focus on route name field on initial load/reload
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (unitNameRef.current) {
-        unitNameRef.current.focus();
+      if (routeNameRef.current) {
+        routeNameRef.current.focus();
       }
-    }, 100); // Small delay to ensure DOM is ready
+    }, 100);
     return () => clearTimeout(timer);
-  }, []); // Empty dependency array = runs once on mount
+  }, []);
 
   // Additional focus for when actionType changes
   useEffect(() => {
     if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
-        if (unitNameRef.current) unitNameRef.current.focus();
+        if (routeNameRef.current) routeNameRef.current.focus();
       }, 0);
       return () => clearTimeout(timer);
     }
   }, [actionType]);
 
-
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchUnits(), fetchNextUnitCode()]);
+    await Promise.all([fetchRoutes(), getNextRouteCode()]);
   };
 
-  const handleEdit = async () => {
+  const handleEdit = () => { // Remove async
     // === PERMISSION CHECK ===
     if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
-        text: "You do not have permission to edit units." 
+        text: "You do not have permission to edit routes." 
       });
       return;
     }
     // === END PERMISSION CHECK ===
 
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.routeCode || !form.routeName) {
+      setMessage({ type: "error", text: "Please fill Route Code and Route Name." });
       return;
     }
-
-    // === CHANGED: Added duplicate check for edit mode (excluding current size) ===
-    const isDuplicate = units.some(unit => 
-      (unit.unitName || '').toLowerCase() === form.unitName.toLowerCase() && 
-      (unit.fuCode || '') !== form.fuCode // Different ID
-    );
-
-    if (isDuplicate) {
-      setMessage({ 
-        type: "error", 
-        text: `Unit name "${form.unitName}" already exists. Please use a different name.` 
-      });
-      return;
-    }
-    // === END CHANGE ===
-
     setConfirmEditOpen(true);
   };
 
-const confirmEdit = async () => {
-  try {
+  const confirmEdit = async () => {
     setIsLoading(true);
-    
-    const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-    await updateUnit(unitData);
-    await loadInitial();
-    
-    setMessage({ type: "success", text: "Unit updated successfully." });
-    // toast.success(`Unit "${form.unitName}" updated successfully.`);
-    setConfirmEditOpen(false);
-    resetForm();
-  } catch (err) {
-    setConfirmEditOpen(false);
-    // Error message already set in updateUnit
-  } finally {
-    setIsLoading(false);
-  }
-};
+    try {
+      const routeData = { 
+        routeCode: form.routeCode, 
+        routeName: form.routeName
+      };
+      await updateRoute(routeData);
+      await loadInitial();
+      
+      setMessage({ type: "success", text: "Route updated successfully." });
+      resetForm();
+      setConfirmEditOpen(false);
+    } catch (err) {
+      // Error message already set in updateRoute
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleDelete = async () => {
+  const handleDelete = () => { // Remove async
     // === PERMISSION CHECK ===
     if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
-        text: "You do not have permission to delete units." 
+        text: "You do not have permission to delete routes." 
       });
       return;
     }
     // === END PERMISSION CHECK ===
 
-    if (!form.fuCode) {
-      setMessage({ type: "error", text: "Please select a unit to delete." });
+    if (!form.routeCode) {
+      setMessage({ type: "error", text: "Please select a route to delete." });
       return;
     }
-
     setConfirmDeleteOpen(true);
   };
 
   const confirmDelete = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      await deleteUnit(form.fuCode);
+      await deleteRoute(form.routeCode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "Unit deleted successfully." });
-      // toast.error(`Unit "${form.unitName}" deleted successfully.`);
-      setConfirmDeleteOpen(false);
+      setMessage({ type: "success", text: "Route deleted successfully." });
       resetForm();
-    } catch (err) {
       setConfirmDeleteOpen(false);
-      // Special handling for referenced units
+    } catch (err) {
+      // Special handling for referenced routes
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete unit "${form.unitName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete route "${form.routeName}". It is referenced in other tables and cannot be removed.` 
         });
       }
     } finally {
@@ -406,69 +333,79 @@ const confirmEdit = async () => {
     }
   };
 
-  const handleAdd = async () => {
+  const handleAdd = () => { // Remove async - FIXED
     // === PERMISSION CHECK ===
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       setMessage({ 
         type: "error", 
-        text: "You do not have permission to create units." 
+        text: "You do not have permission to create routes." 
       });
       return;
     }
     // === END PERMISSION CHECK ===
 
-    if (!form.fuCode || !form.unitName) {
-      setMessage({ type: "error", text: "Please fill Unit Code and Unit Name." });
+    if (!form.routeCode || !form.routeName) {
+      setMessage({ type: "error", text: "Please fill Route Code and Route Name." });
       return;
     }
 
-    // === CHANGED: Added duplicate check for edit mode (excluding current size) ===
-    const isDuplicate = units.some(unit => 
-      (unit.unitName || '').toLowerCase() === form.unitName.toLowerCase() && 
-      (unit.fuCode || '') !== form.fuCode // Different ID
+    // Check if route code already exists
+    const codeExists = routes.some(r => r.routeCode === form.routeCode);
+    if (codeExists) {
+      setMessage({ type: "error", text: `Route code ${form.routeCode} already exists.` });
+      return;
+    }
+
+    // Check for duplicate route name (case-insensitive)
+    const nameExists = routes.some(r => 
+      r.routeName.toLowerCase() === form.routeName.toLowerCase()
     );
 
-    if (isDuplicate) {
+    if (nameExists) {
       setMessage({ 
         type: "error", 
-        text: `Unit name "${form.unitName}" already exists. Please use a different name.` 
+        text: `Route name "${form.routeName}" already exists. Please use a different name.` 
       });
       return;
     }
-    // === END CHANGE ===
 
+    // Show confirmation popup - THIS IS THE KEY FIX
     setConfirmSaveOpen(true);
   };
 
-const confirmSave = async () => {
-  try {
+  const confirmSave = async () => {
     setIsLoading(true);
-    const unitData = { fuCode: form.fuCode, unitName: form.unitName };
-    
-    await createUnit(unitData);
-    await loadInitial();
-    
-    setMessage({ type: "success", text: "Unit created successfully." });
-    // toast.success(`Unit "${form.unitName}" created successfully.`);
-    setConfirmSaveOpen(false);
-    resetForm(true);
-  } catch (err) {
-    setConfirmSaveOpen(false);
-    // Error message already set in createUnit
-  } finally {
-    setIsLoading(false);
-  }
-};
+    try {
+      const routeData = { 
+        routeCode: form.routeCode, 
+        routeName: form.routeName
+      };
+      await createRoute(routeData);
+      await loadInitial();
+      
+      setMessage({ type: "success", text: "Route created successfully." });
+      resetForm(true);
+      setConfirmSaveOpen(false);
+    } catch (err) {
+      // Error message already set in createRoute
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleSubmit = async () => {
-    if (actionType === "Add") await handleAdd();
-    else if (actionType === "Edit") await handleEdit();
-    else if (actionType === "Delete") await handleDelete();
+  const handleSubmit = () => { // Remove async - FIXED
+    if (actionType === "Add") {
+      handleAdd(); // This will show confirmSaveOpen popup
+    } else if (actionType === "Edit") {
+      handleEdit(); // This will show confirmEditOpen popup
+    } else if (actionType === "Delete") {
+      handleDelete(); // This will show confirmDeleteOpen popup
+    }
   };
 
   const resetForm = (keepAction = false) => {
-    fetchNextUnitCode();
-    setForm(prev => ({ ...prev, unitName: "" }));
+    getNextRouteCode();
+    setForm(prev => ({ ...prev, routeName: "" }));
     setEditingId(null);
     setDeleteTargetId(null);
     setExistingQuery("");
@@ -477,61 +414,65 @@ const confirmSave = async () => {
     setMessage(null);
     if (!keepAction) setActionType("Add");
     
-    // This line already focuses on unitName field after reset - GOOD
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => routeNameRef.current?.focus(), 60);
     setActionType("Add")
-    
   };
 
   const openEditModal = () => {
     setEditQuery("");
     setEditModalOpen(true);
-    unitNameRef.current?.focus();
+    routeNameRef.current?.focus()
   };
 
-  const handleEditRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleEditRowClick = (r) => {
+    setForm({ routeCode: r.routeCode, routeName: r.routeName });
     setActionType("Edit");
-    setEditingId(u.uCode);
+    setEditingId(r.routeCode);
     setEditModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => routeNameRef.current?.focus(), 60);
   };
 
   const openDeleteModal = () => {
     setDeleteQuery("");
     setDeleteModalOpen(true);
-    unitNameRef.current?.focus();
+    routeNameRef.current?.focus()
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
-      ? units.filter(u => (u.uCode || '').toLowerCase().includes(q) || (u.unitName || '').toLowerCase().includes(q))
-      : units;
+      ? routes.filter(r => 
+          (r.routeCode || '').toLowerCase().includes(q) || 
+          (r.routeName || '').toLowerCase().includes(q)
+        )
+      : routes;
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [units]);
+  }, [routes]);
 
-  const handleDeleteRowClick = (u) => {
-    setForm({ fuCode: u.uCode, unitName: u.unitName });
+  const handleDeleteRowClick = (r) => {
+    setForm({ routeCode: r.routeCode, routeName: r.routeName });
     setActionType("Delete");
-    setDeleteTargetId(u.uCode);
+    setDeleteTargetId(r.routeCode);
     setDeleteModalOpen(false);
-    setTimeout(() => unitNameRef.current?.focus(), 60);
+    setTimeout(() => routeNameRef.current?.focus(), 60);
   };
 
-  const onUnitCodeKeyDown = (e) => {
+  const onRouteCodeKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      unitNameRef.current?.focus();
+      routeNameRef.current?.focus();
     }
   };
 
-  const onUnitNameKeyDown = (e) => {
+  const onRouteNameKeyDown = (e) => {
     if (e.key === "Enter") {
-      submitRef.current?.focus();
+      e.preventDefault();
+      e.stopPropagation(); // IMPORTANT: Prevent form submission
+      handleSubmit(); // This will trigger the appropriate confirmation popup
+      routeNameRef.current?.focus(); // FIXED: lowercase 'r'
     }
   };
 
@@ -543,39 +484,39 @@ const confirmSave = async () => {
   };
 
   // ---------- filters ----------
-  const filteredEditUnits = useMemo(() => {
+  const filteredEditRoutes = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return routes;
+    return routes.filter(
+      (r) =>
+        (r.routeCode || "").toLowerCase().includes(q) ||
+        (r.routeName || "").toLowerCase().includes(q)
     );
-  }, [editQuery, units]);
+  }, [editQuery, routes]);
 
-  const filteredDeleteUnits = useMemo(() => {
+  const filteredDeleteRoutes = useMemo(() => {
     const q = deleteQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) =>
-        (u.uCode || "").toLowerCase().includes(q) ||
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return routes;
+    return routes.filter(
+      (r) =>
+        (r.routeCode || "").toLowerCase().includes(q) ||
+        (r.routeName || "").toLowerCase().includes(q)
     );
-  }, [deleteQuery, units]);
+  }, [deleteQuery, routes]);
 
   const filteredExisting = useMemo(() => {
     const q = existingQuery.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) => 
-        (u.uCode || "").toLowerCase().includes(q) || 
-        (u.unitName || "").toLowerCase().includes(q)
+    if (!q) return routes;
+    return routes.filter(
+      (r) => 
+        (r.routeCode || "").toLowerCase().includes(q) || 
+        (r.routeName || "").toLowerCase().includes(q)
     );
-  }, [existingQuery, units]);
+  }, [existingQuery, routes]);
 
   // ---------- render ----------
   return (
-    <div className="uc-root" role="region" aria-labelledby="unit-creation-title">
+    <div className="brand-root" role="region" aria-labelledby="brand-creation-title">
       {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
@@ -597,28 +538,27 @@ const confirmSave = async () => {
           --glass-border: rgba(255,255,255,0.45);
         }
 
+
         /* Page layout */
-        .uc-root {
+        .brand-root {
           min-height: 100vh;
-          
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 20px 16px;
           background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
           font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-          font-size: 14px; /* increased base font size */
+          font-size: 14px;
           box-sizing: border-box;
         }
 
         /* Main dashboard card (glass) */
         .dashboard {
-        
           width: 100%;
           max-width: 700px;
           border-radius: 16px;
           padding: 12px;
-          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
+          background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,243,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
@@ -633,20 +573,18 @@ const confirmSave = async () => {
           align-items:center;
           justify-content:space-between;
           gap:12px;
-          
           margin-bottom: 18px;
           flex-wrap: wrap;
         }
         .title-block {
           display:flex;
-          
           align-items: center;
           gap:12px;
         }
         .title-block h2 {
           margin:0;
           font-family: 'Poppins', 'Inter', sans-serif;
-          font-size: 18px; /* slightly larger title */
+          font-size: 18px;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
@@ -672,7 +610,7 @@ const confirmSave = async () => {
           border: 1px solid var(--glass-border);
           cursor:pointer;
           box-shadow: 0 6px 16px rgba(2,6,23,0.04);
-          font-weight: 600;
+          font-weight: 700;
           font-size: 14px;
           transition: all 0.2s;
           white-space: nowrap;
@@ -744,12 +682,13 @@ const confirmSave = async () => {
           box-sizing:border-box;
           transition: box-shadow 160ms ease, transform 120ms ease, border-color 120ms ease;
           text-align: left;
+          font-family: inherit;
         }
         .input:focus, .search:focus { 
           outline:none; 
-          box-shadow: 0 8px 26px rgba(48,122,200,0.08); 
+          box-shadow: 0 8px 26px rgba(139,92,246,0.08); 
           transform: translateY(-1px); 
-          border-color: rgba(48,122,200,0.25); 
+          border-color: var(--accent); 
         }
         .input:read-only {
           background: #f8fafc;
@@ -791,7 +730,7 @@ const confirmSave = async () => {
           padding:12px;
           border: 1px solid rgba(12,18,35,0.04);
         }
-        .muted { color: var(--muted); font-size:13px; }
+        .muted { color: var(--muted); font-size:14px; }
 
         /* message */
         .message {
@@ -800,33 +739,10 @@ const confirmSave = async () => {
           border-radius:10px;
           font-weight:600;
           font-size: 14px;
-          animation: fadeIn 0.3s ease-in;
         }
-        .message.error { 
-          background: #fff1f2; 
-          color: #9f1239; 
-          border: 1px solid #ffd7da;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .message.error::before {
-          content: "⚠️";
-          font-size: 16px;
-        }
+        .message.error { background: #fff1f2; color: #9f1239; border: 1px solid #ffd7da; }
         .message.success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; }
-        .message.warning { 
-          background: #fffbeb; 
-          color: #92400e; 
-          border: 1px solid #fde68a;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .message.warning::before {
-          content: "ℹ️";
-          font-size: 16px;
-        }
+        .message.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 
         /* submit row */
         .submit-row { 
@@ -851,7 +767,7 @@ const confirmSave = async () => {
         }
         .submit-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(48,122,200,0.25);
+          box-shadow: 0 8px 24px rgba(139,92,246,0.25);
         }
         .submit-primary:disabled {
           opacity: 0.7;
@@ -866,11 +782,10 @@ const confirmSave = async () => {
           cursor:pointer;
           transition: all 0.2s;
           font-size: 14px;
-
         }
         .submit-clear:hover:not(:disabled) {
           background: #f8fafc;
-          border-color: rgba(48,122,200,0.3);
+          border-color: #307AC8;
           transform: translateY(-1px);
         }
         
@@ -885,7 +800,7 @@ const confirmSave = async () => {
           padding: 12px 40px 12px 16px;
           border: 2px solid #e5e7eb;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 14px;
           transition: all 0.2s;
           background: #fff;
         }
@@ -893,7 +808,7 @@ const confirmSave = async () => {
         .search-with-clear:focus {
           outline: none;
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px rgba(48, 122, 200, 0.1);
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
         }
 
         .clear-search-btn {
@@ -917,8 +832,8 @@ const confirmSave = async () => {
           color: #374151;
         }
 
-        /* units table */
-        .units-table-container {
+        /* brands table */
+        .brands-table-container {
           max-height: 400px;
           overflow-y: auto;
           border-radius: 8px;
@@ -926,13 +841,13 @@ const confirmSave = async () => {
           margin-top: 12px;
         }
 
-        .units-table {
+        .brands-table {
           width: 100%;
           border-collapse: collapse;
           font-size: 14px;
         }
 
-        .units-table th {
+        .brands-table th {
           position: sticky;
           top: 0;
           background: linear-gradient(180deg, #f8fafc, #f1f5f9);
@@ -945,19 +860,20 @@ const confirmSave = async () => {
           z-index: 1;
         }
 
-        .units-table td {
+        .brands-table td {
           padding: 12px;
           border-bottom: 1px solid rgba(230, 244, 255, 0.8);
           color: #3a4a5d;
+          font-size: 14px;
         }
 
-        .units-table tr:hover {
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01));
+        .brands-table tr:hover {
+          background: linear-gradient(90deg, rgba(139,92,246,0.04), rgba(139,92,246,0.01));
           cursor: pointer;
         }
 
-        .units-table tr.selected {
-          background: linear-gradient(90deg, rgba(48,122,200,0.1), rgba(48,122,200,0.05));
+        .brands-table tr.selected {
+          background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
@@ -1002,15 +918,16 @@ const confirmSave = async () => {
           gap:4px; 
           text-align: left;
           transition: all 0.2s;
+          font-size: 14px;
         }
         .dropdown-item:hover { 
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
+          background: linear-gradient(90deg, rgba(139,92,246,0.04), rgba(139,92,246,0.01)); 
           transform: translateX(6px); 
         }
 
         /* tips panel */
         .tips-panel {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,249,255,0.8));
+          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(245,243,255,0.8));
           border-left: 3px solid var(--accent);
         }
 
@@ -1029,7 +946,7 @@ const confirmSave = async () => {
         }
 
         @media (max-width: 768px) {
-          .uc-root {
+          .brand-root {
             padding: 16px 12px;
           }
           .dashboard {
@@ -1049,13 +966,13 @@ const confirmSave = async () => {
             justify-content: center;
             min-width: 0;
           }
-          .units-table-container {
+          .brands-table-container {
             max-height: 300px;
           }
         }
 
         @media (max-width: 480px) {
-          .uc-root {
+          .brand-root {
             padding: 12px 8px;
           }
           .dashboard {
@@ -1063,27 +980,27 @@ const confirmSave = async () => {
             border-radius: 12px;
           }
           .title-block h2 {
-            font-size: 14px;
+            font-size: 18px;
           }
           .action-pill {
             padding: 8px 10px;
-            font-size: 10px;
+            font-size: 12px;
           }
           .input, .search {
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 13px;
           }
           .btn {
             padding: 8px 10px;
             min-width: 70px;
-            font-size: 12px;
+            font-size: 13px;
           }
           .submit-primary, .submit-clear {
             flex: 1;
             min-width: 0;
           }
-          .units-table th,
-          .units-table td {
+          .brands-table th,
+          .brands-table td {
             padding: 8px;
             font-size: 12px;
           }
@@ -1096,7 +1013,7 @@ const confirmSave = async () => {
         }
 
         @media (max-width: 360px) {
-          .uc-root {
+          .brand-root {
             padding: 8px 6px;
           }
           .dashboard {
@@ -1122,79 +1039,72 @@ const confirmSave = async () => {
           }
         }
 
-        /* Animations */
+        /* Loading animation */
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
         .loading {
           animation: pulse 1.5s ease-in-out infinite;
         }
       `}</style>
 
-      <div className="dashboard" aria-labelledby="unit-creation-title">
+      <div className="dashboard" aria-labelledby="brand-creation-title">
         <div className="top-row">
           <div className="title-block">
-            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
+              <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden focusable="false">
               <rect width="24" height="24" rx="6" fill="#eff6ff" />
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
-              <h2 id="unit-creation-title">Unit Creation</h2>
-              <div className="subtitle muted">Create, edit, or delete measurement units.</div>
+              <h2 id="brand-creation-title">Route Management</h2>
+              <div className="subtitle muted">Create, edit, or delete routes.</div>
             </div>
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.Edit} isActive={actionType === "Edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.Delete} isActive={actionType === "Delete"} />
+            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading} isActive={actionType === "Add"} />
+            <EditButton onClick={openEditModal} disabled={loading} isActive={actionType === "Edit"} />
+            <DeleteButton onClick={openDeleteModal} disabled={loading} isActive={actionType === "Delete"} />
           </div>
         </div>
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Unit Code field */}
+            {/* Route Code field */}
             <div className="field">
               <label className="field-label">
-                Unit Code <span className="asterisk">*</span>
+                Route Code <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input
-                  ref={unitCodeRef}
+                  ref={routeCodeRef}
                   className="input"
-                  value={form.fuCode}
-                  onChange={(e) => setForm(s => ({ ...s, fuCode: e.target.value }))}
-                  placeholder="Unit code (auto-generated)"
-                  onKeyDown={onUnitCodeKeyDown}
+                  value={form.routeCode}
+                  onChange={(e) => setForm(s => ({ ...s, routeCode: e.target.value }))}
+                  onKeyDown={onRouteCodeKeyDown}
                   disabled={loading}
-                  aria-label="Unit Code"
+                  aria-label="Route Code"
                   readOnly={true}
                 />
               </div>
             </div>
 
-            {/* Unit Name field */}
+            {/* Route Name field */}
             <div className="field">
               <label className="field-label">
-                Unit Name <span className="asterisk">*</span>
+                Route Name <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
-                  ref={unitNameRef} 
+                  ref={routeNameRef} 
                   className="input" 
-                  value={form.unitName} 
-                  onChange={(e) => setForm(s => ({ ...s, unitName: e.target.value }))} 
-                  // maxLength={6}
-                  onKeyDown={onUnitNameKeyDown}
+                  value={form.routeName} 
+                  onChange={(e) => setForm(s => ({ ...s, routeName: e.target.value }))} 
+                  placeholder="Enter route name" 
+                  onKeyDown={onRouteNameKeyDown}
                   disabled={loading}
-                  aria-label="Unit Name"
+                  aria-label="Route Name"
                   readOnly={actionType === "Delete"}
                 />
               </div>
@@ -1206,17 +1116,17 @@ const confirmSave = async () => {
                 {message.text}
               </div>
             )}
-
+            
             {/* Submit controls */}
             <div className="submit-row">
               <button
                 className="submit-primary"
-                ref={submitRef}
+                ref={submitButtonRef}
                 onClick={handleSubmit}
                 disabled={loading}
                 type="button"
               >
-                {loading ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
+                {loading ? "Processing..." : actionType}
               </button>
               <button
                 className="submit-clear"
@@ -1227,15 +1137,16 @@ const confirmSave = async () => {
                 Clear
               </button>
             </div>
-            <div className="stat" style={{ flex: 1, minHeight: "200px" ,marginTop: "20px" }}>
-              <div className="muted" style={{ marginBottom: "10px" }}>Existing Units</div>
+            
+            <div className="stat" style={{ flex: 1, minHeight: "200px" }}>
+              <div className="muted" style={{ marginBottom: "10px" }}>Existing Routes</div>
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing units..."
+                  placeholder="Search routes..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search existing units"
+                  aria-label="Search routes"
                 />
                 {existingQuery && (
                   <button
@@ -1244,40 +1155,43 @@ const confirmSave = async () => {
                     type="button"
                     aria-label="Clear search"
                   >
-                    <Icon.Close size={14} />
+                    <Icon.Close size={16} />
                   </button>
                 )}
               </div>
               
-              <div className="units-table-container">
+              <div className="brands-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading units...
+                    Loading routes...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {units.length === 0 ? "No units found" : "No matching units"}
+                    {routes.length === 0 ? "No routes found" : "No matching routes"}
                   </div>
                 ) : (
-                  <table className="units-table">
+                  <table className="brands-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>Unit Name</th>
+                        <th>Route Name</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExisting.map((u) => (
+                      {filteredExisting.map((r) => (
                         <tr 
-                          key={u.uCode}
-                          className={form.fuCode === u.uCode ? "selected" : ""}
+                          key={r.routeCode}
+                          className={form.routeCode === r.routeCode ? "selected" : ""}
                           onClick={() => {
-                            setForm({ fuCode: u.uCode, unitName: u.unitName });
+                            setForm({ 
+                              routeCode: r.routeCode, 
+                              routeName: r.routeName
+                            });
                             setActionType("Edit");
                           }}
                         >
-                          <td>{u.uCode}</td>
-                          <td>{u.unitName}</td>
+                          <td>{r.routeCode}</td>
+                          <td>{r.routeName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1289,6 +1203,59 @@ const confirmSave = async () => {
 
           {/* Right side panel */}
           <div className="side" aria-live="polite">
+            <div className="stat">
+              <div className="muted">Current Action</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
+                {actionType === "Add" ? "Create New" : actionType === "Edit" ? "Edit Route" : "Delete Route"}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Route Code</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.routeCode || "Auto-generated"}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Route Name</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {form.routeName || "Not set"}
+              </div>
+            </div>
+
+            <div className="stat">
+              <div className="muted">Existing Routes</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--accent-2)" }}>
+                {routes.length}
+              </div>
+            </div>
+
+            <div className="stat tips-panel">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <Icon.Info />
+                <div style={{ fontWeight: 700 }}>Quick Tips</div>
+              </div>
+              
+              <div className="muted" style={{ fontSize: "14px", lineHeight: "1.5" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Route code is auto-generated for new routes</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>For edit/delete, use search modals to find routes</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Use Tab/Enter to navigate between fields</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                  <span style={{ color: "var(--accent)", fontWeight: "bold" }}>•</span>
+                  <span>Click on any route in the table to edit it</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1298,11 +1265,11 @@ const confirmSave = async () => {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Edit"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Route to Edit"
+        displayFieldKeys={[ 'routeName', 'routeCode' ]}
+        searchFields={[ 'routeName', 'routeCode' ]}
+        headerNames={[ 'Route Name', 'Code' ]}
+        columnWidths={{ routeName: '70%', routeCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1311,11 +1278,11 @@ const confirmSave = async () => {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Unit to Delete"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        title="Select Route to Delete"
+        displayFieldKeys={[ 'routeName', 'routeCode' ]}
+        searchFields={[ 'routeName', 'routeCode' ]}
+        headerNames={[ 'Route Name', 'Code' ]}
+        columnWidths={{ routeName: '70%', routeCode: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1324,7 +1291,7 @@ const confirmSave = async () => {
         isOpen={confirmSaveOpen}
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
-        title="Create Unit"
+        title="Create Route"
         message={`Do you want to save?`}
         type="success"
         confirmText={isLoading ? "Creating..." : "Yes"}
@@ -1348,7 +1315,7 @@ const confirmSave = async () => {
         isOpen={confirmEditOpen}
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
-        title="Update Unit"
+        title="Update Route"
         message={`Do you want to modify?`}
         type="warning"
         confirmText={isLoading ? "Updating..." : "Yes"}
@@ -1372,8 +1339,8 @@ const confirmSave = async () => {
         isOpen={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
-        title="Delete Unit"
-        message={`Do you want to delete unit?`}
+        title="Delete Route"
+        message={`Do you want to delete?`}
         type="danger"
         confirmText={isLoading ? "Deleting..." : "Yes"}
         cancelText="No"
