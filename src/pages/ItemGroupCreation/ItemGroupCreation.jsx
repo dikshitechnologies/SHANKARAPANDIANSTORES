@@ -164,7 +164,7 @@ export default function ItemGroupCreation() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [isTreeOpen, setIsTreeOpen] = useState(true);
+  const [isTreeOpen, setIsTreeOpen] = useState(false); // Tree starts closed
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
@@ -191,6 +191,10 @@ export default function ItemGroupCreation() {
 
   useEffect(() => {
     loadInitial();
+    // Focus Main Group input on initial load
+    if (mainGroupRef.current) {
+      mainGroupRef.current.focus();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -213,6 +217,27 @@ export default function ItemGroupCreation() {
       }, 100);
     }
   }, [actionType, subGroup, fCode]);
+
+  // Add click outside handler to close tree
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const treePanel = document.getElementById('group-tree');
+      const mainGroupInput = mainGroupRef.current;
+      
+      if (isTreeOpen && 
+          treePanel && 
+          mainGroupInput && 
+          !treePanel.contains(event.target) && 
+          !mainGroupInput.contains(event.target)) {
+        setIsTreeOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTreeOpen]);
 
   const loadInitial = async () => {
     setLoading(true);
@@ -299,7 +324,7 @@ export default function ItemGroupCreation() {
   const handleSelectNode = (node) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
-    setIsTreeOpen(false);
+    setIsTreeOpen(false); // Tree closes automatically when selecting
     setTimeout(() => subGroupRef.current?.focus(), 100);
   };
 
@@ -343,7 +368,13 @@ export default function ItemGroupCreation() {
     setSearchDropdown("");
     setSearchTree("");
     setIsDropdownOpen(false);
-    setIsTreeOpen(true);
+    setIsTreeOpen(false); // Keep tree closed on reset
+    // Focus Main Group input after reset
+    setTimeout(() => {
+      if (mainGroupRef.current) {
+        mainGroupRef.current.focus();
+      }
+    }, 100);
   };
     const resetForm1 = () => {
     setMainGroup("");
@@ -354,8 +385,14 @@ export default function ItemGroupCreation() {
     setSearchDropdown("");
     setSearchTree("");
     setIsDropdownOpen(false);
-    setIsTreeOpen(true);
+    setIsTreeOpen(false); // Keep tree closed on reset
     setActionType("Add");
+    // Focus Main Group input after reset
+    setTimeout(() => {
+      if (mainGroupRef.current) {
+        mainGroupRef.current.focus();
+      }
+    }, 100);
   };
 
   const validateForSubmit = () => {
@@ -533,6 +570,7 @@ export default function ItemGroupCreation() {
     if (e.key === "ArrowUp") {
       e.preventDefault();
       mainGroupRef.current?.focus();
+      setIsTreeOpen(true); // Open tree when moving up
     } else if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
@@ -566,7 +604,7 @@ export default function ItemGroupCreation() {
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       {/* Check if user has any permission to access this module */}
-      {!formPermissions.add && !formPermissions.edit && !formPermissions.delete && (
+      {/* {!formPermissions.add && !formPermissions.edit && !formPermissions.delete && (
         <div style={{
           padding: '20px',
           margin: '20px',
@@ -579,7 +617,7 @@ export default function ItemGroupCreation() {
           <h3>Access Denied</h3>
           <p>You do not have permission to access the Item Group Creation module.</p>
         </div>
-      )}
+      )} */}
 
       {/* SAME CSS as Item Creation - ONLY CHANGED PART */}
       <style>{`
@@ -1239,11 +1277,11 @@ export default function ItemGroupCreation() {
                     className="input"
                     value={mainGroup}
                     onChange={(e) => setMainGroup(e.target.value)}
-                    onFocus={() => setIsTreeOpen(true)}
+                    onFocus={() => {}} // REMOVED: setIsTreeOpen(true) - Tree doesn't open on focus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        setIsTreeOpen(true);
+                        setIsTreeOpen(true); // Tree opens ONLY on Enter
                         // Focus first visible node
                         setTimeout(() => {
                           const firstNode = document.querySelector(".tree-row");
@@ -1264,6 +1302,22 @@ export default function ItemGroupCreation() {
                       minWidth: "0"
                     }}
                   />
+                  <button
+                    onClick={() => setIsTreeOpen(!isTreeOpen)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "0 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--accent)"
+                    }}
+                    aria-label={isTreeOpen ? "Close tree" : "Open tree"}
+                  >
+                    <Icon.Chevron down={!isTreeOpen} />
+                  </button>
                 </div>
               </div>
 
@@ -1312,6 +1366,7 @@ export default function ItemGroupCreation() {
                         onKeyDown={(e) => {
                           if (e.key === "Escape") {
                             setIsTreeOpen(false);
+                            mainGroupRef.current?.focus(); // Return focus to input
                           }
                         }}
                       >
@@ -1324,7 +1379,10 @@ export default function ItemGroupCreation() {
                             <TreeNode
                               key={node.key}
                               node={node}
-                              onSelect={(n) => { handleSelectNode(n); setIsTreeOpen(false); }}
+                              onSelect={(n) => { 
+                                handleSelectNode(n); 
+                                setIsTreeOpen(false); // Tree closes automatically
+                              }}
                               expandedKeys={expandedKeys}
                               toggleExpand={toggleExpand}
                               selectedKey={selectedNode?.key}
@@ -1337,8 +1395,16 @@ export default function ItemGroupCreation() {
                   </div>
                 ) : (
                   <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
-                    <div className="row" style={{ marginBottom: 8 }}>
+                    {/* Header with close button for desktop */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                       <div className="search-container">
+                        <input
+                          className="search-with-clear"
+                          placeholder="Search groups..."
+                          value={searchTree}
+                          onChange={(e) => setSearchTree(e.target.value)}
+                          aria-label="Search groups"
+                        />
                         {searchTree && (
                           <button
                             className="clear-search-btn"
@@ -1350,6 +1416,13 @@ export default function ItemGroupCreation() {
                           </button>
                         )}
                       </div>
+                      <button
+                        onClick={() => setIsTreeOpen(false)}
+                        style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, marginLeft: 8 }}
+                        aria-label="Close tree"
+                      >
+                        <Icon.Close size={18} />
+                      </button>
                     </div>
 
                     <div
@@ -1360,6 +1433,7 @@ export default function ItemGroupCreation() {
                       onKeyDown={(e) => {
                         if (e.key === "Escape") {
                           setIsTreeOpen(false);
+                          mainGroupRef.current?.focus(); // Return focus to input
                         }
                       }}
                     >
@@ -1372,7 +1446,7 @@ export default function ItemGroupCreation() {
                           <TreeNode
                             key={node.key}
                             node={node}
-                            onSelect={handleSelectNode}
+                            onSelect={handleSelectNode} // Tree closes automatically in handleSelectNode
                             expandedKeys={expandedKeys}
                             toggleExpand={toggleExpand}
                             selectedKey={selectedNode?.key}
@@ -1592,7 +1666,7 @@ export default function ItemGroupCreation() {
           setSubGroup(item.fName || '');
           setFCode(item.fCode || '');
           setIsPopupOpen(false);
-          setIsTreeOpen(true);
+          setIsTreeOpen(false); // Keep tree closed
         }}
         fetchItems={fetchPopupItems}
         title={`Select Item Group to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}

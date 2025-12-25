@@ -1,4 +1,3 @@
-// LedgerGroupCreation.js
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { api } from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
@@ -167,8 +166,8 @@ export default function LedgerGroupCreation() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  // *** Tree is OPEN by default now ***
-  const [isTreeOpen, setIsTreeOpen] = useState(true);
+  // *** Tree starts CLOSED now ***
+  const [isTreeOpen, setIsTreeOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTree, setSearchTree] = useState("");
   const [searchDropdown, setSearchDropdown] = useState("");
@@ -204,6 +203,10 @@ export default function LedgerGroupCreation() {
 
   useEffect(() => {
     loadInitial();
+    // Focus Main Group input on initial load
+    if (mainGroupRef.current) {
+      mainGroupRef.current.focus();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -227,6 +230,27 @@ export default function LedgerGroupCreation() {
       }, 100);
     }
   }, [actionType, subGroup, fCode]);
+
+  // Add click outside handler to close tree
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const treePanel = document.getElementById('group-tree');
+      const mainGroupInput = mainGroupRef.current;
+      
+      if (isTreeOpen && 
+          treePanel && 
+          mainGroupInput && 
+          !treePanel.contains(event.target) && 
+          !mainGroupInput.contains(event.target)) {
+        setIsTreeOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTreeOpen]);
 
   const loadInitial = async () => {
     setLoading(true);
@@ -280,7 +304,7 @@ export default function LedgerGroupCreation() {
   const handleSelectNode = (node) => {
     setSelectedNode(node);
     setMainGroup(node.displayName);
-    // Close tree only when explicitly selecting (Enter key)
+    // Tree closes automatically when selecting
     setIsTreeOpen(false);
     // Auto-focus SubGroup input
     setTimeout(() => subGroupRef.current?.focus(), 100);
@@ -291,8 +315,8 @@ export default function LedgerGroupCreation() {
     setFCode(option.fcode);
     if (option.parentName) setMainGroup(option.parentName);
     setIsDropdownOpen(false);
-    // keep tree open after selecting (more convenient)
-    setIsTreeOpen(true);
+    // Keep tree closed after selecting
+    setIsTreeOpen(false);
   };
 
   // Fetch function used by PopupListSelector (paged + searchable)
@@ -349,7 +373,7 @@ export default function LedgerGroupCreation() {
     );
   }, [subGroupOptions, searchDropdown]);
 
-  // resetForm now keeps the tree open by default (user requested always open)
+  // resetForm now keeps the tree closed by default
   const resetForm = () => {
     setMainGroup("");
     setSubGroup("");
@@ -359,12 +383,16 @@ export default function LedgerGroupCreation() {
     setSearchDropdown("");
     setSearchTree("");
     setIsDropdownOpen(false);
-    setIsTreeOpen(true);
-    //  setActionType("Add");
+    setIsTreeOpen(false); // Keep tree closed
+    // Focus Main Group input after reset
+    setTimeout(() => {
+      if (mainGroupRef.current) {
+        mainGroupRef.current.focus();
+      }
+    }, 100);
   };
 
-
-    const resetForm1 = () => {
+  const resetForm1 = () => {
     setMainGroup("");
     setSubGroup("");
     setFCode("");
@@ -373,10 +401,15 @@ export default function LedgerGroupCreation() {
     setSearchDropdown("");
     setSearchTree("");
     setIsDropdownOpen(false);
-    setIsTreeOpen(true);
-        setActionType("Add");
+    setIsTreeOpen(false); // Keep tree closed
+    setActionType("Add");
+    // Focus Main Group input after reset
+    setTimeout(() => {
+      if (mainGroupRef.current) {
+        mainGroupRef.current.focus();
+      }
+    }, 100);
   };
-
 
   const validateForSubmit = () => {
     if (!mainGroup?.trim()) {
@@ -463,75 +496,75 @@ export default function LedgerGroupCreation() {
     }
   };
 
- const handleEdit = async () => {
-  // Check permission before allowing action
-  if (!formPermissions.edit) {
-    toast.error("You don't have permission to edit ledger groups.");
-    return;
-  }
-  if (!validateForSubmit()) return;
-  setConfirmEditOpen(true);
-};
-
-const confirmEdit = async () => {
-  setConfirmEditOpen(false);
-  setSubmitting(true);
-  setMessage(null);
-  try {
-    const payload = {
-      fcode: fCode,
-      subGroup: subGroup.trim(),
-      mainGroup: mainGroup.trim(),
-      faclevel: "",
-    };
-    const resp = await api.put(endpoints.putEdit, payload);
-    if (resp.status === 200 || resp.status === 201) {
-      // toast.success("Ledger group updated successfully.");
-      setActionType("Add");
-      resetForm();
-      await loadInitial();
-    } else {
-      toast.error(`Unexpected server response: ${resp.status}`);
+  const handleEdit = async () => {
+    // Check permission before allowing action
+    if (!formPermissions.edit) {
+      toast.error("You don't have permission to edit ledger groups.");
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    toast.error(err.response?.data?.message || err.message || "Update failed");
-  } finally {
-    setSubmitting(false);
-  }
-};
+    if (!validateForSubmit()) return;
+    setConfirmEditOpen(true);
+  };
 
- const handleDelete = async () => {
-  // Check permission before allowing action
-  if (!formPermissions.delete) {
-    toast.error("You don't have permission to delete ledger groups.");
-    return;
-  }
-  if (!validateForSubmit()) return;
-  setConfirmDeleteOpen(true);
-};
-
-const confirmDelete = async () => {
-  setConfirmDeleteOpen(false);
-  setSubmitting(true);
-  setMessage(null);
-  try {
-    const resp = await api.delete(endpoints.delete(fCode));
-    if (resp.status === 200 || resp.status === 201) {
-      // toast.success("Ledger group deleted successfully.");
-      setActionType("Add");
-      resetForm();
-      await loadInitial();
-    } else {
-      toast.error(`Unexpected server response: ${resp.status}`);
+  const confirmEdit = async () => {
+    setConfirmEditOpen(false);
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const payload = {
+        fcode: fCode,
+        subGroup: subGroup.trim(),
+        mainGroup: mainGroup.trim(),
+        faclevel: "",
+      };
+      const resp = await api.put(endpoints.putEdit, payload);
+      if (resp.status === 200 || resp.status === 201) {
+        // toast.success("Ledger group updated successfully.");
+        setActionType("Add");
+        resetForm();
+        await loadInitial();
+      } else {
+        toast.error(`Unexpected server response: ${resp.status}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Update failed");
+    } finally {
+      setSubmitting(false);
     }
-  } catch (err) {
-    console.error(err);
-    toast.error(err.response?.data?.message || err.message || "Delete failed");
-  } finally {
-    setSubmitting(false);
-  }
-};
+  };
+
+  const handleDelete = async () => {
+    // Check permission before allowing action
+    if (!formPermissions.delete) {
+      toast.error("You don't have permission to delete ledger groups.");
+      return;
+    }
+    if (!validateForSubmit()) return;
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const resp = await api.delete(endpoints.delete(fCode));
+      if (resp.status === 200 || resp.status === 201) {
+        // toast.success("Ledger group deleted successfully.");
+        setActionType("Add");
+        resetForm();
+        await loadInitial();
+      } else {
+        toast.error(`Unexpected server response: ${resp.status}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Delete failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (actionType === "Add") await handleAdd();
@@ -552,6 +585,7 @@ const confirmDelete = async () => {
     if (e.key === "ArrowUp") {
       e.preventDefault();
       mainGroupRef.current?.focus();
+      setIsTreeOpen(true); // Open tree when moving up
     } else if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
@@ -565,8 +599,7 @@ const confirmDelete = async () => {
       }
       else if (actionType === "delete") {
         // In delete mode, just focus submit button
-                submitButtonRef.current?.focus();
-
+        submitButtonRef.current?.focus();
       }
       handleSubmit();
     }
@@ -1084,13 +1117,6 @@ const confirmDelete = async () => {
   margin-left: 10px;
 }
 
-
-
-
-
-
-
-
         /* Responsive styles */
         /* Large tablets and small laptops */
         @media (max-width: 1024px) {
@@ -1249,72 +1275,66 @@ const confirmDelete = async () => {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-      {/* Main Group field */}
-<div className="field">
-  <label className="field-label">Main Group</label>
-  <div className="row" style={{ display: "flex", alignItems: "center" }}>
-    <div style={{ 
-      display: "flex", 
-      flex: 1, 
-      border: "1px solid rgba(15,23,42,0.06)",
-      borderRadius: "10px",
-      overflow: "hidden",
-      backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
-    }}>
-      <input
-        ref={mainGroupRef}
-        className="input"
-        value={mainGroup}
-        onChange={(e) => setMainGroup(e.target.value)}
-        onFocus={() => setIsTreeOpen(true)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            setIsTreeOpen(true);
-            // Focus first visible node
-            setTimeout(() => {
-              const firstNode = document.querySelector(".tree-row");
-              firstNode?.focus();
-            }, 50);
-          } else {
-            handleMainGroupKeyDown(e);
-          }
-        }}
-        readOnly={actionType !== "Add"}
-        disabled={submitting}
-        aria-label="Main Group"
-        style={{ 
-          flex: 1,
-          border: "none",
-          borderRadius: "0",
-          padding: "10px 12px",
-          minWidth: "0" // Important for flex shrinking
-        }}
-      />
-      {/* <button
-        className="btn"
-        onClick={() => { setIsTreeOpen((v) => !v); setIsDropdownOpen(false); }}
-        disabled={submitting || actionType !== "Add"}
-        type="button"
-        aria-expanded={isTreeOpen}
-        aria-controls="group-tree"
-        style={{ 
-          flexShrink: 0,
-          padding: "10px 16px",
-          border: "none",
-          borderRadius: "0",
-          borderLeft: "1px solid rgba(15,23,42,0.06)",
-          backgroundColor: "linear-gradient(180deg, #fff, #f8fafc)",
-          minWidth: "70px",
-          fontSize: "13px",
-          fontWeight: "600",
-          cursor: submitting || actionType !== "Add" ? "not-allowed" : "pointer"
-        }}
-      >
-      {isTreeOpen ? "Close" : "Open"} 
-       </button> */} 
-    </div>
-  </div>
+            {/* Main Group field */}
+            <div className="field">
+              <label className="field-label">Main Group</label>
+              <div className="row" style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  display: "flex", 
+                  flex: 1, 
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
+                }}>
+                  <input
+                    ref={mainGroupRef}
+                    className="input"
+                    value={mainGroup}
+                    onChange={(e) => setMainGroup(e.target.value)}
+                    onFocus={() => {}} // Tree doesn't open on focus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        setIsTreeOpen(true); // Tree opens ONLY on Enter
+                        // Focus first visible node
+                        setTimeout(() => {
+                          const firstNode = document.querySelector(".tree-row");
+                          firstNode?.focus();
+                        }, 50);
+                      } else {
+                        handleMainGroupKeyDown(e);
+                      }
+                    }}
+                    readOnly={actionType !== "Add"}
+                    disabled={submitting}
+                    aria-label="Main Group"
+                    style={{ 
+                      flex: 1,
+                      border: "none",
+                      borderRadius: "0",
+                      padding: "10px 12px",
+                      minWidth: "0"
+                    }}
+                  />
+                  <button
+                    onClick={() => setIsTreeOpen(!isTreeOpen)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "0 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--accent)"
+                    }}
+                    aria-label={isTreeOpen ? "Close tree" : "Open tree"}
+                  >
+                    <Icon.Chevron down={!isTreeOpen} />
+                  </button>
+                </div>
+              </div>
 
               {isTreeOpen && (
                 isMobile ? (
@@ -1361,6 +1381,7 @@ const confirmDelete = async () => {
                         onKeyDown={(e) => {
                           if (e.key === "Escape") {
                             setIsTreeOpen(false);
+                            mainGroupRef.current?.focus(); // Return focus to input
                           }
                         }}
                       >
@@ -1373,7 +1394,10 @@ const confirmDelete = async () => {
                             <TreeNode
                               key={node.key}
                               node={node}
-                              onSelect={(n) => { handleSelectNode(n); setIsTreeOpen(false); }}
+                              onSelect={(n) => { 
+                                handleSelectNode(n); 
+                                setIsTreeOpen(false); // Tree closes automatically
+                              }}
                               expandedKeys={expandedKeys}
                               toggleExpand={toggleExpand}
                               selectedKey={selectedNode?.key}
@@ -1386,14 +1410,16 @@ const confirmDelete = async () => {
                   </div>
                 ) : (
                   <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
-                    <div className="row" style={{ marginBottom: 8 }}>
+                    {/* Header with close button for desktop */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                       <div className="search-container">
-                        {/* <input
+                        <input
                           className="search-with-clear"
+                          placeholder="Search groups..."
                           value={searchTree}
                           onChange={(e) => setSearchTree(e.target.value)}
                           aria-label="Search groups"
-                        /> */}
+                        />
                         {searchTree && (
                           <button
                             className="clear-search-btn"
@@ -1405,6 +1431,13 @@ const confirmDelete = async () => {
                           </button>
                         )}
                       </div>
+                      <button
+                        onClick={() => setIsTreeOpen(false)}
+                        style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, marginLeft: 8 }}
+                        aria-label="Close tree"
+                      >
+                        <Icon.Close size={18} />
+                      </button>
                     </div>
 
                     <div
@@ -1415,6 +1448,7 @@ const confirmDelete = async () => {
                       onKeyDown={(e) => {
                         if (e.key === "Escape") {
                           setIsTreeOpen(false);
+                          mainGroupRef.current?.focus(); // Return focus to input
                         }
                       }}
                     >
@@ -1427,7 +1461,7 @@ const confirmDelete = async () => {
                           <TreeNode
                             key={node.key}
                             node={node}
-                            onSelect={handleSelectNode}
+                            onSelect={handleSelectNode} // Tree closes automatically in handleSelectNode
                             expandedKeys={expandedKeys}
                             toggleExpand={toggleExpand}
                             selectedKey={selectedNode?.key}
@@ -1469,18 +1503,6 @@ const confirmDelete = async () => {
                     aria-label="Sub Group"
                   />
                 )}
-
-                {/* {(actionType === "edit" || actionType === "delete") && (
-                  <button
-                    className="btn"
-                    onClick={() => { setIsDropdownOpen(true); setIsTreeOpen(false); }}
-                    type="button"
-                    aria-expanded={isDropdownOpen}
-                    aria-controls="subgroup-dropdown"
-                  >
-                    <Icon.Search /> Search
-                  </button>
-                )} */}
               </div>
             </div>
 
@@ -1512,9 +1534,6 @@ const confirmDelete = async () => {
               </button>
             </div>
           </div>
-
-          {/* Right side panel */}
-        
         </div>
       </div>
 
@@ -1530,7 +1549,7 @@ const confirmDelete = async () => {
           setFCode(code || '');
           if (item.parentName) setMainGroup(item.parentName);
           setIsDropdownOpen(false);
-          setIsTreeOpen(true);
+          setIsTreeOpen(false); // Keep tree closed
         }}
         fetchItems={fetchDropdownItems}
         title="Select Sub Group"
@@ -1613,8 +1632,6 @@ const confirmDelete = async () => {
           }
         }}
       />
-
-     
     </div>
   );
 }

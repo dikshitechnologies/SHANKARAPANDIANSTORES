@@ -2023,7 +2023,13 @@ const PaymentVoucher = () => {
                 }}
                 onBlur={() => setFocusedField('')}
                 style={focusedField === 'gstType' ? styles.inlineInputFocused : styles.inlineInput}
-                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'gstType')}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    // Let browser handle arrow keys naturally for select dropdown
+                    return;
+                  }
+                  handleHeaderFieldKeyDown(e, 'gstType');
+                }}
               >
                 <option>CGST/SGST</option>
                 <option>IGST</option>
@@ -2081,7 +2087,13 @@ const PaymentVoucher = () => {
                       id={`payment_${item.id}_crDr`}
                       value={item.crDr}
                       onChange={(e) => handlePaymentItemChange(item.id, 'crDr', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'crDr')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                          // Let browser handle arrow keys naturally for select dropdown
+                          return;
+                        }
+                        handlePaymentFieldKeyDown(e, index, 'crDr');
+                      }}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
                         setNavigationStep('paymentCrDr');
@@ -2103,7 +2115,13 @@ const PaymentVoucher = () => {
                         console.log(`🟠 SELECT onChange fired: item.id=${item.id}, e.target.value="${e.target.value}"`);
                         handlePaymentItemChange(item.id, 'type', e.target.value);
                       }}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'type')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                          // Let browser handle arrow keys naturally for select dropdown
+                          return;
+                        }
+                        handlePaymentFieldKeyDown(e, index, 'type');
+                      }}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
                         setNavigationStep('paymentType');
