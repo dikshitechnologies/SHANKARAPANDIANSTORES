@@ -281,6 +281,48 @@ const handleBlur = () => {
     return '';
   };
 
+  // Helper: Validate sudo letters against fseudoMap
+  const validateSudoLetters = (sudoValue, rowIndex) => {
+    if (!sudoValue || sudoValue.trim() === '') return true; // Empty is valid
+    
+    const fseudoMap = userData?.fseudo || fseudo || {};
+    const validLetters = new Set(
+      Object.values(fseudoMap)
+        .filter(l => typeof l === 'string')
+        .map(l => l.toUpperCase())
+    );
+
+    const sudoUpper = sudoValue.toUpperCase();
+    const invalidLetters = [];
+
+    for (const letter of sudoUpper) {
+      if (!validLetters.has(letter)) {
+        invalidLetters.push(letter);
+      }
+    }
+
+    if (invalidLetters.length > 0) {
+      const validLettersStr = Array.from(validLetters).sort().join('');
+      showAlertConfirmation(
+        `Invalid sudo letters: ${invalidLetters.join(', ')}. Valid letters are: ${validLettersStr}`,
+        () => {
+          setTimeout(() => {
+            const sudoInput = document.querySelector(
+              `input[data-row="${rowIndex}"][data-field="sudo"]`
+            );
+            if (sudoInput) {
+              sudoInput.focus();
+              sudoInput.select();
+            }
+          }, 100);
+        },
+        'warning'
+      );
+      return false;
+    }
+    return true;
+  };
+
   // Helper: Fetch next invoice number
   const fetchNextInvNo = async () => {
     try {
@@ -1264,52 +1306,19 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
 
     // If Enter is pressed in the amt field (last field)
     if (currentField === 'amt') {
-      if (isParticularsEmpty) {
-        // Instead of showing confirmation, move focus to add/less field
-        e.preventDefault();        
-              
-        // Move focus to add/less field
-        setTimeout(() => {
-          if (addLessRef.current) {
-            addLessRef.current.focus();
-            addLessRef.current.select(); // Optional: select text for easy editing
-          }
-        }, 50);
-        return;
-      }
+      e.preventDefault();
       
-      // If particulars is not empty, move to next row or add new row
-      // Check if we're on the last row
-      if (currentRowIndex < items.length - 1) {
-        // Move to next row
-        const nextRowInput = document.querySelector(
-          `input[data-row="${currentRowIndex + 1}"][data-field="name"]`
+      // Always add new row and focus on barcode field
+      handleAddRow();
+      setTimeout(() => {
+        const newRowInput = document.querySelector(
+          `input[data-row="${items.length}"][data-field="name"]`
         );
-        if (nextRowInput) {
-          nextRowInput.focus();
+        if (newRowInput) {
+          newRowInput.focus();
         }
-        return;
-      } else {
-        // We're on the last row, add new row if particulars is filled
-        if (currentRow.name && currentRow.name.trim() !== '') {
-          handleAddRow();
-          setTimeout(() => {
-            const newRowInput = document.querySelector(
-              `input[data-row="${items.length}"][data-field="barcode"]`
-            );
-            if (newRowInput) newRowInput.focus();
-          }, 60);
-        } else {
-          // If last row and particulars empty, move to add/less field
-          setTimeout(() => {
-            if (addLessRef.current) {
-              addLessRef.current.focus();
-              addLessRef.current.select();
-            }
-          }, 50);
-        }
-        return;
-      }
+      }, 60);
+      return;
     }
 
     // Always move to next field if available (for non-amt fields)
@@ -2733,35 +2742,21 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       data-field="sudo"
                       onChange={(e) => {
                         const value = e.target.value.toUpperCase();
-                        // Only allow letters, max 2 characters
-                        if (/^[A-Z]{0,2}$/.test(value)) {
+                        // Allow only letters, any length
+                        if (/^[A-Z]*$/.test(value)) {
                           handleItemChange(item.id, 'sudo', value);
-                          // If clearing sudo, also clear profitPercent
-                          if (value === '') {
-                            handleItemChange(item.id, 'profitPercent', '');
-                          }
                         }
                       }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sudo')}
                       onBlur={(e) => {
                         const value = e.target.value.toUpperCase();
-                        if (value !== '' && !/^[A-Z]{2}$/.test(value)) {
-                          showAlertConfirmation(
-                            'Sudo must be exactly 2 letters (no numbers)',
-                            () => {
-                              handleItemChange(item.id, 'sudo', '');
-                              // Focus back on the field after alert
-                              setTimeout(() => {
-                                const sudoInput = document.querySelector(
-                                  `input[data-row="${index}"][data-field="sudo"]`
-                                );
-                                if (sudoInput) {
-                                  sudoInput.focus();
-                                }
-                              }, 100);
-                            },
-                            'warning'
-                          );
+                        if (value !== '') {
+                          // Validate the sudo letters against fseudoMap
+                          if (!validateSudoLetters(value, index)) {
+                            // Clear both sudo and profitPercent on invalid entry
+                            handleItemChange(item.id, 'sudo', '');
+                            handleItemChange(item.id, 'profitPercent', '');
+                          }
                         }
                       }}
                       onFocus={() => setFocusedField(`sudo-${item.id}`)}

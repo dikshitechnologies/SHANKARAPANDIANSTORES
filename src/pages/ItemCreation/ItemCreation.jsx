@@ -166,7 +166,7 @@ const ItemCreation = ({ onCreated }) => {
   // State management
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isTreeOpen, setIsTreeOpen] = useState(false);
+  const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [actionType, setActionType] = useState('create');
@@ -277,6 +277,17 @@ const ItemCreation = ({ onCreated }) => {
     edit: hasModifyPermission('ITEM_CREATION'),
     delete: hasDeletePermission('ITEM_CREATION')
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
+//   useEffect(() => {
+//   if (isTreeOpen && filteredTree.length > 0) {
+//     // Auto-select and focus the first item when tree opens
+//     const firstNode = filteredTree[0];
+//     setSelectedNode(firstNode);
+//     setTimeout(() => {
+//       document.querySelector(`[data-key="${firstNode.key}"]`)?.focus();
+//     }, 100);
+//   }
+// }, [isTreeOpen, filteredTree]);
 
   // Auto-focus Group Name on component mount
   useEffect(() => {
@@ -587,12 +598,12 @@ const handleKeyNavigation = (e) => {
       }
     }
 
-    // Validate HSN Code
-    if (formData.hsnCode && !/^\d{4,8}$/.test(formData.hsnCode)) {
-      setMessage({ type: "error", text: 'HSN Code should be 4-8 digits.' });
-      hsnCodeRef.current?.focus();
-      return false;
-    }
+    // // Validate HSN Code
+    // if (formData.hsnCode && !/^\d{4,8}$/.test(formData.hsnCode)) {
+    //   setMessage({ type: "error", text: 'HSN Code should be 4-8 digits.' });
+    //   hsnCodeRef.current?.focus();
+    //   return false;
+    // }
 
     // Validate Selling Price - accept only numbers
     if (formData.sellingPrice && !/^\d*\.?\d{0,2}$/.test(formData.sellingPrice)) {
@@ -2214,17 +2225,16 @@ const handleKeyNavigation = (e) => {
         <div className="grid" role="main">
           <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
             {/* Group Name field */}
-          <div className="field">
+        <div className="field">
   <label className="field-label">Group Name *</label>
-  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-    <div style={{
-      display: "flex",
-      flex: 1,
+  <div className="row" style={{ display: "flex", alignItems: "center" }}>
+    <div style={{ 
+      display: "flex", 
+      flex: 1, 
       border: "1px solid rgba(15,23,42,0.06)",
       borderRadius: "10px",
       overflow: "hidden",
-      background: "linear-gradient(180deg, #fff, #fbfdff)",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+      backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
     }}>
       <input
         ref={groupNameRef}
@@ -2232,50 +2242,55 @@ const handleKeyNavigation = (e) => {
         value={mainGroup}
         onChange={(e) => {
           setMainGroup(e.target.value);
-          // Type letters → Tree opens
+          // Open tree when typing
           if (e.target.value.trim() && !isTreeOpen) {
             setIsTreeOpen(true);
           }
         }}
-        onFocus={() => {
-          if (!isInitialFocusRef.current) {
-            setIsTreeOpen(true);
-          }
-          isInitialFocusRef.current = false;
-        }}
         onKeyDown={(e) => {
-          // Enter key opens tree and focuses first node
           if (e.key === "Enter") {
             e.preventDefault();
-            if (!isTreeOpen) {
-              setIsTreeOpen(true);
-              setTimeout(() => {
-                const firstNode = filteredTree[0];
-                if (firstNode) {
-                  setSelectedNode(firstNode);
-                  document.querySelector(`[data-key="${firstNode.key}"]`)?.focus();
-                }
-              }, 0);
-            }
+            setIsTreeOpen(true); // Tree opens ONLY on Enter
+            // Focus first visible node
+            setTimeout(() => {
+              const firstNode = document.querySelector(".tree-row");
+              firstNode?.focus();
+            }, 50);
           }
-          // Type letters → Tree opens (for single key presses)
+          // Open tree when typing letters/numbers
           else if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
             setIsTreeOpen(true);
           }
         }}
         disabled={isSubmitting}
         aria-label="Group Name"
-        style={{
+        style={{ 
           flex: 1,
           border: "none",
-          borderRadius: 0,
+          borderRadius: "0",
           padding: "10px 12px",
-          minWidth: "120px",
+          minWidth: "0",
           fontSize: "14px",
           outline: "none",
           cursor: "pointer"
         }}
       />
+      <button
+        onClick={() => setIsTreeOpen(!isTreeOpen)}
+        style={{
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          padding: "0 12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--accent)"
+        }}
+        aria-label={isTreeOpen ? "Close tree" : "Open tree"}
+      >
+        <Icon.Chevron down={!isTreeOpen} />
+      </button>
     </div>
   </div>
 
@@ -2296,19 +2311,13 @@ const handleKeyNavigation = (e) => {
 
           <div className="row" style={{ marginBottom: 8 }}>
             <div className="search-container">
-              {/* <input
+              <input
                 className="search-with-clear"
                 placeholder="Search groups..."
                 value={searchTree}
                 onChange={(e) => setSearchTree(e.target.value)}
                 aria-label="Search groups"
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    e.preventDefault();
-                    setIsTreeOpen(false);
-                  }
-                }}
-              /> */}
+              />
               {searchTree && (
                 <button
                   className="clear-search-btn"
@@ -2316,13 +2325,24 @@ const handleKeyNavigation = (e) => {
                   type="button"
                   aria-label="Clear search"
                 >
-                
+                  <Icon.Close size={16} />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="tree-scroll" role="tree" aria-label="Group list">
+          <div
+            className="tree-scroll"
+            role="tree"
+            aria-label="Group list"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setIsTreeOpen(false);
+                groupNameRef.current?.focus(); // Return focus to input
+              }
+            }}
+          >
             {loading ? (
               <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
             ) : filteredTree.length === 0 ? (
@@ -2334,13 +2354,11 @@ const handleKeyNavigation = (e) => {
                   node={node}
                   onSelect={(n) => { 
                     handleSelectNode(n); 
-                    setIsTreeOpen(false); 
-                    // Clear selection when item is clicked
-                    const treeItems = document.querySelectorAll('.tree-row');
-                    treeItems.forEach(item => item.classList.remove('selected'));
-                     setTimeout(() => {
-    itemNameRef.current?.focus();
-  }, 10);
+                    setIsTreeOpen(false);
+                    // Focus item name field after selection
+                    setTimeout(() => {
+                      itemNameRef.current?.focus();
+                    }, 10);
                   }}
                   expandedKeys={expandedKeys}
                   toggleExpand={toggleExpand}
@@ -2354,21 +2372,16 @@ const handleKeyNavigation = (e) => {
       </div>
     ) : (
       <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
-        <div className="row" style={{ marginBottom: 8 }}>
+        {/* Header with close button for desktop */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div className="search-container">
-            {/* <input
+            <input
               className="search-with-clear"
               placeholder="Search groups..."
               value={searchTree}
               onChange={(e) => setSearchTree(e.target.value)}
               aria-label="Search groups"
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.preventDefault();
-                  setIsTreeOpen(false);
-                }
-              }}
-            /> */}
+            />
             {searchTree && (
               <button
                 className="clear-search-btn"
@@ -2376,39 +2389,55 @@ const handleKeyNavigation = (e) => {
                 type="button"
                 aria-label="Clear search"
               >
-              
+                <Icon.Close size={16} />
               </button>
             )}
           </div>
+          <button
+            onClick={() => setIsTreeOpen(false)}
+            style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, marginLeft: 8 }}
+            aria-label="Close tree"
+          >
+            <Icon.Close size={18} />
+          </button>
         </div>
 
-        <div className="tree-scroll" role="tree" aria-label="Group list">
+        <div
+          className="tree-scroll"
+          role="tree"
+          aria-label="Group list"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setIsTreeOpen(false);
+              groupNameRef.current?.focus(); // Return focus to input
+            }
+          }}
+        >
           {loading ? (
             <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-            ) : filteredTree.length === 0 ? (
-              <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-            ) : (
-              filteredTree.map((node) => (
-                <TreeNode
-                  key={node.key}
-                  node={node}
-                  onSelect={(n) => { 
-                    handleSelectNode(n); 
-                    setIsTreeOpen(false); 
-                    // Clear selection when item is clicked
-                    const treeItems = document.querySelectorAll('.tree-row');
-                    treeItems.forEach(item => item.classList.remove('selected'));
-                     setTimeout(() => {
-    itemNameRef.current?.focus();
-  }, 10);
-                  }}
-                  expandedKeys={expandedKeys}
-                  toggleExpand={toggleExpand}
-                  selectedKey={selectedNode?.key}
-                  onNavigate={handleTreeNavigation}
-                />
-              ))
-            )}
+          ) : filteredTree.length === 0 ? (
+            <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+          ) : (
+            filteredTree.map((node) => (
+              <TreeNode
+                key={node.key}
+                node={node}
+                onSelect={(n) => { 
+                  handleSelectNode(n); 
+                  setIsTreeOpen(false);
+                  // Focus item name field after selection
+                  setTimeout(() => {
+                    itemNameRef.current?.focus();
+                  }, 10);
+                }}
+                expandedKeys={expandedKeys}
+                toggleExpand={toggleExpand}
+                selectedKey={selectedNode?.key}
+                onNavigate={handleTreeNavigation}
+              />
+            ))
+          )}
         </div>
       </div>
     )
@@ -2745,96 +2774,140 @@ const handleKeyNavigation = (e) => {
               </div>
 
               {/* LEFT SIDE: HSN Code */}
-              <div className="field">
-                <label className="field-label">HSN Code</label>
-                <input
-                  ref={hsnCodeRef}
-                  className="input"
-                  value={formData.hsnCode}
-                  onChange={(e) => {
-                       const value = e.target.value;
-      if (/^[a-zA-Z0-9]{0,8}$/.test(value)) {
-        handleChange('hsnCode', value.toUpperCase()); 
-                    }
-                  }}
-                 
-                  disabled={isSubmitting}
-                  aria-label="HSN Code"
-                   title="Alphanumeric HSN Code (max 8 characters)"
-                     style={{ textAlign: "center" ,width:300}}
-                />
-              </div>
+             <div className="field">
+  <label className="field-label">HSN Code</label>
+  <input
+    ref={hsnCodeRef}
+    className="input"
+    value={formData.hsnCode}
+    onChange={(e) => {
+      const value = e.target.value;
+      // Allow any combination: only letters, only digits, or alphanumeric
+      if (/^[a-zA-Z0-9]{0,20}$/.test(value)) {
+        handleChange('hsnCode', value.toUpperCase());
+      }
+    }}
+    disabled={isSubmitting}
+    aria-label="HSN Code"
+    title="Alphanumeric HSN Code (max 20 characters)"
+    style={{ textAlign: "center", width: 300 }}
+  />
+</div>
 
               {/* RIGHT SIDE: Type Dropdown - MOVED to replace Piece Rate */}
-              <div className="field">
-                <label className="field-label">Type</label>
-                <select
-                  ref={typeRef}
-                  className="select"
-                  value={formData.type}
-                  onChange={(e) => {
-                    handleChange('type', e.target.value);
-                    // Close dropdown after selection
-                    e.target.size = 0;
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      // Toggle dropdown on Enter
-                      if (e.target.size === 0) {
-                        e.target.size = TYPE_OPTIONS.length + 1; // Open dropdown
-                      } else {
-                        e.target.size = 0; // Close dropdown
-                      }
-                    }
-                  }}
-                  onBlur={(e) => {
-                    // Close dropdown when losing focus
-                    e.target.size = 0;
-                  }}
-                  onClick={(e) => {
-                    // Toggle dropdown on click
-                    if (e.target.size === 0) {
-                      e.target.size = TYPE_OPTIONS.length + 1;
-                    } else {
-                      e.target.size = 0;
-                    }
-                  }}
-                  size={0}
-                  disabled={isSubmitting}
-                  aria-label="Type"
-                    style={{ textAlign: "center" ,width:300}}
-                >
-                  <option value="">Select Type</option>
-                  {TYPE_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+          <div className="field">
+  <label className="field-label">Type</label>
+  <select
+    ref={typeRef}
+    className="select"
+    value={formData.type}
+    onChange={(e) => {
+      handleChange('type', e.target.value);
+      e.target.size = 0; // Close dropdown after selection
+    }}
+    onKeyDown={(e) => {
+      const selectElement = e.target;
+      const options = selectElement.options;
+      const selectedIndex = selectElement.selectedIndex;
+      
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        // Toggle dropdown on Enter
+        if (selectElement.size === 0) {
+          selectElement.size = TYPE_OPTIONS.length; // Open dropdown (removed +1)
+        } else {
+          selectElement.size = 0; // Close dropdown
+          handleChange('type', selectElement.value);
+        }
+      } 
+      else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        
+        if (selectElement.size === 0) {
+          // If dropdown is closed, open it first
+          selectElement.size = TYPE_OPTIONS.length; // Removed +1
+          return;
+        }
+        
+        // Move down through options
+        let newIndex;
+        if (selectedIndex === options.length - 1) {
+          newIndex = 0; // Wrap to first option
+        } else {
+          newIndex = selectedIndex + 1;
+        }
+        
+        // Update selection
+        selectElement.selectedIndex = newIndex;
+        handleChange('type', options[newIndex].value);
+      } 
+      else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        
+        if (selectElement.size === 0) {
+          // If dropdown is closed, open it first
+          selectElement.size = TYPE_OPTIONS.length; // Removed +1
+          return;
+        }
+        
+        // Move up through options
+        let newIndex;
+        if (selectedIndex <= 0) {
+          newIndex = options.length - 1; // Wrap to last option
+        } else {
+          newIndex = selectedIndex - 1;
+        }
+        
+        // Update selection
+        selectElement.selectedIndex = newIndex;
+        handleChange('type', options[newIndex].value);
+      }
+    }}
+    onBlur={(e) => {
+      // Close dropdown when losing focus
+      e.target.size = 0;
+    }}
+    onClick={(e) => {
+      // Toggle dropdown on click
+      if (e.target.size === 0) {
+        e.target.size = TYPE_OPTIONS.length; // Removed +1
+      } else {
+        e.target.size = 0;
+      }
+    }}
+    size={0}
+    disabled={isSubmitting}
+    aria-label="Type"
+    style={{ textAlign: "center", width: 300 }}
+  >
+    {TYPE_OPTIONS.map(option => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+</div>
               {/* LEFT SIDE: GST Checkbox */}
-              <div className="field">
-                <div 
-                  className="checkbox-group" 
-                  onClick={handleGstToggle}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleGstToggle();
-                    }
-                  }}
-                  role="checkbox"
-                  tabIndex="0"
-                  aria-checked={gstChecked}
-                >
-                  <div 
-                    className={`checkbox ${gstChecked ? 'checked' : ''}`}
-                  />
-                  <span className="checkbox-label">GST</span>
-                </div>
-              </div>
+             <div className="field">
+  <div 
+    className="checkbox-group" 
+    onClick={handleGstToggle}
+    onKeyDown={(e) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        handleGstToggle();
+      }
+    }}
+    role="checkbox"
+    tabIndex="0"
+    aria-checked={gstChecked}
+  >
+    <div 
+      className={`checkbox ${gstChecked ? 'checked' : ''}`}
+    />
+    <span className="checkbox-label">GST</span>
+  </div>
+</div>
 
               {/* RIGHT SIDE: GST% */}
               <div className="field">
@@ -2871,26 +2944,26 @@ const handleKeyNavigation = (e) => {
               </div>
 
               {/* LEFT SIDE: Manual Prefix Checkbox */}
-              <div className="field">
-                <div 
-                  className="checkbox-group" 
-                  onClick={handleManualPrefixToggle}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleManualPrefixToggle();
-                    }
-                  }}
-                  role="checkbox"
-                  tabIndex="0"
-                  aria-checked={manualPrefixChecked}
-                >
-                  <div 
-                    className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
-                  />
-                  <span className="checkbox-label">Manual Prefix</span>
-                </div>
-              </div>
+             <div className="field">
+  <div 
+    className="checkbox-group" 
+    onClick={handleManualPrefixToggle}
+    onKeyDown={(e) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        handleManualPrefixToggle();
+      }
+    }}
+    role="checkbox"
+    tabIndex="0"
+    aria-checked={manualPrefixChecked}
+  >
+    <div 
+      className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
+    />
+    <span className="checkbox-label">Manual Prefix</span>
+  </div>
+</div>
 
               {/* RIGHT SIDE: Prefix */}
               <div className="field">
@@ -2912,97 +2985,82 @@ const handleKeyNavigation = (e) => {
               </div>
 
               {/* LEFT SIDE: Cost Price - Changed to text input with validation */}
-              <div className="field">
-                <label className="field-label">Cost Price</label>
-                <input
-                  ref={costPriceRef}
-                  className="input"
-                  value={formData.costPrice}
-                  onChange={(e) => {
-                    // Allow only numbers and decimal point
-                    const value = e.target.value;
-                    if (/^\d*\.?\d{0,2}$/.test(value)) {
-                      handleChange('costPrice', value);
-                    }
-                  }}
-                 onKeyDown={(e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    e.stopPropagation(); // 🔥 THIS IS THE KEY FIX
+             <div className="field">
+  <label className="field-label">Cost Price</label>
+  <input
+    ref={costPriceRef}
+    className="input"
+    value={formData.costPrice}
+    onChange={(e) => {
+      // Allow only numbers and decimal point
+      const value = e.target.value;
+      if (/^\d*\.?\d{0,2}$/.test(value)) {
+        handleChange('costPrice', value);
+      }
+    }}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Move to Selling Price field
+        sellingPriceRef.current?.focus();
+      }
+    }}
+    disabled={isSubmitting}
+    aria-label="Cost Price"
+    style={{ textAlign: "center", width: 300 }}
+    // Use text type instead of number to remove spinners
+    type="text"
+    inputMode="decimal"
+  />
+</div>
 
-    // Validation
-    if (!formData.itemName) {
-      setMessage({ type: "error", text: 'Please enter Item Name.' });
-      itemNameRef.current?.focus();
-      return;
-    }
+{/* RIGHT SIDE: Selling Price - Changed to text input with validation */}
+<div className="field">
+  <label className="field-label">Selling Price</label>
+  <input
+    ref={sellingPriceRef}
+    className="input"
+    value={formData.sellingPrice}
+    onChange={(e) => {
+      // Allow only numbers and decimal point
+      const value = e.target.value;
+      if (/^\d*\.?\d{0,2}$/.test(value)) {
+        handleChange('sellingPrice', value);
+      }
+    }}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation(); // 🔥 REQUIRED
 
-    if (!mainGroup) {
-      setMessage({ type: "error", text: 'Please select Group Name.' });
-      return;
-    }
+        // Validation
+        if (!formData.itemName) {
+          setMessage({ type: "error", text: 'Please enter Item Name.' });
+          itemNameRef.current?.focus();
+          return;
+        }
 
-    // 🔔 ONLY OPEN CONFIRMATION (NO SAVE)
-    if (actionType === 'create') showCreateConfirmation();
-    else if (actionType === 'edit') showEditConfirmation();
-    else if (actionType === 'delete') showDeleteConfirmation();
-  }
-}}
+        if (!mainGroup) {
+          setMessage({ type: "error", text: 'Please select Group Name.' });
+          return;
+        }
 
-                  disabled={isSubmitting}
-                  aria-label="Cost Price"
-                    style={{ textAlign: "center" ,width:300}}
-                  // Use text type instead of number to remove spinners
-                  type="text"
-                  inputMode="decimal"
-                />
-              </div>
-
-              {/* RIGHT SIDE: Selling Price - Changed to text input with validation */}
-              <div className="field">
-                <label className="field-label">Selling Price</label>
-                <input
-                  ref={sellingPriceRef}
-                  className="input"
-                  value={formData.sellingPrice}
-                  onChange={(e) => {
-                    // Allow only numbers and decimal point
-                    const value = e.target.value;
-                    if (/^\d*\.?\d{0,2}$/.test(value)) {
-                      handleChange('sellingPrice', value);
-                    }
-                  }}
-                 onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  e.stopPropagation(); // 🔥 REQUIRED
-
-                  if (!formData.itemName) {
-                    setMessage({ type: "error", text: 'Please enter Item Name.' });
-                    itemNameRef.current?.focus();
-                    return;
-                  }
-
-                  if (!mainGroup) {
-                    setMessage({ type: "error", text: 'Please select Group Name.' });
-                    return;
-                  }
-
-                  if (actionType === 'create') showCreateConfirmation();
-                  else if (actionType === 'edit') showEditConfirmation();
-                  else if (actionType === 'delete') showDeleteConfirmation();
-                }
-              }}
-
-                  disabled={isSubmitting}
-                  aria-label="Selling Price"
-                    style={{ textAlign: "center" ,width:300}}
-                  // Use text type instead of number to remove spinners
-                  type="text"
-                  inputMode="decimal"
-                />
-              </div>
-
+        // Open confirmation dialog
+        if (actionType === 'create') showCreateConfirmation();
+        else if (actionType === 'edit') showEditConfirmation();
+        else if (actionType === 'delete') showDeleteConfirmation();
+      }
+    }}
+    disabled={isSubmitting}
+    aria-label="Selling Price"
+    style={{ textAlign: "center", width: 300 }}
+    // Use text type instead of number to remove spinners
+    type="text"
+    inputMode="decimal"
+  />
+</div>
               {/* Piece Rate Checkbox - REMOVED (replaced by Type dropdown above) */}
             </div>
 
