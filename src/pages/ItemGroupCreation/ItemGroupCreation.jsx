@@ -1538,7 +1538,7 @@ export default function ItemGroupCreation() {
                 type="button"
               >
                 {/* {submitting ? "Processing..." : actionType.charAt(0).toUpperCase() + actionType.slice(1)} */}
-                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "edit" ? "Update" : "Delete"}
+                {submitting ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"
@@ -1697,7 +1697,9 @@ export default function ItemGroupCreation() {
           setSubGroup(item.fName || '');
           setFCode(item.fCode || '');
           setIsPopupOpen(false);
-          setIsTreeOpen(false); // Keep tree closed
+          setIsTreeOpen(true);
+
+           // Keep tree closed
         }}
         fetchItems={fetchPopupItems}
         title={`Select Item Group to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
