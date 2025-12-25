@@ -267,6 +267,9 @@ const ItemCreation = ({ onCreated }) => {
   const costPriceRef = useRef(null);
   const unitRef = useRef(null);
   const isInitialFocusRef = useRef(true);
+  
+  // Add this with your other refs - FIXED: Using a ref for the submit button
+  const submitButtonRef = useRef(null);
 
   // Get permissions for this form using the usePermissions hook
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
@@ -278,16 +281,19 @@ const ItemCreation = ({ onCreated }) => {
     delete: hasDeletePermission('ITEM_CREATION')
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
-//   useEffect(() => {
-//   if (isTreeOpen && filteredTree.length > 0) {
-//     // Auto-select and focus the first item when tree opens
-//     const firstNode = filteredTree[0];
-//     setSelectedNode(firstNode);
-//     setTimeout(() => {
-//       document.querySelector(`[data-key="${firstNode.key}"]`)?.focus();
-//     }, 100);
-//   }
-// }, [isTreeOpen, filteredTree]);
+  // Add useEffect to focus submit button when in delete mode with data
+  useEffect(() => {
+    if (actionType === 'delete' && formData.itemName && formData.fitemCode) {
+      // Small delay to ensure the component is rendered
+      const timer = setTimeout(() => {
+        if (submitButtonRef.current) {
+          submitButtonRef.current.focus();
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [actionType, formData.itemName, formData.fitemCode]);
 
   // Auto-focus Group Name on component mount
   useEffect(() => {
@@ -417,144 +423,162 @@ const ItemCreation = ({ onCreated }) => {
     handleChange('pieceRate', newValue ? 'Y' : 'N');
   };
 
-// UPDATED: Arrow key navigation throughout the form including LEFT and RIGHT
-// UPDATED: Arrow key navigation throughout the form including LEFT and RIGHT
-const handleKeyNavigation = (e) => {
-  const key = e.key;
-  
-  // Handle all arrow keys and Enter for navigation
-  if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(key)) {
-    // If tree is open and we're in tree navigation, let tree handle it
-    if (isTreeOpen && (e.target.closest('.tree-scroll') || e.target === groupNameRef.current)) {
-      return;
-    }
+  // UPDATED: Arrow key navigation with special handling for delete button
+  const handleKeyNavigation = (e) => {
+    const key = e.key;
     
-    // If dropdown is open, let it handle arrow keys
-    if (typeRef.current && typeRef.current.size > 0) {
-      return;
-    }
-    
-    // Check if we're in a text input that should allow cursor movement
-    const isTextInput = e.target.tagName === 'INPUT' && e.target.type === 'text';
-    const isTextarea = e.target.tagName === 'TEXTAREA';
-    
-    // For LEFT/RIGHT arrows in text inputs/areas, allow normal cursor movement
-    // unless the cursor is at the beginning/end of the text
-    if ((key === 'ArrowLeft' || key === 'ArrowRight') && (isTextInput || isTextarea)) {
-      // Get cursor position
-      const start = e.target.selectionStart;
-      const end = e.target.selectionEnd;
-      const value = e.target.value;
+    // Special handling for Delete button when in delete mode
+    if (key === 'Enter' && actionType === 'delete' && 
+        (e.target.classList.contains('submit-primary') || e.target === submitButtonRef.current)) {
+      e.preventDefault();
+      e.stopPropagation();
       
-      // For LEFT arrow: only navigate if cursor is at beginning AND no text selected
-      if (key === 'ArrowLeft' && start === 0 && end === 0) {
-        e.preventDefault();
-        // Allow navigation to previous field
-      } 
-      // For RIGHT arrow: only navigate if cursor is at end AND no text selected
-      else if (key === 'ArrowRight' && start === value.length && end === value.length) {
-        e.preventDefault();
-        // Allow navigation to next field
-      } else {
-        // Let the browser handle cursor movement within the text
+      if (!formData.itemName) {
+        setMessage({ type: "error", text: 'Please enter Item Name.' });
+        itemNameRef.current?.focus();
         return;
       }
-    } else {
-      // For all other cases, prevent default
-      e.preventDefault();
+      if (!mainGroup) {
+        setMessage({ type: "error", text: 'Please select Group Name.' });
+        return;
+      }
+      
+      showDeleteConfirmation();
+      return;
     }
     
-    try {
-      const container = e.currentTarget;
-      if (!container) return;
+    // Handle all arrow keys and Enter for navigation
+    if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(key)) {
+      // If tree is open and we're in tree navigation, let tree handle it
+      if (isTreeOpen && (e.target.closest('.tree-scroll') || e.target === groupNameRef.current)) {
+        return;
+      }
+      
+      // If dropdown is open, let it handle arrow keys
+      if (typeRef.current && typeRef.current.size > 0) {
+        return;
+      }
+      
+      // Check if we're in a text input that should allow cursor movement
+      const isTextInput = e.target.tagName === 'INPUT' && e.target.type === 'text';
+      const isTextarea = e.target.tagName === 'TEXTAREA';
+      
+      // For LEFT/RIGHT arrows in text inputs/areas, allow normal cursor movement
+      // unless the cursor is at the beginning/end of the text
+      if ((key === 'ArrowLeft' || key === 'ArrowRight') && (isTextInput || isTextarea)) {
+        // Get cursor position
+        const start = e.target.selectionStart;
+        const end = e.target.selectionEnd;
+        const value = e.target.value;
+        
+        // For LEFT arrow: only navigate if cursor is at beginning AND no text selected
+        if (key === 'ArrowLeft' && start === 0 && end === 0) {
+          e.preventDefault();
+          // Allow navigation to previous field
+        } 
+        // For RIGHT arrow: only navigate if cursor is at end AND no text selected
+        else if (key === 'ArrowRight' && start === value.length && end === value.length) {
+          e.preventDefault();
+          // Allow navigation to next field
+        } else {
+          // Let the browser handle cursor movement within the text
+          return;
+        }
+      } else {
+        // For all other cases, prevent default
+        e.preventDefault();
+      }
+      
+      try {
+        const container = e.currentTarget;
+        if (!container) return;
 
-      // ✅ Get ALL focusable elements in the form
-      const selectors = [
-        'input:not([type="hidden"]):not([disabled])',
-        'select:not([disabled])',
-        'textarea:not([disabled])',
-        '.checkbox-group[tabindex="0"]',
-        'button.submit-primary:not([disabled])',
-        'button.submit-clear:not([disabled])'
-      ].join(', ');
+        // ✅ Get ALL focusable elements in the form
+        const selectors = [
+          'input:not([type="hidden"]):not([disabled])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+          '.checkbox-group[tabindex="0"]',
+          'button.submit-primary:not([disabled])',
+          'button.submit-clear:not([disabled])'
+        ].join(', ');
 
-      const elements = Array.from(container.querySelectorAll(selectors))
-        .filter(el => {
-          if (!el.offsetParent) return false;
-          const style = window.getComputedStyle(el);
-          return style.visibility !== 'hidden' && style.display !== 'none';
-        });
+        const elements = Array.from(container.querySelectorAll(selectors))
+          .filter(el => {
+            if (!el.offsetParent) return false;
+            const style = window.getComputedStyle(el);
+            return style.visibility !== 'hidden' && style.display !== 'none';
+          });
 
-      if (!elements.length) return;
+        if (!elements.length) return;
 
-      const active = document.activeElement;
-      const index = elements.indexOf(active);
+        const active = document.activeElement;
+        const index = elements.indexOf(active);
 
-      // Handle DOWN arrow and Enter (for moving forward)
-      if (key === 'ArrowDown' || (key === 'Enter' && active.tagName !== 'BUTTON')) {
-        // ✅ Move to next field (or first if none focused)
-        if (index >= 0 && index < elements.length - 1) {
-          const nextElement = elements[index + 1];
-          nextElement.focus();
-          // If next element is a checkbox group, ensure it's visible
-          if (nextElement.classList.contains('checkbox-group')) {
-            nextElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Handle DOWN arrow and Enter (for moving forward)
+        if (key === 'ArrowDown' || (key === 'Enter' && active.tagName !== 'BUTTON')) {
+          // ✅ Move to next field (or first if none focused)
+          if (index >= 0 && index < elements.length - 1) {
+            const nextElement = elements[index + 1];
+            nextElement.focus();
+            // If next element is a checkbox group, ensure it's visible
+            if (nextElement.classList.contains('checkbox-group')) {
+              nextElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          } else if (index === -1) {
+            // If no element focused, focus first one
+            elements[0].focus();
+          } else if (index === elements.length - 1) {
+            // If at last element, loop to first
+            elements[0].focus();
           }
-        } else if (index === -1) {
-          // If no element focused, focus first one
-          elements[0].focus();
-        } else if (index === elements.length - 1) {
-          // If at last element, loop to first
-          elements[0].focus();
-        }
-      } 
-      // Handle UP arrow (for moving backward)
-      else if (key === 'ArrowUp') {
-        // ✅ Move to previous field (or last if none focused)
-        if (index > 0) {
-          const prevElement = elements[index - 1];
-          prevElement.focus();
-          // If previous element is a checkbox group, ensure it's visible
-          if (prevElement.classList.contains('checkbox-group')) {
-            prevElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } 
+        // Handle UP arrow (for moving backward)
+        else if (key === 'ArrowUp') {
+          // ✅ Move to previous field (or last if none focused)
+          if (index > 0) {
+            const prevElement = elements[index - 1];
+            prevElement.focus();
+            // If previous element is a checkbox group, ensure it's visible
+            if (prevElement.classList.contains('checkbox-group')) {
+              prevElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          } else if (index === 0) {
+            // If at first element, loop to last
+            elements[elements.length - 1].focus();
+          } else if (index === -1) {
+            // If no element focused, focus last one
+            elements[elements.length - 1].focus();
           }
-        } else if (index === 0) {
-          // If at first element, loop to last
-          elements[elements.length - 1].focus();
-        } else if (index === -1) {
-          // If no element focused, focus last one
-          elements[elements.length - 1].focus();
         }
-      }
-      // Handle RIGHT arrow (same as DOWN for navigation)
-      else if (key === 'ArrowRight') {
-        // ✅ Move to next field (or first if none focused)
-        if (index >= 0 && index < elements.length - 1) {
-          const nextElement = elements[index + 1];
-          nextElement.focus();
-        } else if (index === -1) {
-          elements[0].focus();
-        } else if (index === elements.length - 1) {
-          elements[0].focus();
+        // Handle RIGHT arrow (same as DOWN for navigation)
+        else if (key === 'ArrowRight') {
+          // ✅ Move to next field (or first if none focused)
+          if (index >= 0 && index < elements.length - 1) {
+            const nextElement = elements[index + 1];
+            nextElement.focus();
+          } else if (index === -1) {
+            elements[0].focus();
+          } else if (index === elements.length - 1) {
+            elements[0].focus();
+          }
         }
-      }
-      // Handle LEFT arrow (same as UP for navigation)
-      else if (key === 'ArrowLeft') {
-        // ✅ Move to previous field (or last if none focused)
-        if (index > 0) {
-          elements[index - 1].focus();
-        } else if (index === 0) {
-          elements[elements.length - 1].focus();
-        } else if (index === -1) {
-          elements[elements.length - 1].focus();
+        // Handle LEFT arrow (same as UP for navigation)
+        else if (key === 'ArrowLeft') {
+          // ✅ Move to previous field (or last if none focused)
+          if (index > 0) {
+            elements[index - 1].focus();
+          } else if (index === 0) {
+            elements[elements.length - 1].focus();
+          } else if (index === -1) {
+            elements[elements.length - 1].focus();
+          }
         }
+      } catch (err) {
+        console.warn('Keyboard navigation error', err);
       }
-    } catch (err) {
-      console.warn('Keyboard navigation error', err);
     }
-  }
-};
-
+  };
 
   const getMaxPrefixFromAPI = async () => {
     try {
@@ -597,13 +621,6 @@ const handleKeyNavigation = (e) => {
         return false;
       }
     }
-
-    // // Validate HSN Code
-    // if (formData.hsnCode && !/^\d{4,8}$/.test(formData.hsnCode)) {
-    //   setMessage({ type: "error", text: 'HSN Code should be 4-8 digits.' });
-    //   hsnCodeRef.current?.focus();
-    //   return false;
-    // }
 
     // Validate Selling Price - accept only numbers
     if (formData.sellingPrice && !/^\d*\.?\d{0,2}$/.test(formData.sellingPrice)) {
@@ -1322,22 +1339,6 @@ const handleKeyNavigation = (e) => {
   return (
     <div className="lg-root" role="region" aria-labelledby="item-title">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
-
-      {/* Check if user has any permission to access this module */}
-      {/* {!formPermissions.add && !formPermissions.edit && !formPermissions.delete && (
-        <div style={{
-          padding: '20px',
-          margin: '20px',
-          backgroundColor: '#fee2e2',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          color: '#dc2626',
-          textAlign: 'center'
-        }}>
-          <h3>Access Denied</h3>
-          <p>You do not have permission to access the Item Creation module.</p>
-        </div>
-      )} */}
 
       <style>{`
         /* Toast notification styles - ADDED */
@@ -2712,41 +2713,45 @@ const handleKeyNavigation = (e) => {
 
               {/* Units */}
               <div className="field">
-                <label className="field-label">Units</label>
-                <div className="input-with-search">
-                  <input
-                    ref={unitRef}
-                    className="input"
-                    value={formData.unit}
-                    onChange={(e) => handleChange('unit', e.target.value)}
-                    onClick={() => setIsUnitPopupOpen(true)}
-                    onKeyDown={(e) => handlePopupFieldKeyPress('unit', e)}
-                    onFocus={() => setActiveField('unit')}
-                    onBlur={() => setActiveField(null)}
-                    disabled={isSubmitting}
-                    readOnly
-                    aria-label="Units"
-                  />
-                  {formData.unit && activeField === 'unit' && (
-                    <button
-                      type="button"
-                      className="input-clear-btn"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, unit: '' }));
-                        setFieldCodes(prev => ({ ...prev, unitCode: '' }));
-                      }}
-                      title="Clear unit selection"
-                      disabled={isSubmitting}
-                      aria-label="Clear unit"
-                    >
-                    
-                    </button>
-                  )}
-                  <div className="input-search-icon">
-                    <Icon.Search size={16} />
-                  </div>
-                </div>
-              </div>
+  <label className="field-label">
+    Units
+    <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+  </label>
+  <div className="input-with-search">
+    <input
+      ref={unitRef}
+      className="input"
+      value={formData.unit}
+      onChange={(e) => handleChange('unit', e.target.value)}
+      onClick={() => setIsUnitPopupOpen(true)}
+      onKeyDown={(e) => handlePopupFieldKeyPress('unit', e)}
+      onFocus={() => setActiveField('unit')}
+      onBlur={() => setActiveField(null)}
+      disabled={isSubmitting}
+      readOnly
+      aria-label="Units"
+      required
+    />
+    {formData.unit && activeField === 'unit' && (
+      <button
+        type="button"
+        className="input-clear-btn"
+        onClick={() => {
+          setFormData(prev => ({ ...prev, unit: '' }));
+          setFieldCodes(prev => ({ ...prev, unitCode: '' }));
+        }}
+        title="Clear unit selection"
+        disabled={isSubmitting}
+        aria-label="Clear unit"
+      >
+      
+      </button>
+    )}
+    <div className="input-search-icon">
+      <Icon.Search size={16} />
+    </div>
+  </div>
+</div>
 
               {/* LEFT SIDE: Min */}
               <div className="field">
@@ -2779,8 +2784,11 @@ const handleKeyNavigation = (e) => {
               </div>
 
               {/* LEFT SIDE: HSN Code */}
-             <div className="field">
-  <label className="field-label">HSN Code</label>
+           <div className="field">
+  <label className="field-label">
+    HSN Code
+    <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+  </label>
   <input
     ref={hsnCodeRef}
     className="input"
@@ -2796,9 +2804,9 @@ const handleKeyNavigation = (e) => {
     aria-label="HSN Code"
     title="Alphanumeric HSN Code (max 20 characters)"
     style={{ textAlign: "center", width: 300 }}
+    required
   />
 </div>
-
               {/* RIGHT SIDE: Type Dropdown - MOVED to replace Piece Rate */}
           <div className="field">
   <label className="field-label">Type</label>
@@ -2915,38 +2923,41 @@ const handleKeyNavigation = (e) => {
 </div>
 
               {/* RIGHT SIDE: GST% */}
-              <div className="field">
-                <label className="field-label">GST%</label>
-                <input
-                  ref={gstinRef}
-                  className="input"
-                  value={formData.gstin}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Allow empty or numbers only
-                    if (/^\d{0,2}$/.test(value)) {
-                      handleChange('gstin', value);
-                    }
-                  }}
-                  onBlur={() => {
-                    // Validate GST value when user leaves the field
-                    const allowedGSTValues = ['3', '5', '12', '18', '28'];
-                    const gstValue = formData.gstin;
-                    if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
-                      // Show error message
-                      setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
-                      // Clear invalid value
-                      handleChange('gstin', '');
-                      // Focus back to show error
-                      setTimeout(() => gstinRef.current?.focus(), 10);
-                    }
-                  }}
-                 
-                  disabled={isSubmitting || !gstChecked}
-                  aria-label="GST Percentage"
-                    style={{ textAlign: "center" ,width:300}}
-                />
-              </div>
+            <div className="field">
+  <label className="field-label">
+    GST%
+    <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+  </label>
+  <input
+    ref={gstinRef}
+    className="input"
+    value={formData.gstin}
+    onChange={(e) => {
+      const value = e.target.value;
+      // Allow empty or numbers only
+      if (/^\d{0,2}$/.test(value)) {
+        handleChange('gstin', value);
+      }
+    }}
+    onBlur={() => {
+      // Validate GST value when user leaves the field
+      const allowedGSTValues = ['3', '5', '12', '18', '28'];
+      const gstValue = formData.gstin;
+      if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
+        // Show error message
+        setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
+        // Clear invalid value
+        handleChange('gstin', '');
+        // Focus back to show error
+        setTimeout(() => gstinRef.current?.focus(), 10);
+      }
+    }}
+    disabled={isSubmitting || !gstChecked}
+    aria-label="GST Percentage"
+    style={{ textAlign: "center", width: 300 }}
+    required
+  />
+</div>
 
               {/* LEFT SIDE: Manual Prefix Checkbox */}
              <div className="field">
@@ -3076,9 +3087,10 @@ const handleKeyNavigation = (e) => {
               </div>
             )}
 
-            {/* Submit controls */}
+            {/* Submit controls - UPDATED with proper ref and Enter handling */}
             <div className="submit-row">
               <button
+                ref={submitButtonRef} // ✅ Correct ref name
                 className="submit-primary"
                 onClick={() => {
                   if (!formData.itemName) {
@@ -3096,8 +3108,28 @@ const handleKeyNavigation = (e) => {
                   else if (actionType === 'edit') showEditConfirmation();
                   else if (actionType === 'delete') showDeleteConfirmation();
                 }}
+                onKeyDown={(e) => {
+                  // ✅ Handle Enter key on Delete button
+                  if (e.key === 'Enter' && actionType === 'delete') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (!formData.itemName) {
+                      setMessage({ type: "error", text: 'Please enter Item Name.' });
+                      itemNameRef.current?.focus();
+                      return;
+                    }
+                    if (!mainGroup) {
+                      setMessage({ type: "error", text: 'Please select Group Name.' });
+                      return;
+                    }
+                    
+                    showDeleteConfirmation();
+                  }
+                }}
                 disabled={isLoading}
                 type="button"
+                id="action-button"
               >
                 {isLoading ? "Processing..." : 
                  actionType === 'create' ? 'Save' : 
@@ -3388,10 +3420,21 @@ const handleKeyNavigation = (e) => {
   setMainGroup(item.fParent || '');
   
   setIsPopupOpen(false);
-  // ✅ Move focus into the form, NOT toolbar
-setTimeout(() => {
-  itemNameRef.current?.focus();
-}, 50);
+  
+  // ✅ FIXED: Focus the Delete button when in delete mode
+  if (actionType === 'delete') {
+    // Small delay to ensure component is updated
+    setTimeout(() => {
+      if (submitButtonRef.current) {
+        submitButtonRef.current.focus();
+      }
+    }, 100);
+  } else {
+    // For edit mode, focus item name field
+    setTimeout(() => {
+      itemNameRef.current?.focus();
+    }, 50);
+  }
 }}
         fetchItems={fetchPopupItems}
         title={`Select Item to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}

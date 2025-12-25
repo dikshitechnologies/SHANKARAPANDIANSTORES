@@ -31,6 +31,18 @@ const PaymentVoucher = () => {
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
 
+  // Validation confirmation popup
+  const [confirmationPopup, setConfirmationPopup] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    confirmText: 'OK',
+    cancelText: null,
+    action: null,
+    isLoading: false
+  });
+
   // Track if we're editing an existing voucher
   const [isEditing, setIsEditing] = useState(false);
   const [originalVoucherNo, setOriginalVoucherNo] = useState('');
@@ -1001,6 +1013,13 @@ const PaymentVoucher = () => {
 
   // --- POPUP HANDLERS ---
   const openEditVoucherPopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      toast.error('You do not have permission to edit payment vouchers.', { autoClose: 3000 });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+    
     try {
       setLoadingVouchers(true);
       await fetchSavedVouchers(1, '');
@@ -1014,6 +1033,13 @@ const PaymentVoucher = () => {
   };
 
   const openDeleteVoucherPopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      toast.error('You do not have permission to delete payment vouchers.', { autoClose: 3000 });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+    
     try {
       setLoadingVouchers(true);
       await fetchSavedVouchers(1, '');
@@ -1370,7 +1396,15 @@ const PaymentVoucher = () => {
 
       const particularsToUse = updatedParticulars || particulars;
 
+      // Check if there are CASH type payments
+      const hasCashPayments = paymentItems.some(item => {
+        const typeValue = (item.type || '').toString().trim().toUpperCase();
+        const hasAmount = item.amount && parseFloat(item.amount) > 0;
+        return typeValue === 'CASH' && hasAmount;
+      });
+
       let givenTotal = 0;
+      let issuedTotal = 0;
       const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
       
       denominations.forEach(denom => {
@@ -1378,7 +1412,32 @@ const PaymentVoucher = () => {
         const collectValue = particularsToUse[denomKey]?.collect;
         const collectCount = parseInt(collectValue) || 0;
         givenTotal += collectCount * denom;
+        
+        const issueValue = particularsToUse[denomKey]?.issue;
+        const issueCount = parseInt(issueValue) || 0;
+        issuedTotal += issueCount * denom;
       });
+      
+      // **VALIDATION: Net Amount = Collected Amount - Issued Amount (ONLY FOR CASH PAYMENTS)**
+      if (hasCashPayments) {
+        const netAmount = givenTotal - issuedTotal;
+        if (Math.abs(netAmount - totalAmount) > 0.01) {
+          const errorMessage = `Net amount not tallying`;
+          setError(errorMessage);
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: errorMessage,
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
       
       const balanceGiven = givenTotal - totalAmount;
 
@@ -1506,6 +1565,17 @@ const PaymentVoucher = () => {
   };
 
   const handleSave = async () => {
+    // === PERMISSION CHECK ===
+    const action = isEditing ? 'edit' : 'add';
+    const hasPermission = action === 'add' ? formPermissions.add : formPermissions.edit;
+    
+    if (!hasPermission) {
+      const actionText = action === 'add' ? 'create' : 'modify';
+      toast.error(`You do not have permission to ${actionText} payment vouchers.`, { autoClose: 3000 });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+    
     const cashTotals = calculateCashTotals();
     
     const hasCashPayments = paymentItems.some(item => item.type === 'CASH');
@@ -2515,6 +2585,23 @@ const PaymentVoucher = () => {
           totalAmount={totalAmount}
           cashTotals={saveConfirmationData?.cashTotals}
           hasCashPayments={saveConfirmationData?.hasCashPayments || false}
+        />
+      )}
+
+      {confirmationPopup.isOpen && (
+        <ConfirmationPopup
+          isOpen={confirmationPopup.isOpen}
+          title={confirmationPopup.title}
+          message={confirmationPopup.message}
+          type={confirmationPopup.type}
+          confirmText={confirmationPopup.confirmText}
+          cancelText={confirmationPopup.cancelText}
+          onConfirm={() => {
+            setConfirmationPopup({ ...confirmationPopup, isOpen: false });
+          }}
+          onCancel={() => {
+            setConfirmationPopup({ ...confirmationPopup, isOpen: false });
+          }}
         />
       )}
 

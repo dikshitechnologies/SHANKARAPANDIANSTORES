@@ -1156,24 +1156,28 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
         return numVal === 0 ? '' : numVal.toString();
       };
 
-      updatedItems[currentItemRowIndex] = {
-        ...currentItem,
-        itemName,
-        itemCode,
-       barcode: currentItem.barcode || "",
+updatedItems[currentItemRowIndex] = {
+  ...currentItem,
 
-        stock: (item.stock || stockInfo.stock || 0).toString(),
-        mrp: formatValue(item.mrp || stockInfo.mrp || 0),
-        uom: units || stockInfo.uom || stockInfo.fUnits || '',
-        hsn: resolvedHsn, // ✅ FIXED HERE
-        tax: formatValue(item.tax || stockInfo.tax || 0),
-        sRate: formatValue(item.sRate || stockInfo.rate || 0),
-        qty: currentItem.qty || '1',
-        amount: calculateAmount(
-          currentItem.qty || '1',
-          item.sRate || stockInfo.rate || 0
-        )
-      };
+  itemName,
+  itemCode,
+
+  // ✅ KEEP BARCODE AS-IS (from fetchInvoiceDetails)
+  barcode: currentItem.barcode,
+
+  stock: (item.stock || stockInfo.stock || 0).toString(),
+  mrp: formatValue(item.mrp || stockInfo.mrp || 0),
+  uom: units || stockInfo.uom || stockInfo.fUnits || '',
+  hsn: resolvedHsn,
+  tax: formatValue(item.tax || stockInfo.tax || 0),
+  sRate: formatValue(item.sRate || stockInfo.rate || 0),
+  qty: currentItem.qty || '1',
+  amount: calculateAmount(
+    currentItem.qty || '1',
+    item.sRate || stockInfo.rate || 0
+  )
+};
+
 
       setItems(updatedItems);
     } catch (err) {
@@ -1539,36 +1543,28 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const hasItemName =
     currentItem.itemName && currentItem.itemName.trim() !== "";
 
-  const isLastRow = currentRowIndex === items.length - 1;
 
-  // ======================================================
+    const lastRowIndex = items.length - 1;
+const lastRow = items[lastRowIndex];
+
+const hasEmptyLastRow =
+  lastRow &&
+  (!lastRow.itemName || lastRow.itemName.trim() === "") &&
+  (!lastRow.barcode || lastRow.barcode.trim() === "");
+
+  
   // ⏎ ENTER KEY
-  // ======================================================
   if (e.key === "Enter") {
     e.preventDefault();
     e.stopPropagation();
 
-    // ---------------------------------------------
-    // ✅ LAST ROW + ITEM NAME EMPTY → GO TO SAVE
-    // ---------------------------------------------
-    if (isLastRow && !hasItemName) {
-      // unblock table enter (important)
-      if (blockTableEnterRef?.current !== undefined) {
-        blockTableEnterRef.current = false;
-      }
-
-      setTimeout(() => {
-        saveButtonRef.current?.focus();
-      }, 0);
-
-      return;
-    }
-
-    // ---------------------------------------------
-    // 🚫 ITEM NAME EMPTY (ROW 0 SPECIAL LOGIC)
-    // ---------------------------------------------
+    // 🚫 ITEM NAME EMPTY
     if (!hasItemName) {
+
+      // ✅ ROW 1 (index 0)
       if (currentRowIndex === 0) {
+
+        // 🔔 FIRST ENTER → warning only
         if (!warnedEmptyRowRef.current[0]) {
           warnedEmptyRowRef.current[0] = true;
 
@@ -1588,25 +1584,25 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           return;
         }
 
-        setTimeout(() => {
-          document
-            .querySelector(
-              `input[data-row="0"][data-field="itemName"]`
-            )
-            ?.focus();
-        }, 0);
+        // 🔁 ALWAYS stay on Item Name for ROW 1
+setTimeout(() => {
+  document
+    .querySelector(
+      `input[data-row="0"][data-field="itemName"]`
+    )
+    ?.focus();
+}, 0);
 
-        return;
+return;
+
       }
 
-      // other rows (non-last) → go to save
+      // ✅ ROW 2, 3, 4...
       saveButtonRef.current?.focus();
       return;
     }
 
-    // ---------------------------------------------
     // ✅ NORMAL FIELD FLOW
-    // ---------------------------------------------
     const fieldNavigation = {
       barcode: "itemName",
       itemName: "stock",
@@ -1618,9 +1614,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       sRate: "qty",
     };
 
-    // ---------------------------------------------
-    // ✅ QTY → ROW-BY-ROW NAVIGATION
-    // ---------------------------------------------
+    // ✅ QTY → ADD ROW
     if (currentField === "qty") {
       if (!currentItem.qty || Number(currentItem.qty) <= 0) {
         toast.warning("Please enter quantity", {
@@ -1630,21 +1624,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         return;
       }
 
-      const nextRowIndex = currentRowIndex + 1;
-
-      // 👉 Go to next row barcode if exists
-      if (items[nextRowIndex]) {
-        setTimeout(() => {
-          document
-            .querySelector(
-              `input[data-row="${nextRowIndex}"][data-field="barcode"]`
-            )
-            ?.focus();
-        }, 0);
-        return;
-      }
-
-      // 👉 No next row → add new row
       handleAddRow();
       setTimeout(() => {
         document
@@ -1652,14 +1631,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             `input[data-row="${items.length}"][data-field="barcode"]`
           )
           ?.focus();
-      }, 0);
-
+      }, 80);
       return;
     }
 
-    // ---------------------------------------------
-    // ✅ MOVE TO NEXT FIELD IN SAME ROW
-    // ---------------------------------------------
     const nextField = fieldNavigation[currentField];
     if (nextField) {
       document
@@ -1668,13 +1643,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         )
         ?.focus();
     }
-
     return;
   }
 
-  // ======================================================
   // ⬅️ LEFT
-  // ======================================================
   if (e.key === "ArrowLeft") {
     e.preventDefault();
     if (fieldIndex > 0) {
@@ -1688,9 +1660,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     return;
   }
 
-  // ======================================================
   // ➡️ RIGHT
-  // ======================================================
   if (e.key === "ArrowRight") {
     e.preventDefault();
     if (fieldIndex < TABLE_FIELDS.length - 1) {
@@ -1704,9 +1674,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     return;
   }
 
-  // ======================================================
   // ⬆️ UP
-  // ======================================================
   if (e.key === "ArrowUp") {
     e.preventDefault();
     if (currentRowIndex > 0) {
@@ -1719,9 +1687,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     return;
   }
 
-  // ======================================================
   // ⬇️ DOWN
-  // ======================================================
   if (e.key === "ArrowDown") {
     e.preventDefault();
     if (currentRowIndex < items.length - 1) {
@@ -1734,9 +1700,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     return;
   }
 
-  // ======================================================
   // / → ITEM POPUP
-  // ======================================================
   if (e.key === "/" && currentField === "itemName") {
     e.preventDefault();
     openItemPopup(currentRowIndex);
@@ -2054,6 +2018,7 @@ const handleItemChange = (id, field, value) => {
         billAmount: Number(totalAmount) || 0,
         balanceAmount: 0,
         userCode: "001",
+        barcode:"",
       };
 
      // Prepare items data
@@ -3251,10 +3216,11 @@ const itemsData = validItems.map(item => ({
                           ? styles.editableInputFocused
                           : styles.editableInput
                       }
-                      value={item.barcode ?? ""}
+                       value={item.barcode || ""}
                       data-row={index}
+                       
                       data-field="barcode"
-                      readOnly={isEditing}
+                     
                       onChange={(e) => {
                         if (!isEditing) {
                           handleItemChange(item.id, 'barcode', e.target.value);
