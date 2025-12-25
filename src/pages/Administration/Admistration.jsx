@@ -133,8 +133,7 @@ const Administration = () => {
     cancelText: "Cancel"
   });
 
-  const LS_LAST_USER = "admin_last_selected_user_id";
-  const LS_PERMS_PREFIX = "admin_perms_user_";
+
 
   useEffect(() => { loadUsers() }, []);
   useEffect(() => {
@@ -149,27 +148,7 @@ const Administration = () => {
       });
       return c;
     });
-    const last = localStorage.getItem(LS_LAST_USER);
-    if (last) {
-      const f = users.find(u => u.id === last);
-      if (f) {
-        setSelectedUserId(last);
-        (async () => {
-          const cached = localStorage.getItem(LS_PERMS_PREFIX + f.code);
-          if (cached) {
-            try {
-              const parsed = JSON.parse(cached);
-              setPerms(p => {
-                const c = JSON.parse(JSON.stringify(p || {}));
-                c[last] = { ...c[last], ...parsed };
-                return c;
-              });
-            } catch { }
-          }
-          await fetchAndMapPermissions(f.code, last);
-        })();
-      }
-    }
+
     setTimeout(() => setLoaded(true), 80);
   }, [users]);
 
@@ -260,21 +239,19 @@ const Administration = () => {
         const b = v => v === true || v === "1" || v === 1 || v === "true" || v === "True";
 
         data.forEach(it => {
-          const fc = it.formCode || it.form_permission || it.formPermission || it.form || (it.formName ? it.formName.replace(/\s+/g, "_").toUpperCase() : null);
-          let p = b(it.permission) || b(it.fPermission) || b(it.formPermission);
-          let a = b(it.add) || b(it.addPermission);
-          let e = b(it.edit) || b(it.editPermission);
-          let d = b(it.del) || b(it.deletePermission) || b(it.delPermission);
-          let pr = b(it.print) || b(it.printPermission);
+          // Handle API response field names: fForm, fPermission, fAdd, fMod, fDel, fPrint
+          const fc = it.fForm || it.formCode || it.form_permission || it.formPermission || it.form || (it.formName ? it.formName.replace(/\s+/g, "_").toUpperCase() : null);
+          let p = b(it.fPermission) || b(it.permission) || b(it.formPermission);
+          let a = b(it.fAdd) || b(it.add) || b(it.addPermission);
+          let e = b(it.fMod) || b(it.edit) || b(it.editPermission);
+          let d = b(it.fDel) || b(it.del) || b(it.deletePermission) || b(it.delPermission);
+          let pr = b(it.fPrint) || b(it.print) || b(it.printPermission);
           
           if (fc && map[fc]) {
             map[fc] = { ...map[fc], permission: !!p, add: !!a, edit: !!e, del: !!d, print: !!pr };
           }
         });
         c[userId] = { ...c[userId], ...map };
-        try {
-          localStorage.setItem(LS_PERMS_PREFIX + userCode, JSON.stringify(c[userId]));
-        } catch { }
         return c;
       });
       return true;
@@ -351,9 +328,6 @@ const Administration = () => {
       const response = await axiosInstance.post(INSERT_BATCH_URL, payload);
 
       if (response.status === 200 || response.status === 201) {
-        try {
-          localStorage.setItem(LS_PERMS_PREFIX + code, JSON.stringify(o));
-        } catch { }
         return { ok: true };
       } else {
         return { ok: false };
@@ -377,25 +351,10 @@ const Administration = () => {
     // If selecting the same user again, clear the selection and show empty
     if (selectedUserId === id) {
       setSelectedUserId("0");
-      localStorage.setItem(LS_LAST_USER, "0");
       return;
     }
     
     setSelectedUserId(id);
-    localStorage.setItem(LS_LAST_USER, id);
-
-    try {
-      const cached = localStorage.getItem(LS_PERMS_PREFIX + user.code);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        setPerms(prev => {
-          const cp = JSON.parse(JSON.stringify(prev || {}));
-          cp[id] = { ...cp[id], ...parsed };
-          return cp;
-        });
-      }
-    } catch { }
-
     await fetchAndMapPermissions(user.code, id);
   };
 
@@ -424,7 +383,6 @@ const Administration = () => {
       cancelText: "Cancel",
       onConfirm: () => {
         setSelectedUserId("0");
-        localStorage.setItem(LS_LAST_USER, "0");
 
         setPerms(p => {
           const c = JSON.parse(JSON.stringify(p || {}));
