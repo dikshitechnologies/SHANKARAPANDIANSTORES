@@ -8,46 +8,9 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/ActionButtons";
 
-// --- SVG Icons (keep the same) ---
-const CreateIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    fill="currentColor"
-    viewBox="0 0 16 16"
-  >
-    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-  </svg>
-);
-const EditIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    fill="currentColor"
-    viewBox="0 0 16 16"
-  >
-    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
-    <path
-      fillRule="evenodd"
-      d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"
-    />
-  </svg>
-);
-const DeleteIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    fill="currentColor"
-    viewBox="0 0 16 16"
-  >
-    <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5zM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11zm-7.487 1a.5.5 0 0 1 .528.47l.8 10a1 1 0 0 0 .997.93h6.23a1 1 0 0 0 .997-.93l.8-10a.5.5 0 0 1 .528-.47H3.513zM5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5z" />
-  </svg>
-);
+// --- SVG Icons ---
 const SearchIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -155,9 +118,9 @@ const Company = () => {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.COMPANY_CREATION),
-    edit: hasModifyPermission(PERMISSION_CODES.COMPANY_CREATION),
-    delete: hasDeletePermission(PERMISSION_CODES.COMPANY_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.COMPANY_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.COMPANY_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.COMPANY_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
   
   // Debug: Check what permissions are actually being used
@@ -165,9 +128,9 @@ const Company = () => {
     console.log('=== COMPANY PERMISSIONS DEBUG ===');
     console.log('PERMISSION_CODES.COMPANY_CREATION:', PERMISSION_CODES.COMPANY_CREATION);
     console.log('formPermissions object:', formPermissions);
-    console.log('formPermissions.add:', formPermissions.add, 'type:', typeof formPermissions.add);
-    console.log('formPermissions.edit:', formPermissions.edit, 'type:', typeof formPermissions.edit);
-    console.log('formPermissions.delete:', formPermissions.delete, 'type:', typeof formPermissions.delete);
+    console.log('formPermissions.Add:', formPermissions.Add, 'type:', typeof formPermissions.Add);
+    console.log('formPermissions.Edit:', formPermissions.Edit, 'type:', typeof formPermissions.Edit);
+    console.log('formPermissions.Delete:', formPermissions.Delete, 'type:', typeof formPermissions.Delete);
     console.log('hasAddPermission result:', hasAddPermission(PERMISSION_CODES.COMPANY_CREATION));
     console.log('hasModifyPermission result:', hasModifyPermission(PERMISSION_CODES.COMPANY_CREATION));
     console.log('hasDeletePermission result:', hasDeletePermission(PERMISSION_CODES.COMPANY_CREATION));
@@ -748,10 +711,10 @@ const Company = () => {
   const handleSaveWithConfirmation = () => {
     // === PERMISSION CHECK ===
     console.log('🔐 handleSaveWithConfirmation - Checking permissions');
-    console.log('  formPermissions.add:', formPermissions.add);
-    console.log('  !formPermissions.add:', !formPermissions.add);
+    console.log('  formPermissions.Add:', formPermissions.Add);
+    console.log('  !formPermissions.Add:', !formPermissions.Add);
     
-    if (!formPermissions.add) {
+    if (!formPermissions.Add) {
       console.log('  ❌ Permission DENIED for add');
       setMessage({
         type: "error",
@@ -809,10 +772,10 @@ const Company = () => {
   const handleUpdateWithConfirmation = () => {
     // === PERMISSION CHECK ===
     console.log('🔐 handleUpdateWithConfirmation - Checking permissions');
-    console.log('  formPermissions.edit:', formPermissions.edit);
-    console.log('  !formPermissions.edit:', !formPermissions.edit);
+    console.log('  formPermissions.Edit:', formPermissions.Edit);
+    console.log('  !formPermissions.Edit:', !formPermissions.Edit);
     
-    if (!formPermissions.edit) {
+    if (!formPermissions.Edit) {
       console.log('  ❌ Permission DENIED for edit');
       setMessage({
         type: "error",
@@ -867,10 +830,10 @@ const Company = () => {
   const handleDeleteWithConfirmation = () => {
     // === PERMISSION CHECK ===
     console.log('🔐 handleDeleteWithConfirmation - Checking permissions');
-    console.log('  formPermissions.delete:', formPermissions.delete);
-    console.log('  !formPermissions.delete:', !formPermissions.delete);
+    console.log('  formPermissions.Delete:', formPermissions.Delete);
+    console.log('  !formPermissions.Delete:', !formPermissions.Delete);
     
-    if (!formPermissions.delete) {
+    if (!formPermissions.Delete) {
       console.log('  ❌ Permission DENIED for delete');
       setMessage({
         type: "error",
@@ -1254,38 +1217,34 @@ const Company = () => {
                   {message.text}
                 </div>
               )}
-              <div className="action-buttons">
-                <button
-                  className={`action-btn create ${selectedAction === "create" ? "active" : ""}`}
-                  onClick={() => handleActionClick("create")}
-                  disabled={!formPermissions.add}
-                  title={!formPermissions.add ? "You don't have permission to create" : "Create a new company"}
-                >
-                  <CreateIcon /> Add
-                </button>
-                <button
-                  className={`action-btn edit ${selectedAction === "edit" ? "active" : ""}`}
-                  onClick={() => handleActionClick("edit")}
-                  disabled={!formPermissions.edit}
-                  title={!formPermissions.edit ? "You don't have permission to edit" : "Edit existing company"}
-                >
-                  <EditIcon /> Edit
-                </button>
-                <button
-                  className={`action-btn delete ${selectedAction === "delete" ? "active" : ""}`}
-                  onClick={() => handleActionClick("delete")}
-                  disabled={!formPermissions.delete}
-                  title={!formPermissions.delete ? "You don't have permission to delete" : "Delete company"}
-                >
-                  <DeleteIcon /> Delete
-                </button>
-              </div>
 
               {/* Two-column form layout */}
               <div className="two-column-form">
                 {/* Left side form */}
                 <div className="form-column left-form">
-                  <h3>Company Details</h3>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                    <h3 style={{margin: 0}}>Company Details</h3>
+                    <div style={{display: 'flex', gap: '10px'}}>
+                      <AddButton
+                        isActive={selectedAction === "create"}
+                        onClick={() => handleActionClick("create")}
+                        disabled={!formPermissions.Add}
+                        buttonType="create"
+                      />
+                      <EditButton
+                        isActive={selectedAction === "edit"}
+                        onClick={() => handleActionClick("edit")}
+                        disabled={!formPermissions.Edit}
+                        buttonType="edit"
+                      />
+                      <DeleteButton
+                        isActive={selectedAction === "delete"}
+                        onClick={() => handleActionClick("delete")}
+                        disabled={!formPermissions.Delete}
+                        buttonType="delete"
+                      />
+                    </div>
+                  </div>
                   <div className="form">
                     <div className="row1">
                       <div className="input-group">
@@ -1685,20 +1644,22 @@ const Company = () => {
                 </div>
               </div>
 
-              <div className="button-row">
+              <div className="submit-row">
                 <button
-                  className="submit-btn"
                   ref={submitRef}
-                  onClick={(e) => handleSubmit(e)} // Pass event
-                  onKeyDown={(e) => handleKeyDown(e, 'submit')}
-                  disabled={loading || (selectedAction === "create" ? !formPermissions.add : selectedAction === "edit" ? !formPermissions.edit : !formPermissions.delete)}
+                  className="submit-primary"
+                  onClick={handleSubmit}
+                  disabled={loading || (selectedAction === "create" ? !formPermissions.Add : selectedAction === "edit" ? !formPermissions.Edit : !formPermissions.Delete)}
+                  type="button"
                 >
-                  {loading ? "Processing..." :
-                    selectedAction === "create" ? "Save" :
-                      selectedAction === "edit" ? "Update" :
-                        "Delete"}
+                  {loading ? "Processing..." : selectedAction === "create" ? "Save" : selectedAction === "edit" ? "Update" : "Delete"}
                 </button>
-                <button className="clear-btn" onClick={clearForm}>
+                <button
+                  className="submit-clear"
+                  onClick={clearForm}
+                  disabled={loading}
+                  type="button"
+                >
                   Clear
                 </button>
               </div>
