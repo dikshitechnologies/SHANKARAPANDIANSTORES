@@ -102,7 +102,7 @@ export const API_ENDPOINTS = {
   ADMINISTRATION: {
     USER_LIST: "Administartor/UserNameList",
     ADMIN_BATCH_INSERT: "Administartor/adminstration/InsertBatch",
-    GET_PERMISSIONS_BY_USER: "Administartor/GetPermissionsByUserCode",
+    GET_PERMISSIONS_BY_USER: (fUcode) => `Administartor/GetPermissionsByUserCode?fUcode=${fUcode}`,
     DELETE_PERMISSIONS: "Administartor/administration/delete"
   },
 

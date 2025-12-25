@@ -1125,7 +1125,7 @@ export default function ProductPage() {
                   className="input" 
                   value={form.fproductname} 
                   onChange={(e) => setForm(s => ({ ...s, fproductname: e.target.value }))} 
-                  placeholder="Enter product name"
+                  // placeholder="Enter product name"
                   onKeyDown={onProductNameKeyDown}
                   disabled={loading}
                   aria-label="Product Name"
@@ -1150,7 +1150,7 @@ export default function ProductPage() {
                 disabled={loading}
                 type="button"
               >
-                {loading ? "Processing..." : actionType}
+                {loading ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"

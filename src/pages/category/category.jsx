@@ -1138,7 +1138,7 @@ export default function CategoryPage() {
                   className="input" 
                   value={form.catName} 
                   onChange={(e) => setForm(s => ({ ...s, catName: e.target.value }))} 
-                  placeholder="Enter category name"
+                  // placeholder="Enter category name"
                   onKeyDown={onCatNameKeyDown}
                   disabled={loading}
                   aria-label="Category Name"
@@ -1163,7 +1163,7 @@ export default function CategoryPage() {
                 disabled={loading}
                 type="button"
               >
-                {loading ? "Processing..." : actionType}
+                {loading ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"

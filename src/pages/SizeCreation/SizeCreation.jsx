@@ -1089,7 +1089,7 @@ const submitRef = useRef(null);
                     // onKeyDown={handleSubmit}
                     disabled={loading}
                     aria-label="Size Name"
-                    readOnly={actionType === "delete"}
+                    readOnly={actionType === "Delete"}
                   />
                 </div>
               </div>
@@ -1110,7 +1110,7 @@ const submitRef = useRef(null);
                   disabled={loading}
                   type="button"
                 >
-                  {loading ? "Processing..." : actionType === "Add" ? "Create" : actionType}
+                  {loading ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
                 </button>
                 <button
                   className="submit-clear"

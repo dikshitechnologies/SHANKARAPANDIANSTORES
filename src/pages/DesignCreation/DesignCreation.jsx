@@ -1106,7 +1106,7 @@ export default function DesignCreation() {
                   className="input" 
                   value={form.designName} 
                   onChange={(e) => setForm(s => ({ ...s, designName: e.target.value }))} 
-                  placeholder="Enter design name" 
+                  // placeholder="Enter design name" 
                   onKeyDown={onDesignNameKeyDown}
                   disabled={loading}
                   aria-label="Design Name"
@@ -1131,7 +1131,7 @@ export default function DesignCreation() {
                 disabled={loading}
                 type="button"
               >
-                {loading ? "Processing..." : actionType}
+                {loading ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"

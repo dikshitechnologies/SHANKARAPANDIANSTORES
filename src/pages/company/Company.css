@@ -1,16 +1,16 @@
 :root {
     --primary-main: #307AC8;
-    --primary-dark: #1B91DA;
+    --primary-dark: #02a85a;
     --primary-light: #e8f5e9;
     --primary-gradient: linear-gradient(90deg, #307AC8, #1B91DA);
 
     --warning-main: #fbc02d;
-    --warning-dark: #f57f17;
+    --warning-dark: #fbc02d;
     --warning-light: #fff8e1;
     --warning-gradient: linear-gradient(90deg, #f57f17, #fbc02d);
 
     --danger-main: #e53935;
-    --danger-dark: #c62828;
+    --danger-dark: #e53935;
     --danger-light: #ffebee;
     --danger-gradient: linear-gradient(90deg, #c62828, #e53935);
 
@@ -187,6 +187,11 @@ body {
     font-size: 0.9rem;
     color: var(--text-primary);
     text-align: left;
+}
+.asterisk 
+{
+    color: #ef4444;
+    font-weight: 700;
 }
 
 .required-field label::after {

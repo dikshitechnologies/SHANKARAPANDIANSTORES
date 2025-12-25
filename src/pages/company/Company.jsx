@@ -584,9 +584,12 @@ const Company = () => {
       }
     }
     // For toggle fields (Y/N fields), handle spacebar
-    else if (e.key === ' ' && fieldName && ['fdescription', 'fprintgap', 'fdefaultmode'].includes(fieldName)) {
+    else if (e.key === ' ' && fieldName && ['fdescription', 'fprintgap'].includes(fieldName)) {
       e.preventDefault();
       handleInputChange(fieldName, formData[fieldName] === "N" ? "Y" : formData[fieldName] === "Y" ? "N" : "N");
+    }else if (e.key === ' ' && fieldName && ['fdefaultmode'].includes(fieldName)) {
+      e.preventDefault();
+      handleInputChange(fieldName, formData[fieldName] === "N" ? "T" : formData[fieldName] === "T" ? "N" : "N");
     }
   };
 
@@ -1258,7 +1261,7 @@ const Company = () => {
                   disabled={!formPermissions.add}
                   title={!formPermissions.add ? "You don't have permission to create" : "Create a new company"}
                 >
-                  <CreateIcon /> Create
+                  <CreateIcon /> Add
                 </button>
                 <button
                   className={`action-btn edit ${selectedAction === "edit" ? "active" : ""}`}
@@ -1297,7 +1300,7 @@ const Company = () => {
                         />
                       </div>
                       <div className="input-group">
-                        <label>Company Name *</label>
+                        <label>Company Name <span className="asterisk">*</span></label>
                         <input
                           type="text"
                           ref={companyNameRef}
@@ -1337,7 +1340,15 @@ const Company = () => {
                           type="text"
                           ref={statecodeRef}
                           value={formData.statecode}
-                          onChange={(e) => handleInputChange('statecode', e.target.value)}
+                          // onChange={(e) => handleInputChange('statecode', e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow only numbers and empty input
+                            if (value === '' || /^[0-9]*$/.test(value)) {
+                              // Validate as user types                          
+                                handleInputChange('statecode', value);                        
+                              }
+                          }}
                           disabled={selectedAction === "delete"}
                           onKeyDown={(e) => handleKeyDown(e, 'statecode')}
                         />
@@ -1350,7 +1361,15 @@ const Company = () => {
                           type="text"
                           ref={phone1Ref}
                           value={formData.phone1}
-                          onChange={(e) => handleInputChange('phone1', e.target.value)}
+                          // onChange={(e) => handleInputChange('phone1', e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow only numbers and empty input
+                            if (value === '' || /^[0-9]*$/.test(value)) {
+                              // Validate as user types                          
+                                handleInputChange('phone1', value);                        
+                              }
+                          }}
                           disabled={selectedAction === "delete"}
                           onKeyDown={(e) => handleKeyDown(e, 'phone1')}
                         />
@@ -1361,7 +1380,15 @@ const Company = () => {
                           type="text"
                           ref={phone2Ref}
                           value={formData.phone2}
-                          onChange={(e) => handleInputChange('phone2', e.target.value)}
+                          // onChange={(e) => handleInputChange('phone2', e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow only numbers and empty input
+                            if (value === '' || /^[0-9]*$/.test(value)) {
+                              // Validate as user types                          
+                                handleInputChange('phone2', value);                        
+                              }
+                          }}
                           disabled={selectedAction === "delete"}
                           onKeyDown={(e) => handleKeyDown(e, 'phone2')}
                         />
@@ -1372,7 +1399,15 @@ const Company = () => {
                           type="text"
                           ref={phone3Ref}
                           value={formData.phone3}
-                          onChange={(e) => handleInputChange('phone3', e.target.value)}
+                          // onChange={(e) => handleInputChange('phone3', e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow only numbers and empty input
+                            if (value === '' || /^[0-9]*$/.test(value)) {
+                              // Validate as user types                          
+                                handleInputChange('phone3', value);                        
+                              }
+                          }}
                           disabled={selectedAction === "delete"}
                           onKeyDown={(e) => handleKeyDown(e, 'phone3')}
                         />
@@ -1428,7 +1463,7 @@ const Company = () => {
                     </div>
                     <div className="row2">
                       <div className="input-group">
-                        <label>User Name *</label>
+                        <label>User Name <span className="asterisk">*</span></label>
                         <input
                           type="text"
                           ref={usernameRef}
@@ -1439,7 +1474,7 @@ const Company = () => {
                         />
                       </div>
                       <div className="input-group">
-                        <label>Password *</label>
+                        <label>Password <span className="asterisk">*</span></label>
                         <input    
                           type="password"
                           ref={passwordRef}
@@ -1450,7 +1485,7 @@ const Company = () => {
                         />
                       </div>
                       <div className="input-group">
-                        <label>Confirm Password *</label>
+                        <label>Confirm Password <span className="asterisk">*</span></label>
                         <input  
                           type="password"
                           ref={confirmPasswordRef}
@@ -1659,9 +1694,9 @@ const Company = () => {
                   disabled={loading || (selectedAction === "create" ? !formPermissions.add : selectedAction === "edit" ? !formPermissions.edit : !formPermissions.delete)}
                 >
                   {loading ? "Processing..." :
-                    selectedAction === "create" ? "Create Company" :
-                      selectedAction === "edit" ? "Update Company" :
-                        "Delete Company"}
+                    selectedAction === "create" ? "Save" :
+                      selectedAction === "edit" ? "Update" :
+                        "Delete"}
                 </button>
                 <button className="clear-btn" onClick={clearForm}>
                   Clear

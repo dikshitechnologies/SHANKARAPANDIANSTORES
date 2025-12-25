@@ -1111,7 +1111,7 @@ export default function BrandPage() {
                   className="input" 
                   value={form.brandName} 
                   onChange={(e) => setForm(s => ({ ...s, brandName: e.target.value }))} 
-                  placeholder="Enter brand name" 
+                  // placeholder="Enter brand name" 
                   onKeyDown={onBrandNameKeyDown}
                   disabled={loading}
                   aria-label="Brand Name"
@@ -1136,7 +1136,7 @@ export default function BrandPage() {
                 disabled={loading}
                 type="button"
               >
-                {loading ? "Processing..." : actionType}
+                {loading ? "Processing..." : actionType === "Add" ? "Save" : actionType === "Edit" ? "Update" : "Delete"}
               </button>
               <button
                 className="submit-clear"
