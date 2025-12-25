@@ -127,23 +127,20 @@ export default function RouteCreationPage() {
 
   const getNextRouteCode = async () => {
     try {
-      setLoading(true);
       const data = await apiService.get(API_ENDPOINTS.ROUTE_CREATION.GET_NEXT_ROUTE_CODE);
       const nextCode = data.code || "0001";
       setForm(prev => ({ ...prev, routeCode: nextCode }));
       return nextCode;
     } catch (err) {
+      console.error("Error getting next route code:", err);
       // Fallback to a default
       setForm(prev => ({ ...prev, routeCode: "0001" }));
       return "0001";
-    } finally {
-      setLoading(false);
     }
   };
 
   const getRouteByCode = async (code) => {
     try {
-      setLoading(true);
       // Filter from existing items since API doesn't have a specific endpoint
       const route = routes.find(r => r.routeCode === code);
       return route || null;
@@ -151,8 +148,6 @@ export default function RouteCreationPage() {
       setMessage({ type: "error", text: "Failed to fetch route" });
       console.error("API Error:", err);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -252,7 +247,15 @@ export default function RouteCreationPage() {
 
   // ---------- handlers ----------
   const loadInitial = async () => {
-    await Promise.all([fetchRoutes(), getNextRouteCode()]);
+    try {
+      setLoading(true);
+      await Promise.all([fetchRoutes(), getNextRouteCode()]);
+    } catch (err) {
+      console.error("Error loading initial data:", err);
+      setMessage({ type: "error", text: "Failed to load route data" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = () => { // Remove async
