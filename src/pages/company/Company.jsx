@@ -172,7 +172,6 @@ const Company = () => {
     console.log('hasModifyPermission result:', hasModifyPermission(PERMISSION_CODES.COMPANY_CREATION));
     console.log('hasDeletePermission result:', hasDeletePermission(PERMISSION_CODES.COMPANY_CREATION));
   }, [formPermissions]);
-  // === END PERMISSION SETUP ===
 
   // Refs for keyboard navigation (including pseudo fields)
   const companyNameRef = useRef(null);
@@ -241,22 +240,45 @@ const Company = () => {
   const pseudo10Ref = useRef(null);
   const submitRef = useRef(null);
 
-  // Create a refs array for easier navigation
-  const inputRefs = [
-    companyNameRef, gstinRef, phone1Ref, stateRef, phone2Ref, statecodeRef,
-    phone3Ref, phone4Ref, shopNoRef, addressRef, address1Ref, address2Ref,
-    printerNameRef, usernameRef, descriptionRef, printgapRef, passwordRef,
-    confirmPasswordRef, prefixRef, defaultModeRef, note1Ref, note2Ref,
-    note3Ref, note4Ref, note5Ref, bankNameRef, branchRef, ifsCodeRef,
-    accountNumberRef, printingRef, gstModeRef, salesRateRef, salesTypeRef,
-    tagPrintRef, billPrefixRef, templateRef, numberOfPrintRef, messageRef,
-    jewellerySalesRef, narrationRef, senderIdRef, lessQuantityRef,
-    quantityFormatRef, barcodeRef, balInSalesRef, calculationRef, showStockRef,
-    cpInSalesRef, backupPathRef, cpCodeRef, backupDbiRef, desc1Ref,
-    // Pseudo refs
+  // Create a refs array for easier navigation - in the exact order they appear in the form
+  const inputRefs = useMemo(() => [
+    companyNameRef, // Company Name
+    gstinRef,       // GSTIN
+    stateRef,       // State
+    statecodeRef,   // State Code
+    phone1Ref,      // Phone 1
+    phone2Ref,      // Phone 2
+    phone3Ref,      // Phone 3
+    addressRef,     // Address 1
+    address1Ref,    // Address 2
+    address2Ref,    // Address 3
+    printerNameRef, // Print Name
+    usernameRef,    // User Name
+    passwordRef,    // Password
+    confirmPasswordRef, // Confirm Password
+    descriptionRef, // Description
+    printgapRef,    // Print GAP
+    prefixRef,      // Prefix
+    defaultModeRef, // Default Mode
+    billPrefixRef,  // Bill Prefix
+    // Pseudo fields
+    pseudo1Ref, pseudo2Ref, pseudo3Ref, pseudo4Ref, pseudo5Ref,
+    pseudo6Ref, pseudo7Ref, pseudo8Ref, pseudo9Ref, pseudo10Ref,
+    note1Ref, note2Ref, note3Ref, note4Ref, note5Ref,
+    bankNameRef, branchRef, ifsCodeRef, accountNumberRef,
+    printingRef, gstModeRef, salesRateRef, salesTypeRef,
+    tagPrintRef, templateRef, numberOfPrintRef, messageRef,
+    jewellerySalesRef, senderIdRef, lessQuantityRef,
+    quantityFormatRef, barcodeRef, balInSalesRef, calculationRef,
+    showStockRef, cpInSalesRef, backupPathRef, cpCodeRef,
+    backupDbiRef, desc1Ref
+  ], []);
+
+  // Pseudo field refs array
+  const pseudoRefs = useMemo(() => [
     pseudo1Ref, pseudo2Ref, pseudo3Ref, pseudo4Ref, pseudo5Ref,
     pseudo6Ref, pseudo7Ref, pseudo8Ref, pseudo9Ref, pseudo10Ref
-  ];
+  ], []);
 
   // ✅ Fetch next code
   const fetchNextCode = async () => {
@@ -496,18 +518,80 @@ const Company = () => {
     setSelectedAction("edit");
   };
 
-  // Handle Enter Key Navigation
-  const handleKeyDown = (e, nextRef) => {
+  // Enhanced keyboard navigation handler for all fields
+  const handleKeyDown = (e, fieldName = null) => {
+    // Find current input index
+    const currentIndex = inputRefs.findIndex(ref => ref.current === document.activeElement);
+    if (currentIndex === -1) return;
+
+    // Navigation map for special fields
+    // Company Code (first field): left/up = focus Submit, right/down = next field
+    // Submit button: right/down = focus Company Code, left/up = last pseudo field
+    const isCompanyCode = fieldName === 'fcompcode' || inputRefs[currentIndex] === inputRefs[0];
+    const isSubmitButton = fieldName === 'submit' || inputRefs[currentIndex] === submitRef;
+
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (nextRef && nextRef.current) {
-        nextRef.current.focus();
+      // Move to next field
+      if (currentIndex < inputRefs.length - 1) {
+        inputRefs[currentIndex + 1].current && inputRefs[currentIndex + 1].current.focus();
+      } else if (submitRef.current) {
+        submitRef.current.focus();
       }
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (isCompanyCode) {
+        // Company Code: right arrow moves to next field
+        if (inputRefs[1] && inputRefs[1].current) inputRefs[1].current.focus();
+      } else if (isSubmitButton) {
+        // Submit: right arrow moves to Company Code
+        if (inputRefs[0] && inputRefs[0].current) inputRefs[0].current.focus();
+      } else if (currentIndex < inputRefs.length - 1) {
+        inputRefs[currentIndex + 1].current && inputRefs[currentIndex + 1].current.focus();
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (isCompanyCode) {
+        // Company Code: left arrow moves to Submit
+        if (submitRef.current) submitRef.current.focus();
+      } else if (isSubmitButton) {
+        // Submit: left arrow moves to last pseudo field
+        if (pseudoRefs[pseudoRefs.length - 1] && pseudoRefs[pseudoRefs.length - 1].current) pseudoRefs[pseudoRefs.length - 1].current.focus();
+      } else if (currentIndex > 0) {
+        inputRefs[currentIndex - 1].current && inputRefs[currentIndex - 1].current.focus();
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (isCompanyCode) {
+        // Company Code: down arrow moves to next field
+        if (inputRefs[1] && inputRefs[1].current) inputRefs[1].current.focus();
+      } else if (isSubmitButton) {
+        // Submit: down arrow moves to Company Code
+        if (inputRefs[0] && inputRefs[0].current) inputRefs[0].current.focus();
+      } else if (currentIndex < inputRefs.length - 1) {
+        inputRefs[currentIndex + 1].current && inputRefs[currentIndex + 1].current.focus();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (isCompanyCode) {
+        // Company Code: up arrow moves to Submit
+        if (submitRef.current) submitRef.current.focus();
+      } else if (isSubmitButton) {
+        // Submit: up arrow moves to last pseudo field
+        if (pseudoRefs[pseudoRefs.length - 1] && pseudoRefs[pseudoRefs.length - 1].current) pseudoRefs[pseudoRefs.length - 1].current.focus();
+      } else if (currentIndex > 0) {
+        inputRefs[currentIndex - 1].current && inputRefs[currentIndex - 1].current.focus();
+      }
+    }
+    // For toggle fields (Y/N fields), handle spacebar
+    else if (e.key === ' ' && fieldName && ['fdescription', 'fprintgap', 'fdefaultmode'].includes(fieldName)) {
+      e.preventDefault();
+      handleInputChange(fieldName, formData[fieldName] === "N" ? "Y" : formData[fieldName] === "Y" ? "N" : "N");
     }
   };
 
   // Handle pseudo field input - only allow alphanumeric characters
-  const handlePseudoInput = (field, value, nextRef) => {
+  const handlePseudoInput = (field, value, pseudoIndex) => {
     // Remove any non-alphanumeric characters and convert to uppercase
     const cleanValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     
@@ -520,9 +604,67 @@ const Company = () => {
     }));
     
     // Auto-focus to next field if a character is entered
-    if (singleChar && nextRef && nextRef.current) {
-      nextRef.current.focus();
+    if (singleChar && cleanValue.length > 0 && pseudoIndex < pseudoRefs.length - 1) {
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        const nextRef = pseudoRefs[pseudoIndex + 1];
+        if (nextRef && nextRef.current) {
+          nextRef.current.focus();
+          nextRef.current.select();
+        }
+      }, 10);
     }
+  };
+
+  // Special key handler for pseudo fields
+  const handlePseudoKeyDown = (e, pseudoIndex) => {
+    // Arrow navigation for pseudo fields
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      // Move to next pseudo field if not last, else move to Submit button
+      if (pseudoIndex < pseudoRefs.length - 1) {
+        pseudoRefs[pseudoIndex + 1].current && pseudoRefs[pseudoIndex + 1].current.focus();
+      } else {
+        // Move to Submit button
+        if (submitRef.current) submitRef.current.focus();
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      // Move to previous pseudo field if not first, else move to Bill Prefix
+      if (pseudoIndex > 0) {
+        pseudoRefs[pseudoIndex - 1].current && pseudoRefs[pseudoIndex - 1].current.focus();
+      } else {
+        // Move to Bill Prefix input
+        if (billPrefixRef.current) billPrefixRef.current.focus();
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      // Move to next pseudo field if not last, else move to Submit button
+      if (pseudoIndex < pseudoRefs.length - 1) {
+        pseudoRefs[pseudoIndex + 1].current && pseudoRefs[pseudoIndex + 1].current.focus();
+      } else {
+        // Move to Submit button
+        if (submitRef.current) submitRef.current.focus();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      // Move to previous pseudo field if not first, else move to Bill Prefix
+      if (pseudoIndex > 0) {
+        pseudoRefs[pseudoIndex - 1].current && pseudoRefs[pseudoIndex - 1].current.focus();
+      } else {
+        // Move to Bill Prefix input
+        if (billPrefixRef.current) billPrefixRef.current.focus();
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      // Enter acts like ArrowRight
+      if (pseudoIndex < pseudoRefs.length - 1) {
+        pseudoRefs[pseudoIndex + 1].current && pseudoRefs[pseudoIndex + 1].current.focus();
+      } else {
+        if (submitRef.current) submitRef.current.focus();
+      }
+    }
+    // else: allow other keys (Tab, etc.)
   };
 
   const handleInputChange = (field, value) => {
@@ -866,7 +1008,6 @@ const Company = () => {
         hideCancelButton: true,
         onConfirm: () => {
           setShowConfirmPopup(false);
-          // toast.success(`Company "${formData.fcompname}" created successfully.`);
           fetchCompanyList();
           clearForm();
         },
@@ -991,7 +1132,6 @@ const Company = () => {
         hideCancelButton: true,
         onConfirm: () => {
           setShowConfirmPopup(false);
-          // toast.success(`Company "${formData.fcompname}" updated successfully.`);
           fetchCompanyList();
           clearForm();
         },
@@ -1041,7 +1181,6 @@ const Company = () => {
         hideCancelButton: true,
         onConfirm: () => {
           setShowConfirmPopup(false);
-          // toast.error(`Company "${formData.fcompname}" deleted successfully.`);
           fetchCompanyList();
           clearForm();
         },
@@ -1152,7 +1291,7 @@ const Company = () => {
                           type="text"
                           value={formData.fcompcode}
                           onChange={(e) => handleInputChange('fcompcode', e.target.value)}
-                          onKeyDown={(e)=>handleKeyDown(e,companyNameRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fcompcode')}
                           disabled={selectedAction === "delete"}
                           readOnly={true}
                         />
@@ -1165,7 +1304,7 @@ const Company = () => {
                           value={formData.fcompname}
                           onChange={(e) => handleInputChange('fcompname', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, gstinRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fcompname')}
                         />
                       </div>
                     </div>
@@ -1178,7 +1317,7 @@ const Company = () => {
                           value={formData.tngst}
                           onChange={(e) => handleInputChange('tngst', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, stateRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'tngst')}
                         />
                       </div>
                       <div className="input-group">
@@ -1189,7 +1328,7 @@ const Company = () => {
                           value={formData.state}
                           onChange={(e) => handleInputChange('state', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, statecodeRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'state')}
                         />
                       </div>
                       <div className="input-group">
@@ -1200,7 +1339,7 @@ const Company = () => {
                           value={formData.statecode}
                           onChange={(e) => handleInputChange('statecode', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, phone1Ref)}
+                          onKeyDown={(e) => handleKeyDown(e, 'statecode')}
                         />
                       </div>
                     </div>
@@ -1213,7 +1352,7 @@ const Company = () => {
                           value={formData.phone1}
                           onChange={(e) => handleInputChange('phone1', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, phone2Ref)}
+                          onKeyDown={(e) => handleKeyDown(e, 'phone1')}
                         />
                       </div>
                       <div className="input-group">
@@ -1224,7 +1363,7 @@ const Company = () => {
                           value={formData.phone2}
                           onChange={(e) => handleInputChange('phone2', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, phone3Ref)}
+                          onKeyDown={(e) => handleKeyDown(e, 'phone2')}
                         />
                       </div>
                       <div className="input-group">
@@ -1235,7 +1374,7 @@ const Company = () => {
                           value={formData.phone3}
                           onChange={(e) => handleInputChange('phone3', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, addressRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'phone3')}
                         />
                       </div>
                     </div>
@@ -1248,7 +1387,7 @@ const Company = () => {
                           value={formData.fcompadd1}
                           onChange={(e) => handleInputChange('fcompadd1', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, address1Ref)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fcompadd1')}
                         />
                       </div>
                       <div className="input-group">
@@ -1259,7 +1398,7 @@ const Company = () => {
                           value={formData.fcompadd2}
                           onChange={(e) => handleInputChange('fcompadd2', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, address2Ref)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fcompadd2')}
                         />
                       </div>
                     </div>
@@ -1272,7 +1411,7 @@ const Company = () => {
                           value={formData.fcompadd3}
                           onChange={(e) => handleInputChange('fcompadd3', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, printerNameRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fcompadd3')}
                         />
                       </div>
                       <div className="input-group">
@@ -1283,7 +1422,7 @@ const Company = () => {
                           value={formData.fprintname}
                           onChange={(e) => handleInputChange('fprintname', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, usernameRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fprintname')}
                         />
                       </div>
                     </div>
@@ -1296,7 +1435,7 @@ const Company = () => {
                           value={formData.fusername}
                           onChange={(e) => handleInputChange('fusername', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, passwordRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fusername')}
                         />
                       </div>
                       <div className="input-group">
@@ -1307,7 +1446,7 @@ const Company = () => {
                           value={formData.fpassword}
                           onChange={(e) => handleInputChange('fpassword', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, confirmPasswordRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fpassword')}
                         />
                       </div>
                       <div className="input-group">
@@ -1318,7 +1457,7 @@ const Company = () => {
                           value={formData.fconfirmpass}
                           onChange={(e) => handleInputChange('fconfirmpass', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, descriptionRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fconfirmpass')}
                         />
                       </div>
                     </div>
@@ -1326,18 +1465,14 @@ const Company = () => {
                       <div className="input-group">
                         <label>Description</label>
                         <input
-                          ref={descriptionRef} type ="text"
+                          ref={descriptionRef}
+                          type="text"
                           value={formData.fdescription}
                           onChange={(e) => {
                             const v = e.target.value.toUpperCase();
                             if(v === "Y" || v === "N") handleInputChange('fdescription', v);
                           }}
-                          onKeyDown={(e) => {
-                            handleKeyDown(e, printgapRef);
-                            if (e.key === " ") {
-                              handleInputChange('fdescription', formData.fdescription === "N" ? "Y" : "N");
-                            }
-                          }}
+                          onKeyDown={(e) => handleKeyDown(e, 'fdescription')}
                           placeholder="Y or N"
                           style={{ textAlign: "center" }}
                         />
@@ -1345,18 +1480,14 @@ const Company = () => {
                       <div className="input-group">
                         <label>Print GAP</label>
                         <input
-                          ref={printgapRef} type ="text"
+                          ref={printgapRef}
+                          type="text"
                           value={formData.fprintgap}
                           onChange={(e) => {
                             const v = e.target.value.toUpperCase();
                             if(v === "Y" || v === "N") handleInputChange('fprintgap', v);
                           }}
-                          onKeyDown={(e) => {
-                            handleKeyDown(e, prefixRef);  
-                            if (e.key === " ") {
-                              handleInputChange('fprintgap', formData.fprintgap === "N" ? "Y" : "N");
-                            }
-                          }}
+                          onKeyDown={(e) => handleKeyDown(e, 'fprintgap')}
                           placeholder="Y or N"
                           style={{ textAlign: "center" }}
                         />
@@ -1372,25 +1503,20 @@ const Company = () => {
                           value={formData.fprefix}
                           onChange={(e) => handleInputChange('fprefix', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, defaultModeRef)}
+                          onKeyDown={(e) => handleKeyDown(e, 'fprefix')}
                         />
                       </div>
                       <div className="input-group">
                         <label>Default Mode</label>
                         <input    
                           type="text"
-                          value ={formData.fdefaultmode}
+                          value={formData.fdefaultmode}
                           ref={defaultModeRef}
                           onChange={(e) => {
                             const v = e.target.value.toUpperCase();
                             if(v === "T" || v === "N") handleInputChange('fdefaultmode', v);
                           }}
-                          onKeyDown={(e) => {
-                            handleKeyDown(e, billPrefixRef);
-                            if (e.key === " ") {
-                              handleInputChange('fdefaultmode', formData.fdefaultmode === "N" ? "T" : "N");
-                            }
-                          }}
+                          onKeyDown={(e) => handleKeyDown(e, 'fdefaultmode')}
                           placeholder="T or N"
                           style={{ textAlign: "center" }}
                         />
@@ -1404,7 +1530,7 @@ const Company = () => {
                           value={formData.billprefix}
                           onChange={(e) => handleInputChange('billprefix', e.target.value)}
                           disabled={selectedAction === "delete"}
-                          onKeyDown={(e) => handleKeyDown(e, pseudo1Ref)}
+                          onKeyDown={(e) => handleKeyDown(e, 'billprefix')}
                         />
                       </div>
                     </div>
@@ -1419,110 +1545,100 @@ const Company = () => {
                             ref={pseudo1Ref}
                             maxLength={1}
                             value={formData.pseudo1}
-                            onChange={(e) => handlePseudoInput('pseudo1', e.target.value, pseudo2Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, pseudo2Ref)}
+                            onChange={(e) => handlePseudoInput('pseudo1', e.target.value, 0)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 0)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="1"
                           />
                           <input
                             type="text"
                             ref={pseudo2Ref}
                             maxLength={1}
                             value={formData.pseudo2}
-                            onChange={(e) => handlePseudoInput('pseudo2', e.target.value, pseudo3Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, pseudo3Ref)}
+                            onChange={(e) => handlePseudoInput('pseudo2', e.target.value, 1)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 1)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="2"
                           />
                           <input
                             type="text"
                             ref={pseudo3Ref}
                             maxLength={1}
                             value={formData.pseudo3}
-                            onChange={(e) => handlePseudoInput('pseudo3', e.target.value, pseudo4Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, pseudo4Ref)}
+                            onChange={(e) => handlePseudoInput('pseudo3', e.target.value, 2)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 2)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="3"
                           />
                           <input
                             type="text"
                             ref={pseudo4Ref}
                             maxLength={1}
                             value={formData.pseudo4}
-                            onChange={(e) => handlePseudoInput('pseudo4', e.target.value, pseudo5Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, pseudo5Ref)}
+                            onChange={(e) => handlePseudoInput('pseudo4', e.target.value, 3)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 3)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="4"
                           />
                           <input
                             type="text"
                             ref={pseudo5Ref}
                             maxLength={1}
                             value={formData.pseudo5}
-                            onChange={(e) => handlePseudoInput('pseudo5', e.target.value, pseudo6Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, pseudo6Ref)}
+                            onChange={(e) => handlePseudoInput('pseudo5', e.target.value, 4)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 4)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="5"
                           />
                           <input
                             type="text"
                             ref={pseudo6Ref}
                             maxLength={1}
                             value={formData.pseudo6}
-                            onChange={(e) => handlePseudoInput('pseudo6', e.target.value, pseudo7Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, pseudo7Ref)}
+                            onChange={(e) => handlePseudoInput('pseudo6', e.target.value, 5)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 5)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="6"
                           />
                           <input
                             type="text"
                             ref={pseudo7Ref}
                             maxLength={1}
                             value={formData.pseudo7}
-                            onChange={(e) => handlePseudoInput('pseudo7', e.target.value, pseudo8Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, pseudo8Ref)}
+                            onChange={(e) => handlePseudoInput('pseudo7', e.target.value, 6)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 6)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="7"
                           />
                           <input
                             type="text"
                             ref={pseudo8Ref}
                             maxLength={1}
                             value={formData.pseudo8}
-                            onChange={(e) => handlePseudoInput('pseudo8', e.target.value, pseudo9Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, pseudo9Ref)}
+                            onChange={(e) => handlePseudoInput('pseudo8', e.target.value, 7)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 7)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="8"
                           />
                           <input
                             type="text"
                             ref={pseudo9Ref}
                             maxLength={1}
                             value={formData.pseudo9}
-                            onChange={(e) => handlePseudoInput('pseudo9', e.target.value, pseudo10Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, pseudo10Ref)}
+                            onChange={(e) => handlePseudoInput('pseudo9', e.target.value, 8)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 8)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="9"
                           />
                           <input
                             type="text"
                             ref={pseudo10Ref}
                             maxLength={1}
                             value={formData.pseudo10}
-                            onChange={(e) => handlePseudoInput('pseudo10', e.target.value, note1Ref)}
-                            onKeyDown={(e) => handleKeyDown(e, submitRef)}
+                            onChange={(e) => handlePseudoInput('pseudo10', e.target.value, 9)}
+                            onKeyDown={(e) => handlePseudoKeyDown(e, 9)}
                             disabled={selectedAction === "delete"}
                             className="pseudo-input"
-                            // placeholder="10"
                           />
                         </div>
                         <div className="pseudo-help">
@@ -1539,6 +1655,7 @@ const Company = () => {
                   className="submit-btn"
                   ref={submitRef}
                   onClick={(e) => handleSubmit(e)} // Pass event
+                  onKeyDown={(e) => handleKeyDown(e, 'submit')}
                   disabled={loading || (selectedAction === "create" ? !formPermissions.add : selectedAction === "edit" ? !formPermissions.edit : !formPermissions.delete)}
                 >
                   {loading ? "Processing..." :

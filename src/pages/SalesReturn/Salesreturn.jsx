@@ -183,7 +183,7 @@ const SalesReturn = () => {
     const handleKeyDown = (e) => {
       // ❗ Ignore if user typing in input
       if (
-        e.target.tagName === "INPUT" ||
+        
         e.target.tagName === "TEXTAREA"
       ) {
         return;
@@ -910,20 +910,13 @@ const handleBarcodeEnter = async (rowIndex, barcode) => {
       return updated;
     });
 
-  // ✅ MOVE TO ITEM NAME (NOT QTY)
+// ❌ REMOVE THIS
 setTimeout(() => {
-  const input = document.querySelector(
-    `input[data-row="${rowIndex}"][data-field="itemName"]`
-  );
-  input?.focus();
-
-  setFocusedElement({
-    type: 'table',
-    rowIndex,
-    fieldIndex: 1,
-    fieldName: 'itemName'
-  });
+  document
+    .querySelector(`input[data-row="${rowIndex}"][data-field="qty"]`)
+    ?.focus();
 }, 120);
+
 
 
   } catch (err) {
@@ -1872,7 +1865,7 @@ setTimeout(() => {
   useEffect(() => {
   const handleGlobalKeyDown = (e) => {
     // Skip if popup is open
-    if (popupOpen || billDetailsPopupOpen || showConfirmPopup) {
+    if (popupOpen ||  showConfirmPopup) {
       // Handle Enter in confirmation popup
       if (showConfirmPopup && e.key === 'Enter') {
         e.preventDefault();
@@ -3812,13 +3805,35 @@ const handleApplyBillDirect = async () => {
   data-field="barcode"
   onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
   onKeyDown={async (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      await handleBarcodeEnter(index, item.barcode);
-    } else {
-      handleTableKeyDown(e, index, 'barcode');
+  if (e.key === "Enter") {
+    e.preventDefault();
+
+    // ✅ IF BARCODE EMPTY → GO TO ITEM NAME
+    if (!item.barcode || !item.barcode.trim()) {
+      setTimeout(() => {
+        const input = document.querySelector(
+          `input[data-row="${index}"][data-field="itemName"]`
+        );
+        input?.focus();
+
+        setFocusedElement({
+          type: 'table',
+          rowIndex: index,
+          fieldIndex: 1,
+          fieldName: 'itemName'
+        });
+      }, 10);
+      return;
     }
-  }}
+
+    // ✅ IF BARCODE HAS VALUE → FETCH ITEM
+    await handleBarcodeEnter(index, item.barcode);
+    return;
+  }
+
+  handleTableKeyDown(e, index, 'barcode');
+}}
+
   onFocus={() => {
     setFocusedField(`barcode-${item.id}`);
     setFocusedElement({
@@ -3898,7 +3913,7 @@ const handleApplyBillDirect = async () => {
     }}
     onBlur={() => setFocusedField('')}
     inputMode="numeric"
-    placeholder="Stock"
+    
   />
 </td>
 
