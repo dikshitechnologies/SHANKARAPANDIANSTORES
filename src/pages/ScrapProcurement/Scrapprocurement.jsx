@@ -2819,7 +2819,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
         itemInput.focus();
         setCurrentFocus({ section: 'table', rowIndex: selectedRowForItem, fieldIndex: 1 });
       }
-    }, 100);
+    }, 500);
   }}
 />
 
