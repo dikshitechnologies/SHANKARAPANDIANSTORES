@@ -2983,22 +2983,23 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       />     
       
       {/* Item Code Selection Popup */}     
-      <PopupListSelector
-        open={showItemCodePopup}
-        onClose={() => {
-          setShowItemCodePopup(false);
-          setItemSearchTerm('');         
-        }}
-        title="Select Item Code"
-        fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search || itemSearchTerm)}
-        displayFieldKeys={['barcode','name']}
-        headerNames={['Barcode','Name']}
-        searchFields={['barcode','name']}
-        columnWidths={{ barcode: '50%', name: '50%' }}
-        searchPlaceholder="Search by barcode or name..."
-        initialSearch={itemSearchTerm}
-        onSelect={handleItemCodeSelection}
-      />
+       <PopupListSelector
+              open={showItemCodePopup}
+              onClose={() => {
+                setShowItemCodePopup(false);
+                setItemSearchTerm(''); // Clear search term when closing
+                setSelectedRowId(null); // Clear selected row
+              }}
+              title="Select Item Code"
+              fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search)}
+              displayFieldKeys={['barcode','name']}
+              headerNames={['Barcode','Name']}
+              searchFields={['barcode','name']}
+              columnWidths={{ barcode: '50%', name: '50%' }}
+              searchPlaceholder="Search by barcode or name..."
+              initialSearch={itemSearchTerm}
+              onSelect={handleItemCodeSelection}
+            />
 
       {/* Confirmation Popup */}
       <ConfirmationPopup

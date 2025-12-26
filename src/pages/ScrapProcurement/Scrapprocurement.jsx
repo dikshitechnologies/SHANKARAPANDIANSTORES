@@ -841,6 +841,14 @@ useEffect(() => {
 
   // NEW: Handle Edit button click
   const handleEditClick = () => {
+    // Permission check: prevent opening edit if user lacks edit permission
+    if (!formPermissions.edit) {
+      toast.error("You do not have permission to edit scrap procurements.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
     setPopupMode('edit');
     setVoucherSearchTerm('');
     setShowVoucherListPopup(true);
@@ -849,6 +857,14 @@ useEffect(() => {
 
   // NEW: Handle Delete button click
   const handleDeleteClick = () => {
+    // Permission check: prevent opening delete if user lacks delete permission
+    if (!formPermissions.delete) {
+      toast.error("You do not have permission to delete scrap procurements.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
     setPopupMode('delete');
     setVoucherSearchTerm('');
     setShowVoucherListPopup(true);
@@ -1503,6 +1519,14 @@ const fetchItemList = async (pageNum = 1, search = '') => {
   const handleSave = async () => {
     try {
       if (ignoreNextEnterRef.current) {
+        return;
+      }
+      // Permission check: ensure user can add or edit
+      if (!formPermissions.add && !formPermissions.edit) {
+        toast.error("You do not have permission to save scrap procurements.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
         return;
       }
       

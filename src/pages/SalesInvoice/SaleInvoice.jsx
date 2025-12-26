@@ -23,6 +23,8 @@ const TABLE_FIELDS = [
   'qty'
 ];
 
+
+
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -40,14 +42,8 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
   </svg>
 );
-const selectAllOnFocus = (e, fieldKey) => {
-  setFocusedField(fieldKey);
 
-  // 🔥 wait until focus + render fully settles
-  setTimeout(() => {
-    e.target.select();
-  }, 0);
-};
+
 
 
 const SaleInvoice = () => {
@@ -266,16 +262,20 @@ const SaleInvoice = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  const selectAllOnFocus = useCallback((e, fieldKey) => {
+
+const selectAllOnFocus = useCallback((e, fieldKey) => {
   setFocusedField(fieldKey);
 
-  // 🔥 safest way – works with Enter, Arrow, Mouse
+  // ❌ DO NOT auto-select for qty
+  if (fieldKey.includes('qty')) return;
+
   requestAnimationFrame(() => {
-    if (e.target) {
+    if (e.target && typeof e.target.select === "function") {
       e.target.select();
     }
   });
 }, []);
+
 
 
   // Focus Bill Date on load or when action changes (except delete)
@@ -1566,91 +1566,70 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
 const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const fieldIndex = TABLE_FIELDS.indexOf(currentField);
   const currentItem = items[currentRowIndex];
+  const isLastRow = currentRowIndex === items.length - 1;
 
   const hasItemName =
     currentItem.itemName && currentItem.itemName.trim() !== "";
 
-
-    const lastRowIndex = items.length - 1;
-const lastRow = items[lastRowIndex];
-
-const hasEmptyLastRow =
-  lastRow &&
-  (!lastRow.itemName || lastRow.itemName.trim() === "") &&
-  (!lastRow.barcode || lastRow.barcode.trim() === "");
-
-  
-  // ⏎ ENTER KEY
+  /* =====================================================
+     ⏎ ENTER
+  ===================================================== */
   if (e.key === "Enter") {
     e.preventDefault();
     e.stopPropagation();
 
+    // ✅ EMPTY LAST ROW → SAVE
+    if (
+      isLastRow &&
+      (!currentItem.itemName || !currentItem.itemName.trim()) &&
+      (!currentItem.barcode || !currentItem.barcode.trim())
+    ) {
+      setTimeout(() => {
+        saveButtonRef.current?.focus();
+      }, 0);
+      return;
+    }
+
     // 🚫 ITEM NAME EMPTY
     if (!hasItemName) {
-
-      // ✅ ROW 1 (index 0)
       if (currentRowIndex === 0) {
-
-        // 🔔 FIRST ENTER → warning only
-        if (!warnedEmptyRowRef.current[0]) {
-          warnedEmptyRowRef.current[0] = true;
-
-          toast.warning("Item Name is required", {
-            autoClose: 1500,
-            position: "top-right",
-          });
-
-          setTimeout(() => {
-            document
-              .querySelector(
-                `input[data-row="0"][data-field="itemName"]`
-              )
-              ?.focus();
-          }, 0);
-
-          return;
-        }
-
-        // 🔁 ALWAYS stay on Item Name for ROW 1
-setTimeout(() => {
-  document
-    .querySelector(
-      `input[data-row="0"][data-field="itemName"]`
-    )
-    ?.focus();
-}, 0);
-
-return;
-
+        toast.warning("Item Name is required", { autoClose: 1500 });
+        setTimeout(() => {
+          document
+            .querySelector(
+              `input[data-row="0"][data-field="itemName"]`
+            )
+            ?.focus();
+        }, 0);
+        return;
       }
 
-      // ✅ ROW 2, 3, 4...
       saveButtonRef.current?.focus();
       return;
     }
 
-    // ✅ NORMAL FIELD FLOW
-    const fieldNavigation = {
-      barcode: "itemName",
-      itemName: "stock",
-      stock: "mrp",
-      mrp: "uom",
-      uom: "hsn",
-      hsn: "tax",
-      tax: "sRate",
-      sRate: "qty",
-    };
-
-    // ✅ QTY → ADD ROW
+    /* =====================================================
+       ✅ QTY FIELD (FINAL SALES INVOICE RULE)
+    ===================================================== */
     if (currentField === "qty") {
       if (!currentItem.qty || Number(currentItem.qty) <= 0) {
-        toast.warning("Please enter quantity", {
-          autoClose: 1500,
-          position: "top-right",
-        });
+        toast.warning("Please enter quantity", { autoClose: 1500 });
         return;
       }
 
+      // ➡️ NOT last row → go to NEXT ROW BARCODE
+      if (!isLastRow) {
+        setTimeout(() => {
+          document
+            .querySelector(
+              `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+            )
+            ?.focus();
+        }, 50);
+        return;
+      }
+
+      // ➕ LAST ROW → ADD NEW ROW
       handleAddRow();
       setTimeout(() => {
         document
@@ -1661,6 +1640,20 @@ return;
       }, 80);
       return;
     }
+
+    /* =====================================================
+       NORMAL FIELD FLOW (same row)
+    ===================================================== */
+    const fieldNavigation = {
+      barcode: "itemName",
+      itemName: "tax",
+      stock: "mrp",
+      mrp: "uom",
+      uom: "hsn",
+      hsn: "tax",
+      tax: "sRate",
+      sRate: "qty",
+    };
 
     const nextField = fieldNavigation[currentField];
     if (nextField) {
@@ -1673,7 +1666,9 @@ return;
     return;
   }
 
-  // ⬅️ LEFT
+  /* =====================================================
+     ⬅️ LEFT
+  ===================================================== */
   if (e.key === "ArrowLeft") {
     e.preventDefault();
     if (fieldIndex > 0) {
@@ -1687,7 +1682,9 @@ return;
     return;
   }
 
-  // ➡️ RIGHT
+  /* =====================================================
+     ➡️ RIGHT
+  ===================================================== */
   if (e.key === "ArrowRight") {
     e.preventDefault();
     if (fieldIndex < TABLE_FIELDS.length - 1) {
@@ -1701,7 +1698,9 @@ return;
     return;
   }
 
-  // ⬆️ UP
+  /* =====================================================
+     ⬆️ UP
+  ===================================================== */
   if (e.key === "ArrowUp") {
     e.preventDefault();
     if (currentRowIndex > 0) {
@@ -1714,7 +1713,9 @@ return;
     return;
   }
 
-  // ⬇️ DOWN
+  /* =====================================================
+     ⬇️ DOWN
+  ===================================================== */
   if (e.key === "ArrowDown") {
     e.preventDefault();
     if (currentRowIndex < items.length - 1) {
@@ -1727,12 +1728,16 @@ return;
     return;
   }
 
-  // / → ITEM POPUP
+  /* =====================================================
+     / → ITEM POPUP
+  ===================================================== */
   if (e.key === "/" && currentField === "itemName") {
     e.preventDefault();
     openItemPopup(currentRowIndex);
   }
 };
+
+
 
   const handleAddItem = async () => {
     if (!billDetails.barcodeInput) {
@@ -3248,7 +3253,7 @@ const itemsData = validItems.map(item => ({
                       }}
                       onFocus={() => setFocusedField(`barcode-${item.id}`)}
                       onBlur={() => setFocusedField('')}
-                      placeholder="Scan barcode"
+                     
                     />
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
@@ -3590,19 +3595,19 @@ const itemsData = validItems.map(item => ({
       </div>
 
       {/* Save Confirmation Popup */}
-      <ConfirmationPopup
-        isOpen={saveConfirmationOpen}
-        onClose={() => setSaveConfirmationOpen(false)}
-        onConfirm={handleConfirmedSave}
-        title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
-         message="Are you want to modify?"
-        confirmText={saveConfirmationData?.isEditing ? " Yes" : " SAVE"}
-        cancelText="No"
-        type={saveConfirmationData?.isEditing ? "warning" : "success"}
-        showIcon={true}
-        showLoading={isSaving}
-        borderColor={saveConfirmationData?.isEditing ? "#ffc107" : "#1B91DA"}
-      />
+<ConfirmationPopup
+  isOpen={saveConfirmationOpen}
+  onClose={() => setSaveConfirmationOpen(false)}
+  onConfirm={handleConfirmedSave}
+  title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
+  message={saveConfirmationData?.isEditing ? "Do you want to modify?" : "Do you want to save?"}
+  confirmText={saveConfirmationData?.isEditing ? " Yes" : " SAVE"}
+  cancelText="No"
+  type={saveConfirmationData?.isEditing ? "warning" : "success"}
+  showIcon={true}
+  showLoading={isSaving}
+  borderColor={saveConfirmationData?.isEditing ? "#ffc107" : "#1B91DA"}
+/>
       {/* Clear Confirmation Popup */}
       <ConfirmationPopup
         isOpen={clearConfirmationOpen}
@@ -3703,6 +3708,7 @@ const itemsData = validItems.map(item => ({
           fetchInvoicesForPopup(page, search)
         }
         title="Select Invoice to Edit"
+        
         displayFieldKeys={getPopupConfig('editInvoice').displayFieldKeys}
         searchFields={getPopupConfig('editInvoice').searchFields}
         headerNames={getPopupConfig('editInvoice').headerNames}

@@ -113,10 +113,10 @@ const PopupListSelector = ({
 
       if (reset) {
         setData(itemsArray);
-        setFilteredData(filterItems(itemsArray, searchText));
+        setFilteredData(filterItems(itemsArray, search));
       } else {
         setData(prev => [...prev, ...itemsArray]);
-        setFilteredData(prev => [...prev, ...filterItems(itemsArray, searchText)]);
+        setFilteredData(prev => [...prev, ...filterItems(itemsArray, search)]);
       }
 
       if (itemsArray.length < 20) {
