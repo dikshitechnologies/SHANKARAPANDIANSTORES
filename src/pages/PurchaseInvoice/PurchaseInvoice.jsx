@@ -1534,7 +1534,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       
       showConfirmation({
         title: isEditMode ? 'Update Purchase Invoice' : 'Create Purchase Invoice',
-        message: `Are you want to ${isEditMode ? 'update' : 'save'} ?`,
+        message: `Do you want to ${isEditMode ? 'update' : 'save'} ?`,
         onConfirm: async () => {
           setIsLoading(true);
           try {
@@ -1571,7 +1571,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             setIsLoading(false);
           }
         },
-        type: 'question',
+        type: 'warning',
         confirmText: isEditMode ? 'Yes' : 'Yes',
         cancelText: 'No',
         showLoading: false
