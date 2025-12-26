@@ -56,7 +56,7 @@ const PaymentVoucher = () => {
     accountName: '',
     accountCode: '',
     balance: '',
-    crDr: 'CR'
+    crDr: ''
   });
 
   // 2. Table Items State (Payment Details)
@@ -2056,7 +2056,6 @@ const PaymentVoucher = () => {
       : styles.inlineInputClickable),
     width: '420px'
   }}
-                placeholder="Search A/C Name"
               />
             </div>
 
@@ -2147,7 +2146,6 @@ const PaymentVoucher = () => {
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
                       style={navigationStep === 'paymentCashBank' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
-                      placeholder="Search Cash/Bank"
                       title="Click to select or type to search"
                     />
                   </td>
@@ -2234,6 +2232,7 @@ const PaymentVoucher = () => {
                       ref={el => paymentChqDtRefs.current[index] = el}
                       id={`payment_${item.id}_chqDt`}
                       type="date"
+                      placeholder=""
                       value={item.chqDt}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqDt', e.target.value)}
                       onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqDt')}
@@ -2381,6 +2380,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_date`}
                       type="date"
+                      placeholder=""
                       value={bill.date || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
