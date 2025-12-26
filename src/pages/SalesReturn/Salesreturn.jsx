@@ -964,7 +964,7 @@ setTimeout(() => {
           compCode: "001",
           userCode: "001",
           billAMT: totalAmount.toFixed(2).toString(),
-          billNo: (billDetails.newBillNo || "").toString(),
+          RefNo: (billDetails.newBillNo || "").toString(),
         
         },
         items: validItems.map((item, index) => ({
@@ -1296,6 +1296,7 @@ setTimeout(() => {
         ...prev,
         billNo: header.voucherNo || voucherNo,
         billDate: formattedDate,
+         newBillNo: header.RefNo || header.refNo || "",
         mobileNo: header.mobileNo || "",
         salesman: header.salesMansName || "",
         salesmanCode: header.salesMansCode || "002",
