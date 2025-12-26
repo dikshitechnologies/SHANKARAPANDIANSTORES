@@ -1608,17 +1608,17 @@ const ReceiptVoucher = () => {
       
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
-        alert('Voucher number is required');
+        toast.error('Voucher number is required', { autoClose: 3000 });
         return;
       }
       if (!voucherDetails.accountName) {
         setError('Account is required');
-        alert('Please select an account');
+        toast.error('Account is required', { autoClose: 3000 });
         return;
       }
       if (receiptItems.length === 0) {
         setError('At least one receipt item is required');
-        alert('Please add at least one receipt item');
+        toast.error('At least one receipt item is required', { autoClose: 3000 });
         return;
       }
 
