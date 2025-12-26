@@ -3659,7 +3659,7 @@ const itemsData = validItems.map(item => ({
   onConfirm={handleConfirmedSave}
   title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
   message={saveConfirmationData?.isEditing ? "Do you want to modify?" : "Do you want to save?"}
-  confirmText={saveConfirmationData?.isEditing ? " Yes" : " SAVE"}
+  confirmText={saveConfirmationData?.isEditing ? " Yes" : "Yes"}
   cancelText="No"
   type={saveConfirmationData?.isEditing ? "warning" : "success"}
   showIcon={true}
@@ -3699,7 +3699,7 @@ const itemsData = validItems.map(item => ({
         onConfirm={handleConfirmedDelete}
         title="Confirm DELETE Invoice"
         message={
-          "Are you  want to delete? "
+          "Do you  want to delete? "
         }
         confirmText=" Yes"
         cancelText="No"

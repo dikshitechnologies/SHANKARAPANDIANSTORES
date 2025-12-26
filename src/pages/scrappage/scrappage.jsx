@@ -1255,7 +1255,7 @@ export default function ScrapPage() {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap Item to Edit"
+        title="Select Scrap to Edit"
         displayFieldKeys={[ 'scrapName',  ]}
         searchFields={[ 'scrapName',  ]}
         headerNames={[ 'Scrap Name',  ]}
@@ -1268,7 +1268,7 @@ export default function ScrapPage() {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Scrap Item to Delete"
+        title="Select Scrap to Delete"
         displayFieldKeys={[ 'scrapName',  ]}
         searchFields={[ 'scrapName', ]}
         headerNames={[ 'Scrap Name',  ]}
