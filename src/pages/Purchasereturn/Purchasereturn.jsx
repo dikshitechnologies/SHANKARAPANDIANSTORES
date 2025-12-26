@@ -747,7 +747,7 @@ const handleBlur = () => {
     } else if (popupMode === 'delete') {
       showConfirmation({
         title: 'Delete Purchase Return',
-        message: `Are you sure you want to delete?`,
+        message: `Do you want to delete?`,
         onConfirm: () => {
           deletePurchaseBill(selectedBill.voucherNo);
         },
@@ -846,13 +846,14 @@ const handleBlur = () => {
       );
 
       if (response.status === 200 || response.status === 204) {
-        showAlertConfirmation(
-          `Purchase return ${voucherNo} deleted successfully`,
-          () => {
-            createNewForm();
-          },
-          'success'
-        );
+         createNewForm();
+        // showAlertConfirmation(
+        //   `Purchase return ${voucherNo} deleted successfully`,
+        //   () => {
+        //     createNewForm();
+        //   },
+        //   'success'
+        // );
       } else {
         throw new Error(`Delete failed with status: ${response.status}`);
       }
@@ -1346,8 +1347,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         createNewForm();
       },
       type: 'warning',
-      confirmText: 'Clear All',
-      cancelText: 'Cancel'
+      confirmText: 'Yes',
+      cancelText: 'No'
     });
   };
 
@@ -1473,7 +1474,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       
       showConfirmation({
         title: isEditMode ? 'Update Purchase Return' : 'Create Purchase Return',
-        message: `Do you want to ${isEditMode ? 'update' : 'save'} ?`,
+        message: `Do you want to ${isEditMode ? 'modify' : 'save'} ?`,
+        type: isEditMode ? 'warning' : 'success',
         onConfirm: async () => {
           setIsLoading(true);
           try {
@@ -1510,7 +1512,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             setIsLoading(false);
           }
         },
-        type: 'warning',
+        
         confirmText: isEditMode ? 'Yes' : 'Yes',
         cancelText: 'No',
         showLoading: false

@@ -905,14 +905,15 @@ const handleBlur = () => {
       );
 
       if (response.status === 200 || response.status === 204) {
-        showAlertConfirmation(
-          `Purchase invoice ${voucherNo} deleted successfully`,
-          () => {
-            createNewForm();
-          },
-          'success'
-        );
-        // toast.error(`Purchase invoice ${voucherNo} deleted successfully.`);
+        createNewForm();
+      //   showAlertConfirmation(
+      //     `Purchase invoice ${voucherNo} deleted successfully`,
+      //     () => {
+      //       createNewForm();
+      //     },
+      //     'success'
+      //   );
+      //   // toast.error(`Purchase invoice ${voucherNo} deleted successfully.`);
       } else {
         throw new Error(`Delete failed with status: ${response.status}`);
       }
@@ -1407,8 +1408,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         createNewForm();
       },
       type: 'warning',
-      confirmText: 'Clear All',
-      cancelText: 'Cancel'
+      confirmText: 'Yes',
+      cancelText: 'No'
     });
   };
 
@@ -1534,7 +1535,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       
       showConfirmation({
         title: isEditMode ? 'Update Purchase Invoice' : 'Create Purchase Invoice',
-        message: `Do you want to ${isEditMode ? 'update' : 'save'} ?`,
+        message: `Do you want to ${isEditMode ? 'modify' : 'save'} ?`,
         onConfirm: async () => {
           setIsLoading(true);
           try {
@@ -1571,7 +1572,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             setIsLoading(false);
           }
         },
-        type: 'warning',
+        type: isEditMode ? 'warning' : 'success',
         confirmText: isEditMode ? 'Yes' : 'Yes',
         cancelText: 'No',
         showLoading: false

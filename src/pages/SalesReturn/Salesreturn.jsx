@@ -2742,10 +2742,10 @@ const handleTableKeyDown = (e, rowIndex, field) => {
 
     showConfirmation({
       title: "Delete Item",
-      message: `Are you sure you want to delete`,
+      message: `Do you want to clear?`,
       type: "danger",
-      confirmText: "Delete",
-      cancelText: "Cancel",
+      confirmText: "Yes",
+      cancelText: "No",
       onConfirm: () => {
         if (items.length > 1) {
           const filteredItems = items.filter(item => item.id !== id);
@@ -2824,76 +2824,26 @@ const handleApplyBillDirect = async () => {
   };
 
   // ==================== SAVE FUNCTION ====================
-  const handleSave = async () => {
-    // === PERMISSION CHECK ===
-    const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
-                              billDetails.billNo.startsWith('SR');
-    
-    if (isExistingVoucher && !formPermissions.edit) {
-      toast.error("You do not have permission to edit sales returns.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    
-    if (!isExistingVoucher && !formPermissions.add) {
-      toast.error("You do not have permission to create sales returns.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    // === END PERMISSION CHECK ===
-
-    if (!billDetails.custName) {
-      toast.warning("Please select a customer.");
-      return;
-    }
-
-    if (items.length === 0 || items.every(item => !item.itemName && !item.barcode)) {
-      toast.warning("Please add at least one item.");
-      return;
-    }
-
-    const invalidItems = items.filter(item => 
-      item.itemName && (!item.qty || parseFloat(item.qty) <= 0)
-    );
-    
-    if (invalidItems.length > 0) {
-      toast.warning("Please enter valid quantity for all items.");
-      return;
-    }
-
- // Determine if this is an update or create
-const actionType = isExistingVoucher ? 'update' : 'create';
-const actionText = isExistingVoucher ? 'Update' : 'Save';
-
-showConfirmation({
-  title: `${actionText} Sales Return`,
-  message: isExistingVoucher ? "Do you want to Modify?" : "Do you want to Save?",
- type: isExistingVoucher ? "warning" : "success",  // NEW - yellow for edit, green for save
-  confirmText: "Yes",
-  cancelText: "No",
-  onConfirm: async () => {
-    try {
-      if (isExistingVoucher) {
-        console.log("Performing UPDATE operation");
+const handleSave = async () => {
+  showConfirmation({
+    title: isEditMode ? "Update Sales Return" : "Save Sales Return",
+    message: isEditMode
+      ? "Do you want to update?"
+      : "Do you want to save?",
+    type: isEditMode ? "warning" : "success",
+    confirmText: "Yes",
+    cancelText: "No",
+    onConfirm: async () => {
+      if (isEditMode) {
         await updateSalesReturn();
-        // Note: resetForm() is already called inside updateSalesReturn()
       } else {
-        console.log("Performing CREATE operation");
         await createSalesReturn();
-        // Note: resetForm() is already called inside createSalesReturn()
       }
-      
-    } catch (err) {
-      console.error("Save error:", err);
-      // Error is already handled in the individual functions
     }
-  }
-});
+  });
 };
+
+
 
 const handlePrint = () => {
   toast.info('Print functionality to be implemented');
