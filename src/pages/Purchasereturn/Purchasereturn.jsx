@@ -1180,6 +1180,10 @@ const calculateItem = (item) => {
     }
   };
 
+
+  useEffect(() => {
+    setItems(prev => prev.map(calculateItem));
+  }, [items]);
 // Update the handleTableKeyDown function
 const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   // Handle / key for item code search popup

@@ -1191,6 +1191,9 @@ const calculateItem = (item) => {
   };
 };
 
+useEffect(() => {
+  setItems(prev => prev.map(calculateItem));
+}, [items]);
   // Handle UOM spacebar cycling (same as SalesInvoice)
   const handleUomSpacebar = (e, id, index) => {
     if (e.key === ' ') {
