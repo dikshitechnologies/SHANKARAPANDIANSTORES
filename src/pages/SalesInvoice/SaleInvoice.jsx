@@ -390,67 +390,96 @@ const fetchCustomers = useCallback(async () => {
     }
   }, []);
 
-  // Fetch items
-  const fetchItems = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError("");
+// Fetch items by type (FG for Finished Goods)
+const fetchItems = useCallback(async (type = 'FG') => {
+  try {
+    setIsLoading(true);
+    setError("");
+    
+    // Use getItemsByType endpoint with FG type
+    const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getItemsByType(type, 1, 100);
+    
+    const response = await axiosInstance.get(endpoint);
+    
+    if (response && response.data) {
+      let itemsArray = [];
       
-      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getItemDropdown(1, 100, '');
+      // Handle response format - check for data array
+      if (response.data.data && Array.isArray(response.data.data)) {
+        itemsArray = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        itemsArray = response.data;
+      }
       
-      const response = await axiosInstance.get(endpoint);
-      
-      if (response && response.data) {
-        let itemsArray = [];
-        
-        if (response.data.data && Array.isArray(response.data.data)) {
-          itemsArray = response.data.data;
-        } else if (Array.isArray(response.data)) {
-          itemsArray = response.data;
-        }
-        
-        if (itemsArray.length > 0) {
-          const formattedItems = itemsArray.map(item => {
-            const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
-            const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-            const units = item.fUnits || item.units || "";
-
-            return {
-              ...item,
-              id: itemCode || Math.random(),
-              fItemcode: itemCode,
-              fItemName: itemName,
-              fUnits: units,
-              itemCode: itemCode,
-              itemName: itemName,
-              name: itemName,
-              code: itemCode,
-              originalCode: itemCode,
-              barcode: item.barcode || item.Barcode || itemCode,
-              stock: item.stockQty || item.stock || item.StockQty || item.Stock || item.quantity || item.Quantity || 0,
-              mrp: item.mrp || item.MRP || item.sellingPrice || item.SellingPrice || item.price || item.Price || 0,
-              uom: units,
-              hsn: item.fhsn || item.hsn || item.hsnCode || "",
-              tax: item.taxRate || item.tax || item.TaxRate || item.Tax || 0,
-              sRate: item.sellingPrice || item.sRate || item.SellingPrice || item.SRate || item.price || item.Price || 0,
-              displayName: itemName, // Changed: Show only item name, not code
-              popupDisplay: itemName // Changed: Show only item name, not code
-            };
-          });
+      if (itemsArray.length > 0) {
+        const formattedItems = itemsArray.map(item => {
+          // ✅ IMPORTANT: CORRECT FIELD MAPPINGS FOR FG TYPE
+          const itemCode = item.itemCode || item.code || item.id || '';
+          const itemName = item.itemName || item.name || '';
+          const units = item.units || item.uom || "PCS"; // Default to PCS if empty
+          const barcode = item.finalPrefix || item.barcode; // ✅ finalPrefix is the BARCODE
           
-          setItemList(formattedItems);
-        } else {
-          setItemList([]);
-        }
+          // Handle empty preRate (like in the second item where preRate is "")
+          const preRateValue = item.preRate === "" || item.preRate === null || item.preRate === undefined 
+            ? "0" 
+            : item.preRate;
+          
+          return {
+            ...item,
+            id: itemCode || Math.random(),
+            fItemcode: itemCode,
+            fItemName: itemName,
+            fUnits: units,
+            itemCode: itemCode,
+            itemName: itemName,
+            name: itemName,
+            code: itemCode,
+            originalCode: itemCode,
+            barcode: barcode, // ✅ This now correctly maps finalPrefix to barcode
+            stock: item.maxQty || item.stock || item.quantity || 0, // ✅ Use maxQty as available stock
+            mrp: preRateValue || item.mrp || item.sRate || "0",
+            uom: units,
+            hsn: item.hsn || item.hsnCode || "",
+            tax: "0", // Default tax to 0 if not provided
+            sRate: preRateValue || item.sRate || item.mrp || "0", // ✅ Use preRate as selling rate
+            displayName: `${itemName} (${itemCode})`, // Show both name and code
+            popupDisplay: itemName, // Show only name in popup
+            // ✅ Keep all original fields for reference
+            finalPrefix: item.finalPrefix, // Keep original barcode value
+            preRate: preRateValue, // Keep original rate value
+            maxQty: item.maxQty,
+            minQty: item.minQty,
+            brand: item.brand,
+            category: item.category,
+            model: item.model,
+            size: item.size,
+            type: item.type // Should be "FG"
+          };
+        });
+        
+        setItemList(formattedItems);
+        console.log(`FG Items fetched (${formattedItems.length} items):`, formattedItems.map(i => ({ 
+          name: i.itemName, 
+          code: i.itemCode,
+          barcode: i.barcode,
+          finalPrefix: i.finalPrefix,
+          preRate: i.preRate,
+          stock: i.stock
+        })));
       } else {
         setItemList([]);
+        console.log("No FG items found");
       }
-    } catch (err) {
+    } else {
       setItemList([]);
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+  } catch (err) {
+    console.error("Error fetching FG items:", err);
+    setItemList([]);
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
 
   // Fetch saved invoices for Edit/Delete popups
   const fetchSavedInvoices = useCallback(async (page = 1, search = '') => {
@@ -778,21 +807,22 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
 };
 
 
-  // Initial data fetch
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      if (!billDetails.billNo && !isEditing) {
-        await fetchNextBillNo();
-      }
-      
-      await fetchCustomers();
-      await fetchItems();
-      await fetchSalesmen();
-      await fetchSavedInvoices(1, '');
-    };
+// Initial data fetch
+// Initial data fetch
+useEffect(() => {
+  const fetchInitialData = async () => {
+    if (!billDetails.billNo && !isEditing) {
+      await fetchNextBillNo();
+    }
     
-    fetchInitialData();
-  }, [fetchNextBillNo, fetchCustomers, fetchItems, fetchSalesmen, fetchSavedInvoices, isEditing, billDetails.billNo]);
+    await fetchCustomers();
+    await fetchItems('FG'); // ✅ Use 'FG' for Finished Goods
+    await fetchSalesmen();
+    await fetchSavedInvoices(1, '');
+  };
+  
+  fetchInitialData();
+}, [fetchNextBillNo, fetchCustomers, fetchItems, fetchSalesmen, fetchSavedInvoices, isEditing, billDetails.billNo]);
 
   // Calculate Totals whenever items change
   useEffect(() => {
@@ -847,7 +877,7 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
     setAddLessAmount('');
     setIsEditing(false);
     setOriginalInvoiceNo('');
-    
+    setActiveTopAction('add');
     fetchNextBillNo();
   };
 
@@ -1138,85 +1168,70 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
     }, 200);
   };
 
-  // Handle item selection - MODIFIED: Don't fetch barcode to item name field, only update item name
-  const handleItemSelect = async (item) => {
-    ignoreNextEnterRef.current = true;
+// Handle item selection
+const handleItemSelect = async (item) => {
+  ignoreNextEnterRef.current = true;
 
-    if (!item || currentItemRowIndex === null) return;
+  if (!item || currentItemRowIndex === null) return;
 
-    try {
-      const updatedItems = [...items];
-      const currentItem = updatedItems[currentItemRowIndex];
+  try {
+    const updatedItems = [...items];
+    const currentItem = updatedItems[currentItemRowIndex];
 
-      const itemCode =
-        item.fItemcode ||
-        item.itemCode ||
-        item.code ||
-        item.originalCode ||
-        '';
+    // Get item details from the selected item
+    const itemCode = item.fItemcode || item.itemCode || item.code || '';
+    const itemName = item.fItemName || item.itemName || item.name || '';
+    const units = item.fUnits || item.units || "";
+    // ✅ Use finalPrefix as barcode - keep empty if not available
+    const barcode = item.finalPrefix || item.barcode || '';
+    
+    // Use stock info from the item data or fetch separately
+    const stockInfo = await getStockByItemName(itemCode);
+    
+    // Resolve HSN
+    const resolvedHsn = item.hsn || stockInfo.hsn || '';
+    
+    // Format values - show empty if 0
+    const formatValue = (val) => {
+      const numVal = parseFloat(val || 0);
+      return numVal === 0 ? '' : numVal.toString();
+    };
 
-      const itemName =
-        item.fItemName ||
-        item.itemName ||
-        item.name ||
-        '';
+    updatedItems[currentItemRowIndex] = {
+      ...currentItem,
+      itemName,
+      itemCode,
+      // ✅ Set barcode from finalPrefix
+      barcode: barcode,
+      stock: (item.stock || stockInfo.stock || 0).toString(),
+      mrp: formatValue(item.preRate || item.mrp || stockInfo.mrp || 0), // ✅ Use preRate
+      uom: units || stockInfo.uom || '',
+      hsn: resolvedHsn,
+      tax: formatValue(item.tax || stockInfo.tax || 0),
+      sRate: formatValue(item.preRate || item.sRate || stockInfo.rate || 0), // ✅ Use preRate
+      qty: currentItem.qty || '',
+      amount: calculateAmount(
+        currentItem.qty || '',
+        item.preRate || item.sRate || stockInfo.rate || 0
+      )
+    };
 
-      const units = item.fUnits || item.units || "";
-
-      // 🔥 Fetch stock details (backup source for HSN)
-      const stockInfo = await getStockByItemName(itemCode);
-
-      // ✅ BULLETPROOF HSN RESOLUTION
-      const resolvedHsn =
-        item.hsn ||
-        item.hsnCode ||
-        item.HsnCode ||
-        item.HSN ||
-        stockInfo.hsn ||
-        stockInfo.hsnCode ||
-        stockInfo.HSN ||
-        '';
-
-      // Don't show 0 for tax, mrp, sRate - show empty if 0
-      const formatValue = (val) => {
-        const numVal = parseFloat(val || 0);
-        return numVal === 0 ? '' : numVal.toString();
-      };
-
-updatedItems[currentItemRowIndex] = {
-  ...currentItem,
-
-  itemName,
-  itemCode,
-
-  // ✅ KEEP BARCODE AS-IS (from fetchInvoiceDetails)
-  barcode: currentItem.barcode,
-
-  stock: (item.stock || stockInfo.stock || 0).toString(),
-  mrp: formatValue(item.mrp || stockInfo.mrp || 0),
-  uom: units || stockInfo.uom || stockInfo.fUnits || '',
-  hsn: resolvedHsn,
-  tax: formatValue(item.tax || stockInfo.tax || 0),
-  sRate: formatValue(item.sRate || stockInfo.rate || 0),
-  qty: currentItem.qty || '1',
-  amount: calculateAmount(
-    currentItem.qty || '1',
-    item.sRate || stockInfo.rate || 0
-  )
+    setItems(updatedItems);
+    console.log("Item selected with barcode:", { 
+      itemName, 
+      barcode,
+      finalPrefix: item.finalPrefix,
+      preRate: item.preRate 
+    });
+  } catch (err) {
+    console.error("Item select failed:", err);
+  } finally {
+    setItemPopupOpen(false);
+    setTimeout(() => {
+      ignoreNextEnterRef.current = false;
+    }, 200);
+  }
 };
-
-
-      setItems(updatedItems);
-    } catch (err) {
-      console.error("Item select failed:", err);
-    } finally {
-      setItemPopupOpen(false);
-
-      setTimeout(() => {
-        ignoreNextEnterRef.current = false;
-      }, 200);
-    }
-  };
 
   // Get popup configuration
   const getPopupConfig = (type) => {
@@ -1270,105 +1285,84 @@ updatedItems[currentItemRowIndex] = {
     
     return configs[type] || configs.customer;
   };
-
-  // Fetch items for popup
-  const fetchItemsForPopup = async (pageNum, search, type) => {
-    try {
-      let itemsData = [];
-      
-      switch(type) {
-        case 'customer':
-          itemsData = customerList.map(customer => ({
-            id: customer.code || customer.id,
-            code: customer.code,
-            name: customer.name,
-            displayName: customer.name
-          }));
-          break;
-          
-        case 'salesman':
-          itemsData = salesmanList.map(salesman => ({
-            id: salesman.code || salesman.id,
-            code: salesman.code,
-            name: salesman.name,
-            displayName: salesman.name
-          }));
-          break;
-          
-        case 'item':
-          itemsData = itemList.map((item, index) => ({
-            id: item.id || index,
-            fItemcode: item.fItemcode || item.itemCode,
-            fItemName: item.fItemName || item.itemName,
-            fUnits: item.fUnits || item.uom,
-            itemCode: item.fItemcode || item.itemCode,
-            itemName: item.fItemName || item.itemName,
-            code: item.fItemcode || item.itemCode,
-            name: item.fItemName || item.itemName,
-            hsn: item.hsn || item.fhsn || "",
-            originalCode: item.fItemcode || item.itemCode,
-            barcode: item.barcode,
-            stock: item.stock,
-            mrp: item.mrp,
-            uom: item.uom,
-            tax: item.tax,
-            sRate: item.sRate,
-            displayName: item.fItemName || item.itemName,
-            popupDisplay: item.fItemName || item.itemName // Changed: Show only item name
-          }));
-          break;
-          
-        case 'editInvoice':
-        case 'deleteInvoice':
-          return await fetchInvoiceItemsForPopup(pageNum, search);
-          
-        default:
-          itemsData = [];
-      }
-      
-      if (type === 'customer' || type === 'salesman' || type === 'item') {
-        const uniqueItems = [];
-        const seenIds = new Set();
+const fetchItemsForPopup = async (pageNum, search, type) => {
+  try {
+    let itemsData = [];
+    
+    switch(type) {
+      case 'customer':
+        itemsData = customerList.map(customer => ({
+          id: customer.code || customer.id,
+          code: customer.code,
+          name: customer.name,
+          displayName: customer.name
+        }));
+        break;
         
-        itemsData.forEach(item => {
-          const itemId = item.id || item.code;
-          if (!seenIds.has(itemId)) {
-            seenIds.add(itemId);
-            uniqueItems.push(item);
-          }
-        });
+      case 'salesman':
+        itemsData = salesmanList.map(salesman => ({
+          id: salesman.code || salesman.id,
+          code: salesman.code,
+          name: salesman.name,
+          displayName: salesman.name
+        }));
+        break;
         
-        itemsData = uniqueItems;
-      }
-      
-      let filtered = itemsData;
-      if (search) {
-       const searchLower = (search || '').trim().toLowerCase();
-
-filtered = itemsData.filter(item => {
-  const name =
-    item.itemName ||        // ✅ your API field
-    item.fitemNme ||        // ✅ fallback
-    item.name ||            // ✅ fallback
-    '';
-
-  return name
-    .toString()
-    .trim()                 // 🔥 remove spaces
-    .toLowerCase()
-    .includes(searchLower); // 🔥 STARTS WITH ONLY
-});
-
-      }
-      
-      const startIndex = (pageNum - 1) * 20;
-      const endIndex = startIndex + 20;
-      return filtered.slice(startIndex, endIndex);
-      
-    } catch (err) {
-      return [];
+      case 'item':
+        // Use the existing itemList state which is populated by fetchItems
+        itemsData = itemList.map((item, index) => ({
+          id: item.id || index,
+          fItemcode: item.fItemcode || item.itemCode,
+          fItemName: item.fItemName || item.itemName,
+          fUnits: item.fUnits || item.uom,
+          itemCode: item.fItemcode || item.itemCode,
+          itemName: item.fItemName || item.itemName,
+          code: item.fItemcode || item.itemCode,
+          name: item.fItemName || item.itemName,
+          hsn: item.hsn || item.fhsn || "",
+          originalCode: item.fItemcode || item.itemCode,
+          barcode: item.barcode,
+          stock: item.stock,
+          mrp: item.mrp,
+          uom: item.uom,
+          tax: item.tax,
+          sRate: item.sRate,
+          displayName: item.fItemName || item.itemName,
+          popupDisplay: item.fItemName || item.itemName
+        }));
+        break;
+        
+      case 'editInvoice':
+      case 'deleteInvoice':
+        return await fetchInvoiceItemsForPopup(pageNum, search);
+        
+      default:
+        itemsData = [];
     }
-  };
+    
+    // Apply search filter for items
+    if (type === 'item' && search) {
+      const searchLower = (search || '').trim().toLowerCase();
+      itemsData = itemsData.filter(item => {
+        const name = item.itemName || item.fItemName || item.name || '';
+        return name
+          .toString()
+          .trim()
+          .toLowerCase()
+          .includes(searchLower);
+      });
+    }
+    
+    // Pagination
+    const startIndex = (pageNum - 1) * 20;
+    const endIndex = startIndex + 20;
+    return itemsData.slice(startIndex, endIndex);
+    
+  } catch (err) {
+    console.error("Error fetching popup items:", err);
+    return [];
+  }
+};
 
   // --- HANDLERS ---
   const handleInputChange = (e) => {
@@ -1513,8 +1507,8 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
           hsn: barcodeData.fHSN || '',
           tax: (barcodeData.inTax || 0).toString(),
           sRate: (barcodeData.rate || 0).toString(),
-          qty: '1',
-          amount: calculateAmount('1', barcodeData.rate || 0)
+          qty: '',
+          amount: '0.00'
         };
         
         setItems(updatedItems);
@@ -1657,11 +1651,18 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
 
     const nextField = fieldNavigation[currentField];
     if (nextField) {
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-        )
-        ?.focus();
+      setTimeout(() => {
+        const element = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${nextField}"], div[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+        );
+        if (element) {
+          element.focus();
+          // Select text if it's an input field
+          if (element.tagName === 'INPUT' && element.type === 'text') {
+            element.select();
+          }
+        }
+      }, 0);
     }
     return;
   }
@@ -1673,11 +1674,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     e.preventDefault();
     if (fieldIndex > 0) {
       const prev = TABLE_FIELDS[fieldIndex - 1];
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${prev}"]`
-        )
-        ?.focus();
+      const element = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${prev}"], div[data-row="${currentRowIndex}"][data-field="${prev}"]`
+      );
+      if (element) {
+        element.focus();
+        // Select text if it's an input field
+        if (element.tagName === 'INPUT' && element.type === 'text') {
+          element.select();
+        }
+      }
     }
     return;
   }
@@ -1689,11 +1695,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     e.preventDefault();
     if (fieldIndex < TABLE_FIELDS.length - 1) {
       const next = TABLE_FIELDS[fieldIndex + 1];
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${next}"]`
-        )
-        ?.focus();
+      const element = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${next}"], div[data-row="${currentRowIndex}"][data-field="${next}"]`
+      );
+      if (element) {
+        element.focus();
+        // Select text if it's an input field
+        if (element.tagName === 'INPUT' && element.type === 'text') {
+          element.select();
+        }
+      }
     }
     return;
   }
@@ -1704,11 +1715,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   if (e.key === "ArrowUp") {
     e.preventDefault();
     if (currentRowIndex > 0) {
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
-        )
-        ?.focus();
+      const element = document.querySelector(
+        `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"], div[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
+      );
+      if (element) {
+        element.focus();
+        // Select text if it's an input field
+        if (element.tagName === 'INPUT' && element.type === 'text') {
+          element.select();
+        }
+      }
     }
     return;
   }
@@ -1719,11 +1735,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   if (e.key === "ArrowDown") {
     e.preventDefault();
     if (currentRowIndex < items.length - 1) {
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
-        )
-        ?.focus();
+      const element = document.querySelector(
+        `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"], div[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
+      );
+      if (element) {
+        element.focus();
+        // Select text if it's an input field
+        if (element.tagName === 'INPUT' && element.type === 'text') {
+          element.select();
+        }
+      }
     }
     return;
   }
@@ -1763,8 +1784,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           hsn: barcodeData.fHSN || '',
           tax: (barcodeData.inTax || 0).toString(),
           sRate: (barcodeData.rate || 0).toString(),
-          qty: '1',
-          amount: calculateAmount('1', barcodeData.rate || 0)
+          qty: '',
+          amount: calculateAmount(qty, barcodeData.rate || 0)
         };
         
         setItems([...items, newItem]);
@@ -1800,8 +1821,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               hsn: stockInfo.hsn || '',
               tax: stockInfo.tax || '0',
               sRate: stockInfo.rate || '0',
-              qty: '1',
-              amount: calculateAmount('1', stockInfo.rate || '0')
+              qty: '',
+              amount: calculateAmount(qty, stockInfo.rate || '0')
             };
             
             setItems([...items, newItem]);
@@ -1851,7 +1872,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         hsn: itemData.hsnCode || itemData.hsn || "",
         tax: (itemData.taxRate || itemData.tax || 0).toString(),
         sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
-        qty: '1',
+        qty: '',
         amount: (itemData.sellingPrice || itemData.price || 0).toFixed(2)
       };
 
@@ -3240,15 +3261,6 @@ const itemsData = validItems.map(item => ({
                         
                       }}
                       onKeyDown={(e) => {
-                        if (isEditing && e.key === 'Enter') {
-                          e.preventDefault();
-                          document
-                            .querySelector(
-                              `input[data-row="${index}"][data-field="itemName"]`
-                            )
-                            ?.focus();
-                          return;
-                        }
                         handleBarcodeKeyDown(e, index);
                       }}
                       onFocus={() => setFocusedField(`barcode-${item.id}`)}

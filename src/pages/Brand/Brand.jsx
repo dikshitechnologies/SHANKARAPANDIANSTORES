@@ -1276,10 +1276,10 @@ export default function BrandPage() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Brand to Edit"
-        displayFieldKeys={[ 'brandName', 'brandCode' ]}
-        searchFields={[ 'brandName', 'brandCode' ]}
-        headerNames={[ 'Brand Name', 'Code' ]}
-        columnWidths={{ brandName: '70%', brandCode: '30%' }}
+        displayFieldKeys={[ 'brandName',  ]}
+        searchFields={[ 'brandName',  ]}
+        headerNames={[ 'Brand Name',  ]}
+        columnWidths={{ brandName: '70%',  }}
         maxHeight="60vh"
       />
 
@@ -1289,10 +1289,10 @@ export default function BrandPage() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Brand to Delete"
-        displayFieldKeys={[ 'brandName', 'brandCode' ]}
-        searchFields={[ 'brandName', 'brandCode' ]}
-        headerNames={[ 'Brand Name', 'Code' ]}
-        columnWidths={{ brandName: '70%', brandCode: '30%' }}
+        displayFieldKeys={[ 'brandName',  ]}
+        searchFields={[ 'brandName',  ]}
+        headerNames={[ 'Brand Name',  ]}
+        columnWidths={{ brandName: '70%',  }}
         maxHeight="60vh"
       />
 

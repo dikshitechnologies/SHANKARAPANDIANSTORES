@@ -842,6 +842,7 @@ export default function LedgerCreation({ onCreated }) {
         fcell: it.fcell ?? it.cellNo ?? it.CellNo ?? '',
         fshow: it.fshow ?? '1',
         shortName: it.shortName ?? it.fShort ?? it.ShortName ?? it.fFax ?? '',
+        state:it.state?? '',
       }));
     } catch (err) {
       console.error('fetchPopupItems error', err);
@@ -1850,13 +1851,13 @@ export default function LedgerCreation({ onCreated }) {
               <label className="field-label">Group Name <span className="asterisk">*</span></label>
   <div className="row" style={{ display: "flex", alignItems: "center" }}>
                  <div style={{ 
-      display: "flex", 
-      flex: 1, 
-      border: "1px solid rgba(15,23,42,0.06)",
-      borderRadius: "10px",
-      overflow: "hidden",
-      backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
-    }}>
+                    display: "flex", 
+                    flex: 1, 
+                    border: "1px solid rgba(15,23,42,0.06)",
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                    backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
+                  }}>
                   <input
                     ref={groupNameRef}
                     type="text"

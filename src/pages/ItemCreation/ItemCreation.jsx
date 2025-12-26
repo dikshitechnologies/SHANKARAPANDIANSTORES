@@ -1498,16 +1498,18 @@ const ItemCreation = ({ onCreated }) => {
 
         label.field-label {
           display:block;
-          margin-bottom:6px;
+          margin-bottom:5px;
+          margin-top:5px ;
           font-weight:700;
           color:#0f172a;
           font-size:13px;
           text-align: left;
           width: 100%;
         }
+          
 
         .field { 
-          margin-bottom:12px; 
+          // margin-bottom:5px; 
           display:flex; 
           flex-direction:column; 
           align-items:flex-start; 
@@ -1864,7 +1866,7 @@ const ItemCreation = ({ onCreated }) => {
         .form-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 24px 32px;
+          gap: 10px 32px;
           margin-bottom: 16px;
           align-items: start;
         }

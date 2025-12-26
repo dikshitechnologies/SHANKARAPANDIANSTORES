@@ -235,10 +235,11 @@ CATEGORY: {
   getStockByItemName: (billType, itemcode) =>`Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
   getVoucherDetails: (voucherNo) =>`Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`,
   getItemTypes: () =>`Salesinvoices/GetItemTypes`,
-  getItemsByType: (type) =>`Salesinvoices/GetItemsByType?type=${type}`,
+  getItemsByType: (type, page = 1, pageSize = 100) =>
+    `Salesinvoices/GetItemsByType?type=${type}&page=${page}&pageSize=${pageSize}`,
   getStockByItemName1: (itemcode) =>`Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
   getSalesman: () =>`SalesmanCreation/GetSalesman`,
-  getItemDropdown: (page = 1, pageSize = 10, searchText = '') =>`ItemCreation/GetItemCreationdropdowslist?page=${page}&pageSize=${pageSize}&searchText=${encodeURIComponent(searchText)}`,
+ 
    getCustomers: (pageNumber = 1, pageSize = 10) =>
     `Salesinvoices/GetPartyByParent?pageNumber=${pageNumber}&pageSize=${pageSize}`,
   getPurchaseStockDetailsByBarcode: (barcode) =>

@@ -1237,10 +1237,10 @@ useEffect(() => {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Model to Edit"
-        displayFieldKeys={['fcode', 'fname']}
-        searchFields={['fcode', 'fname']}
-        headerNames={['Code', 'Name']}
-        columnWidths={{ modelName: '70%', fCode: '30%' }}
+        displayFieldKeys={[, 'fname']}
+        searchFields={[, 'fname']}
+        headerNames={[, 'Name']}
+        columnWidths={{ modelName: '70%', }}
         maxHeight="60vh"
       />
 
@@ -1250,10 +1250,10 @@ useEffect(() => {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Model to Delete"
-        displayFieldKeys={['fcode', 'fname']}
-        searchFields={['fcode', 'fname']}
-        headerNames={['Code', 'Name']}
-        columnWidths={{ modelName: '70%', fCode: '30%' }}
+        displayFieldKeys={[, 'fname']}
+        searchFields={[, 'fname']}
+        headerNames={[, 'Name']}
+        columnWidths={{ modelName: '70%',  }}
         maxHeight="60vh"
       />
 
