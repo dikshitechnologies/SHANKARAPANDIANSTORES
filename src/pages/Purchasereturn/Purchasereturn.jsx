@@ -1346,8 +1346,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         createNewForm();
       },
       type: 'warning',
-      confirmText: 'Clear All',
-      cancelText: 'Cancel'
+      confirmText: 'Yes',
+      cancelText: 'No'
     });
   };
 
@@ -1474,6 +1474,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       showConfirmation({
         title: isEditMode ? 'Update Purchase Return' : 'Create Purchase Return',
         message: `Do you want to ${isEditMode ? 'update' : 'save'} ?`,
+        type: isEditMode ? 'warning' : 'success',
         onConfirm: async () => {
           setIsLoading(true);
           try {
@@ -1510,7 +1511,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             setIsLoading(false);
           }
         },
-        type: 'warning',
+        
         confirmText: isEditMode ? 'Yes' : 'Yes',
         cancelText: 'No',
         showLoading: false

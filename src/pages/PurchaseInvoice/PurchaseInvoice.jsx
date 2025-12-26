@@ -1407,8 +1407,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         createNewForm();
       },
       type: 'warning',
-      confirmText: 'Clear All',
-      cancelText: 'Cancel'
+      confirmText: 'Yes',
+      cancelText: 'No'
     });
   };
 
@@ -1571,7 +1571,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             setIsLoading(false);
           }
         },
-        type: 'warning',
+        type: isEditMode ? 'warning' : 'success',
         confirmText: isEditMode ? 'Yes' : 'Yes',
         cancelText: 'No',
         showLoading: false
