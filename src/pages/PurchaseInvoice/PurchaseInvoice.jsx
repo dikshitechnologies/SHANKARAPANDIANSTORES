@@ -773,7 +773,7 @@ const handleBlur = () => {
   const handleItemCodeSelect = (itemId, searchTerm = '') => {
     console.log('Opening item code popup for row:', itemId, 'with search:', searchTerm);
     setSelectedRowId(itemId);
-    setItemSearchTerm(searchTerm);
+    setItemSearchTerm(searchTerm || ''); // Ensure we set empty string if no search term
     setShowItemCodePopup(true);
   };
 
@@ -3048,11 +3048,11 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         open={showItemCodePopup}
         onClose={() => {
           setShowItemCodePopup(false);
-          setItemSearchTerm('');
-          
+          setItemSearchTerm(''); // Clear search term when closing
+          setSelectedRowId(null); // Clear selected row
         }}
         title="Select Item Code"
-        fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search || itemSearchTerm)}
+        fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search)}
         displayFieldKeys={['barcode','name']}
         headerNames={['Barcode','Name']}
         searchFields={['barcode','name']}
