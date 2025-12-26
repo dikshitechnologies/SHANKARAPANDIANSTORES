@@ -842,6 +842,7 @@ export default function LedgerCreation({ onCreated }) {
         fcell: it.fcell ?? it.cellNo ?? it.CellNo ?? '',
         fshow: it.fshow ?? '1',
         shortName: it.shortName ?? it.fShort ?? it.ShortName ?? it.fFax ?? '',
+        state:it.state?? '',
       }));
     } catch (err) {
       console.error('fetchPopupItems error', err);
