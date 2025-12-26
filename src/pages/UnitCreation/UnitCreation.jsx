@@ -1299,10 +1299,10 @@ const confirmSave = async () => {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Unit to Edit"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        displayFieldKeys={[ 'unitName',  ]}
+        searchFields={[ 'unitName',  ]}
+        headerNames={[ 'Unit Name',  ]}
+        columnWidths={{ unitName: '70%',  }}
         maxHeight="60vh"
       />
 
@@ -1312,10 +1312,10 @@ const confirmSave = async () => {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Unit to Delete"
-        displayFieldKeys={[ 'unitName', 'uCode' ]}
-        searchFields={[ 'unitName', 'uCode' ]}
-        headerNames={[ 'Unit Name', 'Code' ]}
-        columnWidths={{ unitName: '70%', uCode: '30%' }}
+        displayFieldKeys={[ 'unitName',  ]}
+        searchFields={[ 'unitName',  ]}
+        headerNames={[ 'Unit Name',  ]}
+        columnWidths={{ unitName: '70%',  }}
         maxHeight="60vh"
       />
 

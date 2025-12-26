@@ -1290,10 +1290,10 @@ export default function ProductPage() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Product to Edit"
-        displayFieldKeys={[ 'fproductname', 'fproductcode' ]}
-        searchFields={[ 'fproductname', 'fproductcode' ]}
-        headerNames={[ 'Product Name', 'Code' ]}
-        columnWidths={{ fproductname: '70%', fproductcode: '30%' }}
+        displayFieldKeys={[ 'fproductname',  ]}
+        searchFields={[ 'fproductname',  ]}
+        headerNames={[ 'Product Name',  ]}
+        columnWidths={{ fproductname: '70%',  }}
         maxHeight="60vh"
       />
 
@@ -1303,10 +1303,10 @@ export default function ProductPage() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Product to Delete"
-        displayFieldKeys={[ 'fproductname', 'fproductcode' ]}
-        searchFields={[ 'fproductname', 'fproductcode' ]}
-        headerNames={[ 'Product Name', 'Code' ]}
-        columnWidths={{ fproductname: '70%', fproductcode: '30%' }}
+        displayFieldKeys={[ 'fproductname',  ]}
+        searchFields={[ 'fproductname',  ]}
+        headerNames={[ 'Product Name',  ]}
+        columnWidths={{ fproductname: '70%',  }}
         maxHeight="60vh"
       />
 
