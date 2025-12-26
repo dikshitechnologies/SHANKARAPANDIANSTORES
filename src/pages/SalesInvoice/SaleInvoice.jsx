@@ -3578,8 +3578,9 @@ const itemsData = validItems.map(item => ({
         onClose={() => setSaveConfirmationOpen(false)}
         onConfirm={handleConfirmedSave}
         title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
-        confirmText={saveConfirmationData?.isEditing ? " UPDATE" : " SAVE"}
-        cancelText="Cancel"
+         message="Are you want to modify?"
+        confirmText={saveConfirmationData?.isEditing ? " Yes" : " SAVE"}
+        cancelText="No"
         type={saveConfirmationData?.isEditing ? "warning" : "success"}
         showIcon={true}
         showLoading={isSaving}
@@ -3591,9 +3592,9 @@ const itemsData = validItems.map(item => ({
         onClose={() => setClearConfirmationOpen(false)}
         onConfirm={handleConfirmedClear}
         title="Clear Sales Invoice"
-        message="Are you sure you want to clear?"
-        confirmText="CLEAR"
-        cancelText="Cancel"
+        message="Are you want to clear?"
+        confirmText="Yes"
+        cancelText="No"
         type="warning"
         showIcon={true}
         borderColor="#ffc107"
@@ -3618,10 +3619,10 @@ const itemsData = validItems.map(item => ({
         onConfirm={handleConfirmedDelete}
         title="Confirm DELETE Invoice"
         message={
-          "Are you sure you want to delete? "
+          "Are you  want to delete? "
         }
-        confirmText=" DELETE"
-        cancelText="Cancel"
+        confirmText=" Yes"
+        cancelText="No"
         type="danger"
         showIcon={true}
         showLoading={isLoading}
@@ -3725,11 +3726,11 @@ const itemsData = validItems.map(item => ({
         title="Delete Item Row"
         message={
           rowToDelete 
-          ? `Are you sure you want to delete?`
-          : "Are you sure you want to delete this item?"
+          ? `Are you   want to delete?`
+          : "Are you  want to delete this item?"
         }
-        confirmText="DELETE"
-        cancelText="Cancel"
+        confirmText="Yes"
+        cancelText="No"
         type="danger"
         showIcon={true}
         showLoading={false}
