@@ -1104,7 +1104,7 @@ export default function RouteCreationPage() {
                   className="input" 
                   value={form.routeName} 
                   onChange={(e) => setForm(s => ({ ...s, routeName: e.target.value }))} 
-                  placeholder="Enter route name" 
+                  // placeholder="Enter route name" 
                   onKeyDown={onRouteNameKeyDown}
                   disabled={loading}
                   aria-label="Route Name"
@@ -1148,7 +1148,7 @@ export default function RouteCreationPage() {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search routes..."
+                  placeholder="Search existing routes"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search routes"

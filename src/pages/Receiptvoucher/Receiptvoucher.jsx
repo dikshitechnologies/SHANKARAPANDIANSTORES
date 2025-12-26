@@ -1608,17 +1608,17 @@ const ReceiptVoucher = () => {
       
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
-        alert('Voucher number is required');
+        toast.error('Voucher number is required', { autoClose: 3000 });
         return;
       }
       if (!voucherDetails.accountName) {
         setError('Account is required');
-        alert('Please select an account');
+        toast.error('Account is required', { autoClose: 3000 });
         return;
       }
       if (receiptItems.length === 0) {
         setError('At least one receipt item is required');
-        alert('Please add at least one receipt item');
+        toast.error('At least one receipt item is required', { autoClose: 3000 });
         return;
       }
 
@@ -2467,7 +2467,22 @@ const ReceiptVoucher = () => {
                   setFocusedField('gstType');
                 }}
                 onBlur={() => setFocusedField('')}
-                style={focusedField === 'gstType' ? styles.inlineInputFocused : styles.inlineInput}
+                style={{
+                  fontFamily: TYPOGRAPHY.fontFamily,
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  fontWeight: TYPOGRAPHY.fontWeight.normal,
+                  padding: '6px 8px',
+                  border: focusedField === 'gstType' ? '2px solid #1B91DA' : '1px solid #ddd',
+                  borderRadius: '4px',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  color: '#333',
+                  backgroundColor: 'white',
+                  minWidth: '140px',
+                  height: '32px',
+                  width: '100%',
+                  flex: 1,
+                }}
                 onKeyDown={(e) => {
                   if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
                     return; // Let browser handle arrow keys in dropdown

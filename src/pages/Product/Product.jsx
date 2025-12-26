@@ -1167,7 +1167,7 @@ export default function ProductPage() {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search products..."
+                  placeholder="Search existing products..."
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search products"

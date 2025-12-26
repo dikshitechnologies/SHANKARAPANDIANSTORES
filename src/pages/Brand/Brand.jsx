@@ -1153,7 +1153,7 @@ export default function BrandPage() {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search brands..."
+                  placeholder="Search existing brands"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search brands"

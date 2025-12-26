@@ -263,6 +263,24 @@ const SaleInvoice = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const handleMobileChange = (e) => {
+  let value = e.target.value;
+
+  // ✅ Allow only digits
+  value = value.replace(/\D/g, "");
+
+  // ✅ Limit to 10 digits
+  if (value.length > 10) {
+    value = value.slice(0, 10);
+  }
+
+  setBillDetails(prev => ({
+    ...prev,
+    mobileNo: value
+  }));
+};
+
+
 const selectAllOnFocus = useCallback((e, fieldKey) => {
   setFocusedField(fieldKey);
 
@@ -3172,36 +3190,64 @@ const itemsData = validItems.map(item => ({
     {/* Mobile No (moved to Customer's original position) */}
     <div style={styles.formField}>
       <label style={styles.inlineLabel}>Mobile No:</label>
-      <input
-        type="text"
-        data-header="mobileNo"
-        style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
-        value={billDetails.mobileNo}
-        name="mobileNo"
-        onChange={handleInputChange}
-        ref={mobileRef}
-        onKeyDown={(e) => {
-  handleHeaderArrowNavigation(e, 'mobileNo');
+     <input
+  type="text"
+  data-header="mobileNo"
+  value={billDetails.mobileNo}
+  name="mobileNo"
+  ref={mobileRef}
 
-  // ✅ ENTER → Table Barcode
-  if (e.key === 'Enter') {
+  // ✅ NUMBER-ONLY + 10 DIGITS
+  onChange={handleMobileChange}
+
+  // ✅ BLOCK NON-NUMBER KEYS
+  onKeyDown={(e) => {
+    handleHeaderArrowNavigation(e, 'mobileNo');
+
+    // Allow control keys
+    if (
+      ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)
+    ) {
+      return;
+    }
+
+    // ENTER → Table Barcode
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setTimeout(() => {
+        document
+          .querySelector('input[data-row="0"][data-field="barcode"]')
+          ?.focus();
+      }, 0);
+      return;
+    }
+
+    // ❌ BLOCK non-numeric input
+    if (!/^\d$/.test(e.key)) {
+      e.preventDefault();
+    }
+
+    // ❌ BLOCK if already 10 digits
+    if (billDetails.mobileNo.length >= 10) {
+      e.preventDefault();
+    }
+  }}
+
+  // ✅ BLOCK INVALID PASTE
+  onPaste={(e) => {
     e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 10);
+    setBillDetails(prev => ({
+      ...prev,
+      mobileNo: pasted
+    }));
+  }}
 
-    setTimeout(() => {
-      document
-        .querySelector(
-          'input[data-row="0"][data-field="barcode"]'
-        )
-        ?.focus();
-    }, 0);
+  style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
+  onFocus={() => setFocusedField('mobileNo')}
+  onBlur={() => setFocusedField('')}
+/>
 
-    return;
-  }
-}}
-
-        onFocus={() => setFocusedField('mobileNo')}
-        onBlur={() => setFocusedField('')}
-      />
     </div>
     
     {/* Empty div to maintain grid structure */}
@@ -3613,7 +3659,7 @@ const itemsData = validItems.map(item => ({
   onConfirm={handleConfirmedSave}
   title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
   message={saveConfirmationData?.isEditing ? "Do you want to modify?" : "Do you want to save?"}
-  confirmText={saveConfirmationData?.isEditing ? " Yes" : " SAVE"}
+  confirmText={saveConfirmationData?.isEditing ? " Yes" : "Yes"}
   cancelText="No"
   type={saveConfirmationData?.isEditing ? "warning" : "success"}
   showIcon={true}
@@ -3653,7 +3699,7 @@ const itemsData = validItems.map(item => ({
         onConfirm={handleConfirmedDelete}
         title="Confirm DELETE Invoice"
         message={
-          "Are you  want to delete? "
+          "Do you  want to delete? "
         }
         confirmText=" Yes"
         cancelText="No"
