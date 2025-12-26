@@ -1269,10 +1269,10 @@ export default function RouteCreationPage() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Route to Edit"
-        displayFieldKeys={[ 'routeName', 'routeCode' ]}
-        searchFields={[ 'routeName', 'routeCode' ]}
-        headerNames={[ 'Route Name', 'Code' ]}
-        columnWidths={{ routeName: '70%', routeCode: '30%' }}
+        displayFieldKeys={[ 'routeName', ]}
+        searchFields={[ 'routeName',  ]}
+        headerNames={[ 'Route Name',  ]}
+        columnWidths={{ routeName: '70%',  }}
         maxHeight="60vh"
       />
 
@@ -1282,10 +1282,10 @@ export default function RouteCreationPage() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Route to Delete"
-        displayFieldKeys={[ 'routeName', 'routeCode' ]}
-        searchFields={[ 'routeName', 'routeCode' ]}
-        headerNames={[ 'Route Name', 'Code' ]}
-        columnWidths={{ routeName: '70%', routeCode: '30%' }}
+        displayFieldKeys={[ 'routeName',  ]}
+        searchFields={[ 'routeName',  ]}
+        headerNames={[ 'Route Name',  ]}
+        columnWidths={{ routeName: '70%', }}
         maxHeight="60vh"
       />
 

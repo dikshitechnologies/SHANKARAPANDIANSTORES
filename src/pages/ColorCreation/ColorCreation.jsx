@@ -1203,10 +1203,10 @@ export default function ColorCreation() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Color to Edit"
-        displayFieldKeys={['colourCode', 'colourName']}
-        searchFields={['colourCode', 'colourName']}
-        headerNames={['Code', 'Color']}
-        columnWidths={{ colourName: '70%', colourCode: '30%' }}
+        displayFieldKeys={[, 'colourName']}
+        searchFields={[, 'colourName']}
+        headerNames={[, 'Color']}
+        columnWidths={{ colourName: '70%', }}
         maxHeight="60vh"
       />
 
@@ -1216,10 +1216,10 @@ export default function ColorCreation() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Color to Delete"
-        displayFieldKeys={['colourCode', 'colourName']}
-        searchFields={['colourCode', 'colourName']}
-        headerNames={['Code', 'Color']}
-        columnWidths={{ colourName: '70%', colourCode: '30%' }}
+        displayFieldKeys={[, 'colourName']}
+        searchFields={[, 'colourName']}
+        headerNames={[, 'Color']}
+        columnWidths={{ colourName: '70%',  }}
         maxHeight="60vh"
       />
 

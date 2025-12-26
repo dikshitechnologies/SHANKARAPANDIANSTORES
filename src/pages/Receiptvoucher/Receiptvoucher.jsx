@@ -1622,10 +1622,18 @@ const ReceiptVoucher = () => {
         return;
       }
 
+      const validReceiptItems = receiptItems.filter(item => item.cashBank && parseFloat(item.amount) > 0);
+      
+      if (validReceiptItems.length === 0) {
+        setError('At least one receipt item with Cash/Bank account and amount is required');
+        toast.error('At least one receipt item with Cash/Bank account and amount is required', { autoClose: 3000 });
+        return;
+      }
+
       setIsSaving(true);
       setIsLoading(true);
       setError(null);
-
+      
       // Prepare item details list
       const itemDetailsList = receiptItems
         .filter(item => item.cashBank && parseFloat(item.amount) > 0)
@@ -2510,6 +2518,7 @@ const ReceiptVoucher = () => {
                         value={item.cashBank}
                         onChange={(e) => handleCashBankChange(item.id, e.target.value)}
                         onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'cashBank')}
+                        onClick={() => openAccountPopup({ itemId: item.id }, item.cashBank)}
                         style={{
                           ...styles.editableInput,
                           paddingRight: '28px',

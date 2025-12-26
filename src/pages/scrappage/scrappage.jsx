@@ -1256,10 +1256,10 @@ export default function ScrapPage() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Scrap Item to Edit"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        displayFieldKeys={[ 'scrapName',  ]}
+        searchFields={[ 'scrapName',  ]}
+        headerNames={[ 'Scrap Name',  ]}
+        columnWidths={{ scrapName: '70%', }}
         maxHeight="60vh"
       />
 
@@ -1269,10 +1269,10 @@ export default function ScrapPage() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Scrap Item to Delete"
-        displayFieldKeys={[ 'scrapName', 'scrapCode' ]}
-        searchFields={[ 'scrapName', 'scrapCode' ]}
-        headerNames={[ 'Scrap Name', 'Code' ]}
-        columnWidths={{ scrapName: '70%', scrapCode: '30%' }}
+        displayFieldKeys={[ 'scrapName',  ]}
+        searchFields={[ 'scrapName', ]}
+        headerNames={[ 'Scrap Name',  ]}
+        columnWidths={{ scrapName: '70%', }}
         maxHeight="60vh"
       />
 
