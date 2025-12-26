@@ -3795,7 +3795,7 @@ const handlePrint = () => {
                  screenSize.isTablet ? 'calc(33.33% - 8px)' : 
                  'calc(25% - 12px)'
     }}>
-      <label style={styles.inlineLabel}>Bill No:</label>
+      <label style={styles.inlineLabel}>Ref No:</label>
       <input
         type="text"
         style={{
@@ -3839,7 +3839,7 @@ const handlePrint = () => {
              screenSize.isTablet ? 'calc(33.33% - 8px)' : 
              'calc(25% - 12px)'
 }}>
-  <label style={styles.inlineLabel}>Bill Date:</label>
+  <label style={styles.inlineLabel}>Entry Date:</label>
   <input
     type="date"
     style={{
