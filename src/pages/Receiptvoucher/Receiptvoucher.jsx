@@ -1608,17 +1608,17 @@ const ReceiptVoucher = () => {
       
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
-        alert('Voucher number is required');
+        toast.error('Voucher number is required', { autoClose: 3000 });
         return;
       }
       if (!voucherDetails.accountName) {
         setError('Account is required');
-        alert('Please select an account');
+        toast.error('Account is required', { autoClose: 3000 });
         return;
       }
       if (receiptItems.length === 0) {
         setError('At least one receipt item is required');
-        alert('Please add at least one receipt item');
+        toast.error('At least one receipt item is required', { autoClose: 3000 });
         return;
       }
 
@@ -1983,15 +1983,16 @@ const ReceiptVoucher = () => {
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#f5f7fa',
-      height: '100vh',
+      height: '100vh', // Changed from 100vh to 90vh
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
       margin: 0,
       padding: 0,
+      paddingBottom: screenSize.isMobile ? '120px' : screenSize.isTablet ? '80px' : '90px',
       overflowX: 'hidden',
-      overflowY: 'hidden',
-      position: 'fixed',
+      overflowY: 'hidden', // Prevent main container scrolling
+      position: 'relative',
       scrollbarWidth: 'thin',
       scrollbarColor: '#1B91DA #f0f0f0',
     },
@@ -2007,12 +2008,11 @@ const ReceiptVoucher = () => {
       maxHeight: 'none',
     },
     tableSection: {
-      flex: '1 ',
+      flex: '1',
       display: 'flex',
       flexDirection: 'column',
       minHeight: 0,
-      overflow: 'auto',
-      WebkitOverflowScrolling: 'touch',
+      overflow: 'hidden', // Changed from 'auto' to 'hidden'
     },
     formRow: {
       display: 'flex',
@@ -2030,7 +2030,7 @@ const ReceiptVoucher = () => {
     fieldGroup: {
       display: 'flex',
       flexDirection: 'row',
-       justifyContent: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       gap: '4px',
     },
@@ -2057,7 +2057,7 @@ const ReceiptVoucher = () => {
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '5vh' : screenSize.isTablet ? '4.5vh' : '4vh',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
     },
@@ -2073,7 +2073,7 @@ const ReceiptVoucher = () => {
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '5vh' : screenSize.isTablet ? '4.5vh' : '4vh',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
@@ -2090,7 +2090,7 @@ const ReceiptVoucher = () => {
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '5vh' : screenSize.isTablet ? '4.5vh' : '4vh',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
       cursor: 'pointer',
@@ -2108,7 +2108,7 @@ const ReceiptVoucher = () => {
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '5vh' : screenSize.isTablet ? '4.5vh' : '4vh',
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
       cursor: 'pointer',
@@ -2119,20 +2119,19 @@ const ReceiptVoucher = () => {
       backgroundColor: 'white',
       borderRadius: 10,
       overflowX: 'auto',
-      overflowY: 'auto',
+      overflowY: 'auto', // Keep scrolling inside tables
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       border: '1px solid #e0e0e0',
       margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
       marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
-      marginBottom: screenSize.isMobile ? '250px' : screenSize.isTablet ? '120px' : '90px',
+      marginBottom: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
       WebkitOverflowScrolling: 'touch',
       width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
       boxSizing: 'border-box',
       flex: '1 1 auto',
       display: 'flex',
       flexDirection: 'column',
-      maxHeight: screenSize.isMobile ? '250px' : screenSize.isTablet ? '300px' : '360px',
-      minHeight: screenSize.isMobile ? '250px' : screenSize.isTablet ? '300px' : '360px',
+      minHeight: screenSize.isMobile ? '60vh' : screenSize.isTablet ? '50vh' : '45vh',
       scrollbarWidth: 'thin',
       scrollbarColor: '#1B91DA #f0f0f0',
     },
@@ -2164,7 +2163,7 @@ const ReceiptVoucher = () => {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.medium,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      lineHeight: '30px',
       padding: 0,
       textAlign: 'center',
       border: '1px solid #ccc',
@@ -2179,7 +2178,7 @@ const ReceiptVoucher = () => {
       display: 'block',
       width: '100%',
       height: '100%',
-      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+      minHeight: screenSize.isMobile ? '4vh' : screenSize.isTablet ? '3.5vh' : '3.5vh',
       padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
       boxSizing: 'border-box',
       border: 'none',
@@ -2228,7 +2227,7 @@ const ReceiptVoucher = () => {
       gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
       flexWrap: screenSize.isMobile ? 'nowrap' : 'wrap',
       flexShrink: 0,
-      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
+      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '6vh' : '5.5vh',
       width: '100%',
       boxSizing: 'border-box',
       zIndex: 100,
@@ -2309,7 +2308,7 @@ const ReceiptVoucher = () => {
       marginTop: screenSize.isMobile ? '10px' : '12px',
     },
     loadingOverlay: {
-      position: 'fixed',
+      position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
@@ -2352,9 +2351,7 @@ const ReceiptVoucher = () => {
           </div>
         </div>
       )}
-   
   
-
       {/* HEADER SECTION */}
       <div style={styles.headerSection}>
         <div style={styles.formRow}>
@@ -2439,8 +2436,6 @@ const ReceiptVoucher = () => {
               </div>
             </div>
 
-            
-
             {/* Balance */}
             <div style={styles.fieldGroup}>
               <label style={styles.inlineLabel}>Balance</label>
@@ -2472,7 +2467,22 @@ const ReceiptVoucher = () => {
                   setFocusedField('gstType');
                 }}
                 onBlur={() => setFocusedField('')}
-                style={focusedField === 'gstType' ? styles.inlineInputFocused : styles.inlineInput}
+                style={{
+                  fontFamily: TYPOGRAPHY.fontFamily,
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  fontWeight: TYPOGRAPHY.fontWeight.normal,
+                  padding: '6px 8px',
+                  border: focusedField === 'gstType' ? '2px solid #1B91DA' : '1px solid #ddd',
+                  borderRadius: '4px',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  color: '#333',
+                  backgroundColor: 'white',
+                  minWidth: '140px',
+                  height: '32px',
+                  width: '100%',
+                  flex: 1,
+                }}
                 onKeyDown={(e) => {
                   if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
                     return; // Let browser handle arrow keys in dropdown
@@ -2491,7 +2501,7 @@ const ReceiptVoucher = () => {
       {/* TABLE SECTION */}
       <div style={styles.tableSection}>
         {/* RECEIPT DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginBottom: 0, marginTop: 0, margin: 0, marginLeft: 0, marginRight: 0, width: '100%', maxHeight: screenSize.isMobile ? '375px' : screenSize.isTablet ? '450px' : '415px',minHeight: screenSize.isMobile ? '375px' : screenSize.isTablet ? '450px' : '415px'}}>
+        <div style={{...styles.tableContainer, marginBottom: '10px', marginTop: '10px'}}>
           <table style={styles.table}>
             <thead>
               <tr>
@@ -2699,8 +2709,8 @@ const ReceiptVoucher = () => {
                   </td>
                 </tr>
               ))}
-              {/* Spacing Row */}
-              <tr style={{ height: '316px', backgroundColor: 'transparent' }}>
+              {/* Spacing Row - Adjusted height (use vh for responsive spacing) */}
+              <tr style={{ height: screenSize.isMobile ? '45vh' : screenSize.isTablet ? '30vh' : '33.8vh', backgroundColor: 'transparent' }}>
                 
               </tr>
               {/* Total Row for Receipt Details */}
@@ -2722,9 +2732,8 @@ const ReceiptVoucher = () => {
         </div>
 
         {/* REFERENCE BILL DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginTop: 0, marginBottom: 0, margin: 0, marginLeft: 0, marginRight: 0, width: '100%', flex: 1}}>
+        <div style={{...styles.tableContainer, marginTop: '0', marginBottom: '0'}}>
           <h2 style={{
-            // margin: '0 0 12px 0',
             padding: '12px 16px 0 26px',
             color: '#1B91DA',
             fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
@@ -2891,8 +2900,8 @@ const ReceiptVoucher = () => {
                   </td>
                 </tr>
               ))}
-              {/* Spacing Row */}
-              <tr style={{ height: '219px', backgroundColor: 'transparent' }}>
+              {/* Spacing Row - Adjusted height (use vh for responsive spacing) */}
+              <tr style={{ height: screenSize.isMobile ? '25vh' : screenSize.isTablet ? '18vh' : '20vh', backgroundColor: 'transparent' }}>
                 <td colSpan="8" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
               </tr>
               {/* Total Row for Bill Details */}

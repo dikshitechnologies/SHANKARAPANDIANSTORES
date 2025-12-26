@@ -1335,7 +1335,7 @@ const handleDeleteRowClick = (s) => {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing states..."
+                  placeholder="Search existing states"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search existing states"

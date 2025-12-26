@@ -1129,7 +1129,7 @@ const submitRef = useRef(null);
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing sizes..."
+                  placeholder="Search existing sizes"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search existing sizes"
@@ -1195,10 +1195,10 @@ const submitRef = useRef(null);
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Size to Edit"
-        displayFieldKeys={[, 'fsize']}
-        searchFields={[, 'fsize']}
-        headerNames={[, 'Size']}
-        columnWidths={{ sizeName: '70%', }}
+        displayFieldKeys={[ 'fsize']}
+        searchFields={[ 'fsize']}
+        headerNames={[ 'Size']}
+        columnWidths={{ sizeName: '70%' }}
         maxHeight="60vh"
       />
 
@@ -1208,10 +1208,10 @@ const submitRef = useRef(null);
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Size to Delete"
-        displayFieldKeys={[, 'fsize']}
-        searchFields={[, 'fsize']}
-        headerNames={[, 'Size']}
-        columnWidths={{ sizeName: '70%', }}
+        displayFieldKeys={['fsize']}
+        searchFields={[ 'fsize']}
+        headerNames={[ 'Size']}
+        columnWidths={{ sizeName: '70%' }}
         maxHeight="60vh"
       />
 

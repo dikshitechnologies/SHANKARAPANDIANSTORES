@@ -1180,7 +1180,7 @@ export default function CategoryPage() {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search categories..."
+                  placeholder="Search existing categories"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search categories"

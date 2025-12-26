@@ -1145,7 +1145,7 @@ export default function DesignCreation() {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing designs..."
+                  placeholder="Search existing designs"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search existing designs"

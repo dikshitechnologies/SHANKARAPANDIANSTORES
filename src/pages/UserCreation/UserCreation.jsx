@@ -1384,7 +1384,7 @@ export default function UserCreation() {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing users..."
+                  placeholder="Search existing users"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search existing users"
