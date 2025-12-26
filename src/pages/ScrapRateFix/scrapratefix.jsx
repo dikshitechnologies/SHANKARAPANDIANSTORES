@@ -108,7 +108,7 @@ export default function ScrapRateFixing() {
           
           setScrapRates(transformedData);
           setIsFetching(false);
-          toast.success("Scrap rates loaded successfully!");
+          // toast.success("Scrap rates loaded successfully!");
         } else {
           throw new Error(`Unexpected response format: ${typeof dataArray}`);
         }
@@ -232,15 +232,15 @@ export default function ScrapRateFixing() {
         apiData
       );
       
-      // Show success toast
-      toast.success("Scrap rates updated successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      // // Show success toast
+      // toast.success("Scrap rates updated successfully!", {
+      //   position: "top-right",
+      //   autoClose: 3000,
+      //   hideProgressBar: false,
+      //   closeOnClick: true,
+      //   pauseOnHover: true,
+      //   draggable: true,
+      // });
       
       // Refresh data from server to ensure consistency
       await fetchScrapRates();
@@ -335,10 +335,10 @@ const handleConfirmClearAll = () => {
     prev.map(scrap => ({ ...scrap, rate: "" }))
   );
 
-  toast.success("All rate values have been cleared.", {
-    position: "top-right",
-    autoClose: 3000,
-  });
+  // toast.success("All rate values have been cleared.", {
+  //   position: "top-right",
+  //   autoClose: 3000,
+  // });
 };
 
 
