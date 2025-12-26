@@ -192,7 +192,14 @@ const SaleInvoice = () => {
   const barcodeRef = useRef(null);
   const addLessRef = useRef(null);
 
-  const HEADER_FIELDS = ['billDate', 'mobileNo', 'type', 'salesman', 'custName'];
+  const HEADER_FIELDS = [
+  'billDate',
+  'salesman',
+  'type',
+  'custName',
+  'mobileNo'
+];
+
   
   const handleItemNameLetterKey = (e, rowIndex) => {
   const isLetterKey = e.key.length === 1 && /^[a-zA-Z]$/.test(e.key);
@@ -2970,7 +2977,7 @@ const itemsData = validItems.map(item => ({
         ref={billDateRef}
         onKeyDown={(e) => {
           handleHeaderArrowNavigation(e, 'billDate');
-          handleKeyDown(e, mobileRef, 'billDate');
+          handleKeyDown(e,salesmanRef, 'billDate');
         }}
         onFocus={() => setFocusedField('billDate')}
         onBlur={() => setFocusedField('')}
@@ -3084,30 +3091,26 @@ const itemsData = validItems.map(item => ({
           ref={custNameRef}
           onFocus={() => setFocusedField('custName')}
           onKeyDown={(e) => {
-            handleHeaderArrowNavigation(e, 'custName');
-            
-            if (e.key === '/') {
-              e.preventDefault();
-              setPopupSearchText('');
-              setCustomerPopupOpen(true);
-              return;
-            }
+  handleHeaderArrowNavigation(e, 'custName');
 
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              setTimeout(() => {
-                const firstRowBarcode = document.querySelector(
-                  'input[data-row="0"][data-field="barcode"]'
-                );
-                if (firstRowBarcode) {
-                  firstRowBarcode.focus();
-                }
-              }, 0);
-              return;
-            }
+  // "/" opens popup
+  if (e.key === '/') {
+    e.preventDefault();
+    setPopupSearchText('');
+    setCustomerPopupOpen(true);
+    return;
+  }
 
-            handleBackspace(e, 'custName');
-          }}
+  // ✅ ENTER → Mobile No
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    mobileRef.current?.focus();
+    return;
+  }
+
+  handleBackspace(e, 'custName');
+}}
+
         />
         {/* 🔍 Search Icon */}
         <div
@@ -3152,10 +3155,24 @@ const itemsData = validItems.map(item => ({
         onChange={handleInputChange}
         ref={mobileRef}
         onKeyDown={(e) => {
-          handleHeaderArrowNavigation(e, 'mobileNo');
-          // After Mobile No, go to Salesman (which is now in first row)
-          handleKeyDown(e, salesmanRef, 'mobileNo');
-        }}
+  handleHeaderArrowNavigation(e, 'mobileNo');
+
+  // ✅ ENTER → Table Barcode
+  if (e.key === 'Enter') {
+    e.preventDefault();
+
+    setTimeout(() => {
+      document
+        .querySelector(
+          'input[data-row="0"][data-field="barcode"]'
+        )
+        ?.focus();
+    }, 0);
+
+    return;
+  }
+}}
+
         onFocus={() => setFocusedField('mobileNo')}
         onBlur={() => setFocusedField('')}
       />
