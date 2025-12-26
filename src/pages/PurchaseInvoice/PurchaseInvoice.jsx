@@ -1125,9 +1125,13 @@ const handleBlur = () => {
 
   const handleItemChange = (id, field, value) => {
   setItems(prev =>
-    prev.map(item =>
-      item.id === id ? { ...item, [field]: value } : item
-    )
+    prev.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        return calculateItem(updatedItem);
+      }
+      return item;
+    })
   );
 };
 
@@ -2473,7 +2477,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
                 <th style={styles.th}>WRate</th>
-                <th style={styles.th}>Amt</th>
+                <th style={styles.th}>Total</th>
                 <th style={styles.th}>Action</th>
               </tr>
             </thead>
@@ -3045,13 +3049,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         onClose={() => {
           setShowItemCodePopup(false);
           setItemSearchTerm('');
-          if (selectedRowId) {
-            setItems(prevItems => 
-              prevItems.map(item => 
-                item.id === selectedRowId ? { ...item, name: '' } : item
-              )
-            );
-          }
+          
         }}
         title="Select Item Code"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search || itemSearchTerm)}

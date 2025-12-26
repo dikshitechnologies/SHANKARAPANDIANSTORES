@@ -1750,10 +1750,10 @@ setTimeout(() => {
         
         showConfirmation({
           title: "Confirm Delete",
-          message: `Are you sure you want to delete?`,
+          message: `Are you  want to delete?`,
           type: "danger",
-          confirmText: "Delete",
-          cancelText: "Cancel",
+          confirmText: "Yes",
+          cancelText: "No",
           onConfirm: async () => {
             await deleteSalesReturn(voucherNo);
             setPopupOpen(false);
@@ -2368,6 +2368,12 @@ const handleTableKeyDown = (e, rowIndex, field) => {
   e.preventDefault();
   e.stopPropagation();
 
+  // Select all text in the current cell on Enter
+  const currentInput = e.target;
+  if (currentInput && currentInput.tagName === 'INPUT' && !currentInput.readOnly) {
+    currentInput.select();
+  }
+
   // =====================================================
   // 🚨 RULE 1: itemName EMPTY → GO TO SAVE
   // =====================================================
@@ -2405,7 +2411,12 @@ const handleTableKeyDown = (e, rowIndex, field) => {
         const input = document.querySelector(
           `input[data-row="${rowIndex + 1}"][data-field="barcode"]`
         );
-        input?.focus();
+        if (input) {
+          input.focus();
+          if (input.tagName === 'INPUT' && !input.readOnly) {
+            setTimeout(() => input.select(), 0);
+          }
+        }
 
         setFocusedElement({
           type: 'table',
@@ -2425,7 +2436,12 @@ const handleTableKeyDown = (e, rowIndex, field) => {
       const input = document.querySelector(
         `input[data-row="${newRowIndex}"][data-field="barcode"]`
       );
-      input?.focus();
+      if (input) {
+        input.focus();
+        if (input.tagName === 'INPUT' && !input.readOnly) {
+          setTimeout(() => input.select(), 0);
+        }
+      }
 
       setFocusedElement({
         type: 'table',
@@ -2449,7 +2465,13 @@ const handleTableKeyDown = (e, rowIndex, field) => {
       const input = document.querySelector(
         `input[data-row="${rowIndex}"][data-field="${nextField}"]`
       );
-      input?.focus();
+      if (input) {
+        input.focus();
+        // Select text in the next input field if it's an input element
+        if (input.tagName === 'INPUT' && !input.readOnly) {
+          setTimeout(() => input.select(), 0);
+        }
+      }
 
       setFocusedElement({
         type: 'table',
@@ -2571,6 +2593,17 @@ const handleApplyBillDirect = async () => {
   setCheckedBills({});
   setBillDetailsSearchText("");
   setBillPopupRowIndex(0);
+
+  // 🔹 Focus on qty field of the first item
+  setTimeout(() => {
+    const qtyInput = document.querySelector(
+      `input[data-row="0"][data-field="qty"]`
+    );
+    if (qtyInput) {
+      qtyInput.focus();
+      qtyInput.select();
+    }
+  }, 1050);
 };
 
 
@@ -2644,10 +2677,10 @@ const handleApplyBillDirect = async () => {
 
     showConfirmation({
       title: `${actionText} Sales Return`,
-      message: `Are you sure you want to save?`,
+      message: `Are you  want to save?`,
       type: "success",
-      confirmText: "save",
-      cancelText: "Cancel",
+      confirmText: "Yes",
+      cancelText: "No",
       onConfirm: async () => {
         try {
           if (isExistingVoucher) {
