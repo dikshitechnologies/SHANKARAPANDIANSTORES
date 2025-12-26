@@ -1092,7 +1092,7 @@ export default function ScrapPage() {
                   className="input" 
                   value={form.scrapName} 
                   onChange={(e) => setForm(s => ({ ...s, scrapName: e.target.value }))} 
-                  placeholder="Enter scrap name"
+                  // placeholder="Enter scrap name"
                   onKeyDown={onScrapNameKeyDown}
                   disabled={loading}
                   aria-label="Scrap Name"
@@ -1134,7 +1134,7 @@ export default function ScrapPage() {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search scrap items..."
+                  placeholder="Search  existing scrap "
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search scrap items"

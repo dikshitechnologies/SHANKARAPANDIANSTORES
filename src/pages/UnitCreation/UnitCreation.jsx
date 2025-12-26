@@ -1232,7 +1232,7 @@ const confirmSave = async () => {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing units..."
+                  placeholder="Search existing units"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search existing units"

@@ -1143,7 +1143,7 @@ export default function SalesmanCreation() {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing salesmen..."
+                  placeholder="Search existing salesmen"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search existing salesmen"

@@ -1515,7 +1515,7 @@ export default function LedgerGroupCreation() {
                     value={subGroup}
                     onChange={(e) => setSubGroup(e.target.value)}
                     onKeyDown={handleSubGroupKeyDown}
-                    placeholder="Enter Sub Group"
+                    // placeholder="Enter Sub Group"
                     disabled={submitting}
                     aria-label="Sub Group"
                   />

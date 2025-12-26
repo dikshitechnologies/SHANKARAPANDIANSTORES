@@ -1136,7 +1136,7 @@ export default function ColorCreation() {
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing colors..."
+                  placeholder="Search existing colors"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search existing colors"
