@@ -91,6 +91,7 @@ const SaleInvoice = () => {
   // Add/Less amount state
   const [addLessAmount, setAddLessAmount] = useState('');
   const warnedEmptyRowRef = useRef({});
+   const validationToastShownRef = useRef(false);
 
   // Track if we're editing an existing invoice
   const [isEditing, setIsEditing] = useState(false);
@@ -2193,21 +2194,35 @@ const itemsData = validItems.map(item => ({
       return;
     }
 
-    // ❌ Salesman validation
-    if (!billDetails.salesman || billDetails.salesman.trim() === "") {
-      toast.warning("Please fill the Salesman name", {
-        autoClose: 2000,
-      });
-      return;
-    }
+if (!billDetails.salesman || billDetails.salesman.trim() === "") {
+  if (!validationToastShownRef.current) {
+    validationToastShownRef.current = true;
 
-    // ❌ Customer validation
-    if (!billDetails.custName || billDetails.custName.trim() === "") {
-      toast.warning("Please fill the Customer name", {
-        autoClose: 2000,
-      });
-      return;
-    }
+    toast.warning("Please fill the Salesman name", {
+      autoClose: 2000,
+      onClose: () => {
+        validationToastShownRef.current = false; // reset after close
+      }
+    });
+  }
+  return;
+}
+
+
+ if (!billDetails.custName || billDetails.custName.trim() === "") {
+  if (!validationToastShownRef.current) {
+    validationToastShownRef.current = true;
+
+    toast.warning("Please fill the Customer name", {
+      autoClose: 2000,
+      onClose: () => {
+        validationToastShownRef.current = false;
+      }
+    });
+  }
+  return;
+}
+
 
     // ❌ Item validation
     const validItems = items.filter(
