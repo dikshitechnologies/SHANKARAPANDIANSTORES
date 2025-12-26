@@ -2477,7 +2477,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
                 <th style={styles.th}>WRate</th>
-                <th style={styles.th}>Amt</th>
+                <th style={styles.th}>Total</th>
                 <th style={styles.th}>Action</th>
               </tr>
             </thead>
