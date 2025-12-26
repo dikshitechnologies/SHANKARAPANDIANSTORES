@@ -2643,10 +2643,10 @@ const fetchItemList = async (pageNum = 1, search = '') => {
         }}
         title="Select Salesman"
         fetchItems={fetchSalesManList}
-        displayFieldKeys={['code','fullName']}
-        headerNames={['Code','Salesman Name']}
-        searchFields={['code','fname']}
-        columnWidths={['30%','70%']}
+        displayFieldKeys={['fullName']}
+        headerNames={['Salesman Name']}
+        searchFields={['fname']}
+        columnWidths={['100%']}
         searchPlaceholder="Search salesman by name..."
         initialSearch={salesmanSearchTerm}
         onSearchChange={(searchValue) => {
@@ -2690,11 +2690,11 @@ const fetchItemList = async (pageNum = 1, search = '') => {
         }}
         title="Select Customer"
         fetchItems={fetchCustomerList}
-        displayFieldKeys={['code', 'name']}
-        headerNames={['Code', 'Customer Name']}
-        searchFields={['name', 'code']}
-        columnWidths={['40%', '60%']}
-        searchPlaceholder="Search customer by name or code..."
+        displayFieldKeys={['name']}
+        headerNames={['Customer Name']}
+        searchFields={['name']}
+        columnWidths={['100%']}
+        searchPlaceholder="Search customer by name..."
         initialSearch={customerSearchTerm}
         onSearchChange={(searchValue) => {
           setCustomerSearchTerm(searchValue);
@@ -2781,11 +2781,11 @@ const fetchItemList = async (pageNum = 1, search = '') => {
   }}
   title="Select Item"
   fetchItems={fetchItemList}
-  displayFieldKeys={['itemCode', 'itemName']} // Show both code and name
-  headerNames={['Item Code', 'Item Name']} // Update headers
-  searchFields={['itemCode', 'itemName']} // Search both fields
-  columnWidths={['30%', '70%']} // Adjust column widths
-  searchPlaceholder="Search item by code or name..."
+  displayFieldKeys={['itemName']} // Show only name
+  headerNames={['Item Name']} // Update headers
+  searchFields={['itemName']} // Search only name
+  columnWidths={['100%']} // Adjust column widths
+  searchPlaceholder="Search item by name..."
   initialSearch={itemSearchTerm}
   onSearchChange={(searchValue) => {
     setItemSearchTerm(searchValue);
