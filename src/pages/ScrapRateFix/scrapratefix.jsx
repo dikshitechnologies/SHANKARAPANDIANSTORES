@@ -461,9 +461,10 @@ const handleConfirmClearAll = () => {
         onClose={() => setShowConfirmation(false)}
         onConfirm={handleConfirmUpdate}
         title="Confirm Update"
-        message="Are you sure you want to update the scrap rates?"
+        message="Do you want to update ?"
         type="success"
-        confirmText={loading ? "Updating..." : "Confirm"}
+        confirmText={loading ? "Updating..." : "Yes"}
+          cancelText="No"
         showLoading={loading}
         disableBackdropClose={loading}
       />
@@ -474,8 +475,8 @@ const handleConfirmClearAll = () => {
   title="Clear All Rates"
   message="Are you sure you want to clear all rate values?"
   type="warning"
-  confirmText="Clear"
-  cancelText="Cancel"
+  confirmText="Yes"
+  cancelText="No"
   showIcon={true}
 />
 
