@@ -1338,6 +1338,12 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent form submission or other Enter handlers
 
+    // Select all text in the current cell on Enter
+    const currentInput = e.target;
+    if (currentInput && currentInput.tagName === 'INPUT' && !currentInput.readOnly) {
+      currentInput.select();
+    }
+
     const currentRow = items[currentRowIndex];
 
     // If Enter is pressed in qty field, move to add/less
@@ -1379,6 +1385,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       );
       if (nextInput) {
         nextInput.focus();
+        // Select text in the next input field if it's an input element
+        if (nextInput.tagName === 'INPUT' && !nextInput.readOnly) {
+          setTimeout(() => nextInput.select(), 0);
+        }
         return;
       }
     }
