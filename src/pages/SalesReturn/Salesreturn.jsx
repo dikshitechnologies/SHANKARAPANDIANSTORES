@@ -2806,7 +2806,7 @@ const handleApplyBillDirect = async () => {
   const handleClear = () => {
     showConfirmation({
       title: "Clear All Data",
-      message: "Are you sure you want to clear all data? ",
+      message: "Do you want to clear ? ",
       type: "warning",
       confirmText: "Clear",
       cancelText: "Cancel",
@@ -3795,7 +3795,7 @@ const handlePrint = () => {
                  screenSize.isTablet ? 'calc(33.33% - 8px)' : 
                  'calc(25% - 12px)'
     }}>
-      <label style={styles.inlineLabel}>Bill No:</label>
+      <label style={styles.inlineLabel}>Ref No:</label>
       <input
         type="text"
         style={{
@@ -3839,7 +3839,7 @@ const handlePrint = () => {
              screenSize.isTablet ? 'calc(33.33% - 8px)' : 
              'calc(25% - 12px)'
 }}>
-  <label style={styles.inlineLabel}>Bill Date:</label>
+  <label style={styles.inlineLabel}>Entry Date:</label>
   <input
     type="date"
     style={{
