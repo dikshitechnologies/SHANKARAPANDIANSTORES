@@ -3595,19 +3595,19 @@ const itemsData = validItems.map(item => ({
       </div>
 
       {/* Save Confirmation Popup */}
-      <ConfirmationPopup
-        isOpen={saveConfirmationOpen}
-        onClose={() => setSaveConfirmationOpen(false)}
-        onConfirm={handleConfirmedSave}
-        title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
-         message="Are you want to modify?"
-        confirmText={saveConfirmationData?.isEditing ? " Yes" : " SAVE"}
-        cancelText="No"
-        type={saveConfirmationData?.isEditing ? "warning" : "success"}
-        showIcon={true}
-        showLoading={isSaving}
-        borderColor={saveConfirmationData?.isEditing ? "#ffc107" : "#1B91DA"}
-      />
+<ConfirmationPopup
+  isOpen={saveConfirmationOpen}
+  onClose={() => setSaveConfirmationOpen(false)}
+  onConfirm={handleConfirmedSave}
+  title={saveConfirmationData?.isEditing ? "Confirm UPDATE Invoice" : "Confirm SAVE Invoice"}
+  message={saveConfirmationData?.isEditing ? "Do you want to modify?" : "Do you want to save?"}
+  confirmText={saveConfirmationData?.isEditing ? " Yes" : " SAVE"}
+  cancelText="No"
+  type={saveConfirmationData?.isEditing ? "warning" : "success"}
+  showIcon={true}
+  showLoading={isSaving}
+  borderColor={saveConfirmationData?.isEditing ? "#ffc107" : "#1B91DA"}
+/>
       {/* Clear Confirmation Popup */}
       <ConfirmationPopup
         isOpen={clearConfirmationOpen}
@@ -3708,6 +3708,7 @@ const itemsData = validItems.map(item => ({
           fetchInvoicesForPopup(page, search)
         }
         title="Select Invoice to Edit"
+        
         displayFieldKeys={getPopupConfig('editInvoice').displayFieldKeys}
         searchFields={getPopupConfig('editInvoice').searchFields}
         headerNames={getPopupConfig('editInvoice').headerNames}
