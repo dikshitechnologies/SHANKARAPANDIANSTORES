@@ -1329,7 +1329,7 @@ const ReceiptVoucher = () => {
   const getPopupConfig = (type) => {
     const configs = {
       editVoucher: {
-        title: 'Edit Receipt Voucher',
+        title: 'Select Receipt  to Edit',
         displayFieldKeys: ['voucherNo'],
         searchFields: ['voucherNo'],
         headerNames: ['Voucher No'],
@@ -1339,7 +1339,7 @@ const ReceiptVoucher = () => {
         loading: loadingVouchers
       },
       deleteVoucher: {
-        title: 'Delete Receipt Voucher',
+        title: 'Select Receipt  to Delete',
         displayFieldKeys: ['voucherNo'],
         searchFields: ['voucherNo'],
         headerNames: ['Voucher No'],
@@ -1781,11 +1781,6 @@ const ReceiptVoucher = () => {
       if (response?.data) {
         const message = response.data.message || `Voucher ${isEditing ? 'updated' : 'saved'} successfully`;
         const savedVoucherNo = response.data.voucherNo || voucherDetails.voucherNo;
-        
-        toast.success(
-          `Voucher ${isEditing ? "updated" : "saved"} successfully\nVoucher No: ${savedVoucherNo}`,
-          { autoClose: 3000 }
-        );
 
         setError(null);
         

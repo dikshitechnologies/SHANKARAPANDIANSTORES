@@ -1526,7 +1526,7 @@ export default function LedgerGroupCreation() {
                     value={subGroup}
                     onChange={(e) => setSubGroup(e.target.value)}
                     onKeyDown={handleSubGroupKeyDown}
-                    placeholder="Select Sub Group"
+                    // placeholder="Select Sub Group"
                     disabled={submitting}
                     readOnly={actionType === "Delete"}
                     aria-label="Sub Group"
@@ -1581,7 +1581,7 @@ export default function LedgerGroupCreation() {
           setIsTreeOpen(true); // Keep tree closed
         }}
         fetchItems={fetchDropdownItems}
-        title="Select Sub Group"
+        title={actionType === 'Delete' ? 'Select Ledger Group to Delete' : 'Select Ledger Group to Edit'}
         displayFieldKeys={[ 'fAcname', 'parentName' ]}
         searchFields={[ 'fAcname', 'parentName' ]}
         headerNames={[ 'Name', 'Parent' ]}

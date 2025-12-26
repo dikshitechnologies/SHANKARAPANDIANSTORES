@@ -1526,7 +1526,6 @@ const PaymentVoucher = () => {
 
       if (response) {
         setError(null);
-        toast.success(`Payment Voucher ${voucherDetails.voucherNo} saved successfully`, { autoClose: 3000 });
         resetForm();
         await fetchNextVoucherNo();
         await fetchSavedVouchers();
