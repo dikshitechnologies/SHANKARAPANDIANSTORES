@@ -3,6 +3,7 @@ import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } fr
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
+import axiosInstance from "../../api/axiosInstance";
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
@@ -156,6 +157,7 @@ const SalesReturn = () => {
   const [salesmanSearchTerm, setSalesmanSearchTerm] = useState('');
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [billSearchTerm, setBillSearchTerm] = useState('');
+  const [popupSearchText, setPopupSearchText] = useState('');
 
   // --- REFS ---
   const billRowRefs = useRef([]);
@@ -765,51 +767,80 @@ const SalesReturn = () => {
     }
   };
 
-  const fetchItems = async () => {
+  const fetchItems = async (type = 'FG') => {
     try {
       setLoading(true);
       setError("");
       
-      const response = await apiService.get("ItemCreation/GetItemCreationdropdowslist");
+      // Use getItemsByType endpoint with FG type (same as SalesInvoice)
+      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getItemsByType(type, 1, 100);
       
-      let itemsArray = [];
-      
-      if (response && Array.isArray(response)) {
-        itemsArray = response;
-      } else if (response && typeof response === 'object') {
-        if (response.items && Array.isArray(response.items)) {
-          itemsArray = response.items;
-        } else if (response.data && Array.isArray(response.data)) {
-          itemsArray = response.data;
-        } else if (response.list && Array.isArray(response.list)) {
-          itemsArray = response.list;
-        } else {
-          itemsArray = Object.values(response);
-        }
-      }
-      
-      if (Array.isArray(itemsArray) && itemsArray.length > 0) {
-        const formattedItems = itemsArray.map((item, index) => {
-          const itemCode = item.fItemcode || item.itemCode || item.code || item.ItemCode || item.Code || item.id || '';
-          const itemName = item.fItemName || item.itemName || item.name || item.ItemName || item.Name || item.description || item.Description || '';
-          
-          return {
-            id: itemCode || `item-${index}`,
-            itemCode: itemCode,
-            itemName: itemName,
-            code: itemCode,
-            name: itemName,
-            fItemcode: itemCode,
-            fItemName: itemName
-          };
-        });
+      const response = await axiosInstance.get(endpoint);
+      console.log("Fetched FG items response:", JSON.stringify(response));
+      if (response && response.data) {
+        let itemsArray = [];
         
-        setItemList(formattedItems);
+        // Handle response format - check for data array
+        if (response.data.data && Array.isArray(response.data.data)) {
+          itemsArray = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          itemsArray = response.data;
+        }
+        
+        if (itemsArray.length > 0) {
+          const formattedItems = itemsArray.map(item => {
+            // IMPORTANT: CORRECT FIELD MAPPINGS FOR FG TYPE
+            const itemCode = item.itemCode || item.code || item.id || '';
+            const itemName = item.itemName || item.name || '';
+            const units = item.units || item.uom || "PCS"; // Default to PCS if empty
+            const barcode = item.finalPrefix || item.barcode; // finalPrefix is the BARCODE
+            
+            // Handle empty preRate
+            const preRateValue = item.preRate === "" || item.preRate === null || item.preRate === undefined 
+              ? "0" 
+              : item.preRate;
+            
+            return {
+              ...item,
+              id: itemCode || Math.random(),
+              fItemcode: itemCode,
+              fItemName: itemName,
+              fUnits: units,
+              itemCode: itemCode,
+              itemName: itemName,
+              name: itemName,
+              code: itemCode,
+              originalCode: itemCode,
+              barcode: barcode,
+              stock: item.maxQty || item.stock || item.quantity || 0,
+              mrp: preRateValue || item.mrp || item.sRate || "0",
+              uom: units,
+              hsn: item.hsn || item.hsnCode || "",
+              tax: item.tax || item.taxRate || "0",
+              sRate: preRateValue || item.sRate || item.mrp || "0",
+              displayName: `${itemName} (${itemCode})`,
+              popupDisplay: itemName,
+              finalPrefix: item.finalPrefix,
+              preRate: preRateValue,
+              maxQty: item.maxQty,
+              minQty: item.minQty,
+              brand: item.brand,
+              category: item.category,
+              model: item.model,
+              size: item.size,
+              type: item.type
+            };
+          });
+          
+          setItemList(formattedItems);
+        } else {
+          setItemList([]);
+        }
       } else {
         setItemList([]);
       }
     } catch (err) {
-      console.error("Error fetching items dropdown:", err);
+      console.error("Error fetching FG items:", err);
       setItemList([]);
     } finally {
       setLoading(false);
@@ -850,6 +881,8 @@ const SalesReturn = () => {
   };
 
   const fetchItemByBarcode = async (barcode) => {
+  if (!barcode || barcode.trim() === '') return null;
+
   try {
     setLoading(true);
 
@@ -862,22 +895,73 @@ const SalesReturn = () => {
 
     if (foundItem) return foundItem;
 
-    // 2️⃣ API call
-    const response = await apiService.get(
-      `Salesinvoices/GetpurchaseStockDetails?barcode=${encodeURIComponent(barcode)}`
+    // 2️⃣ API call using axiosInstance (same as SaleInvoice)
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getPurchaseStockDetailsByBarcode(barcode.trim())
     );
-console.log("Barcode API response:", response);
-    // ✅ IMPORTANT FIX
-    if (response) {
-      return response;
+    
+    console.log("Barcode API response:", JSON.stringify(response));
+    
+    // ✅ Return response data (axios wraps in .data)
+    if (response?.data) {
+      return response.data;
     }
 
     return null;
   } catch (err) {
     console.error("Barcode API error:", err);
+    // Don't show alert - just return null and let the calling function handle it
     return null;
   } finally {
     setLoading(false);
+  }
+};
+
+// Get stock by item name - same as SalesInvoice
+const getStockByItemName = async (itemCode) => {
+  if (!itemCode || itemCode.trim() === '') {
+    return { 
+      stock: '0',
+      itemName: '',
+      mrp: '0',
+      uom: '',
+      fUnits: '',
+      hsn: '',
+      tax: '0',
+      rate: '0'
+    };
+  }
+
+  try {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getStockByItemName1(itemCode.trim())
+    );
+
+    const data = response?.data;
+    const item = data?.items?.[0]; // ✅ API returns array
+
+    return {
+      stock: (item?.finalStock ?? 0).toString(),
+      itemName: item?.itemName || '',
+      mrp: item?.preRate || '0',
+      uom: item?.units || '',
+      fUnits: item?.units || '',
+      hsn: item?.hsn || '',
+      tax: item?.tax || '0',
+      rate: item?.preRate || '0'
+    };
+  } catch (err) {
+    console.error("Stock API failed:", err);
+    return { 
+      stock: '0',
+      itemName: '',
+      mrp: '0',
+      uom: '',
+      fUnits: '',
+      hsn: '',
+      tax: '0',
+      rate: '0'
+    };
   }
 };
 
@@ -889,7 +973,9 @@ const handleBarcodeEnter = async (rowIndex, barcode) => {
     const item = await fetchItemByBarcode(effectiveBarcode);
 
     if (!item || !item[0]) {
-      toast.warning("Item not found for this barcode");
+      toast.warning(`No item found for barcode: ${effectiveBarcode}`, {
+        autoClose: 1500,
+      });
       return;
     }
 
@@ -907,11 +993,11 @@ const handleBarcodeEnter = async (rowIndex, barcode) => {
         mrp: item[0].mrp || "",
         uom: item[0].fUnit || "",
         hsn: item[0].fHSN || "",
+        tax: item[0].inTax || "0",  // ✅ Set tax from inTax (API response)
         sRate: item[0].rate || "0",
 
-        // ❌ DO NOT TOUCH qty & tax
+        // ❌ DO NOT TOUCH qty
         qty: updated[rowIndex].qty || "",
-        tax: updated[rowIndex].tax || "",
 
         // amount should depend on qty entered by user
         amount: calculateAmount(
@@ -1505,8 +1591,8 @@ setTimeout(() => {
       return;
     }
     
-    // Set search term for PopupListSelector pre-fill
-    setItemSearchTerm(searchText);
+    // Set search text for popup pre-fill (matching SaleInvoice)
+    setPopupSearchText(searchText);
     
     let itemData = itemList.map((item, index) => {
       const itemCode = item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
@@ -1515,6 +1601,7 @@ setTimeout(() => {
       const displayName = `${itemName}`;
       
       return {
+        ...item, // ✅ Spread ALL item properties (UOM, HSN, TAX, preRate, etc.)
         id: itemCode || `item-${index}`,
         code: itemCode,
         name: itemName,
@@ -1697,25 +1784,58 @@ setTimeout(() => {
         
       } else if (popupType === "item") {
         if (selectedRowIndex !== null) {
-          setItems(prev => {
-            const updated = [...prev];
+          try {
+            const updatedItems = [...items];
+            const currentItem = updatedItems[selectedRowIndex];
 
-            updated[selectedRowIndex] = {
-              ...updated[selectedRowIndex],
-              itemName:
-                selectedItem.fItemName ||
-                selectedItem.itemName ||
-                selectedItem.name ||
-                "",
-              itemCode:
-                selectedItem.fItemcode ||
-                selectedItem.itemCode ||
-                selectedItem.code ||
-                updated[selectedRowIndex].itemCode,
+            // Get item details from the selected item
+            const itemCode = selectedItem.itemCode || selectedItem.fItemcode || selectedItem.code || '';
+            const itemName = selectedItem.itemName || selectedItem.fItemName || selectedItem.name || '';
+            
+            console.log("DEBUG selectedItem full object:", selectedItem);
+            
+            // ✅ Direct mapping from selectedItem properties set in fetchItems
+            // The spread ...item in openItemPopup preserves ALL properties from itemList
+            const finalBarcode = selectedItem.finalPrefix || selectedItem.barcode || '';
+            const finalUom = selectedItem.units || selectedItem.uom || selectedItem.fUnits || '';
+            const finalHsn = selectedItem.hsn || selectedItem.fHSN || '';
+            const finalPreRate = selectedItem.preRate || selectedItem.sRate || selectedItem.mrp || '0';
+            const finalStock = selectedItem.maxQty || selectedItem.stock || 0;
+            
+            // Fetch stock info only if needed
+            const stockInfo = await getStockByItemName(itemCode);
+            const finalTax = selectedItem.tax || selectedItem.taxRate || stockInfo.tax || '0';
+
+            updatedItems[selectedRowIndex] = {
+              ...currentItem,
+              itemName,
+              itemCode,
+              barcode: finalBarcode,
+              stock: finalStock.toString(),
+              mrp: finalPreRate,
+              uom: finalUom,
+              hsn: finalHsn,
+              tax: finalTax,
+              sRate: finalPreRate,
+              qty: currentItem.qty || '',
+              amount: calculateAmount(currentItem.qty || '', finalPreRate)
             };
 
-            return updated;
-          });
+            setItems(updatedItems);
+            console.log("Item selected - Final values:", {
+              itemName,
+              itemCode,
+              barcode: finalBarcode,
+              uom: finalUom,
+              hsn: finalHsn,
+              tax: finalTax,
+              sRate: finalPreRate,
+              stock: finalStock,
+              selectedItem
+            });
+          } catch (err) {
+            console.error("Item select failed:", err);
+          }
 
           // ✅ Move cursor to QTY of SAME ROW
           setTimeout(() => {
@@ -1804,6 +1924,37 @@ setTimeout(() => {
           return (
             (item.name && item.name.toLowerCase().includes(searchLower)) ||
             (item.customerName && item.customerName.toLowerCase().includes(searchLower))
+          );
+        });
+      }
+    } else if (popupType === "item") {
+      // Fetch items from API
+      await fetchItems();
+      
+      // Map items from itemList state
+      filtered = itemList.map((item, index) => {
+        const itemCode = item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
+        const itemName = item.fItemName || item.itemName || item.name || 'Unknown Item';
+        
+        return {
+          ...item, // ✅ Spread ALL item properties (finalPrefix, units, hsn, preRate, maxQty, etc.)
+          id: itemCode || `item-${index}`,
+          code: itemCode,
+          name: itemName,
+          displayName: itemName,
+          itemCode: itemCode,
+          itemName: itemName
+        };
+      });
+      
+      // Apply search filter
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filtered = filtered.filter(item => {
+          return (
+            (item.name && item.name.toLowerCase().includes(searchLower)) ||
+            (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
+            (item.itemName && item.itemName.toLowerCase().includes(searchLower))
           );
         });
       }
@@ -2165,10 +2316,16 @@ setTimeout(() => {
       fieldName: fieldName
     });
 
-    // Focus the input
+    // Focus the input and select text
     setTimeout(() => {
       const input = document.querySelector(`input[data-row="${newRowIndex}"][data-field="${fieldName}"]`);
-      input?.focus();
+      if (input) {
+        input.focus();
+        // Select text if it's an input field
+        if (input.tagName === 'INPUT' && input.type === 'text' && !input.readOnly) {
+          input.select();
+        }
+      }
     }, 10);
   };
 
@@ -2421,8 +2578,8 @@ const handleTableKeyDown = (e, rowIndex, field) => {
         );
         if (input) {
           input.focus();
-          if (input.tagName === 'INPUT' && !input.readOnly) {
-            setTimeout(() => input.select(), 0);
+          if (input.tagName === 'INPUT' && input.type === 'text' && !input.readOnly) {
+            input.select();
           }
         }
 
@@ -2446,8 +2603,8 @@ const handleTableKeyDown = (e, rowIndex, field) => {
       );
       if (input) {
         input.focus();
-        if (input.tagName === 'INPUT' && !input.readOnly) {
-          setTimeout(() => input.select(), 0);
+        if (input.tagName === 'INPUT' && input.type === 'text' && !input.readOnly) {
+          input.select();
         }
       }
 
@@ -2476,8 +2633,8 @@ const handleTableKeyDown = (e, rowIndex, field) => {
       if (input) {
         input.focus();
         // Select text in the next input field if it's an input element
-        if (input.tagName === 'INPUT' && !input.readOnly) {
-          setTimeout(() => input.select(), 0);
+        if (input.tagName === 'INPUT' && input.type === 'text' && !input.readOnly) {
+          input.select();
         }
       }
 
@@ -3636,16 +3793,7 @@ const handlePrint = () => {
         onBlur={() => setFocusedField('')}
         readOnly
       />
-      <div 
-        style={{
-          ...styles.searchIconInside,
-          right: screenSize.isMobile ? '8px' : '10px',
-          fontSize: screenSize.isMobile ? '16px' : '18px'
-        }}
-        title="Auto-generated"
-      >
-        <SearchIcon />
-      </div>
+     
     </div>
 
     {/* Bill Date */}
@@ -4451,21 +4599,17 @@ const handlePrint = () => {
             setSalesmanSearchTerm('');
             setItemSearchTerm('');
             setBillSearchTerm('');
+            setPopupSearchText('');
           }}
           onSelect={handlePopupSelect}
           fetchItems={fetchItemsForPopup}
           title={popupTitle}
+          initialSearch={popupSearchText}
           displayFieldKeys={getPopupConfig().displayFieldKeys}
           searchFields={getPopupConfig().searchFields}
           headerNames={getPopupConfig().headerNames}
           columnWidths={getPopupConfig().columnWidths}
           searchPlaceholder={getPopupConfig().searchPlaceholder}
-          initialSearch={
-            popupType === 'customer' ? customerSearchTerm :
-            popupType === 'salesman' ? salesmanSearchTerm :
-            popupType === 'item' ? itemSearchTerm :
-            billSearchTerm
-          }
           maxHeight="70vh"
         />
       )}

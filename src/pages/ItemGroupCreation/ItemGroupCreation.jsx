@@ -1702,7 +1702,7 @@ export default function ItemGroupCreation() {
            // Keep tree closed
         }}
         fetchItems={fetchPopupItems}
-        title={`Select Item Group to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
+        title={`Select Item Group to ${actionType === 'Edit' ? 'Edit' : 'Delete'}`}
         displayFieldKeys={['fName', 'fParent']}
         searchFields={['fName', 'fParent']}
         headerNames={['Group Name', 'Parent']}
