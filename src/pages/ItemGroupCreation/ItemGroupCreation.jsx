@@ -1698,8 +1698,12 @@ export default function ItemGroupCreation() {
           setFCode(item.fCode || '');
           setIsPopupOpen(false);
           setIsTreeOpen(true);
-
-           // Keep tree closed
+          // Focus Sub Group input after selection
+          setTimeout(() => {
+            if (subGroupRef.current) {
+              subGroupRef.current.focus();
+            }
+          }, 100);
         }}
         fetchItems={fetchPopupItems}
         title={`Select Item Group to ${actionType === 'Edit' ? 'Edit' : 'Delete'}`}
