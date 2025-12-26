@@ -66,7 +66,7 @@ const PaymentVoucher = () => {
       sNo: 1,
       cashBank: '',
       crDr: 'CR',
-      type: '',
+      type: 'CASH',
       chqNo: '',
       chqDt: '',
       narration: '',
@@ -983,7 +983,7 @@ const PaymentVoucher = () => {
         sNo: 1,
         cashBank: '',
         crDr: 'CR',
-        type: '',
+        type: 'CASH',
         chqNo: '',
         chqDt: '',
         narration: '',
@@ -1329,7 +1329,7 @@ const PaymentVoucher = () => {
         cashBank: '',
         cashBankCode: '',
         crDr: 'CR',
-        type: '',
+        type: 'CASH',
         chqNo: '',
         chqDt: '',
         narration: '',
@@ -2207,7 +2207,6 @@ const PaymentVoucher = () => {
                       onBlur={(e) => (e.target.style.border = 'none')}
                       style={navigationStep === 'paymentType' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
                     >
-                      <option value="">-- Select Type --</option>
                       <option value="CASH">CASH</option>
                       <option value="CHQ">CHQ</option>
                       <option value="RTGS">RTGS</option>

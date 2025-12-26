@@ -70,7 +70,7 @@ const ReceiptVoucher = () => {
       sNo: 1,
       cashBank: '',
       crDr: 'CR',
-      type: '',
+      type: 'CASH',
       chqNo: '',
       chqDt: '',
       narration: '',
@@ -1062,7 +1062,7 @@ const ReceiptVoucher = () => {
         sNo: 1,
         cashBank: '',
         crDr: 'CR',
-        type: '',
+        type: 'CASH',
         chqNo: '',
         chqDt: '',
         narration: '',
@@ -1464,7 +1464,7 @@ const ReceiptVoucher = () => {
         sNo: newSNo,
         cashBank: '',
         crDr: 'CR',
-        type: '',
+        type: 'CASH',
         chqNo: '',
         chqDt: '',
         narration: '',
@@ -2518,7 +2518,6 @@ const ReceiptVoucher = () => {
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
                     >
-                      <option value="">Select</option>
                       <option value="CASH">CASH</option>
                       <option value="CHQ">CHQ</option>
                       <option value="RTGS">RTGS</option>
