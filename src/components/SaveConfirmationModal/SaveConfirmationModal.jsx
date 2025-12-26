@@ -328,7 +328,6 @@ const SaveConfirmationModal = ({
                         onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
                         onKeyDown={(e) => handleCollectFieldKeyDown(e, denom)}
                         className={styles.tableInput}
-                        placeholder="0"
                       />
                     </div>
                   ))}
@@ -344,7 +343,6 @@ const SaveConfirmationModal = ({
                         value={denominations[denom].issue === 0 ? '' : denominations[denom].issue}
                         readOnly
                         className={styles.tableInput}
-                        placeholder="0"
                       />
                     </div>
                   ))}

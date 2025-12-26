@@ -12,6 +12,24 @@ import 'react-toastify/dist/ReactToastify.css';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 
+const SearchIcon = ({ size = 16, color = "#1B91DA" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
+
 const PaymentVoucher = () => {
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
@@ -2045,27 +2063,45 @@ const PaymentVoucher = () => {
             {/* A/C Name */}
             <div style={styles.fieldGroup}>
               <label style={styles.inlineLabel}>A/C Name</label>
-              <input
-                ref={accountNameRef}
-                type="text"
-                name="accountName"
-                value={voucherDetails.accountName || ''}
-                onChange={handleInputChange}
-                onFocus={() => {
-                  setFocusedField('accountName');
-                  setNavigationStep('accountName');
-                }}
-                onBlur={() => setFocusedField('')}
-                onClick={openAccountPopup}
-                onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName')}
-                onKeyUp={(e) => handleBackspace(e, 'accountName')}
-                style={{
-    ...(focusedField === 'accountName'
-      ? styles.inlineInputClickableFocused
-      : styles.inlineInputClickable),
-    width: '420px'
-  }}
-              />
+              <div style={{ position: 'relative', width: '420px', flex: 1 }}>
+                <input
+                  ref={accountNameRef}
+                  type="text"
+                  name="accountName"
+                  value={voucherDetails.accountName || ''}
+                  onChange={handleInputChange}
+                  onFocus={() => {
+                    setFocusedField('accountName');
+                    setNavigationStep('accountName');
+                  }}
+                  onBlur={() => setFocusedField('')}
+                  onClick={openAccountPopup}
+                  onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName')}
+                  onKeyUp={(e) => handleBackspace(e, 'accountName')}
+                  style={{
+        ...(focusedField === 'accountName'
+          ? styles.inlineInputClickableFocused
+          : styles.inlineInputClickable),
+        width: '100%',
+        paddingRight: '34px'
+      }}
+                />
+                {/* 🔍 Search Icon */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none',
+                    opacity: 0.65,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <SearchIcon />
+                </div>
+              </div>
             </div>
 
             {/* Balance */}
@@ -2140,23 +2176,44 @@ const PaymentVoucher = () => {
                 <tr key={item.id}>
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
-                    <input
-                      ref={el => paymentCashBankRefs.current[index] = el}
-                      id={`payment_${item.id}_cashBank`}
-                      type="text"
-                      value={item.cashBank}
-                      onChange={(e) => handlePaymentItemChange(item.id, 'cashBank', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'cashBank')}
-                      onClick={() => openCashBankPopup(item.id, index)}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                        setNavigationStep('paymentCashBank');
-                        setCurrentPaymentRowIndex(index);
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                      style={navigationStep === 'paymentCashBank' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
-                      title="Click to select or type to search"
-                    />
+                    <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        ref={el => paymentCashBankRefs.current[index] = el}
+                        id={`payment_${item.id}_cashBank`}
+                        type="text"
+                        value={item.cashBank}
+                        onChange={(e) => handlePaymentItemChange(item.id, 'cashBank', e.target.value)}
+                        onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'cashBank')}
+                        onClick={() => openCashBankPopup(item.id, index)}
+                        onFocus={(e) => {
+                          e.target.style.border = '2px solid #1B91DA';
+                          setNavigationStep('paymentCashBank');
+                          setCurrentPaymentRowIndex(index);
+                        }}
+                        onBlur={(e) => (e.target.style.border = 'none')}
+                        style={{
+                          ...(navigationStep === 'paymentCashBank' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
+                          paddingRight: '28px',
+                          width: '100%'
+                        }}
+                        title="Click to select or type to search"
+                      />
+                      {/* 🔍 Search Icon */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: '6px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          pointerEvents: 'none',
+                          opacity: 0.65,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <SearchIcon size={14} />
+                      </div>
+                    </div>
                   </td>
                   <td style={styles.td}>
                     <select

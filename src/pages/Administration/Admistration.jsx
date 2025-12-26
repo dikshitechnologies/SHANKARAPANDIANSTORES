@@ -55,17 +55,19 @@ const MASTER_ITEMS = [
 ];
 
 const TRANSACTION_ITEMS = [
+   { label: "Purchase Invoice", dbName: "PURCHASE_INVOICE" },
+  { label: "Purchase Return", dbName: "PURCHASE_RETURN" },
+   { label: "Payment Voucher", dbName: "PAYMENT_VOUCHER" },
+  { label: "Receipt Voucher", dbName: "RECEIPT_VOUCHER" },
   { label: "Sales Invoice", dbName: "SALES_INVOICE" },
   { label: "Sales Return", dbName: "SALES_RETURN" },
-  { label: "Purchase Invoice", dbName: "PURCHASE_INVOICE" },
-  { label: "Purchase Return", dbName: "PURCHASE_RETURN" },
+ 
   { label: "Scrap Rate Fix", dbName: "SCRAP_RATE_FIX" },
   { label: "Scrap Procurement", dbName: "SCRAP_PROCUREMENT" },
-  { label: "Tender", dbName: "TENDER" },
+  // { label: "Tender", dbName: "TENDER" },
   { label: "Bill Collector", dbName: "BILL_COLLECTOR" },
-  { label: "Amount Issue", dbName: "AMOUNT_ISSUE" },
-  { label: "Payment Voucher", dbName: "PAYMENT_VOUCHER" },
-  { label: "Receipt Voucher", dbName: "RECEIPT_VOUCHER" }
+  // { label: "Amount Issue", dbName: "AMOUNT_ISSUE" },
+ 
 ];
 
 const REPORT_ITEMS = [
