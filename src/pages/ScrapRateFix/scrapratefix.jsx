@@ -473,7 +473,7 @@ const handleConfirmClearAll = () => {
   onClose={() => setShowClearConfirmation(false)}
   onConfirm={handleConfirmClearAll}
   title="Clear All Rates"
-  message="Are you sure you want to clear all rate values?"
+  message="Do you want to clear ?"
   type="warning"
   confirmText="Yes"
   cancelText="No"
@@ -530,7 +530,7 @@ const handleConfirmClearAll = () => {
         }}>
           <input
             type="text"
-            placeholder="Search by scrap name or code..."
+            placeholder="Search scrap name"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{

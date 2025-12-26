@@ -2387,7 +2387,7 @@ export default function LedgerCreation({ onCreated }) {
             if (partyNameRef.current) {
               partyNameRef.current.focus();
             }
-          }, 100);
+          }, 1000);
         }}
         fetchItems={fetchPopupItems}
         title={actionType === 'delete' ? 'Select Ledger  to Delete' : 'Select Ledger  to Edit'}
