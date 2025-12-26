@@ -162,6 +162,7 @@ const SalesReturn = () => {
  
   const billNoRef = useRef(null);
   const billDateRef = useRef(null);
+  
   const mobileRef = useRef(null);
   const salesmanRef = useRef(null);
   const custNameRef = useRef(null);
@@ -964,7 +965,7 @@ setTimeout(() => {
           userCode: "001",
           billAMT: totalAmount.toFixed(2).toString(),
           billNo: (billDetails.newBillNo || "").toString(),
-          returnReason: (billDetails.returnReason || "").toString()
+        
         },
         items: validItems.map((item, index) => ({
           barcode: (item.barcode || "").toString(),
@@ -1073,8 +1074,8 @@ setTimeout(() => {
           compCode: "001",
           userCode: "001",
           billAMT: totalAmount.toFixed(2).toString(),
-          billNo: (billDetails.newBillNo || "").toString(),
-          returnReason: (billDetails.returnReason || "").toString()
+          refNo: (billDetails.newBillNo || "").toString(),
+      
         },
         items: validItems.map((item, index) => ({
           barcode: (item.barcode || "").toString(),
@@ -1088,7 +1089,7 @@ setTimeout(() => {
           srate: (item.sRate || "0").toString(),
           qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
           amount: (item.amount || "0").toString(),
-          netAmount: (item.amount || "0").toString()
+        
         }))
       };
 
@@ -1982,7 +1983,12 @@ setTimeout(() => {
             });
           } else {
             // Header field
-            const headerFields = ['billNo', 'billDate', 'mobileNo', 'salesman', 'custName', 'newBillNo'];
+         const headerFields = [
+  ['billNo', 'billDate', 'salesman', 'newBillNo'],
+  ['custName', 'mobileNo']
+];
+
+
             const fieldName = activeElement.name;
             const fieldIndex = headerFields.indexOf(fieldName);
             
@@ -2012,9 +2018,9 @@ setTimeout(() => {
 
   const handleHeaderArrowNavigation = (key, rowIndex, fieldIndex) => {
     const headerFields = [
-      ['billNo', 'billDate', 'mobileNo', 'salesman'],
-      ['custName', 'newBillNo']
-    ];
+    ['billNo', 'billDate', 'salesman', 'newBillNo'],
+    ['custName', 'mobileNo']
+  ];
 
     let newRowIndex = rowIndex;
     let newFieldIndex = fieldIndex;
@@ -3861,48 +3867,81 @@ const handleApplyBillDirect = async () => {
       </div>
     </div>
 
-    {/* Mobile No */}
-    <div style={{
-      ...styles.formField,
-      flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-               'calc(25% - 12px)',
-      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                'calc(25% - 12px)',
-      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                 'calc(25% - 12px)'
-    }}>
-      <label style={styles.inlineLabel}>Mobile No:</label>
-      <input
-        type="text"
-        style={{
-          ...(focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput),
-          padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
-                  screenSize.isTablet ? '8px 35px 8px 10px' : 
-                  '8px 35px 8px 10px',
-          fontSize: screenSize.isMobile ? '14px' : 'inherit'
-        }}
-        value={billDetails.mobileNo}
-        name="mobileNo"
-        onChange={handleInputChange}
-        ref={mobileRef}
-        onKeyDown={(e) => handleKeyDown(e, null, 'mobileNo')}
-        onFocus={() => {
-          setFocusedField('mobileNo');
-          setFocusedElement({
-            type: 'header',
-            rowIndex: 1,
-            fieldIndex: 1,
-            fieldName: 'mobileNo'
-          });
-        }}
-        onBlur={() => setFocusedField('')}
-      />
-     
-    </div>
+{/* Mobile No */}
+<div
+  style={{
+    ...styles.formField,
+    flex: '1 1 auto',
+    minWidth: screenSize.isMobile
+      ? 'calc(50% - 5px)'
+      : screenSize.isTablet
+      ? 'calc(33.33% - 8px)'
+      : 'calc(25% - 12px)',
+    maxWidth: screenSize.isMobile
+      ? 'calc(50% - 5px)'
+      : screenSize.isTablet
+      ? 'calc(33.33% - 8px)'
+      : 'calc(25% - 12px)',
+    flexBasis: screenSize.isMobile
+      ? 'calc(50% - 5px)'
+      : screenSize.isTablet
+      ? 'calc(33.33% - 8px)'
+      : 'calc(25% - 12px)',
+  }}
+>
+  <label style={styles.inlineLabel}>Mobile No:</label>
+
+  <input
+    type="text"
+    style={{
+      ...(focusedField === 'mobileNo'
+        ? styles.inlineInputFocused
+        : styles.inlineInput),
+      padding: screenSize.isMobile
+        ? '10px 35px 10px 8px'
+        : '8px 35px 8px 10px',
+      fontSize: screenSize.isMobile ? '14px' : 'inherit',
+    }}
+    value={billDetails.mobileNo}
+    name="mobileNo"
+    onChange={handleInputChange}
+    ref={mobileRef}
+    onKeyDown={(e) => {
+      handleKeyDown(e, null, 'mobileNo');
+
+      // ✅ ENTER → Table Barcode
+      if (e.key === 'Enter') {
+        e.preventDefault();
+
+        setFocusedElement({
+          type: 'table',
+          rowIndex: 0,
+          fieldIndex: 0,
+          fieldName: 'barcode',
+        });
+
+        setTimeout(() => {
+          document
+            .querySelector(
+              'input[data-row="0"][data-field="barcode"]'
+            )
+            ?.focus();
+        }, 10);
+      }
+    }}
+    onFocus={() => {
+      setFocusedField('mobileNo');
+      setFocusedElement({
+        type: 'header',
+        rowIndex: 1,
+        fieldIndex: 1,
+        fieldName: 'mobileNo',
+      });
+    }}
+    onBlur={() => setFocusedField('')}
+  />
+</div>
+
 
     {/* EMPTY DIV 1 - to maintain 4-column grid structure like sales invoice */}
     <div style={{
