@@ -1452,10 +1452,10 @@ const handleDeleteRowClick = (s) => {
         }}
         fetchItems={fetchItemsForModal}
         title="Select State to Edit"
-        displayFieldKeys={['stateName', 'fuCode']}
-        searchFields={['stateName', 'fuCode']}
-        headerNames={['State Name', 'Code']}
-        columnWidths={{ stateName: '70%', fuCode: '30%' }}
+        displayFieldKeys={['stateName', ]}
+        searchFields={['stateName', ]}
+        headerNames={['State Name', ]}
+        columnWidths={{ stateName: '70%',  }}
         maxHeight="60vh"
       />
 
@@ -1469,10 +1469,10 @@ const handleDeleteRowClick = (s) => {
         }}
         fetchItems={fetchItemsForModal}
         title="Select State to Delete"
-        displayFieldKeys={['stateName', 'fuCode']}
-        searchFields={['stateName', 'fuCode']}
-        headerNames={['State Name', 'Code']}
-        columnWidths={{ stateName: '70%', fuCode: '30%' }}
+        displayFieldKeys={['stateName', ]}
+        searchFields={['stateName', ]}
+        headerNames={['State Name', ]}
+        columnWidths={{ stateName: '70%',  }}
         maxHeight="60vh"
         warningText="Deleting a state cannot be undone. Make sure the state is not referenced elsewhere."
       />

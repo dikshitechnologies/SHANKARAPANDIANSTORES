@@ -877,7 +877,7 @@ useEffect(() => {
     setAddLessAmount('');
     setIsEditing(false);
     setOriginalInvoiceNo('');
-    
+    setActiveTopAction('add');
     fetchNextBillNo();
   };
 
@@ -1182,8 +1182,8 @@ const handleItemSelect = async (item) => {
     const itemCode = item.fItemcode || item.itemCode || item.code || '';
     const itemName = item.fItemName || item.itemName || item.name || '';
     const units = item.fUnits || item.units || "";
-    // ✅ Use finalPrefix as barcode if available
-    const barcode = item.finalPrefix || item.barcode || itemCode;
+    // ✅ Use finalPrefix as barcode - keep empty if not available
+    const barcode = item.finalPrefix || item.barcode || '';
     
     // Use stock info from the item data or fetch separately
     const stockInfo = await getStockByItemName(itemCode);
@@ -1209,9 +1209,9 @@ const handleItemSelect = async (item) => {
       hsn: resolvedHsn,
       tax: formatValue(item.tax || stockInfo.tax || 0),
       sRate: formatValue(item.preRate || item.sRate || stockInfo.rate || 0), // ✅ Use preRate
-      qty: currentItem.qty || '1',
+      qty: currentItem.qty || '',
       amount: calculateAmount(
-        currentItem.qty || '1',
+        currentItem.qty || '',
         item.preRate || item.sRate || stockInfo.rate || 0
       )
     };
@@ -1507,8 +1507,8 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
           hsn: barcodeData.fHSN || '',
           tax: (barcodeData.inTax || 0).toString(),
           sRate: (barcodeData.rate || 0).toString(),
-          qty: '1',
-          amount: calculateAmount('1', barcodeData.rate || 0)
+          qty: '',
+          amount: '0.00'
         };
         
         setItems(updatedItems);
@@ -1651,11 +1651,18 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
 
     const nextField = fieldNavigation[currentField];
     if (nextField) {
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-        )
-        ?.focus();
+      setTimeout(() => {
+        const element = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${nextField}"], div[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+        );
+        if (element) {
+          element.focus();
+          // Select text if it's an input field
+          if (element.tagName === 'INPUT' && element.type === 'text') {
+            element.select();
+          }
+        }
+      }, 0);
     }
     return;
   }
@@ -1667,11 +1674,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     e.preventDefault();
     if (fieldIndex > 0) {
       const prev = TABLE_FIELDS[fieldIndex - 1];
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${prev}"]`
-        )
-        ?.focus();
+      const element = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${prev}"], div[data-row="${currentRowIndex}"][data-field="${prev}"]`
+      );
+      if (element) {
+        element.focus();
+        // Select text if it's an input field
+        if (element.tagName === 'INPUT' && element.type === 'text') {
+          element.select();
+        }
+      }
     }
     return;
   }
@@ -1683,11 +1695,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     e.preventDefault();
     if (fieldIndex < TABLE_FIELDS.length - 1) {
       const next = TABLE_FIELDS[fieldIndex + 1];
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${next}"]`
-        )
-        ?.focus();
+      const element = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${next}"], div[data-row="${currentRowIndex}"][data-field="${next}"]`
+      );
+      if (element) {
+        element.focus();
+        // Select text if it's an input field
+        if (element.tagName === 'INPUT' && element.type === 'text') {
+          element.select();
+        }
+      }
     }
     return;
   }
@@ -1698,11 +1715,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   if (e.key === "ArrowUp") {
     e.preventDefault();
     if (currentRowIndex > 0) {
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
-        )
-        ?.focus();
+      const element = document.querySelector(
+        `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"], div[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
+      );
+      if (element) {
+        element.focus();
+        // Select text if it's an input field
+        if (element.tagName === 'INPUT' && element.type === 'text') {
+          element.select();
+        }
+      }
     }
     return;
   }
@@ -1713,11 +1735,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   if (e.key === "ArrowDown") {
     e.preventDefault();
     if (currentRowIndex < items.length - 1) {
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
-        )
-        ?.focus();
+      const element = document.querySelector(
+        `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"], div[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
+      );
+      if (element) {
+        element.focus();
+        // Select text if it's an input field
+        if (element.tagName === 'INPUT' && element.type === 'text') {
+          element.select();
+        }
+      }
     }
     return;
   }
@@ -1757,8 +1784,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           hsn: barcodeData.fHSN || '',
           tax: (barcodeData.inTax || 0).toString(),
           sRate: (barcodeData.rate || 0).toString(),
-          qty: '1',
-          amount: calculateAmount('1', barcodeData.rate || 0)
+          qty: '',
+          amount: calculateAmount(qty, barcodeData.rate || 0)
         };
         
         setItems([...items, newItem]);
@@ -1794,8 +1821,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               hsn: stockInfo.hsn || '',
               tax: stockInfo.tax || '0',
               sRate: stockInfo.rate || '0',
-              qty: '1',
-              amount: calculateAmount('1', stockInfo.rate || '0')
+              qty: '',
+              amount: calculateAmount(qty, stockInfo.rate || '0')
             };
             
             setItems([...items, newItem]);
@@ -1845,7 +1872,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         hsn: itemData.hsnCode || itemData.hsn || "",
         tax: (itemData.taxRate || itemData.tax || 0).toString(),
         sRate: (itemData.sellingPrice || itemData.sRate || itemData.price || 0).toString(),
-        qty: '1',
+        qty: '',
         amount: (itemData.sellingPrice || itemData.price || 0).toFixed(2)
       };
 
@@ -3234,15 +3261,6 @@ const itemsData = validItems.map(item => ({
                         
                       }}
                       onKeyDown={(e) => {
-                        if (isEditing && e.key === 'Enter') {
-                          e.preventDefault();
-                          document
-                            .querySelector(
-                              `input[data-row="${index}"][data-field="itemName"]`
-                            )
-                            ?.focus();
-                          return;
-                        }
                         handleBarcodeKeyDown(e, index);
                       }}
                       onFocus={() => setFocusedField(`barcode-${item.id}`)}
