@@ -932,9 +932,10 @@ const ReceiptVoucher = () => {
           gstType: ledger.fGSTTYPE || 'CGST/SGST',
           date: safeFormatDate(ledger.fVouchdt),
           costCenter: '',
-          accountName: ledger.customerName || '',
+          accountName: ledger.fRefName || ledger.customerName || '',
           accountCode: ledger.fCucode || '',
-          balance: (ledger.fBillAmt || 0).toString()
+          balance: (ledger.fBillAmt || 0).toString(),
+          crDr: 'CR'
         });
         
         // Map ledger details to receipt items
@@ -950,8 +951,8 @@ const ReceiptVoucher = () => {
             type: item.type || '',
             chqNo: item.fchqno || '',
             chqDt: safeFormatDate(item.fchqdt),
-            narration: '',
-            amount: (item.fvrAmount || 0).toString()
+            narration: item.narration || '',
+            amount: (item.fvrAmount || item.fchqAmt || 0).toString()
           }));
           console.log('Mapped Receipt Items:', items);
           setReceiptItems(items);
