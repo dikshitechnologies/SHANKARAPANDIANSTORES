@@ -1635,6 +1635,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const styles = {
     container: {
       fontFamily: TYPOGRAPHY.fontFamily,
+      position:"fixed",
       fontSize: TYPOGRAPHY.fontSize.base,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
