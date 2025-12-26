@@ -2467,7 +2467,22 @@ const ReceiptVoucher = () => {
                   setFocusedField('gstType');
                 }}
                 onBlur={() => setFocusedField('')}
-                style={focusedField === 'gstType' ? styles.inlineInputFocused : styles.inlineInput}
+                style={{
+                  fontFamily: TYPOGRAPHY.fontFamily,
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  fontWeight: TYPOGRAPHY.fontWeight.normal,
+                  padding: '6px 8px',
+                  border: focusedField === 'gstType' ? '2px solid #1B91DA' : '1px solid #ddd',
+                  borderRadius: '4px',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  color: '#333',
+                  backgroundColor: 'white',
+                  minWidth: '140px',
+                  height: '32px',
+                  width: '100%',
+                  flex: 1,
+                }}
                 onKeyDown={(e) => {
                   if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
                     return; // Let browser handle arrow keys in dropdown
