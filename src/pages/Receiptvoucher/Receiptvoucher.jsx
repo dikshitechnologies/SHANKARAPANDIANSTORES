@@ -59,8 +59,8 @@ const ReceiptVoucher = () => {
     costCenter: '',
     accountName: '',
     accountCode: '',
-    balance: '0.00',
-    crDr: 'CR'
+    balance: '',
+    crDr: ''
   });
 
   // 2. Table Items State (Receipt Details)
@@ -86,9 +86,9 @@ const ReceiptVoucher = () => {
       refNo: '',
       billNo: '',
       date: '',
-      billAmount: '0.00',
-      paidAmount: '0.00',
-      balanceAmount: '0.00',
+      billAmount: '',
+      paidAmount: '',
+      balanceAmount: '',
       amount: ''
     }
   ]);
@@ -1052,8 +1052,8 @@ const ReceiptVoucher = () => {
       costCenter: '',
       accountName: '',
       accountCode: '',
-      balance: '0.00',
-      crDr: 'CR'
+      balance: '',
+      crDr: ''
     });
     setReceiptItems([
       {
@@ -1075,9 +1075,9 @@ const ReceiptVoucher = () => {
         refNo: '',
         billNo: '',
         date: '',
-        billAmount: '0.00',
-        paidAmount: '0.00',
-        balanceAmount: '0.00',
+        billAmount: '',
+        paidAmount: '',
+        balanceAmount: '',
         amount: ''
       }
     ]);
@@ -1484,7 +1484,7 @@ const ReceiptVoucher = () => {
         refNo: '',
         billNo: '',
         date: '',
-        billAmount: '0.00',
+        billAmount: '',
         paidAmount: '0.00',
         balanceAmount: '0.00',
         amount: ''
@@ -2387,8 +2387,10 @@ const ReceiptVoucher = () => {
                 onBlur={() => setFocusedField('')}
                 onClick={() => openAccountPopup('header', voucherDetails.accountName)}
                 onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName')}
-                style={focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable}
-                placeholder="Select Account"
+                style={{
+                  ...(focusedField === 'accountName' ? styles.inlineInputClickableFocused : styles.inlineInputClickable),
+                  width: '420px'
+                }}
               />
             </div>
 
@@ -2475,7 +2477,6 @@ const ReceiptVoucher = () => {
                         e.target.style.border = '2px solid #1B91DA';
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
-                      placeholder="Type to search"
                     />
                   </td>
                   <td style={styles.td}>
@@ -2548,6 +2549,7 @@ const ReceiptVoucher = () => {
                     <input
                       id={`receipt_${item.id}_chqDt`}
                       type="date"
+                      placeholder=""
                       value={item.chqDt}
                       onChange={(e) => handleReceiptItemChange(item.id, 'chqDt', e.target.value)}
                       onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqDt')}
@@ -2724,6 +2726,7 @@ const ReceiptVoucher = () => {
                     <input
                       id={`bill_${bill.id}_date`}
                       type="date"
+                      placeholder=""
                       value={bill.date}
                       onChange={(e) => handleBillItemChange(bill.id, 'date', e.target.value)}
                       onKeyDown={(e) => handleBillTableKeyDown(e, index, 'date')}
