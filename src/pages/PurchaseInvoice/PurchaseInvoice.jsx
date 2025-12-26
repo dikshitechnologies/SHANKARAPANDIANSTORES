@@ -481,24 +481,41 @@ const handleBlur = () => {
     }
   };
 
-  const fetchItemCodeList = async (search = '') => {
+  const fetchItemCodeList = async (search = '', page = 1, pageSize = 10) => {
     try {
-      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST);
-      const data = response?.data || [];
+      const params = {
+        type: 'FG',
+        page: page,
+        pageSize: pageSize
+      };
       
-      let items = Array.isArray(data) ? data.map((item, index) => ({
-        barcode: item.itemCode || `item-${index}`,
-        name: item.itemName || '',
-      })) : [];
-      
-      // Filter by search term if provided
       if (search && search.trim().length > 0) {
-        const searchLower = search.toLowerCase();
-        items = items.filter(item => 
-          item.barcode.toLowerCase().includes(searchLower) || 
-          item.name.toLowerCase().includes(searchLower)
-        );
+        params.search = search;
       }
+      
+      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST, {
+        params: params
+      });
+      
+      const responseData = response?.data || {};
+      const itemsData = responseData.data || [];
+      
+      let items = Array.isArray(itemsData) ? itemsData.map((item, index) => ({
+        barcode: item.finalPrefix || '',
+        itemcode: item.itemCode || '',
+        name: item.itemName || '',
+        stock: item.finalStock || item.stock || item.totalStock || '0',
+        uom: item.units || '',
+        hsn: item.hsn || '',
+        preRT: item.preRate || '0',
+        brand: item.brand || '',
+        category: item.category || '',
+        model: item.model || '',
+        size: item.size || '',
+        max: item.maxQty || '',
+        min: item.minQty || '',
+        type: item.type || '',
+      })) : [];
       
       return items;
     } catch (err) {
@@ -512,17 +529,26 @@ const handleBlur = () => {
     try {
       console.log('Fetching item details for code:', itemCode);
       
-      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST);
-      const allItems = response?.data || [];
+      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST, {
+        params: {
+          type: 'FG',
+          search: itemCode,
+          page: 1,
+          pageSize: 10
+        }
+      });
       
-      console.log('All items from API:', allItems);
+      const responseData = response?.data || {};
+      const itemsData = responseData.data || [];
       
-      if (!Array.isArray(allItems) || allItems.length === 0) {
+      console.log('All items from API:', itemsData);
+      
+      if (!Array.isArray(itemsData) || itemsData.length === 0) {
         console.warn('No items returned from API');
         return [];
       }
       
-      const matchedItem = allItems.find(item => 
+      const matchedItem = itemsData.find(item => 
         (item.itemCode || item.code) === itemCode
       );
       
@@ -534,11 +560,12 @@ const handleBlur = () => {
       }
       
       return [{
-        barcode: matchedItem.itemCode || matchedItem.code || itemCode,
-        name: matchedItem.itemName || matchedItem.name || '',
+        barcode: matchedItem.finalPrefix || matchedItem.itemCode || itemCode,
+        itemcode: matchedItem.itemCode || '',
+        name: matchedItem.itemName || '',
         stock: matchedItem.finalStock || matchedItem.stock || matchedItem.totalStock || '0',
-        uom: matchedItem.units || matchedItem.uom || matchedItem.unit || 'PCS',
-        hsn: matchedItem.hsn || matchedItem.hsnCode || '',
+        uom: matchedItem.units || '',
+        hsn: matchedItem.hsn || '',
         preRT: matchedItem.preRate || '0',
         brand: matchedItem.brand || '',
         category: matchedItem.category || '',
@@ -607,7 +634,8 @@ const handleBlur = () => {
         if (itemsData.length > 0) {
           const formattedItems = itemsData.map((item, index) => ({
             id: index + 1,
-            barcode: item.itemCode || item.fid || '',
+            barcode: item.barcode || item.fid || '', 
+            itemcode: item.itemCode || item.fItemCode || '',            
             name: item.itemname || item.fName || '',
             stock: item.stock || '',
             mrp: item.mrp || '',
@@ -785,43 +813,40 @@ const handleBlur = () => {
   };
 
   const handleItemCodeSelection = async (selectedItem) => {
-    if (!selectedItem || !selectedItem.barcode) return;
+    if (!selectedItem || !selectedItem.itemcode) return;
     
     setShowItemCodePopup(false);
     
     try {
-      const [stockResponse, itemDetailsArray] = await Promise.all([
-        axiosInstance.get(
-          API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_DETAILS_BY_CODE(selectedItem.barcode)
-        ),
-        fetchItemDetailsByCode(selectedItem.barcode)
-      ]);
+      // Fetch stock details from GET_ITEM_DETAILS_BY_CODE API using itemcode
+      const stockResponse = await axiosInstance.get(
+        API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_DETAILS_BY_CODE(selectedItem.itemcode)
+      );
       
       const stockData = stockResponse?.data || {};
-      const itemDetails = itemDetailsArray && itemDetailsArray.length > 0 ? itemDetailsArray[0] : {};
       
       console.log('Stock API response:', stockData);
-      console.log('Item Details API response:', itemDetails);
       
       setItems(prevItems => {
         return prevItems.map(item => {
           if (item.id === selectedRowId) {
             return {
               ...item,
-              barcode: stockData.itemCode || itemDetails.barcode || selectedItem.barcode || '',
-              name: stockData.itemName || itemDetails.name || selectedItem.name || '',
-              stock: stockData.finalStock !== undefined && stockData.finalStock !== null ? stockData.finalStock : itemDetails.stock || '0',
-              uom: itemDetails.uom || selectedItem.uom || item.uom || '',
-              hsn: stockData.hsn || itemDetails.hsn || selectedItem.hsn || item.hsn || '',
-              preRT: itemDetails.preRT || selectedItem.preRT || item.preRT || '',
-              prate: itemDetails.preRT || selectedItem.preRT || item.prate || '',
-              brand: stockData.brand || itemDetails.brand || '',
-              category: stockData.category || itemDetails.category || '',
-              model: stockData.model || itemDetails.model || '',
-              size: stockData.size || itemDetails.size || '',
-              max: stockData.max || itemDetails.max || '',
-              min: stockData.min || itemDetails.min || '',
-              type: stockData.type || itemDetails.type || '',
+              barcode: selectedItem.barcode || '',
+              itemcode: selectedItem.itemcode || '',
+              name: stockData.itemName || selectedItem.name || '',
+              stock: stockData.finalStock || '0',
+              uom: selectedItem.uom || item.uom || '',
+              hsn: selectedItem.hsn || item.hsn || '',
+              preRT: selectedItem.preRT || item.preRT || '',
+              prate: selectedItem.preRT || item.prate || '',
+              brand: stockData.brand || '',
+              category: stockData.category || '',
+              model: stockData.model || '',
+              size: stockData.size || '',
+              max: stockData.max || '',
+              min: stockData.min || '',
+              type: stockData.type || '',
             };
           }
           return item;
@@ -836,6 +861,7 @@ const handleBlur = () => {
             return {
               ...item,
               barcode: selectedItem.barcode || '',
+              itemcode: selectedItem.itemcode || '',
               name: selectedItem.name || '',
               uom: selectedItem.uom || item.uom || '',
               hsn: selectedItem.hsn || item.hsn || '',
@@ -873,7 +899,7 @@ const handleBlur = () => {
           params: {
             voucherNo: voucherNo,
             compCode: compCode,
-            user: username
+            user: compCode
           }
         }
       );
@@ -910,6 +936,12 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
+
+  // Reset scroll position on component mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    console.log('PurchaseInvoice component mounted');
+  }, []);
 
   // Fetch next invoice number and auto barcode on mount
   useEffect(() => {
@@ -1158,11 +1190,10 @@ const calculateItem = (item) => {
     amt
   };
 };
+
 useEffect(() => {
   setItems(prev => prev.map(calculateItem));
 }, [items]);
-
-
   // Handle UOM spacebar cycling (same as SalesInvoice)
   const handleUomSpacebar = (e, id, index) => {
     if (e.key === ' ') {
@@ -1310,6 +1341,12 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent form submission or other Enter handlers
 
+    // Select all text in the current cell on Enter
+    const currentInput = e.target;
+    if (currentInput && currentInput.tagName === 'INPUT' && !currentInput.readOnly) {
+      currentInput.select();
+    }
+
     const currentRow = items[currentRowIndex];
 
     // If Enter is pressed in qty field, move to add/less
@@ -1351,6 +1388,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       );
       if (nextInput) {
         nextInput.focus();
+        // Select text in the next input field if it's an input element
+        if (nextInput.tagName === 'INPUT' && !nextInput.readOnly) {
+          setTimeout(() => nextInput.select(), 0);
+        }
         return;
       }
     }
@@ -1418,8 +1459,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       // }
 
       // Validation: Check if at least one row has item data
-      const hasValidItems = items.some(item => 
-        item.barcode && item.barcode.trim() !== '' &&
+      const hasValidItems = items.some(item =>         
         item.name && item.name.trim() !== ''
       );
 
@@ -1439,11 +1479,11 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           voucherDate: voucherDateISO,
           billAmount: totals.net,
           balanceAmount: totals.net,
+          subTotal: totals.subTotal,
           refName: billDetails.customerName || '',
           compCode: compCode,
-          user: username || '001',
+          user: compCode,
           gstType: billDetails.gstType || 'G',
-          transType: billDetails.transType || 'PURCHASE',
         },
         iledger: {
           vrNo: voucherNo,
@@ -1457,33 +1497,34 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           add3: billDetails.city || '',
           add4: billDetails.mobileNo || '',
         },
-        items: items.map((it) => ({          
-          barCode: it.barcode || autoBarcode,
-          itemCode: it.itemcode|| '',
-          qty: toNumber(it.qty),
-          rate: toNumber(it.prate),
-          amount: toNumber(it.amt),
-          fTax: toNumber(it.tax),
-          wRate: toNumber(it.wsRate),
-          fid: String(it.id || ''),
-          fUnit: it.uom || '',
-          fhsn: it.hsn || '',
-          ovrWt: toNumber(it.ovrwt),
-          avgWt: toNumber(it.avgwt),
-          inTax: toNumber(it.intax),
-          outTax: toNumber(it.outtax),
-          acost: toNumber(it.acost),
-          sudo: it.sudo || '',
-          profitPercent: toNumber(it.profitPercent),
-          preRate: toNumber(it.preRT),
-          sRate: toNumber(it.sRate),
-          asRate: toNumber(it.asRate),
-          mrp: toNumber(it.mrp),
-          letProfPer: toNumber(it.letProfPer),
-          ntCost: toNumber(it.ntCost),
-          wsPer: toNumber(it.wsPercent),
-          amt: toNumber(it.amt),
-        })),
+        items: items
+          .filter((it) => it.itemcode && it.itemcode.trim() !== '')
+          .map((it) => ({          
+            barcode: it.barcode || autoBarcode,
+            itemCode: it.itemcode || '',
+            qty: toNumber(it.qty),
+            rate: toNumber(it.prate),
+            amount: toNumber(it.amt),
+            fTax: toNumber(it.tax),
+            wRate: toNumber(it.wsRate),
+            fid: String(it.id || ''),
+            fUnit: it.uom || '',
+            fhsn: it.hsn || '',
+            ovrWt: toNumber(it.ovrwt),
+            avgWt: toNumber(it.avgwt),
+            inTax: toNumber(it.intax),
+            outTax: toNumber(it.outtax),
+            acost: toNumber(it.acost),
+            sudo: it.sudo || '',
+            profitPercent: toNumber(it.profitPercent),
+            preRate: toNumber(it.preRT),
+            sRate: toNumber(it.sRate),
+            asRate: toNumber(it.asRate),
+            mrp: toNumber(it.mrp),
+            letProfPer: toNumber(it.letProfPer),
+            ntCost: toNumber(it.ntCost),
+            wsPer: toNumber(it.wsPercent),
+          })),
       };
       
       const purchaseType = isEditMode ? 'false' : 'true';
@@ -2251,7 +2292,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 type="button"
                 aria-label="Search supplier"
                 title="Search supplier"
-                onClick={() => setShowSupplierPopup(true)}
+                // onClick={() => setShowSupplierPopup(true)}
                 style={{
                   position: 'absolute',
                   right: '4px',

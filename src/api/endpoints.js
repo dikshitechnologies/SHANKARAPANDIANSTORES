@@ -166,7 +166,7 @@ export const API_ENDPOINTS = {
     GET_BILL_NUMBERS: (compCode, page = 1, pageSize = 20) => `PurchaseReturn/BillNumbers/${compCode}/${page}/${pageSize}`,
     GET_PURCHASE_RETURN_DETAILS: (voucherNo) => `PurchaseReturn/GetPurchaseReturnDetails/${voucherNo}`,
     GET_PURCHASE_BILL_LIST: (compCode, pageNo = 1, pageSize = 20) => `PurchaseReturn/GetPurchaseBillList?compCode=${compCode}&pageNo=${pageNo}&pageSize=${pageSize}`,
-    GET_PURCHASE_ITEMS_BY_VOUCHER: (voucher) => `PurchaseReturn/GetPurchaseItemsByVoucher?voucher=${voucher}`,
+    GET_PURCHASE_ITEMS_BY_VOUCHER: (voucher) => `PurchaseReturn/GetPurchaseVoucherDetails?voucherNo=${voucher}`,
     GET_PURCHASE_VOUCHER_DETAILS: (voucherNo) => `PurchaseReturn/GetPurchaseVoucherDetails?voucherNo=${voucherNo}`,
     GET_PARTY_LIST: (search = '', pageNo = 1, pageSize = 20) => `PurchaseReturn/GetPartyList?search=${encodeURIComponent(search)}&pageNo=${pageNo}&pageSize=${pageSize}`,
     CREATE_PURCHASE_RETURN: (selectType) => `PurchaseReturn/PurchaseReturn?selecttype=${selectType}`,

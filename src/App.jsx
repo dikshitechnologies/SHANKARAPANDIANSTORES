@@ -107,7 +107,7 @@ function App() {
           <Route path="/masters/model-creation" element={<ProtectedRoute><LayoutWithNavbar><ModelCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/transactions/bill-collector" element={<ProtectedRoute><LayoutWithNavbar><Billcollector /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/Transaction/Tender" element={<ProtectedRoute><LayoutWithNavbar><Tender /></LayoutWithNavbar></ProtectedRoute>} />
-          <Route path="/transactions/purchase-invoice" element={<ProtectedRoute><LayoutWithNavbar><PurchaseInvoice /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/transactions/purchase-invoice" element={<ProtectedRoute><LayoutWithNavbar><PurchaseInvoice key="purchase-invoice" /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/design-creation" element={<ProtectedRoute><LayoutWithNavbar><Design /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/scrap-page" element={<ProtectedRoute><LayoutWithNavbar><ScrapPage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/brand-creation" element={<ProtectedRoute><LayoutWithNavbar><BrandPage /></LayoutWithNavbar></ProtectedRoute>} />
@@ -115,7 +115,7 @@ function App() {
           <Route path="/masters/product-creation" element={<ProtectedRoute><LayoutWithNavbar><Product /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/ScrapProcurement" element={<ProtectedRoute><LayoutWithNavbar><ScrapProcurement /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/Statecreation" element={<ProtectedRoute><LayoutWithNavbar><Statecreation /></LayoutWithNavbar></ProtectedRoute>} />
-          <Route path="/transactions/Purchasereturn" element={<ProtectedRoute><LayoutWithNavbar><Purchasereturn /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/transactions/Purchasereturn" element={<ProtectedRoute><LayoutWithNavbar><Purchasereturn key="purchase-return" /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/ItemCreation" element={<ProtectedRoute><LayoutWithNavbar><ItemCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/SalesmanCreation" element={<ProtectedRoute><LayoutWithNavbar><SalesmanCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/transactions/amount-issue" element={<ProtectedRoute><LayoutWithNavbar><AmountIssue /></LayoutWithNavbar></ProtectedRoute>} />

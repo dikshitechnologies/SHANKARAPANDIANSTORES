@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSION_CODES } from '../../constants/permissions';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -41,6 +43,15 @@ const ENTER_FIELDS = [
 
 
 const SalesReturn = () => {
+  // --- PERMISSIONS ---
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  
+  const formPermissions = useMemo(() => ({
+    add: hasAddPermission(PERMISSION_CODES.SALES_RETURN),
+    edit: hasModifyPermission(PERMISSION_CODES.SALES_RETURN),
+    delete: hasDeletePermission(PERMISSION_CODES.SALES_RETURN)
+  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
 
@@ -1527,6 +1538,15 @@ setTimeout(() => {
   };
 
   const openEditPopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      toast.error("You do not have permission to edit sales returns.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
     try {
       setLoading(true);
       
@@ -1570,6 +1590,15 @@ setTimeout(() => {
   };
 
   const openDeletePopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      toast.error("You do not have permission to delete sales returns.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
     try {
       setLoading(true);
       
@@ -1721,10 +1750,10 @@ setTimeout(() => {
         
         showConfirmation({
           title: "Confirm Delete",
-          message: `Are you sure you want to delete?`,
+          message: `Are you  want to delete?`,
           type: "danger",
-          confirmText: "Delete",
-          cancelText: "Cancel",
+          confirmText: "Yes",
+          cancelText: "No",
           onConfirm: async () => {
             await deleteSalesReturn(voucherNo);
             setPopupOpen(false);
@@ -2569,6 +2598,27 @@ const handleApplyBillDirect = async () => {
 
   // ==================== SAVE FUNCTION ====================
   const handleSave = async () => {
+    // === PERMISSION CHECK ===
+    const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
+                              billDetails.billNo.startsWith('SR');
+    
+    if (isExistingVoucher && !formPermissions.edit) {
+      toast.error("You do not have permission to edit sales returns.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    
+    if (!isExistingVoucher && !formPermissions.add) {
+      toast.error("You do not have permission to create sales returns.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     if (!billDetails.custName) {
       toast.warning("Please select a customer.");
       return;
@@ -2589,18 +2639,15 @@ const handleApplyBillDirect = async () => {
     }
 
     // Determine if this is an update or create
-    const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
-                              billDetails.billNo.startsWith('SR');
-    
     const actionType = isExistingVoucher ? 'update' : 'create';
     const actionText = isExistingVoucher ? 'Update' : 'Save';
 
     showConfirmation({
       title: `${actionText} Sales Return`,
-      message: `Are you sure you want to save?`,
+      message: `Are you  want to save?`,
       type: "success",
-      confirmText: "save",
-      cancelText: "Cancel",
+      confirmText: "Yes",
+      cancelText: "No",
       onConfirm: async () => {
         try {
           if (isExistingVoucher) {
@@ -4174,9 +4221,9 @@ const handleApplyBillDirect = async () => {
               }
             }}
           >
-            <AddButton buttonType="add" />
-            <EditButton buttonType="edit" />
-            <DeleteButton buttonType="delete" />
+            <AddButton buttonType="add" disabled={!formPermissions.add} />
+            <EditButton buttonType="edit" disabled={!formPermissions.edit} />
+            <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
         <div style={styles.totalsContainer}>

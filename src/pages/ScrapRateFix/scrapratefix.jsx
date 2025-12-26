@@ -161,6 +161,20 @@ export default function ScrapRateFixing() {
     }
 
     // LAST INPUT
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      toast.error("You do not have permission to modify scrap rates.", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     // Focus Update button + open confirmation popup
     document.getElementById("updateRatesBtn")?.focus();
     setShowConfirmation(true);
@@ -168,6 +182,20 @@ export default function ScrapRateFixing() {
 
   // Handle update button click
   const handleUpdateClick = () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      toast.error("You do not have permission to modify scrap rates.", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+
     // First, validate the data
     const validationResult = validateScrapRates();
     if (!validationResult.isValid) {
@@ -284,6 +312,20 @@ export default function ScrapRateFixing() {
   };
 
  const handleClearAll = () => {
+  // === PERMISSION CHECK ===
+  if (!formPermissions.delete) {
+    toast.error("You do not have permission to clear scrap rates.", {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+    return;
+  }
+  // === END PERMISSION CHECK ===
+  
   setShowClearConfirmation(true);
 };
 const handleConfirmClearAll = () => {
@@ -755,7 +797,7 @@ const handleConfirmClearAll = () => {
                 }}></span>
                 Updating...
               </span>
-            ) : 'Update Rates'}
+            ) : 'Update '}
           </button>
 
           {/* Clear All Button - Moved to right side next to Update */}
@@ -793,7 +835,7 @@ const handleConfirmClearAll = () => {
             }}
             title={!formPermissions.delete ? 'You do not have permission to delete' : ''}
           >
-            Clear All
+            Clear 
           </button>
         </div>
       </div>

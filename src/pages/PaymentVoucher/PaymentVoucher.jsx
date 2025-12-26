@@ -1013,6 +1013,13 @@ const PaymentVoucher = () => {
 
   // --- POPUP HANDLERS ---
   const openEditVoucherPopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.edit) {
+      toast.error('You do not have permission to edit payment vouchers.', { autoClose: 3000 });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+    
     try {
       setLoadingVouchers(true);
       await fetchSavedVouchers(1, '');
@@ -1026,6 +1033,13 @@ const PaymentVoucher = () => {
   };
 
   const openDeleteVoucherPopup = async () => {
+    // === PERMISSION CHECK ===
+    if (!formPermissions.delete) {
+      toast.error('You do not have permission to delete payment vouchers.', { autoClose: 3000 });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+    
     try {
       setLoadingVouchers(true);
       await fetchSavedVouchers(1, '');
@@ -1551,6 +1565,17 @@ const PaymentVoucher = () => {
   };
 
   const handleSave = async () => {
+    // === PERMISSION CHECK ===
+    const action = isEditing ? 'edit' : 'add';
+    const hasPermission = action === 'add' ? formPermissions.add : formPermissions.edit;
+    
+    if (!hasPermission) {
+      const actionText = action === 'add' ? 'create' : 'modify';
+      toast.error(`You do not have permission to ${actionText} payment vouchers.`, { autoClose: 3000 });
+      return;
+    }
+    // === END PERMISSION CHECK ===
+    
     const cashTotals = calculateCashTotals();
     
     const hasCashPayments = paymentItems.some(item => item.type === 'CASH');
