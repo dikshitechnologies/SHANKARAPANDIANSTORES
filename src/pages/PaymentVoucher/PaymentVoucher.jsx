@@ -56,7 +56,7 @@ const PaymentVoucher = () => {
     accountName: '',
     accountCode: '',
     balance: '',
-    crDr: 'CR'
+    crDr: ''
   });
 
   // 2. Table Items State (Payment Details)
@@ -802,7 +802,7 @@ const PaymentVoucher = () => {
           gstType: ledger.fGSTTYPE || 'CGST/SGST',
           date: safeFormatDate(ledger.fVouchdt),
           costCenter: '',
-          accountName: ledger.customerName || '',
+          accountName: ledger.fRefName || ledger.customerName || '',
           accountCode: ledger.fCucode || '',
           balance: (ledger.fBillAmt || 0).toString()
         });
@@ -819,25 +819,34 @@ const PaymentVoucher = () => {
             type: item.type || '',
             chqNo: item.fchqno || '',
             chqDt: safeFormatDate(item.fchqdt),
-            narration: '',
-            amount: (item.fvrAmount || 0).toString()
+            narration: item.narration || '',
+            amount: (item.fchqAmt || item.fvrAmount || 0).toString()
           }));
           setPaymentItems(items);
+          
+          // Calculate total amount from ledgers
+          const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+          setTotalAmount(total);
         }
 
-        if (response?.salesTransaction) {
-          const sales = response.salesTransaction;
-          setParticulars({
-            '500': { available: 0, collect: parseInt(sales.returned500) || 0, issue: 0 },
-            '200': { available: 0, collect: parseInt(sales.returned200) || 0, issue: 0 },
-            '100': { available: 0, collect: parseInt(sales.returned100) || 0, issue: 0 },
-            '50': { available: 0, collect: parseInt(sales.returned50) || 0, issue: 0 },
-            '20': { available: 0, collect: parseInt(sales.returned20) || 0, issue: 0 },
-            '10': { available: 0, collect: parseInt(sales.returned10) || 0, issue: 0 },
-            '5': { available: 0, collect: parseInt(sales.returned5) || 0, issue: 0 },
-            '2': { available: 0, collect: parseInt(sales.returned2) || 0, issue: 0 },
-            '1': { available: 0, collect: parseInt(sales.returned1) || 0, issue: 0 }
-          });
+        // Handle reference bills if present
+        if (response?.referenceBills && Array.isArray(response.referenceBills)) {
+          const bills = response.referenceBills.map((bill, idx) => ({
+            id: idx + 1,
+            sNo: idx + 1,
+            refNo: '',
+            billNo: bill.billNo || '',
+            date: safeFormatDate(bill.date),
+            billAmount: (bill.billAmount || 0).toString(),
+            paidAmount: (bill.paidAmount || 0).toString(),
+            balanceAmount: (bill.balanceAmount || 0).toString(),
+            amount: (bill.amount || 0).toString()
+          }));
+          setBillDetails(bills);
+          
+          // Calculate total bill amount
+          const billTotal = bills.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0);
+          setBillTotalAmount(billTotal);
         }
       }
     } catch (err) {
@@ -2056,7 +2065,6 @@ const PaymentVoucher = () => {
       : styles.inlineInputClickable),
     width: '420px'
   }}
-                placeholder="Search A/C Name"
               />
             </div>
 
@@ -2147,7 +2155,6 @@ const PaymentVoucher = () => {
                       }}
                       onBlur={(e) => (e.target.style.border = 'none')}
                       style={navigationStep === 'paymentCashBank' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
-                      placeholder="Search Cash/Bank"
                       title="Click to select or type to search"
                     />
                   </td>
@@ -2234,6 +2241,7 @@ const PaymentVoucher = () => {
                       ref={el => paymentChqDtRefs.current[index] = el}
                       id={`payment_${item.id}_chqDt`}
                       type="date"
+                      placeholder=""
                       value={item.chqDt}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqDt', e.target.value)}
                       onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqDt')}
@@ -2381,6 +2389,7 @@ const PaymentVoucher = () => {
                     <input
                       id={`bill_${bill.id}_date`}
                       type="date"
+                      placeholder=""
                       value={bill.date || ''}
                       readOnly
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
