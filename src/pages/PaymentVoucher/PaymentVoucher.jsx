@@ -2157,19 +2157,19 @@ const PaymentVoucher = () => {
       {/* TABLE SECTION */}
       <div style={styles.tableSection}>
         {/* PAYMENT DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginBottom: 0, marginTop: 0, margin: 0, marginLeft: 0, marginRight: 0, width: '100%', maxHeight: screenSize.isMobile ? '180px' : screenSize.isTablet ? '260px' : '415px', minHeight: screenSize.isMobile ? '160px' : screenSize.isTablet ? '240px' : '415px'}}>
+        <div style={{...styles.tableContainer, marginBottom: '10px', marginTop: '10px'}}>
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '35px' : '60px', width: screenSize.isMobile ? '35px' : '60px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>No</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '120px' : '300px', width: screenSize.isMobile ? '120px' : '300px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Cash/Bank</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '50px' : '90px', width: screenSize.isMobile ? '50px' : '90px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Cr/Dr</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '50px' : '90px', width: screenSize.isMobile ? '50px' : '90px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Type</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '50px' : '90px', width: screenSize.isMobile ? '50px' : '90px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Chq No</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '50px' : '60px', width: screenSize.isMobile ? '50px' : '60px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Chq Dt</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '80px' : '200px', width: screenSize.isMobile ? '80px' : '200px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Narration</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '60px' : '100px', width: screenSize.isMobile ? '60px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Amount</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '35px' : '60px', width: screenSize.isMobile ? '35px' : '60px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Remove</th>
+                <th style={{...styles.th, minWidth: '60px', width: '60px'}}>No</th>
+                <th style={{...styles.th, minWidth: '300px', width: '300px'}}>Cash/Bank</th>
+                <th style={{...styles.th, minWidth: '90px', width: '90px'}}>Cr/Dr</th>
+                <th style={{...styles.th, minWidth: '90px', width: '90px'}}>Type</th>
+                <th style={{...styles.th, minWidth: '90px', width: '90px'}}>Chq No</th>
+                <th style={{...styles.th, minWidth: '60px', width: '60px'}}>Chq Dt</th>
+                <th style={{...styles.th, minWidth: '200px', width: '200px'}}>Narration</th>
+                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Amount</th>
+                <th style={{...styles.th, minWidth: '60px', width: '60px'}}>Remove</th>
               </tr>
             </thead>
             <tbody>
@@ -2399,7 +2399,7 @@ const PaymentVoucher = () => {
         </div>
 
         {/* REFERENCE BILL DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginTop: 0, marginBottom: 0, margin: 0, marginLeft: 0, marginRight: 0, width: '100%', flex: 1}}>
+        <div style={{...styles.tableContainer, marginTop: '0', marginBottom: '0'}}>
           <h2 style={{
             padding: '12px 16px 0 26px',
             color: '#1B91DA',
@@ -2410,14 +2410,14 @@ const PaymentVoucher = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '35px' : '100px', width: screenSize.isMobile ? '35px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>No</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '70px' : '100px', width: screenSize.isMobile ? '70px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Ref No</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '70px' : '100px', width: screenSize.isMobile ? '70px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Bill No</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '60px' : '100px', width: screenSize.isMobile ? '60px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Date</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '70px' : '100px', width: screenSize.isMobile ? '70px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Bill Amt</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '70px' : '100px', width: screenSize.isMobile ? '70px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Paid Amt</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '80px' : '120px', width: screenSize.isMobile ? '80px' : '120px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Balance</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '60px' : '100px', width: screenSize.isMobile ? '60px' : '100px', padding: screenSize.isMobile ? '3px 2px' : '10px 6px'}}>Amount</th>
+                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>No</th>
+                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Ref No</th>
+                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Bill No</th>
+                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Date</th>
+                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Bill Amount</th>
+                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Paid Amount</th>
+                <th style={{...styles.th, minWidth: '120px', width: '120px'}}>Balance Amount</th>
+                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Amount</th>
               </tr>
             </thead>
             <tbody>
