@@ -1781,11 +1781,6 @@ const ReceiptVoucher = () => {
       if (response?.data) {
         const message = response.data.message || `Voucher ${isEditing ? 'updated' : 'saved'} successfully`;
         const savedVoucherNo = response.data.voucherNo || voucherDetails.voucherNo;
-        
-        toast.success(
-          `Voucher ${isEditing ? "updated" : "saved"} successfully\nVoucher No: ${savedVoucherNo}`,
-          { autoClose: 3000 }
-        );
 
         setError(null);
         
