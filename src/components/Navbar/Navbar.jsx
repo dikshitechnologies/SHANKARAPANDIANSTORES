@@ -200,7 +200,8 @@ const Navbar = () => {
 
       // Simple mapping for common routes
       const map = {
-        '/': 'Home',
+        '/': '',
+        '/home': '',
         '/masters': 'Masters',
         '/transactions': 'Transactions',
         '/masters/ledger-creation': 'Ledger Creation',
@@ -213,11 +214,11 @@ const Navbar = () => {
       };
 
       // if path is predefined in map
-      if (map[path]) return map[path];
+      if (path in map) return map[path];
 
       // derive a friendly title from last part of path
       const parts = path.split('/').filter(Boolean);
-      if (parts.length === 0) return 'Home';
+      if (parts.length === 0) return '';
 
       const last = parts[parts.length - 1];
       return last
@@ -231,13 +232,6 @@ const Navbar = () => {
           {!isMobile && (
             <div className={styles['nav-center-menu']}>
               <div className={styles['nav-menu']}>
-                {/* <Link
-                  to="/"
-                  className={`${styles['nav-link']} ${location.pathname === '/' ? styles.active : ''}`}
-                >
-                  <HomeOutlined /> Home
-                </Link> */}
-
                 {/* Masters Dropdown - Click to open/close */}
                 <div
                   className={`${styles['nav-item']} ${styles.dropdown}`}
@@ -354,14 +348,6 @@ const Navbar = () => {
 
               <div className={styles['mobile-menu-content']}>
                 <div className={styles['mobile-menu-items']}>
-                  <Link
-                    to="/"
-                    className={`${styles['mobile-link']} ${location.pathname === '/' ? styles.active : ''}`}
-                    onClick={closeMobileMenu}
-                  >
-                    <HomeOutlined /> Home
-                  </Link>
-
                   {/* Masters Accordion */}
                   <div className={styles['mobile-dropdown-accordion']}>
                     <div
