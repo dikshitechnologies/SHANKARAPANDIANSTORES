@@ -163,8 +163,8 @@ const Scrapprocurement = () => {
     { name: 'salesman', ref: salesmanRef, label: 'Salesman' },
   ], []);
 
-  // Define table fields in order (for arrow navigation)
-  const tableFields = useMemo(() => ['scrapProductName', 'itemName', 'uom', 'tax', 'sRate', 'qty'], []);
+  // Define table fields in order (for arrow navigation) - EXCLUDE UOM since it's not editable
+  const tableFields = useMemo(() => ['scrapProductName', 'itemName', 'tax', 'sRate', 'qty'], []);
 
   // Fetch next bill number
   const fetchNextBillNo = async () => {
@@ -298,6 +298,32 @@ const Scrapprocurement = () => {
 
     fetchAllScrapItems();
   }, []);
+
+  // Fix the initial fetch in useEffect
+useEffect(() => {
+  const fetchAllItems = async () => {
+    try {
+      const url = API_ENDPOINTS.Scrap_Procurement.GET_SALESiNVOICE_ITEMS;
+      const queryParams = new URLSearchParams({
+        page: '1',
+        pageSize: '100' // Fetch more items initially
+      });
+      
+      const fullUrl = `${url}?${queryParams.toString()}`;
+      const res = await axiosInstance.get(fullUrl);
+      
+      // Extract data from paginated response
+      const dataArray = res?.data?.data || [];
+      
+      setAllItems(Array.isArray(dataArray) ? dataArray : []);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      setAllItems([]);
+    }
+  };
+
+  fetchAllItems();
+}, []);
 
   // Handle salesman popup auto-open
   useEffect(() => {
@@ -500,14 +526,7 @@ const Scrapprocurement = () => {
         // Move to next field in same row
         if (currentFieldIndex < tableFields.length - 1) {
           const nextField = tableFields[currentFieldIndex + 1];
-          let nextInput;
-          
-          if (nextField === 'uom') {
-            // UOM field is a div, not an input
-            nextInput = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
-          } else {
-            nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-          }
+          const nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
           
           if (nextInput) {
             nextInput.focus();
@@ -517,17 +536,11 @@ const Scrapprocurement = () => {
               fieldIndex: currentFieldIndex + 1 
             });
           }
-        }else if (currentRowIndex < items.length - 1) {
+        } else if (currentRowIndex < items.length - 1) {
           // Move to next row, first field
           const nextRowIndex = currentRowIndex + 1;
           const firstField = tableFields[0];
-          let nextRowInput;
-          
-          if (firstField === 'uom') {
-            nextRowInput = document.querySelector(`div[data-row="${nextRowIndex}"][data-field="uom"]`);
-          } else {
-            nextRowInput = document.querySelector(`input[data-row="${nextRowIndex}"][data-field="${firstField}"]`);
-          }
+          const nextRowInput = document.querySelector(`input[data-row="${nextRowIndex}"][data-field="${firstField}"]`);
           
           if (nextRowInput) {
             nextRowInput.focus();
@@ -544,13 +557,7 @@ const Scrapprocurement = () => {
         // Move to previous field in same row
         if (currentFieldIndex > 0) {
           const prevField = tableFields[currentFieldIndex - 1];
-          let prevInput;
-          
-          if (prevField === 'uom') {
-            prevInput = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
-          } else {
-            prevInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${prevField}"]`);
-          }
+          const prevInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${prevField}"]`);
           
           if (prevInput) {
             prevInput.focus();
@@ -564,13 +571,7 @@ const Scrapprocurement = () => {
           // Move to last field in previous row
           const prevRowIndex = currentRowIndex - 1;
           const lastField = tableFields[tableFields.length - 1];
-          let prevRowInput;
-          
-          if (lastField === 'uom') {
-            prevRowInput = document.querySelector(`div[data-row="${prevRowIndex}"][data-field="uom"]`);
-          } else {
-            prevRowInput = document.querySelector(`input[data-row="${prevRowIndex}"][data-field="${lastField}"]`);
-          }
+          const prevRowInput = document.querySelector(`input[data-row="${prevRowIndex}"][data-field="${lastField}"]`);
           
           if (prevRowInput) {
             prevRowInput.focus();
@@ -595,13 +596,7 @@ const Scrapprocurement = () => {
         // Move to same field in next row
         if (currentRowIndex < items.length - 1) {
           const nextRowIndex = currentRowIndex + 1;
-          let nextRowInput;
-          
-          if (currentFieldName === 'uom') {
-            nextRowInput = document.querySelector(`div[data-row="${nextRowIndex}"][data-field="uom"]`);
-          } else {
-            nextRowInput = document.querySelector(`input[data-row="${nextRowIndex}"][data-field="${currentFieldName}"]`);
-          }
+          const nextRowInput = document.querySelector(`input[data-row="${nextRowIndex}"][data-field="${currentFieldName}"]`);
           
           if (nextRowInput) {
             nextRowInput.focus();
@@ -618,13 +613,7 @@ const Scrapprocurement = () => {
         // Move to same field in previous row
         if (currentRowIndex > 0) {
           const prevRowIndex = currentRowIndex - 1;
-          let prevRowInput;
-          
-          if (currentFieldName === 'uom') {
-            prevRowInput = document.querySelector(`div[data-row="${prevRowIndex}"][data-field="uom"]`);
-          } else {
-            prevRowInput = document.querySelector(`input[data-row="${prevRowIndex}"][data-field="${currentFieldName}"]`);
-          }
+          const prevRowInput = document.querySelector(`input[data-row="${prevRowIndex}"][data-field="${currentFieldName}"]`);
           
           if (prevRowInput) {
             prevRowInput.focus();
@@ -734,7 +723,7 @@ const Scrapprocurement = () => {
             scrapCode: voucherData.scrpCode || '',
             itemName: item.itemName || '',
             itemCode: item.itemCode || '',
-            uom: item.uom || 'KG',
+            uom: item.uom || '',
             tax: item.tax?.toString() || '',
             sRate: item.rate?.toString() || '',
             qty: item.qty?.toString() || '',
@@ -883,62 +872,29 @@ const Scrapprocurement = () => {
   };
 
   // Fetch items list for popup
-  const fetchItemList = async (pageNum = 1, search = '') => {
-    try {
-      const searchTerm = search || itemSearchTerm || '';
-      
-      if (allItems.length > 0) {
-        const searchLower = searchTerm.toLowerCase();
-        const filtered = allItems.filter(item => {
-          const code = (item.itemCode || '').toLowerCase();
-          const name = (item.itemName || '').toLowerCase();
-          return code.includes(searchLower) || name.includes(searchLower);
-        });
-        
-        return filtered.map((item, index) => ({
-          id: item.itemCode || `item-${index}`,
-          itemCode: item.itemCode || '',
-          itemName: item.itemName || '',
-          barcode: item.barcode || item.itemCode || '',
-          uom: item.units || 'KG',
-          brand: item.brand || '',
-          category: item.category || '',
-          model: item.model || '',
-          size: item.size || '',
-          hsn: item.hsn || '',
-          preRate: item.preRate || '0',
-          type: item.type || '',
-        }));
-      }
-      
-      const url = API_ENDPOINTS.Scrap_Procurement.GET_ITEM_LIST;
-      const response = await axiosInstance.get(url);
-      let data = response?.data?.data || response?.data || [];
-      
-      if (!Array.isArray(data)) {
-        return [];
-      }
-      
-      return data.map((item, index) => ({
-        id: item.itemCode || `item-${index}`,
-        itemCode: item.itemCode || '',
-        itemName: item.itemName || '',
-        barcode: item.barcode || item.itemCode || '',
-        uom: item.uom || 'KG',
-        brand: item.brand || '',
-        category: item.category || '',
-        model: item.model || '',
-        size: item.size || '',
-        hsn: item.hsn || '',
-        preRate: item.preRate || '0',
-        type: item.type || '',
-      }));
-      
-    } catch (error) {
-      console.error('Error fetching items:', error);
+const fetchItemList = async (pageNum = 1, search = '') => {
+  try {
+    const pageSize = 20;
+    const searchTerm = search || '';
+    // Use Scrap_Procurement.GET_ITEM_LIST endpoint
+    const url = API_ENDPOINTS.Scrap_Procurement.GET_ITEM_LIST(pageNum, pageSize) + (searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '');
+    const response = await axiosInstance.get(url);
+    const data = response?.data?.data || response?.data || [];
+    if (!Array.isArray(data)) {
       return [];
     }
-  };
+    // Map to expected format for PopupListSelector
+    return data.map((item, index) => ({
+      id: item.itemCode || `item-${index}`,
+      itemName: item.itemName || '',
+      itemCode: item.itemCode || '',
+      uom: item.units || '',
+    }));
+  } catch (error) {
+    console.error('Error fetching items:', error);
+    return [];
+  }
+};
 
   // Fetch salesmen list for popup
   const fetchSalesManList = async (pageNum = 1, search = '') => {
@@ -1107,56 +1063,7 @@ const Scrapprocurement = () => {
   };
 
   // Handle UOM spacebar cycling
-  const handleUomSpacebar = (e, id, index) => {
-    if (e.key === ' ') {
-      e.preventDefault();
-      
-      const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
-      const currentItem = items.find(item => item.id === id);
-      const currentUom = currentItem?.uom || '';
-      let nextUom = 'pcs';
-      
-      if (currentUom && currentUom.trim() !== '') {
-        const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
-        if (currentIndex !== -1) {
-          const nextIndex = (currentIndex + 1) % uomValues.length;
-          nextUom = uomValues[nextIndex];
-        } else {
-          nextUom = 'pcs';
-        }
-      } else {
-        nextUom = 'pcs';
-      }
-      
-      setItems(items.map(item => {
-        if (item.id === id) {
-          return {
-            ...item,
-            uom: nextUom
-          };
-        }
-        return item;
-      }));
-      
-      setFocusedUomField(id);
-      setTimeout(() => {
-        setFocusedUomField(null);
-      }, 300);
-      
-      return;
-    }
-    
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const taxInput = document.querySelector(`input[data-row="${index}"][data-field="tax"]`);
-      if (taxInput) {
-        taxInput.focus();
-        const rowIndex = items.findIndex(i => i.id === id);
-        setCurrentFocus({ section: 'table', rowIndex, fieldIndex: tableFields.indexOf('tax') });
-        return;
-      }
-    }
-  };
+  // UOM is now readonly and only set from API. No handler needed.
 
   // --- HANDLERS ---
 
@@ -1243,7 +1150,7 @@ const Scrapprocurement = () => {
         scrapCode: scrapItem ? scrapItem.scrapCode : '',
         itemName: '',
         itemCode: '',
-        uom: 'KG',
+        uom: '',
         tax: '5',
         sRate: '50',
         qty: '1',
@@ -1337,17 +1244,14 @@ const Scrapprocurement = () => {
       e.preventDefault();
       e.stopPropagation();
 
-      // Fields in the visual order
-      const fields = [
-        'scrapProductName', 'itemName', 'uom', 'tax', 'sRate', 'qty'
-      ];
-
+      // Fields in the visual order (excluding UOM since it's not editable)
+      const fields = ['scrapProductName', 'itemName', 'tax', 'sRate', 'qty'];
       const currentFieldIndex = fields.indexOf(currentField);
 
       // Check if itemName is empty in the current row
       const currentRow = items[currentRowIndex];
       const isItemNameEmpty = !currentRow.itemName || currentRow.itemName.trim() === '';
-
+      const isQtyEmpty = !currentRow.qty || currentRow.qty.trim() === '';
       // If Enter is pressed in the qty field
       if (currentField === 'itemName') {
         // Check if itemName is empty in the current row
@@ -1361,12 +1265,7 @@ const Scrapprocurement = () => {
       // Always move to next field if available
       if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
         const nextField = fields[currentFieldIndex + 1];
-        let nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"], select[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-        
-        // For UOM field (which is a div), use special selector
-        if (!nextInput && nextField === 'uom') {
-          nextInput = document.querySelector(`div[data-row="${currentRowIndex}"][data-field="uom"]`);
-        }
+        let nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
         
         if (nextInput) {
           nextInput.focus();
@@ -1377,26 +1276,26 @@ const Scrapprocurement = () => {
       }
 
       // If Enter is pressed in the qty field and itemName is not empty
-        if (currentField === 'qty' && !isItemNameEmpty) {
-          // If there is a next row, move to its first field
-          if (currentRowIndex < items.length - 1) {
-            const nextRowInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="scrapProductName"]`);
-            if (nextRowInput) {
-              nextRowInput.focus();
-              setCurrentFocus({ section: 'table', rowIndex: currentRowIndex + 1, fieldIndex: 0 });
-              return;
-            }
+      if (currentField === 'qty' && !isItemNameEmpty && !isQtyEmpty) {
+        // If there is a next row, move to its first field
+        if (currentRowIndex < items.length - 1) {
+          const nextRowInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="scrapProductName"]`);
+          if (nextRowInput) {
+            nextRowInput.focus();
+            setCurrentFocus({ section: 'table', rowIndex: currentRowIndex + 1, fieldIndex: 0 });
+            return;
           }
-          // Otherwise, add a new row
-          handleAddRow();
-          setTimeout(() => {
-            const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
-            if (newRowInput) {
-              newRowInput.focus();
-              setCurrentFocus({ section: 'table', rowIndex: items.length, fieldIndex: 0 });
-            }
-          }, 60);
         }
+        // Otherwise, add a new row
+        handleAddRow();
+        setTimeout(() => {
+          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
+          if (newRowInput) {
+            newRowInput.focus();
+            setCurrentFocus({ section: 'table', rowIndex: items.length, fieldIndex: 0 });
+          }
+        }, 60);
+      }
       
       return;
     }
@@ -2559,75 +2458,13 @@ const Scrapprocurement = () => {
                   </div>
                 </td>
                   <td style={styles.td}>
-                    <div style={styles.uomContainer}>
-                      <div 
-                        style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
-                        onClick={() => {
-                          const uomValues = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'mm'];
-                          const currentUom = item.uom || '';
-                          let nextUom = 'pcs';
-                          
-                          if (currentUom && currentUom.trim() !== '') {
-                            const currentIndex = uomValues.indexOf(currentUom.toLowerCase());
-                            if (currentIndex !== -1) {
-                              const nextIndex = (currentIndex + 1) % uomValues.length;
-                              nextUom = uomValues[nextIndex];
-                            } else {
-                              nextUom = 'pcs';
-                            }
-                          } else {
-                            nextUom = 'pcs';
-                          }
-                          
-                          setItems(items.map(i => {
-                            if (i.id === item.id) {
-                              return {
-                                ...i,
-                                uom: nextUom
-                              };
-                            }
-                            return i;
-                          }));
-                          
-                          setFocusedUomField(item.id);
-                          setTimeout(() => {
-                            setFocusedUomField(null);
-                          }, 300);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === ' ') {
-                            handleUomSpacebar(e, item.id, index);
-                          } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                            handleTableArrowNavigation(e, index, 'uom');
-                          } else if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const taxInput = document.querySelector(`input[data-row="${index}"][data-field="tax"]`);
-                            if (taxInput) {
-                              taxInput.focus();
-                              setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
-                            }
-                          }
-                        }}
-                        tabIndex={0}
-                        onFocus={() => {
-                          setFocusedField(`uom-${item.id}`);
-                          setFocusedUomField(item.id);
-                          setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 2 });
-                        }}
-                        onBlur={() => {
-                          setFocusedField('');
-                          setFocusedUomField(null);
-                        }}
-                        title="Press Space or Click to toggle units, Enter to move to TAX"
-                        data-row={index}
-                        data-field="uom"
-                      >
-                        {item.uom || ''}
-                      </div>
-                      <div style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomHintVisible : styles.uomHint}>
-                        Press Space or Click to toggle
-                      </div>
-                    </div>
+                    <input
+                      style={{ ...styles.editableInput, backgroundColor: '#f0f7ff', textAlign: 'center' }}
+                      value={item.uom || ''}
+                      readOnly
+                      data-row={index}
+                      data-field="uom"
+                    />
                   </td>
                   <td style={styles.td}>
                     <input
@@ -2655,17 +2492,17 @@ const Scrapprocurement = () => {
                       }}
                       onFocus={() => {
                         setFocusedField(`tax-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
+                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 2 });
                       }}
                       onBlur={(e) => {
                         const value = e.target.value;
-                        const validTaxValues = ['3', '5', '12', '18', '40'];
+                        const validTaxValues = ['0','3', '5', '12', '18', '40'];
                         
                         // Validate on blur
                         if (value !== '' && !validTaxValues.includes(value)) {
                           showConfirmation({
                             title: 'Invalid Tax Rate',
-                            message: 'Not a valid tax rate. Please use one of: 3%, 5%, 12%, 18%, or 40%',
+                            message: 'Not a valid tax rate. Please use one of: 0%, 3%, 5%, 12%, 18%, or 40%',
                             type: 'info',
                             confirmText: 'OK',
                             cancelText: '',
@@ -2704,7 +2541,7 @@ const Scrapprocurement = () => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
                       onFocus={() => {
                         setFocusedField(`sRate-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 4 });
+                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
                       }}
                       onBlur={() => setFocusedField('')}
                       step="0.01"
@@ -2728,7 +2565,7 @@ const Scrapprocurement = () => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
                       onFocus={() => {
                         setFocusedField(`qty-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 5 });
+                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 4 });
                       }}
                       onBlur={() => setFocusedField('')}
                       step="0.01"
@@ -2934,66 +2771,57 @@ const Scrapprocurement = () => {
       />
 
       {/* Item Popup */}
-      <PopupListSelector
-        open={showItemPopup}
-        onClose={() => {
-          setShowItemPopup(false);
-          setClosedItemByUser(true);
-          setItemSearchTerm('');
-          setSelectedRowForItem(null);
-        }}
-        clearSearch={() => setCompanyQuery("")}
-        title="Select Item"
-        fetchItems={fetchItemList}
-        displayFieldKeys={['itemName']}
-        headerNames={['Item Name']}
-        searchFields={['itemName']}
-        columnWidths={['100%']}
-        searchPlaceholder="Search item by name..."
-        initialSearch={itemSearchTerm}
-        onSearchChange={(searchValue) => {
-          setItemSearchTerm(searchValue);
-          // if (selectedRowForItem !== null && items[selectedRowForItem]) {
-          //   const updatedItems = [...items];
-          //   updatedItems[selectedRowForItem] = {
-          //     ...updatedItems[selectedRowForItem],
-          //     itemName: searchValue
-          //   };
-          //   setItems(updatedItems);
-          // }
-        }}
-        onSelect={(selectedItem) => {
-          if (selectedRowForItem !== null && items[selectedRowForItem]) {
-            const updatedItems = [...items];
-            const itemId = updatedItems[selectedRowForItem].id;
-            
-            const itemIndex = updatedItems.findIndex(item => item.id === itemId);
-            if (itemIndex !== -1) {
-              updatedItems[itemIndex] = {
-                ...updatedItems[itemIndex],
-                itemName: selectedItem.itemName || '',
-                itemCode: selectedItem.itemCode || '',
-                uom: selectedItem.uom || 'KG',
-              };
-              
-              setItems(updatedItems);
-            }
-          }
-          
-          setShowItemPopup(false);
-          setClosedItemByUser(false);
-          setItemSearchTerm('');
-          setSelectedRowForItem(null);
-          
-          setTimeout(() => {
-            const itemInput = document.querySelector(`input[data-row="${selectedRowForItem}"][data-field="itemName"]`);
-            if (itemInput) {
-              itemInput.focus();
-              setCurrentFocus({ section: 'table', rowIndex: selectedRowForItem, fieldIndex: 1 });
-            }
-          }, 100);
-        }}
-      />
+     <PopupListSelector
+  open={showItemPopup}
+  onClose={() => {
+    setShowItemPopup(false);
+    setClosedItemByUser(true);
+    setItemSearchTerm('');
+    setSelectedRowForItem(null);
+  }}
+  title="Select Item"
+  fetchItems={fetchItemList}
+  displayFieldKeys={['itemCode', 'itemName']} // Show both code and name
+  headerNames={['Item Code', 'Item Name']} // Update headers
+  searchFields={['itemCode', 'itemName']} // Search both fields
+  columnWidths={['30%', '70%']} // Adjust column widths
+  searchPlaceholder="Search item by code or name..."
+  initialSearch={itemSearchTerm}
+  onSearchChange={(searchValue) => {
+    setItemSearchTerm(searchValue);
+  }}
+  onSelect={(selectedItem) => {
+    if (selectedRowForItem !== null && items[selectedRowForItem]) {
+      const updatedItems = [...items];
+      const itemId = updatedItems[selectedRowForItem].id;
+      
+      const itemIndex = updatedItems.findIndex(item => item.id === itemId);
+      if (itemIndex !== -1) {
+        updatedItems[itemIndex] = {
+          ...updatedItems[itemIndex],
+          itemName: selectedItem.itemName || '',
+          itemCode: selectedItem.itemCode || '',
+          uom: selectedItem.uom || '',
+        };
+        
+        setItems(updatedItems);
+      }
+    }
+    
+    setShowItemPopup(false);
+    setClosedItemByUser(false);
+    setItemSearchTerm('');
+    setSelectedRowForItem(null);
+    
+    setTimeout(() => {
+      const itemInput = document.querySelector(`input[data-row="${selectedRowForItem}"][data-field="itemName"]`);
+      if (itemInput) {
+        itemInput.focus();
+        setCurrentFocus({ section: 'table', rowIndex: selectedRowForItem, fieldIndex: 1 });
+      }
+    }, 100);
+  }}
+/>
 
       {/* Voucher List Popup for Edit/Delete */}
       <PopupListSelector
