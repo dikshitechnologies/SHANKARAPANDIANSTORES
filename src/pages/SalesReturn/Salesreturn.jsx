@@ -1750,10 +1750,10 @@ setTimeout(() => {
         
         showConfirmation({
           title: "Confirm Delete",
-          message: `Are you sure you want to delete?`,
+          message: `Are you  want to delete?`,
           type: "danger",
-          confirmText: "Delete",
-          cancelText: "Cancel",
+          confirmText: "Yes",
+          cancelText: "No",
           onConfirm: async () => {
             await deleteSalesReturn(voucherNo);
             setPopupOpen(false);
@@ -2644,10 +2644,10 @@ const handleApplyBillDirect = async () => {
 
     showConfirmation({
       title: `${actionText} Sales Return`,
-      message: `Are you sure you want to save?`,
+      message: `Are you  want to save?`,
       type: "success",
-      confirmText: "save",
-      cancelText: "Cancel",
+      confirmText: "Yes",
+      cancelText: "No",
       onConfirm: async () => {
         try {
           if (isExistingVoucher) {
