@@ -1125,9 +1125,13 @@ const handleBlur = () => {
 
   const handleItemChange = (id, field, value) => {
   setItems(prev =>
-    prev.map(item =>
-      item.id === id ? { ...item, [field]: value } : item
-    )
+    prev.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        return calculateItem(updatedItem);
+      }
+      return item;
+    })
   );
 };
 
@@ -1191,9 +1195,6 @@ const calculateItem = (item) => {
   };
 };
 
-useEffect(() => {
-  setItems(prev => prev.map(calculateItem));
-}, [items]);
   // Handle UOM spacebar cycling (same as SalesInvoice)
   const handleUomSpacebar = (e, id, index) => {
     if (e.key === ' ') {
@@ -3048,13 +3049,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         onClose={() => {
           setShowItemCodePopup(false);
           setItemSearchTerm('');
-          if (selectedRowId) {
-            setItems(prevItems => 
-              prevItems.map(item => 
-                item.id === selectedRowId ? { ...item, name: '' } : item
-              )
-            );
-          }
+          
         }}
         title="Select Item Code"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search || itemSearchTerm)}
