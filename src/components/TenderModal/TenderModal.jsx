@@ -5,6 +5,7 @@ import { ActionButtons1 } from '../Buttons/ActionButtons';
 import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
+import axiosInstance from "../../api/axiosInstance";
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 // import { axiosInstance } from '../../api/axiosInstance';
