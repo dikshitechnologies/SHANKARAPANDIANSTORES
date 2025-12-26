@@ -1528,7 +1528,7 @@ export default function LedgerGroupCreation() {
                     onKeyDown={handleSubGroupKeyDown}
                     placeholder="Select Sub Group"
                     disabled={submitting}
-                    readOnly={actionType === "delete"}
+                    readOnly={actionType === "Delete"}
                     aria-label="Sub Group"
                   />
                 )}

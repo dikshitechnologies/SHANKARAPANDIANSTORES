@@ -1367,7 +1367,7 @@ export default function ItemGroupCreation() {
                       </div>
 
                       <div className="row" style={{ marginBottom: 8 }}>
-                        <div className="search-container">
+                        {/* <div className="search-container">
                           <input
                             className="search-with-clear"
                             placeholder="Search groups..."
@@ -1385,7 +1385,7 @@ export default function ItemGroupCreation() {
                               <Icon.Close size={16} />
                             </button>
                           )}
-                        </div>
+                        </div> */}
                       </div>
 
                       <div
@@ -1514,7 +1514,7 @@ export default function ItemGroupCreation() {
                     onKeyDown={handleSubGroupKeyDown}
                     placeholder="Select Sub Group"
                     disabled={submitting}
-                    readOnly={actionType === "delete"}
+                    readOnly={actionType === "Delete"}
                     aria-label="Sub Group"
                   />
                 )}
