@@ -2842,8 +2842,8 @@ const actionText = isExistingVoucher ? 'Update' : 'Save';
 
 showConfirmation({
   title: `${actionText} Sales Return`,
-  message: isExistingVoucher ? "Do you want to Save?" : "Do you want to Modify?",
- type: isExistingVoucher ? "success" : "warning",  // NEW - yellow for edit, green for save
+  message: isExistingVoucher ? "Do you want to Modify?" : "Do you want to Save?",
+ type: isExistingVoucher ? "warning" : "success",  // NEW - yellow for edit, green for save
   confirmText: "Yes",
   cancelText: "No",
   onConfirm: async () => {
