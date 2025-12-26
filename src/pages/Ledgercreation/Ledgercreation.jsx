@@ -499,34 +499,44 @@ export default function LedgerCreation({ onCreated }) {
   ];
 
   // Handle keyboard navigation
-  const handleKeyboardNavigation = useCallback((e, currentFieldIndex) => {
-    const isArrowDown = e.key === 'ArrowDown';
-    const isArrowUp = e.key === 'ArrowUp';
-    const isEnter = e.key === 'Enter';
-    const isArrowRight = e.key === 'ArrowRight';
-    const isArrowLeft = e.key === 'ArrowLeft';
+ const handleKeyboardNavigation = useCallback((e, currentFieldIndex) => {
+  const isArrowDown = e.key === 'ArrowDown';
+  const isArrowUp = e.key === 'ArrowUp';
+  const isEnter = e.key === 'Enter';
+  const isArrowRight = e.key === 'ArrowRight';
+  const isArrowLeft = e.key === 'ArrowLeft';
 
-    if (isEnter) {
-      e.preventDefault();
-      // Move to next field
-      const nextFieldIndex = (currentFieldIndex + 1) % fieldNavigation.length;
-      if (fieldNavigation[nextFieldIndex]?.ref?.current) {
-        fieldNavigation[nextFieldIndex].ref.current.focus();
-      }
-    } else if (isArrowDown || isArrowRight) {
-      e.preventDefault();
-      const nextFieldIndex = (currentFieldIndex + 1) % fieldNavigation.length;
-      if (fieldNavigation[nextFieldIndex]?.ref?.current) {
-        fieldNavigation[nextFieldIndex].ref.current.focus();
-      }
-    } else if (isArrowUp || isArrowLeft) {
-      e.preventDefault();
-      const prevFieldIndex = (currentFieldIndex - 1 + fieldNavigation.length) % fieldNavigation.length;
-      if (fieldNavigation[prevFieldIndex]?.ref?.current) {
-        fieldNavigation[prevFieldIndex].ref.current.focus();
-      }
+  // Handle arrow keys
+  if (isArrowDown || isArrowRight) {
+    e.preventDefault();
+    const nextFieldIndex = (currentFieldIndex + 1) % fieldNavigation.length;
+    if (fieldNavigation[nextFieldIndex]?.ref?.current) {
+      fieldNavigation[nextFieldIndex].ref.current.focus();
     }
-  }, [fieldNavigation]);
+  } else if (isArrowUp || isArrowLeft) {
+    e.preventDefault();
+    const prevFieldIndex = (currentFieldIndex - 1 + fieldNavigation.length) % fieldNavigation.length;
+    if (fieldNavigation[prevFieldIndex]?.ref?.current) {
+      fieldNavigation[prevFieldIndex].ref.current.focus();
+    }
+  } 
+  // Handle Enter key
+  else if (isEnter) {
+    e.preventDefault();
+    
+    // Special handling for PAN field to avoid opening state popup
+    if (currentFieldIndex === 12 && stateRef.current) {
+      stateRef.current.focus();
+      return;
+    }
+    
+    // For other fields, use normal navigation
+    const nextFieldIndex = (currentFieldIndex + 1) % fieldNavigation.length;
+    if (fieldNavigation[nextFieldIndex]?.ref?.current) {
+      fieldNavigation[nextFieldIndex].ref.current.focus();
+    }
+  }
+}, [fieldNavigation]);
 
   // Handle keyboard typing in State field popup
   const handleStateFieldKeyPress = (e) => {
@@ -2067,31 +2077,58 @@ export default function LedgerCreation({ onCreated }) {
               {/* RIGHT COLUMN */}
               <div>
                 <div className="field">
-                  <label className="field-label">Route</label>
-                  <div className="input-with-search">
-                    <input
-                      ref={routeRef}
-                      type="text"
-                      className="input"
-                      style={{ width: '100%' }}
-                      value={formData.route}
-                      onChange={(e) => handleChange('route', e.target.value)}
-                      onClick={() => { if (actionType !== 'delete') setIsRoutePopupOpen(true); }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Backspace') {
-                          e.preventDefault();
-                          setFormData(prev => ({ ...prev, route: '' }));
-                        } else {
-                          handleRouteFieldKeyPress(e);
-                        }
-                      }}
-                      disabled={inputsDisabled}
-                    />
-                    <div className="input-search-icon">
-                      <Icon.Search size={16} />
-                    </div>
-                  </div>
-                </div>
+  <label className="field-label">Route</label>
+  <div className="input-with-search">
+    <input
+      ref={routeRef}
+      type="text"
+      className="input"
+      style={{ width: '100%' }}
+      value={formData.route}
+      onChange={(e) => handleChange('route', e.target.value)}
+      onClick={() => { if (actionType !== 'delete') setIsRoutePopupOpen(true); }}
+      onKeyDown={(e) => {
+        // First handle arrow keys for navigation
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+          // Let the keyboard navigation handler deal with these
+          handleKeyboardNavigation(e, 9);
+          return;
+        }
+        
+        // Then handle Backspace
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          setFormData(prev => ({ ...prev, route: '' }));
+        } 
+        // Then handle Enter
+        else if (e.key === 'Enter') {
+          e.preventDefault();
+          // Move to next field (GSTIN)
+          if (gstinRef.current) {
+            gstinRef.current.focus();
+          }
+        }
+        // Then handle other special keys
+        else if (['Escape'].includes(e.key)) {
+          if (e.key === 'Escape') {
+            setIsRoutePopupOpen(false);
+            setRouteSearch('');
+          }
+        }
+        // Finally handle typing characters
+        else if (!isRoutePopupOpen && e.key.length === 1 && /^[a-zA-Z0-9]$/.test(e.key)) {
+          e.preventDefault();
+          setRouteSearch(e.key);
+          setIsRoutePopupOpen(true);
+        }
+      }}
+      disabled={inputsDisabled}
+    />
+    <div className="input-search-icon">
+      <Icon.Search size={16} />
+    </div>
+  </div>
+</div>
 
                 <div className="field">
                   <label className="field-label">GSTIN</label>
@@ -2130,42 +2167,79 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.panNo}
                     onChange={(e) => handleChange('panNo', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 12)}
-                      disabled={inputsDisabled}
+                    onKeyDown={(e) => {
+                      // Handle Enter key specifically
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Instead of automatically navigating to state field,
+                        // just focus on the state field without opening popup
+                        if (stateRef.current) {
+                          stateRef.current.focus();
+                        }
+                      } else {
+                        // For other keys, use normal navigation
+                        handleKeyboardNavigation(e, 12);
+                      }
+                    }}
+                    disabled={inputsDisabled}
                   />
                 </div>
 
-                <div className="field">
-                  <label className="field-label">State</label>
-                  <div className="input-with-search">
-                    <input
-                      ref={stateRef}
-                      type="text"
-                      className="input"
-                      style={{ width: '100%' }}
-                      value={formData.state}
-                      onChange={(e) => {
-                        handleChange('state', e.target.value);
-                      }}
-                      onClick={() => {
-                        if (actionType !== 'delete') setIsStatePopupOpen(true);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Backspace') {
-                          e.preventDefault();
-                          setFormData(prev => ({ ...prev, state: '' }));
-                        } else {
-                          handleStateFieldKeyPress(e);
-                        }
-                      }}
-
-                      disabled={inputsDisabled}
-                    />
-                    <div className="input-search-icon">
-                      <Icon.Search size={16} />
-                    </div>
-                  </div>
+           <div className="field">
+              <label className="field-label">State</label>
+              <div className="input-with-search">
+                <input
+                  ref={stateRef}
+                  type="text"
+                  className="input"
+                  style={{ width: '100%' }}
+                  value={formData.state}
+                  onChange={(e) => {
+                    handleChange('state', e.target.value);
+                  }}
+                  onClick={() => {
+                    if (actionType !== 'delete') setIsStatePopupOpen(true);
+                  }}
+                  onKeyDown={(e) => {
+                    // First handle arrow keys for navigation
+                    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                      handleKeyboardNavigation(e, 13);
+                      return;
+                    }
+                    
+                    if (e.key === 'Backspace') {
+                      e.preventDefault();
+                      setFormData(prev => ({ ...prev, state: '' }));
+                    } 
+                    // Handle Enter - navigate to next field
+                    else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      // Move to next field (Email)
+                      if (emailRef.current) {
+                        emailRef.current.focus();
+                      }
+                    }
+                    else if (['Escape'].includes(e.key)) {
+                      if (e.key === 'Escape') {
+                        setIsStatePopupOpen(false);
+                        setStateSearch('');
+                      }
+                    }
+                    else if (!isStatePopupOpen && e.key.length === 1 && /^[a-zA-Z0-9]$/.test(e.key)) {
+                      e.preventDefault();
+                      setStateSearch(e.key);
+                      setIsStatePopupOpen(true);
+                    }
+                  }}
+                  disabled={inputsDisabled}
+                />
+                <div className="input-search-icon">
+                  <Icon.Search size={16} />
                 </div>
+              </div>
+            </div>
 
                 <div className="field">
                   <label className="field-label">Email</label>
