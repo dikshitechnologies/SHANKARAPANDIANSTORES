@@ -2806,7 +2806,7 @@ const handleApplyBillDirect = async () => {
   const handleClear = () => {
     showConfirmation({
       title: "Clear All Data",
-      message: "Are you sure you want to clear all data? ",
+      message: "Do you want to clear ? ",
       type: "warning",
       confirmText: "Clear",
       cancelText: "Cancel",

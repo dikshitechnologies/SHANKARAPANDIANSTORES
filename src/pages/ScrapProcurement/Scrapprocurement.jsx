@@ -1409,7 +1409,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
     if (isEditMode) {
       showConfirmation({
         title: 'Clear Data',
-        message: 'Are you sure you want to clear all data?',
+        message: 'Do you want to clear?',
         type: 'warning',
         confirmText: 'Yes',
         cancelText: 'No',
