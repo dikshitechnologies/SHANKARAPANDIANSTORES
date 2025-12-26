@@ -2987,7 +2987,7 @@ const itemsData = validItems.map(item => ({
   }}>
     {/* Bill No */}
     <div style={styles.formField}>
-      <label style={styles.inlineLabel}>Bill No:</label>
+      <label style={styles.inlineLabel}>Ref No:</label>
       <input
         type="text"
         value={billDetails.billNo}
@@ -3006,7 +3006,7 @@ const itemsData = validItems.map(item => ({
 
     {/* Bill Date */}
     <div style={styles.formField}>
-      <label style={styles.inlineLabel}>Bill Date:</label>
+      <label style={styles.inlineLabel}>Entry Date:</label>
       <input
         type="date"
         data-header="billDate"

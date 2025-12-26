@@ -242,11 +242,11 @@ const handleBlur = () => {
   const showConfirmation = (config) => {
     setConfirmConfig({
       title: config.title || 'Confirm Action',
-      message: config.message || 'Are you sure you want to proceed?',
+      message: config.message || 'Are you sure you want ?',
       onConfirm: config.onConfirm || (() => {}),
       type: config.type || 'default',
-      confirmText: config.confirmText || 'Confirm',
-      cancelText: config.cancelText || 'Cancel',
+      confirmText: config.confirmText || 'Yes',
+      cancelText: config.cancelText || 'No',
       showLoading: config.showLoading || false,
       hideCancelButton: config.hideCancelButton || false
     });
@@ -747,7 +747,7 @@ const handleBlur = () => {
     } else if (popupMode === 'delete') {
       showConfirmation({
         title: 'Delete Purchase Return',
-        message: `Are you sure you want to delete Purchase Return ${selectedBill.voucherNo}? This action cannot be undone.`,
+        message: `Are you sure you want to delete?`,
         onConfirm: () => {
           deletePurchaseBill(selectedBill.voucherNo);
         },

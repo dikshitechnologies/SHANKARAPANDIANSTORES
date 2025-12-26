@@ -1346,7 +1346,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
 
     showConfirmation({
       title: 'Delete Item',
-      message: `Are you sure you want to delete?`,
+      message: `Do youwant to delete?`,
       type: 'danger',
       confirmText: 'Delete',
       onConfirm: () => {
@@ -1412,7 +1412,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
     if (isEditMode) {
       showConfirmation({
         title: 'Clear Data',
-        message: 'Are you sure you want to clear all data?',
+        message: 'Do you want to clear?',
         type: 'warning',
         confirmText: 'Yes',
         cancelText: 'No',

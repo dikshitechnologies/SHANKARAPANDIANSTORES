@@ -461,9 +461,10 @@ const handleConfirmClearAll = () => {
         onClose={() => setShowConfirmation(false)}
         onConfirm={handleConfirmUpdate}
         title="Confirm Update"
-        message="Are you sure you want to update the scrap rates?"
+        message="Do you want to update ?"
         type="success"
-        confirmText={loading ? "Updating..." : "Confirm"}
+        confirmText={loading ? "Updating..." : "Yes"}
+          cancelText="No"
         showLoading={loading}
         disableBackdropClose={loading}
       />
@@ -472,10 +473,10 @@ const handleConfirmClearAll = () => {
   onClose={() => setShowClearConfirmation(false)}
   onConfirm={handleConfirmClearAll}
   title="Clear All Rates"
-  message="Are you sure you want to clear all rate values?"
+  message="Do you want to clear ?"
   type="warning"
-  confirmText="Clear"
-  cancelText="Cancel"
+  confirmText="Yes"
+  cancelText="No"
   showIcon={true}
 />
 
@@ -529,7 +530,7 @@ const handleConfirmClearAll = () => {
         }}>
           <input
             type="text"
-            placeholder="Search by scrap name or code..."
+            placeholder="Search scrap name"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{

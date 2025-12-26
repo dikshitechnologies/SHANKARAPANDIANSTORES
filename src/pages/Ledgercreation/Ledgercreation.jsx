@@ -2382,6 +2382,12 @@ export default function LedgerCreation({ onCreated }) {
           setMainGroup(groupValue);
           setIsActive(item.fshow !== '0');
           setIsPopupOpen(false);
+          // Focus Ledger Name input after selection
+          setTimeout(() => {
+            if (partyNameRef.current) {
+              partyNameRef.current.focus();
+            }
+          }, 1000);
         }}
         fetchItems={fetchPopupItems}
         title={actionType === 'delete' ? 'Select Ledger  to Delete' : 'Select Ledger  to Edit'}
