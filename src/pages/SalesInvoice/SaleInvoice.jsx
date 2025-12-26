@@ -11,6 +11,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 
 
+
 const TABLE_FIELDS = [
   'barcode',
   'itemName',
@@ -3807,8 +3808,8 @@ const itemsData = validItems.map(item => ({
         title="Delete Item Row"
         message={
           rowToDelete 
-          ? `Are you   want to delete?`
-          : "Are you  want to delete this item?"
+          ? `Are you   want to clear?`
+          : "Are you  want to clear?"
         }
         confirmText="Yes"
         cancelText="No"
