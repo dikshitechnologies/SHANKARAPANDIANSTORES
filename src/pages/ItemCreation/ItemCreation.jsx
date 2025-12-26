@@ -170,6 +170,7 @@ const ItemCreation = ({ onCreated }) => {
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [actionType, setActionType] = useState('create');
+  const isDeleteMode = actionType === 'delete';
   const [searchTree, setSearchTree] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -2267,7 +2268,7 @@ const ItemCreation = ({ onCreated }) => {
             setIsTreeOpen(true);
           }
         }}
-        disabled={isSubmitting}
+        disabled={isSubmitting || isDeleteMode}
         readOnly={true}
         aria-label="Group Name"
         style={{ 
@@ -2282,7 +2283,8 @@ const ItemCreation = ({ onCreated }) => {
         }}
       />
       <button
-        onClick={() => setIsTreeOpen(!isTreeOpen)}
+        onClick={() => { if (!isDeleteMode && !isSubmitting) setIsTreeOpen(!isTreeOpen); }}
+        disabled={isSubmitting || isDeleteMode}
         style={{
           background: "transparent",
           border: "none",
@@ -2467,8 +2469,8 @@ const ItemCreation = ({ onCreated }) => {
                     className="input"
                     value={formData.itemName}
                     onChange={(e) => handleChange('itemName', e.target.value)}
-                   
-                    disabled={isSubmitting}
+                    
+                    disabled={isSubmitting || isDeleteMode}
                     aria-label="Item Name"
                     style={{
                       flex: 1,
@@ -2503,7 +2505,7 @@ const ItemCreation = ({ onCreated }) => {
                     value={formData.shortName}
                     onChange={(e) => handleChange('shortName', e.target.value)}
                     
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isDeleteMode}
                     aria-label="Short Name"
                     style={{
                       flex: 1,
@@ -2534,7 +2536,7 @@ const ItemCreation = ({ onCreated }) => {
                     onKeyDown={(e) => handlePopupFieldKeyPress('brand', e)}
                     onFocus={() => setActiveField('brand')}
                     onBlur={() => setActiveField(null)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isDeleteMode}
                     readOnly
                     aria-label="Brand"
                   />
@@ -2572,7 +2574,7 @@ const ItemCreation = ({ onCreated }) => {
                     onKeyDown={(e) => handlePopupFieldKeyPress('category', e)}
                     onFocus={() => setActiveField('category')}
                     onBlur={() => setActiveField(null)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isDeleteMode}
                     readOnly
                     aria-label="Category"
                   />
@@ -2610,7 +2612,7 @@ const ItemCreation = ({ onCreated }) => {
                     onKeyDown={(e) => handlePopupFieldKeyPress('product', e)}
                     onFocus={() => setActiveField('product')}
                     onBlur={() => setActiveField(null)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isDeleteMode}
                     readOnly
                     aria-label="Product"
                   />
@@ -2648,7 +2650,7 @@ const ItemCreation = ({ onCreated }) => {
                     onKeyDown={(e) => handlePopupFieldKeyPress('model', e)}
                     onFocus={() => setActiveField('model')}
                     onBlur={() => setActiveField(null)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isDeleteMode}
                     readOnly
                     aria-label="Model"
                   />
@@ -2686,7 +2688,7 @@ const ItemCreation = ({ onCreated }) => {
                     onKeyDown={(e) => handlePopupFieldKeyPress('size', e)}
                     onFocus={() => setActiveField('size')}
                     onBlur={() => setActiveField(null)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isDeleteMode}
                     readOnly
                     aria-label="Size"
                   />
@@ -2723,11 +2725,11 @@ const ItemCreation = ({ onCreated }) => {
       className="input"
       value={formData.unit}
       onChange={(e) => handleChange('unit', e.target.value)}
-      onClick={() => setIsUnitPopupOpen(true)}
+      onClick={() => { if (!isDeleteMode && !isSubmitting) setIsUnitPopupOpen(true); }}
       onKeyDown={(e) => handlePopupFieldKeyPress('unit', e)}
       onFocus={() => setActiveField('unit')}
       onBlur={() => setActiveField(null)}
-      disabled={isSubmitting}
+      disabled={isSubmitting || isDeleteMode}
       readOnly
       aria-label="Units"
       required
@@ -2762,7 +2764,7 @@ const ItemCreation = ({ onCreated }) => {
                   value={formData.min}
                   onChange={(e) => handleChange('min', e.target.value)}
                   
-                  disabled={isSubmitting}
+                    disabled={isSubmitting || isDeleteMode}
                   aria-label="Min"
                   style={{ textAlign: "center" ,width:300}}
                 />
@@ -2777,7 +2779,7 @@ const ItemCreation = ({ onCreated }) => {
                   value={formData.max}
                   onChange={(e) => handleChange('max', e.target.value)}
                  
-                  disabled={isSubmitting}
+                    disabled={isSubmitting || isDeleteMode}
                   aria-label="Max"
                   style={{ textAlign: "center" ,width:300}}
                 />
@@ -2800,7 +2802,7 @@ const ItemCreation = ({ onCreated }) => {
         handleChange('hsnCode', value.toUpperCase());
       }
     }}
-    disabled={isSubmitting}
+    disabled={isSubmitting || isDeleteMode}
     aria-label="HSN Code"
     title="Alphanumeric HSN Code (max 20 characters)"
     style={{ textAlign: "center", width: 300 }}
@@ -2889,7 +2891,7 @@ const ItemCreation = ({ onCreated }) => {
       }
     }}
     size={0}
-    disabled={isSubmitting}
+    disabled={isSubmitting || isDeleteMode}
     aria-label="Type"
     style={{ textAlign: "center", width: 300 }}
   >
@@ -2904,16 +2906,17 @@ const ItemCreation = ({ onCreated }) => {
              <div className="field">
   <div 
     className="checkbox-group" 
-    onClick={handleGstToggle}
+    onClick={() => { if (!isDeleteMode) handleGstToggle(); }}
     onKeyDown={(e) => {
-      if (e.key === ' ') {
+      if (!isDeleteMode && e.key === ' ') {
         e.preventDefault();
         handleGstToggle();
       }
     }}
     role="checkbox"
-    tabIndex="0"
+    tabIndex={isDeleteMode ? -1 : 0}
     aria-checked={gstChecked}
+    aria-disabled={isDeleteMode}
   >
     <div 
       className={`checkbox ${gstChecked ? 'checked' : ''}`}
@@ -2952,7 +2955,7 @@ const ItemCreation = ({ onCreated }) => {
         setTimeout(() => gstinRef.current?.focus(), 10);
       }
     }}
-    disabled={isSubmitting || !gstChecked}
+    disabled={isSubmitting || !gstChecked || isDeleteMode}
     aria-label="GST Percentage"
     style={{ textAlign: "center", width: 300 }}
     required
@@ -2963,16 +2966,17 @@ const ItemCreation = ({ onCreated }) => {
              <div className="field">
   <div 
     className="checkbox-group" 
-    onClick={handleManualPrefixToggle}
+    onClick={() => { if (!isDeleteMode) handleManualPrefixToggle(); }}
     onKeyDown={(e) => {
-      if (e.key === ' ') {
+      if (!isDeleteMode && e.key === ' ') {
         e.preventDefault();
         handleManualPrefixToggle();
       }
     }}
     role="checkbox"
-    tabIndex="0"
+    tabIndex={isDeleteMode ? -1 : 0}
     aria-checked={manualPrefixChecked}
+    aria-disabled={isDeleteMode}
   >
     <div 
       className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
@@ -2994,7 +2998,7 @@ const ItemCreation = ({ onCreated }) => {
                     }
                   }}
                  
-                  disabled={isSubmitting || !manualPrefixChecked}
+                  disabled={isSubmitting || !manualPrefixChecked || isDeleteMode}
                   aria-label="Prefix"
                     style={{ textAlign: "center" ,width:300}}
                 />
@@ -3023,7 +3027,7 @@ const ItemCreation = ({ onCreated }) => {
         sellingPriceRef.current?.focus();
       }
     }}
-    disabled={isSubmitting}
+    disabled={isSubmitting || isDeleteMode}
     aria-label="Cost Price"
     style={{ textAlign: "center", width: 300 }}
     // Use text type instead of number to remove spinners
@@ -3069,7 +3073,7 @@ const ItemCreation = ({ onCreated }) => {
         else if (actionType === 'delete') showDeleteConfirmation();
       }
     }}
-    disabled={isSubmitting}
+    disabled={isSubmitting || isDeleteMode}
     aria-label="Selling Price"
     style={{ textAlign: "center", width: 300 }}
     // Use text type instead of number to remove spinners
