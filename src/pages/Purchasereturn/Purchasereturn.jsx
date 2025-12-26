@@ -1378,10 +1378,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       }
 
       // Validation: Check required fields
-      if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
-        showAlertConfirmation('Party Code is required', null, 'warning');
-        return;
-      }
+      // if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
+      //   showAlertConfirmation('Party Code is required', null, 'warning');
+      //   return;
+      // }
 
       if (!billDetails.customerName || billDetails.customerName.trim() === '') {
         showAlertConfirmation('Customer Name is required', null, 'warning');
@@ -1492,7 +1492,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               `Purchase ${isEditMode ? 'updated' : 'saved'} successfully`,
               'success'
             );
-            toast.success(`Purchase return ${isEditMode ? 'updated' : 'saved'} successfully.`);
+            // toast.success(`Purchase return ${isEditMode ? 'updated' : 'saved'} successfully.`);
             
           } catch (err) {
             const status = err?.response?.status;
@@ -1505,7 +1505,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               null,
               'danger'
             );
-            toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase return.`);
+            // toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase return.`);
           } finally {
             setIsLoading(false);
           }
@@ -1519,7 +1519,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     } catch (e) {
       console.warn('Save error:', e);
       showAlertConfirmation('Failed to save purchase', null, 'danger');
-      toast.error('Failed to save Purchase return.');
+      // toast.error('Failed to save Purchase return.');
     }
   };
 
@@ -1528,10 +1528,54 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   };
 
   // Handle delete row
-  const handleDeleteRow = (id) => {
+    const handleDeleteRow = (id) => {
     if (items.length <= 1) {
-      showAlertConfirmation("Cannot delete the last row", null, 'warning');
-      toast.warning("Cannot delete the last row");
+      // showAlertConfirmation("Cannot delete the last row", null, 'warning');
+      showConfirmation({
+      title: 'Clear First Row',
+      message: 'Do you want to clear?',
+      onConfirm: () => {
+        setItems([
+          {
+            id: 1, 
+      barcode: '', 
+      name: '', 
+      sub: '', 
+      stock: '', 
+      mrp: '', 
+      uom: '', 
+      hsn: '', 
+      tax: '', 
+      rate: '', 
+      qty: '',
+      ovrwt: '',
+      avgwt: '',
+      prate: '',
+      intax: '',
+      outtax: '',
+      acost: '',
+      sudo: '',
+      profitPercent: '',
+      preRT: '',
+      sRate: '',
+      asRate: '',
+      letProfPer: '',
+      ntCost: '',
+      wsPercent: '',
+      wsRate: '',
+      amt: '',
+      min: '',
+      max: ''
+    
+          }
+        ]);
+      },
+      type: 'danger',
+      confirmText: 'Yes',
+      cancelText: 'No'
+    });
+      // createNewForm();
+      // toast.warning("Cannot delete the last row");
       return;
 
     }
@@ -2333,6 +2377,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               }}
               value={billDetails.mobileNo}
               name="mobileNo"
+              maxLength={10}
               onChange={handleInputChange}
               ref={mobileRef}
               onKeyDown={(e) => handleKeyDown(e, gstNoRef, 'mobileNo')}

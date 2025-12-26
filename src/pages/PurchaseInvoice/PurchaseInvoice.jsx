@@ -912,7 +912,7 @@ const handleBlur = () => {
           },
           'success'
         );
-        toast.error(`Purchase invoice ${voucherNo} deleted successfully.`);
+        // toast.error(`Purchase invoice ${voucherNo} deleted successfully.`);
       } else {
         throw new Error(`Delete failed with status: ${response.status}`);
       }
@@ -931,7 +931,7 @@ const handleBlur = () => {
                           'Failed to delete purchase invoice';
       
       showAlertConfirmation(`Delete failed: ${errorMessage}`, null, 'danger');
-      toast.error(`Failed to delete purchase invoice: ${errorMessage}`);
+      // toast.error(`Failed to delete purchase invoice: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -1439,10 +1439,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       }
 
       // Validation: Check required fields
-      if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
-        showAlertConfirmation('Party Code is required', null, 'warning');
-        return;
-      }
+      // if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
+      //   showAlertConfirmation('Name is required', null, 'warning');
+      //   return;
+      // }
 
       if (!billDetails.customerName || billDetails.customerName.trim() === '') {
         showAlertConfirmation('Customer Name is required', null, 'warning');
@@ -1566,7 +1566,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               null,
               'danger'
             );
-            toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase invoice.`);
+            // toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase invoice.`);
           } finally {
             setIsLoading(false);
           }
@@ -1580,7 +1580,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     } catch (e) {
       console.warn('Save error:', e);
       showAlertConfirmation('Failed to save purchase', null, 'danger');
-      toast.error('Failed to save purchase invoice.');
+      // toast.error('Failed to save purchase invoice.');
     }
   };
 
@@ -1591,8 +1591,52 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   // Handle delete row
   const handleDeleteRow = (id) => {
     if (items.length <= 1) {
-      showAlertConfirmation("Cannot delete the last row", null, 'warning');
-      toast.warning("Cannot delete the last row");
+      // showAlertConfirmation("Cannot delete the last row", null, 'warning');
+      showConfirmation({
+      title: 'Clear First Row',
+      message: 'Do you want to clear?',
+      onConfirm: () => {
+        setItems([
+          {
+            id: 1, 
+      barcode: '', 
+      name: '', 
+      sub: '', 
+      stock: '', 
+      mrp: '', 
+      uom: '', 
+      hsn: '', 
+      tax: '', 
+      rate: '', 
+      qty: '',
+      ovrwt: '',
+      avgwt: '',
+      prate: '',
+      intax: '',
+      outtax: '',
+      acost: '',
+      sudo: '',
+      profitPercent: '',
+      preRT: '',
+      sRate: '',
+      asRate: '',
+      letProfPer: '',
+      ntCost: '',
+      wsPercent: '',
+      wsRate: '',
+      amt: '',
+      min: '',
+      max: ''
+    
+          }
+        ]);
+      },
+      type: 'danger',
+      confirmText: 'Yes',
+      cancelText: 'No'
+    });
+      // createNewForm();
+      // toast.warning("Cannot delete the last row");
       return;
 
     }
