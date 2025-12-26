@@ -315,6 +315,7 @@ const SalesReturn = () => {
       // Fetch new voucher number and refresh voucher list
       await fetchMaxVoucherNo();
       await fetchVoucherList();
+      setActiveTopAction('add');
       
     } catch (err) {
       console.error("Error resetting form:", err);
@@ -964,7 +965,7 @@ setTimeout(() => {
           compCode: "001",
           userCode: "001",
           billAMT: totalAmount.toFixed(2).toString(),
-          billNo: (billDetails.newBillNo || "").toString(),
+          RefNo: (billDetails.newBillNo || "").toString(),
         
         },
         items: validItems.map((item, index) => ({
@@ -1296,6 +1297,7 @@ setTimeout(() => {
         ...prev,
         billNo: header.voucherNo || voucherNo,
         billDate: formattedDate,
+         newBillNo: header.RefNo || header.refNo || "",
         mobileNo: header.mobileNo || "",
         salesman: header.salesMansName || "",
         salesmanCode: header.salesMansCode || "002",
@@ -2609,7 +2611,7 @@ const handleApplyBillDirect = async () => {
       qtyInput.focus();
       qtyInput.select();
     }
-  }, 1050);
+  }, 500);
 };
 
 
@@ -4095,32 +4097,32 @@ const handleApplyBillDirect = async () => {
                     </div>
                   </td>
                   <td style={styles.td}>
-  <input
-   readOnly
-    style={
-      focusedField === `stock-${item.id}`
-        ? styles.editableInputFocused
-        : styles.editableInput
-    }
-    value={item.stock}
-    data-row={index}
-    data-field="stock"
-    onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
-    onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
-    onFocus={() => {
-      setFocusedField(`stock-${item.id}`);
-      setFocusedElement({
-        type: 'table',
-        rowIndex: index,
-        fieldIndex: 2,
-        fieldName: 'stock'
-      });
-    }}
-    onBlur={() => setFocusedField('')}
-    inputMode="numeric"
-    
-  />
-</td>
+                    <input
+                    readOnly
+                      style={
+                        focusedField === `stock-${item.id}`
+                          ? styles.editableInputFocused
+                          : styles.editableInput
+                      }
+                      value={item.stock}
+                      data-row={index}
+                      data-field="stock"
+                      onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
+                      onFocus={() => {
+                        setFocusedField(`stock-${item.id}`);
+                        setFocusedElement({
+                          type: 'table',
+                          rowIndex: index,
+                          fieldIndex: 2,
+                          fieldName: 'stock'
+                        });
+                      }}
+                      onBlur={() => setFocusedField('')}
+                      inputMode="numeric"
+                      
+                    />
+                  </td>
 
                   <td style={styles.td}>
                     <input

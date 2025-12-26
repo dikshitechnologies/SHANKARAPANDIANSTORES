@@ -2315,7 +2315,7 @@ const ItemCreation = ({ onCreated }) => {
             </button>
           </div>
 
-          <div className="row" style={{ marginBottom: 8 }}>
+          {/* <div className="row" style={{ marginBottom: 8 }}>
             <div className="search-container">
               <input
                 className="search-with-clear"
@@ -2335,7 +2335,7 @@ const ItemCreation = ({ onCreated }) => {
                 </button>
               )}
             </div>
-          </div>
+          </div> */}
 
           <div
             className="tree-scroll"
@@ -2379,7 +2379,7 @@ const ItemCreation = ({ onCreated }) => {
     ) : (
       <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
         {/* Header with close button for desktop */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        {/* <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div className="search-container">
             <input
               className="search-with-clear"
@@ -2406,7 +2406,7 @@ const ItemCreation = ({ onCreated }) => {
           >
             <Icon.Close size={18} />
           </button>
-        </div>
+        </div> */}
 
         <div
           className="tree-scroll"

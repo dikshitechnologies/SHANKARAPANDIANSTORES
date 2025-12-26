@@ -184,6 +184,8 @@ export default function LedgerCreation({ onCreated }) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isStatePopupOpen, setIsStatePopupOpen] = useState(false);
   const [stateSearch, setStateSearch] = useState('');
+  const [isRoutePopupOpen, setIsRoutePopupOpen] = useState(false);
+  const [routeSearch, setRouteSearch] = useState('');
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -209,6 +211,10 @@ export default function LedgerCreation({ onCreated }) {
     Hide: '1',
     fCode: '',
   });
+
+  // Routes list for Route dropdown (fetched from API)
+  const [routes, setRoutes] = useState([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
 
   // Refs for form inputs
   const partyNameRef = useRef(null);
@@ -248,6 +254,10 @@ export default function LedgerCreation({ onCreated }) {
   const [confirmEditOpen, setConfirmEditOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Disable inputs when submitting/loading or in delete mode
+  const isDeleteMode = actionType === 'delete';
+  const inputsDisabled = isSubmitting || isLoading || isDeleteMode;
 
   // Auto-focus Ledger Name on component mount
   useEffect(() => {
@@ -535,11 +545,35 @@ export default function LedgerCreation({ onCreated }) {
       return;
     }
 
-    // For any regular character, open popup and capture in search
-    if (!isStatePopupOpen && e.key.length === 1) {
+    // For any regular alphanumeric character, open popup and capture in search
+    if (!isStatePopupOpen && e.key.length === 1 && /^[a-zA-Z0-9]$/.test(e.key)) {
       e.preventDefault();
       setStateSearch(e.key);
       setIsStatePopupOpen(true);
+    }
+  };
+
+  // Handle keyboard typing in Route field popup
+  const handleRouteFieldKeyPress = (e) => {
+    // Allow navigation keys to pass through
+    if (['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape'].includes(e.key)) {
+      if (e.key === 'Escape') {
+        setIsRoutePopupOpen(false);
+        setRouteSearch('');
+      } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (e.key === 'Enter') {
+        handleKeyboardNavigation(e, 9);
+      }
+      return;
+    }
+
+    // For any regular alphanumeric character, open popup and capture in search
+    if (!isRoutePopupOpen && e.key.length === 1 && /^[a-zA-Z0-9]$/.test(e.key)) {
+      e.preventDefault();
+      setRouteSearch(e.key);
+      setIsRoutePopupOpen(true);
     }
   };
 
@@ -608,6 +642,8 @@ export default function LedgerCreation({ onCreated }) {
 
   // Show confirmation popup for Create (ADDED to match Unit Creation)
   const showCreateConfirmation = () => {
+    // Validate first — show mandatory error messages if invalid, don't open popup
+    if (!validateForm()) return;
     setConfirmSaveOpen(true);
   };
 
@@ -629,6 +665,8 @@ export default function LedgerCreation({ onCreated }) {
 
   // Show confirmation popup for Edit (ADDED to match Unit Creation)
   const showEditConfirmation = () => {
+    // Validate first — show mandatory error messages if invalid, don't open popup
+    if (!validateForm()) return;
     setConfirmEditOpen(true);
   };
 
@@ -650,6 +688,8 @@ export default function LedgerCreation({ onCreated }) {
 
   // Show confirmation popup for Delete (ADDED to match Unit Creation)
   const showDeleteConfirmation = () => {
+    // Validate first — show mandatory error messages if invalid, don't open popup
+    if (!validateForm()) return;
     setConfirmDeleteOpen(true);
   };
 
@@ -835,6 +875,40 @@ export default function LedgerCreation({ onCreated }) {
       return [];
     }
   }, []);
+
+  // Fetch paged routes from server and store for the Route select
+  const fetchRoutes = useCallback(async (pageNumber = 1, pageSize = 10, search = '') => {
+    try {
+      setRoutesLoading(true);
+      const endpoint = API_ENDPOINTS.ROUTE_CREATION.GET_ROUTES_PAGED(pageNumber, pageSize, search);
+      const resp = await axiosInstance.get(endpoint);
+      const list = Array.isArray(resp.data)
+        ? resp.data
+        : Array.isArray(resp.data?.data)
+        ? resp.data.data
+        : [];
+
+      const transformed = list.map(item => ({
+        routeCode: item.routeCode ?? item.RouteCode ?? item.fRouteCode ?? '',
+        routeName: item.routeName ?? item.RouteName ?? item.Route ?? ''
+      }));
+
+      setRoutes(transformed);
+      setMessage(null);
+      return transformed;
+    } catch (err) {
+      console.error('fetchRoutes error', err);
+      setMessage({ type: 'error', text: 'Failed to load routes' });
+      return [];
+    } finally {
+      setRoutesLoading(false);
+    }
+  }, []);
+
+  // load routes on mount
+  useEffect(() => {
+    fetchRoutes();
+  }, [fetchRoutes]);
 
   const resetForm = (keepAction = false) => {
     setMainGroup('');
@@ -1768,32 +1842,60 @@ export default function LedgerCreation({ onCreated }) {
                   }
                 }}
                 required
-                readOnly={actionType === 'delete'}
+                disabled={inputsDisabled}
               />
             </div>
 
             <div className="field">
               <label className="field-label">Group Name <span className="asterisk">*</span></label>
-              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-                <div style={{
-                  display: "flex",
-                  flex: 1,
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  background: "linear-gradient(180deg, #fff, #fbfdff)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                }}>
+  <div className="row" style={{ display: "flex", alignItems: "center" }}>
+                 <div style={{ 
+      display: "flex", 
+      flex: 1, 
+      border: "1px solid rgba(15,23,42,0.06)",
+      borderRadius: "10px",
+      overflow: "hidden",
+      backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
+    }}>
                   <input
                     ref={groupNameRef}
                     type="text"
                     className="input"
                     value={mainGroup}
-                    readOnly
                     onFocus={() => setIsTreeOpen(true)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 1)}
-                    disabled={isSubmitting}
+                    disabled={inputsDisabled}
                     aria-label="Group Name"
+
+                     style={{ 
+          flex: 1,
+          border: "none",
+          borderRadius: "0",
+          padding: "10px 12px",
+          minWidth: "0",
+          fontSize: "14px",
+          outline: "none",
+          cursor: "pointer"
+        }}
                   />
+  
+      <button
+        onClick={() => setIsTreeOpen(!isTreeOpen)}
+        style={{
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          padding: "0 12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--accent)"
+        }}
+        aria-label={isTreeOpen ? "Close tree" : "Open tree"}
+        disabled={inputsDisabled}
+      >
+        <Icon.Chevron down={!isTreeOpen} />
+      </button>
                 </div>
               </div>
             </div>
@@ -1813,6 +1915,7 @@ export default function LedgerCreation({ onCreated }) {
                       className="clear-search-btn"
                       onClick={() => setSearchTree('')}
                       aria-label="Clear search"
+                      disabled={inputsDisabled}
                     >
                       <Icon.Close size={14} />
                     </button>
@@ -1868,7 +1971,7 @@ export default function LedgerCreation({ onCreated }) {
                         handleKeyboardNavigation(e, 2);
                       }
                     }}
-                    readOnly={actionType === 'delete'}
+                    disabled={inputsDisabled}
                   />
                 </div>
 
@@ -1882,7 +1985,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.fStreet}
                     onChange={(e) => handleChange('fStreet', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 3)}
-                    readOnly={actionType === 'delete'}
+                    disabled={inputsDisabled}
                   />
                 </div>
 
@@ -1896,7 +1999,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.area}
                     onChange={(e) => handleChange('area', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 4)}
-                    readOnly={actionType === 'delete'}
+                    disabled={inputsDisabled}
                   />
                 </div>
 
@@ -1910,7 +2013,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.city}
                     onChange={(e) => handleChange('city', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 5)}
-                    readOnly={actionType === 'delete'}
+                    disabled={inputsDisabled}
                   />
                 </div>
 
@@ -1925,7 +2028,7 @@ export default function LedgerCreation({ onCreated }) {
                     onChange={(e) => handleChange('pincode', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 6)}
                     maxLength={6}
-                    readOnly={actionType === 'delete'}
+                    disabled={inputsDisabled}
                   />
                 </div>
 
@@ -1940,7 +2043,7 @@ export default function LedgerCreation({ onCreated }) {
                     onChange={(e) => handleChange('phone', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 7)}
                     maxLength={10}
-                    readOnly={actionType === 'delete'}
+                    disabled={inputsDisabled}
                   />
                 </div>
 
@@ -1955,7 +2058,7 @@ export default function LedgerCreation({ onCreated }) {
                     onChange={(e) => handleChange('cellNo', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 8)}
                     maxLength={10}
-                    readOnly={actionType === 'delete'}
+                    disabled={inputsDisabled}
                   />
                 </div>
               </div>
@@ -1964,35 +2067,29 @@ export default function LedgerCreation({ onCreated }) {
               <div>
                 <div className="field">
                   <label className="field-label">Route</label>
-                  <select
-                    ref={routeRef}
-                    className="select"
-                    style={{ width: '100%' }}
-                    value={formData.route}
-                    onChange={(e) => handleChange('route', e.target.value)}
-                    onKeyDown={(e) => {
-                      // Allow up/down arrow keys for route dropdown navigation
-                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                        // Let browser handle native select dropdown navigation
-                        return;
-                      }
-                      // Enter key moves focus to next field (GSTIN)
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        // Move focus to GSTIN field (next field)
-                        if (gstinRef.current) {
-                          gstinRef.current.focus();
+                  <div className="input-with-search">
+                    <input
+                      ref={routeRef}
+                      type="text"
+                      className="input"
+                      style={{ width: '100%' }}
+                      value={formData.route}
+                      onChange={(e) => handleChange('route', e.target.value)}
+                      onClick={() => { if (actionType !== 'delete') setIsRoutePopupOpen(true); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Backspace') {
+                          e.preventDefault();
+                          setFormData(prev => ({ ...prev, route: '' }));
+                        } else {
+                          handleRouteFieldKeyPress(e);
                         }
-                      }
-                    }}
-                    // disabled={actionType === 'delete'}
-                    title="Use Up/Down arrows to select route, then press Enter to move to next field"
-                  >
-                    <option value="">Select Route</option>
-                    <option value="Tamil Nadu">Tamil Nadu</option>
-                    <option value="Chennai">Chennai</option>
-                    <option value="Puducherry">Puducherry</option>
-                  </select>
+                      }}
+                      disabled={inputsDisabled}
+                    />
+                    <div className="input-search-icon">
+                      <Icon.Search size={16} />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="field">
@@ -2005,7 +2102,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.gstin}
                     onChange={(e) => handleChange('gstin', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 10)}
-                    readOnly={actionType === 'delete'}
+                      disabled={inputsDisabled}
                   />
                 </div>
 
@@ -2019,7 +2116,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.cinNo}
                     onChange={(e) => handleChange('cinNo', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 11)}
-                    readOnly={actionType === 'delete'}
+                      disabled={inputsDisabled}
                   />
                 </div>
 
@@ -2033,7 +2130,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.panNo}
                     onChange={(e) => handleChange('panNo', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 12)}
-                    readOnly={actionType === 'delete'}
+                      disabled={inputsDisabled}
                   />
                 </div>
 
@@ -2052,9 +2149,16 @@ export default function LedgerCreation({ onCreated }) {
                       onClick={() => {
                         if (actionType !== 'delete') setIsStatePopupOpen(true);
                       }}
-                      onKeyDown={(e) => handleKeyboardNavigation(e, 13)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Backspace') {
+                          e.preventDefault();
+                          setFormData(prev => ({ ...prev, state: '' }));
+                        } else {
+                          handleStateFieldKeyPress(e);
+                        }
+                      }}
 
-                      readOnly
+                      disabled={inputsDisabled}
                     />
                     <div className="input-search-icon">
                       <Icon.Search size={16} />
@@ -2072,7 +2176,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 14)}
-                    readOnly={actionType === 'delete'}
+                      disabled={inputsDisabled}
                   />
                 </div>
 
@@ -2086,7 +2190,7 @@ export default function LedgerCreation({ onCreated }) {
                     value={formData.shortName}
                     onChange={(e) => handleChange('shortName', e.target.value)}
                     onKeyDown={(e) => handleKeyboardNavigation(e, 15)}
-                    readOnly={actionType === 'delete'}
+                    disabled={inputsDisabled}
                   />
                 </div>
               </div>
@@ -2101,7 +2205,7 @@ export default function LedgerCreation({ onCreated }) {
                   checked={isActive}
                   onChange={toggleActive}
                   onKeyDown={(e) => handleKeyboardNavigation(e, 16)}
-                  disabled={actionType === 'delete'}
+                  disabled={inputsDisabled}
                 />
                 <span className="slider"></span>
               </label>
@@ -2294,6 +2398,7 @@ export default function LedgerCreation({ onCreated }) {
             setIsStatePopupOpen(false);
             setStateSearch('');
           }}
+          clearSearch={() => setStateSearch('')}
           onSelect={(item) => {
             setFormData(prev => ({ ...prev, state: item.fname || item.state || '' }));
             setIsStatePopupOpen(false);
@@ -2303,7 +2408,7 @@ export default function LedgerCreation({ onCreated }) {
               emailRef.current.focus();
             }
           }}
-          fetchItems={(page, search) => fetchStatesWithSearch(page, search || stateSearch)}
+          fetchItems={(page, search) => fetchStatesWithSearch(page, search)}
           title="Select State"
           displayFieldKeys={[ 'fname']}
           searchFields={[ 'fname']}
@@ -2312,6 +2417,34 @@ export default function LedgerCreation({ onCreated }) {
           maxHeight="60vh"
           responsiveBreakpoint={640}
           initialSearch={stateSearch}
+        />
+      )}
+
+      {/* PopupListSelector for Route Selection */}
+      {isRoutePopupOpen && (
+        <PopupListSelector
+          open={isRoutePopupOpen}
+          onClose={() => {
+            setIsRoutePopupOpen(false);
+            setRouteSearch('');
+          }}
+          clearSearch={() => setRouteSearch('')}
+          onSelect={(item) => {
+            setFormData(prev => ({ ...prev, route: item.routeName || item.Route || item.fRoute || '' }));
+            setIsRoutePopupOpen(false);
+            setRouteSearch('');
+            // focus next field (GSTIN)
+            if (gstinRef.current) gstinRef.current.focus();
+          }}
+          fetchItems={(page, search) => fetchRoutes(page, 20, search)}
+          title="Select Route"
+          displayFieldKeys={[ 'routeName' ]}
+          searchFields={[ 'routeName' ]}
+          headerNames={[ 'Route Name' ]}
+          columnWidths={{ routeCode: '30%', routeName: '70%' }}
+          maxHeight="60vh"
+          responsiveBreakpoint={640}
+          initialSearch={routeSearch}
         />
       )}
     </div>

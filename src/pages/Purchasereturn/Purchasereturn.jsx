@@ -2232,7 +2232,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 type="button"
                 aria-label="Search supplier"
                 title="Search supplier"
-                // onClick={() => setShowSupplierPopup(true)}
+                onClick={() => setShowSupplierPopup(true)}
                 style={{
                   position: 'absolute',
                   right: '4px',
