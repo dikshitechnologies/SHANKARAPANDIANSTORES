@@ -40,6 +40,15 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
   </svg>
 );
+const selectAllOnFocus = (e, fieldKey) => {
+  setFocusedField(fieldKey);
+
+  // 🔥 wait until focus + render fully settles
+  setTimeout(() => {
+    e.target.select();
+  }, 0);
+};
+
 
 const SaleInvoice = () => {
   // --- PERMISSIONS ---
@@ -250,6 +259,17 @@ const SaleInvoice = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+  const selectAllOnFocus = useCallback((e, fieldKey) => {
+  setFocusedField(fieldKey);
+
+  // 🔥 safest way – works with Enter, Arrow, Mouse
+  requestAnimationFrame(() => {
+    if (e.target) {
+      e.target.select();
+    }
+  });
+}, []);
+
 
   // Focus Bill Date on load or when action changes (except delete)
   useEffect(() => {
@@ -2040,7 +2060,7 @@ const itemsData = validItems.map(item => ({
         header: headerData,
         items: itemsData
       };
-      console.log("Request Data:", requestData);
+      console.log("Request Data:", JSON.stringify(requestData));
       
       // Determine if this is an insert or update
       const isInsert = !isEditing;
@@ -2907,23 +2927,15 @@ const itemsData = validItems.map(item => ({
       )}
 
       {/* --- HEADER SECTION --- */}
+
+      {/* --- HEADER SECTION --- */}
 <div style={styles.headerSection}>
   <div style={{
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
-    marginBottom: screenSize.isMobile ? '12px' : '15px',
-    width: '100%',
-    alignItems: 'flex-start'
+    ...styles.gridRow,
+    gridTemplateColumns: getGridColumns(),
   }}>
-    {/* Bill No - First row on mobile */}
-    <div style={{ 
-      ...styles.formField, 
-      flex: screenSize.isMobile ? '1 1 100%' : '1',
-      minWidth: screenSize.isMobile ? '100%' : '120px',
-      maxWidth: screenSize.isMobile ? '100%' : 'none',
-      order: screenSize.isMobile ? 1 : 0
-    }}>
+    {/* Bill No */}
+    <div style={styles.formField}>
       <label style={styles.inlineLabel}>Bill No:</label>
       <input
         type="text"
@@ -2935,32 +2947,23 @@ const itemsData = validItems.map(item => ({
         style={{
           ...styles.inlineInput,
           cursor: "not-allowed",
-          fontWeight: "600",
-          fontSize: screenSize.isMobile ? '14px' : 'inherit',
-          padding: screenSize.isMobile ? '10px 12px' : '8px 10px'
+          fontWeight: "600"
         }}
         title="Auto-generated invoice number"
       />
     </div>
 
-    {/* Bill Date - First row on mobile */}
-    <div style={{ 
-      ...styles.formField, 
-      flex: screenSize.isMobile ? '1 1 calc(50% - 4px)' : '1',
-      minWidth: screenSize.isMobile ? '140px' : '120px',
-      order: screenSize.isMobile ? 2 : 0
-    }}>
+    {/* Bill Date */}
+    <div style={styles.formField}>
       <label style={styles.inlineLabel}>Bill Date:</label>
       <input
         type="date"
         data-header="billDate"
-        style={{
-          ...(focusedField === 'billDate'
-            ? styles.inlineInputFocused
-            : styles.inlineInput),
-          padding: screenSize.isMobile ? '10px 12px' : '8px 10px',
-          fontSize: screenSize.isMobile ? '14px' : 'inherit'
-        }}
+        style={
+          focusedField === 'billDate'
+            ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+            : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+        }
         value={billDetails.billDate}
         name="billDate"
         onChange={handleInputChange}
@@ -2974,78 +2977,8 @@ const itemsData = validItems.map(item => ({
       />
     </div>
 
-    {/* Mobile No - Second row on mobile */}
-    <div style={{ 
-      ...styles.formField, 
-      flex: screenSize.isMobile ? '1 1 calc(50% - 4px)' : '1',
-      minWidth: screenSize.isMobile ? '140px' : '120px',
-      order: screenSize.isMobile ? 3 : 0
-    }}>
-      <label style={styles.inlineLabel}>Mobile No:</label>
-      <input
-        type="text"
-        data-header="mobileNo"
-        style={{
-          ...(focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput),
-          padding: screenSize.isMobile ? '10px 12px' : '8px 10px',
-          fontSize: screenSize.isMobile ? '14px' : 'inherit'
-        }}
-        value={billDetails.mobileNo}
-        name="mobileNo"
-        onChange={handleInputChange}
-        ref={mobileRef}
-        onKeyDown={(e) => {
-          handleHeaderArrowNavigation(e, 'mobileNo');
-          handleKeyDown(e, typeRef, 'mobileNo');
-        }}
-        onFocus={() => setFocusedField('mobileNo')}
-        onBlur={() => setFocusedField('')}
-      />
-    </div>
-
-    {/* Type - Second row on mobile */}
-    <div style={{ 
-      ...styles.formField, 
-      flex: screenSize.isMobile ? '1 1 calc(50% - 4px)' : '1',
-      minWidth: screenSize.isMobile ? '140px' : '120px',
-      gap: '4px',
-      order: screenSize.isMobile ? 4 : 0
-    }}>
-      <label style={styles.inlineLabel}>Type:</label>
-      <select
-        name="type"
-        data-header="type"
-        style={{
-          ...(focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput),
-          padding: screenSize.isMobile ? '10px 12px' : '8px 10px',
-          fontSize: screenSize.isMobile ? '14px' : 'inherit',
-          height: screenSize.isMobile ? '42px' : 'auto'
-        }}
-        value={billDetails.type}
-        onChange={handleInputChange}
-        ref={typeRef}
-        onKeyDown={(e) => {
-          handleHeaderArrowNavigation(e, 'type');
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            salesmanRef.current.focus();
-          }
-        }}
-        onFocus={() => setFocusedField('type')}
-        onBlur={() => setFocusedField('')}
-      >
-        <option value="Retail">Retail</option>
-        <option value="Wholesale">Wholesale</option>
-      </select>
-    </div>
-
-    {/* Salesman - Third row on mobile */}
-    <div style={{ 
-      ...styles.formField, 
-      flex: screenSize.isMobile ? '1 1 100%' : '1',
-      minWidth: screenSize.isMobile ? '100%' : '120px',
-      order: screenSize.isMobile ? 5 : 0
-    }}>
+    {/* Salesman (replaced Mobile No) */}
+    <div style={styles.formField}>
       <label style={styles.inlineLabel}>Salesman:</label>
       <div style={{ position: 'relative', width: '100%', flex: 1 }}>
         <input
@@ -3055,8 +2988,7 @@ const itemsData = validItems.map(item => ({
             ...(focusedField === 'salesman'
               ? styles.inlineInputClickableFocused
               : styles.inlineInputClickable),
-            padding: screenSize.isMobile ? '10px 40px 10px 12px' : '8px 34px 8px 10px',
-            fontSize: screenSize.isMobile ? '14px' : 'inherit'
+            paddingRight: '34px',
           }}
           value={billDetails.salesman}
           name="salesman"
@@ -3071,16 +3003,17 @@ const itemsData = validItems.map(item => ({
           onClick={openSalesmanPopup}
           onKeyDown={(e) => {
             handleHeaderArrowNavigation(e, 'salesman');
-            handleKeyDown(e, custNameRef, 'salesman');
+            handleKeyDown(e, typeRef, 'salesman');
             handleBackspace(e, 'salesman');
           }}
           onFocus={() => setFocusedField('salesman')}
           onBlur={() => setFocusedField('')}
         />
+        {/* 🔍 Search Icon */}
         <div
           style={{
             position: 'absolute',
-            right: screenSize.isMobile ? '12px' : '10px',
+            right: '10px',
             top: '50%',
             transform: 'translateY(-50%)',
             pointerEvents: 'none',
@@ -3094,13 +3027,46 @@ const itemsData = validItems.map(item => ({
       </div>
     </div>
 
-    {/* Customer - Fourth row on mobile */}
-    <div style={{ 
-      ...styles.formField, 
-      flex: screenSize.isMobile ? '1 1 100%' : '1',
-      minWidth: screenSize.isMobile ? '100%' : '120px',
-      order: screenSize.isMobile ? 6 : 0
-    }}>
+    {/* Type */}
+    <div style={{ ...styles.formField, gap: '4px' }}>
+      <label
+        style={{
+          ...styles.inlineLabel,
+          minWidth: '50px'
+        }}
+      >
+        Type:
+      </label>
+      <select
+        name="type"
+        data-header="type"
+        style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
+        value={billDetails.type}
+        onChange={handleInputChange}
+        ref={typeRef}
+        onKeyDown={(e) => {
+          handleHeaderArrowNavigation(e, 'type');
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            // Now go to Customer (replaced Mobile No's original ref)
+            custNameRef.current.focus();
+          }
+        }}
+        onFocus={() => setFocusedField('type')}
+        onBlur={() => setFocusedField('')}
+      >
+        <option value="Retail">Retail</option>
+        <option value="Wholesale">Wholesale</option>
+      </select>
+    </div>
+  </div>
+
+  <div style={{
+    ...styles.gridRow,
+    gridTemplateColumns: getGridColumns(),
+  }}>
+    {/* Customer (replaced Salesman) */}
+    <div style={styles.formField}>
       <label style={styles.inlineLabel}>Customer:</label>
       <div style={{ position: 'relative', width: '100%', flex: 1 }}>
         <input
@@ -3110,8 +3076,7 @@ const itemsData = validItems.map(item => ({
             ...(focusedField === 'custName'
               ? styles.inlineInputClickableFocused
               : styles.inlineInputClickable),
-            padding: screenSize.isMobile ? '10px 40px 10px 12px' : '8px 34px 8px 10px',
-            fontSize: screenSize.isMobile ? '14px' : 'inherit'
+            paddingRight: '34px',
           }}
           value={billDetails.custName}
           name="custName"
@@ -3144,18 +3109,19 @@ const itemsData = validItems.map(item => ({
             handleBackspace(e, 'custName');
           }}
         />
+        {/* 🔍 Search Icon */}
         <div
           onClick={openCustomerPopup}
           style={{
             position: 'absolute',
-            right: screenSize.isMobile ? '12px' : '10px',
+            right: '10px',
             top: '50%',
             transform: 'translateY(-50%)',
             pointerEvents: 'auto',
             opacity: 0.65,
             display: 'flex',
             alignItems: 'center',
-            padding: screenSize.isMobile ? '8px' : '6px',
+            padding: '6px',
             borderRadius: '4px',
             transition: 'all 0.2s ease',
           }}
@@ -3173,6 +3139,31 @@ const itemsData = validItems.map(item => ({
         </div>
       </div>
     </div>
+
+    {/* Mobile No (moved to Customer's original position) */}
+    <div style={styles.formField}>
+      <label style={styles.inlineLabel}>Mobile No:</label>
+      <input
+        type="text"
+        data-header="mobileNo"
+        style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
+        value={billDetails.mobileNo}
+        name="mobileNo"
+        onChange={handleInputChange}
+        ref={mobileRef}
+        onKeyDown={(e) => {
+          handleHeaderArrowNavigation(e, 'mobileNo');
+          // After Mobile No, go to Salesman (which is now in first row)
+          handleKeyDown(e, salesmanRef, 'mobileNo');
+        }}
+        onFocus={() => setFocusedField('mobileNo')}
+        onBlur={() => setFocusedField('')}
+      />
+    </div>
+    
+    {/* Empty div to maintain grid structure */}
+    <div style={styles.formField}></div>
+    <div style={styles.formField}></div>
   </div>
 </div>
 
@@ -3222,9 +3213,9 @@ const itemsData = validItems.map(item => ({
                       data-field="barcode"
                      
                       onChange={(e) => {
-                        if (!isEditing) {
+                      
                           handleItemChange(item.id, 'barcode', e.target.value);
-                        }
+                        
                       }}
                       onKeyDown={(e) => {
                         if (isEditing && e.key === 'Enter') {
@@ -3425,7 +3416,8 @@ const itemsData = validItems.map(item => ({
                         }
                         handleTableKeyDown(e, index, 'tax');
                       }}
-                      onFocus={() => setFocusedField(`tax-${item.id}`)}
+
+
                       onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
@@ -3448,7 +3440,8 @@ const itemsData = validItems.map(item => ({
                         }
                         handleTableKeyDown(e, index, 'sRate');
                       }}
-                      onFocus={() => setFocusedField(`sRate-${item.id}`)}
+                      onFocus={(e) => selectAllOnFocus(e, `sRate-${item.id}`)}
+
                       onBlur={() => setFocusedField('')}
                       step="0.01"
                     />
