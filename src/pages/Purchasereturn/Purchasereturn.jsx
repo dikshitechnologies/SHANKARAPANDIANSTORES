@@ -1341,7 +1341,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const handleClear = () => {
     showConfirmation({
       title: 'Clear All',
-      message: 'Are you sure you want to clear all fields and create a new Purchase return?',
+      message: 'Do you want to clear? ',
       onConfirm: () => {
         createNewForm();
       },
@@ -1473,7 +1473,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       
       showConfirmation({
         title: isEditMode ? 'Update Purchase Return' : 'Create Purchase Return',
-        message: `Are you sure you want to ${isEditMode ? 'update' : 'save'} this purchase return?`,
+        message: `Do you want to ${isEditMode ? 'update' : 'save'} ?`,
         onConfirm: async () => {
           setIsLoading(true);
           try {
@@ -1510,9 +1510,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             setIsLoading(false);
           }
         },
-        type: 'question',
-        confirmText: isEditMode ? 'Update' : 'Save',
-        cancelText: 'Cancel',
+        type: 'warning',
+        confirmText: isEditMode ? 'Yes' : 'Yes',
+        cancelText: 'No',
         showLoading: false
       });
       
@@ -1578,6 +1578,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#f5f7fa',
+      position:"fixed",
       height: '100vh',
       width: '100%',
       display: 'flex',

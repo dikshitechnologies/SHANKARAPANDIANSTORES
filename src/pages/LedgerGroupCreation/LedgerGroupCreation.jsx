@@ -1579,6 +1579,12 @@ export default function LedgerGroupCreation() {
           if (item.parentName) setMainGroup(item.parentName);
           setIsDropdownOpen(false);
           setIsTreeOpen(true); // Keep tree closed
+          // Focus Sub Group input after selection
+          setTimeout(() => {
+            if (subGroupRef.current) {
+              subGroupRef.current.focus();
+            }
+          }, 100);
         }}
         fetchItems={fetchDropdownItems}
         title={actionType === 'Delete' ? 'Select Ledger Group to Delete' : 'Select Ledger Group to Edit'}
