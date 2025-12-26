@@ -1578,6 +1578,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#f5f7fa',
+      position:"fixed",
       height: '100vh',
       width: '100%',
       display: 'flex',
