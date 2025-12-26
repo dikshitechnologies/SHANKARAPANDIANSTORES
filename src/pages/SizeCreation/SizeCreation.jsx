@@ -1195,10 +1195,10 @@ const submitRef = useRef(null);
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Size to Edit"
-        displayFieldKeys={['fcode', 'fsize']}
-        searchFields={['fcode', 'fsize']}
-        headerNames={['Code', 'Size']}
-        columnWidths={{ sizeName: '70%', fCode: '30%' }}
+        displayFieldKeys={[ 'fsize']}
+        searchFields={[ 'fsize']}
+        headerNames={[ 'Size']}
+        columnWidths={{ sizeName: '70%' }}
         maxHeight="60vh"
       />
 
@@ -1208,10 +1208,10 @@ const submitRef = useRef(null);
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Size to Delete"
-        displayFieldKeys={['fcode', 'fsize']}
-        searchFields={['fcode', 'fsize']}
-        headerNames={['Code', 'Size']}
-        columnWidths={{ sizeName: '70%', fCode: '30%' }}
+        displayFieldKeys={['fsize']}
+        searchFields={[ 'fsize']}
+        headerNames={[ 'Size']}
+        columnWidths={{ sizeName: '70%' }}
         maxHeight="60vh"
       />
 
