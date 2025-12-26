@@ -2310,7 +2310,7 @@ export default function LedgerCreation({ onCreated }) {
           setIsPopupOpen(false);
         }}
         fetchItems={fetchPopupItems}
-        title="Select Ledger to Edit"
+        title={actionType === 'delete' ? 'Select Ledger  to Delete' : 'Select Ledger  to Edit'}
         displayFieldKeys={['fAcname', 'fParent']}
         searchFields={['fAcname', 'fParent']}
         headerNames={['Ledger Name', 'Group']}

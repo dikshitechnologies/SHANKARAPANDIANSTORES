@@ -798,13 +798,13 @@ const handleBlur = () => {
     } else if (popupMode === 'delete') {
       showConfirmation({
         title: 'Delete Purchase Invoice',
-        message: `Are you sure you want to delete Purchase Invoice ${selectedBill.voucherNo}? This action cannot be undone.`,
+        message: `Do you want to delete ?`,
         onConfirm: () => {
           deletePurchaseBill(selectedBill.voucherNo);
         },
         type: 'danger',
-        confirmText: 'Delete',
-        cancelText: 'Cancel'
+        confirmText: 'Yes',
+        cancelText: 'No'
       });
     }
     
@@ -1402,7 +1402,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const handleClear = () => {
     showConfirmation({
       title: 'Clear All',
-      message: 'Are you sure you want to clear all fields and create a new purchase invoice?',
+      message: 'Do you want to clear ?',
       onConfirm: () => {
         createNewForm();
       },
@@ -1534,7 +1534,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       
       showConfirmation({
         title: isEditMode ? 'Update Purchase Invoice' : 'Create Purchase Invoice',
-        message: `Are you sure you want to ${isEditMode ? 'update' : 'save'} this purchase invoice?`,
+        message: `Are you want to ${isEditMode ? 'update' : 'save'} ?`,
         onConfirm: async () => {
           setIsLoading(true);
           try {
@@ -1550,10 +1550,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             
             // Show success message and reset form
             showAlertConfirmation(
-              `Purchase ${isEditMode ? 'updated' : 'saved'} successfully`,
-              'success'
+              `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
+              'warning'
             );
-            toast.success(`Purchase invoice ${isEditMode ? 'updated' : 'saved'} successfully.`);
+            // toast.success(`Purchase invoice ${isEditMode ? 'updated' : 'saved'} successfully.`);
             
           } catch (err) {
             const status = err?.response?.status;
@@ -1572,8 +1572,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           }
         },
         type: 'question',
-        confirmText: isEditMode ? 'Update' : 'Save',
-        cancelText: 'Cancel',
+        confirmText: isEditMode ? 'Yes' : 'Yes',
+        cancelText: 'No',
         showLoading: false
       });
       
