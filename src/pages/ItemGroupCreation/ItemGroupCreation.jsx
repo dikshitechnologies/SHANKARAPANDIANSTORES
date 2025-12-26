@@ -243,7 +243,7 @@ export default function ItemGroupCreation() {
           mainGroupInput && 
           !treePanel.contains(event.target) && 
           !mainGroupInput.contains(event.target)) {
-        setIsTreeOpen(false);
+        // setIsTreeOpen(false);
       }
     };
 
