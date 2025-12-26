@@ -1129,7 +1129,7 @@ const submitRef = useRef(null);
               <div className="search-container" style={{ marginBottom: "10px" }}>
                 <input
                   className="search-with-clear"
-                  placeholder="Search existing sizes..."
+                  placeholder="Search existing sizes"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
                   aria-label="Search existing sizes"
