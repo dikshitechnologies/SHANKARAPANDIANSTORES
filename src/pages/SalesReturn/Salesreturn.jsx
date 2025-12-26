@@ -1753,7 +1753,7 @@ setTimeout(() => {
         
         showConfirmation({
           title: "Confirm Delete",
-          message: `Are you  want to delete?`,
+          message: `Do you want to delete?`,
           type: "danger",
           confirmText: "Yes",
           cancelText: "No",
@@ -2679,40 +2679,39 @@ const handleApplyBillDirect = async () => {
       return;
     }
 
-    // Determine if this is an update or create
-    const actionType = isExistingVoucher ? 'update' : 'create';
-    const actionText = isExistingVoucher ? 'Update' : 'Save';
+ // Determine if this is an update or create
+const actionType = isExistingVoucher ? 'update' : 'create';
+const actionText = isExistingVoucher ? 'Update' : 'Save';
 
-    showConfirmation({
-      title: `${actionText} Sales Return`,
-      message: `Are you  want to save?`,
-      type: "success",
-      confirmText: "Yes",
-      cancelText: "No",
-      onConfirm: async () => {
-        try {
-          if (isExistingVoucher) {
-            console.log("Performing UPDATE operation");
-            await updateSalesReturn();
-            // Note: resetForm() is already called inside updateSalesReturn()
-          } else {
-            console.log("Performing CREATE operation");
-            await createSalesReturn();
-            // Note: resetForm() is already called inside createSalesReturn()
-          }
-          
-        } catch (err) {
-          console.error("Save error:", err);
-          // Error is already handled in the individual functions
-        }
+showConfirmation({
+  title: `${actionText} Sales Return`,
+  message: isExistingVoucher ? "Do you want to Save?" : "Do you want to Modify?",
+ type: isExistingVoucher ? "success" : "warning",  // NEW - yellow for edit, green for save
+  confirmText: "Yes",
+  cancelText: "No",
+  onConfirm: async () => {
+    try {
+      if (isExistingVoucher) {
+        console.log("Performing UPDATE operation");
+        await updateSalesReturn();
+        // Note: resetForm() is already called inside updateSalesReturn()
+      } else {
+        console.log("Performing CREATE operation");
+        await createSalesReturn();
+        // Note: resetForm() is already called inside createSalesReturn()
       }
-    });
-  };
+      
+    } catch (err) {
+      console.error("Save error:", err);
+      // Error is already handled in the individual functions
+    }
+  }
+});
+};
 
-  const handlePrint = () => {
-    toast.info('Print functionality to be implemented');
-  };
-
+const handlePrint = () => {
+  toast.info('Print functionality to be implemented');
+};
   // --- RESPONSIVE STYLES ---
   const TYPOGRAPHY = {
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
