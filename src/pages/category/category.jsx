@@ -1303,10 +1303,10 @@ export default function CategoryPage() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Category to Edit"
-        displayFieldKeys={[ 'catName', 'catCode' ]}
-        searchFields={[ 'catName', 'catCode' ]}
-        headerNames={[ 'Category Name', 'Code' ]}
-        columnWidths={{ catName: '70%', catCode: '30%' }}
+        displayFieldKeys={[ 'catName',  ]}
+        searchFields={[ 'catName',  ]}
+        headerNames={[ 'Category Name',  ]}
+        columnWidths={{ catName: '70%',  }}
         maxHeight="60vh"
       />
 
@@ -1316,10 +1316,10 @@ export default function CategoryPage() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Category to Delete"
-        displayFieldKeys={[ 'catName', 'catCode' ]}
-        searchFields={[ 'catName', 'catCode' ]}
-        headerNames={[ 'Category Name', 'Code' ]}
-        columnWidths={{ catName: '70%', catCode: '30%' }}
+        displayFieldKeys={[ 'catName',  ]}
+        searchFields={[ 'catName',  ]}
+        headerNames={[ 'Category Name',  ]}
+        columnWidths={{ catName: '70%',  }}
         maxHeight="60vh"
       />
 

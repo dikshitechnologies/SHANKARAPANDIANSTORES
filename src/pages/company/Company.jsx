@@ -1743,10 +1743,10 @@ const Company = () => {
         onSelect={handlePopupSelect}
         fetchItems={fetchCompaniesForPopup}
         title={popupTitle}
-        displayFieldKeys={['code', 'name']}
-        searchFields={['code', 'name']}
-        headerNames={['Code', 'Company Name']}
-        columnWidths={{ code: '20%', name: '80%' }}
+        displayFieldKeys={[, 'name']}
+        searchFields={[, 'name']}
+        headerNames={[, 'Company Name']}
+        columnWidths={{  name: '80%' }}
         searchPlaceholder="Search by code or name..."
       />
 

@@ -1212,10 +1212,10 @@ export default function SalesmanCreation() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Salesman to Edit"
-        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
-        searchFields={[ 'salesmanName', 'salesmanCode' ]}
-        headerNames={[ 'Salesman Name', 'Code' ]}
-        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
+        displayFieldKeys={[ 'salesmanName',  ]}
+        searchFields={[ 'salesmanName',  ]}
+        headerNames={[ 'Salesman Name',  ]}
+        columnWidths={{ salesmanName: '70%',  }}
         maxHeight="60vh"
       />
 
@@ -1225,10 +1225,10 @@ export default function SalesmanCreation() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Salesman to Delete"
-        displayFieldKeys={[ 'salesmanName', 'salesmanCode' ]}
-        searchFields={[ 'salesmanName', 'salesmanCode' ]}
-        headerNames={[ 'Salesman Name', 'Code' ]}
-        columnWidths={{ salesmanName: '70%', salesmanCode: '30%' }}
+        displayFieldKeys={[ 'salesmanName',  ]}
+        searchFields={[ 'salesmanName',  ]}
+        headerNames={[ 'Salesman Name',  ]}
+        columnWidths={{ salesmanName: '70%', }}
         maxHeight="60vh"
       />
 

@@ -1459,10 +1459,10 @@ export default function UserCreation() {
         onSelect={selectCompany}
         fetchItems={fetchCompaniesForModal}
         title="Select Company"
-        displayFieldKeys={['fCompCode', 'fCompName']}
-        searchFields={['fCompCode', 'fCompName']}
-        headerNames={['Code', 'Company Name']}
-        columnWidths={{ fCompCode: '30%', fCompName: '70%' }}
+        displayFieldKeys={[, 'fCompName']}
+        searchFields={[, 'fCompName']}
+        headerNames={[, 'Company Name']}
+        columnWidths={{  fCompName: '70%' }}
         maxHeight="60vh"
       />
 
@@ -1473,10 +1473,10 @@ export default function UserCreation() {
         onSelect={handleEditRowClick}
         fetchItems={fetchUsersForModal}
         title="Select User to Edit"
-        displayFieldKeys={['code', 'userName', 'compaytName']}
-        searchFields={['code', 'userName', 'compaytName']}
-        headerNames={['Code', 'Username', 'Company']}
-        columnWidths={{ code: '20%', userName: '30%', compaytName: '50%' }}
+        displayFieldKeys={[, 'userName', 'compaytName']}
+        searchFields={[, 'userName', 'compaytName']}
+        headerNames={[, 'Username', 'Company']}
+        columnWidths={{  userName: '30%', compaytName: '50%' }}
         maxHeight="60vh"
       />
 
@@ -1487,10 +1487,10 @@ export default function UserCreation() {
         onSelect={handleDeleteRowClick}
         fetchItems={fetchUsersForModal}
         title="Select User to Delete"
-        displayFieldKeys={['code', 'userName', 'compaytName']}
-        searchFields={['code', 'userName', 'compaytName']}
-        headerNames={['Code', 'Username', 'Company']}
-        columnWidths={{ code: '20%', userName: '30%', compaytName: '50%' }}
+        displayFieldKeys={[, 'userName', 'compaytName']}
+        searchFields={[, 'userName', 'compaytName']}
+        headerNames={[, 'Username', 'Company']}
+        columnWidths={{  userName: '30%', compaytName: '50%' }}
         maxHeight="60vh"
       />
 

@@ -1267,10 +1267,10 @@ export default function DesignCreation() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Design to Edit"
-        displayFieldKeys={[ 'designName', 'designCode' ]}
-        searchFields={[ 'designName', 'designCode' ]}
-        headerNames={[ 'Design Name', 'Code' ]}
-        columnWidths={{ designName: '70%', designCode: '30%' }}
+        displayFieldKeys={[ 'designName',  ]}
+        searchFields={[ 'designName',  ]}
+        headerNames={[ 'Design Name',  ]}
+        columnWidths={{ designName: '70%',  }}
         maxHeight="60vh"
       />
 
@@ -1280,10 +1280,10 @@ export default function DesignCreation() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Design to Delete"
-        displayFieldKeys={[ 'designName', 'designCode' ]}
-        searchFields={[ 'designName', 'designCode' ]}
-        headerNames={[ 'Design Name', 'Code' ]}
-        columnWidths={{ designName: '70%', designCode: '30%' }}
+        displayFieldKeys={[ 'designName',  ]}
+        searchFields={[ 'designName',  ]}
+        headerNames={[ 'Design Name',  ]}
+        columnWidths={{ designName: '70%',  }}
         maxHeight="60vh"
       />
 
