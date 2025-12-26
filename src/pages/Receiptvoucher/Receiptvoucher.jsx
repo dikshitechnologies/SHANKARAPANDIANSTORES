@@ -1633,7 +1633,7 @@ const ReceiptVoucher = () => {
       setIsSaving(true);
       setIsLoading(true);
       setError(null);
-
+      
       // Prepare item details list
       const itemDetailsList = receiptItems
         .filter(item => item.cashBank && parseFloat(item.amount) > 0)
