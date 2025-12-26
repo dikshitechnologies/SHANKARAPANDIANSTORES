@@ -414,13 +414,10 @@ export default function DesignCreation() {
     setDeleteQuery("");
     setMessage(null);
     if (!keepAction) setActionType("Add");
-    
-    // Focus on design name field after reset
-    setTimeout(() => {
-      if (designNameRef.current) {
-        designNameRef.current.focus();
-      }
-    }, 60);
+
+    // Focus on design name field after reset (same behavior as Routecreation)
+    setTimeout(() => designNameRef.current?.focus(), 60);
+    setActionType("Add");
   };
 
   const openEditModal = () => {
