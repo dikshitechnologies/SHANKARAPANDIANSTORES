@@ -2007,7 +2007,7 @@ setTimeout(() => {
       billNumber: {
         displayFieldKeys: ['name', 'voucherDate'],
         searchFields: ['name', 'customerName'],
-        headerNames: ['Customer', 'Date'],
+        headerNames: ['Customer BillNo'],
         columnWidths: { name: '70%', voucherDate: '30%' },
         searchPlaceholder: 'Search customer name...',
         showApplyButton: false
@@ -3689,8 +3689,7 @@ const handlePrint = () => {
 
   return (
     <div style={styles.container} className="sales-return-scrollable">
-      {error && <div style={styles.errorContainer}>Error: {error}</div>}
-      
+    
       {loading && (
         <div style={styles.loadingOverlay}>
           <div style={styles.loadingBox}>

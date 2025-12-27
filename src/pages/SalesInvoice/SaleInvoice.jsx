@@ -2176,7 +2176,11 @@ const itemsData = validItems.map(item => ({
       }
       
       setError(errorMsg);
-      alert(`Error: ${errorMsg}`);
+      toast.error(errorMsg, {
+  position: "top-right",
+  autoClose: 5000,
+});
+
     } finally {
       setIsLoading(false);
       setIsSaving(false);
@@ -2983,7 +2987,7 @@ if (!billDetails.salesman || billDetails.salesman.trim() === "") {
       }}
     >
 
-      {error && <div style={styles.errorContainer}>Error: {error}</div>}
+     
       
       {(isLoading || loadingInvoices) && (
         <div style={styles.loadingOverlay}>
