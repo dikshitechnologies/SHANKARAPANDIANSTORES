@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import axiosInstance from "../../api/axiosInstance";
+// import axiosInstance from "../../api/axiosInstance";
 import { API_ENDPOINTS } from "../../api/endpoints";
 import PopupListSelector from "../../components/Listpopup/PopupListSelector";
 import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
@@ -7,6 +7,7 @@ import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/Ac
 import { usePermissions } from "../../hooks/usePermissions";
 import { PERMISSION_CODES } from "../../constants/permissions";
 import { toast } from "react-toastify";
+import axiosInstance from "../../api/apiService";
 import "react-toastify/dist/ReactToastify.css";
 
 const FCompCode = "001";
@@ -351,9 +352,9 @@ export default function LedgerCreation({ onCreated }) {
       console.log('Fetching tree from', fullUrl);
       setLastNetworkError(null);
       const response = await axiosInstance.get(path);
-      if (!response.data) throw new Error('Invalid tree data format');
+      // if (!response.data) throw new Error('Invalid tree data format');
       
-      const transformedData = transformApiData(response.data);
+      const transformedData = transformApiData(response);
       setTreeData(transformedData);
       setExpandedKeys(getAllNodeKeys(transformedData));
     } catch (error) {
@@ -732,7 +733,7 @@ export default function LedgerCreation({ onCreated }) {
       if (actionType === 'create') {
         try {
           const response = await axiosInstance.get(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.getDropdownPaged(1, 20, ''));
-          const existingLedgers = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+          const existingLedgers = Array.isArray(response) ? response : (response?.data || []);
           const isDuplicate = existingLedgers.some(ledger => 
             ledger.fAcname.toLowerCase() === formData.partyName.toLowerCase()
           );
@@ -796,18 +797,24 @@ export default function LedgerCreation({ onCreated }) {
             // toast.error('fCode is required for deletion');
             return;
           }
-          response = await axiosInstance.delete(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.delete(formData.fCode));
+
+          response = await axiosInstance.del(API_ENDPOINTS.LEDGER_CREATION_ENDPOINTS.delete(formData.fCode));
           // toast.success('Ledger deleted successfully!');
+          console.log('Delete response:', response);
+  
+          
+      
+      console.log('Delete response:', response);
           break;
         default:
           // toast.error('Invalid action type');
           return;
       }
 
-      if (response.status === 200 || response.status === 201) {
         handleClear();
         await fetchTreeData();
-      } 
+      
+      
     } catch (error) {
       console.error('Submit error:', error);
       if (error.response) {
