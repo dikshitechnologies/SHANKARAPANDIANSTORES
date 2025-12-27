@@ -2319,6 +2319,7 @@ export default function LedgerCreation({ onCreated }) {
                 onKeyDown={(e)=>{
                   if(e.key==='Enter'){
                     e.preventDefault();
+                    e.stopPropagation();
                     if (actionType === 'create') showCreateConfirmation();
                     else if (actionType === 'edit') showEditConfirmation();
                     else if (actionType === 'delete') showDeleteConfirmation(); 
