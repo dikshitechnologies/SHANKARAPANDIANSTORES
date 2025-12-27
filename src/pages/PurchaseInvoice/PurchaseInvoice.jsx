@@ -1089,9 +1089,18 @@ const handleBlur = () => {
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
-  const handleAddRow = () => {
+  const handleAddRow = (focusField = 'name') => {
+  setItems(prevItems => {
+     const lastRow = prevItems[prevItems.length - 1];
+
+    // 🛑 Safety net
+    if (!lastRow?.name || lastRow.name.trim() === '') {
+      return prevItems;
+    }
+    const newRowIndex = prevItems.length;
+
     const newRow = {
-      id: items.length + 1,
+      id: prevItems.length + 1,
       barcode: '',
       name: '',
       sub: '',
@@ -1121,8 +1130,19 @@ const handleBlur = () => {
       min: '',
       max: ''
     };
-    setItems([...items, newRow]);
-  };
+
+    // 🔑 Focus AFTER state update
+    setTimeout(() => {
+      const input = document.querySelector(
+        `input[data-row="${newRowIndex}"][data-field="${focusField}"]`
+      );
+      if (input) input.focus();
+    }, 0);
+
+    return [...prevItems, newRow];
+  });
+};
+
 
   const handleItemChange = (id, field, value) => {
   setItems(prev =>
@@ -1364,21 +1384,30 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     // }
 
     // If Enter is pressed in the amt field (last field)
-    if (currentField === 'amt') {
-      e.preventDefault();
-      
-      // Always add new row and focus on barcode field
-      handleAddRow();
-      setTimeout(() => {
-        const newRowInput = document.querySelector(
-          `input[data-row="${items.length}"][data-field="name"]`
-        );
-        if (newRowInput) {
-          newRowInput.focus();
-        }
-      }, 60);
-      return;
+ if (currentField === 'amt') {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const currentRow = items[currentRowIndex];
+
+  // 🚫 DO NOT add row if name is empty
+  if (!currentRow?.name || currentRow.name.trim() === '') {
+    // Move cursor back to name field
+    const nameInput = document.querySelector(
+      `input[data-row="${currentRowIndex}"][data-field="name"]`
+    );
+    if (nameInput) {
+      nameInput.focus();
+      nameInput.select();
     }
+    return;
+  }
+
+  // ✅ Only now add new row
+  handleAddRow('name');
+  return;
+}
+
 
     // Always move to next field if available (for non-amt fields)
     if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
