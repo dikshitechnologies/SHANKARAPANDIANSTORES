@@ -61,11 +61,21 @@ export default function ScrapRateFixing() {
   useEffect(() => {
     fetchScrapRates();
   }, []);
+  
 
   // Initialize refs array
   useEffect(() => {
     rateInputRefs.current = rateInputRefs.current.slice(0, scrapRates.length);
   }, [scrapRates]);
+
+  useEffect(() => {
+  if (!isFetching && scrapRates.length > 0) {
+    setTimeout(() => {
+      rateInputRefs.current[0]?.focus();
+    }, 100);
+  }
+}, [isFetching, scrapRates]);
+
 
   // Fetch scrap rates from API using apiService
   const fetchScrapRates = async () => {
@@ -134,6 +144,9 @@ export default function ScrapRateFixing() {
     }
   };
 
+
+
+  
   // Handle rate input change
   const handleRateChange = (id, value) => {
     // Allow only numbers and decimal points
