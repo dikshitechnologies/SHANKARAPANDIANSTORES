@@ -56,8 +56,8 @@ const ReceiptVoucher = () => {
     title: '',
     message: '',
     type: 'default',
-    confirmText: 'Yes',
-    cancelText: 'No',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
     action: null,
     isLoading: false
   });
@@ -1115,7 +1115,6 @@ const ReceiptVoucher = () => {
     setError(null);
     setIsEditing(false);
     setOriginalVoucherNo('');
-    
     setFocusedField('');
     setCurrentBillRowIndex(0);
     setCurrentFocus({
@@ -1124,7 +1123,7 @@ const ReceiptVoucher = () => {
       colIndex: 1, // Date field
       elementId: 'date'
     });
-    setActiveTopAction('add');
+    setActiveFooterAction('add')
     
     // Focus on date field after reset
     setTimeout(() => {
@@ -1213,10 +1212,10 @@ const ReceiptVoucher = () => {
       setConfirmationPopup({
         isOpen: true,
         title: 'Delete Voucher',
-        message: `Do you want to delete ?`,
+        message: `Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`,
         type: 'danger',
-        confirmText: 'Yes',
-        cancelText: 'No',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
         action: 'confirmDelete',
         isLoading: false,
         voucherNo: voucherNo
@@ -1465,10 +1464,10 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Add Receipt Row',
-      message: 'Do you want to add?',
+      message: 'Are you sure you want to add a new receipt row?',
       type: 'info',
-      confirmText: 'Yes',
-      cancelText: 'No',
+      confirmText: 'Add',
+      cancelText: 'Cancel',
       action: 'add',
       isLoading: false
     });
@@ -1554,7 +1553,7 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Clear All Data',
-      message: 'Do you want to clear all ?',
+      message: 'Are you sure you want to clear all data? This action cannot be undone.',
       type: 'warning',
       confirmText: 'Clear',
       cancelText: 'Cancel',
@@ -1570,7 +1569,7 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Print Voucher',
-      message: 'Do you want to print?',
+      message: 'Are you sure you want to print this voucher?',
       type: 'info',
       confirmText: 'Print',
       cancelText: 'Cancel',
