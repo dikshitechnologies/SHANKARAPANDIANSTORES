@@ -2307,8 +2307,17 @@ export default function LedgerCreation({ onCreated }) {
                   else if (actionType === 'edit') showEditConfirmation();
                   else if (actionType === 'delete') showDeleteConfirmation();
                 }}
-                onKeyDown={(e) => handleKeyboardNavigation(e, 17)}
+                // onKeyDown={(e) => handleKeyboardNavigation(e, 17)}
                 disabled={isLoading}
+                onKeyDown={(e)=>{
+                  if(e.key==='Enter'){
+                    e.preventDefault();
+                    if (actionType === 'create') showCreateConfirmation();
+                    else if (actionType === 'edit') showEditConfirmation();
+                    else if (actionType === 'delete') showDeleteConfirmation(); 
+                }else{
+                  handleKeyboardNavigation(e,17);
+                }}}
               >
                 {isLoading ? 'Processing...' : 
                  actionType === 'create' ? 'Save' :
