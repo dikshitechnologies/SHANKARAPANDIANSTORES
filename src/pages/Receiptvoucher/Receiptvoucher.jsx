@@ -1434,20 +1434,35 @@ const ReceiptVoucher = () => {
     );
   };
 
-  // Handle delete receipt row
-  const handleDeleteReceiptRow = (id) => {
-    if (receiptItems.length === 1) {
-      setError('At least one receipt item is required');
-      return;
+ const handleDeleteReceiptRow = (id) => {
+  setReceiptItems(prev => {
+    // 🔹 If only one row → CLEAR it
+    if (prev.length === 1) {
+      return [{
+        ...prev[0],
+        cashBank: '',
+        accountCode: '',
+        accountName: '',
+        crDr: 'CR',
+        type: 'CASH',
+        chqNo: '',
+        chqDt: '',
+        narration: '',
+        amount: ''
+      }];
     }
-    setReceiptItems(prev => {
-      const filtered = prev.filter(item => item.id !== id);
-      return filtered.map((item, idx) => ({
-        ...item,
-        sNo: idx + 1
-      }));
-    });
-  };
+
+    // 🔹 If multiple rows → REMOVE row
+    const filtered = prev.filter(item => item.id !== id);
+
+    // Reassign serial numbers
+    return filtered.map((item, idx) => ({
+      ...item,
+      sNo: idx + 1
+    }));
+  });
+};
+
 
   // Handle delete bill row
   const handleDeleteBillRow = (id) => {
