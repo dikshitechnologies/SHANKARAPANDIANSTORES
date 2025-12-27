@@ -1475,18 +1475,18 @@ const ReceiptVoucher = () => {
   };
 
   // Handle add receipt row
-  const handleAddReceiptRow = () => {
-    setConfirmationPopup({
-      isOpen: true,
-      title: 'Create Receipt Row',
-      message: 'Do you want to save ?',
-      type: 'info',
-      confirmText: 'Add',
-      cancelText: 'Cancel',
-      action: 'add',
-      isLoading: false
-    });
-  };
+  // const handleAddReceiptRow = () => {
+  //   setConfirmationPopup({
+  //     isOpen: true,
+  //     title: 'Create Receipt Row',
+  //     message: 'Do you want to save ?',
+  //     type: 'info',
+  //     confirmText: 'Add',
+  //     cancelText: 'Cancel',
+  //     action: 'add',
+  //     isLoading: false
+  //   });
+  // };
 
   // Execute add receipt row
   const executeAddReceiptRow = () => {
@@ -2942,8 +2942,10 @@ const ReceiptVoucher = () => {
             activeButton={activeFooterAction}
             onButtonClick={(type) => {
               setActiveFooterAction(type);
-              if (type === 'add') handleAddReceiptRow();
-              else if (type === 'edit') openEditVoucherPopup();
+              if (type === 'add') {
+                resetForm();
+                fetchNextVoucherNo();
+              } else if (type === 'edit') openEditVoucherPopup();
               else if (type === 'delete') openDeleteVoucherPopup();
             }}
           >
