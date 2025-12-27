@@ -1212,7 +1212,7 @@ const ReceiptVoucher = () => {
       setConfirmationPopup({
         isOpen: true,
         title: 'Delete Voucher',
-        message: `Do you sure you want to delete?`,
+        message: `Do you  want to delete?`,
         type: 'danger',
         confirmText: 'Delete',
         cancelText: 'Cancel',
