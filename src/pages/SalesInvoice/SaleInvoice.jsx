@@ -1148,25 +1148,22 @@ useEffect(() => {
     setItemPopupOpen(true);
   };
 
-  // Handle customer selection
-  const handleCustomerSelect = (customer) => {
-    ignoreNextEnterRef.current = true;
+const handleCustomerSelect = (customer) => {
+  setBillDetails(prev => ({
+    ...prev,
+    custName: customer.name,
+    custCode: customer.code
+  }));
 
-    if (customer) {
-      setBillDetails(prev => ({
-        ...prev,
-        custName: customer.name,
-        custCode: customer.originalCode || customer.code,
-        partyCode: customer.originalCode || customer.code
-      }));
-    }
+  setCustomerPopupOpen(false);
 
-    setCustomerPopupOpen(false);
+  // ✅ RESTORE FOCUS TO CUSTOMER INPUT
+  setTimeout(() => {
+    custNameRef.current?.focus();
+    custNameRef.current?.select(); // optional: select text
+  }, 0);
+};
 
-    setTimeout(() => {
-      ignoreNextEnterRef.current = false;
-    }, 200);
-  };
 
   // Handle salesman selection
   const handleSalesmanSelect = (salesman) => {
@@ -3148,6 +3145,9 @@ if (!billDetails.salesman || billDetails.salesman.trim() === "") {
               ? styles.inlineInputClickableFocused
               : styles.inlineInputClickable),
             paddingRight: '34px',
+            width: '100%',        // ✅ FULL WIDTH
+  minWidth: '350px',    // ✅ INCREASE BASE SIZE
+  flexGrow: 1   
           }}
           value={billDetails.custName}
           name="custName"
