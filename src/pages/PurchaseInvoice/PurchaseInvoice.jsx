@@ -1182,22 +1182,21 @@ const calculateItem = (item) => {
   const avgwt = qty ? (ovrwt / qty).toFixed(2) : "";
 
   // ACost calculation priority: AvgWt * PRate > Qty * PRate > 0
-  const acost = avgwt && +avgwt > 0
-    ? (+avgwt || 0) * prate
-    : qty ? qty * prate
-    : 0;
+  const acost = prate;
 
-  const sRate = acost ? (acost + +profitPercent).toFixed(2) : "";
-  const ntCost = acost ? acost.toFixed(2) : "";
+  const sRate =  ovrwt ? (ovrwt * prate).toFixed(2) : (qty * prate).toFixed(2);
+  const ntCost = sRate;
 
-  const letProfPer =
-    asRate && acost ? ((asRate - acost) * 100 / 100).toFixed(2)
-    : "";
+const oldValue = ovrwt ? ovrwt * prate : qty * prate;
 
-  const wsRate = acost
-    ? (acost + acost * wsPercent / 100).toFixed(2)
-    : "";
+const letProfPer = asRate
+  ? ((asRate - oldValue) / oldValue) * 100
+  : "";
+const wsRate =
+  Math.round((ntCost * 100 + ntCost * wsPercent) ) / 100;
 
+console.log('wsRate:', wsRate);
+ 
   // Amt = InTax % of NTCost + NTCost
   const amt = ntCost
     ? (parseFloat(ntCost) + parseFloat(ntCost) * intax / 100).toFixed(2)

@@ -828,7 +828,7 @@ const Company = () => {
     showConfirmation({
       title: "Update Company",
       message: `Do you want to modify?`,
-      type: "info",
+      type: "warning",
       confirmText: "Yes",
       cancelText: "No",
       onConfirm: () => {
