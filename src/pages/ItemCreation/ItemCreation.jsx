@@ -296,12 +296,12 @@ const ItemCreation = ({ onCreated }) => {
     }
   }, [actionType, formData.itemName, formData.fitemCode]);
 
-  // Auto-focus Group Name on component mount
-  useEffect(() => {
-    if (groupNameRef.current) {
-      groupNameRef.current.focus();
-    }
-  }, []);
+  // Auto-focus Item Name on component mount
+useEffect(() => {
+  if (itemNameRef.current) {
+    itemNameRef.current.focus();
+  }
+}, []);
 
   useEffect(() => {
     loadInitial();
@@ -2232,7 +2232,42 @@ const ItemCreation = ({ onCreated }) => {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
-            {/* Group Name field */}
+           
+            {/* Item Name field */}
+            <div className="field">
+              <label className="field-label">Item Name <span className="asterisk">*</span></label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    ref={itemNameRef}
+                    className="input"
+                    value={formData.itemName}
+                    onChange={(e) => handleChange('itemName', e.target.value)}
+                    
+                    disabled={isSubmitting || isDeleteMode}
+                    aria-label="Item Name"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      minWidth: "120px",
+                      fontSize: "14px",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+             {/* Group Name field */}
         <div className="field">
   <label className="field-label">Group Name <span className="asterisk">*</span></label>
   <div className="row" style={{ display: "flex", alignItems: "center" }}>
@@ -2453,40 +2488,6 @@ const ItemCreation = ({ onCreated }) => {
     )
   )}
 </div>
-            {/* Item Name field */}
-            <div className="field">
-              <label className="field-label">Item Name <span className="asterisk">*</span></label>
-              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-                <div style={{
-                  display: "flex",
-                  flex: 1,
-                  border: "1px solid rgba(15,23,42,0.06)",
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  background: "linear-gradient(180deg, #fff, #fbfdff)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                }}>
-                  <input
-                    ref={itemNameRef}
-                    className="input"
-                    value={formData.itemName}
-                    onChange={(e) => handleChange('itemName', e.target.value)}
-                    
-                    disabled={isSubmitting || isDeleteMode}
-                    aria-label="Item Name"
-                    style={{
-                      flex: 1,
-                      border: "none",
-                      borderRadius: 0,
-                      padding: "10px 12px",
-                      minWidth: "120px",
-                      fontSize: "14px",
-                      outline: "none"
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Short Name field */}
             <div className="field">

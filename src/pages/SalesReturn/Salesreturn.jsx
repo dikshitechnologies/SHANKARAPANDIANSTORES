@@ -3938,20 +3938,30 @@ const handlePrint = () => {
     width: '100%'
   }}>
 
-    {/* Customer Name */}
-    <div style={{
-      ...styles.formField,
-      flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-               'calc(25% - 12px)',
-      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                'calc(25% - 12px)',
-      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                 'calc(25% - 12px)'
-    }}>
+  {/* Customer Name */}
+<div style={{
+  ...styles.formField,
+  flex: '2 1 auto', // ✅ give more space only to Customer
+
+  minWidth: screenSize.isMobile
+    ? 'calc(50% - 5px)'
+    : screenSize.isTablet
+    ? 'calc(33.33% - 8px)'
+    : 'calc(50% - 12px)',   // ✅ DESKTOP BIGGER
+
+  maxWidth: screenSize.isMobile
+    ? 'calc(50% - 5px)'
+    : screenSize.isTablet
+    ? 'calc(33.33% - 8px)'
+    : 'calc(50% - 12px)',   // ✅ DESKTOP BIGGER
+
+  flexBasis: screenSize.isMobile
+    ? 'calc(50% - 5px)'
+    : screenSize.isTablet
+    ? 'calc(33.33% - 8px)'
+    : 'calc(50% - 12px)'    // ✅ DESKTOP BIGGER
+}}>
+
       <label style={styles.inlineLabel}>Customer:</label>
       <input
         type="text"
