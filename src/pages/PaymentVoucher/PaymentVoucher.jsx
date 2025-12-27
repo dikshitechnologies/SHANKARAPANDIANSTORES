@@ -886,7 +886,7 @@ const PaymentVoucher = () => {
       const url = API_ENDPOINTS.PAYMENTVOUCHER.DELETE_PAYMENT_VOUCHER(voucherNo);
       await apiService.del(url);
       setError(null);
-      toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
+      // toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
       resetForm();
       await fetchNextVoucherNo();
       await fetchSavedVouchers();
@@ -1100,11 +1100,36 @@ const PaymentVoucher = () => {
   const handleVoucherDelete = async (selectedVoucher) => {
     try {
       const voucherNo = selectedVoucher.invoiceNo || selectedVoucher.voucherNo;
-      await deleteVoucher(voucherNo);
       setDeleteVoucherPopupOpen(false);
+      setConfirmationPopup({
+        isOpen: true,
+        title: 'Delete Voucher',
+        message: 'Do you want to delete?',
+        type: 'danger',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        action: 'confirmDelete',
+        isLoading: false,
+        voucherNo: voucherNo
+      });
     } catch (err) {
       console.error('Error deleting voucher:', err);
       setError('Failed to delete voucher');
+    }
+  };
+  // Handle confirmation popup actions (delete, etc.)
+  const handleConfirmationAction = async () => {
+    if (confirmationPopup.action === 'confirmDelete') {
+      setConfirmationPopup(prev => ({ ...prev, isLoading: true }));
+      try {
+        await deleteVoucher(confirmationPopup.voucherNo);
+      } catch (err) {
+        setError('Failed to delete voucher');
+      } finally {
+        setConfirmationPopup(prev => ({ ...prev, isOpen: false, isLoading: false }));
+      }
+    } else {
+      setConfirmationPopup(prev => ({ ...prev, isOpen: false }));
     }
   };
 
@@ -2666,15 +2691,9 @@ const PaymentVoucher = () => {
           type={confirmationPopup.type}
           confirmText={confirmationPopup.confirmText}
           cancelText={confirmationPopup.cancelText}
-          onConfirm={() => {
-            setConfirmationPopup({ ...confirmationPopup, isOpen: false });
-          }}
-          onCancel={() => {
-            setConfirmationPopup({ ...confirmationPopup, isOpen: false });
-          }}
+          onConfirm={handleConfirmationAction}
+          onClose={() => setConfirmationPopup(prev => ({ ...prev, isOpen: false }))}
         />
-
-        
       )}
 
            <ConfirmationPopup
