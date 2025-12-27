@@ -449,8 +449,8 @@ const SaveConfirmationModal = ({
           isOpen={saveConfirmationOpen}
           onClose={() => setSaveConfirmationOpen(false)}
           onConfirm={handleSaveConfirmation}
-          title="Confirm Save"
-          message="Are you sure you want to save this voucher?"
+          title="Save Voucher"
+          message="Do you want to save?"
           type="success"
           confirmText={saveConfirmationLoading ? 'Saving...' : 'Save'}
           showLoading={saveConfirmationLoading}
