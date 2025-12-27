@@ -1749,12 +1749,12 @@ setTimeout(() => {
           
           // Focus on next field
           setTimeout(() => {
-            newBillNoRef.current?.focus();
+            mobileRef.current?.focus();
             setFocusedElement({
               type: 'header',
               rowIndex: 1,
               fieldIndex: 2,
-              fieldName: 'newBillNo'
+              fieldName: 'customer'
             });
           }, 100);
         }
@@ -1774,12 +1774,12 @@ setTimeout(() => {
           
           // Focus on next field
           setTimeout(() => {
-            custNameRef.current?.focus();
+             newBillNoRef.current?.focus();
             setFocusedElement({
               type: 'header',
-              rowIndex: 1,
-              fieldIndex: 1,
-              fieldName: 'custName'
+              rowIndex: 0,
+              fieldIndex: 3,
+              fieldName: 'newBillNo'
             });
           }, 100);
         }
