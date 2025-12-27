@@ -48,6 +48,7 @@ const ReceiptVoucher = () => {
   // Save confirmation popup
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
+  const [saveConfirmation, setSaveConfirmation] = useState(false);
 
   // Common confirmation popup
   const [confirmationPopup, setConfirmationPopup] = useState({
@@ -1122,6 +1123,7 @@ const ReceiptVoucher = () => {
       colIndex: 1, // Date field
       elementId: 'date'
     });
+    setActiveTopAction('add');
     
     // Focus on date field after reset
     setTimeout(() => {
@@ -1890,7 +1892,8 @@ const ReceiptVoucher = () => {
       showSaveConfirmation();
     } else {
       // No CASH payments, proceed directly to save
-      await savePaymentVoucher();
+      setSaveConfirmation(true);
+      // await savePaymentVoucher();
     }
   };
 
@@ -3168,6 +3171,16 @@ const ReceiptVoucher = () => {
         confirmText={confirmationPopup.isLoading ? 'Processing...' : confirmationPopup.confirmText}
         showLoading={confirmationPopup.isLoading}
         disableBackdropClose={confirmationPopup.isLoading}
+      />
+
+      <ConfirmationPopup
+        isOpen={saveConfirmation}
+        onClose={() => setSaveConfirmation(false)}
+        onConfirm={()=>{savePaymentVoucher(); setSaveConfirmation(false);}}
+        title={"Save Receipt Voucher"}
+        message={"Are you sure you want to save this receipt voucher?"}
+        type={"success"}
+      
       />
     </div>
   );

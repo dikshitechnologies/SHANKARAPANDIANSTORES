@@ -48,6 +48,8 @@ const PaymentVoucher = () => {
   // Save confirmation popup
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
+  const [saveConfirmation, setSaveConfirmation] = useState(false);
+
 
   // Validation confirmation popup
   const [confirmationPopup, setConfirmationPopup] = useState({
@@ -672,6 +674,8 @@ const PaymentVoucher = () => {
     
     if (e.key === 'Enter') {
       e.preventDefault();
+      e.stopPropagation();
+     
       handleSave();
     }
   };
@@ -1028,6 +1032,7 @@ const PaymentVoucher = () => {
     setNavigationStep('voucherNo');
     setCurrentPaymentRowIndex(0);
     setCurrentBillRowIndex(0);
+    setActiveTopAction('add')
     
     setTimeout(() => {
       if (dateRef.current) {
@@ -1614,7 +1619,7 @@ const PaymentVoucher = () => {
       setSaveConfirmationData(confirmationData);
       showSaveConfirmation();
     } else {
-      await savePaymentVoucher();
+       setSaveConfirmation(true);
     }
   };
 
@@ -2668,9 +2673,19 @@ const PaymentVoucher = () => {
             setConfirmationPopup({ ...confirmationPopup, isOpen: false });
           }}
         />
+
+        
       )}
 
-      {/* End of JSX */}
+           <ConfirmationPopup
+            isOpen={saveConfirmation}
+            onClose={() => setSaveConfirmation(false)}
+            onConfirm={()=>{savePaymentVoucher(); setSaveConfirmation(false);}}
+            title={"Save Receipt Voucher"}
+            message={"Are you sure you want to save this receipt voucher?"}
+            type={"success"}
+          
+          />
     </div>
   );
 };
