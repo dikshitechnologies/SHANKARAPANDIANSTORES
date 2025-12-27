@@ -1348,7 +1348,8 @@ const fetchItemList = async (pageNum = 1, search = '') => {
       title: 'Delete Item',
       message: `Do you want to delete this row?`,
       type: 'danger',
-      confirmText: 'Delete',
+      confirmText: 'Yes',
+      cancelText: 'No',
       onConfirm: () => {
         if (items.length > 1) {
           const filteredItems = items.filter(item => item.id !== id);
