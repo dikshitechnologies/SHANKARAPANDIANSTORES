@@ -2692,7 +2692,7 @@ const PaymentVoucher = () => {
           confirmText={confirmationPopup.confirmText}
           cancelText={confirmationPopup.cancelText}
           onConfirm={handleConfirmationAction}
-          onCancel={() => setConfirmationPopup(prev => ({ ...prev, isOpen: false }))}
+          onClose={() => setConfirmationPopup(prev => ({ ...prev, isOpen: false }))}
         />
       )}
 
