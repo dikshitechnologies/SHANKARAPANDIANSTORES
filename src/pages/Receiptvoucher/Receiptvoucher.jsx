@@ -56,8 +56,8 @@ const ReceiptVoucher = () => {
     title: '',
     message: '',
     type: 'default',
-    confirmText: 'Yes',
-    cancelText: 'No',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
     action: null,
     isLoading: false
   });
@@ -1018,7 +1018,7 @@ const ReceiptVoucher = () => {
       try {
         await apiService.del(url);
         setError(null);
-        toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
+        // toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
         resetForm();
         await fetchNextVoucherNo();
         await fetchSavedVouchers();
@@ -1115,7 +1115,6 @@ const ReceiptVoucher = () => {
     setError(null);
     setIsEditing(false);
     setOriginalVoucherNo('');
-    
     setFocusedField('');
     setCurrentBillRowIndex(0);
     setCurrentFocus({
@@ -1124,7 +1123,7 @@ const ReceiptVoucher = () => {
       colIndex: 1, // Date field
       elementId: 'date'
     });
-    setActiveTopAction('add');
+    setActiveFooterAction('add')
     
     // Focus on date field after reset
     setTimeout(() => {
@@ -1138,7 +1137,7 @@ const ReceiptVoucher = () => {
   const openEditVoucherPopup = async () => {
     // === PERMISSION CHECK ===
     if (!formPermissions.edit) {
-      toast.error('You do not have permission to edit receipt vouchers.', { autoClose: 3000 });
+      // toast.error('You do not have permission to edit receipt vouchers.', { autoClose: 3000 });
       return;
     }
     // === END PERMISSION CHECK ===
@@ -1213,10 +1212,10 @@ const ReceiptVoucher = () => {
       setConfirmationPopup({
         isOpen: true,
         title: 'Delete Voucher',
-        message: `Do you want to delete ?`,
+        message: `Do you  want to delete?`,
         type: 'danger',
-        confirmText: 'Yes',
-        cancelText: 'No',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
         action: 'confirmDelete',
         isLoading: false,
         voucherNo: voucherNo
@@ -1434,20 +1433,35 @@ const ReceiptVoucher = () => {
     );
   };
 
-  // Handle delete receipt row
-  const handleDeleteReceiptRow = (id) => {
-    if (receiptItems.length === 1) {
-      setError('At least one receipt item is required');
-      return;
+ const handleDeleteReceiptRow = (id) => {
+  setReceiptItems(prev => {
+    // 🔹 If only one row → CLEAR it
+    if (prev.length === 1) {
+      return [{
+        ...prev[0],
+        cashBank: '',
+        accountCode: '',
+        accountName: '',
+        crDr: 'CR',
+        type: 'CASH',
+        chqNo: '',
+        chqDt: '',
+        narration: '',
+        amount: ''
+      }];
     }
-    setReceiptItems(prev => {
-      const filtered = prev.filter(item => item.id !== id);
-      return filtered.map((item, idx) => ({
-        ...item,
-        sNo: idx + 1
-      }));
-    });
-  };
+
+    // 🔹 If multiple rows → REMOVE row
+    const filtered = prev.filter(item => item.id !== id);
+
+    // Reassign serial numbers
+    return filtered.map((item, idx) => ({
+      ...item,
+      sNo: idx + 1
+    }));
+  });
+};
+
 
   // Handle delete bill row
   const handleDeleteBillRow = (id) => {
@@ -1465,10 +1479,10 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Add Receipt Row',
-      message: 'Do you want to add?',
+      message: 'Are you sure you want to add a new receipt row?',
       type: 'info',
-      confirmText: 'Yes',
-      cancelText: 'No',
+      confirmText: 'Add',
+      cancelText: 'Cancel',
       action: 'add',
       isLoading: false
     });
@@ -1554,7 +1568,7 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Clear All Data',
-      message: 'Do you want to clear all ?',
+      message: 'Are you sure you want to clear all data? This action cannot be undone.',
       type: 'warning',
       confirmText: 'Clear',
       cancelText: 'Cancel',
@@ -1570,7 +1584,7 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Print Voucher',
-      message: 'Do you want to print?',
+      message: 'Are you sure you want to print this voucher?',
       type: 'info',
       confirmText: 'Print',
       cancelText: 'Cancel',
@@ -3179,7 +3193,7 @@ const ReceiptVoucher = () => {
         onClose={() => setSaveConfirmation(false)}
         onConfirm={()=>{savePaymentVoucher(); setSaveConfirmation(false);}}
         title={"Save Receipt Voucher"}
-        message={"Are you sure you want to save this receipt voucher?"}
+        message={"Do you  want to save? "}
         type={"success"}
       
       />
