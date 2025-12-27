@@ -3823,8 +3823,8 @@ if (!billDetails.salesman || billDetails.salesman.trim() === "") {
         title="Delete Item Row"
         message={
           rowToDelete 
-          ? `Are you   want to clear?`
-          : "Are you  want to clear?"
+          ? `Do you want to clear?`
+          : "Do you want to clear?"
         }
         confirmText="Yes"
         cancelText="No"
