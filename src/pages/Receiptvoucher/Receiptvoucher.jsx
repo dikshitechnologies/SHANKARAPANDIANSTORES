@@ -1478,8 +1478,8 @@ const ReceiptVoucher = () => {
   const handleAddReceiptRow = () => {
     setConfirmationPopup({
       isOpen: true,
-      title: 'Add Receipt Row',
-      message: 'Are you sure you want to add a new receipt row?',
+      title: 'Create Receipt Row',
+      message: 'Do you want to save ?',
       type: 'info',
       confirmText: 'Add',
       cancelText: 'Cancel',

@@ -2700,8 +2700,8 @@ const PaymentVoucher = () => {
             isOpen={saveConfirmation}
             onClose={() => setSaveConfirmation(false)}
             onConfirm={()=>{savePaymentVoucher(); setSaveConfirmation(false);}}
-            title={"Save Receipt Voucher"}
-            message={"Are you sure you want to save this receipt voucher?"}
+            title={"Save Payment Voucher"}
+            message={"Do you want to save ?"}
             type={"success"}
           
           />
