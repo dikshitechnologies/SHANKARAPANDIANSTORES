@@ -310,7 +310,8 @@ const SalesReturn = () => {
           sRate: '',
           qty: '',
           amount: '0.00',
-          itemCode: ''
+          itemCode: '',
+          isReadOnly: false
         }
       ]);
 
@@ -586,7 +587,7 @@ const SalesReturn = () => {
               return {
                 id: index + 1,
                 sNo: index + 1,
-                barcode:item.barcode,
+                barcode: item.barcode || "",
                 itemName: itemName,
                 stock: item.fstock || item.stock || "0",
                 mrp: item.mrp || item.maxRetailPrice || "0.00",
@@ -596,7 +597,8 @@ const SalesReturn = () => {
                 sRate: item.fRate || item.sellingRate || item.rate || "0",
                 qty: returnQty.toString(),
                 amount: (returnQty * parseFloat(item.fRate || item.rate || item.sellingRate || 0)).toFixed(2),
-                itemCode: itemCode || `0000${index + 1}`
+                itemCode: itemCode || `0000${index + 1}`,
+                isReadOnly: true // Mark items from bill selection as read-only except qty
               };
             });
             
@@ -2005,7 +2007,7 @@ setTimeout(() => {
       billNumber: {
         displayFieldKeys: ['name', 'voucherDate'],
         searchFields: ['name', 'customerName'],
-        headerNames: ['Customer', 'Date'],
+        headerNames: ['Customer BillNo'],
         columnWidths: { name: '70%', voucherDate: '30%' },
         searchPlaceholder: 'Search customer name...',
         showApplyButton: false
@@ -2506,7 +2508,34 @@ setTimeout(() => {
   };
 
 const handleTableKeyDown = (e, rowIndex, field) => {
+  // Check if this item is read-only (from bill selection)
   const currentItem = items[rowIndex];
+  const isItemReadOnly = currentItem?.isReadOnly || false;
+  
+  // If read-only, only allow editing qty field
+  if (isItemReadOnly && field !== 'qty') {
+    // Prevent any editing or popup opening for read-only fields
+    if (e.key === 'Enter' || e.key === 'F2') {
+      e.preventDefault();
+      // Move to qty field
+      const qtyInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="qty"]`);
+      if (qtyInput) {
+        qtyInput.focus();
+        qtyInput.select();
+      }
+      return;
+    }
+    // Allow arrow navigation
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      // Continue with normal navigation
+    } else {
+      // Prevent any other key input
+      e.preventDefault();
+      return;
+    }
+  }
+  
+  // const currentItem = items[rowIndex];
   const isLastRow = rowIndex === items.length - 1;
 
   // 🔹 LETTER → ITEM POPUP
@@ -2713,10 +2742,10 @@ const handleTableKeyDown = (e, rowIndex, field) => {
 
     showConfirmation({
       title: "Delete Item",
-      message: `Are you sure you want to delete`,
+      message: `Do you want to clear?`,
       type: "danger",
-      confirmText: "Delete",
-      cancelText: "Cancel",
+      confirmText: "Yes",
+      cancelText: "No",
       onConfirm: () => {
         if (items.length > 1) {
           const filteredItems = items.filter(item => item.id !== id);
@@ -2777,7 +2806,7 @@ const handleApplyBillDirect = async () => {
   const handleClear = () => {
     showConfirmation({
       title: "Clear All Data",
-      message: "Are you sure you want to clear all data? ",
+      message: "Do you want to clear ? ",
       type: "warning",
       confirmText: "Clear",
       cancelText: "Cancel",
@@ -2795,76 +2824,26 @@ const handleApplyBillDirect = async () => {
   };
 
   // ==================== SAVE FUNCTION ====================
-  const handleSave = async () => {
-    // === PERMISSION CHECK ===
-    const isExistingVoucher = billDetails.billNo !== 'SR0000001' && 
-                              billDetails.billNo.startsWith('SR');
-    
-    if (isExistingVoucher && !formPermissions.edit) {
-      toast.error("You do not have permission to edit sales returns.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    
-    if (!isExistingVoucher && !formPermissions.add) {
-      toast.error("You do not have permission to create sales returns.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-    // === END PERMISSION CHECK ===
-
-    if (!billDetails.custName) {
-      toast.warning("Please select a customer.");
-      return;
-    }
-
-    if (items.length === 0 || items.every(item => !item.itemName && !item.barcode)) {
-      toast.warning("Please add at least one item.");
-      return;
-    }
-
-    const invalidItems = items.filter(item => 
-      item.itemName && (!item.qty || parseFloat(item.qty) <= 0)
-    );
-    
-    if (invalidItems.length > 0) {
-      toast.warning("Please enter valid quantity for all items.");
-      return;
-    }
-
- // Determine if this is an update or create
-const actionType = isExistingVoucher ? 'update' : 'create';
-const actionText = isExistingVoucher ? 'Update' : 'Save';
-
-showConfirmation({
-  title: `${actionText} Sales Return`,
-  message: isExistingVoucher ? "Do you want to Save?" : "Do you want to Modify?",
- type: isExistingVoucher ? "success" : "warning",  // NEW - yellow for edit, green for save
-  confirmText: "Yes",
-  cancelText: "No",
-  onConfirm: async () => {
-    try {
-      if (isExistingVoucher) {
-        console.log("Performing UPDATE operation");
+const handleSave = async () => {
+  showConfirmation({
+    title: isEditMode ? "Update Sales Return" : "Save Sales Return",
+    message: isEditMode
+      ? "Do you want to update?"
+      : "Do you want to save?",
+    type: isEditMode ? "warning" : "success",
+    confirmText: "Yes",
+    cancelText: "No",
+    onConfirm: async () => {
+      if (isEditMode) {
         await updateSalesReturn();
-        // Note: resetForm() is already called inside updateSalesReturn()
       } else {
-        console.log("Performing CREATE operation");
         await createSalesReturn();
-        // Note: resetForm() is already called inside createSalesReturn()
       }
-      
-    } catch (err) {
-      console.error("Save error:", err);
-      // Error is already handled in the individual functions
     }
-  }
-});
+  });
 };
+
+
 
 const handlePrint = () => {
   toast.info('Print functionality to be implemented');
@@ -3710,8 +3689,7 @@ const handlePrint = () => {
 
   return (
     <div style={styles.container} className="sales-return-scrollable">
-      {error && <div style={styles.errorContainer}>Error: {error}</div>}
-      
+    
       {loading && (
         <div style={styles.loadingOverlay}>
           <div style={styles.loadingBox}>
@@ -3766,7 +3744,7 @@ const handlePrint = () => {
                  screenSize.isTablet ? 'calc(33.33% - 8px)' : 
                  'calc(25% - 12px)'
     }}>
-      <label style={styles.inlineLabel}>Bill No:</label>
+      <label style={styles.inlineLabel}>Ref No:</label>
       <input
         type="text"
         style={{
@@ -3810,7 +3788,7 @@ const handlePrint = () => {
              screenSize.isTablet ? 'calc(33.33% - 8px)' : 
              'calc(25% - 12px)'
 }}>
-  <label style={styles.inlineLabel}>Bill Date:</label>
+  <label style={styles.inlineLabel}>Entry Date:</label>
   <input
     type="date"
     style={{
@@ -4157,9 +4135,31 @@ const handlePrint = () => {
   data-row={index}
   data-field="barcode"
   onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
+  readOnly={item.isReadOnly || false}
   onKeyDown={async (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
+
+    // ✅ IF ITEM IS READ-ONLY (from bill selection) → GO TO QTY
+    if (item.isReadOnly) {
+      setTimeout(() => {
+        const qtyInput = document.querySelector(
+          `input[data-row="${index}"][data-field="qty"]`
+        );
+        if (qtyInput) {
+          qtyInput.focus();
+          qtyInput.select();
+        }
+
+        setFocusedElement({
+          type: 'table',
+          rowIndex: index,
+          fieldIndex: 8,
+          fieldName: 'qty'
+        });
+      }, 10);
+      return;
+    }
 
     // ✅ IF BARCODE EMPTY → GO TO ITEM NAME
     if (!item.barcode || !item.barcode.trim()) {
@@ -4207,9 +4207,12 @@ const handlePrint = () => {
                       data-row={index}
                       data-field="itemName"
                       onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
+                      readOnly={item.isReadOnly || false}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
                       onClick={() => {
-                        openItemPopup(index, item.itemName);
+                        if (!item.isReadOnly) {
+                          openItemPopup(index, item.itemName);
+                        }
                       }}
                       onFocus={() => {
                         setFocusedField(`itemName-${item.id}`);
@@ -4245,7 +4248,7 @@ const handlePrint = () => {
                   </td>
                   <td style={styles.td}>
                     <input
-                    readOnly
+                      readOnly
                       style={
                         focusedField === `stock-${item.id}`
                           ? styles.editableInputFocused
@@ -4273,7 +4276,7 @@ const handlePrint = () => {
 
                   <td style={styles.td}>
                     <input
-                     readOnly
+                      readOnly
                       style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.mrp}
                       data-row={index}
@@ -4294,7 +4297,7 @@ const handlePrint = () => {
                   </td>
                   <td style={styles.td}>
                     <input
-                     readOnly
+                      readOnly
                       style={focusedField === `uom-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.uom}
                       data-row={index}
@@ -4315,7 +4318,7 @@ const handlePrint = () => {
                   </td>
                   <td style={styles.td}>
                     <input
-                     readOnly
+                      readOnly
                       style={focusedField === `hsn-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.hsn}
                       data-row={index}
@@ -4341,6 +4344,7 @@ const handlePrint = () => {
                       data-row={index}
                       data-field="tax"
                       onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
+                      readOnly={item.isReadOnly || false}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'tax')}
                       onFocus={() => {
                         setFocusedField(`tax-${item.id}`);
@@ -4362,6 +4366,7 @@ const handlePrint = () => {
                       data-row={index}
                       data-field="sRate"
                       onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
+                      readOnly={item.isReadOnly || false}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
                       onFocus={() => {
                         setFocusedField(`sRate-${item.id}`);

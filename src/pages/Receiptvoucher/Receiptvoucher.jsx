@@ -56,8 +56,8 @@ const ReceiptVoucher = () => {
     title: '',
     message: '',
     type: 'default',
-    confirmText: 'Confirm',
-    cancelText: 'Cancel',
+    confirmText: 'Yes',
+    cancelText: 'No',
     action: null,
     isLoading: false
   });
@@ -1115,6 +1115,7 @@ const ReceiptVoucher = () => {
     setError(null);
     setIsEditing(false);
     setOriginalVoucherNo('');
+    
     setFocusedField('');
     setCurrentBillRowIndex(0);
     setCurrentFocus({
@@ -1212,10 +1213,10 @@ const ReceiptVoucher = () => {
       setConfirmationPopup({
         isOpen: true,
         title: 'Delete Voucher',
-        message: `Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`,
+        message: `Do you want to delete ?`,
         type: 'danger',
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
+        confirmText: 'Yes',
+        cancelText: 'No',
         action: 'confirmDelete',
         isLoading: false,
         voucherNo: voucherNo
@@ -1464,10 +1465,10 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Add Receipt Row',
-      message: 'Are you sure you want to add a new receipt row?',
+      message: 'Do you want to add?',
       type: 'info',
-      confirmText: 'Add',
-      cancelText: 'Cancel',
+      confirmText: 'Yes',
+      cancelText: 'No',
       action: 'add',
       isLoading: false
     });
@@ -1553,7 +1554,7 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Clear All Data',
-      message: 'Are you sure you want to clear all data? This action cannot be undone.',
+      message: 'Do you want to clear all ?',
       type: 'warning',
       confirmText: 'Clear',
       cancelText: 'Cancel',
@@ -1569,7 +1570,7 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Print Voucher',
-      message: 'Are you sure you want to print this voucher?',
+      message: 'Do you want to print?',
       type: 'info',
       confirmText: 'Print',
       cancelText: 'Cancel',

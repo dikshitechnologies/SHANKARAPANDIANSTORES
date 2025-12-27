@@ -108,7 +108,7 @@ export default function ScrapRateFixing() {
           
           setScrapRates(transformedData);
           setIsFetching(false);
-          toast.success("Scrap rates loaded successfully!");
+          // toast.success("Scrap rates loaded successfully!");
         } else {
           throw new Error(`Unexpected response format: ${typeof dataArray}`);
         }
@@ -232,15 +232,15 @@ export default function ScrapRateFixing() {
         apiData
       );
       
-      // Show success toast
-      toast.success("Scrap rates updated successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      // // Show success toast
+      // toast.success("Scrap rates updated successfully!", {
+      //   position: "top-right",
+      //   autoClose: 3000,
+      //   hideProgressBar: false,
+      //   closeOnClick: true,
+      //   pauseOnHover: true,
+      //   draggable: true,
+      // });
       
       // Refresh data from server to ensure consistency
       await fetchScrapRates();
@@ -335,10 +335,10 @@ const handleConfirmClearAll = () => {
     prev.map(scrap => ({ ...scrap, rate: "" }))
   );
 
-  toast.success("All rate values have been cleared.", {
-    position: "top-right",
-    autoClose: 3000,
-  });
+  // toast.success("All rate values have been cleared.", {
+  //   position: "top-right",
+  //   autoClose: 3000,
+  // });
 };
 
 
@@ -461,9 +461,10 @@ const handleConfirmClearAll = () => {
         onClose={() => setShowConfirmation(false)}
         onConfirm={handleConfirmUpdate}
         title="Confirm Update"
-        message="Are you sure you want to update the scrap rates?"
+        message="Do you want to update ?"
         type="success"
-        confirmText={loading ? "Updating..." : "Confirm"}
+        confirmText={loading ? "Updating..." : "Yes"}
+          cancelText="No"
         showLoading={loading}
         disableBackdropClose={loading}
       />
@@ -472,10 +473,10 @@ const handleConfirmClearAll = () => {
   onClose={() => setShowClearConfirmation(false)}
   onConfirm={handleConfirmClearAll}
   title="Clear All Rates"
-  message="Are you sure you want to clear all rate values?"
+  message="Do you want to clear ?"
   type="warning"
-  confirmText="Clear"
-  cancelText="Cancel"
+  confirmText="Yes"
+  cancelText="No"
   showIcon={true}
 />
 
@@ -529,7 +530,7 @@ const handleConfirmClearAll = () => {
         }}>
           <input
             type="text"
-            placeholder="Search by scrap name or code..."
+            placeholder="Search scrap name"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{

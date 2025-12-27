@@ -699,7 +699,7 @@ export default function LedgerCreation({ onCreated }) {
   // Show confirmation popup for Delete (ADDED to match Unit Creation)
   const showDeleteConfirmation = () => {
     // Validate first — show mandatory error messages if invalid, don't open popup
-    if (!validateForm()) return;
+    // if (!validateForm()) return;
     setConfirmDeleteOpen(true);
   };
 
@@ -707,9 +707,9 @@ export default function LedgerCreation({ onCreated }) {
   const confirmDelete = async () => {
     setConfirmDeleteOpen(false);
     
-    if (!validateForm()) {
-      return;
-    }
+    // if (!validateForm()) {
+    //   return;
+    // }
     
     if (!formPermissions.Delete) {
       toast.error("You don't have permission to delete ledgers.");
@@ -807,9 +807,7 @@ export default function LedgerCreation({ onCreated }) {
       if (response.status === 200 || response.status === 201) {
         handleClear();
         await fetchTreeData();
-      } else {
-        // toast.error('Failed to process request');
-      }
+      } 
     } catch (error) {
       console.error('Submit error:', error);
       if (error.response) {
@@ -2382,6 +2380,28 @@ export default function LedgerCreation({ onCreated }) {
           setMainGroup(groupValue);
           setIsActive(item.fshow !== '0');
           setIsPopupOpen(false);
+
+            // ✅ FIXED: Focus the Delete button when in delete mode
+            if (actionType === 'delete') {
+              // Small delay to ensure component is updated
+              setTimeout(() => {
+                if (submitButtonRef.current) {
+                  submitButtonRef.current.focus();
+                }
+              }, 100);
+            } else {
+              // For edit mode, focus item name field
+              setTimeout(() => {
+                partyNameRef.current.focus();
+              }, 50);
+            }
+
+          // Focus Ledger Name input after selection
+          // setTimeout(() => {
+          //   if (partyNameRef.current) {
+          //     partyNameRef.current.focus();
+          //   }
+          // }, 1000);
         }}
         fetchItems={fetchPopupItems}
         title={actionType === 'delete' ? 'Select Ledger  to Delete' : 'Select Ledger  to Edit'}

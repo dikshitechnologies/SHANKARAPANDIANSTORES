@@ -663,20 +663,38 @@ const container = {
                 }}
               >
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{(pageNumber - 1) * pageSize + i + 1}</td>
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{new Date(row.date).toLocaleDateString('en-IN')}</td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
-                  <div style={{ color: "#06A7EA", fontWeight: "500" }}>{row.billNo}</div>
-                </td>
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.salesman}</td>
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.customer}</td>
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.mobile || "-"}</td>
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.items}</td>
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>{row.qty}</td>
-                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
-                  <div style={{ fontWeight: "600", color: "#059669" }}>₹{row.amount.toLocaleString('en-IN')}</div>
+                  {row.date ? new Date(row.date).toLocaleDateString('en-IN') : '-'}
                 </td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
-                  <div style={{ fontWeight: "600", color: "#d97706" }}>₹{row.damt.toLocaleString('en-IN')}</div>
+                  <div style={{ color: "#06A7EA", fontWeight: "500" }}>
+                    {String(row.billNo || '-')}
+                  </div>
+                </td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
+                  {String(row.salesman || '-')}
+                </td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
+                  {String(row.customer || '-')}
+                </td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
+                  {String(row.mobile || "-")}
+                </td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
+                  {String(row.items || '0')}
+                </td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
+                  {String(row.qty || '0')}
+                </td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
+                  <div style={{ fontWeight: "600", color: "#059669" }}>
+                    ₹{Number(row.amount || 0).toLocaleString('en-IN')}
+                  </div>
+                </td>
+                <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
+                  <div style={{ fontWeight: "600", color: "#d97706" }}>
+                    ₹{Number(row.damt || 0).toLocaleString('en-IN')}
+                  </div>
                 </td>
               </tr>
             ))}

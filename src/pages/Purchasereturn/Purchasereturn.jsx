@@ -242,11 +242,11 @@ const handleBlur = () => {
   const showConfirmation = (config) => {
     setConfirmConfig({
       title: config.title || 'Confirm Action',
-      message: config.message || 'Are you sure you want to proceed?',
+      message: config.message || 'Are you sure you want ?',
       onConfirm: config.onConfirm || (() => {}),
       type: config.type || 'default',
-      confirmText: config.confirmText || 'Confirm',
-      cancelText: config.cancelText || 'Cancel',
+      confirmText: config.confirmText || 'Yes',
+      cancelText: config.cancelText || 'No',
       showLoading: config.showLoading || false,
       hideCancelButton: config.hideCancelButton || false
     });
@@ -747,7 +747,7 @@ const handleBlur = () => {
     } else if (popupMode === 'delete') {
       showConfirmation({
         title: 'Delete Purchase Return',
-        message: `Are you sure you want to delete Purchase Return ${selectedBill.voucherNo}? This action cannot be undone.`,
+        message: `Do you want to delete?`,
         onConfirm: () => {
           deletePurchaseBill(selectedBill.voucherNo);
         },
@@ -846,13 +846,14 @@ const handleBlur = () => {
       );
 
       if (response.status === 200 || response.status === 204) {
-        showAlertConfirmation(
-          `Purchase return ${voucherNo} deleted successfully`,
-          () => {
-            createNewForm();
-          },
-          'success'
-        );
+         createNewForm();
+        // showAlertConfirmation(
+        //   `Purchase return ${voucherNo} deleted successfully`,
+        //   () => {
+        //     createNewForm();
+        //   },
+        //   'success'
+        // );
       } else {
         throw new Error(`Delete failed with status: ${response.status}`);
       }
@@ -1027,7 +1028,15 @@ const handleBlur = () => {
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
-  const handleAddRow = () => {
+  const handleAddRow = (focusField = 'name') => {
+    setItems(prevItems => {
+     const lastRow = prevItems[prevItems.length - 1];
+
+    // 🛑 Safety net
+    if (!lastRow?.name || lastRow.name.trim() === '') {
+      return prevItems;
+    }
+    const newRowIndex = prevItems.length;
     const newRow = {
       id: items.length + 1,
       barcode: '',
@@ -1059,9 +1068,16 @@ const handleBlur = () => {
       min: '',
       max: ''
     };
-    setItems([...items, newRow]);
-  };
+    setTimeout(() => {
+      const input = document.querySelector(
+        `input[data-row="${newRowIndex}"][data-field="${focusField}"]`
+      );
+      if (input) input.focus();
+    }, 0);
 
+    return [...prevItems, newRow];
+  });
+};
   const handleItemChange = (id, field, value) => {
   setItems(prev =>
     prev.map(item => {
@@ -1303,20 +1319,28 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
 
     // If Enter is pressed in the amt field (last field)
     if (currentField === 'amt') {
-      e.preventDefault();
-      
-      // Always add new row and focus on barcode field
-      handleAddRow();
-      setTimeout(() => {
-        const newRowInput = document.querySelector(
-          `input[data-row="${items.length}"][data-field="name"]`
-        );
-        if (newRowInput) {
-          newRowInput.focus();
-        }
-      }, 60);
-      return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  const currentRow = items[currentRowIndex];
+
+  // 🚫 DO NOT add row if name is empty
+  if (!currentRow?.name || currentRow.name.trim() === '') {
+    // Move cursor back to name field
+    const nameInput = document.querySelector(
+      `input[data-row="${currentRowIndex}"][data-field="name"]`
+    );
+    if (nameInput) {
+      nameInput.focus();
+      nameInput.select();
     }
+    return;
+  }
+
+  // ✅ Only now add new row
+  handleAddRow('name');
+  return;
+}
 
     // Always move to next field if available (for non-amt fields)
     if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
@@ -1341,13 +1365,13 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const handleClear = () => {
     showConfirmation({
       title: 'Clear All',
-      message: 'Are you sure you want to clear all fields and create a new Purchase return?',
+      message: 'Do you want to clear? ',
       onConfirm: () => {
         createNewForm();
       },
       type: 'warning',
-      confirmText: 'Clear All',
-      cancelText: 'Cancel'
+      confirmText: 'Yes',
+      cancelText: 'No'
     });
   };
 
@@ -1378,10 +1402,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       }
 
       // Validation: Check required fields
-      if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
-        showAlertConfirmation('Party Code is required', null, 'warning');
-        return;
-      }
+      // if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
+      //   showAlertConfirmation('Party Code is required', null, 'warning');
+      //   return;
+      // }
 
       if (!billDetails.customerName || billDetails.customerName.trim() === '') {
         showAlertConfirmation('Customer Name is required', null, 'warning');
@@ -1473,7 +1497,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       
       showConfirmation({
         title: isEditMode ? 'Update Purchase Return' : 'Create Purchase Return',
-        message: `Are you sure you want to ${isEditMode ? 'update' : 'save'} this purchase return?`,
+        message: `Do you want to ${isEditMode ? 'modify' : 'save'} ?`,
+        type: isEditMode ? 'warning' : 'success',
         onConfirm: async () => {
           setIsLoading(true);
           try {
@@ -1492,7 +1517,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               `Purchase ${isEditMode ? 'updated' : 'saved'} successfully`,
               'success'
             );
-            toast.success(`Purchase return ${isEditMode ? 'updated' : 'saved'} successfully.`);
+            // toast.success(`Purchase return ${isEditMode ? 'updated' : 'saved'} successfully.`);
             
           } catch (err) {
             const status = err?.response?.status;
@@ -1505,21 +1530,21 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               null,
               'danger'
             );
-            toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase return.`);
+            // toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase return.`);
           } finally {
             setIsLoading(false);
           }
         },
-        type: 'question',
-        confirmText: isEditMode ? 'Update' : 'Save',
-        cancelText: 'Cancel',
+        
+        confirmText: isEditMode ? 'Yes' : 'Yes',
+        cancelText: 'No',
         showLoading: false
       });
       
     } catch (e) {
       console.warn('Save error:', e);
       showAlertConfirmation('Failed to save purchase', null, 'danger');
-      toast.error('Failed to save Purchase return.');
+      // toast.error('Failed to save Purchase return.');
     }
   };
 
@@ -1528,10 +1553,54 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   };
 
   // Handle delete row
-  const handleDeleteRow = (id) => {
+    const handleDeleteRow = (id) => {
     if (items.length <= 1) {
-      showAlertConfirmation("Cannot delete the last row", null, 'warning');
-      toast.warning("Cannot delete the last row");
+      // showAlertConfirmation("Cannot delete the last row", null, 'warning');
+      showConfirmation({
+      title: 'Clear First Row',
+      message: 'Do you want to clear?',
+      onConfirm: () => {
+        setItems([
+          {
+            id: 1, 
+      barcode: '', 
+      name: '', 
+      sub: '', 
+      stock: '', 
+      mrp: '', 
+      uom: '', 
+      hsn: '', 
+      tax: '', 
+      rate: '', 
+      qty: '',
+      ovrwt: '',
+      avgwt: '',
+      prate: '',
+      intax: '',
+      outtax: '',
+      acost: '',
+      sudo: '',
+      profitPercent: '',
+      preRT: '',
+      sRate: '',
+      asRate: '',
+      letProfPer: '',
+      ntCost: '',
+      wsPercent: '',
+      wsRate: '',
+      amt: '',
+      min: '',
+      max: ''
+    
+          }
+        ]);
+      },
+      type: 'danger',
+      confirmText: 'Yes',
+      cancelText: 'No'
+    });
+      // createNewForm();
+      // toast.warning("Cannot delete the last row");
       return;
 
     }
@@ -1578,6 +1647,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#f5f7fa',
+      position:"fixed",
       height: '100vh',
       width: '100%',
       display: 'flex',
@@ -2332,6 +2402,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               }}
               value={billDetails.mobileNo}
               name="mobileNo"
+              maxLength={10}
               onChange={handleInputChange}
               ref={mobileRef}
               onKeyDown={(e) => handleKeyDown(e, gstNoRef, 'mobileNo')}

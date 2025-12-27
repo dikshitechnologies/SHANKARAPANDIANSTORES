@@ -795,22 +795,25 @@ useEffect(() => {
             API_ENDPOINTS.Scrap_Procurement.DELETE_SCRAP_PROCUREMENT(voucherNo)
           );
           
+          
           if (response.status === 200 || response.status === 201) {
             // Reset the ignore flag after delete
             ignoreNextEnterRef.current = false;
             
-            showConfirmation({
-              title: 'Success',
-              message: `Deleted successfully.`,
-              type: 'success',
-              confirmText: 'OK',              
-              showIcon: true,
-              onConfirm: () => {
-                setShowConfirmPopup(false);
-                handleClear();
-              }
-            });
+            
+            // showConfirmation({
+            //   title: 'Success',
+            //   message: `Deleted successfully.`,
+            //   type: 'success',
+            //   confirmText: 'OK',              
+            //   showIcon: true,
+            //   onConfirm: () => {
+            //     setShowConfirmPopup(false);
+            //     handleClear();
+            //   }
+            // });
             // toast.error(`Voucher ${voucherNo} deleted successfully.`);
+            setShowConfirmPopup(false);
             clearFormData();
           } else {
             showConfirmation({
@@ -1313,7 +1316,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
       showConfirmation({
         title: 'Clear First Row',
         message: 'Do you want to clear',
-        type: 'info',
+        type: 'danger',
         confirmText: 'Clear',
         onConfirm: () => {
           // Clear the first row instead of deleting it
@@ -1343,7 +1346,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
 
     showConfirmation({
       title: 'Delete Item',
-      message: `Are you sure you want to delete?`,
+      message: `Do youwant to delete?`,
       type: 'danger',
       confirmText: 'Delete',
       onConfirm: () => {
@@ -1409,7 +1412,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
     if (isEditMode) {
       showConfirmation({
         title: 'Clear Data',
-        message: 'Are you sure you want to clear all data?',
+        message: 'Do you want to clear?',
         type: 'warning',
         confirmText: 'Yes',
         cancelText: 'No',
@@ -1581,7 +1584,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
       showConfirmation({
         title: 'Save Confirmation',
         message: `Do you want to ${isEditMode ? 'modify' : 'save'}?`,
-        type: isEditMode ? 'info' : 'success',
+        type: isEditMode ? 'warning' : 'success',
         confirmText: 'Yes',
         cancelText: 'No',
         onConfirm: async () => {

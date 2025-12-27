@@ -11,6 +11,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 
 
+
 const TABLE_FIELDS = [
   'barcode',
   'itemName',
@@ -90,6 +91,7 @@ const SaleInvoice = () => {
   // Add/Less amount state
   const [addLessAmount, setAddLessAmount] = useState('');
   const warnedEmptyRowRef = useRef({});
+   const validationToastShownRef = useRef(false);
 
   // Track if we're editing an existing invoice
   const [isEditing, setIsEditing] = useState(false);
@@ -2174,7 +2176,11 @@ const itemsData = validItems.map(item => ({
       }
       
       setError(errorMsg);
-      alert(`Error: ${errorMsg}`);
+      toast.error(errorMsg, {
+  position: "top-right",
+  autoClose: 5000,
+});
+
     } finally {
       setIsLoading(false);
       setIsSaving(false);
@@ -2192,21 +2198,35 @@ const itemsData = validItems.map(item => ({
       return;
     }
 
-    // ❌ Salesman validation
-    if (!billDetails.salesman || billDetails.salesman.trim() === "") {
-      toast.warning("Please fill the Salesman name", {
-        autoClose: 2000,
-      });
-      return;
-    }
+if (!billDetails.salesman || billDetails.salesman.trim() === "") {
+  if (!validationToastShownRef.current) {
+    validationToastShownRef.current = true;
 
-    // ❌ Customer validation
-    if (!billDetails.custName || billDetails.custName.trim() === "") {
-      toast.warning("Please fill the Customer name", {
-        autoClose: 2000,
-      });
-      return;
-    }
+    toast.warning("Please fill the Salesman name", {
+      autoClose: 2000,
+      onClose: () => {
+        validationToastShownRef.current = false; // reset after close
+      }
+    });
+  }
+  return;
+}
+
+
+ if (!billDetails.custName || billDetails.custName.trim() === "") {
+  if (!validationToastShownRef.current) {
+    validationToastShownRef.current = true;
+
+    toast.warning("Please fill the Customer name", {
+      autoClose: 2000,
+      onClose: () => {
+        validationToastShownRef.current = false;
+      }
+    });
+  }
+  return;
+}
+
 
     // ❌ Item validation
     const validItems = items.filter(
@@ -2967,7 +2987,7 @@ const itemsData = validItems.map(item => ({
       }}
     >
 
-      {error && <div style={styles.errorContainer}>Error: {error}</div>}
+     
       
       {(isLoading || loadingInvoices) && (
         <div style={styles.loadingOverlay}>
@@ -2987,7 +3007,7 @@ const itemsData = validItems.map(item => ({
   }}>
     {/* Bill No */}
     <div style={styles.formField}>
-      <label style={styles.inlineLabel}>Bill No:</label>
+      <label style={styles.inlineLabel}>Ref No:</label>
       <input
         type="text"
         value={billDetails.billNo}
@@ -3006,7 +3026,7 @@ const itemsData = validItems.map(item => ({
 
     {/* Bill Date */}
     <div style={styles.formField}>
-      <label style={styles.inlineLabel}>Bill Date:</label>
+      <label style={styles.inlineLabel}>Entry Date:</label>
       <input
         type="date"
         data-header="billDate"
@@ -3807,8 +3827,8 @@ const itemsData = validItems.map(item => ({
         title="Delete Item Row"
         message={
           rowToDelete 
-          ? `Are you   want to delete?`
-          : "Are you  want to delete this item?"
+          ? `Do you want to clear?`
+          : "Do you want to clear?"
         }
         confirmText="Yes"
         cancelText="No"

@@ -905,14 +905,15 @@ const handleBlur = () => {
       );
 
       if (response.status === 200 || response.status === 204) {
-        showAlertConfirmation(
-          `Purchase invoice ${voucherNo} deleted successfully`,
-          () => {
-            createNewForm();
-          },
-          'success'
-        );
-        toast.error(`Purchase invoice ${voucherNo} deleted successfully.`);
+        createNewForm();
+      //   showAlertConfirmation(
+      //     `Purchase invoice ${voucherNo} deleted successfully`,
+      //     () => {
+      //       createNewForm();
+      //     },
+      //     'success'
+      //   );
+      //   // toast.error(`Purchase invoice ${voucherNo} deleted successfully.`);
       } else {
         throw new Error(`Delete failed with status: ${response.status}`);
       }
@@ -931,7 +932,7 @@ const handleBlur = () => {
                           'Failed to delete purchase invoice';
       
       showAlertConfirmation(`Delete failed: ${errorMessage}`, null, 'danger');
-      toast.error(`Failed to delete purchase invoice: ${errorMessage}`);
+      // toast.error(`Failed to delete purchase invoice: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -1088,9 +1089,18 @@ const handleBlur = () => {
     if (barcodeRef.current) barcodeRef.current.focus();
   };
 
-  const handleAddRow = () => {
+  const handleAddRow = (focusField = 'name') => {
+  setItems(prevItems => {
+     const lastRow = prevItems[prevItems.length - 1];
+
+    // 🛑 Safety net
+    if (!lastRow?.name || lastRow.name.trim() === '') {
+      return prevItems;
+    }
+    const newRowIndex = prevItems.length;
+
     const newRow = {
-      id: items.length + 1,
+      id: prevItems.length + 1,
       barcode: '',
       name: '',
       sub: '',
@@ -1120,8 +1130,19 @@ const handleBlur = () => {
       min: '',
       max: ''
     };
-    setItems([...items, newRow]);
-  };
+
+    // 🔑 Focus AFTER state update
+    setTimeout(() => {
+      const input = document.querySelector(
+        `input[data-row="${newRowIndex}"][data-field="${focusField}"]`
+      );
+      if (input) input.focus();
+    }, 0);
+
+    return [...prevItems, newRow];
+  });
+};
+
 
   const handleItemChange = (id, field, value) => {
   setItems(prev =>
@@ -1363,21 +1384,30 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     // }
 
     // If Enter is pressed in the amt field (last field)
-    if (currentField === 'amt') {
-      e.preventDefault();
-      
-      // Always add new row and focus on barcode field
-      handleAddRow();
-      setTimeout(() => {
-        const newRowInput = document.querySelector(
-          `input[data-row="${items.length}"][data-field="name"]`
-        );
-        if (newRowInput) {
-          newRowInput.focus();
-        }
-      }, 60);
-      return;
+ if (currentField === 'amt') {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const currentRow = items[currentRowIndex];
+
+  // 🚫 DO NOT add row if name is empty
+  if (!currentRow?.name || currentRow.name.trim() === '') {
+    // Move cursor back to name field
+    const nameInput = document.querySelector(
+      `input[data-row="${currentRowIndex}"][data-field="name"]`
+    );
+    if (nameInput) {
+      nameInput.focus();
+      nameInput.select();
     }
+    return;
+  }
+
+  // ✅ Only now add new row
+  handleAddRow('name');
+  return;
+}
+
 
     // Always move to next field if available (for non-amt fields)
     if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
@@ -1407,8 +1437,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         createNewForm();
       },
       type: 'warning',
-      confirmText: 'Clear All',
-      cancelText: 'Cancel'
+      confirmText: 'Yes',
+      cancelText: 'No'
     });
   };
 
@@ -1439,10 +1469,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       }
 
       // Validation: Check required fields
-      if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
-        showAlertConfirmation('Party Code is required', null, 'warning');
-        return;
-      }
+      // if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
+      //   showAlertConfirmation('Name is required', null, 'warning');
+      //   return;
+      // }
 
       if (!billDetails.customerName || billDetails.customerName.trim() === '') {
         showAlertConfirmation('Customer Name is required', null, 'warning');
@@ -1534,7 +1564,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       
       showConfirmation({
         title: isEditMode ? 'Update Purchase Invoice' : 'Create Purchase Invoice',
-        message: `Are you want to ${isEditMode ? 'update' : 'save'} ?`,
+        message: `Do you want to ${isEditMode ? 'modify' : 'save'} ?`,
         onConfirm: async () => {
           setIsLoading(true);
           try {
@@ -1566,12 +1596,12 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               null,
               'danger'
             );
-            toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase invoice.`);
+            // toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase invoice.`);
           } finally {
             setIsLoading(false);
           }
         },
-        type: 'question',
+        type: isEditMode ? 'warning' : 'success',
         confirmText: isEditMode ? 'Yes' : 'Yes',
         cancelText: 'No',
         showLoading: false
@@ -1580,7 +1610,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     } catch (e) {
       console.warn('Save error:', e);
       showAlertConfirmation('Failed to save purchase', null, 'danger');
-      toast.error('Failed to save purchase invoice.');
+      // toast.error('Failed to save purchase invoice.');
     }
   };
 
@@ -1591,8 +1621,52 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   // Handle delete row
   const handleDeleteRow = (id) => {
     if (items.length <= 1) {
-      showAlertConfirmation("Cannot delete the last row", null, 'warning');
-      toast.warning("Cannot delete the last row");
+      // showAlertConfirmation("Cannot delete the last row", null, 'warning');
+      showConfirmation({
+      title: 'Clear First Row',
+      message: 'Do you want to clear?',
+      onConfirm: () => {
+        setItems([
+          {
+            id: 1, 
+      barcode: '', 
+      name: '', 
+      sub: '', 
+      stock: '', 
+      mrp: '', 
+      uom: '', 
+      hsn: '', 
+      tax: '', 
+      rate: '', 
+      qty: '',
+      ovrwt: '',
+      avgwt: '',
+      prate: '',
+      intax: '',
+      outtax: '',
+      acost: '',
+      sudo: '',
+      profitPercent: '',
+      preRT: '',
+      sRate: '',
+      asRate: '',
+      letProfPer: '',
+      ntCost: '',
+      wsPercent: '',
+      wsRate: '',
+      amt: '',
+      min: '',
+      max: ''
+    
+          }
+        ]);
+      },
+      type: 'danger',
+      confirmText: 'Yes',
+      cancelText: 'No'
+    });
+      // createNewForm();
+      // toast.warning("Cannot delete the last row");
       return;
 
     }
@@ -1635,6 +1709,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const styles = {
     container: {
       fontFamily: TYPOGRAPHY.fontFamily,
+      position:"fixed",
       fontSize: TYPOGRAPHY.fontSize.base,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
