@@ -26,7 +26,10 @@ export default function ScrapRateFixing() {
 
   // Array of refs for each rate input
   const rateInputRefs = useRef([]);
-  
+  const hasAutoFocused = useRef(false);
+  const enterTriggered = useRef(false);
+
+
 
   // Your specified colors - kept exactly as before
   const colors = {
@@ -42,6 +45,8 @@ export default function ScrapRateFixing() {
     error: "#ef4444",
     warning: "#f59e0b"
   };
+
+  
 
   // Check screen size for responsiveness
   useEffect(() => {
@@ -61,11 +66,28 @@ export default function ScrapRateFixing() {
   useEffect(() => {
     fetchScrapRates();
   }, []);
+  
 
   // Initialize refs array
   useEffect(() => {
     rateInputRefs.current = rateInputRefs.current.slice(0, scrapRates.length);
   }, [scrapRates]);
+
+useEffect(() => {
+  if (
+    !isFetching &&
+    scrapRates.length > 0 &&
+    !hasAutoFocused.current
+  ) {
+    hasAutoFocused.current = true; // ✅ focus only once
+
+    setTimeout(() => {
+      rateInputRefs.current[0]?.focus();
+    }, 100);
+  }
+}, [isFetching, scrapRates]);
+
+
 
   // Fetch scrap rates from API using apiService
   const fetchScrapRates = async () => {
@@ -134,6 +156,9 @@ export default function ScrapRateFixing() {
     }
   };
 
+
+
+  
   // Handle rate input change
   const handleRateChange = (id, value) => {
     // Allow only numbers and decimal points
@@ -146,39 +171,63 @@ export default function ScrapRateFixing() {
     );
   };
 
-  const handleKeyDown = (e, index) => {
-    if (e.key !== 'Enter') return;
+const handleKeyDown = (e, index) => {
+  const total = rateInputRefs.current.length;
+  const input = e.target;
 
-    e.preventDefault();
-    e.stopPropagation();
+  const cursorStart = input.selectionStart;
+  const cursorEnd = input.selectionEnd;
+  const valueLength = input.value.length;
 
-    const nextIndex = index + 1;
+  switch (e.key) {
+    case 'Enter':
+      e.preventDefault();
+      if (index + 1 < total) {
+        rateInputRefs.current[index + 1]?.focus();
+      }else {
+  e.preventDefault();
+  enterTriggered.current = true; // 🔑 remember Enter came from keyboard
+  document.getElementById("updateRatesBtn")?.focus();
+}
 
-    // Move to next input
-    if (nextIndex < rateInputRefs.current.length) {
-      rateInputRefs.current[nextIndex]?.focus();
-      return;
-    }
+      break;
 
-    // LAST INPUT
-    // === PERMISSION CHECK ===
-    if (!formPermissions.edit) {
-      toast.error("You do not have permission to modify scrap rates.", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      return;
-    }
-    // === END PERMISSION CHECK ===
+    case 'ArrowLeft':
+      // ✅ move only if cursor is at START
+      if (cursorStart === 0 && index > 0) {
+        e.preventDefault();
+        rateInputRefs.current[index - 1]?.focus();
+      }
+      break;
 
-    // Focus Update button + open confirmation popup
-    document.getElementById("updateRatesBtn")?.focus();
-    setShowConfirmation(true);
-  };
+    case 'ArrowRight':
+      // ✅ move only if cursor is at END
+      if (cursorEnd === valueLength && index + 1 < total) {
+        e.preventDefault();
+        rateInputRefs.current[index + 1]?.focus();
+      }
+      break;
+
+    case 'ArrowUp':
+      e.preventDefault();
+      if (index > 0) {
+        rateInputRefs.current[index - 1]?.focus();
+      }
+      break;
+
+    case 'ArrowDown':
+      e.preventDefault();
+      if (index + 1 < total) {
+        rateInputRefs.current[index + 1]?.focus();
+      }
+      break;
+
+    default:
+      break;
+  }
+};
+
+
 
   // Handle update button click
   const handleUpdateClick = () => {
@@ -687,6 +736,7 @@ const handleConfirmClearAll = () => {
                           value={scrap.rate}
                           onChange={(e) => handleRateChange(scrap.id, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, index)}
+                          
                           // placeholder="Enter rate"
                           style={{
                             width: '100%',
@@ -701,9 +751,11 @@ const handleConfirmClearAll = () => {
                             boxSizing: 'border-box'
                           }}
                           onFocus={(e) => {
-                            e.target.style.borderColor = colors.primary;
-                            e.target.style.boxShadow = `0 0 0 3px rgba(48, 122, 200, 0.1)`;
-                          }}
+  e.target.select(); // ✅ SELECT ALL TEXT
+  e.target.style.borderColor = colors.primary;
+  e.target.style.boxShadow = `0 0 0 3px rgba(48, 122, 200, 0.1)`;
+}}
+
                           onBlur={(e) => {
                             e.target.style.borderColor = scrap.rate ? colors.success : colors.border;
                             e.target.style.boxShadow = 'none';
