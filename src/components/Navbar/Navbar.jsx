@@ -93,7 +93,7 @@ const Navbar = () => {
     { name: 'Route Creation', path: '/masters/route-creation', icon: <BuildOutlined />, permission: 'ROUTE_CREATION' },
   { name: 'Model Creation', path: '/masters/model-creation', icon: <TeamOutlined />, permission: 'MODEL_CREATION' },
     { name: 'Salesman Creation', path: '/masters/SalesmanCreation', icon: <UserOutlined />, permission: 'SALESMAN_CREATION' },
-    { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
+    // { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
         { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined />, permission: 'USER_CREATION' },
         { name: 'Administration', path: '/Administration', icon: <BuildOutlined />, permission: 'ADMINISTRATION' },
     

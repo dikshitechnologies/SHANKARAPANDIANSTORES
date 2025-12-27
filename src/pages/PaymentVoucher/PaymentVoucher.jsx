@@ -842,7 +842,7 @@ const PaymentVoucher = () => {
             chqNo: item.fchqno || '',
             chqDt: safeFormatDate(item.fchqdt),
             narration: item.narration || '',
-            amount: (item.fchqAmt || item.fvrAmount || 0).toString()
+            amount: (item.fvrAmount || item.fvrAmount || 0).toString()
           }));
           setPaymentItems(items);
           
@@ -1624,18 +1624,22 @@ const PaymentVoucher = () => {
     // === PERMISSION CHECK ===
     const action = isEditing ? 'edit' : 'add';
     const hasPermission = action === 'add' ? formPermissions.add : formPermissions.edit;
-    
     if (!hasPermission) {
       const actionText = action === 'add' ? 'create' : 'modify';
       toast.error(`You do not have permission to ${actionText} payment vouchers.`, { autoClose: 3000 });
       return;
     }
     // === END PERMISSION CHECK ===
-    
+
     const cashTotals = calculateCashTotals();
-    
-    const hasCashPayments = paymentItems.some(item => item.type === 'CASH');
-    
+
+    // Check for any CASH payment with amount > 0
+    const hasCashPayments = paymentItems.some(item => {
+      const typeValue = (item.type || '').toString().trim().toUpperCase();
+      const hasAmount = item.amount && parseFloat(item.amount) > 0;
+      return typeValue === 'CASH' && hasAmount;
+    });
+
     if (hasCashPayments) {
       const confirmationData = {
         cashTotals: cashTotals,
@@ -1644,7 +1648,7 @@ const PaymentVoucher = () => {
       setSaveConfirmationData(confirmationData);
       showSaveConfirmation();
     } else {
-       setSaveConfirmation(true);
+      setSaveConfirmation(true);
     }
   };
 

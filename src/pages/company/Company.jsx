@@ -380,7 +380,20 @@ const Company = () => {
         pseudo9: company.fseudo9 || (pseudoCode.length > 8 ? pseudoCode[8] : ""),
         pseudo10: company.fseudo10 || (pseudoCode.length > 9 ? pseudoCode[9] : "")
       });
-
+      // Focus management based on selected action
+      setTimeout(() => {
+        if (selectedAction === "delete") {
+          // When in delete mode, focus on the Delete button
+          if (submitRef.current) {
+            submitRef.current.focus();
+          }
+        } else {
+          // When in edit mode, focus on Company Name field
+          if (companyNameRef.current) {
+            companyNameRef.current.focus();
+          }
+        }
+      }, 500);
       setCompanyColor(company.companyPrintColor || company.companyprintcolor || "#ff0000");
       setAddressColor(company.printAddressColor || company.printaddresscolor || "#00ff00");
     } catch (err) {
@@ -965,24 +978,26 @@ const Company = () => {
       const successMessage = typeof response === 'object'
         ? 'Company created successfully!'
         : response || 'Company created successfully!';
+        fetchCompanyList();
+          clearForm();
 
-      showConfirmation({
-        title: "Success",
-        message: successMessage,
-        type: "success",
-        confirmText: "OK",
-        hideCancelButton: true,
-        onConfirm: () => {
-          setShowConfirmPopup(false);
-          fetchCompanyList();
-          clearForm();
-        },
-        onCancel: () => {
-          setShowConfirmPopup(false);
-          fetchCompanyList();
-          clearForm();
-        }
-      });
+      // showConfirmation({
+      //   title: "Success",
+      //   message: successMessage,
+      //   type: "success",
+      //   confirmText: "OK",
+      //   hideCancelButton: true,
+      //   onConfirm: () => {
+      //     setShowConfirmPopup(false);
+      //     fetchCompanyList();
+      //     clearForm();
+      //   },
+      //   onCancel: () => {
+      //     setShowConfirmPopup(false);
+      //     fetchCompanyList();
+      //     clearForm();
+      //   }
+      // });
     } catch (err) {
       console.error("Failed to save company:", err);
       const errorMessage = err.response?.data?.message
@@ -1089,24 +1104,25 @@ const Company = () => {
       const successMessage = typeof response === 'object'
         ? 'Company updated successfully!'
         : response || 'Company updated successfully!';
-
-      showConfirmation({
-        title: "Success",
-        message: successMessage,
-        type: "success",
-        confirmText: "OK",
-        hideCancelButton: true,
-        onConfirm: () => {
-          setShowConfirmPopup(false);
-          fetchCompanyList();
+        fetchCompanyList();
           clearForm();
-        },
-        onCancel: () => {
-          setShowConfirmPopup(false);
-          fetchCompanyList();
-          clearForm();
-        }
-      });
+      // showConfirmation({
+      //   title: "Success",
+      //   message: successMessage,
+      //   type: "success",
+      //   confirmText: "OK",
+      //   hideCancelButton: true,
+      //   onConfirm: () => {
+      //     setShowConfirmPopup(false);
+      //     fetchCompanyList();
+      //     clearForm();
+      //   },
+      //   onCancel: () => {
+      //     setShowConfirmPopup(false);
+      //     fetchCompanyList();
+      //     clearForm();
+      //   }
+      // });
     } catch (err) {
       console.error("Failed to update company:", err);
       const errorMessage = err.response?.data?.message
@@ -1138,24 +1154,26 @@ const Company = () => {
       const successMessage = typeof response === 'object'
         ? 'Company deleted successfully!'
         : response || 'Company deleted successfully!';
+        fetchCompanyList();
+          clearForm();
 
-      showConfirmation({
-        title: "Success",
-        message: successMessage,
-        type: "success",
-        confirmText: "OK",
-        hideCancelButton: true,
-        onConfirm: () => {
-          setShowConfirmPopup(false);
-          fetchCompanyList();
-          clearForm();
-        },
-        onCancel: () => {
-          setShowConfirmPopup(false);
-          fetchCompanyList();
-          clearForm();
-        }
-      });
+      // showConfirmation({
+      //   title: "Success",
+      //   message: successMessage,
+      //   type: "success",
+      //   confirmText: "OK",
+      //   hideCancelButton: true,
+      //   onConfirm: () => {
+      //     setShowConfirmPopup(false);
+      //     fetchCompanyList();
+      //     clearForm();
+      //   },
+      //   onCancel: () => {
+      //     setShowConfirmPopup(false);
+      //     fetchCompanyList();
+      //     clearForm();
+      //   }
+      // });
     } catch (err) {
       console.error("Failed to delete company:", err);
       const errorMessage = err.response?.data?.message
@@ -1320,6 +1338,7 @@ const Company = () => {
                           type="text"
                           ref={phone1Ref}
                           value={formData.phone1}
+                          maxLength={10}
                           // onChange={(e) => handleInputChange('phone1', e.target.value)}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -1339,6 +1358,7 @@ const Company = () => {
                           type="text"
                           ref={phone2Ref}
                           value={formData.phone2}
+                          maxLength={10}
                           // onChange={(e) => handleInputChange('phone2', e.target.value)}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -1358,6 +1378,7 @@ const Company = () => {
                           type="text"
                           ref={phone3Ref}
                           value={formData.phone3}
+                          maxLength={10}
                           // onChange={(e) => handleInputChange('phone3', e.target.value)}
                           onChange={(e) => {
                             const value = e.target.value;

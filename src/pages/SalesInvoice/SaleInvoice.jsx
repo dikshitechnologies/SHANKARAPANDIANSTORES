@@ -1148,25 +1148,22 @@ useEffect(() => {
     setItemPopupOpen(true);
   };
 
-  // Handle customer selection
-  const handleCustomerSelect = (customer) => {
-    ignoreNextEnterRef.current = true;
+const handleCustomerSelect = (customer) => {
+  setBillDetails(prev => ({
+    ...prev,
+    custName: customer.name,
+    custCode: customer.code
+  }));
 
-    if (customer) {
-      setBillDetails(prev => ({
-        ...prev,
-        custName: customer.name,
-        custCode: customer.originalCode || customer.code,
-        partyCode: customer.originalCode || customer.code
-      }));
-    }
+  setCustomerPopupOpen(false);
 
-    setCustomerPopupOpen(false);
+  // ✅ RESTORE FOCUS TO CUSTOMER INPUT
+  setTimeout(() => {
+    custNameRef.current?.focus();
+    custNameRef.current?.select(); // optional: select text
+  }, 0);
+};
 
-    setTimeout(() => {
-      ignoreNextEnterRef.current = false;
-    }, 200);
-  };
 
   // Handle salesman selection
   const handleSalesmanSelect = (salesman) => {
@@ -3137,75 +3134,73 @@ if (!billDetails.salesman || billDetails.salesman.trim() === "") {
     gridTemplateColumns: getGridColumns(),
   }}>
     {/* Customer (replaced Salesman) */}
-    <div style={styles.formField}>
-      <label style={styles.inlineLabel}>Customer:</label>
-      <div style={{ position: 'relative', width: '100%', flex: 1 }}>
-        <input
-          type="text"
-          data-header="custName"
-          style={{
-            ...(focusedField === 'custName'
-              ? styles.inlineInputClickableFocused
-              : styles.inlineInputClickable),
-            paddingRight: '34px',
-          }}
-          value={billDetails.custName}
-          name="custName"
-          onChange={handleInputChange}
-          ref={custNameRef}
-          onFocus={() => setFocusedField('custName')}
-          onKeyDown={(e) => {
-  handleHeaderArrowNavigation(e, 'custName');
+<div
+  style={{
+    ...styles.formField,
+    gridColumn: 'span 2' // ✅ CUSTOMER TAKES 2 COLUMNS
+  }}
+>
+  <label style={styles.inlineLabel}>Customer:</label>
 
-  // "/" opens popup
-  if (e.key === '/') {
-    e.preventDefault();
-    setPopupSearchText('');
-    setCustomerPopupOpen(true);
-    return;
-  }
+  <div style={{ position: 'relative', width: '100%' }}>
+    <input
+      type="text"
+      data-header="custName"
+      style={{
+        ...(focusedField === 'custName'
+          ? styles.inlineInputClickableFocused
+          : styles.inlineInputClickable),
+        paddingRight: '34px'
+      }}
+      value={billDetails.custName}
+      name="custName"
+      onChange={handleInputChange}
+      ref={custNameRef}
+      onFocus={() => setFocusedField('custName')}
+      onKeyDown={(e) => {
+        handleHeaderArrowNavigation(e, 'custName');
 
-  // ✅ ENTER → Mobile No
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    mobileRef.current?.focus();
-    return;
-  }
+        // "/" opens popup
+        if (e.key === '/') {
+          e.preventDefault();
+          setPopupSearchText('');
+          setCustomerPopupOpen(true);
+          return;
+        }
 
-  handleBackspace(e, 'custName');
-}}
+        // ENTER → Mobile No
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          mobileRef.current?.focus();
+          return;
+        }
 
-        />
-        {/* 🔍 Search Icon */}
-        <div
-          onClick={openCustomerPopup}
-          style={{
-            position: 'absolute',
-            right: '10px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            pointerEvents: 'auto',
-            opacity: 0.65,
-            display: 'flex',
-            alignItems: 'center',
-            padding: '6px',
-            borderRadius: '4px',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '1';
-            e.currentTarget.style.backgroundColor = 'rgba(27, 145, 218, 0.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '0.65';
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-          title="Press / to open Customer Selection"
-        >
-          <SearchIcon />
-        </div>
-      </div>
+        handleBackspace(e, 'custName');
+      }}
+    />
+
+    {/* 🔍 Search Icon */}
+    <div
+      onClick={openCustomerPopup}
+      style={{
+        position: 'absolute',
+        right: '10px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        pointerEvents: 'auto',
+        opacity: 0.65,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '6px',
+        borderRadius: '4px',
+        transition: 'all 0.2s ease',
+      }}
+    >
+      <SearchIcon />
     </div>
+  </div>
+</div>
+
 
     {/* Mobile No (moved to Customer's original position) */}
     <div style={styles.formField}>
