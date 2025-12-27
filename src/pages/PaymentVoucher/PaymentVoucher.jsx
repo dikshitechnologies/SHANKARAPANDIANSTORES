@@ -886,7 +886,7 @@ const PaymentVoucher = () => {
       const url = API_ENDPOINTS.PAYMENTVOUCHER.DELETE_PAYMENT_VOUCHER(voucherNo);
       await apiService.del(url);
       setError(null);
-      toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
+      // toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
       resetForm();
       await fetchNextVoucherNo();
       await fetchSavedVouchers();
