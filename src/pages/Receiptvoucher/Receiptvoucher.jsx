@@ -1018,7 +1018,7 @@ const ReceiptVoucher = () => {
       try {
         await apiService.del(url);
         setError(null);
-        toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
+        // toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
         resetForm();
         await fetchNextVoucherNo();
         await fetchSavedVouchers();
@@ -1137,7 +1137,7 @@ const ReceiptVoucher = () => {
   const openEditVoucherPopup = async () => {
     // === PERMISSION CHECK ===
     if (!formPermissions.edit) {
-      toast.error('You do not have permission to edit receipt vouchers.', { autoClose: 3000 });
+      // toast.error('You do not have permission to edit receipt vouchers.', { autoClose: 3000 });
       return;
     }
     // === END PERMISSION CHECK ===
@@ -1212,7 +1212,7 @@ const ReceiptVoucher = () => {
       setConfirmationPopup({
         isOpen: true,
         title: 'Delete Voucher',
-        message: `Are you sure you want to delete voucher ${voucherNo}? This action cannot be undone.`,
+        message: `Do you sure you want to delete?`,
         type: 'danger',
         confirmText: 'Delete',
         cancelText: 'Cancel',
@@ -3193,7 +3193,7 @@ const ReceiptVoucher = () => {
         onClose={() => setSaveConfirmation(false)}
         onConfirm={()=>{savePaymentVoucher(); setSaveConfirmation(false);}}
         title={"Save Receipt Voucher"}
-        message={"Are you sure you want to save this receipt voucher?"}
+        message={"Do you  want to save? "}
         type={"success"}
       
       />
