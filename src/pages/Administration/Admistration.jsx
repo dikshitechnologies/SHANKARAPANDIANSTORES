@@ -48,7 +48,7 @@ const MASTER_ITEMS = [
    { label: "State Creation", dbName: "STATE_CREATION" },
   { label: "Model Creation", dbName: "MODEL_CREATION" },
   { label: "Salesman Creation", dbName: "SALESMAN_CREATION" },
-  { label: "Scrap Creation", dbName: "SCRAP_CREATION" },
+  // { label: "Scrap Creation", dbName: "SCRAP_CREATION" },
   { label: "User Creation", dbName: "USER_CREATION" },
   { label: "Administrator ", dbName: "ADMINISTRATOR_CREATION" },
 
