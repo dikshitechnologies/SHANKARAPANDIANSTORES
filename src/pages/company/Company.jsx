@@ -1338,6 +1338,7 @@ const Company = () => {
                           type="text"
                           ref={phone1Ref}
                           value={formData.phone1}
+                          maxLength={10}
                           // onChange={(e) => handleInputChange('phone1', e.target.value)}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -1357,6 +1358,7 @@ const Company = () => {
                           type="text"
                           ref={phone2Ref}
                           value={formData.phone2}
+                          maxLength={10}
                           // onChange={(e) => handleInputChange('phone2', e.target.value)}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -1376,6 +1378,7 @@ const Company = () => {
                           type="text"
                           ref={phone3Ref}
                           value={formData.phone3}
+                          maxLength={10}
                           // onChange={(e) => handleInputChange('phone3', e.target.value)}
                           onChange={(e) => {
                             const value = e.target.value;

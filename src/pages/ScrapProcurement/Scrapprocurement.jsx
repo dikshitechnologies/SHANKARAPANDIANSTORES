@@ -1346,7 +1346,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
 
     showConfirmation({
       title: 'Delete Item',
-      message: `Do youwant to delete?`,
+      message: `Do you want to delete this row?`,
       type: 'danger',
       confirmText: 'Delete',
       onConfirm: () => {
