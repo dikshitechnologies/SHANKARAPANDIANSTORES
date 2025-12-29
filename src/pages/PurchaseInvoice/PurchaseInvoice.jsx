@@ -382,7 +382,7 @@ const handleBlur = () => {
       setPopupMode('');
       setSelectedRowId(null);
       setAddLessAmount('');
-      
+      fetchAutoBarcode();
       // Clear table items first
       setItems([{
         id: 1, 
@@ -1144,7 +1144,74 @@ const handleBlur = () => {
 };
 
 
-  const handleItemChange = (id, field, value) => {
+  
+
+const calculateItem = (item) => {
+  const qty       = Number(item.qty) || 0;
+  const ovrwt     = Number(item.ovrwt) || 0;
+  const prate     = Number(item.prate) || 0;
+  const asRate    = Number(item.asRate) || 0;
+  const intax     = Number(item.intax) || 0;
+  const wsPercent = Number(item.wsPercent) || 0;
+
+  let acost = 0;
+  let ntCost = 0;
+  let amt = 0;
+
+  /* ---------- PROFIT % ---------- */
+  const fseudoMap = userData?.fseudo || fseudo || {};
+  const letterToNum = Object.values(fseudoMap).reduce((a, l, i) => {
+    if (typeof l === "string") a[l.toLowerCase()] = i;
+    return a;
+  }, {});
+
+  const profitPercent = item.sudo?.trim()
+    ? Number(
+        item.sudo
+          .toLowerCase()
+          .split("")
+          .map(c => letterToNum[c] ?? "")
+          .join("")
+      ) || 0
+    : Number(item.profitPercent) || 0;
+
+  /* ---------- CORE ---------- */
+  let avgwt = 0;
+
+  if (ovrwt > 0) {
+    avgwt = qty ? ovrwt / qty : 0;
+    acost = avgwt * prate;
+    ntCost = acost;
+    amt = ovrwt * prate;
+  } else {
+    // 🔑 PRate-only calculation
+    acost = prate;
+    ntCost = prate;
+    amt = qty * prate;
+  }
+
+  // Tax
+  amt = amt + (amt * intax) / 100;
+
+  const sRate = acost + (acost * profitPercent) / 100;
+  const letProfPer = acost ? ((asRate - acost) / acost) * 100 : 0;
+  const wsRate = ntCost + (ntCost * wsPercent) / 100;
+
+  return {
+    ...item,
+    avgwt: avgwt ? avgwt.toFixed(2) : "",
+    acost: acost.toFixed(2),
+    ntCost: ntCost.toFixed(2),
+    sRate: sRate.toFixed(2),
+    letProfPer: letProfPer.toFixed(2),
+    wsRate: wsRate.toFixed(2),
+    amt: amt.toFixed(2),
+    profitPercent
+  };
+};
+
+
+const handleItemChange = (id, field, value) => {
   setItems(prev =>
     prev.map(item => {
       if (item.id === id) {
@@ -1156,65 +1223,8 @@ const handleBlur = () => {
   );
 };
 
-const calculateItem = (item) => {
-  const qty   = +item.qty || 0;
-  const ovrwt = +item.ovrwt || 0;
-  const prate = +item.prate || 0;
-  const asRate = +item.asRate || 0;
-  const intax = +item.intax || 0;
-  const wsPercent = +item.wsPercent || 0;
-  const uom = item.uom?.toUpperCase() || "";
 
-  /* ---------- SUDO → profitPercent ---------- */
-  const fseudoMap = userData?.fseudo || fseudo || {};
-  const letterToNum = Object.values(fseudoMap).reduce((a, l, i) => {
-    if (typeof l === "string") a[l.toLowerCase()] = i;
-    return a;
-  }, {});
 
-  // Convert sudo letters to profit percent
-  // Only convert if sudo has valid letters, otherwise use profitPercent field value or 0
-  const profitPercent = item.sudo && item.sudo.trim()
-    ? item.sudo.toLowerCase().split("").map(c => letterToNum[c] ?? "").filter(v => v !== "").join("")
-    : (+item.profitPercent || 0);
-
-  /* ---------- CORE CALCULATIONS ---------- */
-  const avgwt = qty ? (ovrwt / qty).toFixed(2) : "";
-
-  // ACost calculation priority: AvgWt * PRate > Qty * PRate > 0
-  const acost = avgwt && +avgwt > 0
-    ? (+avgwt || 0) * prate
-    : qty ? qty * prate
-    : 0;
-
-  const sRate = acost ? (acost + +profitPercent).toFixed(2) : "";
-  const ntCost = acost ? acost.toFixed(2) : "";
-
-  const letProfPer =
-    asRate && acost ? ((asRate - acost) * 100 / 100).toFixed(2)
-    : "";
-
-  const wsRate = acost
-    ? (acost + acost * wsPercent / 100).toFixed(2)
-    : "";
-
-  // Amt = InTax % of NTCost + NTCost
-  const amt = ntCost
-    ? (parseFloat(ntCost) + parseFloat(ntCost) * intax / 100).toFixed(2)
-    : "";
-
-  return {
-    ...item,
-    profitPercent,
-    avgwt,
-    acost: acost ? acost.toFixed(2) : "",
-    sRate,
-    ntCost,
-    letProfPer,
-    wsRate,
-    amt
-  };
-};
 
   // Handle UOM spacebar cycling (same as SalesInvoice)
   const handleUomSpacebar = (e, id, index) => {
@@ -2728,7 +2738,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
                       onFocus={() => setFocusedField(`hsn-${item.id}`)}
                       onBlur={() => setFocusedField('')}
-                      readOnly
+                      
                     />
                   </td>
                   <td style={styles.td}>
@@ -2762,7 +2772,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.avgwt || ''}
                       data-row={index}
                       data-field="avgwt"                      
-                      onChange={(e) => handleItemChange(item.id, 'avgwt', handleNumericInput(e.target.value))}
+                      readonly
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'avgwt')}
                       onFocus={() => setFocusedField(`avgwt-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -2774,7 +2784,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       value={item.prate || ''}
                       data-row={index}
                       data-field="prate"
-                      onChange={(e) => handleItemChange(item.id, 'prate', parseFloat(e.target.value) )}
+                      onChange={(e) =>
+                        handleItemChange(item.id, "prate", handleNumericInput(e.target.value))
+                      }
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'prate')}
                       onFocus={() => setFocusedField(`prate-${item.id}`)}
                       onBlur={() => setFocusedField('')}
@@ -3115,6 +3127,17 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             mobileNo: s.phone || prev.mobileNo || '',
             gstno: s.gstNumber || prev.gstNumber || ''
           }));
+
+          setShowSupplierPopup(false);
+          setItemSearchTerm('');
+
+          // ✅ Focus back to Supplier Name input
+          setTimeout(() => {
+            if (nameRef.current) {
+              nameRef.current.focus();
+              nameRef.current.select(); // optional: selects text
+            }
+          }, 500);
         }}
       />     
       
