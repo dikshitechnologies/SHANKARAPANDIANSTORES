@@ -53,7 +53,7 @@ const Scrapprocurement = () => {
     {
       id: 1,
       sNo: 1,
-      scrapProductName: '',
+      // scrapProductName: '',
       scrapCode: '',
       itemName: '',
       itemCode: '',
@@ -161,10 +161,11 @@ const Scrapprocurement = () => {
     { name: 'custName', ref: custNameRef, label: 'Customer' },
     { name: 'mobileNo', ref: mobileRef, label: 'Mobile No' },
     { name: 'salesman', ref: salesmanRef, label: 'Salesman' },
+    { name: 'scrapProductInput', ref: scrapProductRef, label: 'Scrap Product' },
   ], []);
 
   // Define table fields in order (for arrow navigation) - EXCLUDE UOM since it's not editable
-  const tableFields = useMemo(() => ['scrapProductName', 'itemName', 'tax', 'sRate', 'qty'], []);
+  const tableFields = useMemo(() => [ 'itemName', 'tax', 'sRate', 'qty'], []);
 
   // Fetch next bill number
   const fetchNextBillNo = async () => {
@@ -478,7 +479,7 @@ useEffect(() => {
           }
         } else {
           // Move to first table row, first field
-          const firstTableInput = document.querySelector('input[data-row="0"][data-field="scrapProductName"]');
+          const firstTableInput = document.querySelector('input[data-row="0"][data-field="itemName"]');
           if (firstTableInput) {
             firstTableInput.focus();
             setCurrentFocus({ section: 'table', rowIndex: 0, fieldIndex: 0 });
@@ -719,7 +720,7 @@ useEffect(() => {
           newItems = voucherData.items.map((item, index) => ({
             id: index + 1,
             sNo: index + 1,
-            scrapProductName: voucherData.scrpName || '',
+            // scrapProductName: voucherData.scrpName || '',
             scrapCode: voucherData.scrpCode || '',
             itemName: item.itemName || '',
             itemCode: item.itemCode || '',
@@ -1032,7 +1033,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           id: scrap.scrapCode || `scrap-${index}`,
           scrapCode: scrap.scrapCode || '',
           scrapName: scrap.scrapName || '',
-          scrapProductName: scrap.scrapName || '',
+          // scrapProductName: scrap.scrapName || '',
         }));
       }
       
@@ -1101,74 +1102,6 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: nextIndex });
         }
       }
-    }
-  };
-
-  const handleAddItem = () => {
-    const scrapName = billDetails.scrapProductInput;
-    
-    if (!scrapName) {
-      showConfirmation({
-        title: 'Missing Scrap Product',
-        message: 'Please enter scrap product name',
-        type: 'warning',
-        confirmText: 'OK',
-        showIcon: true,
-        onConfirm: () => setShowConfirmPopup(false)
-      });
-      return;
-    }
-    
-    // Find the scrap item in allScrapItems
-    const scrapItem = allScrapItems.find(item => 
-      item.scrapName === scrapName || item.scrapProductName === scrapName
-    );
-    
-    // Check if scrap product already exists in items
-    const existingItemIndex = items.findIndex(item =>
-      item.scrapProductName.toLowerCase() === scrapName.toLowerCase() && 
-      item.scrapProductName !== ''
-    );
-
-    if (existingItemIndex !== -1) {
-      // If scrap product exists, increase quantity by 1
-      const updatedItems = [...items];
-      const existingItem = updatedItems[existingItemIndex];
-      const newQty = (parseFloat(existingItem.qty) || 0) + 1;
-      const newAmount = calculateAmount(newQty, existingItem.sRate);
-
-      updatedItems[existingItemIndex] = {
-        ...existingItem,
-        qty: newQty.toString(),
-        amount: newAmount
-      };
-
-      setItems(updatedItems);
-    } else {
-      // Add new item with the scrap product
-      const newItem = {
-        id: items.length + 1,
-        sNo: items.length + 1,
-        scrapProductName: scrapName,
-        scrapCode: scrapItem ? scrapItem.scrapCode : '',
-        itemName: '',
-        itemCode: '',
-        uom: '',
-        tax: '5',
-        sRate: '50',
-        qty: '1',
-        amount: '50.00'
-      };
-
-      setItems([...items, newItem]);
-    }
-
-    // Clear scrap product input and focus
-    setBillDetails(prev => ({ ...prev, scrapProductInput: '' }));
-    if (scrapProductRef.current) {
-      scrapProductRef.current.focus();
-      setFocusedField('scrapProductInput');
-      setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 5 });
     }
   };
 
@@ -1248,7 +1181,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
       e.stopPropagation();
 
       // Fields in the visual order (excluding UOM since it's not editable)
-      const fields = ['scrapProductName', 'itemName', 'tax', 'sRate', 'qty'];
+      const fields = ['itemName', 'tax', 'sRate', 'qty'];
       const currentFieldIndex = fields.indexOf(currentField);
 
       // Check if itemName is empty in the current row
@@ -1281,8 +1214,8 @@ const fetchItemList = async (pageNum = 1, search = '') => {
       // If Enter is pressed in the qty field and itemName is not empty
       if (currentField === 'qty' && !isItemNameEmpty && !isQtyEmpty) {
         // If there is a next row, move to its first field
-        if (currentRowIndex < items.length - 1) {
-          const nextRowInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="scrapProductName"]`);
+       if (currentRowIndex < items.length - 1) {
+          const nextRowInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="itemName"]`);
           if (nextRowInput) {
             nextRowInput.focus();
             setCurrentFocus({ section: 'table', rowIndex: currentRowIndex + 1, fieldIndex: 0 });
@@ -1292,7 +1225,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
         // Otherwise, add a new row
         handleAddRow();
         setTimeout(() => {
-          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="scrapProductName"]`);
+          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="itemName"]`);
           if (newRowInput) {
             newRowInput.focus();
             setCurrentFocus({ section: 'table', rowIndex: items.length, fieldIndex: 0 });
@@ -1324,7 +1257,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           updatedItems[0] = {
             id: 1,
             sNo: 1,
-            scrapProductName: '',
+            // scrapProductName: '',
             scrapCode: '',
             itemName: '',
             itemCode: '',
@@ -1387,7 +1320,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
       {
         id: 1,
         sNo: 1,
-        scrapProductName: '',
+        // scrapProductName: '',
         scrapCode: '',
         itemName: '',
         itemCode: '',
@@ -1452,7 +1385,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
         barcode: ''
       }));
       
-      const firstScrapItem = items.find(item => item.scrapProductName && item.scrapProductName.trim() !== '');
+      const firstScrapItem = items.find(item => item.itemName && item.itemName.trim() !== '');
       
       const payload = {
         compCode: userData?.companyCode || '001',
@@ -1718,24 +1651,24 @@ const fetchItemList = async (pageNum = 1, search = '') => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '7px 12px' : '8px 12px',
       border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '40px' : '44px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: screenSize.isMobile ? '0px' : '50px',
       ':hover': {
         borderColor: '#b3b3b3',
       },
     },
     gridRow: {
       display: 'grid',
-      gap: '8px',
-      marginBottom: 10,
+      gap: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '15px',
+      marginBottom: screenSize.isMobile ? '12px' : screenSize.isTablet ? '15px' : '18px',
     },
     tableContainer: {
       backgroundColor: 'white',
@@ -2054,14 +1987,14 @@ const fetchItemList = async (pageNum = 1, search = '') => {
     },
   };
 
-  // Determine grid columns based on screen size
+  // Determine grid columns based on screen size - UPDATED FOR WIDER CUSTOMER FIELD
   const getGridColumns = () => {
     if (screenSize.isMobile) {
-      return 'repeat(2, 1fr)';
+      return '1fr 1fr';
     } else if (screenSize.isTablet) {
-      return 'repeat(3, 1fr)';
+      return 'minmax(120px, 1fr) minmax(120px, 1fr) minmax(250px, 2fr) minmax(120px, 1fr) minmax(150px, 1.5fr)';
     } else {
-      return 'repeat(5, 1fr)';
+      return 'minmax(130px, 1fr) minmax(130px, 1fr) minmax(300px, 2.5fr) minmax(130px, 1fr) minmax(180px, 2fr)';
     }
   };
 
@@ -2127,7 +2060,6 @@ const fetchItemList = async (pageNum = 1, search = '') => {
               type="date"
               style={{
                 ...styles.inlineInput,
-                padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
                 ...(focusedField === 'billDate' && styles.focusedInput)
               }}
               value={billDetails.billDate}
@@ -2157,16 +2089,15 @@ const fetchItemList = async (pageNum = 1, search = '') => {
             />
           </div>
 
-          {/* Customer Name */}
+          {/* Customer Name - WIDER FIELD */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Customer:</label>
-            <div style={{ position: 'relative', flex: 1.4 }}>
+            <div style={{ position: 'relative', flex: '2 1 auto', minWidth: '200px' }}>
               <input
                 type="text"
                 style={{
                   ...styles.inlineInput,
-                  flex: 1,
-                  paddingRight: '40px',
+                  padding: screenSize.isMobile ? '6px 40px 6px 10px' : screenSize.isTablet ? '7px 40px 7px 12px' : '8px 40px 8px 12px',
                   ...(focusedField === 'custName' && styles.focusedInput)
                 }}
                 value={billDetails.custName}
@@ -2194,12 +2125,11 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                     e.preventDefault();
                     setFocusedField('mobileNo');
                     mobileRef.current.focus();
-                    setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 2 });
+                    setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 3 });
                   } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     e.preventDefault();
                     handleHeaderArrowNavigation(e, 'custName');
                   }
-
                 }}
                 onFocus={() => {
                   setFocusedField('custName');
@@ -2213,12 +2143,12 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                     setTimeout(() => setShowCustomerPopup(true), 100);
                   }
                 }}
-                 onBlur={() => {
-        // Only clear if not moving to another field
-        if (focusedField === 'custName') {
-          setFocusedField('');
-        }
-      }}
+                onBlur={() => {
+                  // Only clear if not moving to another field
+                  if (focusedField === 'custName') {
+                    setFocusedField('');
+                  }
+                }}
               />
               <button
                 type="button"
@@ -2231,7 +2161,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                 }}
                 style={{
                   position: 'absolute',
-                  right: '4px',
+                  right: '8px',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   height: screenSize.isMobile ? '24px' : '28px',
@@ -2280,13 +2210,12 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           {/* Salesman */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Salesman:</label>
-            <div style={{ position: 'relative', flex: 1 }}>
+            <div style={{ position: 'relative', flex: '1 1 auto' }}>
               <input
                 type="text"
                 style={{
                   ...styles.inlineInput,
-                  flex: 1,
-                  paddingRight: '40px',
+                  padding: screenSize.isMobile ? '6px 40px 6px 10px' : screenSize.isTablet ? '7px 40px 7px 12px' : '8px 40px 8px 12px',
                   ...(focusedField === 'salesman' && styles.focusedInput)
                 }}
                 value={billDetails.salesman}
@@ -2313,10 +2242,10 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                   } else if (e.key === 'Enter') {
                     e.preventDefault();
                     // Move focus to the first field in the table
-                    const firstTableInput = document.querySelector('input[data-row="0"][data-field="scrapProductName"]');
+                    const firstTableInput = document.querySelector('input[data-row="0"][data-field="itemName"]');
                     if (firstTableInput) {
                       firstTableInput.focus();
-                      setCurrentFocus({ section: 'table', rowIndex: 0, fieldIndex: 0 });
+                      setCurrentFocus({ section: 'table', rowIndex: 0, fieldIndex: 4 });
                     }
                   } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -2348,7 +2277,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                 }}
                 style={{
                   position: 'absolute',
-                  right: '4px',
+                  right: '8px',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   height: screenSize.isMobile ? '24px' : '28px',
@@ -2425,7 +2354,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
                       onFocus={() => {
                         setFocusedField(`itemName-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 1 });
+                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 0 });
                       }}
                       onBlur={() => setFocusedField('')}
                     />
@@ -2496,7 +2425,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                       }}
                       onFocus={() => {
                         setFocusedField(`tax-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 2 });
+                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 1 });
                       }}
                       onBlur={(e) => {
                         const value = e.target.value;
@@ -2513,7 +2442,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                             showCancelButton: false,
                             onConfirm: () => {
                               setShowConfirmPopup(false);
-                              setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
+                              setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 2 });
                               setTimeout(() => {
                                 const taxInput = document.querySelector(`input[data-row="${index}"][data-field="tax"]`);
                                 if (taxInput) taxInput.focus();
@@ -2545,7 +2474,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
                       onFocus={() => {
                         setFocusedField(`sRate-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
+                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 2 });
                       }}
                       onBlur={() => setFocusedField('')}
                       step="0.01"
@@ -2569,7 +2498,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
                       onFocus={() => {
                         setFocusedField(`qty-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 4 });
+                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
                       }}
                       onBlur={() => setFocusedField('')}
                       step="0.01"
@@ -2719,10 +2648,10 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           setCustomerSearchTerm('');
           setActiveSearchField(null);
           
-          if (scrapProductRef.current) {
-            scrapProductRef.current.focus();
-            setFocusedField('scrapProductInput');
-            setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 5 });
+          if (salesmanRef.current) {
+            salesmanRef.current.focus();
+            setFocusedField('salesman');
+            setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
           }
         }}
       />
@@ -2752,7 +2681,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           }));
         }}
         onSelect={(selectedScrap) => {
-          const scrapName = selectedScrap.scrapName || selectedScrap.scrapProductName || '';
+          const scrapName = selectedScrap.scrapName || '';
           
           setBillDetails(prev => ({
             ...prev,
