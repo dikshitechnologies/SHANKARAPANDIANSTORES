@@ -521,7 +521,7 @@ export default function UserCreation() {
       setConfirmDeleteOpen(false);
       resetForm();
     } catch (err) {
-      const errorMsg = err.message || "";
+      const errorMsg = err.response?.data?.message || "";
       
       if (errorMsg.includes("used in related tables") || 
           errorMsg.includes("409") || 
@@ -540,12 +540,13 @@ export default function UserCreation() {
         
         setShowDeleteWarning(true);
       } else {
-        const errorDisplay = `Failed to delete user: ${errorMsg}`;
+        const errorDisplay = `Failed to delete user: ${err.response.data.message || ""}`;
         setError(errorDisplay);
         toast.error(errorDisplay);
       }
       setConfirmDeleteOpen(false);
     } finally {
+      setConfirmDeleteOpen(false);
       setIsProcessing(false);
     }
   };
