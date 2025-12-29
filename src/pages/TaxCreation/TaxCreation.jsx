@@ -1110,7 +1110,7 @@ export default function GSTPage() {
               <path d="M6 12h12M6 8h12M6 16h12" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
-              <h2 id="gst-creation-title">Tax Management</h2>
+              <h2 id="gst-creation-title">Tax Creation</h2>
               <div className="subtitle muted">Create, edit, or delete Tax entries.</div>
             </div>
           </div>
