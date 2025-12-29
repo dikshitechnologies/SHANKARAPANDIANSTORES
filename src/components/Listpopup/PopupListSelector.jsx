@@ -73,11 +73,14 @@ const PopupListSelector = ({
       setSearchText(initial);
       loadData(1, initial, true);
 
-      setTimeout(() => {
-        if (searchInputRef.current) searchInputRef.current.focus();
-      }, 100);
-    }
-  }, [open, initialSearch]);
+       // 🔥 ADD THIS — focus list for keyboard navigation
+    setTimeout(() => {
+      if (listRef.current) {
+        listRef.current.focus();
+      }
+    }, 150);
+  }
+}, [open, initialSearch]);
 
   // -------------------------
   // Debounced Search
@@ -135,15 +138,47 @@ const PopupListSelector = ({
     }
   };
 
-  const filterItems = (items, search) => {
-    if (!search || searchFields.length === 0) return items;
-    
-    return items.filter(item =>
-      searchFields.some(field =>
-        item[field]?.toString().toLowerCase().includes(search.toLowerCase())
-      )
-    );
-  };
+  // -------------------------
+// Auto select FIRST item when data loads
+// -------------------------
+useEffect(() => {
+  if (open && filteredData.length > 0) {
+    setSelectedIndex(0);
+  } else {
+    setSelectedIndex(-1);
+  }
+}, [filteredData, open]);
+
+
+ const filterItems = (items, search) => {
+  if (!search || searchFields.length === 0) return items;
+
+  const searchLower = search.toLowerCase();
+
+  const startsWithMatches = [];
+  const includesMatches = [];
+
+  items.forEach(item => {
+    for (const field of searchFields) {
+      const value = item[field]?.toString().toLowerCase();
+      if (!value) continue;
+
+      if (value.startsWith(searchLower)) {
+        startsWithMatches.push(item);
+        return;
+      }
+
+      if (value.includes(searchLower)) {
+        includesMatches.push(item);
+        return;
+      }
+    }
+  });
+
+  // 🔥 STARTS-WITH FIRST, THEN OTHERS
+  return [...startsWithMatches, ...includesMatches];
+};
+
 
   // -------------------------
   // Infinite Scroll Logic
@@ -178,7 +213,8 @@ const PopupListSelector = ({
     if (onCustomClose) onCustomClose();
     if (clearSearch) clearSearch();
     setSearchText('');
-    setSelectedIndex(-1);
+    setSelectedIndex(0);
+
     onClose();
   };
 

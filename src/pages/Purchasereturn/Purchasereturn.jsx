@@ -382,7 +382,7 @@ const handleBlur = () => {
       setPopupMode('');
       setSelectedRowId(null);
       setAddLessAmount('');
-      
+      fetchAutoBarcode();
       // Clear table items first
       setItems([{
         id: 1, 
@@ -2667,8 +2667,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
                       onFocus={() => setFocusedField(`hsn-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                      readOnly
+                      onBlur={() => setFocusedField('')}                      
                     />
                   </td>
                   <td style={styles.td}>
@@ -3055,6 +3054,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             mobileNo: s.phone || prev.mobileNo || '',
             gstno: s.gstNumber || prev.gstNumber || ''
           }));
+          setShowSupplierPopup(false);
+          setItemSearchTerm('');
+
+          // ✅ Focus back to Supplier Name input
+          setTimeout(() => {
+            if (nameRef.current) {
+              nameRef.current.focus();
+              nameRef.current.select(); // optional: selects text
+            }
+          }, 500);
         }}
       />     
       
