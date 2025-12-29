@@ -601,7 +601,7 @@ useEffect(() => {
     }
   };
 
-  // Validation function
+  // Validation function - UPDATED with mandatory field checks
   const validateForm = () => {
     if (!formData.itemName) {
       setMessage({ type: "error", text: 'Item Name is required.' });
@@ -613,14 +613,39 @@ useEffect(() => {
       return false;
     }
 
-    // Validate GSTIN
-    if (gstChecked && formData.gstin) {
-      const allowedGSTValues = ['3', '5', '12', '18', '28'];
-      if (!allowedGSTValues.includes(formData.gstin)) {
-        setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
-        gstinRef.current?.focus();
-        return false;
-      }
+    // NEW: Validate Type field
+    if (!formData.type) {
+      setMessage({ type: "error", text: 'Type is required. Please select a type.' });
+      typeRef.current?.focus();
+      return false;
+    }
+
+    // NEW: Validate Units field
+    if (!formData.unit) {
+      setMessage({ type: "error", text: 'Units is required. Please select a unit.' });
+      setIsUnitPopupOpen(true);
+      return false;
+    }
+
+    // NEW: Validate HSN Code field
+    if (!formData.hsnCode) {
+      setMessage({ type: "error", text: 'HSN Code is required.' });
+      hsnCodeRef.current?.focus();
+      return false;
+    }
+
+    // Validate GST% - always required
+    if (!formData.gstin) {
+      setMessage({ type: "error", text: 'GST% is required.' });
+      gstinRef.current?.focus();
+      return false;
+    }
+    // Validate allowed GST values
+    const allowedGSTValues = ['0', '3', '5', '12', '18', '28'];
+    if (!allowedGSTValues.includes(formData.gstin)) {
+      setMessage({ type: "error", text: 'Only 0, 3, 5, 12, 18, or 28 are allowed for GST%.' });
+      gstinRef.current?.focus();
+      return false;
     }
 
     // Validate Selling Price - accept only numbers
@@ -645,10 +670,11 @@ useEffect(() => {
     setConfirmSaveOpen(true);
   };
 
-  // Handle Create confirmation (ADDED to match Unit Creation)
+  // Handle Create confirmation (ADDED to match Unit Creation) - UPDATED with validation
   const confirmCreate = async () => {
     setConfirmSaveOpen(false);
     
+    // Validate form before proceeding
     if (!validateForm()) {
       return;
     }
@@ -666,10 +692,11 @@ useEffect(() => {
     setConfirmEditOpen(true);
   };
 
-  // Handle Edit confirmation (ADDED to match Unit Creation)
+  // Handle Edit confirmation (ADDED to match Unit Creation) - UPDATED with validation
   const confirmEdit = async () => {
     setConfirmEditOpen(false);
     
+    // Validate form before proceeding
     if (!validateForm()) {
       return;
     }
@@ -687,10 +714,11 @@ useEffect(() => {
     setConfirmDeleteOpen(true);
   };
 
-  // Handle Delete confirmation (ADDED to match Unit Creation)
+  // Handle Delete confirmation (ADDED to match Unit Creation) - UPDATED with validation
   const confirmDelete = async () => {
     setConfirmDeleteOpen(false);
     
+    // Validate form before proceeding
     if (!validateForm()) {
       return;
     }
@@ -710,8 +738,13 @@ useEffect(() => {
     setShowConfirmPopup(true);
   };
 
-  // Handle confirmation from popup - UPDATED with toast notifications
+  // Handle confirmation from popup - UPDATED with toast notifications and validation
   const handleConfirmAction = async (actionType) => {
+    // Validate form first - UPDATED
+    if (!validateForm()) {
+      return; // Stop if validation fails
+    }
+    
     setIsLoading(true);
     setMessage(null);
     
@@ -2473,7 +2506,7 @@ useEffect(() => {
                   setIsTreeOpen(false);
                   // Focus item name field after selection
                   setTimeout(() => {
-                    itemNameRef.current?.focus();
+                    shortNameRef.current?.focus();
                   }, 10);
                 }}
                 expandedKeys={expandedKeys}
@@ -2720,7 +2753,7 @@ useEffect(() => {
               <div className="field">
   <label className="field-label">
     Units
-    <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+    <span className="asterisk">*</span>
   </label>
   <div className="input-with-search">
     <input
@@ -2792,7 +2825,7 @@ useEffect(() => {
            <div className="field">
   <label className="field-label">
     HSN Code
-    <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+    <span className="asterisk">*</span>
   </label>
   <input
     ref={hsnCodeRef}
@@ -2813,9 +2846,9 @@ useEffect(() => {
   />
 </div>
               {/* RIGHT SIDE: Type Dropdown - MOVED to replace Piece Rate */}
-      <div className="field">
+       <div className="field">
   <label className="field-label">
-    Type <span style={{ color: 'red' }}>*</span>
+    Type <span className="asterisk">*</span>
   </label>
   <select
     ref={typeRef}
@@ -2904,8 +2937,8 @@ useEffect(() => {
     <option value="" disabled selected>
       {/* Empty placeholder */}
     </option>
-    <option value="scrap">Scrap Product</option>
-    <option value="finished">Finished Product</option>
+    <option value="SC">Scrap Product</option>
+    <option value="FG">Finished Product</option>
   </select>
 </div>
               {/* LEFT SIDE: GST Checkbox */}
@@ -2935,7 +2968,7 @@ useEffect(() => {
             <div className="field">
   <label className="field-label">
     GST%
-    <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+    <span className="asterisk">*</span>
   </label>
   <input
     ref={gstinRef}
@@ -2961,7 +2994,7 @@ useEffect(() => {
         setTimeout(() => gstinRef.current?.focus(), 10);
       }
     }}
-    disabled={isSubmitting || !gstChecked || isDeleteMode}
+    disabled={isSubmitting || isDeleteMode}
     aria-label="GST Percentage"
     style={{ textAlign: "center", width: 300 }}
     required

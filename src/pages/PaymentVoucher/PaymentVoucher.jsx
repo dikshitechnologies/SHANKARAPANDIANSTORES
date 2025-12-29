@@ -1478,6 +1478,21 @@ const PaymentVoucher = () => {
       // **VALIDATION: Net Amount = Collected Amount - Issued Amount (ONLY FOR CASH PAYMENTS)**
       if (hasCashPayments) {
         const netAmount = givenTotal - issuedTotal;
+        // Custom validation: Collected amount < total amount
+        if (givenTotal < totalAmount) {
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: 'Collected amount is less than total amount. Please check the denominations entered.',
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          setIsSaving(false);
+          return;
+        }
         if (Math.abs(netAmount - totalAmount) > 0.01) {
           const errorMessage = `Net amount not tallying`;
           setError(errorMessage);

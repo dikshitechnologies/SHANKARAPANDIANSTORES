@@ -256,10 +256,10 @@ const container = {
 
   const tdStyle = {
     fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
-    fontSize: isMobile ? "11px" : "13px",
+    fontSize: isMobile ? "12px" : "15px", // Increased font size
     fontWeight: "500",
     lineHeight: "1.4",
-    padding: isMobile ? '8px 3px' : '12px 6px',
+    padding: isMobile ? '10px 5px' : '16px 10px', // Slightly increased padding
     textAlign: 'center',
     border: '1px solid #ccc',
     color: '#333',
@@ -594,7 +594,7 @@ const container = {
   
 
       <div style={billNoContainer}>
-        <div style={{ fontWeight: "700", color: "#1f2937", fontSize: "13px" }}>Search Bill:</div>
+        <div style={{ fontWeight: "700", color: "#1f2937", fontSize: "17px" }}>Search Bill:</div>
         <input 
           type="text" 
           // placeholder="Enter Bill Number" 
@@ -667,7 +667,7 @@ const container = {
                   {row.date ? new Date(row.date).toLocaleDateString('en-IN') : '-'}
                 </td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
-                  <div style={{ color: "#06A7EA", fontWeight: "500" }}>
+                  <div style={{ color: "#000", fontWeight: "bold" }}>
                     {String(row.billNo || '-')}
                   </div>
                 </td>
@@ -687,12 +687,12 @@ const container = {
                   {String(row.qty || '0')}
                 </td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
-                  <div style={{ fontWeight: "600", color: "#059669" }}>
+                  <div style={{ fontWeight: "bold", color: "#000" }}>
                     ₹{Number(row.amount || 0).toLocaleString('en-IN')}
                   </div>
                 </td>
                 <td style={selectedRow === i ? selectedRowStyle : tdStyle}>
-                  <div style={{ fontWeight: "600", color: "#d97706" }}>
+                  <div style={{ fontWeight: "600", color: "#000" }}>
                     ₹{Number(row.damt || 0).toLocaleString('en-IN')}
                   </div>
                 </td>
