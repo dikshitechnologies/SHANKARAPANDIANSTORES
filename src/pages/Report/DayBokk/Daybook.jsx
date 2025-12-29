@@ -261,23 +261,26 @@ const DayBook = () => {
       borderRadius: '2px'
     },
     
+    // UPDATED: Better grid proportions with even spacing
     firstRow: {
       display: 'grid',
-      gridTemplateColumns: '0.8fr 0.8fr 1.5fr 0.7fr',
-      gap: '30px',
+      gridTemplateColumns: '1fr 1fr 1.5fr 0.8fr 0.8fr', // More balanced columns
+      gap: '25px', // Increased gap for better spacing
       marginBottom: '35px',
-      position: 'relative'
+      position: 'relative',
+      alignItems: 'center' // Align items vertically
     },
     
     controlGroup: {
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      gap: '12px' // Added gap between label and input
     },
     
     controlLabel: {
       fontSize: '15px',
       color: 'black',
-      marginBottom: '10px',
+      marginBottom: '0', // Removed bottom margin since we use gap
       fontWeight: '600',
       letterSpacing: '0.5px',
       textTransform: 'uppercase'
@@ -449,23 +452,29 @@ const DayBook = () => {
       padding: '12px 8px'
     },
     
+    // UPDATED: More compact button styling
     searchButton: {
-      padding: '16px 48px',
+      padding: '16px 24px',
       background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
       color: 'white',
       border: 'none',
-      borderRadius: '12px',
-      fontSize: '16px',
+      borderRadius: '10px',
+      fontSize: '15px',
       fontWeight: '700',
       cursor: 'pointer',
       transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: `0 6px 20px ${accentColors.secondary}40`,
+      boxShadow: `0 4px 16px ${accentColors.secondary}40`,
       letterSpacing: '0.5px',
       position: 'relative',
       overflow: 'hidden',
+      width: '100%', // Make button take full width of its cell
+      height: '48px', // Match input height
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       ':hover': {
-        transform: 'translateY(-3px)',
-        boxShadow: `0 12px 30px ${accentColors.secondary}60`,
+        transform: 'translateY(-2px)',
+        boxShadow: `0 8px 25px ${accentColors.secondary}60`,
         letterSpacing: '1px'
       },
       ':active': {
@@ -481,6 +490,13 @@ const DayBook = () => {
       height: '100%',
       background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
       transition: 'left 0.7s ease'
+    },
+    
+    // UPDATED: Button container for proper alignment
+    buttonContainer: {
+      display: 'flex',
+      alignItems: 'flex-end',
+      height: '100%'
     },
     
     content: {
@@ -755,6 +771,45 @@ const DayBook = () => {
         background: '#ffebee',
         boxShadow: '0 6px 20px rgba(211, 47, 47, 0.1)'
       }
+    },
+
+    footer: {
+      padding: '20px',
+      backgroundColor: accentColors.background,
+      borderTop: `1px solid ${accentColors.border}`,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
+    },
+
+    // UPDATED: Refresh button styling to match search button
+    refreshButton: {
+      padding: '16px 24px',
+      background: 'white',
+      color: accentColors.text,
+      border: `1.5px solid ${accentColors.border}`,
+      borderRadius: '10px',
+      fontSize: '15px',
+      fontWeight: '700',
+      cursor: 'pointer',
+      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+      letterSpacing: '0.5px',
+      position: 'relative',
+      overflow: 'hidden',
+      width: '100%', // Make button take full width of its cell
+      height: '48px', // Match input height
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: accentColors.secondary,
+        boxShadow: `0 4px 12px ${accentColors.secondary}20`,
+        transform: 'translateY(-1px)'
+      },
+      ':active': {
+        transform: 'translateY(-1px)'
+      }
     }
   };
 
@@ -905,7 +960,7 @@ const DayBook = () => {
           </div>
           
           {/* Search Button */}
-          <div style={{display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start'}}>
+          <div style={styles.buttonContainer}>
             <button 
               style={styles.searchButton}
               onClick={handleSearch}
@@ -916,49 +971,57 @@ const DayBook = () => {
               {hoveredButton && <div style={styles.searchButtonGlow}></div>}
             </button>
           </div>
+
+          {/* Refresh Button */}
+          <div style={styles.buttonContainer}>
+            <button 
+              style={styles.refreshButton}
+              onClick={() => setTableLoaded(false)}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
       {/* TABLE CONTENT */}
-      {tableLoaded && (
-        <div style={styles.content}>
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.tableHeader}>
-                    Acc Name
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Receipts
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Payments
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
+      <div style={styles.content}>
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.tableHeader}>
+                  Acc Name
+                  <div style={styles.tableHeaderGlow}></div>
+                </th>
+                <th style={styles.tableHeader}>
+                  Receipts
+                  <div style={styles.tableHeaderGlow}></div>
+                </th>
+                <th style={styles.tableHeader}>
+                  Payments
+                  <div style={styles.tableHeaderGlow}></div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {(tableLoaded ? dayBookData : []).map((row, index) => (
+                <tr key={index} style={styles.tableRow}>
+                  <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
+                    {row.accName}
+                  </td>
+                  <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
+                    {row.receipts}
+                  </td>
+                  <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
+                    {row.payments}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {dayBookData.map((row, index) => (
-                  <tr key={index} style={styles.tableRow}>
-                    <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
-                      {row.accName}
-                    </td>
-                    <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
-                      {row.receipts}
-                    </td>
-                    <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
-                      {row.payments}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
       {/* BRANCH POPUP */}
       {showBranchPopup && (
