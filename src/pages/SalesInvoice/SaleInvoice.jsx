@@ -366,7 +366,7 @@ const fetchCustomers = useCallback(async () => {
       id: customer.code || customer.partyCode || customer.id,
       code: customer.code || customer.partyCode,
       name: customer.name || customer.partyName,
-      originalCode: customer.code || customer.partyCode,
+     phoneNumber: customer.phonenumber || customer.mobile || "",
       displayName: customer.name || customer.partyName
     }));
 
@@ -1149,20 +1149,31 @@ useEffect(() => {
   };
 
 const handleCustomerSelect = (customer) => {
+  ignoreNextEnterRef.current = true; // block popup Enter
+
   setBillDetails(prev => ({
     ...prev,
     custName: customer.name,
-    custCode: customer.code
+    custCode: customer.code,
+    mobileNo: customer.phoneNumber || ""
   }));
 
   setCustomerPopupOpen(false);
 
-  // ✅ RESTORE FOCUS TO CUSTOMER INPUT
+  // ✅ FOCUS GOES TO BARCODE FIELD (FIRST ROW, BARCODE FIELD)
   setTimeout(() => {
-    custNameRef.current?.focus();
-    custNameRef.current?.select(); // optional: select text
-  }, 0);
+    // Find and focus the barcode field in the first row
+    const barcodeInput = document.querySelector(
+      'input[data-row="0"][data-field="barcode"]'
+    );
+    if (barcodeInput) {
+      barcodeInput.focus();
+    }
+    ignoreNextEnterRef.current = false;
+  }, 50);
 };
+
+
 
 
   // Handle salesman selection
@@ -1312,6 +1323,7 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
           id: customer.code || customer.id,
           code: customer.code,
           name: customer.name,
+          phoneNumber: customer.phoneNumber, 
           displayName: customer.name
         }));
         break;
@@ -2055,10 +2067,11 @@ const handleItemChange = (id, field, value) => {
       setIsLoading(true);
       setError(null);
 
-      // 🔒 FINAL SAFETY VALIDATION
-      if (!billDetails.salesman || !billDetails.custName) {
-        throw new Error("Salesman and Customer are required");
-      }
+    // 🔒 FINAL SAFETY VALIDATION
+if (!billDetails.custName || billDetails.custName.trim() === "") {
+  throw new Error("Customer is required");
+}
+
 
       const validItems = items.filter(
         item =>
@@ -2195,19 +2208,7 @@ const itemsData = validItems.map(item => ({
       return;
     }
 
-if (!billDetails.salesman || billDetails.salesman.trim() === "") {
-  if (!validationToastShownRef.current) {
-    validationToastShownRef.current = true;
 
-    toast.warning("Please fill the Salesman name", {
-      autoClose: 2000,
-      onClose: () => {
-        validationToastShownRef.current = false; // reset after close
-      }
-    });
-  }
-  return;
-}
 
 
  if (!billDetails.custName || billDetails.custName.trim() === "") {

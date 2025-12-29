@@ -1744,7 +1744,9 @@ setTimeout(() => {
             ...prev,
             custName: selectedCustomer.name || selectedCustomer.custName,
             partyCode: selectedCustomer.code || selectedCustomer.custCode,
+            
             customerCode: selectedCustomer.code || selectedCustomer.custCode,
+              mobileNo: selectedCustomer.phonenumber || selectedCustomer.phone || selectedCustomer.mobile || "" 
           }));
           
           // Focus on next field
@@ -4600,34 +4602,70 @@ const handlePrint = () => {
       )}
 
       {/* Common PopupListSelector for ALL popups including bill number */}
-      {popupOpen && (
-        <PopupListSelector
-          open={popupOpen}
-          onClose={() => {
-            setPopupOpen(false);
-            setPopupType("");
-            setPopupData([]);
-            setSelectedRowIndex(null);
-            setSelectedAction("");
-            // Clear search terms on close
-            setCustomerSearchTerm('');
-            setSalesmanSearchTerm('');
-            setItemSearchTerm('');
-            setBillSearchTerm('');
-            setPopupSearchText('');
-          }}
-          onSelect={handlePopupSelect}
-          fetchItems={fetchItemsForPopup}
-          title={popupTitle}
-          initialSearch={popupSearchText}
-          displayFieldKeys={getPopupConfig().displayFieldKeys}
-          searchFields={getPopupConfig().searchFields}
-          headerNames={getPopupConfig().headerNames}
-          columnWidths={getPopupConfig().columnWidths}
-          searchPlaceholder={getPopupConfig().searchPlaceholder}
-          maxHeight="70vh"
-        />
-      )}
+      {/* Common PopupListSelector for ALL popups including bill number */}
+{popupOpen && (
+  <PopupListSelector
+    open={popupOpen}
+    onClose={() => {
+      // Store the popup type before clearing it
+      const closingPopupType = popupType;
+      
+      setPopupOpen(false);
+      setPopupType("");
+      setPopupData([]);
+      setSelectedRowIndex(null);
+      setSelectedAction("");
+
+      // Clear search terms
+      setCustomerSearchTerm('');
+      setSalesmanSearchTerm('');
+      setItemSearchTerm('');
+      setBillSearchTerm('');
+      setPopupSearchText('');
+
+      // ✅ SIMPLIFIED VERSION
+      setTimeout(() => {
+        if (closingPopupType === "customer") {
+          // CUSTOMER POPUP CLOSED WITHOUT SELECTION → GO TO BARCODE FIELD
+          const firstBarcodeInput = document.querySelector(`input[data-row="0"][data-field="barcode"]`);
+          if (firstBarcodeInput) {
+            firstBarcodeInput.focus();
+            firstBarcodeInput.select();
+            
+            setFocusedElement({
+              type: 'table',
+              rowIndex: 0,
+              fieldIndex: 0,
+              fieldName: 'barcode'
+            });
+          }
+        } else {
+          // ALL OTHER POPUPS (salesman, item, billNumber, etc.) → GO TO NEW BILL NO FIELD
+          newBillNoRef.current?.focus();
+          newBillNoRef.current?.select();
+          
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 3,
+            fieldName: 'newBillNo'
+          });
+        }
+      }, 100);
+    }}
+    onSelect={handlePopupSelect}
+    fetchItems={fetchItemsForPopup}
+    title={popupTitle}
+    initialSearch={popupSearchText}
+    displayFieldKeys={getPopupConfig().displayFieldKeys}
+    searchFields={getPopupConfig().searchFields}
+    headerNames={getPopupConfig().headerNames}
+    columnWidths={getPopupConfig().columnWidths}
+    searchPlaceholder={getPopupConfig().searchPlaceholder}
+    maxHeight="70vh"
+  />
+)}
+
     </div>
   );
 };
