@@ -42,6 +42,7 @@ import PaymentVoucher from './pages/PaymentVoucher/PaymentVoucher'
 import RouteCreationPage from './pages/Route/Routecreation';
 import SalesRegister from './pages/SalesRegister/SalesRegister';
 import TaxCreation from './pages/TaxCreation/TaxCreation';
+import DayBook from './pages/Report/DayBokk/Daybook';
 
 
 
@@ -128,7 +129,9 @@ function App() {
           <Route path="/masters/route-creation" element={<ProtectedRoute><LayoutWithNavbar><RouteCreationPage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/sales-register" element={<ProtectedRoute><LayoutWithNavbar><SalesRegister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
-   
+   <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
+   <Route path="/reports/day-book" element={<ProtectedRoute><LayoutWithNavbar><DayBook /></LayoutWithNavbar></ProtectedRoute>} />
+
     </Routes>
      <ToastContainer
         position="top-right"
