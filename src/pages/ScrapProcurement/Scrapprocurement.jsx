@@ -33,6 +33,15 @@ const Scrapprocurement = () => {
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [pageSize, setPageSize] = useState(20);
   const fCompCode = "001";
+  const selectAllOnFocus = (e) => {
+  const el = e.target;
+  if (el && el.value) {
+    // Delay is important to avoid popup / arrow conflicts
+    setTimeout(() => {
+      el.select();
+    }, 0);
+  }
+};
 
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -2423,9 +2432,14 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                           handleItemChange(item.id, 'tax', '');
                         }
                       }}
-                      onFocus={() => {
+                      onFocus={(e) => {
                         setFocusedField(`tax-${item.id}`);
                         setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 1 });
+                        if (e.target.value) {
+                          setTimeout(() => {
+                            e.target.select();
+                          }, 0);
+                        }
                       }}
                       onBlur={(e) => {
                         const value = e.target.value;
@@ -2472,9 +2486,14 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                         }
                       }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
-                      onFocus={() => {
+                      onFocus={(e) => {
                         setFocusedField(`sRate-${item.id}`);
                         setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 2 });
+                        if (e.target.value) {
+                          setTimeout(() => {
+                            e.target.select();
+                          }, 0);
+                        }
                       }}
                       onBlur={() => setFocusedField('')}
                       step="0.01"
@@ -2496,9 +2515,14 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                         }
                       }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
-                      onFocus={() => {
+                      onFocus={(e) => {
                         setFocusedField(`qty-${item.id}`);
                         setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
+                        if (e.target.value) {
+                          setTimeout(() => {
+                            e.target.select();
+                          }, 0);
+                        }
                       }}
                       onBlur={() => setFocusedField('')}
                       step="0.01"
