@@ -190,10 +190,12 @@ export default function RouteCreationPage() {
       return response;
     } catch (err) {
       console.error("Update error details:", err.response || err);
-      setMessage({ type: "error", text: err.message || "Failed to update route" });
+      setMessage(err.response.data.message);
+      setConfirmEditOpen(false);
       throw err;
     } finally {
       setLoading(false);
+      setConfirmEditOpen(false);
     }
   };
 
