@@ -52,6 +52,7 @@ const PurchaseReturn = () => {
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingBillNo, setEditingBillNo] = useState('');
+  const [allTax, setAllTax] = useState([]);
   
   // Confirmation popup states
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
@@ -1204,6 +1205,31 @@ const calculateItem = (item) => {
       }
     }
   };
+  const fetchTax = async () => {
+        try {
+          const url = API_ENDPOINTS.Scrap_Procurement.GET_TAX_LIST;
+          const res = await axiosInstance.get(url);
+          // console.log("Tax fetch response:", res);
+        const data = res?.data?.data || [];
+        // console.log("Tax fetch data:", data);
+          const formatted = data
+            .map(t => ({
+              id: t.fcode,
+              tax: Number(t.ftaxName),   // e.g. 5, 12, 18
+              displayName: t.ftaxName
+            }))
+            .filter(t => !isNaN(t.tax));
+      // console.log("Formatted tax data:", formatted);
+          setAllTax(formatted);
+        } catch (error) {
+          console.error("Tax fetch failed:", error);
+          setAllTax([]);
+        }
+  };
+
+  useEffect(() => {
+    fetchTax();
+  }, []);
 
 // Update the handleTableKeyDown function
 const handleTableKeyDown = (e, currentRowIndex, currentField) => {
@@ -2735,10 +2761,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'intax')}
                       onBlur={(e) => {
                         const value = e.target.value;
-                        const validTaxValues = ['3', '5', '12', '18', '40'];
+                        const validTaxValues = allTax.map(t => t.displayName);
                         if (value !== '' && !validTaxValues.includes(value)) {
                           showAlertConfirmation(
-                            'Invalid tax value. Please enter 3, 5, 12, 18, or 40',
+                            'Invalid tax value. Please enter ' + validTaxValues.join(', '),
                             () => {
                               handleItemChange(item.id, 'intax', '');
                               // Focus back on the field after alert
@@ -2775,10 +2801,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'outtax')}
                       onBlur={(e) => {
                         const value = e.target.value;
-                        const validTaxValues = ['3', '5', '12', '18', '40'];
+                        const validTaxValues = allTax.map(t => t.displayName);
                         if (value !== '' && !validTaxValues.includes(value)) {
                           showAlertConfirmation(
-                            'Invalid tax value. Please enter 3, 5, 12, 18, or 40',
+                            'Invalid tax value. Please enter ' + validTaxValues.join(', '),
                             () => {
                               handleItemChange(item.id, 'outtax', '');
                               // Focus back on the field after alert

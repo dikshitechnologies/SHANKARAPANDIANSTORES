@@ -534,6 +534,36 @@ const PaymentVoucher = () => {
       e.preventDefault();
       const currentItem = paymentItems[rowIndex];
 
+      // Check if Chq No and Chq Dt are mandatory when type is CHQ
+      if (currentItem.type === 'CHQ') {
+        if (fieldType === 'chqNo' && !currentItem.chqNo?.trim()) {
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: 'Chq No is mandatory',
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          return;
+        }
+        if (fieldType === 'chqDt' && !currentItem.chqDt) {
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: 'Chq Dt is mandatory',
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          return;
+        }
+      }
+
       // Check if Cash/Bank is empty
       const isCashBankEmpty = !currentItem.cashBank.trim();
 
@@ -1478,6 +1508,21 @@ const PaymentVoucher = () => {
       // **VALIDATION: Net Amount = Collected Amount - Issued Amount (ONLY FOR CASH PAYMENTS)**
       if (hasCashPayments) {
         const netAmount = givenTotal - issuedTotal;
+        // Custom validation: Collected amount < total amount
+        if (givenTotal < totalAmount) {
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: 'Collected amount is less than total amount. Please check the denominations entered.',
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          setIsSaving(false);
+          return;
+        }
         if (Math.abs(netAmount - totalAmount) > 0.01) {
           const errorMessage = `Net amount not tallying`;
           setError(errorMessage);
@@ -1621,6 +1666,21 @@ const PaymentVoucher = () => {
   };
 
   const handleSave = async () => {
+        // Validate all CHQ rows before saving
+        const missingChq = paymentItems.find(item => (item.type || '').toString().trim().toUpperCase() === 'CHQ' && (!item.chqNo?.trim() || !item.chqDt));
+        if (missingChq) {
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: 'Chq No and Chq Dt are mandatory for cheque entries. Please fill them before saving.',
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          return;
+        }
     // === PERMISSION CHECK ===
     const action = isEditing ? 'edit' : 'add';
     const hasPermission = action === 'add' ? formPermissions.add : formPermissions.edit;

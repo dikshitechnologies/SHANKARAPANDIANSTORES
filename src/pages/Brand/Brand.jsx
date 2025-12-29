@@ -202,7 +202,7 @@ export default function BrandPage() {
       return response;
     } catch (err) {
       console.error("Update error details:", err.response || err);
-      setMessage({ type: "error", text: err.message || "Failed to update brand" });
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Failed to update brand" });
       throw err;
     } finally {
       setLoading(false);
@@ -295,8 +295,10 @@ export default function BrandPage() {
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
+      setConfirmEditOpen(false);
       // Error message already set in updateBrand
     } finally {
+      setConfirmEditOpen(false);
       setIsLoading(false);
     }
   };

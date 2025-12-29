@@ -26,7 +26,7 @@ const SaveConfirmationModal = ({
   voucherDate = "",
   totalAmount = 0,
   cashTotals = null,
-  hasCashPayments = false
+  hasCashPayments = false,
 }) => {
   console.log('🔴 SaveConfirmationModal Props Received:', {
     isOpen,
@@ -247,7 +247,38 @@ const SaveConfirmationModal = ({
   if (!isOpen) return null;
 
   // Handle confirm with updated values
+  const [validationPopup, setValidationPopup] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    confirmText: 'OK',
+    cancelText: null,
+    action: null,
+    isLoading: false
+  });
+
   const handleConfirmClick = () => {
+    let collected = 0;
+    [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+      const collectValue = Number(denominations[d]?.collect) || 0;
+      collected += collectValue * d;
+    });
+
+    const balance = collected - totalAmount;
+    if (balance < 0) {
+      setValidationPopup({
+        isOpen: true,
+        title: 'Validation Error',
+        message: 'Bill Amount Mismatch. Please check the entered amounts.',
+        type: 'warning',
+        confirmText: 'OK',
+        cancelText: null,
+        action: null,
+        isLoading: false
+      });
+      return;
+    }
     setSaveConfirmationOpen(true);
   };
 
@@ -268,6 +299,17 @@ const SaveConfirmationModal = ({
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <ConfirmationPopup
+          isOpen={validationPopup.isOpen}
+          title={validationPopup.title}
+          message={validationPopup.message}
+          type={validationPopup.type}
+          confirmText={validationPopup.confirmText}
+          cancelText={validationPopup.cancelText}
+          onConfirm={() => setValidationPopup(p => ({ ...p, isOpen: false }))}
+          onClose={() => setValidationPopup(p => ({ ...p, isOpen: false }))}
+          isLoading={validationPopup.isLoading}
+        />
         <div className={styles.container}>
           {/* Header */}
           <div className={styles.header}>

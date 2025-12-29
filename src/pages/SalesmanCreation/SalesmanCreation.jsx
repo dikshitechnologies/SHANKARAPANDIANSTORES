@@ -173,6 +173,8 @@ export default function SalesmanCreation() {
       
       return response.data;
     } catch (err) {
+      setMessage(err.response.data.message);
+      setConfirmEditOpen(false);
       throw err;
     }
   };
@@ -185,6 +187,7 @@ export default function SalesmanCreation() {
       
       return response.data;
     } catch (err) {
+      setMessage(err.response.data.message);
       throw err;
     }
   };

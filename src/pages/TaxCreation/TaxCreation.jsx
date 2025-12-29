@@ -103,159 +103,184 @@ export default function GSTPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // ---------- API functions (UPDATED) ----------
-  const fetchGSTs = async () => {
-    try {
-      setLoading(true);
-      // Use the TAX endpoint instead of GST
-      const data = await apiService.get(API_ENDPOINTS.TAX.GET_TAX_LIST);
-      console.log("API Response:", data); // Debug log
-      
-      // Transform API data to match our naming convention
-      const transformedData = Array.isArray(data) ? data.map(item => ({
-        gstCode: item.fcode || item.fCode || '',
-        gstName: item.ftaxName || item.fTaxName || ''
-      })) : [];
-      
-      console.log("Transformed Data:", transformedData); // Debug log
-      setGstList(transformedData);
-      setMessage(null);
-      return transformedData;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load GST/Tax list" });
-      console.error("API Error:", err);
-      toast.error("Failed to load GST/Tax list");
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchGSTs = async () => {
+  try {
+    setLoading(true);
+    // Use the TAX endpoint instead of GST
+    const data = await apiService.get(
+      API_ENDPOINTS.TAX.GET_TAX_LIST(1, 100) // Increased pageSize to get all records
+    );
 
-  const getNextGSTCode = async () => {
-    try {
-      // Calculate next code from existing tax list
-      const taxData = await fetchGSTs();
-      
-      if (taxData.length > 0) {
-        // Find the highest numeric code and increment
-        const codes = taxData.map(b => {
-          const code = b.gstCode || '';
-          // Extract numeric part (remove leading zeros)
-          const num = parseInt(code.replace(/^0+/, '')) || 0;
-          return num;
-        });
-        const maxCode = Math.max(...codes);
-        const nextCode = (maxCode + 1).toString().padStart(3, '0'); // Pad to 3 digits
-        setForm(prev => ({ ...prev, gstCode: nextCode }));
-        return nextCode;
-      } else {
-        // First tax entry
-        setForm(prev => ({ ...prev, gstCode: "001" }));
-        return "001";
-      }
-    } catch (err) {
-      // Fallback to a default
+    console.log("API Response:", data);
+    
+    // Check if data is nested in a property (common in APIs)
+    let taxList = data;
+    if (data && data.data) {
+      taxList = data.data; // If API returns { data: [...] }
+    } else if (data && data.items) {
+      taxList = data.items; // If API returns { items: [...] }
+    } else if (data && data.result) {
+      taxList = data.result; // If API returns { result: [...] }
+    }
+    
+    // Transform API data to match our naming convention
+    const transformedData = Array.isArray(taxList) ? taxList.map(item => ({
+      gstCode: item.fcode || item.code || item.taxCode || '',
+      gstName: item.ftaxName || item.taxName || item.name || ''
+    })) : [];
+    
+    console.log("Transformed Data:", transformedData);
+    setGstList(transformedData);
+    setMessage(null);
+    return transformedData;
+  } catch (err) {
+    setMessage({ type: "error", text: "Failed to load GST/Tax list" });
+    console.error("API Error:", err);
+    toast.error("Failed to load GST/Tax list");
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
+
+const getNextGSTCode = async () => {
+  try {
+    // Fetch existing tax list
+    const taxData = await fetchGSTs();
+    
+    if (taxData.length > 0) {
+      // Find the highest numeric code and increment
+      const codes = taxData.map(b => {
+        const code = b.gstCode || '';
+        // Extract numeric part (remove non-digits)
+        const num = parseInt(code.replace(/\D/g, '')) || 0;
+        return num;
+      });
+      const maxCode = Math.max(...codes);
+      const nextCode = (maxCode + 1).toString().padStart(3, '0'); // Pad to 3 digits
+      setForm(prev => ({ ...prev, gstCode: nextCode }));
+      return nextCode;
+    } else {
+      // First tax entry
       setForm(prev => ({ ...prev, gstCode: "001" }));
       return "001";
     }
-  };
+  } catch (err) {
+    console.error("Error getting next code:", err);
+    // Fallback to a default
+    setForm(prev => ({ ...prev, gstCode: "001" }));
+    return "001";
+  }
+};
 
-  const getGSTByCode = async (code) => {
-    try {
-      setLoading(true);
-      // Filter from existing items
-      const gst = gstList.find(b => b.gstCode === code);
-      return gst || null;
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to fetch GST" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+const getGSTByCode = async (code) => {
+  try {
+    setLoading(true);
 
-  const createGST = async (gstData) => {
-    try {
-      setLoading(true);
-      // Transform to API expected format (based on your API response)
-      const apiData = {
-        fcode: gstData.gstCode,
-        ftaxName: gstData.gstName.trim() // Remove any whitespace
-      };
-      
-      console.log("Creating GST with data:", apiData);
-      const data = await apiService.post(API_ENDPOINTS.TAX.CREATE_TAX, apiData);
-      console.log("Create response:", data);
-      
-      if (data.message && data.message.includes("successfully")) {
-        toast.success(data.message || "GST created successfully");
-        return data;
-      }
-      return data;
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || "Failed to create GST";
-      setMessage({ type: "error", text: errorMsg });
-      console.error("API Error:", err);
-      toast.error(errorMsg);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+    const data = await apiService.get(
+      API_ENDPOINTS.TAX.GET_TAX_BY_CODE(code)
+    );
 
-  const updateGST = async (gstData) => {
-    try {
-      setLoading(true);
-      console.log("Sending update data:", gstData);
-      
-      // Transform to API expected format
-      const apiData = {
-        fcode: gstData.gstCode,
-        ftaxName: gstData.gstName.trim()
-      };
-      
-      console.log("Updating GST with data:", apiData);
-      const response = await apiService.post(API_ENDPOINTS.TAX.UPDATE_TAX, apiData);
-      console.log("Update response:", response);
-      
-      if (response.message && response.message.includes("successfully")) {
-        toast.success(response.message || "GST updated successfully");
-        return { success: true, message: response.message };
-      }
+    // backend may return array or single object
+    const item = Array.isArray(data) ? data[0] : data;
+
+    if (!item) return null;
+
+    return {
+      gstCode: item.fcode || '',
+      gstName: item.ftaxName || ''
+    };
+  } catch (err) {
+    console.error("Failed to fetch GST by code", err);
+    toast.error("Failed to fetch GST details");
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+ const createGST = async (gstData) => {
+  try {
+    setLoading(true);
+    // Transform to API expected format
+    const apiData = {
+      fcode: gstData.gstCode,
+      ftaxName: gstData.gstName.trim()
+    };
+    
+    console.log("Creating GST with data:", apiData);
+    const response = await apiService.post(API_ENDPOINTS.TAX.CREATE_TAX, apiData);
+    console.log("Create response:", response);
+    
+    if (response.success || response.message?.includes("successfully")) {
+     
       return response;
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || "Failed to update GST";
-      setMessage({ type: "error", text: errorMsg });
-      console.error("Update error details:", err.response || err);
-      toast.error(errorMsg);
-      throw err;
-    } finally {
-      setLoading(false);
     }
-  };
+    // Handle different response formats
+    return response;
+  } catch (err) {
+    const errorMsg = err.response?.data?.message || err.message || "Failed to create Tax";
+    setMessage({ type: "error", text: errorMsg });
+    console.error("API Error:", err);
+    toast.error(errorMsg);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const deleteGST = async (gstCode) => {
-    try {
-      setLoading(true);
-      console.log("Deleting GST with code:", gstCode);
-      const data = await apiService.del(API_ENDPOINTS.TAX.DELETE_TAX(gstCode));
-      console.log("Delete response:", data);
-      
-      if (data.message && data.message.includes("successfully")) {
-        toast.success(data.message || "GST deleted successfully");
-        return data;
-      }
-      return data;
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || "Failed to delete GST";
-      setMessage({ type: "error", text: errorMsg });
-      console.error("API Error:", err);
-      toast.error(errorMsg);
-      throw err;
-    } finally {
-      setLoading(false);
+ const updateGST = async (gstData) => {
+  try {
+    setLoading(true);
+    console.log("Sending update data:", gstData);
+    
+    // Transform to API expected format
+    const apiData = {
+      fcode: gstData.gstCode,
+      ftaxName: gstData.gstName.trim()
+    };
+    
+    console.log("Updating GST with data:", apiData);
+    const response = await apiService.post(API_ENDPOINTS.TAX.UPDATE_TAX, apiData);
+    console.log("Update response:", response);
+    
+    if (response.success || response.message?.includes("successfully")) {
+      return { success: true, message: response.message };
     }
-  };
+    return response;
+  } catch (err) {
+    const errorMsg = err.response?.data?.message || err.message || "Failed to update Tax";
+    setMessage({ type: "error", text: errorMsg });
+    console.error("Update error details:", err.response || err);
+    toast.error(errorMsg);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
+
+ const deleteGST = async (gstCode) => {
+  try {
+    setLoading(true);
+    console.log("Deleting Tax with code:", gstCode);
+    const response = await apiService.del(API_ENDPOINTS.TAX.DELETE_TAX(gstCode));
+    console.log("Delete response:", response);
+    
+    if (response.success || response.message?.includes("successfully")) {
+      return response;
+    }
+    return response;
+  } catch (err) {
+    const errorMsg = err.response?.data?.message || err.message || "Failed to delete Tax";
+    setMessage({ type: "error", text: errorMsg });
+    console.error("API Error:", err);
+    toast.error(errorMsg);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ---------- effects ----------
   useEffect(() => {

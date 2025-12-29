@@ -15,6 +15,16 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const [activeFooterAction, setActiveFooterAction] = useState('all');
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [validationPopup, setValidationPopup] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    confirmText: 'OK',
+    cancelText: null,
+    action: null,
+    isLoading: false
+  });
   const collectFieldRefs = useRef({});
   const saveButtonRef = useRef(null);
   const billDiscountPercentRef = useRef(null);
@@ -550,7 +560,30 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   };
 
   const handleSave = () => {
-    // Just show the confirmation popup
+    // Validation logic before showing save confirmation
+    // Net Amount = (Received Cash + UPI + Card) - Issued Cash
+    const receivedCash = Number(formData.receivedCash) || 0;
+    const upi = Number(formData.upi) || 0;
+    const card = Number(formData.card) || 0;
+    // Calculate total issued cash from all denominations
+    const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
+      return sum + ((Number(data.issue) || 0) * Number(denom));
+    }, 0);
+    const calculatedNetAmount = (receivedCash + upi + card) - totalIssuedCash;
+    const formNetAmount = Number(formData.netAmount) || 0;
+    if (calculatedNetAmount !== formNetAmount) {
+      setValidationPopup({
+        isOpen: true,
+        title: 'Validation Error',
+        message: 'Bill Amount Mismatch. Please check the entered amounts.',
+        type: 'warning',
+        confirmText: 'OK',
+        cancelText: null,
+        action: null,
+        isLoading: false
+      });
+      return;
+    }
     setConfirmSaveOpen(true);
   };
 
@@ -658,14 +691,12 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
 
       if (response) {
         setConfirmSaveOpen(false);
-        // Close modal and reload page
-        setTimeout(() => {
-          onClose();
-          window.location.reload();
-        }, 300);
-        // Call parent callback to refresh the bill list
+        // Only close modal and refresh BillCollector (no page reload)
         if (onSaveSuccess) {
           onSaveSuccess();
+        }
+        if (onClose) {
+          onClose();
         }
       } else {
         setConfirmSaveOpen(false);
@@ -693,33 +724,44 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   };
 
   const handleClear = () => {
-    if (window.confirm('Are you sure you want to clear all data?')) {
-      setFormData({
-        billNo: billData?.billNo || '',
-        salesman: billData?.salesman || '',
-        date: billData?.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
-        grossAmt: billData?.amount ? billData.amount.toString() : '',
-        itemDAmt: '',
-        billAmount: billData?.amount ? billData.amount.toString() : '',
-        billDiscountPercent: '',
-        billDiscAmt: '',
-        granTotal: '',
-        roudOff: '',
-        scrapAmountBillNo: '',
-        scrapAmount: '',
-        salesReturnBillNo: '',
-        salesReturn: '',
-        netAmount: '',
-        receivedCash: '',
-        issuedCash: '',
-        upi: '',
-        card: '',
-        balance: '',
-        isServiceCharge: false,
-        isCreditBill: false,
-        delivery: false,
-      });
-      console.log('Cleared successfully!');
+    setFormData({
+      billNo: billData?.billNo || '',
+      salesman: billData?.salesman || '',
+      date: billData?.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
+      grossAmt: billData?.amount ? billData.amount.toString() : '',
+      itemDAmt: '',
+      billAmount: billData?.amount ? billData.amount.toString() : '',
+      billDiscountPercent: '',
+      billDiscAmt: '',
+      granTotal: '',
+      roudOff: '',
+      scrapAmountBillNo: '',
+      scrapAmount: '',
+      salesReturnBillNo: '',
+      salesReturn: '',
+      netAmount: '',
+      receivedCash: '',
+      issuedCash: '',
+      upi: '',
+      card: '',
+      balance: '',
+      isServiceCharge: false,
+      isCreditBill: false,
+      delivery: false,
+    });
+    setDenominations(prev => ({
+      500: { ...prev[500], collect: '', issue: '' },
+      200: { ...prev[200], collect: '', issue: '' },
+      100: { ...prev[100], collect: '', issue: '' },
+      50: { ...prev[50], collect: '', issue: '' },
+      20: { ...prev[20], collect: '', issue: '' },
+      10: { ...prev[10], collect: '', issue: '' },
+      5: { ...prev[5], collect: '', issue: '' },
+      2: { ...prev[2], collect: '', issue: '' },
+      1: { ...prev[1], collect: '', issue: '' },
+    }));
+    if (billDiscountPercentRef && billDiscountPercentRef.current) {
+      billDiscountPercentRef.current.focus();
     }
   };
 
@@ -1160,6 +1202,26 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         </div>
       </div>
 
+      {/* Validation Popup */}
+      <ConfirmationPopup
+        isOpen={validationPopup.isOpen}
+        title={validationPopup.title}
+        message={validationPopup.message}
+        type={validationPopup.type}
+        confirmText={validationPopup.confirmText}
+        cancelText={validationPopup.cancelText}
+        onConfirm={(e) => {
+          // Prevent event bubbling to modal overlay
+          if (e && e.stopPropagation) e.stopPropagation();
+          setValidationPopup(p => ({ ...p, isOpen: false }));
+        }}
+        onClose={(e) => {
+          // Prevent event bubbling to modal overlay
+          if (e && e.stopPropagation) e.stopPropagation();
+          setValidationPopup(p => ({ ...p, isOpen: false }));
+        }}
+        isLoading={validationPopup.isLoading}
+      />
       {/* Save Confirmation Popup */}
       <ConfirmationPopup
         isOpen={confirmSaveOpen}

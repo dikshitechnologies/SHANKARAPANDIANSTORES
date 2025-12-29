@@ -819,13 +819,14 @@ useEffect(() => {
       
     } catch (error) {
       console.error('Submit error:', error);
+      setMessage({ type: "error", text: error.response?.data?.message || error.message || 'An unexpected server error occurred.' });
       
       if (error.response) {
         const status = error.response.status;
         const errorMessage = error.response.data?.message || error.response.data || 'An unexpected server error occurred.';
 
         if (status === 409) {
-          setMessage({ type: "error", text: 'Concurrent modification detected. Please refresh and try again.' });
+          setMessage({  type: "error", text: error.response?.data?.message || error.message || 'An unexpected server error occurred.' });
         } else if (status === 400) {
           setMessage({ type: "error", text: `Validation error: ${errorMessage}` });
         } else if (status === 404) {
