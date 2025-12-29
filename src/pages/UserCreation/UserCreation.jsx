@@ -4,8 +4,6 @@ import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/ActionButtons";
 import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from "../../hooks/usePermissions";
 import { PERMISSION_CODES } from "../../constants/permissions";
 
@@ -387,14 +385,8 @@ export default function UserCreation() {
     }
     // === END PERMISSION CHECK ===
 
-    if (!form.companyCode || !form.username || !form.password) {
-      toast.warning(
-        "Please fill required fields: Company, Username, Password.",
-        {
-          position: "top-right",
-          autoClose: 3000,
-        }
-      );
+    if (!form.companyCode || !form.username || !form.password || !form.prefix) {
+      setError("Please fill required fields: Company, Username, Password, Prefix.");
       return;
     }
 
@@ -441,7 +433,6 @@ export default function UserCreation() {
 
       const errorMsg = err.message || "Failed to create user";
       setError(errorMsg);
-      toast.error(errorMsg);
     } finally {
       setIsProcessing(false);
     }
@@ -459,8 +450,8 @@ export default function UserCreation() {
       setError("No user selected to update.");
       return;
     }
-    if (!form.companyCode || !form.username) {
-      setError("Please fill Company and Username.");
+    if (!form.companyCode || !form.username || !form.prefix) {
+      setError("Please fill Company, Username, and Prefix.");
       return;
     }
 
@@ -491,7 +482,6 @@ export default function UserCreation() {
     } catch (err) {
       const errorMsg = err.message || "Failed to update user";
       setError(errorMsg);
-      toast.error(errorMsg);
       setConfirmEditOpen(false);
     } finally {
       setIsProcessing(false);
@@ -548,7 +538,6 @@ export default function UserCreation() {
       } else {
         const errorDisplay = `Failed to delete user: ${errorMsg}`;
         setError(errorDisplay);
-        toast.error(errorDisplay);
       }
       setConfirmDeleteOpen(false);
     } finally {
@@ -1319,7 +1308,7 @@ export default function UserCreation() {
               {/* Prefix field */}
               <div className="field">
                 <label className="field-label">
-                  Prefix
+                  Prefix <span className="asterisk">*</span>
                 </label>
                 <div className="row">
                   <input
@@ -1426,14 +1415,15 @@ export default function UserCreation() {
                           className={form.code === getCode(u) ? "selected" : ""}
                           onClick={() => {
                             setForm({ 
-                              company: `${getCode(u)} - ${getCompanyName(u)}`,
-                              companyCode: getCode(u),
+                              company: `${u.fCompCode || u.compCode || ""} - ${getCompanyName(u)}`,
+                              companyCode: u.fCompCode || u.compCode || "",
                               username: getUserName(u), 
-                              password: "", 
+                              password: u.password || "", 
                               prefix: u.fPrefix || "",
                               userId: getCode(u) 
                             });
                             setActionType("edit");
+                            setEditingId(getCode(u));
                           }}
                         >
                           <td>{getCode(u)}</td>
