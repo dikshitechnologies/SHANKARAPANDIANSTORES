@@ -2813,8 +2813,10 @@ useEffect(() => {
   />
 </div>
               {/* RIGHT SIDE: Type Dropdown - MOVED to replace Piece Rate */}
-          <div className="field">
-  <label className="field-label">Type</label>
+      <div className="field">
+  <label className="field-label">
+    Type <span style={{ color: 'red' }}>*</span>
+  </label>
   <select
     ref={typeRef}
     className="select"
@@ -2832,7 +2834,7 @@ useEffect(() => {
         e.preventDefault();
         // Toggle dropdown on Enter
         if (selectElement.size === 0) {
-          selectElement.size = TYPE_OPTIONS.length; // Open dropdown (removed +1)
+          selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
         } else {
           selectElement.size = 0; // Close dropdown
           handleChange('type', selectElement.value);
@@ -2843,7 +2845,7 @@ useEffect(() => {
         
         if (selectElement.size === 0) {
           // If dropdown is closed, open it first
-          selectElement.size = TYPE_OPTIONS.length; // Removed +1
+          selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
           return;
         }
         
@@ -2864,7 +2866,7 @@ useEffect(() => {
         
         if (selectElement.size === 0) {
           // If dropdown is closed, open it first
-          selectElement.size = TYPE_OPTIONS.length; // Removed +1
+          selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
           return;
         }
         
@@ -2888,7 +2890,7 @@ useEffect(() => {
     onClick={(e) => {
       // Toggle dropdown on click
       if (e.target.size === 0) {
-        e.target.size = TYPE_OPTIONS.length; // Removed +1
+        e.target.size = 3; // 3 options: empty placeholder + scrap + finished
       } else {
         e.target.size = 0;
       }
@@ -2897,12 +2899,13 @@ useEffect(() => {
     disabled={isSubmitting || isDeleteMode}
     aria-label="Type"
     style={{ textAlign: "center", width: 300 }}
+    required // This makes it mandatory for HTML form validation
   >
-    {TYPE_OPTIONS.map(option => (
-      <option key={option.value} value={option.value}>
-        {option.label}
-      </option>
-    ))}
+    <option value="" disabled selected>
+      {/* Empty placeholder */}
+    </option>
+    <option value="scrap">Scrap Product</option>
+    <option value="finished">Finished Product</option>
   </select>
 </div>
               {/* LEFT SIDE: GST Checkbox */}
@@ -2947,11 +2950,11 @@ useEffect(() => {
     }}
     onBlur={() => {
       // Validate GST value when user leaves the field
-      const allowedGSTValues = ['3', '5', '12', '18', '28'];
+      const allowedGSTValues = ['0', '3', '5', '12', '18', '28'];
       const gstValue = formData.gstin;
       if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
         // Show error message
-        setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
+        setMessage({ type: "error", text: 'Only 0, 3, 5, 12, 18,, or 28 are allowed for GST%.' });
         // Clear invalid value
         handleChange('gstin', '');
         // Focus back to show error
