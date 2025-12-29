@@ -2667,8 +2667,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
                       onFocus={() => setFocusedField(`hsn-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                      readOnly
+                      onBlur={() => setFocusedField('')}                      
                     />
                   </td>
                   <td style={styles.td}>
