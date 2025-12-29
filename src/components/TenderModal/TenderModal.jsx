@@ -691,14 +691,12 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
 
       if (response) {
         setConfirmSaveOpen(false);
-        // Close modal and reload page
-        setTimeout(() => {
-          onClose();
-          window.location.reload();
-        }, 300);
-        // Call parent callback to refresh the bill list
+        // Only close modal and refresh BillCollector (no page reload)
         if (onSaveSuccess) {
           onSaveSuccess();
+        }
+        if (onClose) {
+          onClose();
         }
       } else {
         setConfirmSaveOpen(false);
