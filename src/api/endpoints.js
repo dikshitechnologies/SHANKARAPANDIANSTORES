@@ -274,6 +274,12 @@ CATEGORY: {
   SALESRETURN: {
   GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
 },
+  TAX: {
+    GET_TAX_LIST: '/TaxCreation/gettaxlist',
+    CREATE_TAX: '/TaxCreation/TaxCreation',
+    UPDATE_TAX: '/TaxCreation/TaxCreation', // Same as create for update
+    DELETE_TAX: (code) => `/TaxCreation/Delete/${code}`,
+  },
 
 PAYMENTVOUCHER: {
   GETNEXTVNUMBER: (compCode) => `PaymentVoucher/GetNextVoucher?compCode=${compCode}`,

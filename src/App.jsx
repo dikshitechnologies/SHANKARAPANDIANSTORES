@@ -41,6 +41,9 @@ import Receiptvoucher from './pages/Receiptvoucher/Receiptvoucher'
 import PaymentVoucher from './pages/PaymentVoucher/PaymentVoucher'
 import RouteCreationPage from './pages/Route/Routecreation';
 import SalesRegister from './pages/SalesRegister/SalesRegister';
+import TaxCreation from './pages/TaxCreation/TaxCreation';
+
+
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -124,6 +127,7 @@ function App() {
           <Route path="/transactions/receipt-voucher" element={<ProtectedRoute><LayoutWithNavbar><Receiptvoucher /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/route-creation" element={<ProtectedRoute><LayoutWithNavbar><RouteCreationPage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/sales-register" element={<ProtectedRoute><LayoutWithNavbar><SalesRegister /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
    
     </Routes>
      <ToastContainer
