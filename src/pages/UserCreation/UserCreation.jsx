@@ -231,50 +231,54 @@ export default function UserCreation() {
   };
 
   const deleteUser = async (userId) => {
-    console.log("Deleting user with ID:", userId);
-    try {
-      setIsProcessing(true);
-      setError("");
-      
-      const response = await apiService.del(
-        API_ENDPOINTS.user_creation.delete(userId)
-      );
-      
-      console.log("Delete User Response:", response);
-      
-      if (response && response.data) {
-        return response.data;
+  console.log("Deleting user with ID:", userId);
+
+  try {
+    setIsProcessing(true);
+    setError("");
+
+    // response IS ALREADY res.data
+    const response = await apiService.del(
+      API_ENDPOINTS.user_creation.delete(userId)
+    );
+
+    console.log("Delete User Response:", response);
+    
+    return response ?? { success: true };
+
+  } 
+  catch (err) {
+    console.error("Delete User API Error:", err);
+
+    let errorMessage = "Failed to delete user";
+
+    if (err.response) {
+      const { status, data } = err.response;
+
+      if (status === 409) {
+        errorMessage =
+          data?.message ||
+          "User is referenced in other tables and cannot be deleted";
+      } else if (status === 404) {
+        errorMessage = "User not found";
+      } else {
+        errorMessage = data?.message || `Server error (${status})`;
       }
-      
-      return { success: true };
-      
-    } catch (err) {
-      console.error("Delete User API Error:", err);
-      
-      // Handle error messages
-      let errorMessage = "Failed to delete user";
-      if (err.response) {
-        const status = err.response.status;
-        const data = err.response.data;
-        
-        if (status === 409) {
-          errorMessage = "User is referenced in other tables and cannot be deleted";
-        } else if (status === 404) {
-          errorMessage = "User not found";
-        } else if (data && data.message) {
-          errorMessage = data.message;
-        } else {
-          errorMessage = `Server error (${status})`;
-        }
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      throw new Error(errorMessage);
-    } finally {
-      setIsProcessing(false);
+    } else if (err.message) {
+      errorMessage = err.message;
     }
-  };
+
+    // 🔥 IMPORTANT: set state so UI can show message
+    setError(errorMessage);
+     setShowDeleteConfirm(false); 
+    // ALSO rethrow if caller needs it
+    throw new Error(errorMessage);
+
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
 
   // ---------- effects ----------
   useEffect(() => {
@@ -441,7 +445,7 @@ export default function UserCreation() {
 
       const errorMsg = err.message || "Failed to create user";
       setError(errorMsg);
-      toast.error(errorMsg);
+     
     } finally {
       setIsProcessing(false);
     }
@@ -547,8 +551,8 @@ export default function UserCreation() {
         setShowDeleteWarning(true);
       } else {
         const errorDisplay = `Failed to delete user: ${errorMsg}`;
-        setError(errorDisplay);
-        toast.error(errorDisplay);
+        // setError(errorDisplay);
+        // toast.error(errorDisplay);
       }
       setConfirmDeleteOpen(false);
     } finally {
