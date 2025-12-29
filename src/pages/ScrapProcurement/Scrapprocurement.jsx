@@ -2380,7 +2380,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
             <thead>
               <tr>
                 <th style={styles.th}>S.No</th>
-                <th style={{ ...styles.th}}>Barcode</th>
+                {/* <th style={{ ...styles.th}}>Barcode</th> */}
                 <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Item Name</th>
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>TAX (%)</th>
@@ -2394,7 +2394,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
               {items.map((item, index) => (
                 <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
                   <td style={styles.td}>{item.sNo}</td>
-                  <td style={styles.td}>
+                  {/* <td style={styles.td}>
                     <input
                       style={focusedField === `scrapProductName-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.scrapProductName}
@@ -2409,7 +2409,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                       }}
                       onBlur={() => setFocusedField('')}
                     />
-                  </td>
+                  </td> */}
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
                   <div style={{ position: 'relative', width: '100%' }}>
                     <input
