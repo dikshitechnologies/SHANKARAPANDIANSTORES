@@ -371,69 +371,69 @@ const SalesReturn = () => {
   }, [billDetails, items, checkFormValidity]);
 
   // ---------- API FUNCTIONS ----------
-  // Fetch sales invoice bill list with pagination
-  const fetchSalesInvoiceBillList = async (page = 1, pageSize = 20) => {
-    try {
-      setIsLoadingBills(true);
-      const companyCode = '001';
-      const endpoint = API_ENDPOINTS.sales_return?.getBillList ? 
-        API_ENDPOINTS.sales_return.getBillList(companyCode, page, pageSize) : 
-        `Salesinvoices/salesbillList/${companyCode}?page=${page}&pageSize=${pageSize}`;
+ const fetchSalesInvoiceBillList = async (page = 1, pageSize = 20) => {
+  try {
+    setIsLoadingBills(true);
+    const companyCode = '001';
+    
+    // Use the new endpoint directly
+    const endpoint = API_ENDPOINTS.sales_return.getSalesInvoiceBillList(page, pageSize, companyCode);
+    
+    const response = await apiService.get(endpoint);
+    
+    if (response) {
+      let bills = [];
+      let totalCount = 0;
       
-      const response = await apiService.get(endpoint);
-      
-      if (response) {
-        let bills = [];
-        let totalCount = 0;
-        
-        if (response.data && Array.isArray(response.data)) {
-          bills = response.data;
-          totalCount = response.totalCount || response.total || bills.length;
-        } else if (Array.isArray(response)) {
-          bills = response;
-          totalCount = bills.length;
-        } else if (response.bills && Array.isArray(response.bills)) {
-          bills = response.bills;
-          totalCount = response.totalCount || response.total || bills.length;
-        }
-        
-        setSalesInvoiceBills(bills);
-        setTotalPages(Math.ceil(totalCount / pageSize));
-        return bills;
+      // Your existing response handling logic remains the same
+      if (response.data && Array.isArray(response.data)) {
+        bills = response.data;
+        totalCount = response.totalCount || response.total || bills.length;
+      } else if (Array.isArray(response)) {
+        bills = response;
+        totalCount = bills.length;
+      } else if (response.bills && Array.isArray(response.bills)) {
+        bills = response.bills;
+        totalCount = response.totalCount || response.total || bills.length;
       }
       
-      return [];
-    } catch (err) {
-      console.error("API Error fetching sales invoice bill list:", err);
-      setSalesInvoiceBills([]);
-      return [];
-    } finally {
-      setIsLoadingBills(false);
+      setSalesInvoiceBills(bills);
+      setTotalPages(Math.ceil(totalCount / pageSize));
+      return bills;
     }
-  };
+    
+    return [];
+  } catch (err) {
+    console.error("API Error fetching sales invoice bill list:", err);
+    setSalesInvoiceBills([]);
+    return [];
+  } finally {
+    setIsLoadingBills(false);
+  }
+};
 
-  // Fetch voucher details from sales invoice
-  const fetchSalesInvoiceVoucherDetails = async (voucherNo) => {
-    try {
-      setLoading(true);
-      const endpoint = API_ENDPOINTS.sales_return?.getVoucherDetails ? 
-        API_ENDPOINTS.sales_return.getVoucherDetails(voucherNo) : 
-        `Salesinvoices/GetVoucherDetails?voucherNo=${voucherNo}`;
-      
-      const response = await apiService.get(endpoint);
-      
-      if (response) {
-        return response;
-      }
-      
-      return null;
-    } catch (err) {
-      console.error("API Error fetching sales invoice voucher details:", err);
-      return null;
-    } finally {
-      setLoading(false);
+// Fetch voucher details from sales invoice
+const fetchSalesInvoiceVoucherDetails = async (voucherNo) => {
+  try {
+    setLoading(true);
+    
+    // Use the new endpoint directly
+    const endpoint = API_ENDPOINTS.sales_return.getVoucherDetails(voucherNo);
+    
+    const response = await apiService.get(endpoint);
+    
+    if (response) {
+      return response;
     }
-  };
+    
+    return null;
+  } catch (err) {
+    console.error("API Error fetching sales invoice voucher details:", err);
+    return null;
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Fetch details for specific bill
   const fetchBillDetailsForPopup = async (billNo) => {
@@ -1029,228 +1029,230 @@ setTimeout(() => {
 
 
   // ==================== CREATE SALES RETURN ====================
-  const createSalesReturn = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      // Check if we have items to create
-      const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
-      if (validItems.length === 0) {
-        throw new Error("No valid items to create. Please add items with quantity > 0.");
-      }
-      
-      // Prepare request data - CONVERT ALL VALUES TO STRINGS
-      const requestData = {
-        header: {
-          voucherNo: billDetails.billNo.toString(),
-          voucherDate: billDetails.billDate.toString(),
-          mobileNo: (billDetails.mobileNo || "").toString(),
-          customerCode: (billDetails.customerCode || "").toString(),
-          customerName: (billDetails.custName || "").toString(),
-          salesMansName: (billDetails.salesman || "").toString(),
-          salesMansCode: (billDetails.salesmanCode || "002").toString(),
-          compCode: "001",
-          userCode: "001",
-          billAMT: totalAmount.toFixed(2).toString(),
-          RefNo: (billDetails.newBillNo || "").toString(),
-        
-        },
-        items: validItems.map((item, index) => ({
-          barcode: (item.barcode || "").toString(),
-          itemName: (item.itemName || "").toString(),
-          itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-          stock: (item.stock || "0").toString(),
-          mrp: (item.mrp || "0").toString(),
-          uom: (item.uom || "").toString(),
-          hsn: (item.hsn || "").toString(),
-          tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
-          srate: (item.sRate || "0").toString(),
-          qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
-          amount: (item.amount || "0").toString(),
-          netAmount: (item.amount || "0").toString()
-        }))
-      };
-
-      console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
-      
-      const endpoint = "SalesReturn/SalesReturnCreate?SelectType=true";
-      const response = await apiService.post(endpoint, requestData);
-      
-      if (response && response.success) {
-        // toast.success(
-        //   `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
-        //   { autoClose: 3000 }
-        // );
-        
-        // Reset form after successful creation
-        await resetForm();
-        
-        return response;
-      } else {
-        // Check for specific error messages
-        const errorMessage = response?.message || 
-                            response?.error || 
-                            response?.Message || 
-                            "Failed to create sales return";
-        throw new Error(errorMessage);
-      }
-      
-    } catch (err) {
-      console.error("API Error in createSalesReturn:", err);
-      
-      // Detailed error logging
-      if (err.response) {
-        console.error("Response status:", err.response.status);
-        console.error("Response data:", err.response.data);
-        
-        // Extract server error message
-        let errorMsg = "Failed to create sales return";
-        const serverData = err.response.data;
-        
-        if (serverData) {
-          if (typeof serverData === 'string') {
-            errorMsg = serverData;
-          } else if (serverData.message) {
-            errorMsg = serverData.message;
-          } else if (serverData.Message) {
-            errorMsg = serverData.Message;
-          } else if (serverData.error) {
-            errorMsg = serverData.error;
-          } else if (serverData.errors) {
-            // Handle validation errors
-            const validationErrors = Object.values(serverData.errors).flat().join(', ');
-            errorMsg = `Validation Error: ${validationErrors}`;
-          }
-        }
-        
-        setError(errorMsg);
-        toast.error(`Create Error: ${errorMsg}`);
-      } else {
-        const errorMsg = err.message || "Failed to create sales return";
-        setError(errorMsg);
-        toast.error(`Error: ${errorMsg}`);
-      }
-      
-      throw err;
-    } finally {
-      setLoading(false);
+// ==================== CREATE SALES RETURN ====================
+const createSalesReturn = async () => {
+  try {
+    setLoading(true);
+    setError("");
+    
+    // Check if we have items to create
+    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+    if (validItems.length === 0) {
+      throw new Error("No valid items to create. Please add items with quantity > 0.");
     }
-  };
+    
+    // Prepare request data - CONVERT ALL VALUES TO STRINGS
+    const requestData = {
+      header: {
+        voucherNo: billDetails.billNo.toString(),
+        voucherDate: billDetails.billDate.toString(),
+        mobileNo: (billDetails.mobileNo || "").toString(),
+        customerCode: (billDetails.customerCode || "").toString(),
+        customerName: (billDetails.custName || "").toString(),
+        salesMansName: (billDetails.salesman || "").toString(),
+        salesMansCode: (billDetails.salesmanCode || "002").toString(),
+        compCode: "001",
+        userCode: "001",
+        billAMT: totalAmount.toFixed(2).toString(),
+        RefNo: (billDetails.newBillNo || "").toString(),
+      
+      },
+      items: validItems.map((item, index) => ({
+        barcode: (item.barcode || "").toString(),
+        itemName: (item.itemName || "").toString(),
+        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+        stock: (item.stock || "0").toString(),
+        mrp: (item.mrp || "0").toString(),
+        uom: (item.uom || "").toString(),
+        hsn: (item.hsn || "").toString(),
+        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
+        srate: (item.sRate || "0").toString(),
+        qty: (parseFloat(item.qty || 0)).toFixed(2).toString(), // ✅ POSITIVE quantity for return
+        amount: (item.amount || "0").toString(),
+        netAmount: (item.amount || "0").toString()
+      }))
+    };
+
+    console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
+    
+    const endpoint = "SalesReturn/SalesReturnCreate?SelectType=true";
+    const response = await apiService.post(endpoint, requestData);
+    
+    if (response && response.success) {
+      // toast.success(
+      //   `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+      //   { autoClose: 3000 }
+      // );
+      
+      // Reset form after successful creation
+      await resetForm();
+      
+      return response;
+    } else {
+      // Check for specific error messages
+      const errorMessage = response?.message || 
+                          response?.error || 
+                          response?.Message || 
+                          "Failed to create sales return";
+      throw new Error(errorMessage);
+    }
+    
+  } catch (err) {
+    console.error("API Error in createSalesReturn:", err);
+    
+    // Detailed error logging
+    if (err.response) {
+      console.error("Response status:", err.response.status);
+      console.error("Response data:", err.response.data);
+      
+      // Extract server error message
+      let errorMsg = "Failed to create sales return";
+      const serverData = err.response.data;
+      
+      if (serverData) {
+        if (typeof serverData === 'string') {
+          errorMsg = serverData;
+        } else if (serverData.message) {
+          errorMsg = serverData.message;
+        } else if (serverData.Message) {
+          errorMsg = serverData.Message;
+        } else if (serverData.error) {
+          errorMsg = serverData.error;
+        } else if (serverData.errors) {
+          // Handle validation errors
+          const validationErrors = Object.values(serverData.errors).flat().join(', ');
+          errorMsg = `Validation Error: ${validationErrors}`;
+        }
+      }
+      
+      setError(errorMsg);
+      toast.error(`Create Error: ${errorMsg}`);
+    } else {
+      const errorMsg = err.message || "Failed to create sales return";
+      setError(errorMsg);
+      toast.error(`Error: ${errorMsg}`);
+    }
+    
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ==================== UPDATE SALES RETURN ====================
-  const updateSalesReturn = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      // Check if we have items to update
-      const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
-      if (validItems.length === 0) {
-        throw new Error("No valid items to update. Please add items with quantity > 0.");
-      }
-      
-      // Prepare request data - CONVERT ALL VALUES TO STRINGS
-      const requestData = {
-        header: {
-          voucherNo: billDetails.billNo.toString(),
-          voucherDate: billDetails.billDate.toString(),
-          mobileNo: (billDetails.mobileNo || "").toString(),
-          customerCode: (billDetails.customerCode || "").toString(),
-          customerName: (billDetails.custName || "").toString(),
-          salesMansName: (billDetails.salesman || "").toString(),
-          salesMansCode: (billDetails.salesmanCode || "002").toString(),
-          compCode: "001",
-          userCode: "001",
-          billAMT: totalAmount.toFixed(2).toString(),
-          refNo: (billDetails.newBillNo || "").toString(),
-      
-        },
-        items: validItems.map((item, index) => ({
-          barcode: (item.barcode || "").toString(),
-          itemName: (item.itemName || "").toString(),
-          itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-          stock: (item.stock || "0").toString(),
-          mrp: (item.mrp || "0").toString(),
-          uom: (item.uom || "").toString(),
-          hsn: (item.hsn || "").toString(),
-          tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
-          srate: (item.sRate || "0").toString(),
-          qty: (-Math.abs(parseFloat(item.qty || 0))).toFixed(2).toString(), // Negative for returns
-          amount: (item.amount || "0").toString(),
-        
-        }))
-      };
-
-      console.log("Updating sales return with data:", JSON.stringify(requestData, null, 2));
-      
-      const endpoint = "SalesReturn/SalesReturnCreate?SelectType=false";
-      const response = await apiService.post(endpoint, requestData);
-      
-      if (response && response.success) {
-        // toast.success(
-        //   `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
-        //   { autoClose: 3000 }
-        // );
-        
-        // Reset form after successful update
-        await resetForm();
-        
-        return response;
-      } else {
-        const errorMessage = response?.message || 
-                            response?.error || 
-                            response?.Message || 
-                          "Failed to update sales return";
-        throw new Error(errorMessage);
-      }
-      
-    } catch (err) {
-      console.error("API Error in updateSalesReturn:", err);
-      
-      // Detailed error handling
-      if (err.response) {
-        console.error("Response status:", err.response.status);
-        console.error("Response data:", err.response.data);
-        
-        let errorMsg = "Failed to update sales return";
-        const serverData = err.response.data;
-        
-        if (serverData) {
-          if (typeof serverData === 'string') {
-            errorMsg = serverData;
-          } else if (serverData.message) {
-            errorMsg = serverData.message;
-          } else if (serverData.Message) {
-            errorMsg = serverData.Message;
-          } else if (serverData.error) {
-            errorMsg = serverData.error;
-          } else if (serverData.errors) {
-            // Handle validation errors
-            const validationErrors = Object.values(serverData.errors).flat().join(', ');
-            errorMsg = `Validation Error: ${validationErrors}`;
-          } else if (serverData.title) {
-            errorMsg = serverData.title;
-          }
-        }
-        
-        setError(errorMsg);
-        toast.error(`Update Error: ${errorMsg}`);
-      } else if (err.request) {
-        console.error("No response received:", err.request);
-        setError("No response from server. Please check your connection.");
-        toast.error("Update Error: No response from server. Please check your connection.");
-      } else {
-        const errorMsg = err.message || "Failed to update sales return";
-        setError(errorMsg);
-        toast.error(`Update Error: ${errorMsg}`);
-      }
-      
-      throw err;
-    } finally {
-      setLoading(false);
+// ==================== UPDATE SALES RETURN ====================
+const updateSalesReturn = async () => {
+  try {
+    setLoading(true);
+    setError("");
+    
+    // Check if we have items to update
+    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+    if (validItems.length === 0) {
+      throw new Error("No valid items to update. Please add items with quantity > 0.");
     }
-  };
+    
+    // Prepare request data - CONVERT ALL VALUES TO STRINGS
+    const requestData = {
+      header: {
+        voucherNo: billDetails.billNo.toString(),
+        voucherDate: billDetails.billDate.toString(),
+        mobileNo: (billDetails.mobileNo || "").toString(),
+        customerCode: (billDetails.customerCode || "").toString(),
+        customerName: (billDetails.custName || "").toString(),
+        salesMansName: (billDetails.salesman || "").toString(),
+        salesMansCode: (billDetails.salesmanCode || "002").toString(),
+        compCode: "001",
+        userCode: "001",
+        billAMT: totalAmount.toFixed(2).toString(),
+        refNo: (billDetails.newBillNo || "").toString(),
+    
+      },
+      items: validItems.map((item, index) => ({
+        barcode: (item.barcode || "").toString(),
+        itemName: (item.itemName || "").toString(),
+        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+        stock: (item.stock || "0").toString(),
+        mrp: (item.mrp || "0").toString(),
+        uom: (item.uom || "").toString(),
+        hsn: (item.hsn || "").toString(),
+        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
+        srate: (item.sRate || "0").toString(),
+        qty: (parseFloat(item.qty || 0)).toFixed(2).toString(), // ✅ POSITIVE quantity for return
+        amount: (item.amount || "0").toString(),
+      
+      }))
+    };
+
+    console.log("Updating sales return with data:", JSON.stringify(requestData, null, 2));
+    
+    const endpoint = "SalesReturn/SalesReturnCreate?SelectType=false";
+    const response = await apiService.post(endpoint, requestData);
+    
+    if (response && response.success) {
+      // toast.success(
+      //   `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+      //   { autoClose: 3000 }
+      // );
+      
+      // Reset form after successful update
+      await resetForm();
+      
+      return response;
+    } else {
+      const errorMessage = response?.message || 
+                          response?.error || 
+                          response?.Message || 
+                        "Failed to update sales return";
+      throw new Error(errorMessage);
+    }
+    
+  } catch (err) {
+    console.error("API Error in updateSalesReturn:", err);
+    
+    // Detailed error handling
+    if (err.response) {
+      console.error("Response status:", err.response.status);
+      console.error("Response data:", err.response.data);
+      
+      let errorMsg = "Failed to update sales return";
+      const serverData = err.response.data;
+      
+      if (serverData) {
+        if (typeof serverData === 'string') {
+          errorMsg = serverData;
+        } else if (serverData.message) {
+          errorMsg = serverData.message;
+        } else if (serverData.Message) {
+          errorMsg = serverData.Message;
+        } else if (serverData.error) {
+          errorMsg = serverData.error;
+        } else if (serverData.errors) {
+          // Handle validation errors
+          const validationErrors = Object.values(serverData.errors).flat().join(', ');
+          errorMsg = `Validation Error: ${validationErrors}`;
+        } else if (serverData.title) {
+          errorMsg = serverData.title;
+        }
+      }
+      
+      setError(errorMsg);
+      toast.error(`Update Error: ${errorMsg}`);
+    } else if (err.request) {
+      console.error("No response received:", err.request);
+      setError("No response from server. Please check your connection.");
+      toast.error("Update Error: No response from server. Please check your connection.");
+    } else {
+      const errorMsg = err.message || "Failed to update sales return";
+      setError(errorMsg);
+      toast.error(`Update Error: ${errorMsg}`);
+    }
+    
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ==================== DELETE SALES RETURN ====================
   const deleteSalesReturn = async (voucherNo) => {
