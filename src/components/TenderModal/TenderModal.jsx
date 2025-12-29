@@ -73,21 +73,63 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   });
 
   // Update form data when billData changes
-  useEffect(() => {
-    if (billData && isOpen) {
-      setFormData(prev => ({
-        ...prev,
-        billNo: billData.billNo || '',
-        salesman: billData.salesman || '',
-        date: billData.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
-        originalDate: billData.date || '',
-        grossAmt: billData.amount ? billData.amount.toString() : '',
-        billAmount: billData.amount ? billData.amount.toString() : '',
-      }));
-      // Fetch live drawer data when modal opens
-      fetchLiveDrawer();
-    }
-  }, [billData, isOpen, userData?.companyCode]);
+// Update form data when billData changes
+useEffect(() => {
+  if (billData && isOpen) {
+    // Create completely new form data - DON'T use ...prev
+    const newFormData = {
+      billNo: billData.billNo || '',
+      salesman: billData.salesman || '',
+      date: billData.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
+      originalDate: billData.date || '',
+      grossAmt: billData.amount ? billData.amount.toString() : '',
+      itemDAmt: '',
+      billAmount: billData.amount ? billData.amount.toString() : '',
+      billDiscountPercent: '',
+      billDiscAmt: '',
+      granTotal: billData.amount ? billData.amount.toString() : '',
+      roudOff: '',
+      scrapAmountBillNo: '',
+      scrapAmount: '',
+      salesReturnBillNo: '',
+      salesReturn: '',
+      netAmount: billData.amount ? billData.amount.toString() : '',
+      receivedCash: '',
+      issuedCash: '',
+      upi: '',
+      card: '',
+      balance: '',
+      isServiceCharge: false,
+      isCreditBill: false,
+      delivery: false,
+    };
+    
+    setFormData(newFormData);
+    
+    // Clear all collect and issue fields in denominations
+    setDenominations(prev => ({
+      500: { ...prev[500], collect: '', issue: '', closing: prev[500].available },
+      200: { ...prev[200], collect: '', issue: '', closing: prev[200].available },
+      100: { ...prev[100], collect: '', issue: '', closing: prev[100].available },
+      50: { ...prev[50], collect: '', issue: '', closing: prev[50].available },
+      20: { ...prev[20], collect: '', issue: '', closing: prev[20].available },
+      10: { ...prev[10], collect: '', issue: '', closing: prev[10].available },
+      5: { ...prev[5], collect: '', issue: '', closing: prev[5].available },
+      2: { ...prev[2], collect: '', issue: '', closing: prev[2].available },
+      1: { ...prev[1], collect: '', issue: '', closing: prev[1].available },
+    }));
+    
+    // Fetch live drawer data when modal opens
+    fetchLiveDrawer();
+    
+    // Focus on discount field
+    setTimeout(() => {
+      if (billDiscountPercentRef.current) {
+        billDiscountPercentRef.current.focus();
+      }
+    }, 100);
+  }
+}, [billData, isOpen, userData?.companyCode]);
 
   // Auto-focus on billDiscountPercent field when modal opens
   useEffect(() => {
@@ -689,16 +731,69 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
 
       console.log('API Response:', response);
 
-      if (response) {
-        setConfirmSaveOpen(false);
-        // Only close modal and refresh BillCollector (no page reload)
-        if (onSaveSuccess) {
-          onSaveSuccess();
-        }
-        if (onClose) {
-          onClose();
-        }
-      } else {
+   if (response) {
+  setConfirmSaveOpen(false);
+  
+  // Clear the form completely
+  const resetFormData = {
+    billNo: '',
+    salesman: '',
+    date: '',
+    originalDate: '',
+    grossAmt: '',
+    itemDAmt: '',
+    billAmount: '',
+    billDiscountPercent: '',
+    billDiscAmt: '',
+    granTotal: '',
+    roudOff: '',
+    scrapAmountBillNo: '',
+    scrapAmount: '',
+    salesReturnBillNo: '',
+    salesReturn: '',
+    netAmount: '',
+    receivedCash: '',
+    issuedCash: '',
+    upi: '',
+    card: '',
+    balance: '',
+    isServiceCharge: false,
+    isCreditBill: false,
+    delivery: false,
+  };
+  
+  setFormData(resetFormData);
+  
+  // Clear all collect and issue fields in denominations
+  setDenominations(prev => ({
+    500: { ...prev[500], collect: '', issue: '', closing: prev[500].available },
+    200: { ...prev[200], collect: '', issue: '', closing: prev[200].available },
+    100: { ...prev[100], collect: '', issue: '', closing: prev[100].available },
+    50: { ...prev[50], collect: '', issue: '', closing: prev[50].available },
+    20: { ...prev[20], collect: '', issue: '', closing: prev[20].available },
+    10: { ...prev[10], collect: '', issue: '', closing: prev[10].available },
+    5: { ...prev[5], collect: '', issue: '', closing: prev[5].available },
+    2: { ...prev[2], collect: '', issue: '', closing: prev[2].available },
+    1: { ...prev[1], collect: '', issue: '', closing: prev[1].available },
+  }));
+  
+  // Refresh parent component
+  if (onSaveSuccess) {
+    onSaveSuccess();
+  }
+  
+  // Don't close modal, keep it open for next entry
+  if (onClose) {
+    onClose();
+  }
+  
+  // Focus on discount field for next entry
+  setTimeout(() => {
+    if (billDiscountPercentRef.current) {
+      billDiscountPercentRef.current.focus();
+    }
+  }, 0);
+}else {
         setConfirmSaveOpen(false);
         alert('Failed to save tender details: ' + (response.data?.message || 'Unknown error'));
       }
