@@ -140,8 +140,12 @@ export const API_ENDPOINTS = {
     updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=false', // Same endpoint for both
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
-      getTaxList: (page = 1, pageSize = 10) =>
-  `TaxCreation/gettaxlist?page=${page}&pageSize=${pageSize}`,
+      
+      getSalesInvoiceBillList: (page = 1, pageSize = 20, compCode = "001") =>
+    `SalesReturn/Salesinvoicebilllist?page=${page}&pageSize=${pageSize}&compCode=${compCode}`,
+
+        // NEW: ADD THIS VOUCHER DETAILS ENDPOINT
+    getVoucherDetails: (voucherNo) => `SalesReturn/GetVoucherDetails?voucherNo=${voucherNo}`,
 
   },
   
