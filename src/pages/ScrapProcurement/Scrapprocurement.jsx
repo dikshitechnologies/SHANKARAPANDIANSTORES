@@ -110,7 +110,7 @@ const Scrapprocurement = () => {
   // Store all fetched data for filtering
   const [allSalesmen, setAllSalesmen] = useState([]);
   const [allCustomers, setAllCustomers] = useState([]);
-  const [allScrapItems, setAllScrapItems] = useState([]);
+  const [allTax, setAllTax] = useState([]);
 
   // Track which field is currently being searched
   const [activeSearchField, setActiveSearchField] = useState(null);
@@ -293,21 +293,33 @@ const Scrapprocurement = () => {
   }, []);
 
   // Fetch all scrap items when component mounts
-  useEffect(() => {
-    const fetchAllScrapItems = async () => {
-      try {
-        const url = API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_ITEMS;
-        const res = await axiosInstance.get(url);
-        const data = res?.data || [];
-        setAllScrapItems(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Error fetching scrap items:', error);
-        setAllScrapItems([]);
-      }
-    };
+      const fetchTax = async () => {
+        try {
+          const url = API_ENDPOINTS.Scrap_Procurement.GET_TAX_LIST;
+          const res = await axiosInstance.get(url);
+          // console.log("Tax fetch response:", res);
+        const data = res?.data?.data || [];
+        // console.log("Tax fetch data:", data);
+          const formatted = data
+            .map(t => ({
+              id: t.fcode,
+              tax: Number(t.ftaxName),   // e.g. 5, 12, 18
+              displayName: t.ftaxName
+            }))
+            .filter(t => !isNaN(t.tax));
+      // console.log("Formatted tax data:", formatted);
+          setAllTax(formatted);
+        } catch (error) {
+          console.error("Tax fetch failed:", error);
+          setAllTax([]);
+        }
+      };
 
-    fetchAllScrapItems();
-  }, []);
+useEffect(() => {
+  fetchTax();
+}, []);
+
+
 
   // Fix the initial fetch in useEffect
 useEffect(() => {
@@ -316,7 +328,7 @@ useEffect(() => {
       const url = API_ENDPOINTS.Scrap_Procurement.GET_SALESiNVOICE_ITEMS;
       const queryParams = new URLSearchParams({
         page: '1',
-        pageSize: '100' // Fetch more items initially
+        pageSize: '10' // Fetch more items initially
       });
       
       const fullUrl = `${url}?${queryParams.toString()}`;
@@ -331,8 +343,7 @@ useEffect(() => {
       setAllItems([]);
     }
   };
-
-  fetchAllItems();
+  
 }, []);
 
   // Handle salesman popup auto-open
@@ -1660,7 +1671,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '7px 12px' : '8px 12px',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '5px 10px' : '8px 12px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '4px' : '6px',
       boxSizing: 'border-box',
@@ -2001,9 +2012,9 @@ const fetchItemList = async (pageNum = 1, search = '') => {
     if (screenSize.isMobile) {
       return '1fr 1fr';
     } else if (screenSize.isTablet) {
-      return 'minmax(120px, 1fr) minmax(120px, 1fr) minmax(250px, 2fr) minmax(120px, 1fr) minmax(150px, 1.5fr)';
+      return 'minmax(150px, 1fr) minmax(150px, 1fr) minmax(200px, 2fr) minmax(150px, 1fr) minmax(150px, 1.5fr)';
     } else {
-      return 'minmax(130px, 1fr) minmax(130px, 1fr) minmax(300px, 2.5fr) minmax(130px, 1fr) minmax(180px, 2fr)';
+      return 'minmax(130px, 1fr) minmax(130px, 1fr) minmax(250px, 2fr) minmax(130px, 1fr) minmax(150px, 1.5fr)';
     }
   };
 
@@ -2106,7 +2117,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                 type="text"
                 style={{
                   ...styles.inlineInput,
-                  padding: screenSize.isMobile ? '6px 40px 6px 10px' : screenSize.isTablet ? '7px 40px 7px 12px' : '8px 40px 8px 12px',
+                  // padding: screenSize.isMobile ? '6px 40px 6px 10px' : screenSize.isTablet ? '8px 40px 8px 12px' : '8px 40px 8px 12px',
                   ...(focusedField === 'custName' && styles.focusedInput)
                 }}
                 value={billDetails.custName}
@@ -2224,7 +2235,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                 type="text"
                 style={{
                   ...styles.inlineInput,
-                  padding: screenSize.isMobile ? '6px 40px 6px 10px' : screenSize.isTablet ? '7px 40px 7px 12px' : '8px 40px 8px 12px',
+                  // padding: screenSize.isMobile ? '6px 40px 6px 10px' : screenSize.isTablet ? '7px 40px 7px 12px' : '8px 40px 8px 12px',
                   ...(focusedField === 'salesman' && styles.focusedInput)
                 }}
                 value={billDetails.salesman}
@@ -2419,9 +2430,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                         // Allow only numbers and empty input
                         if (value === '' || /^[0-9]*$/.test(value)) {
                           // Validate as user types
-                          if (value.length <= 2) { // Tax values are max 2 digits
-                            handleItemChange(item.id, 'tax', value);                            
-                          }
+                          handleItemChange(item.id, 'tax', value);
                         }
                       }}
                       onKeyDown={(e) => {
@@ -2443,14 +2452,14 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                       }}
                       onBlur={(e) => {
                         const value = e.target.value;
-                        const validTaxValues = ['0','3', '5', '12', '18', '40'];
+                        const validTaxValues = allTax.map(t => String(t.tax));
                         
                         // Validate on blur
                         if (value !== '' && !validTaxValues.includes(value)) {
                           showConfirmation({
                             title: 'Invalid Tax Rate',
-                            message: 'Not a valid tax rate. Please use one of: 0%, 3%, 5%, 12%, 18%, or 40%',
-                            type: 'info',
+                            message: 'Not a valid tax rate. Please use one of: ' + validTaxValues.join(', '),
+                            type: 'warning',
                             confirmText: 'OK',
                             cancelText: '',
                             showCancelButton: false,
@@ -2467,7 +2476,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                         setFocusedField('');
                       }}
                       // placeholder="3, 5, 12, 18, 40"
-                      maxLength="2"
+                      // maxLength="2"
                     />
                   </td>
                   <td style={styles.td}>
