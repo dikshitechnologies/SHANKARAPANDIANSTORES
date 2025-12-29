@@ -226,7 +226,7 @@ export default function ProductPage() {
       return response;
     } catch (err) {
       console.error("Update error details:", err.response || err);
-      setMessage({ type: "error", text: err.message || "Failed to update product" });
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Failed to update product" });
       throw err;
     } finally {
       setLoading(false);
@@ -317,7 +317,9 @@ export default function ProductPage() {
       setConfirmEditOpen(false);
     } catch (err) {
       // Error message already set in updateProduct
+      setConfirmEditOpen(false);
     } finally {
+      setConfirmEditOpen(false);
       setIsLoading(false);
     }
   };
