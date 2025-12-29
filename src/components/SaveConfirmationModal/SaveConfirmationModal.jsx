@@ -270,7 +270,7 @@ const SaveConfirmationModal = ({
       setValidationPopup({
         isOpen: true,
         title: 'Validation Error',
-        message: 'Collected amount is less than total amount. Please check the denominations entered.',
+        message: 'Bill Amount Mismatch. Please check the entered amounts.',
         type: 'warning',
         confirmText: 'OK',
         cancelText: null,
