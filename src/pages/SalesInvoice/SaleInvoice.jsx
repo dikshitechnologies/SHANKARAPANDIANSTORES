@@ -1209,7 +1209,7 @@ const handleCustomerSelect = (customer) => {
       barcodeInput.focus();
     }
     ignoreNextEnterRef.current = false;
-  }, 50);
+  }, 1050);
 };
 
 
@@ -1299,6 +1299,7 @@ const handleItemSelect = async (item) => {
     }, 200);
   }
 };
+
 
   // Get popup configuration
   const getPopupConfig = (type) => {

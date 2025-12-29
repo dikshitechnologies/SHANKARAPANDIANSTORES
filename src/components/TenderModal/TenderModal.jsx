@@ -15,6 +15,16 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const [activeFooterAction, setActiveFooterAction] = useState('all');
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [validationPopup, setValidationPopup] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    confirmText: 'OK',
+    cancelText: null,
+    action: null,
+    isLoading: false
+  });
   const collectFieldRefs = useRef({});
   const saveButtonRef = useRef(null);
   const billDiscountPercentRef = useRef(null);
@@ -550,7 +560,30 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   };
 
   const handleSave = () => {
-    // Just show the confirmation popup
+    // Validation logic before showing save confirmation
+    // Example: Net amount must match collected cash, and all required fields must be filled
+    let collected = 0;
+    [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+      const collectValue = Number(denominations[d]?.collect) || 0;
+      collected += collectValue * d;
+    });
+    const netAmount = Number(formData.netAmount) || 0;
+    const balance = collected - netAmount;
+    // Add more validation rules as needed
+    if (collected < netAmount) {
+      setValidationPopup({
+        isOpen: true,
+        title: 'Validation Error',
+        message: 'Collected amount is less than Net Amount. Please check the denominations entered.',
+        type: 'warning',
+        confirmText: 'OK',
+        cancelText: null,
+        action: null,
+        isLoading: false
+      });
+      return;
+    }
+    // Add more validation rules here if needed
     setConfirmSaveOpen(true);
   };
 
@@ -693,33 +726,44 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   };
 
   const handleClear = () => {
-    if (window.confirm('Are you sure you want to clear all data?')) {
-      setFormData({
-        billNo: billData?.billNo || '',
-        salesman: billData?.salesman || '',
-        date: billData?.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
-        grossAmt: billData?.amount ? billData.amount.toString() : '',
-        itemDAmt: '',
-        billAmount: billData?.amount ? billData.amount.toString() : '',
-        billDiscountPercent: '',
-        billDiscAmt: '',
-        granTotal: '',
-        roudOff: '',
-        scrapAmountBillNo: '',
-        scrapAmount: '',
-        salesReturnBillNo: '',
-        salesReturn: '',
-        netAmount: '',
-        receivedCash: '',
-        issuedCash: '',
-        upi: '',
-        card: '',
-        balance: '',
-        isServiceCharge: false,
-        isCreditBill: false,
-        delivery: false,
-      });
-      console.log('Cleared successfully!');
+    setFormData({
+      billNo: billData?.billNo || '',
+      salesman: billData?.salesman || '',
+      date: billData?.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
+      grossAmt: billData?.amount ? billData.amount.toString() : '',
+      itemDAmt: '',
+      billAmount: billData?.amount ? billData.amount.toString() : '',
+      billDiscountPercent: '',
+      billDiscAmt: '',
+      granTotal: '',
+      roudOff: '',
+      scrapAmountBillNo: '',
+      scrapAmount: '',
+      salesReturnBillNo: '',
+      salesReturn: '',
+      netAmount: '',
+      receivedCash: '',
+      issuedCash: '',
+      upi: '',
+      card: '',
+      balance: '',
+      isServiceCharge: false,
+      isCreditBill: false,
+      delivery: false,
+    });
+    setDenominations(prev => ({
+      500: { ...prev[500], collect: '', issue: '' },
+      200: { ...prev[200], collect: '', issue: '' },
+      100: { ...prev[100], collect: '', issue: '' },
+      50: { ...prev[50], collect: '', issue: '' },
+      20: { ...prev[20], collect: '', issue: '' },
+      10: { ...prev[10], collect: '', issue: '' },
+      5: { ...prev[5], collect: '', issue: '' },
+      2: { ...prev[2], collect: '', issue: '' },
+      1: { ...prev[1], collect: '', issue: '' },
+    }));
+    if (billDiscountPercentRef && billDiscountPercentRef.current) {
+      billDiscountPercentRef.current.focus();
     }
   };
 
@@ -1160,6 +1204,26 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         </div>
       </div>
 
+      {/* Validation Popup */}
+      <ConfirmationPopup
+        isOpen={validationPopup.isOpen}
+        title={validationPopup.title}
+        message={validationPopup.message}
+        type={validationPopup.type}
+        confirmText={validationPopup.confirmText}
+        cancelText={validationPopup.cancelText}
+        onConfirm={(e) => {
+          // Prevent event bubbling to modal overlay
+          if (e && e.stopPropagation) e.stopPropagation();
+          setValidationPopup(p => ({ ...p, isOpen: false }));
+        }}
+        onClose={(e) => {
+          // Prevent event bubbling to modal overlay
+          if (e && e.stopPropagation) e.stopPropagation();
+          setValidationPopup(p => ({ ...p, isOpen: false }));
+        }}
+        isLoading={validationPopup.isLoading}
+      />
       {/* Save Confirmation Popup */}
       <ConfirmationPopup
         isOpen={confirmSaveOpen}
