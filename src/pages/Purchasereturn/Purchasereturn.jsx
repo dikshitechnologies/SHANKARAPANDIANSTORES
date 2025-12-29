@@ -3055,6 +3055,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             mobileNo: s.phone || prev.mobileNo || '',
             gstno: s.gstNumber || prev.gstNumber || ''
           }));
+          setShowSupplierPopup(false);
+          setItemSearchTerm('');
+
+          // ✅ Focus back to Supplier Name input
+          setTimeout(() => {
+            if (nameRef.current) {
+              nameRef.current.focus();
+              nameRef.current.select(); // optional: selects text
+            }
+          }, 500);
         }}
       />     
       
