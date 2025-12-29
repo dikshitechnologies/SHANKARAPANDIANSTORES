@@ -382,7 +382,7 @@ const handleBlur = () => {
       setPopupMode('');
       setSelectedRowId(null);
       setAddLessAmount('');
-      
+      fetchAutoBarcode();
       // Clear table items first
       setItems([{
         id: 1, 
