@@ -382,7 +382,7 @@ const handleBlur = () => {
       setPopupMode('');
       setSelectedRowId(null);
       setAddLessAmount('');
-      
+      fetchAutoBarcode();
       // Clear table items first
       setItems([{
         id: 1, 
@@ -2738,7 +2738,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
                       onFocus={() => setFocusedField(`hsn-${item.id}`)}
                       onBlur={() => setFocusedField('')}
-                      readOnly
+                      
                     />
                   </td>
                   <td style={styles.td}>
