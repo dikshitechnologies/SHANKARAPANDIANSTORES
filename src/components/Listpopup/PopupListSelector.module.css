@@ -587,4 +587,12 @@
   animation: fadeIn 0.3s ease-out !important;
 }
 
+/* ============================
+   REMOVE BLACK FOCUS BORDER
+   ============================ */
+.listContent:focus,
+.listContent:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
 
