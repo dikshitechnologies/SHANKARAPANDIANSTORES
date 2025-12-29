@@ -85,6 +85,14 @@ const SaleInvoice = () => {
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [deleteConfirmationData, setDeleteConfirmationData] = useState(null);
   
+
+
+// 🔹 TAX MASTER LIST
+const [taxList, setTaxList] = useState([]);
+
+
+
+
   // State for tracking if customer selection message was shown
   const [customerMessageShown, setCustomerMessageShown] = useState(false);
   
@@ -366,7 +374,7 @@ const fetchCustomers = useCallback(async () => {
       id: customer.code || customer.partyCode || customer.id,
       code: customer.code || customer.partyCode,
       name: customer.name || customer.partyName,
-      originalCode: customer.code || customer.partyCode,
+     phoneNumber: customer.phonenumber || customer.mobile || "",
       displayName: customer.name || customer.partyName
     }));
 
@@ -378,6 +386,36 @@ const fetchCustomers = useCallback(async () => {
     setIsLoading(false);
   }
 }, []);
+
+
+
+
+// 🔹 Fetch Tax Master
+const fetchTaxList = useCallback(async (page = 1, pageSize = 10) => {
+  try {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getTaxList(page, pageSize)
+    );
+
+    const raw = Array.isArray(response?.data?.data)
+      ? response.data.data
+      : [];
+
+    const formatted = raw
+      .map(t => ({
+        id: t.fcode,
+        tax: Number(t.ftaxName), // assuming ftaxName = 5, 12, 18
+        displayName: t.ftaxName
+      }))
+      .filter(t => !isNaN(t.tax));
+
+    setTaxList(formatted);
+  } catch (err) {
+    console.error("Tax fetch failed", err);
+    setTaxList([]);
+  }
+}, []);
+
 
 
   // Fetch salesmen from backend API
@@ -838,6 +876,7 @@ useEffect(() => {
     await fetchCustomers();
     await fetchItems('FG'); // ✅ Use 'FG' for Finished Goods
     await fetchSalesmen();
+    await fetchTaxList(1, 10);
     await fetchSavedInvoices(1, '');
   };
   
@@ -1149,20 +1188,31 @@ useEffect(() => {
   };
 
 const handleCustomerSelect = (customer) => {
+  ignoreNextEnterRef.current = true; // block popup Enter
+
   setBillDetails(prev => ({
     ...prev,
     custName: customer.name,
-    custCode: customer.code
+    custCode: customer.code,
+    mobileNo: customer.phoneNumber || ""
   }));
 
   setCustomerPopupOpen(false);
 
-  // ✅ RESTORE FOCUS TO CUSTOMER INPUT
+  // ✅ FOCUS GOES TO BARCODE FIELD (FIRST ROW, BARCODE FIELD)
   setTimeout(() => {
-    custNameRef.current?.focus();
-    custNameRef.current?.select(); // optional: select text
-  }, 0);
+    // Find and focus the barcode field in the first row
+    const barcodeInput = document.querySelector(
+      'input[data-row="0"][data-field="barcode"]'
+    );
+    if (barcodeInput) {
+      barcodeInput.focus();
+    }
+    ignoreNextEnterRef.current = false;
+  }, 1050);
 };
+
+
 
 
   // Handle salesman selection
@@ -1250,6 +1300,7 @@ const handleItemSelect = async (item) => {
   }
 };
 
+
   // Get popup configuration
   const getPopupConfig = (type) => {
     const configs = {
@@ -1312,6 +1363,7 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
           id: customer.code || customer.id,
           code: customer.code,
           name: customer.name,
+          phoneNumber: customer.phoneNumber, 
           displayName: customer.name
         }));
         break;
@@ -2055,10 +2107,11 @@ const handleItemChange = (id, field, value) => {
       setIsLoading(true);
       setError(null);
 
-      // 🔒 FINAL SAFETY VALIDATION
-      if (!billDetails.salesman || !billDetails.custName) {
-        throw new Error("Salesman and Customer are required");
-      }
+    // 🔒 FINAL SAFETY VALIDATION
+if (!billDetails.custName || billDetails.custName.trim() === "") {
+  throw new Error("Customer is required");
+}
+
 
       const validItems = items.filter(
         item =>
@@ -2195,19 +2248,7 @@ const itemsData = validItems.map(item => ({
       return;
     }
 
-if (!billDetails.salesman || billDetails.salesman.trim() === "") {
-  if (!validationToastShownRef.current) {
-    validationToastShownRef.current = true;
 
-    toast.warning("Please fill the Salesman name", {
-      autoClose: 2000,
-      onClose: () => {
-        validationToastShownRef.current = false; // reset after close
-      }
-    });
-  }
-  return;
-}
 
 
  if (!billDetails.custName || billDetails.custName.trim() === "") {
@@ -3493,30 +3534,82 @@ if (!billDetails.salesman || billDetails.salesman.trim() === "") {
                       onBlur={() => setFocusedField('')}
                     />
                   </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `tax-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.tax}
-                      data-row={index}
-                      data-field="tax"
-                      onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const sRateInput = document.querySelector(`input[data-row="${index}"][data-field="sRate"]`);
-                          if (sRateInput) {
-                            sRateInput.focus();
-                            return;
-                          }
-                        }
-                        handleTableKeyDown(e, index, 'tax');
-                      }}
+<td style={styles.td}>
+  <input
+    list={`tax-list-${item.id}`}
+    style={
+      focusedField === `tax-${item.id}`
+        ? styles.editableInputFocused
+        : styles.editableInput
+    }
+    value={item.tax}
+    data-row={index}
+    data-field="tax"
+    onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
+
+    onKeyDown={(e) => {
+      const allowedTaxes = taxList.map(t => String(t.tax));
+      const value = String(item.tax || '');
+
+      // ❌ BLOCK navigation if tax is invalid
+      if (
+        (e.key === 'Enter' || e.key === 'Tab') &&
+        value &&
+        !allowedTaxes.includes(value)
+      ) {
+        e.preventDefault();
+        toast.warning(
+  `Invalid tax. Allowed: ${allowedTaxes.join(', ')}`,
+  {
+    autoClose: 2000,
+    toastId: `invalid-tax-${item.id}` // 🔥 IMPORTANT
+  }
+);
+
+        return; // ⛔ STOP HERE
+      }
+
+      // ✅ EXISTING ENTER FLOW (UNCHANGED)
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const sRateInput = document.querySelector(
+          `input[data-row="${index}"][data-field="sRate"]`
+        );
+        if (sRateInput) {
+          sRateInput.focus();
+          return;
+        }
+      }
+
+      handleTableKeyDown(e, index, 'tax');
+    }}
+
+    onBlur={(e) => {
+      const allowedTaxes = taxList.map(t => String(t.tax));
+      const value = e.target.value;
+
+      // ❌ Clear invalid value BUT keep focus behavior correct
+      if (value && !allowedTaxes.includes(String(value))) {
+        handleItemChange(item.id, 'tax', '');
+        e.target.focus(); // 🔥 FORCE STAY HERE
+        return;
+      }
+
+      setFocusedField('');
+    }}
+
+    step="0.01"
+  />
+
+  <datalist id={`tax-list-${item.id}`}>
+    {taxList.map((t) => (
+      <option key={t.id} value={t.tax} />
+    ))}
+  </datalist>
+</td>
 
 
-                      onBlur={() => setFocusedField('')}
-                      step="0.01"
-                    />
-                  </td>
+
                   <td style={styles.td}>
                     <input
                       style={focusedField === `sRate-${item.id}` ? styles.editableInputFocused : styles.editableInput}

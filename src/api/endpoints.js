@@ -119,17 +119,17 @@ export const API_ENDPOINTS = {
 
 // In your api/endpoints.js
 
-  sales_return: {
-    getMaxVoucherNo: (companyCode) => `/SalesReturn/getMaxVoucherNo/${companyCode}`,
-    getCustomers: 'SalesReturn/GetPartyByParent',
-    getBillList: (companyCode, page, pageSize) => `SalesReturn/GetSalesInvoiceBillList/${companyCode}?page=${page}&pageSize=${pageSize}`,
-    getVoucherDetails: (voucherNo) => `SalesReturn/GetSalesInvoiceVoucherDetails?voucherNo=${voucherNo}`,
-    getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
-    createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
-    // Note: No separate update endpoint - use create endpoint with SelectType=false
-    deleteSalesReturn: (voucherNo, companyCode) => `SalesReturn/DeleteSalesReturn/${voucherNo}?compCode=${companyCode}`,
-    getSalesReturnDetails: (voucherNo, companyCode) => `SalesReturn/GetSalesReturn/${voucherNo}/${companyCode}`,
-  },
+  // sales_return: {
+  //   getMaxVoucherNo: (companyCode) => `/SalesReturn/getMaxVoucherNo/${companyCode}`,
+  //   getCustomers: 'SalesReturn/GetPartyByParent',
+  //   getBillList: (companyCode, page, pageSize) => `SalesReturn/GetSalesInvoiceBillList/${companyCode}?page=${page}&pageSize=${pageSize}`,
+  //   getVoucherDetails: (voucherNo) => `SalesReturn/GetSalesInvoiceVoucherDetails?voucherNo=${voucherNo}`,
+  //   getVoucherList: (companyCode) => `SalesReturn/VoucherList/${companyCode}`,
+  //   createSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=true',
+  //   // Note: No separate update endpoint - use create endpoint with SelectType=false
+  //   deleteSalesReturn: (voucherNo, companyCode) => `SalesReturn/DeleteSalesReturn/${voucherNo}?compCode=${companyCode}`,
+  //   getSalesReturnDetails: (voucherNo, companyCode) => `SalesReturn/GetSalesReturn/${voucherNo}/${companyCode}`,
+  // },
  
 
   sales_return:{
@@ -140,6 +140,9 @@ export const API_ENDPOINTS = {
     updateSalesReturn: 'SalesReturn/SalesReturnCreate?SelectType=false', // Same endpoint for both
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
+      getTaxList: (page = 1, pageSize = 10) =>
+  `TaxCreation/gettaxlist?page=${page}&pageSize=${pageSize}`,
+
   },
   
   SCRAP_RATE_FIXING: {
@@ -245,6 +248,9 @@ CATEGORY: {
   getPurchaseStockDetailsByBarcode: (barcode) =>
     `Salesinvoices/GetpurchaseStockDetails?barcode=${barcode}`,
 
+  getTaxList: (page = 1, pageSize = 10) =>
+  `TaxCreation/gettaxlist?page=${page}&pageSize=${pageSize}`,
+
 },
 
   Scrap_Procurement: {
@@ -274,12 +280,21 @@ CATEGORY: {
   SALESRETURN: {
   GET_SALESRETURN_TENDER: (vouchNo) => `SalesReturn/SalesReturnTender?vouchNo=${vouchNo}`,
 },
-  TAX: {
-    GET_TAX_LIST: '/TaxCreation/gettaxlist',
-    CREATE_TAX: '/TaxCreation/TaxCreation',
-    UPDATE_TAX: '/TaxCreation/TaxCreation', // Same as create for update
-    DELETE_TAX: (code) => `/TaxCreation/Delete/${code}`,
-  },
+ TAX: {
+  // GET with pagination
+  GET_TAX_LIST: (page = 1, pageSize = 10) =>
+    `/TaxCreation/gettaxlist?page=${page}&pageSize=${pageSize}`,
+
+  // CREATE (selecttype = true)
+  CREATE_TAX: `/TaxCreation/TaxCreation?selecttype=true`,
+
+  // UPDATE (selecttype = false)
+  UPDATE_TAX: `/TaxCreation/TaxCreation?selecttype=false`,
+
+  // DELETE by code
+  DELETE_TAX: (code) => `/TaxCreation/Delete/${code}`,
+},
+
 
 PAYMENTVOUCHER: {
   GETNEXTVNUMBER: (compCode) => `PaymentVoucher/GetNextVoucher?compCode=${compCode}`,
