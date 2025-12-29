@@ -561,20 +561,21 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
 
   const handleSave = () => {
     // Validation logic before showing save confirmation
-    // Example: Net amount must match collected cash, and all required fields must be filled
-    let collected = 0;
-    [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-      const collectValue = Number(denominations[d]?.collect) || 0;
-      collected += collectValue * d;
-    });
-    const netAmount = Number(formData.netAmount) || 0;
-    const balance = collected - netAmount;
-    // Add more validation rules as needed
-    if (collected < netAmount) {
+    // Net Amount = (Received Cash + UPI + Card) - Issued Cash
+    const receivedCash = Number(formData.receivedCash) || 0;
+    const upi = Number(formData.upi) || 0;
+    const card = Number(formData.card) || 0;
+    // Calculate total issued cash from all denominations
+    const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
+      return sum + ((Number(data.issue) || 0) * Number(denom));
+    }, 0);
+    const calculatedNetAmount = (receivedCash + upi + card) - totalIssuedCash;
+    const formNetAmount = Number(formData.netAmount) || 0;
+    if (calculatedNetAmount !== formNetAmount) {
       setValidationPopup({
         isOpen: true,
         title: 'Validation Error',
-        message: 'Collected amount is less than Net Amount. Please check the denominations entered.',
+        message: 'Bill Amount Mismatch. Please check the entered amounts.',
         type: 'warning',
         confirmText: 'OK',
         cancelText: null,
@@ -583,7 +584,6 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
       });
       return;
     }
-    // Add more validation rules here if needed
     setConfirmSaveOpen(true);
   };
 
@@ -691,14 +691,12 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
 
       if (response) {
         setConfirmSaveOpen(false);
-        // Close modal and reload page
-        setTimeout(() => {
-          onClose();
-          window.location.reload();
-        }, 300);
-        // Call parent callback to refresh the bill list
+        // Only close modal and refresh BillCollector (no page reload)
         if (onSaveSuccess) {
           onSaveSuccess();
+        }
+        if (onClose) {
+          onClose();
         }
       } else {
         setConfirmSaveOpen(false);
