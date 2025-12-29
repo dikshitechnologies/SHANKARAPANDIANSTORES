@@ -296,12 +296,12 @@ const ItemCreation = ({ onCreated }) => {
     }
   }, [actionType, formData.itemName, formData.fitemCode]);
 
-  // Auto-focus Group Name on component mount
-  useEffect(() => {
-    if (groupNameRef.current) {
-      groupNameRef.current.focus();
-    }
-  }, []);
+  // Auto-focus Item Name on component mount
+useEffect(() => {
+  if (itemNameRef.current) {
+    itemNameRef.current.focus();
+  }
+}, []);
 
   useEffect(() => {
     loadInitial();
@@ -2232,7 +2232,42 @@ const ItemCreation = ({ onCreated }) => {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
-            {/* Group Name field */}
+           
+            {/* Item Name field */}
+            <div className="field">
+              <label className="field-label">Item Name <span className="asterisk">*</span></label>
+              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "linear-gradient(180deg, #fff, #fbfdff)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <input
+                    ref={itemNameRef}
+                    className="input"
+                    value={formData.itemName}
+                    onChange={(e) => handleChange('itemName', e.target.value)}
+                    
+                    disabled={isSubmitting || isDeleteMode}
+                    aria-label="Item Name"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      minWidth: "120px",
+                      fontSize: "14px",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+             {/* Group Name field */}
         <div className="field">
   <label className="field-label">Group Name <span className="asterisk">*</span></label>
   <div className="row" style={{ display: "flex", alignItems: "center" }}>
@@ -2453,40 +2488,6 @@ const ItemCreation = ({ onCreated }) => {
     )
   )}
 </div>
-            {/* Item Name field */}
-            <div className="field">
-              <label className="field-label">Item Name <span className="asterisk">*</span></label>
-              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-                <div style={{
-                  display: "flex",
-                  flex: 1,
-                  border: "1px solid rgba(15,23,42,0.06)",
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  background: "linear-gradient(180deg, #fff, #fbfdff)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                }}>
-                  <input
-                    ref={itemNameRef}
-                    className="input"
-                    value={formData.itemName}
-                    onChange={(e) => handleChange('itemName', e.target.value)}
-                    
-                    disabled={isSubmitting || isDeleteMode}
-                    aria-label="Item Name"
-                    style={{
-                      flex: 1,
-                      border: "none",
-                      borderRadius: 0,
-                      padding: "10px 12px",
-                      minWidth: "120px",
-                      fontSize: "14px",
-                      outline: "none"
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Short Name field */}
             <div className="field">
@@ -2812,8 +2813,10 @@ const ItemCreation = ({ onCreated }) => {
   />
 </div>
               {/* RIGHT SIDE: Type Dropdown - MOVED to replace Piece Rate */}
-          <div className="field">
-  <label className="field-label">Type</label>
+      <div className="field">
+  <label className="field-label">
+    Type <span style={{ color: 'red' }}>*</span>
+  </label>
   <select
     ref={typeRef}
     className="select"
@@ -2831,7 +2834,7 @@ const ItemCreation = ({ onCreated }) => {
         e.preventDefault();
         // Toggle dropdown on Enter
         if (selectElement.size === 0) {
-          selectElement.size = TYPE_OPTIONS.length; // Open dropdown (removed +1)
+          selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
         } else {
           selectElement.size = 0; // Close dropdown
           handleChange('type', selectElement.value);
@@ -2842,7 +2845,7 @@ const ItemCreation = ({ onCreated }) => {
         
         if (selectElement.size === 0) {
           // If dropdown is closed, open it first
-          selectElement.size = TYPE_OPTIONS.length; // Removed +1
+          selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
           return;
         }
         
@@ -2863,7 +2866,7 @@ const ItemCreation = ({ onCreated }) => {
         
         if (selectElement.size === 0) {
           // If dropdown is closed, open it first
-          selectElement.size = TYPE_OPTIONS.length; // Removed +1
+          selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
           return;
         }
         
@@ -2887,7 +2890,7 @@ const ItemCreation = ({ onCreated }) => {
     onClick={(e) => {
       // Toggle dropdown on click
       if (e.target.size === 0) {
-        e.target.size = TYPE_OPTIONS.length; // Removed +1
+        e.target.size = 3; // 3 options: empty placeholder + scrap + finished
       } else {
         e.target.size = 0;
       }
@@ -2896,12 +2899,13 @@ const ItemCreation = ({ onCreated }) => {
     disabled={isSubmitting || isDeleteMode}
     aria-label="Type"
     style={{ textAlign: "center", width: 300 }}
+    required // This makes it mandatory for HTML form validation
   >
-    {TYPE_OPTIONS.map(option => (
-      <option key={option.value} value={option.value}>
-        {option.label}
-      </option>
-    ))}
+    <option value="" disabled selected>
+      {/* Empty placeholder */}
+    </option>
+    <option value="scrap">Scrap Product</option>
+    <option value="finished">Finished Product</option>
   </select>
 </div>
               {/* LEFT SIDE: GST Checkbox */}
@@ -2946,11 +2950,11 @@ const ItemCreation = ({ onCreated }) => {
     }}
     onBlur={() => {
       // Validate GST value when user leaves the field
-      const allowedGSTValues = ['3', '5', '12', '18', '28'];
+      const allowedGSTValues = ['0', '3', '5', '12', '18', '28'];
       const gstValue = formData.gstin;
       if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
         // Show error message
-        setMessage({ type: "error", text: 'Only 3, 5, 12, 18, or 28 are allowed for GST%.' });
+        setMessage({ type: "error", text: 'Only 0, 3, 5, 12, 18,, or 28 are allowed for GST%.' });
         // Clear invalid value
         handleChange('gstin', '');
         // Focus back to show error

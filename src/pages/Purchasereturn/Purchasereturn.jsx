@@ -382,7 +382,7 @@ const handleBlur = () => {
       setPopupMode('');
       setSelectedRowId(null);
       setAddLessAmount('');
-      
+      fetchAutoBarcode();
       // Clear table items first
       setItems([{
         id: 1, 
@@ -1091,64 +1091,69 @@ const handleBlur = () => {
 };
 
 const calculateItem = (item) => {
-  const qty   = +item.qty || 0;
-  const ovrwt = +item.ovrwt || 0;
-  const prate = +item.prate || 0;
-  const asRate = +item.asRate || 0;
-  const intax = +item.intax || 0;
-  const wsPercent = +item.wsPercent || 0;
-  const uom = item.uom?.toUpperCase() || "";
+  const qty       = Number(item.qty) || 0;
+  const ovrwt     = Number(item.ovrwt) || 0;
+  const prate     = Number(item.prate) || 0;
+  const asRate    = Number(item.asRate) || 0;
+  const intax     = Number(item.intax) || 0;
+  const wsPercent = Number(item.wsPercent) || 0;
 
-  /* ---------- SUDO → profitPercent ---------- */
+  let acost = 0;
+  let ntCost = 0;
+  let amt = 0;
+
+  /* ---------- PROFIT % ---------- */
   const fseudoMap = userData?.fseudo || fseudo || {};
   const letterToNum = Object.values(fseudoMap).reduce((a, l, i) => {
     if (typeof l === "string") a[l.toLowerCase()] = i;
     return a;
   }, {});
 
-  // Convert sudo letters to profit percent
-  // Only convert if sudo has valid letters, otherwise use profitPercent field value or 0
-  const profitPercent = item.sudo && item.sudo.trim()
-    ? item.sudo.toLowerCase().split("").map(c => letterToNum[c] ?? "").filter(v => v !== "").join("")
-    : (+item.profitPercent || 0);
+  const profitPercent = item.sudo?.trim()
+    ? Number(
+        item.sudo
+          .toLowerCase()
+          .split("")
+          .map(c => letterToNum[c] ?? "")
+          .join("")
+      ) || 0
+    : Number(item.profitPercent) || 0;
 
-  /* ---------- CORE CALCULATIONS ---------- */
-  const avgwt = qty ? (ovrwt / qty).toFixed(2) : "";
+  /* ---------- CORE ---------- */
+  let avgwt = 0;
 
-  // ACost calculation priority: AvgWt * PRate > Qty * PRate > 0
-  const acost = avgwt && +avgwt > 0
-    ? (+avgwt || 0) * prate
-    : qty ? qty * prate
-    : 0;
+  if (ovrwt > 0) {
+    avgwt = qty ? ovrwt / qty : 0;
+    acost = avgwt * prate;
+    ntCost = acost;
+    amt = ovrwt * prate;
+  } else {
+    // 🔑 PRate-only calculation
+    acost = prate;
+    ntCost = prate;
+    amt = qty * prate;
+  }
 
-  const sRate = acost ? (acost + +profitPercent).toFixed(2) : "";
-  const ntCost = acost ? acost.toFixed(2) : "";
+  // Tax
+  amt = amt + (amt * intax) / 100;
 
-  const letProfPer =
-    asRate && acost ? ((asRate - acost) * 100 / 100).toFixed(2)
-    : "";
-
-  const wsRate = acost
-    ? (acost + acost * wsPercent / 100).toFixed(2)
-    : "";
-
-  // Amt = InTax % of NTCost + NTCost
-  const amt = ntCost
-    ? (parseFloat(ntCost) + parseFloat(ntCost) * intax / 100).toFixed(2)
-    : "";
+  const sRate = acost + (acost * profitPercent) / 100;
+  const letProfPer = acost ? ((asRate - acost) / acost) * 100 : 0;
+  const wsRate = ntCost + (ntCost * wsPercent) / 100;
 
   return {
     ...item,
-    profitPercent,
-    avgwt,
-    acost: acost ? acost.toFixed(2) : "",
-    sRate,
-    ntCost,
-    letProfPer,
-    wsRate,
-    amt
+    avgwt: avgwt ? avgwt.toFixed(2) : "",
+    acost: acost.toFixed(2),
+    ntCost: ntCost.toFixed(2),
+    sRate: sRate.toFixed(2),
+    letProfPer: letProfPer.toFixed(2),
+    wsRate: wsRate.toFixed(2),
+    amt: amt.toFixed(2),
+    profitPercent
   };
 };
+
 
   // Handle UOM spacebar cycling (same as SalesInvoice)
   const handleUomSpacebar = (e, id, index) => {
@@ -2662,8 +2667,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
                       onFocus={() => setFocusedField(`hsn-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                      readOnly
+                      onBlur={() => setFocusedField('')}                      
                     />
                   </td>
                   <td style={styles.td}>
@@ -3050,6 +3054,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             mobileNo: s.phone || prev.mobileNo || '',
             gstno: s.gstNumber || prev.gstNumber || ''
           }));
+          setShowSupplierPopup(false);
+          setItemSearchTerm('');
+
+          // ✅ Focus back to Supplier Name input
+          setTimeout(() => {
+            if (nameRef.current) {
+              nameRef.current.focus();
+              nameRef.current.select(); // optional: selects text
+            }
+          }, 500);
         }}
       />     
       
