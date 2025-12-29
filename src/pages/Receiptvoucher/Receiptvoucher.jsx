@@ -545,6 +545,36 @@ const ReceiptVoucher = () => {
       e.preventDefault();
       const currentItem = receiptItems[rowIndex];
 
+      // Check if Chq No and Chq Dt are mandatory when type is CHQ
+      if (currentItem.type === 'CHQ') {
+        if (fieldType === 'chqNo' && !currentItem.chqNo.trim()) {
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: 'Chq No is mandatory',
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          return;
+        }
+        if (fieldType === 'chqDt' && !currentItem.chqDt) {
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: 'Chq Dt is mandatory',
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          return;
+        }
+      }
+
       // Check if Cash/Bank is empty
       const isCashBankEmpty = !currentItem.cashBank.trim();
 
@@ -1877,6 +1907,21 @@ const ReceiptVoucher = () => {
 
   // Handle save with confirmation
   const handleSave = async () => {
+        // Validate all CHQ rows before saving
+        const missingChq = receiptItems.find(item => (item.type || '').toString().trim().toUpperCase() === 'CHQ' && (!item.chqNo?.trim() || !item.chqDt));
+        if (missingChq) {
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Validation Error',
+            message: 'Chq No and Chq Dt are mandatory for cheque entries. Please fill them before saving.',
+            type: 'warning',
+            confirmText: 'OK',
+            cancelText: null,
+            action: null,
+            isLoading: false
+          });
+          return;
+        }
     // === PERMISSION CHECK ===
     const action = isEditing ? 'edit' : 'add';
     const hasPermission = action === 'add' ? formPermissions.add : formPermissions.edit;

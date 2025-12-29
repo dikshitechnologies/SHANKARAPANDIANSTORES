@@ -739,12 +739,14 @@ export default function LedgerCreation({ onCreated }) {
           );
           if (isDuplicate) {
             // toast.error('A ledger with this name already exists. Please choose a different name.');
+            setMessage({ type: "error", text: 'A ledger with this name already exists. Please choose a different name.' });
             setIsSubmitting(false);
             return;
           }
         } catch (error) {
           console.error('Error checking for duplicates:', error);
           // toast.error('Failed to verify ledger uniqueness. Please try again.');
+          setMessage({ type: "error", text: 'Failed to verify ledger uniqueness. Please try again.' });
           setIsSubmitting(false);
           return;
         }
@@ -807,8 +809,7 @@ export default function LedgerCreation({ onCreated }) {
       console.log('Delete response:', response);
           break;
         default:
-          // toast.error('Invalid action type');
-          return;
+        return;
       }
 
         handleClear();
@@ -816,6 +817,7 @@ export default function LedgerCreation({ onCreated }) {
       
       
     } catch (error) {
+      setMessage({ type: "error", text: error.response?.data?.message || error.message || 'An unexpected server error occurred.' });
       console.error('Submit error:', error);
       if (error.response) {
         const status = error.response.status;

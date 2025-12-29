@@ -264,6 +264,7 @@ CATEGORY: {
     DELETE_SCRAP_PROCUREMENT: (voucherNo) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/001`,
     GET_CUSTOMER_LIST: (page,pageSize) => `Salesinvoices/GetPartyByParent?pageNumber=${page}&pageSize=${pageSize}`,
     GET_ITEM_LIST :(page,pageSize) => `Salesinvoices/GetItemsByType?type=SC&page=${page}&pageSize=${pageSize}`,
+    GET_TAX_LIST: "TaxCreation/gettaxlist",
   },
     TENDER: {
     opening: "Tender/opening",
