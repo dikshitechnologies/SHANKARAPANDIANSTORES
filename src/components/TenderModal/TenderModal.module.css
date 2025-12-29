@@ -237,18 +237,21 @@
 
 .billAmountField {
   background: #e3f2fd;
-  color: #1e88e5;
+  color: #000000;
   border-color: #90caf9;
-  font-weight: 600;
+  font-weight: bold;
   text-align: right;
+  font-size: medium;
 }
 
 .netAmountField {
   background: #e8f5e9;
-  color: #2e7d32;
+  color: #000000;
   border-color: #81c784;
-  font-weight: 600;
+  font-weight: bold;
   text-align: right;
+  font-size: medium;
+
 }
 
 /* Checkboxes */
@@ -474,10 +477,10 @@
   padding: 0 12px;
   border: 2.5px solid #b0b0b0;
   border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: medium;
+  font-weight: bold;
   background: white;
-  color: #222;
+  color: #000000;
   transition: border-color 0.2s;
 }
 
@@ -500,9 +503,11 @@
 
 .readonlyPayment {
   background: #fafafa;
-  color: #666;
+  color: #000000;
   border-color: #d9d9d9;
   cursor: not-allowed;
+  font-size: medium;
+  font-weight: bold;
 }
 
 .balanceField {
