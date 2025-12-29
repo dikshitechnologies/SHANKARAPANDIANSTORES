@@ -202,19 +202,30 @@ const updateDesign = async (designData) => {
 };
 
 
-  const deleteDesign = async (designCode) => {
-    try {
-      setLoading(true);
-      const data = await apiService.del(API_ENDPOINTS.DESIGNCREATION.DELETE_DESIGN(designCode));
-      return data;
-    } catch (err) {
-      setMessage({ type: "error", text: err.response.data.message || "Failed to delete design" });
-      console.error("API Error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+ const deleteDesign = async (designCode) => {
+  try {
+    setLoading(true);
+    return await apiService.del(
+      API_ENDPOINTS.DESIGNCREATION.DELETE_DESIGN(designCode)
+    );
+
+  } catch (err) {
+    const errorText =
+      err?.response?.data?.message ||
+      "Failed to delete design";
+
+    setMessage({
+      type: "error",
+      text: errorText
+    });
+
+    throw err;
+
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // ---------- effects ----------
   useEffect(() => {
@@ -324,28 +335,39 @@ const updateDesign = async (designData) => {
     setConfirmDeleteOpen(true);
   };
 
-  const confirmDelete = async () => {
-    setIsLoading(true);
-    try {
-      await deleteDesign(form.designCode);
-      await loadInitial();
-      
-      setMessage({ type: "success", text: "Design deleted successfully." });
-      // toast.error("Design deleted successfully.");
-      resetForm();
-      setConfirmDeleteOpen(false);
-    } catch (err) {
-      // Special handling for referenced designs
-      if (err.message.includes("used in related tables") || err.message.includes("409")) {
-        setMessage({ 
-          type: "error", 
-          text: `Cannot delete design "${form.designName}". It is referenced in other tables and cannot be removed.` 
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+ const confirmDelete = async () => {
+  setIsLoading(true);
+
+  try {
+    await deleteDesign(form.designCode);
+    await loadInitial();
+
+    setMessage({
+      type: "success",
+      text: "Design deleted successfully."
+    });
+
+    resetForm();
+
+  } catch (err) {
+    const errorText =
+      err?.response?.data?.message ||
+      err?.message ||
+      "Failed to delete design";
+
+    console.error("Delete error:", errorText);
+
+    setMessage({
+      type: "error",
+      text: errorText
+    });
+
+  } finally {
+    setIsLoading(false);
+    setConfirmDeleteOpen(false); // 🔥 MUST close popup always
+  }
+};
+
 
   const handleAdd = () => { // REMOVED async - SHOWS CONFIRMATION POPUP
     // === PERMISSION CHECK ===
