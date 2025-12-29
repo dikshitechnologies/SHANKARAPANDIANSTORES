@@ -96,8 +96,7 @@ const Navbar = () => {
     // { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
         { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined />, permission: 'USER_CREATION' },
         { name: 'Administration', path: '/Administration', icon: <BuildOutlined />, permission: 'ADMINISTRATION' },
-    
-
+    { name: 'Tax Creation', path: '/masters/Tax-Creation', icon: <BuildOutlined />, permission: 'TAX_CREATION' },
   ];
 
   const transactionItems = [
