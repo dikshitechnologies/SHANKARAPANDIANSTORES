@@ -245,6 +245,9 @@ CATEGORY: {
   getPurchaseStockDetailsByBarcode: (barcode) =>
     `Salesinvoices/GetpurchaseStockDetails?barcode=${barcode}`,
 
+  getTaxList: (page = 1, pageSize = 10) =>
+  `TaxCreation/gettaxlist?page=${page}&pageSize=${pageSize}`,
+
 },
 
   Scrap_Procurement: {
