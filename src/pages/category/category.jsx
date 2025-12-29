@@ -230,7 +230,7 @@ export default function CategoryPage() {
       return response;
     } catch (err) {
       console.error("Update error details:", err.response || err);
-      setMessage({ type: "error", text: err.message || "Failed to update category" });
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Failed to update category" });
       throw err;
     } finally {
       setLoading(false);
@@ -323,8 +323,10 @@ export default function CategoryPage() {
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
+      setConfirmEditOpen(false);
       // Error message already set in updateCategory
     } finally {
+      setConfirmEditOpen(false);
       setIsLoading(false);
     }
   };

@@ -502,11 +502,13 @@ export default function LedgerGroupCreation() {
         resetForm1();
         await loadInitial();
       } else {
-        toast.error(`Unexpected server response: ${resp.status}`);
+        // toast.error(`Unexpected server response: ${resp.status}`);
+        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || err.message || "Save failed");
+      // toast.error(err.response?.data?.message || err.message || "Save failed");
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Save failed" });
     } finally {
       setSubmitting(false);
     }
@@ -540,11 +542,13 @@ export default function LedgerGroupCreation() {
         resetForm1();
         await loadInitial();
       } else {
-        toast.error(`Unexpected server response: ${resp.status}`);
+        // toast.error(`Unexpected server response: ${resp.status}`);
+        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || err.message || "Update failed");
+      // toast.error(err.response?.data?.message || err.message || "Update failed");
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Update failed" });
     } finally {
       setSubmitting(false);
     }
@@ -572,11 +576,13 @@ export default function LedgerGroupCreation() {
         resetForm1();
         await loadInitial();
       } else {
-        toast.error(`Unexpected server response: ${resp.status}`);
+        // toast.error(`Unexpected server response: ${resp.status}`);
+        setMessage({ type: "error", text: `Unexpected server response: ${resp.status}` });
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || err.message || "Delete failed");
+      // toast.error(err.response?.data?.message || err.message || "Delete failed");
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Delete failed" });
     } finally {
       setSubmitting(false);
     }

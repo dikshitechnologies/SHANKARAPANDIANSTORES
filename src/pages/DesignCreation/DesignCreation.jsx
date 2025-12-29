@@ -171,26 +171,36 @@ export default function DesignCreation() {
       setLoading(false);
     }
   };
+const updateDesign = async (designData) => {
+  try {
+    setLoading(true);
 
-  const updateDesign = async (designData) => {
-    try {
-      setLoading(true);
-      console.log("Sending update data:", designData);
-      const response = await apiService.put(API_ENDPOINTS.DESIGNCREATION.UPDATE_DESIGN, designData);
-      console.log("Update response:", response);
-      
-      if (typeof response === 'string' && response.includes("successfully")) {
-        return { success: true, message: response };
-      }
-      return response;
-    } catch (err) {
-      console.error("Update error details:", err.response || err);
-      setMessage({ type: "error", text: err.message || "Failed to update design" });
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+    const response = await apiService.put(
+      API_ENDPOINTS.DESIGNCREATION.UPDATE_DESIGN,
+      designData
+    );
+
+    return response;
+
+  } catch (err) {
+    const errorText =
+      err?.response?.data?.message ||
+      "Failed to update design";
+
+    console.error("Update error:", errorText);
+
+    setMessage({
+      type: "error",
+      text: errorText
+    });
+
+    throw err; // rethrow so caller knows
+
+  } finally {
+    setLoading(false); // ✅ ONLY loading here
+  }
+};
+
 
   const deleteDesign = async (designCode) => {
     try {
@@ -198,7 +208,7 @@ export default function DesignCreation() {
       const data = await apiService.del(API_ENDPOINTS.DESIGNCREATION.DELETE_DESIGN(designCode));
       return data;
     } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to delete design" });
+      setMessage({ type: "error", text: err.response.data.message || "Failed to delete design" });
       console.error("API Error:", err);
       throw err;
     } finally {
@@ -271,25 +281,30 @@ export default function DesignCreation() {
   };
 
   const confirmEdit = async () => {
-    setIsLoading(true);
-    try {
-      const designData = { 
-        designCode: form.designCode, 
-        designName: form.designName
-      };
-      await updateDesign(designData);
-      await loadInitial();
-      
-      setMessage({ type: "success", text: "Design updated successfully." });
-      // toast.success("Design updated successfully.");
-      resetForm();
-      setConfirmEditOpen(false);
-    } catch (err) {
-      // Error message already set in updateDesign
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  setIsLoading(true);
+
+  try {
+    await updateDesign({
+      designCode: form.designCode,
+      designName: form.designName
+    });
+
+    await loadInitial();
+    setMessage({ type: "success", text: "Design updated successfully." });
+    resetForm();
+
+  } catch (err) {
+    setMessage({
+      type: "error",
+      text: err?.response?.data?.message || err.message
+    });
+
+  } finally {
+    setIsLoading(false);
+    setConfirmEditOpen(false); // 🔥 MUST close popup
+  }
+};
+
 
   const handleDelete = () => { // REMOVED async
     // === PERMISSION CHECK ===

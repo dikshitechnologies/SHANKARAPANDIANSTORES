@@ -4,8 +4,6 @@ import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import { AddButton, EditButton, DeleteButton } from "../../components/Buttons/ActionButtons";
 import ConfirmationPopup from "../../components/ConfirmationPopup/ConfirmationPopup";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from "../../hooks/usePermissions";
 import { PERMISSION_CODES } from "../../constants/permissions";
 
@@ -231,50 +229,54 @@ export default function UserCreation() {
   };
 
   const deleteUser = async (userId) => {
-    console.log("Deleting user with ID:", userId);
-    try {
-      setIsProcessing(true);
-      setError("");
-      
-      const response = await apiService.del(
-        API_ENDPOINTS.user_creation.delete(userId)
-      );
-      
-      console.log("Delete User Response:", response);
-      
-      if (response && response.data) {
-        return response.data;
+  console.log("Deleting user with ID:", userId);
+
+  try {
+    setIsProcessing(true);
+    setError("");
+
+    // response IS ALREADY res.data
+    const response = await apiService.del(
+      API_ENDPOINTS.user_creation.delete(userId)
+    );
+
+    console.log("Delete User Response:", response);
+    
+    return response ?? { success: true };
+
+  } 
+  catch (err) {
+    console.error("Delete User API Error:", err);
+
+    let errorMessage = "Failed to delete user";
+
+    if (err.response) {
+      const { status, data } = err.response;
+
+      if (status === 409) {
+        errorMessage =
+          data?.message ||
+          "User is referenced in other tables and cannot be deleted";
+      } else if (status === 404) {
+        errorMessage = "User not found";
+      } else {
+        errorMessage = data?.message || `Server error (${status})`;
       }
-      
-      return { success: true };
-      
-    } catch (err) {
-      console.error("Delete User API Error:", err);
-      
-      // Handle error messages
-      let errorMessage = "Failed to delete user";
-      if (err.response) {
-        const status = err.response.status;
-        const data = err.response.data;
-        
-        if (status === 409) {
-          errorMessage = "User is referenced in other tables and cannot be deleted";
-        } else if (status === 404) {
-          errorMessage = "User not found";
-        } else if (data && data.message) {
-          errorMessage = data.message;
-        } else {
-          errorMessage = `Server error (${status})`;
-        }
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      throw new Error(errorMessage);
-    } finally {
-      setIsProcessing(false);
+    } else if (err.message) {
+      errorMessage = err.message;
     }
-  };
+
+    // 🔥 IMPORTANT: set state so UI can show message
+    setError(errorMessage);
+     setShowDeleteConfirm(false); 
+    // ALSO rethrow if caller needs it
+    throw new Error(errorMessage);
+
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
 
   // ---------- effects ----------
   useEffect(() => {
@@ -387,14 +389,8 @@ export default function UserCreation() {
     }
     // === END PERMISSION CHECK ===
 
-    if (!form.companyCode || !form.username || !form.password) {
-      toast.warning(
-        "Please fill required fields: Company, Username, Password.",
-        {
-          position: "top-right",
-          autoClose: 3000,
-        }
-      );
+    if (!form.companyCode || !form.username || !form.password || !form.prefix) {
+      setError("Please fill required fields: Company, Username, Password, Prefix.");
       return;
     }
 
@@ -441,7 +437,6 @@ export default function UserCreation() {
 
       const errorMsg = err.message || "Failed to create user";
       setError(errorMsg);
-      toast.error(errorMsg);
     } finally {
       setIsProcessing(false);
     }
@@ -459,8 +454,8 @@ export default function UserCreation() {
       setError("No user selected to update.");
       return;
     }
-    if (!form.companyCode || !form.username) {
-      setError("Please fill Company and Username.");
+    if (!form.companyCode || !form.username || !form.prefix) {
+      setError("Please fill Company, Username, and Prefix.");
       return;
     }
 
@@ -491,7 +486,6 @@ export default function UserCreation() {
     } catch (err) {
       const errorMsg = err.message || "Failed to update user";
       setError(errorMsg);
-      toast.error(errorMsg);
       setConfirmEditOpen(false);
     } finally {
       setIsProcessing(false);
@@ -1319,7 +1313,7 @@ export default function UserCreation() {
               {/* Prefix field */}
               <div className="field">
                 <label className="field-label">
-                  Prefix
+                  Prefix <span className="asterisk">*</span>
                 </label>
                 <div className="row">
                   <input
@@ -1426,14 +1420,15 @@ export default function UserCreation() {
                           className={form.code === getCode(u) ? "selected" : ""}
                           onClick={() => {
                             setForm({ 
-                              company: `${getCode(u)} - ${getCompanyName(u)}`,
-                              companyCode: getCode(u),
+                              company: `${u.fCompCode || u.compCode || ""} - ${getCompanyName(u)}`,
+                              companyCode: u.fCompCode || u.compCode || "",
                               username: getUserName(u), 
-                              password: "", 
+                              password: u.password || "", 
                               prefix: u.fPrefix || "",
                               userId: getCode(u) 
                             });
                             setActionType("edit");
+                            setEditingId(getCode(u));
                           }}
                         >
                           <td>{getCode(u)}</td>

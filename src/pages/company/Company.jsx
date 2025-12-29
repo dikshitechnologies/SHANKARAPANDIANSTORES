@@ -1005,15 +1005,19 @@ const Company = () => {
         || err.message
         || 'Failed to save company';
       
-      showConfirmation({
-        title: "Error",
-        message: errorMessage,
-        type: "danger",
-        confirmText: "OK",
-        hideCancelButton: true,
-        onConfirm: () => setShowConfirmPopup(false),
-        onCancel: () => setShowConfirmPopup(false)
-      });
+        setMessage({
+          type: "error",
+          text: ` ${errorMessage}`
+        });
+      // showConfirmation({
+      //   title: "Error",
+      //   message: errorMessage,
+      //   type: "danger",
+      //   confirmText: "OK",
+      //   hideCancelButton: true,
+      //   onConfirm: () => setShowConfirmPopup(false),
+      //   onCancel: () => setShowConfirmPopup(false)
+      // });
     } finally {
       setLoading(false);
     }
@@ -1667,7 +1671,12 @@ const Company = () => {
                   </div>
                 </div>
               </div>
-
+              {/* Message display */}
+              {message && (
+                <div className={`message ${message.type}`} role="alert">
+                  {message.text}
+                </div>
+              )}
               <div className="submit-row">
                 <button
                   ref={submitRef}
