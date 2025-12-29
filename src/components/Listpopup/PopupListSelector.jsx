@@ -75,10 +75,9 @@ const PopupListSelector = ({
 
        // 🔥 ADD THIS — focus list for keyboard navigation
     setTimeout(() => {
-      if (listRef.current) {
-        listRef.current.focus();
-      }
+      searchInputRef.current?.focus();
     }, 150);
+
   }
 }, [open, initialSearch]);
 
@@ -223,7 +222,15 @@ useEffect(() => {
   // -------------------------
   const handleKeyDown = useCallback((e) => {
     if (!open) return;
-
+ if (
+    e.key.length === 1 && // letters, numbers
+    !e.ctrlKey &&
+    !e.metaKey &&
+    !e.altKey
+  ) {
+    searchInputRef.current?.focus();
+    return;
+  }
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
