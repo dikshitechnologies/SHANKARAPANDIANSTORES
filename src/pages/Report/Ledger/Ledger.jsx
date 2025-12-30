@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const Ledger = () => {
   // State management
@@ -13,9 +13,15 @@ const Ledger = () => {
   const [selectAllParties, setSelectAllParties] = useState(false);
   const [selectAllCompanies, setSelectAllCompanies] = useState(false);
   const [tableLoaded, setTableLoaded] = useState(false);
-  const [showFromCalendar, setShowFromCalendar] = useState(false);
-  const [showToCalendar, setShowToCalendar] = useState(false);
-  const [hoveredButton, setHoveredButton] = useState(false);
+  const [focusedField, setFocusedField] = useState('');
+  
+  // Refs for keyboard navigation
+  const fromDateRef = useRef(null);
+  const toDateRef = useRef(null);
+  const partyRef = useRef(null);
+  const companyRef = useRef(null);
+  const searchButtonRef = useRef(null);
+  const refreshButtonRef = useRef(null);
 
   // Sample data
   const allParties = [
@@ -96,11 +102,15 @@ const Ledger = () => {
     }
   ];
 
-  // Format date for display
-  const formatDateForDisplay = (dateString) => {
-    const date = new Date(dateString);
-    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-  };
+  // Focusable elements in order
+  const focusableElements = [
+    { ref: fromDateRef, name: 'fromDate', type: 'input' },
+    { ref: toDateRef, name: 'toDate', type: 'input' },
+    { ref: partyRef, name: 'party', type: 'button' },
+    { ref: companyRef, name: 'company', type: 'button' },
+    { ref: searchButtonRef, name: 'search', type: 'button' },
+    { ref: refreshButtonRef, name: 'refresh', type: 'button' }
+  ];
 
   // Initialize temp selections
   useEffect(() => {
@@ -110,6 +120,125 @@ const Ledger = () => {
   useEffect(() => {
     setTempSelectedCompanies([...selectedCompanies]);
   }, [selectedCompanies]);
+
+  // Keyboard navigation handler
+  const handleKeyDown = (e, currentIndex, fieldName) => {
+    const totalElements = focusableElements.length;
+    
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        if (fieldName === 'search') {
+          handleSearch();
+        } else if (fieldName === 'refresh') {
+          handleRefresh();
+        } else if (fieldName === 'party') {
+          handlePartyClick();
+        } else if (fieldName === 'company') {
+          handleCompanyClick();
+        } else {
+          // Move to next element
+          const nextIndex = (currentIndex + 1) % totalElements;
+          focusableElements[nextIndex].ref.current.focus();
+        }
+        break;
+        
+      case 'Tab':
+        if (showPartyPopup || showCompanyPopup) {
+          e.preventDefault();
+        }
+        break;
+        
+      case 'ArrowRight':
+        e.preventDefault();
+        const nextIndex = (currentIndex + 1) % totalElements;
+        focusableElements[nextIndex].ref.current.focus();
+        break;
+        
+      case 'ArrowLeft':
+        e.preventDefault();
+        const prevIndex = (currentIndex - 1 + totalElements) % totalElements;
+        focusableElements[prevIndex].ref.current.focus();
+        break;
+        
+      case 'ArrowDown':
+        if ((fieldName === 'party' && !showPartyPopup) || 
+            (fieldName === 'company' && !showCompanyPopup)) {
+          e.preventDefault();
+          if (fieldName === 'party') handlePartyClick();
+          if (fieldName === 'company') handleCompanyClick();
+        }
+        break;
+        
+      case 'Escape':
+        if (showPartyPopup) {
+          e.preventDefault();
+          handlePartyPopupClose();
+        } else if (showCompanyPopup) {
+          e.preventDefault();
+          handleCompanyPopupClose();
+        } else {
+          e.currentTarget.blur();
+        }
+        break;
+        
+      case ' ':
+        if (fieldName === 'party') {
+          e.preventDefault();
+          handlePartyClick();
+        } else if (fieldName === 'company') {
+          e.preventDefault();
+          handleCompanyClick();
+        } else if (fieldName === 'search') {
+          e.preventDefault();
+          handleSearch();
+        } else if (fieldName === 'refresh') {
+          e.preventDefault();
+          handleRefresh();
+        }
+        break;
+    }
+  };
+
+  // Popup keyboard navigation
+  const handlePopupKeyDown = (e, popupType) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (popupType === 'party') handlePartyPopupClose();
+      if (popupType === 'company') handleCompanyPopupClose();
+    }
+  };
+
+  // Popup button keyboard navigation
+  const handlePopupButtonKeyDown = (e, buttonType, popupType) => {
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        if (buttonType === 'ok') {
+          if (popupType === 'party') handlePartyPopupOk();
+          if (popupType === 'company') handleCompanyPopupOk();
+        } else if (buttonType === 'clear') {
+          if (popupType === 'party') handlePartyClearSelection();
+          if (popupType === 'company') handleCompanyClearSelection();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        if (popupType === 'party') handlePartyPopupClose();
+        if (popupType === 'company') handleCompanyPopupClose();
+        break;
+    }
+  };
+
+  // Focus management for popups
+  useEffect(() => {
+    if (showPartyPopup || showCompanyPopup) {
+      setTimeout(() => {
+        const firstItem = document.querySelector('.popup-item');
+        if (firstItem) firstItem.focus();
+      }, 100);
+    }
+  }, [showPartyPopup, showCompanyPopup]);
 
   // Party popup handlers
   const handlePartyClick = () => {
@@ -148,6 +277,7 @@ const Ledger = () => {
   const handlePartyPopupOk = () => {
     setSelectedParties([...tempSelectedParties]);
     setShowPartyPopup(false);
+    setTimeout(() => partyRef.current?.focus(), 100);
   };
 
   const handlePartyClearSelection = () => {
@@ -157,6 +287,7 @@ const Ledger = () => {
 
   const handlePartyPopupClose = () => {
     setShowPartyPopup(false);
+    setTimeout(() => partyRef.current?.focus(), 100);
   };
 
   // Company popup handlers
@@ -196,6 +327,7 @@ const Ledger = () => {
   const handleCompanyPopupOk = () => {
     setSelectedCompanies([...tempSelectedCompanies]);
     setShowCompanyPopup(false);
+    setTimeout(() => companyRef.current?.focus(), 100);
   };
 
   const handleCompanyClearSelection = () => {
@@ -205,6 +337,7 @@ const Ledger = () => {
 
   const handleCompanyPopupClose = () => {
     setShowCompanyPopup(false);
+    setTimeout(() => companyRef.current?.focus(), 100);
   };
 
   // Search functionality
@@ -224,17 +357,6 @@ const Ledger = () => {
     setTableLoaded(true);
   };
 
-  // Date handlers
-  const handleDateChange = (type, value) => {
-    if (type === 'from') {
-      setFromDate(value);
-      setShowFromCalendar(false);
-    } else {
-      setToDate(value);
-      setShowToCalendar(false);
-    }
-  };
-
   // Refresh functionality
   const handleRefresh = () => {
     setTableLoaded(false);
@@ -244,121 +366,81 @@ const Ledger = () => {
     setToDate('2025-11-26');
   };
 
-  // Calendar generation
-  const generateCalendar = (currentDate, type) => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const today = new Date();
-    
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDay = firstDay.getDay();
-    
-    const days = [];
-    
-    for (let i = 0; i < startDay; i++) {
-      days.push(<div key={`empty-${i}`} style={styles.calendarEmptyDay}></div>);
+  // Date change handler
+  const handleDateChange = (field, value) => {
+    if (field === 'from') {
+      setFromDate(value);
+    } else {
+      setToDate(value);
     }
-    
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-      const isSelected = (type === 'from' && fromDate === dateStr) || (type === 'to' && toDate === dateStr);
-      const isToday = today.toISOString().split('T')[0] === dateStr;
-      
-      days.push(
-        <div 
-          key={day}
-          style={{
-            ...styles.calendarDay,
-            ...(isSelected ? styles.calendarSelectedDay : {}),
-            ...(isToday ? styles.calendarToday : {}),
-            ':hover': {
-              backgroundColor: !isSelected ? accentColors.light : accentColors.primary,
-              transform: 'translateY(-1px)'
-            }
-          }}
-          onClick={() => handleDateChange(type, dateStr)}
-        >
-          {day}
-        </div>
-      );
-    }
-    
-    return days;
   };
 
-  // Styles
-  const accentColors = {
-    primary: '#4A90E2',
-    secondary: '#64B5F6',
-    tertiary: '#81D4FA',
-    light: '#F0F8FF',
-    dark: '#1976D2',
-    text: '#2C3E50',
-    textLight: '#7F8C8D',
-    border: '#E1E8ED',
-    background: '#F8FAFD'
+  // Calculate totals for footer
+  const calculateTotal = () => {
+    if (!tableLoaded || ledgerData.length === 0) return '0.00';
+    
+    const total = ledgerData.reduce((sum, item) => {
+      const amount = parseFloat(item.amount) || 0;
+      return sum + amount;
+    }, 0);
+    
+    return total.toFixed(2);
   };
 
+  // Styles matching Day Book design
   const styles = {
     container: {
-      maxWidth: '1400px',
-      margin: '30px auto',
-      backgroundColor: 'white',
-      borderRadius: '16px',
-      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: '#f5f5f5',
       fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
-      transition: 'all 0.3s ease',
-      display: 'flex',
-      flexDirection: 'column',
-      height: 'calc(100vh - 60px)', // Full screen height minus margin
-      maxHeight: '900px', // Prevent it from getting too tall
-      overflow: 'hidden' // Prevent scrolling
+      overflow: 'auto'
     },
     
-    // UPDATED: Compact header with everything in one line
     header: {
-      background: 'linear-gradient(135deg, #f8fafd 0%, white 100%)',
-      color: accentColors.text,
-      padding: '25px 40px 25px 40px',
-      borderBottom: `1px solid ${accentColors.border}`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      flexShrink: 0
+      background: 'white',
+      color: '#333',
+      padding: '20px 30px',
+      borderBottom: '1px solid #ddd',
+      position: 'sticky',
+      top: 0,
+      zIndex: 100,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
     },
     
     headerTitle: {
-      fontSize: '24px',
-      fontWeight: '700',
-      color: accentColors.primary,
-      letterSpacing: '-0.5px',
-      marginRight: '40px',
-      minWidth: '150px'
+      fontSize: '28px',
+      fontWeight: '600',
+      marginBottom: '25px',
+      color: '#1B91DA',
+      textAlign: 'center'
     },
     
-    // UPDATED: All controls in one row
-    controlsRow: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '20px',
-      flex: 1
+    firstRow: {
+      display: 'grid',
+      gridTemplateColumns: '0.8fr 0.8fr 2fr 2fr 0.7fr 0.7fr',
+      gap: '15px',
+      marginBottom: '20px',
+      position: 'relative',
+      alignItems: 'end'
     },
     
     controlGroup: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px',
-      minWidth: '150px'
+      gap: '8px'
     },
     
     controlLabel: {
-      fontSize: '13px',
-      color: accentColors.text,
+      fontSize: '14px',
+      color: '#333',
+      marginBottom: '0',
       fontWeight: '600',
-      letterSpacing: '0.3px',
       textTransform: 'uppercase',
-      whiteSpace: 'nowrap'
+      letterSpacing: '0.5px'
     },
     
     dateInputWrapper: {
@@ -366,152 +448,108 @@ const Ledger = () => {
       width: '100%'
     },
     
-    dateDisplay: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '12px 15px',
-      paddingRight: '40px',
-      border: `1.5px solid ${accentColors.border}`,
-      borderRadius: '8px',
-      backgroundColor: 'white',
-      fontSize: '14px',
-      color: accentColors.text,
-      minHeight: '42px',
-      cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-      ':hover': {
-        borderColor: accentColors.secondary,
-        boxShadow: `0 4px 10px ${accentColors.secondary}20`,
-        transform: 'translateY(-1px)'
-      }
-    },
-    
-    calendarIcon: {
-      position: 'absolute',
-      right: '12px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      color: accentColors.secondary,
-      cursor: 'pointer',
-      fontSize: '18px',
-      transition: 'transform 0.3s ease',
-      ':hover': {
-        transform: 'translateY(-50%) scale(1.1)'
-      }
-    },
-    
-    inputField: {
+    inlineInput: {
       width: '100%',
-      padding: '12px 15px',
-      border: `1.5px solid ${accentColors.border}`,
-      borderRadius: '8px',
+      padding: '8px 10px',
+      border: '1px solid #ddd',
+      borderRadius: '3px',
       fontSize: '14px',
       backgroundColor: 'white',
-      color: accentColors.text,
-      minHeight: '42px',
+      color: '#333',
+      minHeight: '36px',
+      boxSizing: 'border-box',
+      transition: 'all 0.2s ease',
+      outline: 'none'
+    },
+    
+    focusedInput: {
+      borderColor: '#1B91DA',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)'
+    },
+    
+    partyInput: {
+      width: '100%',
+      padding: '8px 12px',
+      border: '1px solid #ddd',
+      borderRadius: '3px',
+      fontSize: '14px',
+      backgroundColor: 'white',
+      color: '#333',
+      minHeight: '36px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-      ':hover': {
-        borderColor: accentColors.secondary,
-        boxShadow: `0 4px 10px ${accentColors.secondary}20`,
-        transform: 'translateY(-1px)'
-      }
+      transition: 'all 0.2s ease',
+      boxSizing: 'border-box',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      outline: 'none'
     },
     
-    // UPDATED: Button styling for compact header
+    companyInput: {
+      width: '100%',
+      padding: '8px 12px',
+      border: '1px solid #ddd',
+      borderRadius: '3px',
+      fontSize: '14px',
+      backgroundColor: 'white',
+      color: '#333',
+      minHeight: '36px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      boxSizing: 'border-box',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      outline: 'none'
+    },
+    
     searchButton: {
-      padding: '12px 24px',
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
+      padding: '8px 12px',
+      background: '#1B91DA',
       color: 'white',
       border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '700',
+      borderRadius: '3px',
+      fontSize: '13px',
+      fontWeight: '600',
       cursor: 'pointer',
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: `0 4px 12px ${accentColors.secondary}40`,
-      letterSpacing: '0.5px',
-      position: 'relative',
-      overflow: 'hidden',
-      minWidth: '100px',
-      height: '42px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      ':hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: `0 6px 20px ${accentColors.secondary}60`,
-        letterSpacing: '0.8px'
-      },
-      ':active': {
-        transform: 'translateY(-1px)'
-      }
-    },
-    
-    searchButtonGlow: {
-      position: 'absolute',
-      top: '0',
-      left: '-100%',
+      transition: 'all 0.2s ease',
       width: '100%',
-      height: '100%',
-      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-      transition: 'left 0.7s ease'
-    },
-    
-    refreshButton: {
-      padding: '12px 24px',
-      background: 'white',
-      color: accentColors.text,
-      border: `1.5px solid ${accentColors.border}`,
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '700',
-      cursor: 'pointer',
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-      letterSpacing: '0.5px',
-      position: 'relative',
-      overflow: 'hidden',
-      minWidth: '100px',
-      height: '42px',
+      height: '36px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      outline: 'none',
       ':hover': {
-        borderColor: accentColors.secondary,
-        boxShadow: `0 4px 10px ${accentColors.secondary}20`,
-        transform: 'translateY(-1px)'
-      },
-      ':active': {
-        transform: 'translateY(-1px)'
+        backgroundColor: '#0c7bb8'
       }
     },
     
-    // UPDATED: Main content area - fixed height, no scroll
-    content: {
-      padding: '25px',
-      flex: 1,
-      overflow: 'hidden',
+    buttonContainer: {
       display: 'flex',
-      flexDirection: 'column'
+      alignItems: 'flex-end',
+      height: '100%'
+    },
+    
+    content: {
+      padding: '20px 30px',
+      minHeight: 'calc(100vh - 180px)',
+      boxSizing: 'border-box'
     },
     
     tableContainer: {
-      borderRadius: '12px',
-      overflow: 'hidden',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-      border: `1px solid ${accentColors.border}`,
-      background: 'white',
-      flex: 1,
+      backgroundColor: 'white',
+      borderRadius: '4px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      border: '1px solid #ddd',
+      height: 'calc(100vh - 250px)',
       display: 'flex',
-      flexDirection: 'column',
-      minHeight: '400px'
+      flexDirection: 'column'
     },
     
     tableWrapper: {
@@ -521,66 +559,46 @@ const Ledger = () => {
     
     table: {
       width: '100%',
-      borderCollapse: 'separate',
-      borderSpacing: '0',
+      borderCollapse: 'collapse',
       minWidth: '1200px'
     },
     
     tableHeader: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.dark} 100%)`,
+      backgroundColor: '#1B91DA',
       color: 'white',
-      padding: '16px 18px',
+      padding: '12px 15px',
       textAlign: 'left',
       fontWeight: '600',
-      fontSize: '13px',
-      border: 'none',
-      position: 'relative',
-      overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      ':first-child': {
-        borderTopLeftRadius: '12px'
-      },
-      ':last-child': {
-        borderTopRightRadius: '12px'
-      }
-    },
-    
-    tableHeaderGlow: {
-      position: 'absolute',
-      top: '0',
-      left: '0',
-      right: '0',
-      height: '2px',
-      background: `linear-gradient(90deg, transparent, ${accentColors.tertiary}, transparent)`
+      fontSize: '14px',
+      borderRight: '1px solid #0c7bb8',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10
     },
     
     tableCell: {
-      padding: '14px 18px',
-      borderBottom: `1px solid ${accentColors.border}`,
-      fontSize: '13px',
-      color: accentColors.text,
-      transition: 'all 0.2s ease',
-      fontWeight: '500',
-      whiteSpace: 'nowrap'
+      padding: '12px 15px',
+      borderBottom: '1px solid #ddd',
+      fontSize: '14px',
+      color: '#333',
+      fontWeight: '400'
     },
     
     tableRow: {
-      transition: 'all 0.3s ease',
       ':hover': {
-        backgroundColor: `${accentColors.light}80`,
-        transform: 'translateX(2px)'
+        backgroundColor: '#f8f9fa'
       }
     },
     
     emptyState: {
       textAlign: 'center',
-      padding: '40px 30px',
-      color: accentColors.textLight,
-      fontSize: '15px',
-      background: accentColors.background,
-      borderRadius: '12px',
+      padding: '40px 20px',
+      color: '#666',
+      fontSize: '16px',
+      background: '#f8f9fa',
+      borderRadius: '4px',
       margin: '20px',
-      border: `2px dashed ${accentColors.border}`,
+      border: '2px dashed #ddd',
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
@@ -591,28 +609,30 @@ const Ledger = () => {
     emptyStateIcon: {
       fontSize: '40px',
       marginBottom: '15px',
-      color: accentColors.secondary,
+      color: '#1B91DA',
       opacity: 0.5
     },
     
-    // UPDATED: Footer with balances
+    // Footer with balances
     footer: {
-      padding: '20px 25px',
-      backgroundColor: accentColors.background,
-      borderTop: `1px solid ${accentColors.border}`,
+      padding: '20px 30px',
+      backgroundColor: 'white',
+      borderTop: '1px solid #ddd',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      flexShrink: 0
+      position: 'sticky',
+      bottom: 0,
+      zIndex: 90,
+      boxShadow: '0 -2px 4px rgba(0,0,0,0.1)'
     },
     
     balanceBox: {
-      background: 'white',
-      padding: '20px 30px',
-      borderRadius: '10px',
-      border: `1px solid ${accentColors.border}`,
+      background: '#f8f9fa',
+      padding: '15px 25px',
+      borderRadius: '3px',
+      border: '1px solid #ddd',
       minWidth: '200px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center'
@@ -620,377 +640,237 @@ const Ledger = () => {
     
     balanceLabel: {
       fontSize: '14px',
-      color: accentColors.textLight,
-      marginBottom: '8px',
+      color: '#666',
+      marginBottom: '5px',
       fontWeight: '600',
       textTransform: 'uppercase',
       letterSpacing: '0.5px'
     },
     
     balanceValue: {
-      fontSize: '24px',
+      fontSize: '22px',
       fontWeight: '700',
-      color: accentColors.primary
+      color: '#1B91DA'
     },
     
-    // Calendar popup styles (same as before)
-    calendarPopup: {
-      position: 'absolute',
-      top: 'calc(100% + 8px)',
-      left: '0',
-      zIndex: 1001,
-      backgroundColor: 'white',
-      border: `1px solid ${accentColors.border}`,
-      borderRadius: '16px',
-      boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-      width: '300px',
-      overflow: 'hidden',
-      animation: 'slideDown 0.3s ease'
-    },
-    
-    calendarHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '18px',
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white',
-      position: 'relative'
-    },
-    
-    calendarNavButton: {
-      background: 'rgba(255,255,255,0.2)',
-      border: 'none',
-      color: 'white',
-      fontSize: '16px',
-      cursor: 'pointer',
-      padding: '6px 10px',
-      borderRadius: '6px',
-      transition: 'all 0.2s ease',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '36px',
-      height: '36px',
-      ':hover': {
-        background: 'rgba(255,255,255,0.3)',
-        transform: 'scale(1.05)'
-      }
-    },
-    
-    calendarMonthYear: {
-      fontSize: '15px',
-      fontWeight: '600',
-      letterSpacing: '0.5px'
-    },
-    
-    calendarWeekDays: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      padding: '12px',
-      backgroundColor: accentColors.background,
-      borderBottom: `1px solid ${accentColors.border}`
-    },
-    
-    calendarWeekDay: {
-      textAlign: 'center',
-      fontSize: '11px',
-      fontWeight: '700',
-      color: accentColors.textLight,
-      padding: '6px',
-      textTransform: 'uppercase',
-      letterSpacing: '1px'
-    },
-    
-    calendarDays: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      padding: '12px',
-      gap: '4px'
-    },
-    
-    calendarDay: {
-      textAlign: 'center',
-      padding: '10px 6px',
-      cursor: 'pointer',
-      borderRadius: '6px',
-      fontSize: '13px',
-      fontWeight: '500',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      color: accentColors.text
-    },
-    
-    calendarSelectedDay: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white',
-      boxShadow: `0 4px 12px ${accentColors.secondary}40`,
-      transform: 'scale(1.05)'
-    },
-    
-    calendarToday: {
-      border: `2px solid ${accentColors.secondary}`,
-      backgroundColor: accentColors.light,
-      fontWeight: '700'
-    },
-    
-    calendarEmptyDay: {
-      padding: '10px 6px'
-    },
-    
-    // Popup styles (same as before)
+    // Popup styles
     popupOverlay: {
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 1000,
-      backdropFilter: 'blur(4px)',
-      animation: 'fadeIn 0.3s ease'
+      zIndex: 1000
     },
     
     popupContent: {
       backgroundColor: 'white',
-      borderRadius: '20px',
+      borderRadius: '4px',
       width: '90%',
       maxWidth: '500px',
       maxHeight: '80vh',
       overflow: 'hidden',
-      boxShadow: '0 30px 80px rgba(0, 0, 0, 0.2)',
-      border: `1px solid ${accentColors.secondary}`,
-      animation: 'slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+      boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+      border: '1px solid #ddd'
     },
     
     popupHeader: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
+      background: '#1B91DA',
       color: 'white',
-      padding: '22px 28px 22px 28px',
+      padding: '15px 20px',
       margin: 0,
-      fontSize: '20px',
-      fontWeight: '700',
-      borderBottom: `1px solid ${accentColors.dark}`,
-      position: 'relative',
-      letterSpacing: '0.5px'
+      fontSize: '16px',
+      fontWeight: '600',
+      borderBottom: '1px solid #0c7bb8',
+      position: 'relative'
     },
     
     closeButton: {
       position: 'absolute',
-      right: '18px',
+      right: '15px',
       top: '50%',
       transform: 'translateY(-50%)',
       background: 'rgba(255,255,255,0.2)',
       border: 'none',
       color: 'white',
-      fontSize: '22px',
+      fontSize: '20px',
       cursor: 'pointer',
-      width: '34px',
-      height: '34px',
+      width: '28px',
+      height: '28px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: '8px',
-      transition: 'all 0.3s ease',
+      borderRadius: '3px',
+      outline: 'none',
       ':hover': {
-        background: 'rgba(255,255,255,0.3)',
-        transform: 'translateY(-50%) rotate(90deg)'
+        background: 'rgba(255,255,255,0.3)'
       }
     },
     
     popupList: {
-      padding: '22px',
-      maxHeight: '300px',
+      padding: '15px 20px',
+      maxHeight: '350px',
       overflowY: 'auto'
     },
     
     popupItem: {
       display: 'flex',
       alignItems: 'center',
-      padding: '12px 14px',
-      margin: '6px 0',
-      borderRadius: '8px',
+      padding: '10px 12px',
+      margin: '4px 0',
+      borderRadius: '3px',
       cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      border: `1px solid transparent`,
+      transition: 'all 0.2s ease',
+      border: '1px solid transparent',
+      outline: 'none',
       ':hover': {
-        backgroundColor: `${accentColors.light}80`,
-        transform: 'translateX(4px)',
-        borderColor: accentColors.secondary
+        backgroundColor: '#f8f9fa'
       }
     },
     
     selectedPopupItem: {
       display: 'flex',
       alignItems: 'center',
-      padding: '12px 14px',
-      margin: '6px 0',
-      borderRadius: '8px',
+      padding: '10px 12px',
+      margin: '4px 0',
+      borderRadius: '3px',
       cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      backgroundColor: `${accentColors.light}`,
-      borderLeft: `4px solid ${accentColors.secondary}`,
-      border: `1px solid ${accentColors.secondary}40`,
-      boxShadow: `0 4px 12px ${accentColors.secondary}20`,
-      transform: 'translateX(4px)'
+      backgroundColor: '#e8f0fe',
+      borderLeft: '3px solid #1B91DA',
+      outline: 'none'
     },
     
     popupCheckbox: {
-      width: '20px',
-      height: '20px',
-      border: `2px solid ${accentColors.secondary}`,
-      borderRadius: '5px',
-      marginRight: '12px',
+      width: '18px',
+      height: '18px',
+      border: '2px solid #ddd',
+      borderRadius: '3px',
+      marginRight: '10px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
-      backgroundColor: 'white',
-      transition: 'all 0.3s ease'
+      backgroundColor: 'white'
     },
     
     selectedPopupCheckbox: {
-      width: '20px',
-      height: '20px',
-      border: `2px solid ${accentColors.secondary}`,
-      borderRadius: '5px',
-      marginRight: '12px',
+      width: '18px',
+      height: '18px',
+      border: '2px solid #1B91DA',
+      borderRadius: '3px',
+      marginRight: '10px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
-      backgroundColor: accentColors.secondary,
-      boxShadow: `0 4px 12px ${accentColors.secondary}40`
+      backgroundColor: '#1B91DA'
     },
     
     checkmark: {
       color: 'white',
       fontWeight: 'bold',
-      fontSize: '13px'
+      fontSize: '12px'
     },
     
     popupText: {
-      color: accentColors.text,
+      color: '#333',
       fontSize: '14px',
-      fontWeight: '500'
+      fontWeight: '400'
     },
     
     popupActions: {
-      borderTop: `1px solid ${accentColors.border}`,
-      padding: '22px',
-      backgroundColor: accentColors.background
+      borderTop: '1px solid #ddd',
+      padding: '15px 20px',
+      backgroundColor: '#f8f9fa'
     },
     
     popupButtons: {
       display: 'flex',
       justifyContent: 'flex-end',
-      gap: '12px'
+      gap: '10px'
     },
     
     popupButton: {
-      padding: '10px 24px',
+      padding: '8px 16px',
       border: 'none',
-      borderRadius: '8px',
-      fontSize: '13px',
-      fontWeight: '700',
+      borderRadius: '3px',
+      fontSize: '14px',
+      fontWeight: '600',
       cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      minWidth: '90px',
-      letterSpacing: '0.5px',
-      ':hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 6px 20px rgba(0,0,0,0.1)'
-      }
+      transition: 'all 0.2s ease',
+      minWidth: '80px',
+      outline: 'none'
     },
     
     okButton: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white'
+      background: '#1B91DA',
+      color: 'white',
+      ':hover': {
+        backgroundColor: '#0c7bb8'
+      }
     },
     
     clearButton: {
       background: 'white',
-      color: '#d32f2f',
-      border: `2px solid #ffcdd2`,
+      color: '#666',
+      border: '1px solid #ddd',
       ':hover': {
-        background: '#ffebee',
-        boxShadow: '0 6px 20px rgba(211, 47, 47, 0.1)'
+        backgroundColor: '#f8f9fa'
+      }
+    },
+
+    refreshButton: {
+      padding: '8px 12px',
+      background: 'white',
+      color: '#333',
+      border: '1px solid #ddd',
+      borderRadius: '3px',
+      fontSize: '13px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      width: '100%',
+      height: '36px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      outline: 'none',
+      ':hover': {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#1B91DA'
       }
     }
   };
 
-  // Calendar data
-  const fromCalendarDate = new Date(fromDate);
-  const toCalendarDate = new Date(toDate);
-  
-  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
   return (
     <div style={styles.container}>
-      {/* UPDATED: Compact header with everything in one line */}
+      {/* HEADER */}
       <div style={styles.header}>
-        {/* Title on the left */}
-        <div style={styles.headerTitle}>Ledger Report</div>
+        <h1 style={styles.headerTitle}>Ledger Report</h1>
         
-        {/* All controls in one row */}
-        <div style={styles.controlsRow}>
+        {/* FIRST ROW: From Date, To Date, Party, Company, Search, Refresh */}
+        <div style={styles.firstRow}>
           {/* From Date */}
           <div style={styles.controlGroup}>
             <div style={styles.controlLabel}>From Date</div>
             <div style={styles.dateInputWrapper}>
-              <div 
-                style={styles.dateDisplay}
-                onClick={() => {
-                  setShowFromCalendar(!showFromCalendar);
-                  setShowToCalendar(false);
+              <input
+                type="date"
+                style={{
+                  ...styles.inlineInput,
+                  ...(focusedField === 'fromDate' && styles.focusedInput)
                 }}
-              >
-                {formatDateForDisplay(fromDate)}
-                <span style={styles.calendarIcon}>📅</span>
-              </div>
-              
-              {showFromCalendar && (
-                <div style={styles.calendarPopup}>
-                  <div style={styles.calendarHeader}>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(fromCalendarDate);
-                        newDate.setMonth(newDate.getMonth() - 1);
-                        handleDateChange('from', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ‹
-                    </button>
-                    <div style={styles.calendarMonthYear}>
-                      {months[fromCalendarDate.getMonth()]} {fromCalendarDate.getFullYear()}
-                    </div>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(fromCalendarDate);
-                        newDate.setMonth(newDate.getMonth() + 1);
-                        handleDateChange('from', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ›
-                    </button>
-                  </div>
-                  
-                  <div style={styles.calendarWeekDays}>
-                    {weekDays.map(day => (
-                      <div key={day} style={styles.calendarWeekDay}>{day}</div>
-                    ))}
-                  </div>
-                  
-                  <div style={styles.calendarDays}>
-                    {generateCalendar(fromCalendarDate, 'from')}
-                  </div>
-                </div>
-              )}
+                ref={fromDateRef}
+                value={fromDate}
+                onChange={(e) => handleDateChange('from', e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 0, 'fromDate')}
+                onFocus={() => setFocusedField('fromDate')}
+                onBlur={() => setFocusedField('')}
+              />
             </div>
           </div>
           
@@ -998,147 +878,115 @@ const Ledger = () => {
           <div style={styles.controlGroup}>
             <div style={styles.controlLabel}>To Date</div>
             <div style={styles.dateInputWrapper}>
-              <div 
-                style={styles.dateDisplay}
-                onClick={() => {
-                  setShowToCalendar(!showToCalendar);
-                  setShowFromCalendar(false);
+              <input
+                type="date"
+                style={{
+                  ...styles.inlineInput,
+                  ...(focusedField === 'toDate' && styles.focusedInput)
                 }}
-              >
-                {formatDateForDisplay(toDate)}
-                <span style={styles.calendarIcon}>📅</span>
-              </div>
-              
-              {showToCalendar && (
-                <div style={styles.calendarPopup}>
-                  <div style={styles.calendarHeader}>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(toCalendarDate);
-                        newDate.setMonth(newDate.getMonth() - 1);
-                        handleDateChange('to', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ‹
-                    </button>
-                    <div style={styles.calendarMonthYear}>
-                      {months[toCalendarDate.getMonth()]} {toCalendarDate.getFullYear()}
-                    </div>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(toCalendarDate);
-                        newDate.setMonth(newDate.getMonth() + 1);
-                        handleDateChange('to', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ›
-                    </button>
-                  </div>
-                  
-                  <div style={styles.calendarWeekDays}>
-                    {weekDays.map(day => (
-                      <div key={day} style={styles.calendarWeekDay}>{day}</div>
-                    ))}
-                  </div>
-                  
-                  <div style={styles.calendarDays}>
-                    {generateCalendar(toCalendarDate, 'to')}
-                  </div>
-                </div>
-              )}
+                ref={toDateRef}
+                value={toDate}
+                onChange={(e) => handleDateChange('to', e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 1, 'toDate')}
+                onFocus={() => setFocusedField('toDate')}
+                onBlur={() => setFocusedField('')}
+              />
             </div>
           </div>
           
           {/* Party */}
           <div style={styles.controlGroup}>
             <div style={styles.controlLabel}>Party</div>
-            <div 
-              style={styles.inputField}
+            <button
+              ref={partyRef}
+              style={{
+                ...styles.partyInput,
+                ...(focusedField === 'party' && styles.focusedInput)
+              }}
               onClick={handlePartyClick}
+              onKeyDown={(e) => handleKeyDown(e, 2, 'party')}
+              onFocus={() => setFocusedField('party')}
+              onBlur={() => setFocusedField('')}
             >
               {selectedParties.length > 0 
                 ? selectedParties.join(', ') 
                 : 'Select Party'}
-              <span style={{color: accentColors.secondary, fontSize: '10px', transition: 'transform 0.3s ease'}}>▼</span>
-            </div>
+              <span style={{color: '#666', fontSize: '10px'}}>▼</span>
+            </button>
           </div>
           
           {/* Company */}
           <div style={styles.controlGroup}>
             <div style={styles.controlLabel}>Company</div>
-            <div 
-              style={styles.inputField}
+            <button
+              ref={companyRef}
+              style={{
+                ...styles.companyInput,
+                ...(focusedField === 'company' && styles.focusedInput)
+              }}
               onClick={handleCompanyClick}
+              onKeyDown={(e) => handleKeyDown(e, 3, 'company')}
+              onFocus={() => setFocusedField('company')}
+              onBlur={() => setFocusedField('')}
             >
               {selectedCompanies.length > 0 
                 ? selectedCompanies.join(', ') 
                 : 'Select Company'}
-              <span style={{color: accentColors.secondary, fontSize: '10px', transition: 'transform 0.3s ease'}}>▼</span>
-            </div>
+              <span style={{color: '#666', fontSize: '10px'}}>▼</span>
+            </button>
           </div>
           
           {/* Search Button */}
-          <button 
-            style={styles.searchButton}
-            onClick={handleSearch}
-            onMouseEnter={() => setHoveredButton(true)}
-            onMouseLeave={() => setHoveredButton(false)}
-          >
-            Search
-            {hoveredButton && <div style={styles.searchButtonGlow}></div>}
-          </button>
-          
+          <div style={styles.buttonContainer}>
+            <button 
+              ref={searchButtonRef}
+              style={{
+                ...styles.searchButton,
+                ...(focusedField === 'search' && { outline: '2px solid #1B91DA', outlineOffset: '2px' })
+              }}
+              onClick={handleSearch}
+              onKeyDown={(e) => handleKeyDown(e, 4, 'search')}
+              onFocus={() => setFocusedField('search')}
+              onBlur={() => setFocusedField('')}
+            >
+              Search
+            </button>
+          </div>
+
           {/* Refresh Button */}
-          <button 
-            style={styles.refreshButton}
-            onClick={handleRefresh}
-          >
-            Refresh
-          </button>
+          <div style={styles.buttonContainer}>
+            <button 
+              ref={refreshButtonRef}
+              style={{
+                ...styles.refreshButton,
+                ...(focusedField === 'refresh' && { outline: '2px solid #1B91DA', outlineOffset: '2px' })
+              }}
+              onClick={handleRefresh}
+              onKeyDown={(e) => handleKeyDown(e, 5, 'refresh')}
+              onFocus={() => setFocusedField('refresh')}
+              onBlur={() => setFocusedField('')}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* TABLE CONTENT - Fixed height, no scroll */}
+      {/* TABLE CONTENT */}
       <div style={styles.content}>
         <div style={styles.tableContainer}>
           <div style={styles.tableWrapper}>
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.tableHeader}>
-                    Date
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Name
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Voucher No
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Type
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Cr/Dr
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Bill No
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Billet
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Amount
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
+                  <th style={styles.tableHeader}>Date</th>
+                  <th style={styles.tableHeader}>Name</th>
+                  <th style={styles.tableHeader}>Voucher No</th>
+                  <th style={styles.tableHeader}>Type</th>
+                  <th style={styles.tableHeader}>Cr/Dr</th>
+                  <th style={styles.tableHeader}>Bill No</th>
+                  <th style={styles.tableHeader}>Billet</th>
+                  <th style={{...styles.tableHeader, borderRight: 'none'}}>Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -1151,7 +999,7 @@ const Ledger = () => {
                     <td style={styles.tableCell}>{row.crDr}</td>
                     <td style={styles.tableCell}>{row.billNo}</td>
                     <td style={styles.tableCell}>{row.billet}</td>
-                    <td style={styles.tableCell}>{row.amount}</td>
+                    <td style={{...styles.tableCell, borderRight: 'none'}}>{row.amount}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1166,15 +1014,15 @@ const Ledger = () => {
             
             {!tableLoaded && (
               <div style={styles.emptyState}>
-                <div style={styles.emptyStateIcon}>🔍</div>
-                Enter search criteria and click "Search" to view ledger entries
+                {/* <div style={styles.emptyStateIcon}>🔍</div> */}
+            
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* UPDATED: Footer with balances */}
+      {/* FOOTER WITH BALANCES */}
       <div style={styles.footer}>
         <div style={styles.balanceBox}>
           <div style={styles.balanceLabel}>Opening Balance</div>
@@ -1182,7 +1030,7 @@ const Ledger = () => {
         </div>
         <div style={styles.balanceBox}>
           <div style={styles.balanceLabel}>Closing Balance</div>
-          <div style={styles.balanceValue}>0.00</div>
+          <div style={styles.balanceValue}>{calculateTotal()}</div>
         </div>
       </div>
 
@@ -1192,12 +1040,16 @@ const Ledger = () => {
           <div 
             style={styles.popupContent} 
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => handlePopupKeyDown(e, 'party')}
           >
             <div style={styles.popupHeader}>
               Select Party
               <button 
                 style={styles.closeButton}
                 onClick={handlePartyPopupClose}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') handlePartyPopupClose();
+                }}
               >
                 ×
               </button>
@@ -1208,9 +1060,17 @@ const Ledger = () => {
                 const isSelected = tempSelectedParties.includes(party);
                 return (
                   <div 
-                    key={party} 
+                    key={party}
+                    className="popup-item"
+                    tabIndex="0"
                     style={isSelected ? styles.selectedPopupItem : styles.popupItem}
                     onClick={() => handlePartySelect(party)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handlePartySelect(party);
+                      }
+                    }}
                   >
                     <div style={isSelected ? styles.selectedPopupCheckbox : styles.popupCheckbox}>
                       {isSelected && <div style={styles.checkmark}>✓</div>}
@@ -1224,14 +1084,18 @@ const Ledger = () => {
             <div style={styles.popupActions}>
               <div style={styles.popupButtons}>
                 <button 
+                  className="popup-button clear"
                   style={{...styles.popupButton, ...styles.clearButton}}
                   onClick={handlePartyClearSelection}
+                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'clear', 'party')}
                 >
                   Clear
                 </button>
                 <button 
+                  className="popup-button ok"
                   style={{...styles.popupButton, ...styles.okButton}}
                   onClick={handlePartyPopupOk}
+                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'ok', 'party')}
                 >
                   OK
                 </button>
@@ -1247,12 +1111,16 @@ const Ledger = () => {
           <div 
             style={styles.popupContent} 
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => handlePopupKeyDown(e, 'company')}
           >
             <div style={styles.popupHeader}>
               Select Company
               <button 
                 style={styles.closeButton}
                 onClick={handleCompanyPopupClose}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') handleCompanyPopupClose();
+                }}
               >
                 ×
               </button>
@@ -1263,9 +1131,17 @@ const Ledger = () => {
                 const isSelected = tempSelectedCompanies.includes(company);
                 return (
                   <div 
-                    key={company} 
+                    key={company}
+                    className="popup-item"
+                    tabIndex="0"
                     style={isSelected ? styles.selectedPopupItem : styles.popupItem}
                     onClick={() => handleCompanySelect(company)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleCompanySelect(company);
+                      }
+                    }}
                   >
                     <div style={isSelected ? styles.selectedPopupCheckbox : styles.popupCheckbox}>
                       {isSelected && <div style={styles.checkmark}>✓</div>}
@@ -1279,14 +1155,18 @@ const Ledger = () => {
             <div style={styles.popupActions}>
               <div style={styles.popupButtons}>
                 <button 
+                  className="popup-button clear"
                   style={{...styles.popupButton, ...styles.clearButton}}
                   onClick={handleCompanyClearSelection}
+                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'clear', 'company')}
                 >
                   Clear
                 </button>
                 <button 
+                  className="popup-button ok"
                   style={{...styles.popupButton, ...styles.okButton}}
                   onClick={handleCompanyPopupOk}
+                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'ok', 'company')}
                 >
                   OK
                 </button>
