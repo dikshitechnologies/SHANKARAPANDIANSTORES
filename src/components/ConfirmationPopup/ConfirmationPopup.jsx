@@ -597,7 +597,10 @@ const ConfirmationPopup = ({
             {!hideCancelButton && cancelText && (
               <button
                 ref={cancelRef}
-                onClick={onClose}
+               onClick={(e) => {
+      e.stopPropagation(); // Add this
+      onClose();
+    }}
                 style={{
                   ...styles.buttonBase,
                   ...styles.cancelButton,
@@ -623,7 +626,10 @@ const ConfirmationPopup = ({
             
             <button
               ref={confirmRef}
-              onClick={handleConfirm}
+               onClick={(e) => {
+    e.stopPropagation(); // Add this
+    handleConfirm();
+  }}
               style={{
                 ...styles.buttonBase,
                 ...styles.confirmButton,
