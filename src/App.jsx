@@ -44,7 +44,7 @@ import SalesRegister from './pages/SalesRegister/SalesRegister';
 import TaxCreation from './pages/TaxCreation/TaxCreation';
 import DayBook from './pages/Report/DayBokk/Daybook';
 import Ledger from './pages/Report/Ledger/Ledger';
-
+import SalesReturnregister from './pages/Report/SalesReturnregister/SalesReturnregister';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -132,6 +132,8 @@ function App() {
    <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
    <Route path="/reports/day-book" element={<ProtectedRoute><LayoutWithNavbar><DayBook /></LayoutWithNavbar></ProtectedRoute>} />
     <Route path="/reports/ledger" element={<ProtectedRoute><LayoutWithNavbar><Ledger /></LayoutWithNavbar></ProtectedRoute>} />
+ <Route path="/reports/ledger" element={<ProtectedRoute><LayoutWithNavbar><Ledger /></LayoutWithNavbar></ProtectedRoute>} />
+   <Route path="/reports/SalesReturnregister" element={<ProtectedRoute><LayoutWithNavbar><SalesReturnregister /></LayoutWithNavbar></ProtectedRoute>} />
 
     </Routes>
      <ToastContainer
