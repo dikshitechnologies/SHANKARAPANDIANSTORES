@@ -1,49 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
 
 const Ledger = () => {
-  // State management
+  // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('2024-06-14');
   const [toDate, setToDate] = useState('2025-11-26');
-  const [selectedParties, setSelectedParties] = useState(['ANBU 123']);
-  const [selectedCompanies, setSelectedCompanies] = useState(['Select Company']);
-  const [showPartyPopup, setShowPartyPopup] = useState(false);
-  const [showCompanyPopup, setShowCompanyPopup] = useState(false);
-  const [tempSelectedParties, setTempSelectedParties] = useState([]);
-  const [tempSelectedCompanies, setTempSelectedCompanies] = useState([]);
-  const [selectAllParties, setSelectAllParties] = useState(false);
-  const [selectAllCompanies, setSelectAllCompanies] = useState(false);
+  const [party, setParty] = useState('ANBU 123');
+  const [company, setCompany] = useState('Select Company');
   const [tableLoaded, setTableLoaded] = useState(false);
-  const [showFromCalendar, setShowFromCalendar] = useState(false);
-  const [showToCalendar, setShowToCalendar] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
+  const [focusedField, setFocusedField] = useState('');
 
-  // Sample data
-  const allParties = [
-    'ANBU 123',
-    'John Doe',
-    'Jane Smith',
-    'ABC Corporation',
-    'XYZ Enterprises',
-    'Global Traders',
-    'Tech Solutions Inc.',
-    'Retail Masters',
-    'Manufacturing Hub'
-  ];
+  // --- REFS ---
+  const fromDateRef = useRef(null);
+  const toDateRef = useRef(null);
+  const partyRef = useRef(null);
+  const companyRef = useRef(null);
+  const searchButtonRef = useRef(null);
 
-  const allCompanies = [
-    'Select Company',
-    'DIKSHI DEMO',
-    'DIKSHI TECH',
-    'DIKSHIWEBSITE',
-    'SAKTHI',
-    'JUST AK THINGS',
-    'PRIVANKA',
-    'CORPORATE SOLUTIONS',
-    'BUSINESS PARTNERS'
-  ];
+  // --- DATA ---
+  const [ledgerData, setLedgerData] = useState([]);
 
   // Sample ledger data
-  const ledgerData = [
+  const sampleLedgerData = [
     {
       date: '14/06/2024',
       name: 'ANBU 123',
@@ -73,388 +73,431 @@ const Ledger = () => {
       billNo: 'BL003',
       billet: 'BT003',
       amount: '3000.00'
-    },
-    {
-      date: '25/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH004',
-      type: 'Payment',
-      crDr: 'Dr',
-      billNo: 'BL004',
-      billet: 'BT004',
-      amount: '1500.00'
-    },
-    {
-      date: '30/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH005',
-      type: 'Sales',
-      crDr: 'Cr',
-      billNo: 'BL005',
-      billet: 'BT005',
-      amount: '4500.00'
     }
   ];
 
-  // Format date for display
-  const formatDateForDisplay = (dateString) => {
-    const date = new Date(dateString);
-    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  // Sample data for dropdowns
+  const allParties = [
+    'ANBU 123',
+    'John Doe',
+    'Jane Smith',
+    'ABC Corporation',
+    'XYZ Enterprises',
+    'Global Traders'
+  ];
+
+  const allCompanies = [
+    'Select Company',
+    'DIKSHI DEMO',
+    'DIKSHI TECH',
+    'DIKSHIWEBSITE',
+    'SAKTHI',
+    'JUST AK THINGS',
+    'PRIVANKA'
+  ];
+
+  // --- HANDLERS ---
+  const handleFromDateChange = (e) => {
+    setFromDate(e.target.value);
   };
 
-  // Initialize temp selections
-  useEffect(() => {
-    setTempSelectedParties([...selectedParties]);
-  }, [selectedParties]);
-
-  useEffect(() => {
-    setTempSelectedCompanies([...selectedCompanies]);
-  }, [selectedCompanies]);
-
-  // Party popup handlers
-  const handlePartyClick = () => {
-    setTempSelectedParties([...selectedParties]);
-    setShowPartyPopup(true);
+  const handleToDateChange = (e) => {
+    setToDate(e.target.value);
   };
 
-  const handlePartySelect = (party) => {
-    if (party === 'ANBU 123') {
-      if (tempSelectedParties.includes('ANBU 123')) {
-        setTempSelectedParties([]);
-        setSelectAllParties(false);
-      } else {
-        setTempSelectedParties(allParties);
-        setSelectAllParties(true);
-      }
-    } else {
-      let updatedParties;
-      if (tempSelectedParties.includes(party)) {
-        updatedParties = tempSelectedParties.filter(p => p !== party);
-        if (updatedParties.includes('ANBU 123')) {
-          updatedParties = updatedParties.filter(p => p !== 'ANBU 123');
-        }
-      } else {
-        updatedParties = [...tempSelectedParties, party];
-        const otherParties = allParties.filter(p => p !== 'ANBU 123');
-        if (otherParties.every(p => updatedParties.includes(p))) {
-          updatedParties = allParties;
-        }
-      }
-      setTempSelectedParties(updatedParties);
-      setSelectAllParties(updatedParties.length === allParties.length);
-    }
+  const handlePartyChange = (e) => {
+    setParty(e.target.value);
   };
 
-  const handlePartyPopupOk = () => {
-    setSelectedParties([...tempSelectedParties]);
-    setShowPartyPopup(false);
+  const handleCompanyChange = (e) => {
+    setCompany(e.target.value);
   };
 
-  const handlePartyClearSelection = () => {
-    setTempSelectedParties([]);
-    setSelectAllParties(false);
-  };
-
-  const handlePartyPopupClose = () => {
-    setShowPartyPopup(false);
-  };
-
-  // Company popup handlers
-  const handleCompanyClick = () => {
-    setTempSelectedCompanies([...selectedCompanies]);
-    setShowCompanyPopup(true);
-  };
-
-  const handleCompanySelect = (company) => {
-    if (company === 'Select Company') {
-      if (tempSelectedCompanies.includes('Select Company')) {
-        setTempSelectedCompanies([]);
-        setSelectAllCompanies(false);
-      } else {
-        setTempSelectedCompanies(allCompanies);
-        setSelectAllCompanies(true);
-      }
-    } else {
-      let updatedCompanies;
-      if (tempSelectedCompanies.includes(company)) {
-        updatedCompanies = tempSelectedCompanies.filter(c => c !== company);
-        if (updatedCompanies.includes('Select Company')) {
-          updatedCompanies = updatedCompanies.filter(c => c !== 'Select Company');
-        }
-      } else {
-        updatedCompanies = [...tempSelectedCompanies, company];
-        const otherCompanies = allCompanies.filter(c => c !== 'Select Company');
-        if (otherCompanies.every(c => updatedCompanies.includes(c))) {
-          updatedCompanies = allCompanies;
-        }
-      }
-      setTempSelectedCompanies(updatedCompanies);
-      setSelectAllCompanies(updatedCompanies.length === allCompanies.length);
-    }
-  };
-
-  const handleCompanyPopupOk = () => {
-    setSelectedCompanies([...tempSelectedCompanies]);
-    setShowCompanyPopup(false);
-  };
-
-  const handleCompanyClearSelection = () => {
-    setTempSelectedCompanies([]);
-    setSelectAllCompanies(false);
-  };
-
-  const handleCompanyPopupClose = () => {
-    setShowCompanyPopup(false);
-  };
-
-  // Search functionality
   const handleSearch = () => {
-    if (!fromDate || !toDate || selectedParties.length === 0 || selectedCompanies.length === 0) {
-      alert('Please fill all fields: From Date, To Date, Party, and Company');
+    if (!fromDate || !toDate || !party || company === 'Select Company') {
+      toast.warning('Please fill all fields: From Date, To Date, Party, and Company', {
+        autoClose: 2000,
+      });
       return;
     }
     
     console.log('Searching Ledger with:', {
       fromDate,
       toDate,
-      selectedParties,
-      selectedCompanies
+      party,
+      company
     });
     
-    setTableLoaded(true);
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setLedgerData(sampleLedgerData);
+      setTableLoaded(true);
+      setIsLoading(false);
+      
+      toast.success('Ledger report loaded successfully', {
+        autoClose: 1500,
+      });
+    }, 500);
   };
 
-  // Date handlers
-  const handleDateChange = (type, value) => {
-    if (type === 'from') {
-      setFromDate(value);
-      setShowFromCalendar(false);
-    } else {
-      setToDate(value);
-      setShowToCalendar(false);
-    }
-  };
-
-  // Refresh functionality
   const handleRefresh = () => {
     setTableLoaded(false);
-    setSelectedParties(['ANBU 123']);
-    setSelectedCompanies(['Select Company']);
     setFromDate('2024-06-14');
     setToDate('2025-11-26');
+    setParty('ANBU 123');
+    setCompany('Select Company');
+    setLedgerData([]);
   };
 
-  // Calendar generation
-  const generateCalendar = (currentDate, type) => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const today = new Date();
-    
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDay = firstDay.getDay();
-    
-    const days = [];
-    
-    for (let i = 0; i < startDay; i++) {
-      days.push(<div key={`empty-${i}`} style={styles.calendarEmptyDay}></div>);
-    }
-    
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-      const isSelected = (type === 'from' && fromDate === dateStr) || (type === 'to' && toDate === dateStr);
-      const isToday = today.toISOString().split('T')[0] === dateStr;
+  // Handle key navigation
+  const handleKeyDown = (e, currentField) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
       
-      days.push(
-        <div 
-          key={day}
-          style={{
-            ...styles.calendarDay,
-            ...(isSelected ? styles.calendarSelectedDay : {}),
-            ...(isToday ? styles.calendarToday : {}),
-            ':hover': {
-              backgroundColor: !isSelected ? accentColors.light : accentColors.primary,
-              transform: 'translateY(-1px)'
-            }
-          }}
-          onClick={() => handleDateChange(type, dateStr)}
-        >
-          {day}
-        </div>
-      );
+      switch(currentField) {
+        case 'fromDate':
+          toDateRef.current?.focus();
+          break;
+        case 'toDate':
+          partyRef.current?.focus();
+          break;
+        case 'party':
+          companyRef.current?.focus();
+          break;
+        case 'company':
+          searchButtonRef.current?.focus();
+          break;
+        default:
+          break;
+      }
     }
-    
-    return days;
   };
 
-  // Styles
-  const accentColors = {
-    primary: '#4A90E2',
-    secondary: '#64B5F6',
-    tertiary: '#81D4FA',
-    light: '#F0F8FF',
-    dark: '#1976D2',
-    text: '#2C3E50',
-    textLight: '#7F8C8D',
-    border: '#E1E8ED',
-    background: '#F8FAFD'
+  // --- SCREEN SIZE DETECTION ---
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isMobile = width < 640;
+      const isTablet = width >= 640 && width < 1024;
+      const isDesktop = width >= 1024;
+      
+      setScreenSize({
+        width,
+        height,
+        isMobile,
+        isTablet,
+        isDesktop
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // --- STYLES ---
+  const TYPOGRAPHY = {
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: {
+      xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      base: screenSize.isMobile ? '13px' : screenSize.isTablet ? '14px' : '16px',
+      lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
+    },
+    fontWeight: {
+      normal: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700
+    },
+    lineHeight: {
+      tight: 1.2,
+      normal: 1.5,
+      relaxed: 1.6
+    }
   };
 
   const styles = {
     container: {
-      maxWidth: '1400px',
-      margin: '30px auto',
-      backgroundColor: 'white',
-      borderRadius: '16px',
-      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-      fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
-      transition: 'all 0.3s ease',
-      display: 'flex',
-      flexDirection: 'column',
-      height: 'calc(100vh - 60px)', // Full screen height minus margin
-      maxHeight: '900px', // Prevent it from getting too tall
-      overflow: 'hidden' // Prevent scrolling
-    },
-    
-    // UPDATED: Compact header with everything in one line
-    header: {
-      background: 'linear-gradient(135deg, #f8fafd 0%, white 100%)',
-      color: accentColors.text,
-      padding: '25px 40px 25px 40px',
-      borderBottom: `1px solid ${accentColors.border}`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      flexShrink: 0
-    },
-    
-    headerTitle: {
-      fontSize: '24px',
-      fontWeight: '700',
-      color: accentColors.primary,
-      letterSpacing: '-0.5px',
-      marginRight: '40px',
-      minWidth: '150px'
-    },
-    
-    // UPDATED: All controls in one row
-    controlsRow: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '20px',
-      flex: 1
-    },
-    
-    controlGroup: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-      minWidth: '150px'
-    },
-    
-    controlLabel: {
-      fontSize: '13px',
-      color: accentColors.text,
-      fontWeight: '600',
-      letterSpacing: '0.3px',
-      textTransform: 'uppercase',
-      whiteSpace: 'nowrap'
-    },
-    
-    dateInputWrapper: {
-      position: 'relative',
-      width: '100%'
-    },
-    
-    dateDisplay: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '12px 15px',
-      paddingRight: '40px',
-      border: `1.5px solid ${accentColors.border}`,
-      borderRadius: '8px',
-      backgroundColor: 'white',
-      fontSize: '14px',
-      color: accentColors.text,
-      minHeight: '42px',
-      cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-      ':hover': {
-        borderColor: accentColors.secondary,
-        boxShadow: `0 4px 10px ${accentColors.secondary}20`,
-        transform: 'translateY(-1px)'
-      }
-    },
-    
-    calendarIcon: {
-      position: 'absolute',
-      right: '12px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      color: accentColors.secondary,
-      cursor: 'pointer',
-      fontSize: '18px',
-      transition: 'transform 0.3s ease',
-      ':hover': {
-        transform: 'translateY(-50%) scale(1.1)'
-      }
-    },
-    
-    inputField: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      backgroundColor: '#f5f7fa',
+      height: '100vh',
       width: '100%',
-      padding: '12px 15px',
-      border: `1.5px solid ${accentColors.border}`,
-      borderRadius: '8px',
-      fontSize: '14px',
+      display: 'flex',
+      flexDirection: 'column',
+      margin: 0,
+      padding: 0,
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+      position: 'fixed',
+    },
+    headerSection: {
+      flex: '0 0 auto',
       backgroundColor: 'white',
-      color: accentColors.text,
-      minHeight: '42px',
+      borderRadius: 0,
+      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
+      margin: 0,
+      marginBottom: 0,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      overflowY: 'visible',
+      maxHeight: 'none',
+    },
+    tableSection: {
+      flex: '1 1 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0,
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
+    },
+    formRow: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+    },
+    formField: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-      ':hover': {
-        borderColor: accentColors.secondary,
-        boxShadow: `0 4px 10px ${accentColors.secondary}20`,
-        transform: 'translateY(-1px)'
-      }
+      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '8px' : '10px',
     },
-    
-    // UPDATED: Button styling for compact header
+    inlineLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+    },
+    inlineInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+    },
+    inlineInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    gridRow: {
+      display: 'grid',
+      gap: '8px',
+      marginBottom: 10,
+    },
+    tableContainer: {
+      backgroundColor: 'white',
+      borderRadius: 10,
+      overflowX: 'auto',
+      overflowY: 'auto',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1px solid #e0e0e0',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginBottom: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      WebkitOverflowScrolling: 'touch',
+      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      boxSizing: 'border-box',
+      flex: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
+      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
+    },
+    table: {
+      width: 'max-content',
+      minWidth: '100%',
+      borderCollapse: 'collapse',
+      tableLayout: 'fixed',
+    },
+    th: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
+      textAlign: 'center',
+      letterSpacing: '0.5px',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10,
+      border: '1px solid white',
+      borderBottom: '2px solid white',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      whiteSpace: 'nowrap',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+    },
+    td: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: '8px 6px',
+      textAlign: 'center',
+      border: '1px solid #ccc',
+      color: '#333',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+    },
+    footerSection: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flex: '0 0 auto',
+      display: 'flex',
+      flexDirection: screenSize.isMobile ? 'column' : 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
+      backgroundColor: 'white',
+      borderTop: '2px solid #e0e0e0',
+      boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
+      flexWrap: 'wrap',
+      flexShrink: 0,
+      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
+      width: '100%',
+      boxSizing: 'border-box',
+      zIndex: 100,
+    },
+    balanceContainer: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.sm : screenSize.isTablet ? TYPOGRAPHY.fontSize.base : TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#1B91DA',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '8px 12px' : '10px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '15px' : screenSize.isTablet ? '25px' : '35px',
+      minWidth: 'max-content',
+      justifyContent: 'center',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      order: screenSize.isMobile ? 1 : 0,
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      backgroundColor: '#f0f8ff',
+    },
+    balanceItem: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '2px',
+    },
+    balanceLabel: {
+      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      color: '#555',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+    },
+    balanceValue: {
+      fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      color: '#1976d2',
+      fontWeight: 'bold',
+    },
     searchButton: {
-      padding: '12px 24px',
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
       color: 'white',
       border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '700',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: `0 4px 12px ${accentColors.secondary}40`,
-      letterSpacing: '0.5px',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)',
+      letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      minWidth: '100px',
-      height: '42px',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       ':hover': {
         transform: 'translateY(-2px)',
-        boxShadow: `0 6px 20px ${accentColors.secondary}60`,
-        letterSpacing: '0.8px'
+        boxShadow: '0 4px 12px rgba(27, 145, 218, 0.4)',
       },
       ':active': {
-        transform: 'translateY(-1px)'
+        transform: 'translateY(-1px)',
       }
     },
-    
-    searchButtonGlow: {
+    refreshButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: '#1B91DA',
+        boxShadow: '0 4px 10px rgba(27, 145, 218, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    buttonGlow: {
       position: 'absolute',
       top: '0',
       left: '-100%',
@@ -463,838 +506,325 @@ const Ledger = () => {
       background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
       transition: 'left 0.7s ease'
     },
-    
-    refreshButton: {
-      padding: '12px 24px',
-      background: 'white',
-      color: accentColors.text,
-      border: `1.5px solid ${accentColors.border}`,
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '700',
-      cursor: 'pointer',
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-      letterSpacing: '0.5px',
-      position: 'relative',
-      overflow: 'hidden',
-      minWidth: '100px',
-      height: '42px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      ':hover': {
-        borderColor: accentColors.secondary,
-        boxShadow: `0 4px 10px ${accentColors.secondary}20`,
-        transform: 'translateY(-1px)'
-      },
-      ':active': {
-        transform: 'translateY(-1px)'
-      }
-    },
-    
-    // UPDATED: Main content area - fixed height, no scroll
-    content: {
-      padding: '25px',
-      flex: 1,
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    
-    tableContainer: {
-      borderRadius: '12px',
-      overflow: 'hidden',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-      border: `1px solid ${accentColors.border}`,
-      background: 'white',
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '400px'
-    },
-    
-    tableWrapper: {
-      flex: 1,
-      overflow: 'auto'
-    },
-    
-    table: {
-      width: '100%',
-      borderCollapse: 'separate',
-      borderSpacing: '0',
-      minWidth: '1200px'
-    },
-    
-    tableHeader: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.dark} 100%)`,
-      color: 'white',
-      padding: '16px 18px',
-      textAlign: 'left',
-      fontWeight: '600',
-      fontSize: '13px',
-      border: 'none',
-      position: 'relative',
-      overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      ':first-child': {
-        borderTopLeftRadius: '12px'
-      },
-      ':last-child': {
-        borderTopRightRadius: '12px'
-      }
-    },
-    
-    tableHeaderGlow: {
-      position: 'absolute',
-      top: '0',
-      left: '0',
-      right: '0',
-      height: '2px',
-      background: `linear-gradient(90deg, transparent, ${accentColors.tertiary}, transparent)`
-    },
-    
-    tableCell: {
-      padding: '14px 18px',
-      borderBottom: `1px solid ${accentColors.border}`,
-      fontSize: '13px',
-      color: accentColors.text,
-      transition: 'all 0.2s ease',
-      fontWeight: '500',
-      whiteSpace: 'nowrap'
-    },
-    
-    tableRow: {
-      transition: 'all 0.3s ease',
-      ':hover': {
-        backgroundColor: `${accentColors.light}80`,
-        transform: 'translateX(2px)'
-      }
-    },
-    
-    emptyState: {
-      textAlign: 'center',
-      padding: '40px 30px',
-      color: accentColors.textLight,
-      fontSize: '15px',
-      background: accentColors.background,
-      borderRadius: '12px',
-      margin: '20px',
-      border: `2px dashed ${accentColors.border}`,
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center'
-    },
-    
-    emptyStateIcon: {
-      fontSize: '40px',
-      marginBottom: '15px',
-      color: accentColors.secondary,
-      opacity: 0.5
-    },
-    
-    // UPDATED: Footer with balances
-    footer: {
-      padding: '20px 25px',
-      backgroundColor: accentColors.background,
-      borderTop: `1px solid ${accentColors.border}`,
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      flexShrink: 0
-    },
-    
-    balanceBox: {
-      background: 'white',
-      padding: '20px 30px',
-      borderRadius: '10px',
-      border: `1px solid ${accentColors.border}`,
-      minWidth: '200px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center'
-    },
-    
-    balanceLabel: {
-      fontSize: '14px',
-      color: accentColors.textLight,
-      marginBottom: '8px',
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px'
-    },
-    
-    balanceValue: {
-      fontSize: '24px',
-      fontWeight: '700',
-      color: accentColors.primary
-    },
-    
-    // Calendar popup styles (same as before)
-    calendarPopup: {
-      position: 'absolute',
-      top: 'calc(100% + 8px)',
-      left: '0',
-      zIndex: 1001,
-      backgroundColor: 'white',
-      border: `1px solid ${accentColors.border}`,
-      borderRadius: '16px',
-      boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-      width: '300px',
-      overflow: 'hidden',
-      animation: 'slideDown 0.3s ease'
-    },
-    
-    calendarHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '18px',
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white',
-      position: 'relative'
-    },
-    
-    calendarNavButton: {
-      background: 'rgba(255,255,255,0.2)',
-      border: 'none',
-      color: 'white',
-      fontSize: '16px',
-      cursor: 'pointer',
-      padding: '6px 10px',
-      borderRadius: '6px',
-      transition: 'all 0.2s ease',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '36px',
-      height: '36px',
-      ':hover': {
-        background: 'rgba(255,255,255,0.3)',
-        transform: 'scale(1.05)'
-      }
-    },
-    
-    calendarMonthYear: {
-      fontSize: '15px',
-      fontWeight: '600',
-      letterSpacing: '0.5px'
-    },
-    
-    calendarWeekDays: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      padding: '12px',
-      backgroundColor: accentColors.background,
-      borderBottom: `1px solid ${accentColors.border}`
-    },
-    
-    calendarWeekDay: {
-      textAlign: 'center',
-      fontSize: '11px',
-      fontWeight: '700',
-      color: accentColors.textLight,
-      padding: '6px',
-      textTransform: 'uppercase',
-      letterSpacing: '1px'
-    },
-    
-    calendarDays: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      padding: '12px',
-      gap: '4px'
-    },
-    
-    calendarDay: {
-      textAlign: 'center',
-      padding: '10px 6px',
-      cursor: 'pointer',
-      borderRadius: '6px',
-      fontSize: '13px',
-      fontWeight: '500',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      color: accentColors.text
-    },
-    
-    calendarSelectedDay: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white',
-      boxShadow: `0 4px 12px ${accentColors.secondary}40`,
-      transform: 'scale(1.05)'
-    },
-    
-    calendarToday: {
-      border: `2px solid ${accentColors.secondary}`,
-      backgroundColor: accentColors.light,
-      fontWeight: '700'
-    },
-    
-    calendarEmptyDay: {
-      padding: '10px 6px'
-    },
-    
-    // Popup styles (same as before)
-    popupOverlay: {
+    loadingOverlay: {
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      background: 'rgba(255, 255, 255, 0.8)',
       display: 'flex',
-      justifyContent: 'center',
       alignItems: 'center',
+      justifyContent: 'center',
       zIndex: 1000,
-      backdropFilter: 'blur(4px)',
-      animation: 'fadeIn 0.3s ease'
+      fontFamily: TYPOGRAPHY.fontFamily,
     },
-    
-    popupContent: {
-      backgroundColor: 'white',
-      borderRadius: '20px',
-      width: '90%',
-      maxWidth: '500px',
-      maxHeight: '80vh',
-      overflow: 'hidden',
-      boxShadow: '0 30px 80px rgba(0, 0, 0, 0.2)',
-      border: `1px solid ${accentColors.secondary}`,
-      animation: 'slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-    },
-    
-    popupHeader: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white',
-      padding: '22px 28px 22px 28px',
-      margin: 0,
-      fontSize: '20px',
-      fontWeight: '700',
-      borderBottom: `1px solid ${accentColors.dark}`,
-      position: 'relative',
-      letterSpacing: '0.5px'
-    },
-    
-    closeButton: {
-      position: 'absolute',
-      right: '18px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      background: 'rgba(255,255,255,0.2)',
-      border: 'none',
-      color: 'white',
-      fontSize: '22px',
-      cursor: 'pointer',
-      width: '34px',
-      height: '34px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '8px',
-      transition: 'all 0.3s ease',
-      ':hover': {
-        background: 'rgba(255,255,255,0.3)',
-        transform: 'translateY(-50%) rotate(90deg)'
-      }
-    },
-    
-    popupList: {
-      padding: '22px',
-      maxHeight: '300px',
-      overflowY: 'auto'
-    },
-    
-    popupItem: {
-      display: 'flex',
-      alignItems: 'center',
-      padding: '12px 14px',
-      margin: '6px 0',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      border: `1px solid transparent`,
-      ':hover': {
-        backgroundColor: `${accentColors.light}80`,
-        transform: 'translateX(4px)',
-        borderColor: accentColors.secondary
-      }
-    },
-    
-    selectedPopupItem: {
-      display: 'flex',
-      alignItems: 'center',
-      padding: '12px 14px',
-      margin: '6px 0',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      backgroundColor: `${accentColors.light}`,
-      borderLeft: `4px solid ${accentColors.secondary}`,
-      border: `1px solid ${accentColors.secondary}40`,
-      boxShadow: `0 4px 12px ${accentColors.secondary}20`,
-      transform: 'translateX(4px)'
-    },
-    
-    popupCheckbox: {
-      width: '20px',
-      height: '20px',
-      border: `2px solid ${accentColors.secondary}`,
-      borderRadius: '5px',
-      marginRight: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      backgroundColor: 'white',
-      transition: 'all 0.3s ease'
-    },
-    
-    selectedPopupCheckbox: {
-      width: '20px',
-      height: '20px',
-      border: `2px solid ${accentColors.secondary}`,
-      borderRadius: '5px',
-      marginRight: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      backgroundColor: accentColors.secondary,
-      boxShadow: `0 4px 12px ${accentColors.secondary}40`
-    },
-    
-    checkmark: {
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: '13px'
-    },
-    
-    popupText: {
-      color: accentColors.text,
-      fontSize: '14px',
-      fontWeight: '500'
-    },
-    
-    popupActions: {
-      borderTop: `1px solid ${accentColors.border}`,
-      padding: '22px',
-      backgroundColor: accentColors.background
-    },
-    
-    popupButtons: {
-      display: 'flex',
-      justifyContent: 'flex-end',
-      gap: '12px'
-    },
-    
-    popupButton: {
-      padding: '10px 24px',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '13px',
-      fontWeight: '700',
-      cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      minWidth: '90px',
-      letterSpacing: '0.5px',
-      ':hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 6px 20px rgba(0,0,0,0.1)'
-      }
-    },
-    
-    okButton: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white'
-    },
-    
-    clearButton: {
+    loadingBox: {
       background: 'white',
-      color: '#d32f2f',
-      border: `2px solid #ffcdd2`,
-      ':hover': {
-        background: '#ffebee',
-        boxShadow: '0 6px 20px rgba(211, 47, 47, 0.1)'
-      }
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      textAlign: 'center',
+    },
+    selectInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+    },
+    selectInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+  };
+
+  // Get grid columns based on screen size
+  const getGridColumns = () => {
+    if (screenSize.isMobile) {
+      return 'repeat(2, 1fr)';
+    } else if (screenSize.isTablet) {
+      return 'repeat(3, 1fr)';
+    } else {
+      return 'repeat(4, 1fr)';
     }
   };
 
-  // Calendar data
-  const fromCalendarDate = new Date(fromDate);
-  const toCalendarDate = new Date(toDate);
-  
-  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  // Calculate opening and closing balances
+  const openingBalance = 0.00;
+  const closingBalance = 0.00;
 
   return (
     <div style={styles.container}>
-      {/* UPDATED: Compact header with everything in one line */}
-      <div style={styles.header}>
-        {/* Title on the left */}
-        <div style={styles.headerTitle}>Ledger Report</div>
-        
-        {/* All controls in one row */}
-        <div style={styles.controlsRow}>
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div style={styles.loadingOverlay}>
+          <div style={styles.loadingBox}>
+            <div>Loading Ledger Report...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Header Section - All in one line */}
+      <div style={styles.headerSection}>
+        <div style={{
+          ...styles.gridRow,
+          gridTemplateColumns: getGridColumns(),
+        }}>
           {/* From Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>From Date</div>
-            <div style={styles.dateInputWrapper}>
-              <div 
-                style={styles.dateDisplay}
-                onClick={() => {
-                  setShowFromCalendar(!showFromCalendar);
-                  setShowToCalendar(false);
-                }}
-              >
-                {formatDateForDisplay(fromDate)}
-                <span style={styles.calendarIcon}>📅</span>
-              </div>
-              
-              {showFromCalendar && (
-                <div style={styles.calendarPopup}>
-                  <div style={styles.calendarHeader}>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(fromCalendarDate);
-                        newDate.setMonth(newDate.getMonth() - 1);
-                        handleDateChange('from', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ‹
-                    </button>
-                    <div style={styles.calendarMonthYear}>
-                      {months[fromCalendarDate.getMonth()]} {fromCalendarDate.getFullYear()}
-                    </div>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(fromCalendarDate);
-                        newDate.setMonth(newDate.getMonth() + 1);
-                        handleDateChange('from', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ›
-                    </button>
-                  </div>
-                  
-                  <div style={styles.calendarWeekDays}>
-                    {weekDays.map(day => (
-                      <div key={day} style={styles.calendarWeekDay}>{day}</div>
-                    ))}
-                  </div>
-                  
-                  <div style={styles.calendarDays}>
-                    {generateCalendar(fromCalendarDate, 'from')}
-                  </div>
-                </div>
-              )}
-            </div>
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>From Date:</label>
+            <input
+              type="date"
+              data-header="fromDate"
+              style={
+                focusedField === 'fromDate'
+                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+              }
+              value={fromDate}
+              onChange={handleFromDateChange}
+              ref={fromDateRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'fromDate');
+              }}
+              onFocus={() => setFocusedField('fromDate')}
+              onBlur={() => setFocusedField('')}
+            />
           </div>
-          
+
           {/* To Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>To Date</div>
-            <div style={styles.dateInputWrapper}>
-              <div 
-                style={styles.dateDisplay}
-                onClick={() => {
-                  setShowToCalendar(!showToCalendar);
-                  setShowFromCalendar(false);
-                }}
-              >
-                {formatDateForDisplay(toDate)}
-                <span style={styles.calendarIcon}>📅</span>
-              </div>
-              
-              {showToCalendar && (
-                <div style={styles.calendarPopup}>
-                  <div style={styles.calendarHeader}>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(toCalendarDate);
-                        newDate.setMonth(newDate.getMonth() - 1);
-                        handleDateChange('to', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ‹
-                    </button>
-                    <div style={styles.calendarMonthYear}>
-                      {months[toCalendarDate.getMonth()]} {toCalendarDate.getFullYear()}
-                    </div>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(toCalendarDate);
-                        newDate.setMonth(newDate.getMonth() + 1);
-                        handleDateChange('to', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ›
-                    </button>
-                  </div>
-                  
-                  <div style={styles.calendarWeekDays}>
-                    {weekDays.map(day => (
-                      <div key={day} style={styles.calendarWeekDay}>{day}</div>
-                    ))}
-                  </div>
-                  
-                  <div style={styles.calendarDays}>
-                    {generateCalendar(toCalendarDate, 'to')}
-                  </div>
-                </div>
-              )}
-            </div>
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>To Date:</label>
+            <input
+              type="date"
+              data-header="toDate"
+              style={
+                focusedField === 'toDate'
+                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+              }
+              value={toDate}
+              onChange={handleToDateChange}
+              ref={toDateRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'toDate');
+              }}
+              onFocus={() => setFocusedField('toDate')}
+              onBlur={() => setFocusedField('')}
+            />
           </div>
-          
+
           {/* Party */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>Party</div>
-            <div 
-              style={styles.inputField}
-              onClick={handlePartyClick}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Party:</label>
+            <select
+              data-header="party"
+              style={
+                focusedField === 'party'
+                  ? styles.selectInputFocused
+                  : styles.selectInput
+              }
+              value={party}
+              onChange={handlePartyChange}
+              ref={partyRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'party');
+              }}
+              onFocus={() => setFocusedField('party')}
+              onBlur={() => setFocusedField('')}
             >
-              {selectedParties.length > 0 
-                ? selectedParties.join(', ') 
-                : 'Select Party'}
-              <span style={{color: accentColors.secondary, fontSize: '10px', transition: 'transform 0.3s ease'}}>▼</span>
-            </div>
+              {allParties.map((partyItem, index) => (
+                <option key={index} value={partyItem}>
+                  {partyItem}
+                </option>
+              ))}
+            </select>
           </div>
-          
+
           {/* Company */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>Company</div>
-            <div 
-              style={styles.inputField}
-              onClick={handleCompanyClick}
+          <div style={styles.formField}>
+            <label style={styles.inlineLabel}>Company:</label>
+            <select
+              data-header="company"
+              style={
+                focusedField === 'company'
+                  ? styles.selectInputFocused
+                  : styles.selectInput
+              }
+              value={company}
+              onChange={handleCompanyChange}
+              ref={companyRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'company');
+              }}
+              onFocus={() => setFocusedField('company')}
+              onBlur={() => setFocusedField('')}
             >
-              {selectedCompanies.length > 0 
-                ? selectedCompanies.join(', ') 
-                : 'Select Company'}
-              <span style={{color: accentColors.secondary, fontSize: '10px', transition: 'transform 0.3s ease'}}>▼</span>
-            </div>
+              {allCompanies.map((companyItem, index) => (
+                <option key={index} value={companyItem}>
+                  {companyItem}
+                </option>
+              ))}
+            </select>
           </div>
-          
+        </div>
+
+        {/* Second Row for Buttons */}
+        <div style={{
+          ...styles.gridRow,
+          gridTemplateColumns: getGridColumns(),
+          marginTop: '10px',
+        }}>
           {/* Search Button */}
-          <button 
-            style={styles.searchButton}
-            onClick={handleSearch}
-            onMouseEnter={() => setHoveredButton(true)}
-            onMouseLeave={() => setHoveredButton(false)}
-          >
-            Search
-            {hoveredButton && <div style={styles.searchButtonGlow}></div>}
-          </button>
-          
+          <div style={{ ...styles.formField, gridColumn: screenSize.isMobile ? 'span 2' : 'span 1' }}>
+            <button
+              style={{
+                ...styles.searchButton,
+                width: '100%'
+              }}
+              onClick={handleSearch}
+              onMouseEnter={() => setHoveredButton(true)}
+              onMouseLeave={() => setHoveredButton(false)}
+              ref={searchButtonRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+            >
+              Search
+              {hoveredButton && <div style={styles.buttonGlow}></div>}
+            </button>
+          </div>
+
           {/* Refresh Button */}
-          <button 
-            style={styles.refreshButton}
-            onClick={handleRefresh}
-          >
-            Refresh
-          </button>
+          <div style={{ ...styles.formField, gridColumn: screenSize.isMobile ? 'span 2' : 'span 1' }}>
+            <button
+              style={{
+                ...styles.refreshButton,
+                width: '100%'
+              }}
+              onClick={handleRefresh}
+            >
+              Refresh
+            </button>
+          </div>
+
+          {/* Empty divs to maintain grid structure */}
+          {screenSize.isDesktop && (
+            <>
+              <div style={styles.formField}></div>
+              <div style={styles.formField}></div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* TABLE CONTENT - Fixed height, no scroll */}
-      <div style={styles.content}>
+      {/* Table Section */}
+      <div style={styles.tableSection}>
         <div style={styles.tableContainer}>
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.tableHeader}>
-                    Date
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Name
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Voucher No
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Type
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Cr/Dr
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Bill No
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Billet
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                  <th style={styles.tableHeader}>
-                    Amount
-                    <div style={styles.tableHeaderGlow}></div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(tableLoaded ? ledgerData : []).map((row, index) => (
-                  <tr key={index} style={styles.tableRow}>
-                    <td style={styles.tableCell}>{row.date}</td>
-                    <td style={styles.tableCell}>{row.name}</td>
-                    <td style={styles.tableCell}>{row.voucherNo}</td>
-                    <td style={styles.tableCell}>{row.type}</td>
-                    <td style={styles.tableCell}>{row.crDr}</td>
-                    <td style={styles.tableCell}>{row.billNo}</td>
-                    <td style={styles.tableCell}>{row.billet}</td>
-                    <td style={styles.tableCell}>{row.amount}</td>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Date</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Name</th>
+                <th style={styles.th}>Voucher No</th>
+                <th style={styles.th}>Type</th>
+                <th style={styles.th}>Cr/Dr</th>
+                <th style={styles.th}>Bill No</th>
+                <th style={styles.th}>Billet</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableLoaded ? (
+                ledgerData.length > 0 ? (
+                  ledgerData.map((row, index) => (
+                    <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                      <td style={styles.td}>{row.date}</td>
+                      <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px' }}>{row.name}</td>
+                      <td style={styles.td}>{row.voucherNo}</td>
+                      <td style={styles.td}>{row.type}</td>
+                      <td style={styles.td}>{row.crDr}</td>
+                      <td style={styles.td}>{row.billNo}</td>
+                      <td style={styles.td}>{row.billet}</td>
+                      <td style={{ ...styles.td, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'right', fontWeight: 'bold', color: '#1565c0' }}>
+                        ₹{parseFloat(row.amount || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      No records found
+                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {tableLoaded && ledgerData.length === 0 && (
-              <div style={styles.emptyState}>
-                <div style={styles.emptyStateIcon}>📊</div>
-                No records found
-              </div>
-            )}
-            
-            {!tableLoaded && (
-              <div style={styles.emptyState}>
-                <div style={styles.emptyStateIcon}>🔍</div>
-                Enter search criteria and click "Search" to view ledger entries
-              </div>
-            )}
-          </div>
+                )
+              ) : (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    Enter search criteria and click "Search" to view ledger entries
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* UPDATED: Footer with balances */}
-      <div style={styles.footer}>
-        <div style={styles.balanceBox}>
-          <div style={styles.balanceLabel}>Opening Balance</div>
-          <div style={styles.balanceValue}>0.00</div>
-        </div>
-        <div style={styles.balanceBox}>
-          <div style={styles.balanceLabel}>Closing Balance</div>
-          <div style={styles.balanceValue}>0.00</div>
+      {/* Footer Section with Balances */}
+      <div style={styles.footerSection}>
+        <div style={styles.balanceContainer}>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Opening Balance</span>
+            <span style={styles.balanceValue}>
+              ₹{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Closing Balance</span>
+            <span style={styles.balanceValue}>
+              ₹{closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
         </div>
       </div>
-
-      {/* PARTY POPUP */}
-      {showPartyPopup && (
-        <div style={styles.popupOverlay} onClick={handlePartyPopupClose}>
-          <div 
-            style={styles.popupContent} 
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={styles.popupHeader}>
-              Select Party
-              <button 
-                style={styles.closeButton}
-                onClick={handlePartyPopupClose}
-              >
-                ×
-              </button>
-            </div>
-            
-            <div style={styles.popupList}>
-              {allParties.map((party) => {
-                const isSelected = tempSelectedParties.includes(party);
-                return (
-                  <div 
-                    key={party} 
-                    style={isSelected ? styles.selectedPopupItem : styles.popupItem}
-                    onClick={() => handlePartySelect(party)}
-                  >
-                    <div style={isSelected ? styles.selectedPopupCheckbox : styles.popupCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
-                    </div>
-                    <span style={styles.popupText}>{party}</span>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div style={styles.popupActions}>
-              <div style={styles.popupButtons}>
-                <button 
-                  style={{...styles.popupButton, ...styles.clearButton}}
-                  onClick={handlePartyClearSelection}
-                >
-                  Clear
-                </button>
-                <button 
-                  style={{...styles.popupButton, ...styles.okButton}}
-                  onClick={handlePartyPopupOk}
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* COMPANY POPUP */}
-      {showCompanyPopup && (
-        <div style={styles.popupOverlay} onClick={handleCompanyPopupClose}>
-          <div 
-            style={styles.popupContent} 
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={styles.popupHeader}>
-              Select Company
-              <button 
-                style={styles.closeButton}
-                onClick={handleCompanyPopupClose}
-              >
-                ×
-              </button>
-            </div>
-            
-            <div style={styles.popupList}>
-              {allCompanies.map((company) => {
-                const isSelected = tempSelectedCompanies.includes(company);
-                return (
-                  <div 
-                    key={company} 
-                    style={isSelected ? styles.selectedPopupItem : styles.popupItem}
-                    onClick={() => handleCompanySelect(company)}
-                  >
-                    <div style={isSelected ? styles.selectedPopupCheckbox : styles.popupCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
-                    </div>
-                    <span style={styles.popupText}>{company}</span>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div style={styles.popupActions}>
-              <div style={styles.popupButtons}>
-                <button 
-                  style={{...styles.popupButton, ...styles.clearButton}}
-                  onClick={handleCompanyClearSelection}
-                >
-                  Clear
-                </button>
-                <button 
-                  style={{...styles.popupButton, ...styles.okButton}}
-                  onClick={handleCompanyPopupOk}
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
