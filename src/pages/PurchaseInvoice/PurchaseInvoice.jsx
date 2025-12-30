@@ -1572,7 +1572,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             profitPercent: toNumber(it.profitPercent),
             preRate: toNumber(it.preRT),
             sRate: toNumber(it.sRate),
-            asRate: toNumber(it.asRate),
+            asRate: toNumber(it.asRate)|| toNumber(it.sRate),
             mrp: toNumber(it.mrp),
             letProfPer: toNumber(it.letProfPer),
             ntCost: toNumber(it.ntCost),
