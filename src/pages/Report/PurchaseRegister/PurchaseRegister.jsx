@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 const PurchaseRegister = () => {
-  // Initial data state
-  const [data, setData] = useState([
+  // Sample data for demonstration
+  const sampleData = [
     {
       id: 1,
       no: 1,
       salesParty: 'AMIT FASHION',
-      billNo: 'C00001AA',
+      billNo: 'P00001AA',
       billDate: '27-09-2025',
       billAmount: '29,303.00',
       qty: '15.00',
@@ -19,30 +19,82 @@ const PurchaseRegister = () => {
       id: 2,
       no: 2,
       salesParty: 'CASH A/C',
-      billNo: 'C00002AA',
+      billNo: 'P00002AA',
       billDate: '10-12-2025',
       billAmount: '380.00',
       qty: '10.00',
       time: '01-01-1900 12:49:20',
       noOfBale: '0',
       transport: ''
+    },
+    {
+      id: 3,
+      no: 3,
+      salesParty: 'TEXTILE MART',
+      billNo: 'P00003BB',
+      billDate: '15-01-2025',
+      billAmount: '15,500.00',
+      qty: '25.00',
+      time: '01-01-1900 14:30:00',
+      noOfBale: '5',
+      transport: 'TRUCK-101'
+    },
+    {
+      id: 4,
+      no: 4,
+      salesParty: 'FABRIC WORLD',
+      billNo: 'P00004CC',
+      billDate: '20-03-2025',
+      billAmount: '42,150.00',
+      qty: '35.50',
+      time: '01-01-1900 11:15:45',
+      noOfBale: '8',
+      transport: 'VAN-202'
+    },
+    {
+      id: 5,
+      no: 5,
+      salesParty: 'CLOTH STORE',
+      billNo: 'P00005DD',
+      billDate: '05-06-2025',
+      billAmount: '8,750.00',
+      qty: '12.75',
+      time: '01-01-1900 16:20:30',
+      noOfBale: '3',
+      transport: ''
+    }
+  ];
+
+  // State for data - starts with one empty row
+  const [data, setData] = useState([
+    {
+      id: 1,
+      no: 1,
+      salesParty: '',
+      billNo: '',
+      billDate: '',
+      billAmount: '',
+      qty: '',
+      time: '',
+      noOfBale: '',
+      transport: ''
     }
   ]);
+  const [isFiltered, setIsFiltered] = useState(false);
 
   // State for date range
   const [dateRange, setDateRange] = useState({
-    from: '01-01-2025',
-    to: '31-12-2025'
+    from: '',
+    to: ''
   });
 
   // State for editing
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
-  
-  // Refs for cell navigation
+
+  // Refs
   const tableRef = useRef(null);
-  const cellRefs = useRef([]);
 
   // Calculate totals
   const totals = {
@@ -72,12 +124,61 @@ const PurchaseRegister = () => {
     });
   };
 
+  // Convert date string to Date object for comparison
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const [day, month, year] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   // Filter data by date range
   const filterDataByDate = () => {
-    // This would normally filter data from an API or larger dataset
-    // For now, we'll just show a message
-    alert(`Filtering data from ${dateRange.from} to ${dateRange.to}`);
-    // In a real app, you would fetch filtered data here
+    if (!dateRange.from || !dateRange.to) {
+      alert('Please select both From and To dates');
+      return;
+    }
+
+    // Parse input dates
+    const fromDate = new Date(dateRange.from);
+    const toDate = new Date(dateRange.to);
+
+    if (fromDate > toDate) {
+      alert('From date cannot be after To date');
+      return;
+    }
+
+    // Filter sample data based on date range
+    const filtered = sampleData.filter(item => {
+      const itemDate = parseDate(item.billDate);
+      if (!itemDate) return false;
+      
+      return itemDate >= fromDate && itemDate <= toDate;
+    });
+
+    // If no data found, show empty row
+    if (filtered.length === 0) {
+      setData([
+        {
+          id: 1,
+          no: 1,
+          salesParty: '',
+          billNo: '',
+          billDate: '',
+          billAmount: '',
+          qty: '',
+          time: '',
+          noOfBale: '',
+          transport: ''
+        }
+      ]);
+    } else {
+      setData(filtered);
+    }
+    
+    setIsFiltered(true);
+    
+    // Reset selected cell
+    setSelectedCell({ row: 0, col: 0 });
   };
 
   // Clear date filters
@@ -86,17 +187,34 @@ const PurchaseRegister = () => {
       from: '',
       to: ''
     });
+    // Reset to initial empty row
+    setData([
+      {
+        id: 1,
+        no: 1,
+        salesParty: '',
+        billNo: '',
+        billDate: '',
+        billAmount: '',
+        qty: '',
+        time: '',
+        noOfBale: '',
+        transport: ''
+      }
+    ]);
+    setIsFiltered(false);
   };
 
   // Start editing a cell
   const startEditing = (rowIndex, colName, value) => {
+    if (data.length === 0) return;
     setEditingCell({ row: rowIndex, col: colName });
     setEditValue(value);
   };
 
   // Save the edited value
   const saveEdit = () => {
-    if (editingCell) {
+    if (editingCell && data.length > 0) {
       const { row, col } = editingCell;
       const newData = [...data];
       newData[row] = {
@@ -116,6 +234,8 @@ const PurchaseRegister = () => {
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (data.length === 0) return;
+      
       const { row, col } = selectedCell;
       const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
       
@@ -171,6 +291,10 @@ const PurchaseRegister = () => {
             setData(newData);
           }
           break;
+        case 'F4':
+          e.preventDefault();
+          addNewRow();
+          break;
       }
     };
 
@@ -186,10 +310,10 @@ const PurchaseRegister = () => {
       salesParty: '',
       billNo: '',
       billDate: '',
-      billAmount: '0.00',
-      qty: '0.00',
+      billAmount: '',
+      qty: '',
       time: '',
-      noOfBale: '0',
+      noOfBale: '',
       transport: ''
     };
     setData([...data, newRow]);
@@ -198,59 +322,87 @@ const PurchaseRegister = () => {
 
   // Delete selected row
   const deleteSelectedRow = () => {
-    if (selectedCell.row >= 0 && selectedCell.row < data.length) {
-      const newData = data.filter((_, index) => index !== selectedCell.row);
+    if (data.length === 0 || selectedCell.row < 0 || selectedCell.row >= data.length) {
+      return;
+    }
+    
+    const newData = data.filter((_, index) => index !== selectedCell.row);
+    
+    // If all rows are deleted, add one empty row
+    if (newData.length === 0) {
+      setData([
+        {
+          id: 1,
+          no: 1,
+          salesParty: '',
+          billNo: '',
+          billDate: '',
+          billAmount: '',
+          qty: '',
+          time: '',
+          noOfBale: '',
+          transport: ''
+        }
+      ]);
+    } else {
       // Update row numbers
       const updatedData = newData.map((row, index) => ({
         ...row,
+        id: index + 1,
         no: index + 1
       }));
       setData(updatedData);
-      setSelectedCell({ row: Math.min(selectedCell.row, updatedData.length - 1), col: selectedCell.col });
     }
+    
+    setSelectedCell({ 
+      row: Math.min(selectedCell.row, data.length - 2), 
+      col: selectedCell.col 
+    });
+  };
+
+  // Get current date in YYYY-MM-DD format for date input
+  const getCurrentDate = () => {
+    return new Date().toISOString().split('T')[0];
   };
 
   // Container styles
   const containerStyle = {   
     fontSize: '15px',
     backgroundColor: '#f5f5f5',
-    padding: '20px',
     minHeight: '100vh',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    padding: '20px'
   };
 
-  // Header styles
-  const headerStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '15px'
-  };
-
-  const titleStyle = {
-    color: '#333',
-    fontSize: '18px',
-    fontWeight: '600',
-    margin: '0'
-  };
-
-  // Date filter header styles
+  // Date filter header styles - WIDER INPUTS
   const dateFilterHeaderStyle = {
     backgroundColor: 'white',
     borderRadius: '4px',
     padding: '15px',
     marginBottom: '15px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    display: 'grid',
+    gridTemplateColumns: 'auto auto 1fr',
+    alignItems: 'center',
+    gap: '25px',
+    justifyContent: 'flex-start'
+  };
+
+  const dateFilterGroupStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '20px'
+    gap: '10px',
+    justifyContent: 'flex-start',
+    flexWrap: 'nowrap',
+    minWidth: '300px' // Increased width
   };
 
   const dateFilterLabelStyle = {
     fontWeight: '600',
     color: '#333',
     fontSize: '15px',
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    minWidth: '45px'
   };
 
   const dateInputStyle = {
@@ -258,12 +410,15 @@ const PurchaseRegister = () => {
     border: '1px solid #ddd',
     borderRadius: '3px',
     fontSize: '15px',
-    width: '120px',
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
+    cursor: 'pointer',
+    width: '200px', // WIDER input (was 140px)
+    flexShrink: 0,
+    height: '35px'
   };
 
   const dateFilterButtonStyle = {
-    padding: '6px 15px',
+    padding: '6px 20px',
     backgroundColor: '#1B91DA',
     color: 'white',
     border: 'none',
@@ -273,11 +428,13 @@ const PurchaseRegister = () => {
     fontWeight: '500',
     display: 'flex',
     alignItems: 'center',
-    gap: '5px'
+    gap: '5px',
+    height: '35px',
+    whiteSpace: 'nowrap'
   };
 
   const clearButtonStyle = {
-    padding: '6px 15px',
+    padding: '6px 20px',
     backgroundColor: '#f0f0f0',
     color: '#666',
     border: '1px solid #ddd',
@@ -287,28 +444,17 @@ const PurchaseRegister = () => {
     fontWeight: '500',
     display: 'flex',
     alignItems: 'center',
-    gap: '5px'
+    gap: '5px',
+    height: '35px',
+    whiteSpace: 'nowrap'
   };
 
   const buttonContainerStyle = {
     display: 'flex',
-    gap: '8px'
+    gap: '15px',
+    justifyContent: 'flex-start',
+    flexWrap: 'nowrap'
   };
-
-  const actionButtonStyle = (primary = false) => ({
-    padding: '6px 12px',
-    backgroundColor: primary ? '#1B91DA' : '#f0f0f0',
-    color: primary ? 'white' : '#333',
-    border: `1px solid ${primary ? '#1B91DA' : '#ccc'}`,
-    borderRadius: '3px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    fontWeight: '500',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px'
-  });
 
   // Table container styles
   const tableContainerStyle = {
@@ -316,7 +462,7 @@ const PurchaseRegister = () => {
     borderRadius: '4px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     overflow: 'hidden',
-    maxHeight: 'calc(100vh - 230px)',
+    maxHeight: 'calc(100vh - 280px)',
     display: 'flex',
     flexDirection: 'column'
   };
@@ -359,8 +505,9 @@ const PurchaseRegister = () => {
 
   // Table cell styles
   const getCellStyle = (rowIndex, colName) => {
-    const isSelected = selectedCell.row === rowIndex && 
-      ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'].indexOf(colName) === selectedCell.col;
+    const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
+    const colIndex = colNames.indexOf(colName);
+    const isSelected = selectedCell.row === rowIndex && selectedCell.col === colIndex;
     
     const isEditing = editingCell && 
       editingCell.row === rowIndex && 
@@ -384,15 +531,12 @@ const PurchaseRegister = () => {
     if (isSelected && !isEditing) {
       baseStyle.outline = '2px solid #1B91DA';
       baseStyle.outlineOffset = '-1px';
-      baseStyle.boxShadow = '0 0 0 1px rgba(27, 145, 218, 0.3)';
     }
 
     if (isEditing) {
       baseStyle.outline = '2px solid #1B91DA';
       baseStyle.outlineOffset = '-1px';
-      baseStyle.boxShadow = '0 0 0 1px rgba(27, 145, 218, 0.3)';
       baseStyle.padding = '0';
-      baseStyle.position = 'relative';
     }
 
     return baseStyle;
@@ -426,17 +570,6 @@ const PurchaseRegister = () => {
     fontSize: '15px'
   };
 
-  // Instruction panel style
-  const instructionStyle = {
-    marginTop: '15px',
-    fontSize: '11px',
-    color: '#666',
-    backgroundColor: '#f9f9f9',
-    padding: '8px 12px',
-    borderRadius: '3px',
-    borderLeft: '3px solid #1B91DA'
-  };
-
   // Render cell content
   const renderCell = (rowIndex, colName, value) => {
     if (editingCell && editingCell.row === rowIndex && editingCell.col === colName) {
@@ -464,45 +597,49 @@ const PurchaseRegister = () => {
 
   return (
     <div style={containerStyle}>     
-      {/* Date Filter Header */}
+      {/* Date Filter Header - WITH WIDER INPUTS */}
       <div style={dateFilterHeaderStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={dateFilterGroupStyle}>
           <span style={dateFilterLabelStyle}>From:</span>
           <input
             type="date"
             value={dateRange.from}
             onChange={(e) => handleDateChange('from', e.target.value)}
             style={dateInputStyle}
+            max={getCurrentDate()}
           />
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={dateFilterGroupStyle}>
           <span style={dateFilterLabelStyle}>To:</span>
           <input
             type="date"
             value={dateRange.to}
             onChange={(e) => handleDateChange('to', e.target.value)}
             style={dateInputStyle}
+            max={getCurrentDate()}
           />
         </div>
         
-        <button 
-          style={dateFilterButtonStyle}
-          onClick={filterDataByDate}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#0c7bb8'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#1B91DA'}
-        >
-          View Purchase Register
-        </button>
-        
-        <button 
-          style={clearButtonStyle}
-          onClick={clearFilters}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#e0e0e0'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#f0f0f0'}
-        >
-          <span>🗙</span> Clear
-        </button>
+        <div style={buttonContainerStyle}>
+          <button 
+            style={dateFilterButtonStyle}
+            onClick={filterDataByDate}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#0c7bb8'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#1B91DA'}
+          >
+            View Purchase Register
+          </button>
+          
+          <button 
+            style={clearButtonStyle}
+            onClick={clearFilters}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#e0e0e0'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+          >
+            <span>🗙</span> Clear
+          </button>
+        </div>
       </div>
 
       {/* Table Container */}
@@ -590,26 +727,68 @@ const PurchaseRegister = () => {
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr style={totalsRowStyle}>
-                <td colSpan="4" style={{ padding: '8px 6px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold' }}>
-                  Total
-                </td>
-                <td style={totalsCellStyle}>
-                  {formatNumber(totals.billAmount)}
-                </td>
-                <td style={totalsCellStyle}>
-                  {totals.qty.toFixed(2)}
-                </td>
-                <td style={{ ...totalsCellStyle, textAlign: 'center' }}>-</td>
-                <td style={totalsCellStyle}>-</td>
-                <td style={{ ...totalsCellStyle, borderRight: 'none' }}>-</td>
-              </tr>
-            </tfoot>
+            {data.length > 0 && (
+              <tfoot>
+                <tr style={totalsRowStyle}>
+                  <td colSpan="4" style={{ padding: '8px 6px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold' }}>
+                    Total
+                  </td>
+                  <td style={totalsCellStyle}>
+                    {formatNumber(totals.billAmount)}
+                  </td>
+                  <td style={totalsCellStyle}>
+                    {totals.qty.toFixed(2)}
+                  </td>
+                  <td style={{ ...totalsCellStyle, textAlign: 'center' }}>-</td>
+                  <td style={totalsCellStyle}>-</td>
+                  <td style={{ ...totalsCellStyle, borderRight: 'none' }}>-</td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
       
+      {/* Action buttons */}
+      <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+        <button 
+          onClick={addNewRow}
+          style={{
+            padding: '8px 20px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#218838'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#28a745'}
+        >
+          Add New Row (F4)
+        </button>
+        <button 
+          onClick={deleteSelectedRow}
+          style={{
+            padding: '8px 20px',
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#c82333'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#dc3545'}
+        >
+          Delete Selected Row
+        </button>
+        <div style={{ flex: 1, textAlign: 'right', color: '#666', fontSize: '13px', padding: '8px 0' }}>
+          Total Records: {data.length} | Use Arrow Keys to navigate, Enter/F2 to edit, Delete to clear cell
+        </div>
+      </div>
     </div>
   );
 };

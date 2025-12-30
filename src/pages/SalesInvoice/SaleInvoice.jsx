@@ -1550,9 +1550,13 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
   };
 
 const handleBarcodeKeyDown = async (e, currentRowIndex) => {
-  if (e.key !== "Enter") return;
+  const key = e.key;
 
-  e.preventDefault();
+  /* =====================================================
+     ⬆️ ARROW UP → PREVIOUS ROW BARCODE
+  ===================================================== */
+  if (key === "ArrowUp") {
+    e.preventDefault();
 
   const barcode = items[currentRowIndex].barcode?.trim();
   //=============================Chnage 1: ITEM NAME ALREADY FILLED → NORMAL NAVIGATION=============================
@@ -1571,12 +1575,29 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
     return;
   }
 
-
-
-
   /* =====================================================
-     1️⃣ BARCODE EMPTY → NORMAL NAVIGATION
+     ⏎ ENTER → EXISTING BARCODE LOGIC
   ===================================================== */
+  if (key !== "Enter") return;
+
+  e.preventDefault();
+
+  const barcode = items[currentRowIndex].barcode?.trim();
+  const currentItemName = items[currentRowIndex].itemName?.trim();
+
+  // 1️⃣ Item already selected → go to item name
+  if (currentItemName) {
+    setTimeout(() => {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+        )
+        ?.focus();
+    }, 0);
+    return;
+  }
+
+  // 2️⃣ Barcode empty → normal navigation
   if (!barcode) {
     setTimeout(() => {
       document
@@ -1660,25 +1681,12 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
             setBarcodeErrorOpen(true);
       lastBarcodeRowRef.current = currentRowIndex;
 
-      }
-    } catch (err) {
-      console.error("Barcode fetch error:", err);
-       setBarcodeErrorOpen(true);
-       
-      toast.error("Failed to fetch item by barcode", {
-        autoClose: 1500,
-      });
-      
-      // Move focus to item name field on error
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-        )
-        ?.focus();
-    }
-    return;  
-
+  } catch (err) {
+    lastBarcodeRowRef.current = currentRowIndex;
+    setBarcodeErrorOpen(true);
+  }
 };
+
 
   
 const getRateByType = (barcodeData) => {
