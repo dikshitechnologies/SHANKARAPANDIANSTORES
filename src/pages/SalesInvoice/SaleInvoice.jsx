@@ -65,6 +65,8 @@ const SaleInvoice = () => {
   const ignoreNextInputRef = useRef(false);
  const saveButtonRef = useRef(null);
  const blockTableEnterRef = useRef(false);
+const barcodeInputRefs = useRef({});
+const lastBarcodeRowRef = useRef(null);
 
 
   // Save confirmation popup
@@ -84,7 +86,8 @@ const SaleInvoice = () => {
   // Delete confirmation popup
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [deleteConfirmationData, setDeleteConfirmationData] = useState(null);
-  
+  const [barcodeErrorOpen, setBarcodeErrorOpen] = useState(false);
+
 
 
 // 🔹 TAX MASTER LIST
@@ -851,11 +854,15 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
       itemcode: item.itemcode || item.fItemcode || '',
       fItemName: item.fItemName || item.itemName || '',
       fstock: item.fstock || item.stock || 0,
-      rate: item.rate || item.sRate || 0,
+      rate: item.rate || 0,
       mrp: item.mrp || 0,
       fUnit: item.fUnit || item.uom || '',
       fHSN: item.fHSN || item.hsn || '',
       inTax: item.inTax || item.tax || 0,
+      wRate: item.wRate || 0,
+      rRate: item.rRate || 0,
+      qty: item.qty || 0,
+      amount:  0,
       success: true
     };
   } catch (err) {
@@ -898,6 +905,10 @@ useEffect(() => {
     const sRateNum = parseFloat(sRate || 0);
     return (qtyNum * sRateNum).toFixed(2);
   };
+
+  useEffect(() => {
+   calculateAmount();
+  }, [items.qty, items.sRate]);
 
   // Reset form to empty state
   const resetForm = () => {
@@ -1537,24 +1548,27 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
     }
   };
 
-// Handle barcode scanning in table
 const handleBarcodeKeyDown = async (e, currentRowIndex) => {
-  const currentItem = items[currentRowIndex];
-  
-  // If Enter is pressed on barcode field
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    
-    const barcode = currentItem.barcode?.trim();
-    if (!barcode || barcode === '') {
-      // If barcode is empty, move to item name field
+  if (e.key !== "Enter") return;
+
+  e.preventDefault();
+
+  const barcode = items[currentRowIndex].barcode?.trim();
+
+  /* =====================================================
+     1️⃣ BARCODE EMPTY → NORMAL NAVIGATION
+  ===================================================== */
+  if (!barcode) {
+    setTimeout(() => {
       document
         .querySelector(
           `input[data-row="${currentRowIndex}"][data-field="itemName"]`
         )
         ?.focus();
-      return;
-    }
+    }, 0);
+    return;
+  }
+  
     
     try {
       // Fetch item details by barcode
@@ -1565,19 +1579,26 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
         
         // Update the current row with barcode data
         const updatedItems = [...items];
+        const selectedRate = getRateByType(barcodeData);
+        const qty = Number(barcodeData.qty || 1);
+        const amount = calculateAmount(qty, selectedRate);
         updatedItems[currentRowIndex] = {
           ...updatedItems[currentRowIndex],
           barcode: barcode,
-          itemCode: barcodeData.itemcode || barcodeData.fItemcode || barcode, // Get item code from barcode data
+          itemCode: barcodeData.itemcode || barcode,
           itemName: barcodeData.fItemName || '',
           stock: (barcodeData.fstock || 0).toString(),
           mrp: (barcodeData.mrp || 0).toString(),
           uom: barcodeData.fUnit || '',
           hsn: barcodeData.fHSN || '',
           tax: (barcodeData.inTax || 0).toString(),
-          sRate: (barcodeData.rate || 0).toString(),
-          qty: '',
-          amount: '0.00'
+
+          // ✅ RATE BASED ON TYPE
+          sRate: selectedRate.toString(),
+
+          // ✅ QTY + AMOUNT CALCULATION
+          qty: qty.toString(),
+          amount: amount
         };
         
         setItems(updatedItems);
@@ -1585,27 +1606,25 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
       
         
         // Move focus to quantity field
-        setTimeout(() => {
-          document
-            .querySelector(
-              `input[data-row="${currentRowIndex}"][data-field="qty"]`
-            )
-            ?.focus();
-        }, 100);
+         setTimeout(() => {
+        const qtyInput = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="qty"]`
+        );
+
+        if (qtyInput) {
+          qtyInput.focus();
+          qtyInput.select();
+        }
+      }, 120);
       } else {
-        toast.warning(`No item found for barcode: ${barcode}`, {
-          autoClose: 1500,
-        });
-        
-        // Move focus to item name field if barcode not found
-        document
-          .querySelector(
-            `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-          )
-          ?.focus();
+       setBarcodeErrorOpen(true);
+      lastBarcodeRowRef.current = currentRowIndex;
+
       }
     } catch (err) {
       console.error("Barcode fetch error:", err);
+       setBarcodeErrorOpen(true);
+       
       toast.error("Failed to fetch item by barcode", {
         autoClose: 1500,
       });
@@ -1617,14 +1636,19 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
         )
         ?.focus();
     }
-    return;
-  }
-  
-  // For other keys, use the standard table navigation
-  handleTableKeyDown(e, currentRowIndex, 'barcode');
+    return;  
+
 };
 
   
+const getRateByType = (barcodeData) => {
+  console.log("Determining rate for type:", billDetails.type, barcodeData);
+  if (!barcodeData) return 0;
+
+  return billDetails.type === "Wholesale"
+    ? Number(barcodeData.wRate  || 0)
+    : Number(barcodeData.rRate  || 0);
+};
 
 const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const fieldIndex = TABLE_FIELDS.indexOf(currentField);
@@ -1838,7 +1862,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     try {
       // First try to fetch from barcode API
       const barcodeData = await getPurchaseStockDetailsByBarcode(billDetails.barcodeInput);
-      
+      const selectedRate = getRateByType(barcodeData);
       if (barcodeData) {
         // Add item from barcode API
         const newItem = {
@@ -1851,12 +1875,12 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           mrp: (barcodeData.mrp || 0).toString(),
           uom: barcodeData.fUnit || '',
           hsn: barcodeData.fHSN || '',
-          tax: (barcodeData.inTax || 0).toString(),
-          sRate: (barcodeData.rate || 0).toString(),
-          qty: '',
-          amount: calculateAmount(qty, barcodeData.rate || 0)
+          tax: (barcodeData.inTax || 0).toString(),          
+          qty: barcodeData.qty,
+          sRate: selectedRate.toString(),
+          amount: '0.00'
         };
-        
+        console.log("Adding item from barcode API:", newItem);
         setItems([...items, newItem]);
         setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
         if (barcodeRef.current) barcodeRef.current.focus();
@@ -1891,7 +1915,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               tax: stockInfo.tax || '0',
               sRate: stockInfo.rate || '0',
               qty: '',
-              amount: calculateAmount(qty, stockInfo.rate || '0')
+              amount:'0.00'
             };
             
             setItems([...items, newItem]);
@@ -3199,25 +3223,41 @@ const itemsData = validItems.map(item => ({
       ref={custNameRef}
       onFocus={() => setFocusedField('custName')}
       onKeyDown={(e) => {
-        handleHeaderArrowNavigation(e, 'custName');
+  handleHeaderArrowNavigation(e, 'custName');
 
-        // "/" opens popup
-        if (e.key === '/') {
-          e.preventDefault();
-          setPopupSearchText('');
-          setCustomerPopupOpen(true);
-          return;
-        }
+  // "/" opens popup
+  if (e.key === '/') {
+    e.preventDefault();
+    setPopupSearchText('');
+    setCustomerPopupOpen(true);
+    return;
+  }
 
-        // ENTER → Mobile No
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          mobileRef.current?.focus();
-          return;
-        }
+  // ⛔ ENTER → BLOCK if customer empty
+  if (e.key === 'Enter') {
+    e.preventDefault();
 
-        handleBackspace(e, 'custName');
-      }}
+    if (!billDetails.custName || billDetails.custName.trim() === "") {
+      toast.warning("Please select Customer first", {
+        autoClose: 1500,
+      });
+
+      // 🔥 Keep focus on Customer
+      setTimeout(() => {
+        custNameRef.current?.focus();
+      }, 0);
+
+      return; // ⛔ STOP HERE
+    }
+
+    // ✅ Customer filled → go next
+    mobileRef.current?.focus();
+    return;
+  }
+
+  handleBackspace(e, 'custName');
+}}
+
     />
 
     {/* 🔍 Search Icon */}
@@ -3347,28 +3387,25 @@ const itemsData = validItems.map(item => ({
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
                     <input
-                      style={
-                        focusedField === `barcode-${item.id}`
-                          ? styles.editableInputFocused
-                          : styles.editableInput
-                      }
-                       value={item.barcode || ""}
-                      data-row={index}
-                       
-                      data-field="barcode"
-                     
-                      onChange={(e) => {
-                      
-                          handleItemChange(item.id, 'barcode', e.target.value);
-                        
-                      }}
-                      onKeyDown={(e) => {
-                        handleBarcodeKeyDown(e, index);
-                      }}
-                      onFocus={() => setFocusedField(`barcode-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                     
-                    />
+  ref={(el) => {
+    if (el) barcodeInputRefs.current[index] = el;
+  }}
+  style={focusedField === `barcode-${item.id}`
+    ? styles.editableInputFocused
+    : styles.editableInput}
+  value={item.barcode || ""}
+  data-row={index}
+  data-field="barcode"
+  onChange={(e) => {
+    handleItemChange(item.id, 'barcode', e.target.value);
+  }}
+  onKeyDown={(e) => {
+    handleBarcodeKeyDown(e, index);
+  }}
+  onFocus={() => setFocusedField(`barcode-${item.id}`)}
+  onBlur={() => setFocusedField('')}
+/>
+
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
                     <div style={{ position: 'relative', width: '100%' }}>
@@ -3927,6 +3964,37 @@ const itemsData = validItems.map(item => ({
         confirmButtonStyle={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
       />
       
+
+ <ConfirmationPopup
+  isOpen={barcodeErrorOpen}
+  title="Invalid Barcode"
+  message="Barcode is wrong"
+  confirmText="OK"
+  cancelText={null}
+  type="warning"
+  showIcon
+  onConfirm={() => {
+    setBarcodeErrorOpen(false);
+
+    // ✅ RESTORE CURSOR AFTER POPUP CLOSES
+   setTimeout(() => {
+      const rowIndex = lastBarcodeRowRef.current;
+
+      if (rowIndex !== null && rowIndex !== undefined) {
+        const barcodeInput = document.querySelector(
+          `input[data-row="${rowIndex}"][data-field="barcode"]`
+        );
+
+        if (barcodeInput) {
+          barcodeInput.focus();
+          barcodeInput.select(); // optional but good UX
+        }
+      }
+    }, 150);
+  }}
+/>
+
+
     </div>
   );
 };
