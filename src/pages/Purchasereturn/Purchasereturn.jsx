@@ -2518,7 +2518,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
                 <th style={styles.th}>WRate</th>
-                <th style={styles.th}>Total</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '100px' : '120px'}}>Total</th>
                 <th style={styles.th}>Action</th>
               </tr>
             </thead>
