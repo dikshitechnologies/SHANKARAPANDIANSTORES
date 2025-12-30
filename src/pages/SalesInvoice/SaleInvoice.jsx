@@ -851,11 +851,15 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
       itemcode: item.itemcode || item.fItemcode || '',
       fItemName: item.fItemName || item.itemName || '',
       fstock: item.fstock || item.stock || 0,
-      rate: item.rate || item.sRate || 0,
+      rate: item.rate || 0,
       mrp: item.mrp || 0,
       fUnit: item.fUnit || item.uom || '',
       fHSN: item.fHSN || item.hsn || '',
       inTax: item.inTax || item.tax || 0,
+      wRate: item.wRate || 0,
+      rRate: item.rRate || 0,
+      qty: item.qty || 0,
+      amount:  0,
       success: true
     };
   } catch (err) {
@@ -898,6 +902,10 @@ useEffect(() => {
     const sRateNum = parseFloat(sRate || 0);
     return (qtyNum * sRateNum).toFixed(2);
   };
+
+  useEffect(() => {
+   calculateAmount();
+  }, [items.qty, items.sRate]);
 
   // Reset form to empty state
   const resetForm = () => {
@@ -1565,19 +1573,26 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
         
         // Update the current row with barcode data
         const updatedItems = [...items];
+        const selectedRate = getRateByType(barcodeData);
+        const qty = Number(barcodeData.qty || 1);
+        const amount = calculateAmount(qty, selectedRate);
         updatedItems[currentRowIndex] = {
           ...updatedItems[currentRowIndex],
           barcode: barcode,
-          itemCode: barcodeData.itemcode || barcodeData.fItemcode || barcode, // Get item code from barcode data
+          itemCode: barcodeData.itemcode || barcode,
           itemName: barcodeData.fItemName || '',
           stock: (barcodeData.fstock || 0).toString(),
           mrp: (barcodeData.mrp || 0).toString(),
           uom: barcodeData.fUnit || '',
           hsn: barcodeData.fHSN || '',
           tax: (barcodeData.inTax || 0).toString(),
-          sRate: (barcodeData.rate || 0).toString(),
-          qty: '',
-          amount: '0.00'
+
+          // ✅ RATE BASED ON TYPE
+          sRate: selectedRate.toString(),
+
+          // ✅ QTY + AMOUNT CALCULATION
+          qty: qty.toString(),
+          amount: amount
         };
         
         setItems(updatedItems);
@@ -1625,6 +1640,14 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
 };
 
   
+const getRateByType = (barcodeData) => {
+  console.log("Determining rate for type:", billDetails.type, barcodeData);
+  if (!barcodeData) return 0;
+
+  return billDetails.type === "Wholesale"
+    ? Number(barcodeData.wRate  || 0)
+    : Number(barcodeData.rRate  || 0);
+};
 
 const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   const fieldIndex = TABLE_FIELDS.indexOf(currentField);
@@ -1838,7 +1861,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     try {
       // First try to fetch from barcode API
       const barcodeData = await getPurchaseStockDetailsByBarcode(billDetails.barcodeInput);
-      
+      const selectedRate = getRateByType(barcodeData);
       if (barcodeData) {
         // Add item from barcode API
         const newItem = {
@@ -1851,12 +1874,12 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           mrp: (barcodeData.mrp || 0).toString(),
           uom: barcodeData.fUnit || '',
           hsn: barcodeData.fHSN || '',
-          tax: (barcodeData.inTax || 0).toString(),
-          sRate: (barcodeData.rate || 0).toString(),
-          qty: '',
-          amount: calculateAmount(qty, barcodeData.rate || 0)
+          tax: (barcodeData.inTax || 0).toString(),          
+          qty: barcodeData.qty,
+          sRate: selectedRate.toString(),
+          amount: '0.00'
         };
-        
+        console.log("Adding item from barcode API:", newItem);
         setItems([...items, newItem]);
         setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
         if (barcodeRef.current) barcodeRef.current.focus();
@@ -1891,7 +1914,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               tax: stockInfo.tax || '0',
               sRate: stockInfo.rate || '0',
               qty: '',
-              amount: calculateAmount(qty, stockInfo.rate || '0')
+              amount:'0.00'
             };
             
             setItems([...items, newItem]);
