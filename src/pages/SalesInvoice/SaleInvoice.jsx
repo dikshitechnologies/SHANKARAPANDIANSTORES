@@ -161,7 +161,8 @@ const [taxList, setTaxList] = useState([]);
       tax: '', 
       sRate: '', 
       qty: '',
-      amount: '0.00'
+      amount: '0.00',
+      PrevBarcode:""
     }
   ]);
 
@@ -1556,9 +1557,9 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
   const barcode = items[currentRowIndex].barcode?.trim();
   //=============================Chnage 1: ITEM NAME ALREADY FILLED → NORMAL NAVIGATION=============================
    const currentItemName = items[currentRowIndex].itemName?.trim();
+  const prevBar =  items[currentRowIndex].PrevBarcode?.trim();
 
-
-  if (currentItemName && currentItemName !== "") {
+  if (prevBar == barcode) {
 
     setTimeout(() => {
       document
@@ -1603,6 +1604,7 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
         updatedItems[currentRowIndex] = {
           ...updatedItems[currentRowIndex],
           barcode: barcode,
+          PrevBarcode : barcode,
           itemCode: barcodeData.itemcode || barcode,
           itemName: barcodeData.fItemName || '',
           stock: (barcodeData.fstock || 0).toString(),
@@ -1636,6 +1638,26 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
       }, 120);
       } else {
        setBarcodeErrorOpen(true);
+      lastBarcodeRowRef.current = currentRowIndex;
+      const updatedItems = [...items];
+      updatedItems[currentRowIndex] = {
+        ...updatedItems[currentRowIndex],
+        barcode: '', 
+        PrevBarcode: '',
+        itemCode: '',
+        itemName: '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        sRate: '',
+        qty: '',
+        amount: '0.00'
+      };
+      
+      setItems(updatedItems);
+            setBarcodeErrorOpen(true);
       lastBarcodeRowRef.current = currentRowIndex;
 
       }
