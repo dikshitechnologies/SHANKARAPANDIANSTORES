@@ -470,6 +470,23 @@ useEffect(() => {
     setShowConfirmPopup(true);
   };
 
+ const showAlertConfirmation = (message, onConfirm = null, type = 'info') => {
+  showConfirmation({
+    title: 'Information',
+    message: message,
+    onConfirm: () => {
+      if (onConfirm && typeof onConfirm === 'function') {
+        onConfirm();
+      }
+      setShowConfirmPopup(false);
+    },
+    type: type,
+    confirmText: 'OK',
+    hideCancelButton: true,
+    showLoading: false
+  });
+};
+
   // Function to revert to original data
   const revertToOriginalData = () => {
     if (originalBillDetails && originalItems) {
@@ -1270,7 +1287,8 @@ const fetchItemList = async (pageNum = 1, search = '') => {
         title: 'Clear First Row',
         message: 'Do you want to clear',
         type: 'danger',
-        confirmText: 'Clear',
+        confirmText: 'Yes',
+        cancelText: 'No',
         onConfirm: () => {
           // Clear the first row instead of deleting it
           const updatedItems = [...items];
@@ -2154,6 +2172,16 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                     setCustomerSearchTerm(billDetails.custName);
                     setShowCustomerPopup(true);
                   } else if (e.key === 'Enter') {
+                    const isCustomerNameEmpty = !billDetails.custName || billDetails.custName.trim() === '';
+                    if (isCustomerNameEmpty) {
+                      showAlertConfirmation('Please select a customer before proceeding.', null, 'warning');
+                      setTimeout(() => {
+                        custNameRef.current.focus();
+                        setFocusedField('custName');
+                        setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 2 });
+                      }, 100);
+                      return;
+                    }
                     e.preventDefault();
                     setFocusedField('mobileNo');
                     mobileRef.current.focus();
@@ -2176,11 +2204,12 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                   }
                 }}
                 onBlur={() => {
-                  // Only clear if not moving to another field
+                  // Simple blur handler - no validation
                   if (focusedField === 'custName') {
                     setFocusedField('');
                   }
                 }}
+
               />
               <button
                 type="button"
@@ -2659,11 +2688,12 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           setSalesmanSearchTerm('');
           setActiveSearchField(null);
           
-          // if (custNameRef.current) {
-          //   custNameRef.current.focus();
-          //   setFocusedField('custName');
-          //   setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
-          // }
+          setTimeout(() => {
+            if (salesmanRef.current) {
+              salesmanRef.current.focus();
+              salesmanRef.current.select(); // optional: selects text
+            }
+          }, 500);
         }}
       />
       
@@ -2702,13 +2732,20 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           setClosedByUser(false);
           setCustomerSearchTerm('');
           setActiveSearchField(null);
+
+          setTimeout(() => {
+            if (custNameRef.current) {
+              custNameRef.current.focus();
+              custNameRef.current.select(); // optional: selects text
+            }
+          }, 500);
           
-          if (salesmanRef.current) {
-            salesmanRef.current.focus();
-            setFocusedField('salesman');
-            setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
-          }
-        }}
+        //   if (salesmanRef.current) {
+        //     salesmanRef.current.focus();
+        //     setFocusedField('salesman');
+        //     setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
+        //   }
+         }}
       />
 
       {/* Scrap Product Popup */}
