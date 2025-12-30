@@ -1226,7 +1226,7 @@ const getGSTByCode = async (code) => {
                   placeholder="Search existing Tax entries"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search GST/Tax entries"
+                  aria-label="Search Tax entries"
                 />
                 {existingQuery && (
                   <button
@@ -1247,35 +1247,35 @@ const getGSTByCode = async (code) => {
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {gstList.length === 0 ? "No GST/Tax entries found" : "No matching entries"}
+                    {gstList.length === 0 ? "No Tax entries found" : "No matching entries"}
                   </div>
                 ) : (
-                  <table className="gsts-table">
-                    <thead>
-                      <tr>
-                        <th>Code</th>
-                        <th>GST Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredExisting.map((b) => (
-                        <tr 
-                          key={b.gstCode}
-                          className={form.gstCode === b.gstCode ? "selected" : ""}
-                          onClick={() => {
-                            setForm({ 
-                              gstCode: b.gstCode, 
-                              gstName: b.gstName
-                            });
-                            setActionType("Edit");
-                          }}
-                        >
-                          <td>{b.gstCode}</td>
-                          <td>{b.gstName}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                 <table className="gsts-table">
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>GST%</th> {/* Changed from "GST Percentage" */}
+    </tr>
+  </thead>
+  <tbody>
+    {filteredExisting.map((b) => (
+      <tr 
+        key={b.gstCode}
+        className={form.gstCode === b.gstCode ? "selected" : ""}
+        onClick={() => {
+          setForm({ 
+            gstCode: b.gstCode, 
+            gstName: b.gstName
+          });
+          setActionType("Edit");
+        }}
+      >
+        <td>{b.gstCode}</td>
+        <td>{b.gstName}</td> {/* Removed the % symbol */}
+      </tr>
+    ))}
+  </tbody>
+</table>
                 )}
               </div>
             </div>
@@ -1348,7 +1348,7 @@ const getGSTByCode = async (code) => {
         title="Select Tax to Edit"
         displayFieldKeys={[ 'gstName',  ]}
         searchFields={[ 'gstName',  ]}
-        headerNames={[ 'GST Percentage',  ]}
+        headerNames={[ 'GST %',  ]}
         columnWidths={{ gstName: '70%',  }}
         maxHeight="60vh"
       />
@@ -1361,7 +1361,7 @@ const getGSTByCode = async (code) => {
         title="Select Tax to Delete"
         displayFieldKeys={[ 'gstName',  ]}
         searchFields={[ 'gstName',  ]}
-        headerNames={[ 'GST Percentage',  ]}
+        headerNames={[ 'GST %',  ]}
         columnWidths={{ gstName: '70%',  }}
         maxHeight="60vh"
       />
