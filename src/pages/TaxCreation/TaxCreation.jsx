@@ -1171,7 +1171,7 @@ const getGSTByCode = async (code) => {
             {/* GST Name field */}
             <div className="field">
               <label className="field-label">
-                TAX % <span className="asterisk">*</span>
+                TAX Percentage <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
@@ -1345,7 +1345,7 @@ const getGSTByCode = async (code) => {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Tax to Edit"
+        title="Select GST/Tax to Edit"
         displayFieldKeys={[ 'gstName',  ]}
         searchFields={[ 'gstName',  ]}
         headerNames={[ 'GST Percentage',  ]}
@@ -1358,7 +1358,7 @@ const getGSTByCode = async (code) => {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select Tax to Delete"
+        title="Select GST/Tax to Delete"
         displayFieldKeys={[ 'gstName',  ]}
         searchFields={[ 'gstName',  ]}
         headerNames={[ 'GST Percentage',  ]}
@@ -1371,8 +1371,8 @@ const getGSTByCode = async (code) => {
         isOpen={confirmSaveOpen}
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
-        title="Create Tax"
-        message={`Do you want to save Tax ${form.gstName}%?`}
+        title="Create GST/Tax"
+        message={`Do you want to save GST ${form.gstName}%?`}
         type="success"
         confirmText={isLoading ? "Creating..." : "Yes"}
         cancelText="No"
@@ -1395,8 +1395,8 @@ const getGSTByCode = async (code) => {
         isOpen={confirmEditOpen}
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
-        title="Update Tax"
-        message={`Do you want to update Tax to ${form.gstName}%?`}
+        title="Update GST/Tax"
+        message={`Do you want to update GST to ${form.gstName}%?`}
         type="warning"
         confirmText={isLoading ? "Updating..." : "Yes"}
         cancelText="No"
@@ -1419,8 +1419,8 @@ const getGSTByCode = async (code) => {
         isOpen={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
-        title="Delete Tax"
-        message={`Do you want to delete Tax ${form.gstName}%?`}
+        title="Delete GST/Tax"
+        message={`Do you want to delete GST ${form.gstName}%?`}
         type="danger"
         confirmText={isLoading ? "Deleting..." : "Yes"}
         cancelText="No"

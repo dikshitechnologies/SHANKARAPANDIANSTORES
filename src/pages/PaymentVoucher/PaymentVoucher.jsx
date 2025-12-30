@@ -88,7 +88,7 @@ const PaymentVoucher = () => {
       crDr: 'CR',
       type: 'CASH',
       chqNo: '',
-      chqDt: new Date().toISOString().substring(0, 10),
+      chqDt: '',
       narration: '',
       amount: ''
     }
@@ -630,7 +630,7 @@ const PaymentVoucher = () => {
                 cashBank: '',
                 cashBankCode: '',
                 crDr: 'CR',
-                type: 'CASH',
+                type: '',
                 chqNo: '',
                 chqDt: '',
                 narration: '',
@@ -1506,7 +1506,6 @@ const PaymentVoucher = () => {
   };
 
   const savePaymentVoucher = async (updatedParticulars = null) => {
-    console.log('🟢 savePaymentVoucher called',paymentItems);
     try {
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
@@ -2418,46 +2417,27 @@ const PaymentVoucher = () => {
                       <option value="UPI">UPI</option>
                     </select>
                   </td>
-                 <td style={styles.td}>
-  <input
-    ref={el => paymentChqNoRefs.current[index] = el}
-    id={`payment_${item.id}_chqNo`}
-    type="text"
-    value={item.chqNo}
-    onChange={(e) => {
-      // Allow only numbers
-      const value = e.target.value.replace(/[^0-9]/g, '');
-      handlePaymentItemChange(item.id, 'chqNo', value);
-    }}
-    onKeyDown={(e) => {
-      // Prevent non-numeric keys (except navigation keys)
-      if (
-        !/^[0-9]$/.test(e.key) &&
-        ![
-          'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
-          'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-          'Home', 'End'
-        ].includes(e.key)
-      ) {
-        e.preventDefault();
-      }
-      handlePaymentFieldKeyDown(e, index, 'chqNo');
-    }}
-    disabled={item.type !== 'CHQ'}
-    onFocus={(e) => {
-      e.target.style.border = '2px solid #1B91DA';
-      setNavigationStep('paymentChqNo');
-      setCurrentPaymentRowIndex(index);
-    }}
-    onBlur={(e) => (e.target.style.border = 'none')}
-    style={{
-      ...(navigationStep === 'paymentChqNo' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
-      ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
-    }}
-    inputMode="numeric"
-    pattern="[0-9]*"
-  />
-</td>
+                  <td style={styles.td}>
+                    <input
+                      ref={el => paymentChqNoRefs.current[index] = el}
+                      id={`payment_${item.id}_chqNo`}
+                      type="text"
+                      value={item.chqNo}
+                      onChange={(e) => handlePaymentItemChange(item.id, 'chqNo', e.target.value)}
+                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqNo')}
+                      disabled={item.type !== 'CHQ'}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #1B91DA';
+                        setNavigationStep('paymentChqNo');
+                        setCurrentPaymentRowIndex(index);
+                      }}
+                      onBlur={(e) => (e.target.style.border = 'none')}
+                      style={{
+                        ...(navigationStep === 'paymentChqNo' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
+                        ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
+                      }}
+                    />
+                  </td>
                   <td style={styles.td}>
                     <input
                       ref={el => paymentChqDtRefs.current[index] = el}

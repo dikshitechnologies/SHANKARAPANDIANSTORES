@@ -364,7 +364,6 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
-  
 
   // COMPLETE NEW FORM FUNCTION
   const createNewForm = async () => {
@@ -449,8 +448,8 @@ const handleBlur = () => {
       
       // Force a state update
       setTimeout(() => {
-        if (dateRef.current) {
-          dateRef.current.focus();
+        if (billNoRef.current) {
+          billNoRef.current.focus();
         }
       }, 100);
       

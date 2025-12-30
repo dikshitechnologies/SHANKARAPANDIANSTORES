@@ -1549,15 +1549,67 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
   };
 
 const handleBarcodeKeyDown = async (e, currentRowIndex) => {
-  if (e.key !== "Enter") return;
+  const key = e.key;
+
+  /* =====================================================
+     ⬆️ ARROW UP → PREVIOUS ROW BARCODE
+  ===================================================== */
+  if (key === "ArrowUp") {
+    e.preventDefault();
+
+    if (currentRowIndex > 0) {
+      setTimeout(() => {
+        document
+          .querySelector(
+            `input[data-row="${currentRowIndex - 1}"][data-field="barcode"]`
+          )
+          ?.focus();
+      }, 0);
+    }
+    return;
+  }
+
+  /* =====================================================
+     ⬇️ ARROW DOWN → NEXT ROW BARCODE
+  ===================================================== */
+  if (key === "ArrowDown") {
+    e.preventDefault();
+
+    if (currentRowIndex < items.length - 1) {
+      setTimeout(() => {
+        document
+          .querySelector(
+            `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+          )
+          ?.focus();
+      }, 0);
+    }
+    return;
+  }
+
+  /* =====================================================
+     ⏎ ENTER → EXISTING BARCODE LOGIC
+  ===================================================== */
+  if (key !== "Enter") return;
 
   e.preventDefault();
 
   const barcode = items[currentRowIndex].barcode?.trim();
+  const currentItemName = items[currentRowIndex].itemName?.trim();
 
-  /* =====================================================
-     1️⃣ BARCODE EMPTY → NORMAL NAVIGATION
-  ===================================================== */
+  // 1️⃣ Item already selected → go to item name
+  if (currentItemName) {
+    setTimeout(() => {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+        )
+        ?.focus();
+    }, 0);
+    return;
+  }
+
+  // 2️⃣ Barcode empty → normal navigation
   if (!barcode) {
     setTimeout(() => {
       document
@@ -1568,77 +1620,52 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
     }, 0);
     return;
   }
-  
-    
-    try {
-      // Fetch item details by barcode
-      const barcodeData = await getPurchaseStockDetailsByBarcode(barcode);
-      
-      if (barcodeData) {
-        console.log("Barcode data received:", barcodeData); // Debug log
-        
-        // Update the current row with barcode data
-        const updatedItems = [...items];
-        const selectedRate = getRateByType(barcodeData);
-        const qty = Number(barcodeData.qty || 1);
-        const amount = calculateAmount(qty, selectedRate);
-        updatedItems[currentRowIndex] = {
-          ...updatedItems[currentRowIndex],
-          barcode: barcode,
-          itemCode: barcodeData.itemcode || barcode,
-          itemName: barcodeData.fItemName || '',
-          stock: (barcodeData.fstock || 0).toString(),
-          mrp: (barcodeData.mrp || 0).toString(),
-          uom: barcodeData.fUnit || '',
-          hsn: barcodeData.fHSN || '',
-          tax: (barcodeData.inTax || 0).toString(),
 
-          // ✅ RATE BASED ON TYPE
-          sRate: selectedRate.toString(),
+  try {
+    const barcodeData = await getPurchaseStockDetailsByBarcode(barcode);
 
-          // ✅ QTY + AMOUNT CALCULATION
-          qty: qty.toString(),
-          amount: amount
-        };
-        
-        setItems(updatedItems);
-        
-      
-        
-        // Move focus to quantity field
-         setTimeout(() => {
-        const qtyInput = document.querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="qty"]`
-        );
-
-        if (qtyInput) {
-          qtyInput.focus();
-          qtyInput.select();
-        }
-      }, 120);
-      } else {
-       setBarcodeErrorOpen(true);
+    if (!barcodeData) {
       lastBarcodeRowRef.current = currentRowIndex;
+      setBarcodeErrorOpen(true);
+      return;
+    }
 
-      }
-    } catch (err) {
-      console.error("Barcode fetch error:", err);
-       setBarcodeErrorOpen(true);
-       
-      toast.error("Failed to fetch item by barcode", {
-        autoClose: 1500,
-      });
-      
-      // Move focus to item name field on error
+    const updatedItems = [...items];
+    const selectedRate = getRateByType(barcodeData);
+    const qty = Number(barcodeData.qty || 1);
+
+    updatedItems[currentRowIndex] = {
+      ...updatedItems[currentRowIndex],
+      barcode,
+      itemCode: barcodeData.itemcode || barcode,
+      itemName: barcodeData.fItemName || "",
+      stock: String(barcodeData.fstock || 0),
+      mrp: String(barcodeData.mrp || 0),
+      uom: barcodeData.fUnit || "",
+      hsn: barcodeData.fHSN || "",
+      tax: String(barcodeData.inTax || 0),
+      sRate: String(selectedRate),
+      qty: String(qty),
+      amount: calculateAmount(qty, selectedRate),
+    };
+
+    setItems(updatedItems);
+
+    // ✅ Move to QTY
+    setTimeout(() => {
       document
         .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+          `input[data-row="${currentRowIndex}"][data-field="qty"]`
         )
         ?.focus();
-    }
-    return;  
+    }, 120);
 
+  } catch (err) {
+    lastBarcodeRowRef.current = currentRowIndex;
+    setBarcodeErrorOpen(true);
+  }
 };
+
 
   
 const getRateByType = (barcodeData) => {
