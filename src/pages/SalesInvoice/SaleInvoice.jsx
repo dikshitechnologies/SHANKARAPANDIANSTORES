@@ -65,6 +65,8 @@ const SaleInvoice = () => {
   const ignoreNextInputRef = useRef(false);
  const saveButtonRef = useRef(null);
  const blockTableEnterRef = useRef(false);
+const barcodeInputRefs = useRef({});
+const lastBarcodeRowRef = useRef(null);
 
 
   // Save confirmation popup
@@ -84,7 +86,8 @@ const SaleInvoice = () => {
   // Delete confirmation popup
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [deleteConfirmationData, setDeleteConfirmationData] = useState(null);
-  
+  const [barcodeErrorOpen, setBarcodeErrorOpen] = useState(false);
+
 
 
 // 🔹 TAX MASTER LIST
@@ -1537,92 +1540,74 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
     }
   };
 
-// Handle barcode scanning in table
 const handleBarcodeKeyDown = async (e, currentRowIndex) => {
-  const currentItem = items[currentRowIndex];
-  
-  // If Enter is pressed on barcode field
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    
-    const barcode = currentItem.barcode?.trim();
-    if (!barcode || barcode === '') {
-      // If barcode is empty, move to item name field
+  if (e.key !== "Enter") return;
+
+  e.preventDefault();
+
+  const barcode = items[currentRowIndex].barcode?.trim();
+
+  /* =====================================================
+     1️⃣ BARCODE EMPTY → NORMAL NAVIGATION
+  ===================================================== */
+  if (!barcode) {
+    setTimeout(() => {
       document
         .querySelector(
           `input[data-row="${currentRowIndex}"][data-field="itemName"]`
         )
         ?.focus();
-      return;
-    }
-    
-    try {
-      // Fetch item details by barcode
-      const barcodeData = await getPurchaseStockDetailsByBarcode(barcode);
-      
-      if (barcodeData) {
-        console.log("Barcode data received:", barcodeData); // Debug log
-        
-        // Update the current row with barcode data
-        const updatedItems = [...items];
-        updatedItems[currentRowIndex] = {
-          ...updatedItems[currentRowIndex],
-          barcode: barcode,
-          itemCode: barcodeData.itemcode || barcodeData.fItemcode || barcode, // Get item code from barcode data
-          itemName: barcodeData.fItemName || '',
-          stock: (barcodeData.fstock || 0).toString(),
-          mrp: (barcodeData.mrp || 0).toString(),
-          uom: barcodeData.fUnit || '',
-          hsn: barcodeData.fHSN || '',
-          tax: (barcodeData.inTax || 0).toString(),
-          sRate: (barcodeData.rate || 0).toString(),
-          qty: '',
-          amount: '0.00'
-        };
-        
-        setItems(updatedItems);
-        
-      
-        
-        // Move focus to quantity field
-        setTimeout(() => {
-          document
-            .querySelector(
-              `input[data-row="${currentRowIndex}"][data-field="qty"]`
-            )
-            ?.focus();
-        }, 100);
-      } else {
-        toast.warning(`No item found for barcode: ${barcode}`, {
-          autoClose: 1500,
-        });
-        
-        // Move focus to item name field if barcode not found
-        document
-          .querySelector(
-            `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-          )
-          ?.focus();
-      }
-    } catch (err) {
-      console.error("Barcode fetch error:", err);
-      toast.error("Failed to fetch item by barcode", {
-        autoClose: 1500,
-      });
-      
-      // Move focus to item name field on error
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-        )
-        ?.focus();
-    }
+    }, 0);
     return;
   }
-  
-  // For other keys, use the standard table navigation
-  handleTableKeyDown(e, currentRowIndex, 'barcode');
+
+  try {
+    const barcodeData = await getPurchaseStockDetailsByBarcode(barcode);
+
+    /* =====================================================
+       2️⃣ BARCODE VALID → FILL → QTY
+    ===================================================== */
+    if (barcodeData) {
+      const updatedItems = [...items];
+
+      updatedItems[currentRowIndex] = {
+        ...updatedItems[currentRowIndex],
+        barcode,
+        itemCode: barcodeData.itemcode || barcode,
+        itemName: barcodeData.fItemName || "",
+        stock: String(barcodeData.fstock || 0),
+        mrp: String(barcodeData.mrp || 0),
+        uom: barcodeData.fUnit || "",
+        hsn: barcodeData.fHSN || "",
+        tax: String(barcodeData.inTax || 0),
+        sRate: String(barcodeData.rate || 0),
+        qty: "",
+        amount: "0.00",
+      };
+
+      setItems(updatedItems);
+
+      setTimeout(() => {
+        document
+          .querySelector(
+            `input[data-row="${currentRowIndex}"][data-field="qty"]`
+          )
+          ?.focus();
+      }, 80);
+
+      return;
+    }
+
+    /* =====================================================
+       3️⃣ BARCODE WRONG → POPUP → STAY IN BARCODE
+    ===================================================== */
+    setBarcodeErrorOpen(true);
+
+  } catch (err) {
+    setBarcodeErrorOpen(true);
+  }
 };
+
 
   
 
@@ -3199,25 +3184,41 @@ const itemsData = validItems.map(item => ({
       ref={custNameRef}
       onFocus={() => setFocusedField('custName')}
       onKeyDown={(e) => {
-        handleHeaderArrowNavigation(e, 'custName');
+  handleHeaderArrowNavigation(e, 'custName');
 
-        // "/" opens popup
-        if (e.key === '/') {
-          e.preventDefault();
-          setPopupSearchText('');
-          setCustomerPopupOpen(true);
-          return;
-        }
+  // "/" opens popup
+  if (e.key === '/') {
+    e.preventDefault();
+    setPopupSearchText('');
+    setCustomerPopupOpen(true);
+    return;
+  }
 
-        // ENTER → Mobile No
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          mobileRef.current?.focus();
-          return;
-        }
+  // ⛔ ENTER → BLOCK if customer empty
+  if (e.key === 'Enter') {
+    e.preventDefault();
 
-        handleBackspace(e, 'custName');
-      }}
+    if (!billDetails.custName || billDetails.custName.trim() === "") {
+      toast.warning("Please select Customer first", {
+        autoClose: 1500,
+      });
+
+      // 🔥 Keep focus on Customer
+      setTimeout(() => {
+        custNameRef.current?.focus();
+      }, 0);
+
+      return; // ⛔ STOP HERE
+    }
+
+    // ✅ Customer filled → go next
+    mobileRef.current?.focus();
+    return;
+  }
+
+  handleBackspace(e, 'custName');
+}}
+
     />
 
     {/* 🔍 Search Icon */}
@@ -3347,28 +3348,25 @@ const itemsData = validItems.map(item => ({
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
                     <input
-                      style={
-                        focusedField === `barcode-${item.id}`
-                          ? styles.editableInputFocused
-                          : styles.editableInput
-                      }
-                       value={item.barcode || ""}
-                      data-row={index}
-                       
-                      data-field="barcode"
-                     
-                      onChange={(e) => {
-                      
-                          handleItemChange(item.id, 'barcode', e.target.value);
-                        
-                      }}
-                      onKeyDown={(e) => {
-                        handleBarcodeKeyDown(e, index);
-                      }}
-                      onFocus={() => setFocusedField(`barcode-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                     
-                    />
+  ref={(el) => {
+    if (el) barcodeInputRefs.current[index] = el;
+  }}
+  style={focusedField === `barcode-${item.id}`
+    ? styles.editableInputFocused
+    : styles.editableInput}
+  value={item.barcode || ""}
+  data-row={index}
+  data-field="barcode"
+  onChange={(e) => {
+    handleItemChange(item.id, 'barcode', e.target.value);
+  }}
+  onKeyDown={(e) => {
+    handleBarcodeKeyDown(e, index);
+  }}
+  onFocus={() => setFocusedField(`barcode-${item.id}`)}
+  onBlur={() => setFocusedField('')}
+/>
+
                   </td>
                   <td style={{ ...styles.td, ...styles.itemNameContainer }}>
                     <div style={{ position: 'relative', width: '100%' }}>
@@ -3927,6 +3925,33 @@ const itemsData = validItems.map(item => ({
         confirmButtonStyle={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
       />
       
+
+ <ConfirmationPopup
+  isOpen={barcodeErrorOpen}
+  title="Invalid Barcode"
+  message="Barcode is wrong"
+  confirmText="OK"
+  cancelText={null}
+  type="warning"
+  showIcon
+  onConfirm={() => {
+    setBarcodeErrorOpen(false);
+
+    // ✅ RESTORE CURSOR AFTER POPUP CLOSES
+    setTimeout(() => {
+      const input = barcodeInputRefs.current[lastBarcodeRowRef.current];
+      if (input) {
+        input.focus();
+        input.setSelectionRange(
+          input.value.length,
+          input.value.length
+        );
+      }
+    }, 0);
+  }}
+/>
+
+
     </div>
   );
 };
