@@ -62,6 +62,126 @@ const PurchaseRegister = () => {
       time: '01-01-1900 16:20:30',
       noOfBale: '3',
       transport: ''
+    },
+    {
+      id: 6,
+      no: 6,
+      salesParty: 'FASHION HUB',
+      billNo: 'P00006EE',
+      billDate: '15-07-2025',
+      billAmount: '18,250.00',
+      qty: '22.50',
+      time: '01-01-1900 10:45:30',
+      noOfBale: '6',
+      transport: 'TRUCK-303'
+    },
+    {
+      id: 7,
+      no: 7,
+      salesParty: 'TEXTILE EMPORIUM',
+      billNo: 'P00007FF',
+      billDate: '25-08-2025',
+      billAmount: '32,450.00',
+      qty: '28.75',
+      time: '01-01-1900 13:20:15',
+      noOfBale: '7',
+      transport: ''
+    },
+    {
+      id: 8,
+      no: 8,
+      salesParty: 'CLOTHING MART',
+      billNo: 'P00008GG',
+      billDate: '10-09-2025',
+      billAmount: '12,850.00',
+      qty: '18.25',
+      time: '01-01-1900 15:10:45',
+      noOfBale: '4',
+      transport: 'VAN-404'
+    },
+    {
+      id: 9,
+      no: 9,
+      salesParty: 'FABRIC STORE',
+      billNo: 'P00009HH',
+      billDate: '30-10-2025',
+      billAmount: '25,300.00',
+      qty: '32.00',
+      time: '01-01-1900 11:30:00',
+      noOfBale: '9',
+      transport: ''
+    },
+    {
+      id: 10,
+      no: 10,
+      salesParty: 'TEXTILE WORLD',
+      billNo: 'P00010II',
+      billDate: '15-11-2025',
+      billAmount: '21,750.00',
+      qty: '26.50',
+      time: '01-01-1900 14:45:20',
+      noOfBale: '5',
+      transport: 'TRUCK-505'
+    },
+    {
+      id: 11,
+      no: 11,
+      salesParty: 'FASHION STORE',
+      billNo: 'P00011JJ',
+      billDate: '05-12-2025',
+      billAmount: '14,850.00',
+      qty: '19.75',
+      time: '01-01-1900 09:15:40',
+      noOfBale: '3',
+      transport: ''
+    },
+    {
+      id: 12,
+      no: 12,
+      salesParty: 'CLOTH EMPORIUM',
+      billNo: 'P00012KK',
+      billDate: '20-12-2025',
+      billAmount: '38,900.00',
+      qty: '42.25',
+      time: '01-01-1900 16:30:10',
+      noOfBale: '10',
+      transport: 'VAN-606'
+    },
+    {
+      id: 13,
+      no: 13,
+      salesParty: 'TEXTILE HUB',
+      billNo: 'P00013LL',
+      billDate: '10-01-2025',
+      billAmount: '27,350.00',
+      qty: '30.50',
+      time: '01-01-1900 12:45:30',
+      noOfBale: '8',
+      transport: ''
+    },
+    {
+      id: 14,
+      no: 14,
+      salesParty: 'FABRIC MART',
+      billNo: 'P00014MM',
+      billDate: '25-02-2025',
+      billAmount: '19,450.00',
+      qty: '24.25',
+      time: '01-01-1900 15:20:45',
+      noOfBale: '6',
+      transport: 'TRUCK-707'
+    },
+    {
+      id: 15,
+      no: 15,
+      salesParty: 'CLOTHING WORLD',
+      billNo: 'P00015NN',
+      billDate: '15-03-2025',
+      billAmount: '33,750.00',
+      qty: '36.75',
+      time: '01-01-1900 10:30:20',
+      noOfBale: '9',
+      transport: ''
     }
   ];
 
@@ -365,16 +485,27 @@ const PurchaseRegister = () => {
     return new Date().toISOString().split('T')[0];
   };
 
-  // Container styles
+  // Container styles - FIXED HEIGHT TO PREVENT SCREEN SCROLL
   const containerStyle = {   
     fontSize: '15px',
     backgroundColor: '#f5f5f5',
-    minHeight: '100vh',
+    height: '100vh', // Fixed height to fill viewport
     boxSizing: 'border-box',
-    padding: '20px'
+    padding: '20px',
+    overflow: 'hidden', // Prevent container scroll
+    display: 'flex',
+    flexDirection: 'column'
   };
 
-  // Date filter header styles - WIDER INPUTS
+  // Main content area
+  const contentStyle = {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden' // Prevent content area scroll
+  };
+
+  // Date filter header styles
   const dateFilterHeaderStyle = {
     backgroundColor: 'white',
     borderRadius: '4px',
@@ -385,7 +516,8 @@ const PurchaseRegister = () => {
     gridTemplateColumns: 'auto auto 1fr',
     alignItems: 'center',
     gap: '25px',
-    justifyContent: 'flex-start'
+    justifyContent: 'flex-start',
+    flexShrink: 0 // Prevent shrinking
   };
 
   const dateFilterGroupStyle = {
@@ -394,7 +526,7 @@ const PurchaseRegister = () => {
     gap: '10px',
     justifyContent: 'flex-start',
     flexWrap: 'nowrap',
-    minWidth: '300px' // Increased width
+    minWidth: '300px'
   };
 
   const dateFilterLabelStyle = {
@@ -412,7 +544,7 @@ const PurchaseRegister = () => {
     fontSize: '15px',
     backgroundColor: '#fff',
     cursor: 'pointer',
-    width: '200px', // WIDER input (was 140px)
+    width: '200px',
     flexShrink: 0,
     height: '35px'
   };
@@ -456,22 +588,32 @@ const PurchaseRegister = () => {
     flexWrap: 'nowrap'
   };
 
-  // Table container styles
+  // Table container styles - SCROLLABLE TABLE ONLY
   const tableContainerStyle = {
     backgroundColor: 'white',
     borderRadius: '4px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     overflow: 'hidden',
-    maxHeight: 'calc(100vh - 280px)',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    flex: 1, // Take remaining space
+    minHeight: 0 // Important for flex children to scroll
+  };
+
+  // Scrollable table area
+  const tableScrollAreaStyle = {
+    overflowX: 'auto',
+    overflowY: 'auto', // Only this area scrolls
+    flex: 1,
+    position: 'relative'
   };
 
   // Table styles
   const tableStyle = {
     width: '100%',
     borderCollapse: 'collapse',
-    tableLayout: 'fixed'
+    tableLayout: 'fixed',
+    minWidth: '1000px' // Ensure table has minimum width
   };
 
   // Table header styles
@@ -493,14 +635,14 @@ const PurchaseRegister = () => {
   // Column width styles
   const columnWidths = {
     no: '50px',
-    salesParty: '180px',
+    salesParty: '200px', // Increased for better display
     billNo: '120px',
     billDate: '100px',
     billAmount: '120px',
     qty: '80px',
     time: '150px',
     noOfBale: '80px',
-    transport: '120px'
+    transport: '150px' // Increased for better display
   };
 
   // Table cell styles
@@ -525,7 +667,8 @@ const PurchaseRegister = () => {
       fontSize: colName === 'billAmount' || colName === 'qty' ? '15px' : '15px',
       fontWeight: colName === 'billAmount' || colName === 'qty' ? '600' : '400',
       width: columnWidths[colName] || 'auto',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      minWidth: columnWidths[colName] || 'auto'
     };
 
     if (isSelected && !isEditing) {
@@ -559,7 +702,10 @@ const PurchaseRegister = () => {
   const totalsRowStyle = {
     backgroundColor: '#f8f9fa',
     fontWeight: 'bold',
-    borderTop: '2px solid #1B91DA'
+    borderTop: '2px solid #1B91DA',
+    position: 'sticky',
+    bottom: 0,
+    zIndex: 5
   };
 
   const totalsCellStyle = {
@@ -568,6 +714,14 @@ const PurchaseRegister = () => {
     textAlign: 'right',
     fontFamily: '"Courier New", monospace',
     fontSize: '15px'
+  };
+
+  // Action buttons container
+  const actionButtonsStyle = {
+    marginTop: '15px',
+    display: 'flex',
+    gap: '10px',
+    flexShrink: 0 // Prevent shrinking
   };
 
   // Render cell content
@@ -596,198 +750,162 @@ const PurchaseRegister = () => {
   };
 
   return (
-    <div style={containerStyle}>     
-      {/* Date Filter Header - WITH WIDER INPUTS */}
-      <div style={dateFilterHeaderStyle}>
-        <div style={dateFilterGroupStyle}>
-          <span style={dateFilterLabelStyle}>From:</span>
-          <input
-            type="date"
-            value={dateRange.from}
-            onChange={(e) => handleDateChange('from', e.target.value)}
-            style={dateInputStyle}
-            max={getCurrentDate()}
-          />
-        </div>
-        
-        <div style={dateFilterGroupStyle}>
-          <span style={dateFilterLabelStyle}>To:</span>
-          <input
-            type="date"
-            value={dateRange.to}
-            onChange={(e) => handleDateChange('to', e.target.value)}
-            style={dateInputStyle}
-            max={getCurrentDate()}
-          />
-        </div>
-        
-        <div style={buttonContainerStyle}>
-          <button 
-            style={dateFilterButtonStyle}
-            onClick={filterDataByDate}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#0c7bb8'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#1B91DA'}
-          >
-            View Purchase Register
-          </button>
+    <div style={containerStyle}>
+      {/* Main Content Area */}
+      <div style={contentStyle}>
+        {/* Date Filter Header */}
+        <div style={dateFilterHeaderStyle}>
+          <div style={dateFilterGroupStyle}>
+            <span style={dateFilterLabelStyle}>From:</span>
+            <input
+              type="date"
+              value={dateRange.from}
+              onChange={(e) => handleDateChange('from', e.target.value)}
+              style={dateInputStyle}
+              max={getCurrentDate()}
+            />
+          </div>
           
-          <button 
-            style={clearButtonStyle}
-            onClick={clearFilters}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#e0e0e0'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#f0f0f0'}
-          >
-            <span>🗙</span> Clear
-          </button>
+          <div style={dateFilterGroupStyle}>
+            <span style={dateFilterLabelStyle}>To:</span>
+            <input
+              type="date"
+              value={dateRange.to}
+              onChange={(e) => handleDateChange('to', e.target.value)}
+              style={dateInputStyle}
+              max={getCurrentDate()}
+            />
+          </div>
+          
+          <div style={buttonContainerStyle}>
+            <button 
+              style={dateFilterButtonStyle}
+              onClick={filterDataByDate}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#0c7bb8'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#1B91DA'}
+            >
+              View Purchase Register
+            </button>
+            
+            <button 
+              style={clearButtonStyle}
+              onClick={clearFilters}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e0e0e0'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+            >
+              <span>🗙</span> Clear
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Table Container */}
-      <div style={tableContainerStyle}>
-        <div style={{ overflowX: 'auto', overflowY: 'auto', flex: 1 }}>
-          <table style={tableStyle} ref={tableRef}>
-            <thead>
-              <tr>
-                <th style={{ ...thStyle, width: columnWidths.no }}>No</th>
-                <th style={{ ...thStyle, width: columnWidths.salesParty }}>Purchase Party</th>
-                <th style={{ ...thStyle, width: columnWidths.billNo }}>Bill No</th>
-                <th style={{ ...thStyle, width: columnWidths.billDate }}>Bill Date</th>
-                <th style={{ ...thStyle, width: columnWidths.billAmount }}>Bill Amount</th>
-                <th style={{ ...thStyle, width: columnWidths.qty }}>Qty</th>
-                <th style={{ ...thStyle, width: columnWidths.time }}>Time</th>
-                <th style={{ ...thStyle, width: columnWidths.noOfBale }}>No of Bale</th>
-                <th style={{ ...thStyle, width: columnWidths.transport, borderRight: 'none' }}>Transport</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((row, rowIndex) => (
-                <tr 
-                  key={row.id}
-                  onClick={() => {
-                    const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
-                    const colIndex = colNames.indexOf('no');
-                    setSelectedCell({ row: rowIndex, col: colIndex });
-                  }}
-                  style={{ cursor: 'cell' }}
-                >
-                  <td 
-                    style={getCellStyle(rowIndex, 'no')}
-                    onDoubleClick={() => startEditing(rowIndex, 'no', row.no)}
-                  >
-                    {renderCell(rowIndex, 'no', row.no)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'salesParty')}
-                    onDoubleClick={() => startEditing(rowIndex, 'salesParty', row.salesParty)}
-                  >
-                    {renderCell(rowIndex, 'salesParty', row.salesParty)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'billNo')}
-                    onDoubleClick={() => startEditing(rowIndex, 'billNo', row.billNo)}
-                  >
-                    {renderCell(rowIndex, 'billNo', row.billNo)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'billDate')}
-                    onDoubleClick={() => startEditing(rowIndex, 'billDate', row.billDate)}
-                  >
-                    {renderCell(rowIndex, 'billDate', row.billDate)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'billAmount')}
-                    onDoubleClick={() => startEditing(rowIndex, 'billAmount', row.billAmount)}
-                  >
-                    {renderCell(rowIndex, 'billAmount', row.billAmount)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'qty')}
-                    onDoubleClick={() => startEditing(rowIndex, 'qty', row.qty)}
-                  >
-                    {renderCell(rowIndex, 'qty', row.qty)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'time')}
-                    onDoubleClick={() => startEditing(rowIndex, 'time', row.time)}
-                  >
-                    {renderCell(rowIndex, 'time', row.time)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'noOfBale')}
-                    onDoubleClick={() => startEditing(rowIndex, 'noOfBale', row.noOfBale)}
-                  >
-                    {renderCell(rowIndex, 'noOfBale', row.noOfBale)}
-                  </td>
-                  <td 
-                    style={{ ...getCellStyle(rowIndex, 'transport'), borderRight: 'none' }}
-                    onDoubleClick={() => startEditing(rowIndex, 'transport', row.transport)}
-                  >
-                    {renderCell(rowIndex, 'transport', row.transport)}
-                  </td>
+        {/* Table Container - SCROLLABLE AREA ONLY */}
+        <div style={tableContainerStyle}>
+          <div style={tableScrollAreaStyle}>
+            <table style={tableStyle} ref={tableRef}>
+              <thead>
+                <tr>
+                  <th style={{ ...thStyle, width: columnWidths.no }}>No</th>
+                  <th style={{ ...thStyle, width: columnWidths.salesParty }}>Purchase Party</th>
+                  <th style={{ ...thStyle, width: columnWidths.billNo }}>Bill No</th>
+                  <th style={{ ...thStyle, width: columnWidths.billDate }}>Bill Date</th>
+                  <th style={{ ...thStyle, width: columnWidths.billAmount }}>Bill Amount</th>
+                  <th style={{ ...thStyle, width: columnWidths.qty }}>Qty</th>
+                  <th style={{ ...thStyle, width: columnWidths.time }}>Time</th>
+                  <th style={{ ...thStyle, width: columnWidths.noOfBale }}>No of Bale</th>
+                  <th style={{ ...thStyle, width: columnWidths.transport, borderRight: 'none' }}>Transport</th>
                 </tr>
-              ))}
-            </tbody>
-            {data.length > 0 && (
-              <tfoot>
-                <tr style={totalsRowStyle}>
-                  <td colSpan="4" style={{ padding: '8px 6px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold' }}>
-                    Total
-                  </td>
-                  <td style={totalsCellStyle}>
-                    {formatNumber(totals.billAmount)}
-                  </td>
-                  <td style={totalsCellStyle}>
-                    {totals.qty.toFixed(2)}
-                  </td>
-                  <td style={{ ...totalsCellStyle, textAlign: 'center' }}>-</td>
-                  <td style={totalsCellStyle}>-</td>
-                  <td style={{ ...totalsCellStyle, borderRight: 'none' }}>-</td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
+              </thead>
+              <tbody>
+                {data.map((row, rowIndex) => (
+                  <tr 
+                    key={row.id}
+                    onClick={() => {
+                      const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
+                      const colIndex = colNames.indexOf('no');
+                      setSelectedCell({ row: rowIndex, col: colIndex });
+                    }}
+                    style={{ cursor: 'cell' }}
+                  >
+                    <td 
+                      style={getCellStyle(rowIndex, 'no')}
+                      onDoubleClick={() => startEditing(rowIndex, 'no', row.no)}
+                    >
+                      {renderCell(rowIndex, 'no', row.no)}
+                    </td>
+                    <td 
+                      style={getCellStyle(rowIndex, 'salesParty')}
+                      onDoubleClick={() => startEditing(rowIndex, 'salesParty', row.salesParty)}
+                    >
+                      {renderCell(rowIndex, 'salesParty', row.salesParty)}
+                    </td>
+                    <td 
+                      style={getCellStyle(rowIndex, 'billNo')}
+                      onDoubleClick={() => startEditing(rowIndex, 'billNo', row.billNo)}
+                    >
+                      {renderCell(rowIndex, 'billNo', row.billNo)}
+                    </td>
+                    <td 
+                      style={getCellStyle(rowIndex, 'billDate')}
+                      onDoubleClick={() => startEditing(rowIndex, 'billDate', row.billDate)}
+                    >
+                      {renderCell(rowIndex, 'billDate', row.billDate)}
+                    </td>
+                    <td 
+                      style={getCellStyle(rowIndex, 'billAmount')}
+                      onDoubleClick={() => startEditing(rowIndex, 'billAmount', row.billAmount)}
+                    >
+                      {renderCell(rowIndex, 'billAmount', row.billAmount)}
+                    </td>
+                    <td 
+                      style={getCellStyle(rowIndex, 'qty')}
+                      onDoubleClick={() => startEditing(rowIndex, 'qty', row.qty)}
+                    >
+                      {renderCell(rowIndex, 'qty', row.qty)}
+                    </td>
+                    <td 
+                      style={getCellStyle(rowIndex, 'time')}
+                      onDoubleClick={() => startEditing(rowIndex, 'time', row.time)}
+                    >
+                      {renderCell(rowIndex, 'time', row.time)}
+                    </td>
+                    <td 
+                      style={getCellStyle(rowIndex, 'noOfBale')}
+                      onDoubleClick={() => startEditing(rowIndex, 'noOfBale', row.noOfBale)}
+                    >
+                      {renderCell(rowIndex, 'noOfBale', row.noOfBale)}
+                    </td>
+                    <td 
+                      style={{ ...getCellStyle(rowIndex, 'transport'), borderRight: 'none' }}
+                      onDoubleClick={() => startEditing(rowIndex, 'transport', row.transport)}
+                    >
+                      {renderCell(rowIndex, 'transport', row.transport)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              {data.length > 0 && (
+                <tfoot>
+                  <tr style={totalsRowStyle}>
+                    <td colSpan="4" style={{ padding: '8px 6px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold' }}>
+                      Total
+                    </td>
+                    <td style={totalsCellStyle}>
+                      {formatNumber(totals.billAmount)}
+                    </td>
+                    <td style={totalsCellStyle}>
+                      {totals.qty.toFixed(2)}
+                    </td>
+                    <td style={{ ...totalsCellStyle, textAlign: 'center' }}>-</td>
+                    <td style={totalsCellStyle}>-</td>
+                    <td style={{ ...totalsCellStyle, borderRight: 'none' }}>-</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
         </div>
-      </div>
-      
-      {/* Action buttons */}
-      <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-        <button 
-          onClick={addNewRow}
-          style={{
-            padding: '8px 20px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '3px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#218838'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#28a745'}
-        >
-          Add New Row (F4)
-        </button>
-        <button 
-          onClick={deleteSelectedRow}
-          style={{
-            padding: '8px 20px',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '3px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#c82333'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#dc3545'}
-        >
-          Delete Selected Row
-        </button>
-        <div style={{ flex: 1, textAlign: 'right', color: '#666', fontSize: '13px', padding: '8px 0' }}>
-          Total Records: {data.length} | Use Arrow Keys to navigate, Enter/F2 to edit, Delete to clear cell
-        </div>
+
+       
       </div>
     </div>
   );
