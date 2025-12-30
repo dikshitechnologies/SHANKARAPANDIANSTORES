@@ -641,7 +641,7 @@ const ReceiptVoucher = () => {
                 cashBank: '',
                 cashBankCode: '',
                 crDr: 'CR',
-                type: '',
+                type: 'CASH',
                 chqNo: '',
                 chqDt: '',
                 narration: '',

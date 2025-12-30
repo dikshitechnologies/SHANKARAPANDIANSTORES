@@ -630,7 +630,7 @@ const PaymentVoucher = () => {
                 cashBank: '',
                 cashBankCode: '',
                 crDr: 'CR',
-                type: '',
+                type: 'CASH',
                 chqNo: '',
                 chqDt: '',
                 narration: '',
@@ -1506,6 +1506,7 @@ const PaymentVoucher = () => {
   };
 
   const savePaymentVoucher = async (updatedParticulars = null) => {
+    console.log('🟢 savePaymentVoucher called',paymentItems);
     try {
       if (!voucherDetails.voucherNo) {
         setError('Voucher number is required');
