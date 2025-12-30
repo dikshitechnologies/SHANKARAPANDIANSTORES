@@ -3585,15 +3585,17 @@ const handlePrint = () => {
 
     const itemsArray = details.items || details.details || [];
 
-    const handleSelectAll = (checked) => {
-      setSelectAllItems(checked);
-      const updated = {};
-      itemsArray.forEach(item => {
-        const key = item.fItemcode || item.itemCode;
-        updated[key] = checked;
-      });
-      setCheckedBills(updated);
-    };
+  const handleSelectAll = (itemsArray, checked) => {
+  const next = {};
+
+  itemsArray.forEach((_, index) => {
+    next[index] = checked;   // ✅ index = record count
+  });
+
+  setCheckedBills(next);
+};
+
+
 
     return (
       <div style={{ padding: "20px", animation: "fadeSlide 0.3s ease" }}>
@@ -3649,15 +3651,16 @@ const handlePrint = () => {
                 >
                   <td style={tdStyle}>
                     <input
-                      type="checkbox"
-                      checked={checkedBills[key] || false}
-                      onChange={(e) =>
-                        setCheckedBills(prev => ({
-                          ...prev,
-                          [key]: e.target.checked
-                        }))
-                      }
-                    />
+                    type="checkbox"
+                    checked={!!checkedBills[idx]}
+                    onChange={() =>
+                      setCheckedBills(prev => ({
+                        ...prev,
+                        [idx]: !prev[idx]
+                      }))
+                    }
+                  />
+
                   </td>
                    <td style={tdStyle}>{item.barcode || item.barcode}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>
