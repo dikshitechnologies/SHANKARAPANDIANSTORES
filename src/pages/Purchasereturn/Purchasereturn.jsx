@@ -448,8 +448,8 @@ const handleBlur = () => {
       
       // Force a state update
       setTimeout(() => {
-        if (billNoRef.current) {
-          billNoRef.current.focus();
+        if (dateRef.current) {
+          dateRef.current.focus();
         }
       }, 100);
       
