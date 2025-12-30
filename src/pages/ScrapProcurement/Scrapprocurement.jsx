@@ -470,6 +470,23 @@ useEffect(() => {
     setShowConfirmPopup(true);
   };
 
+ const showAlertConfirmation = (message, onConfirm = null, type = 'info') => {
+  showConfirmation({
+    title: 'Information',
+    message: message,
+    onConfirm: () => {
+      if (onConfirm && typeof onConfirm === 'function') {
+        onConfirm();
+      }
+      setShowConfirmPopup(false);
+    },
+    type: type,
+    confirmText: 'OK',
+    hideCancelButton: true,
+    showLoading: false
+  });
+};
+
   // Function to revert to original data
   const revertToOriginalData = () => {
     if (originalBillDetails && originalItems) {
@@ -1270,7 +1287,8 @@ const fetchItemList = async (pageNum = 1, search = '') => {
         title: 'Clear First Row',
         message: 'Do you want to clear',
         type: 'danger',
-        confirmText: 'Clear',
+        confirmText: 'Yes',
+        cancelText: 'No',
         onConfirm: () => {
           // Clear the first row instead of deleting it
           const updatedItems = [...items];
@@ -2012,7 +2030,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
     if (screenSize.isMobile) {
       return '1fr 1fr';
     } else if (screenSize.isTablet) {
-      return 'minmax(150px, 1fr) minmax(150px, 1fr) minmax(200px, 2fr) minmax(150px, 1fr) minmax(150px, 1.5fr)';
+      return 'minmax(150px, 1fr) minmax(150px, 1fr) minmax(200px, 2fr) minmax(150px, 1fr) minmax(150px, 2fr)'; 
     } else {
       return 'minmax(130px, 1fr) minmax(130px, 1fr) minmax(250px, 2fr) minmax(130px, 1fr) minmax(150px, 1.5fr)';
     }
@@ -2058,7 +2076,8 @@ const fetchItemList = async (pageNum = 1, search = '') => {
               type="text"
               style={{
                 ...styles.inlineInput,
-                ...(focusedField === 'billNo' && styles.focusedInput)
+                ...(focusedField === 'billNo' && styles.focusedInput),
+                minWidth: screenSize.isMobile ? '80px' : '100px'
               }}
               value={billDetails.billNo}
               name="billNo"
@@ -2080,7 +2099,8 @@ const fetchItemList = async (pageNum = 1, search = '') => {
               type="date"
               style={{
                 ...styles.inlineInput,
-                ...(focusedField === 'billDate' && styles.focusedInput)
+                ...(focusedField === 'billDate' && styles.focusedInput),
+                minWidth: screenSize.isMobile ? '90px' : '110px'
               }}
               value={billDetails.billDate}
               name="billDate"
@@ -2110,15 +2130,25 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           </div>
 
           {/* Customer Name - WIDER FIELD */}
-          <div style={styles.formField}>
+          <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 2' : 'auto',
+      width: screenSize.isMobile ? '100%' : 'auto'
+    }}>
             <label style={styles.inlineLabel}>Customer:</label>
-            <div style={{ position: 'relative', flex: '2 1 auto', minWidth: '200px' }}>
+            <div style={{ 
+        position: 'relative', 
+        flex: screenSize.isMobile ? '1 1 auto' : '2 1 auto', 
+        minWidth: screenSize.isMobile ? '150px' : '200px',
+        width: '50%'
+      }}>
               <input
                 type="text"
                 style={{
                   ...styles.inlineInput,
-                  // padding: screenSize.isMobile ? '6px 40px 6px 10px' : screenSize.isTablet ? '8px 40px 8px 12px' : '8px 40px 8px 12px',
-                  ...(focusedField === 'custName' && styles.focusedInput)
+                  ...(focusedField === 'custName' && styles.focusedInput),
+                  paddingRight: '40px',
+            width: '100%'
                 }}
                 value={billDetails.custName}
                 name="custName"
@@ -2142,6 +2172,16 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                     setCustomerSearchTerm(billDetails.custName);
                     setShowCustomerPopup(true);
                   } else if (e.key === 'Enter') {
+                    const isCustomerNameEmpty = !billDetails.custName || billDetails.custName.trim() === '';
+                    if (isCustomerNameEmpty) {
+                      showAlertConfirmation('Please select a customer before proceeding.', null, 'warning');
+                      setTimeout(() => {
+                        custNameRef.current.focus();
+                        setFocusedField('custName');
+                        setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 2 });
+                      }, 100);
+                      return;
+                    }
                     e.preventDefault();
                     setFocusedField('mobileNo');
                     mobileRef.current.focus();
@@ -2164,11 +2204,12 @@ const fetchItemList = async (pageNum = 1, search = '') => {
                   }
                 }}
                 onBlur={() => {
-                  // Only clear if not moving to another field
+                  // Simple blur handler - no validation
                   if (focusedField === 'custName') {
                     setFocusedField('');
                   }
                 }}
+
               />
               <button
                 type="button"
@@ -2211,7 +2252,8 @@ const fetchItemList = async (pageNum = 1, search = '') => {
               type="text"
               style={{
                 ...styles.inlineInput,
-                ...(focusedField === 'mobileNo' && styles.focusedInput)
+                ...(focusedField === 'mobileNo' && styles.focusedInput),
+                minWidth: screenSize.isMobile ? '100px' : '120px'
               }}
               value={billDetails.mobileNo}
               name="mobileNo"
@@ -2228,9 +2270,18 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           </div>
 
           {/* Salesman */}
-          <div style={styles.formField}>
+          <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 2' : 'auto',
+      width: screenSize.isMobile ? '100%' : 'auto'
+    }}>
             <label style={styles.inlineLabel}>Salesman:</label>
-            <div style={{ position: 'relative', flex: '1 1 auto' }}>
+            <div style={{ 
+        position: 'relative', 
+        flex: '1 1 auto',
+        minWidth: screenSize.isMobile ? '150px' : '180px',
+        width: '50%'
+      }}>
               <input
                 type="text"
                 style={{
@@ -2637,11 +2688,12 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           setSalesmanSearchTerm('');
           setActiveSearchField(null);
           
-          // if (custNameRef.current) {
-          //   custNameRef.current.focus();
-          //   setFocusedField('custName');
-          //   setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
-          // }
+          setTimeout(() => {
+            if (salesmanRef.current) {
+              salesmanRef.current.focus();
+              salesmanRef.current.select(); // optional: selects text
+            }
+          }, 500);
         }}
       />
       
@@ -2680,13 +2732,20 @@ const fetchItemList = async (pageNum = 1, search = '') => {
           setClosedByUser(false);
           setCustomerSearchTerm('');
           setActiveSearchField(null);
+
+          setTimeout(() => {
+            if (custNameRef.current) {
+              custNameRef.current.focus();
+              custNameRef.current.select(); // optional: selects text
+            }
+          }, 500);
           
-          if (salesmanRef.current) {
-            salesmanRef.current.focus();
-            setFocusedField('salesman');
-            setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
-          }
-        }}
+        //   if (salesmanRef.current) {
+        //     salesmanRef.current.focus();
+        //     setFocusedField('salesman');
+        //     setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
+        //   }
+         }}
       />
 
       {/* Scrap Product Popup */}

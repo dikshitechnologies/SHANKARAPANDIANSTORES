@@ -530,114 +530,111 @@ const fetchSalesInvoiceVoucherDetails = async (voucherNo) => {
   await handleApplyBillNumber();
 };
 
-  // Apply selected bill number from details popup
-  const handleApplyBillNumber = async () => {
-    // Get the checked items
-
-    const checkedItems = Object.keys(checkedBills).filter(key => checkedBills[key]);
+const handleApplyBillNumber = async () => {
+  // Get the checked items - FIXED: Use the actual item keys from checkedBills
+  const checkedItemKeys = Object.keys(checkedBills).filter(key => checkedBills[key]);
+  
+  if (!checkedItemKeys || checkedItemKeys.length === 0) {
+    toast.warning("Please select at least one item by checking the checkbox.");
+    return;
+  }
+  
+  const voucherNo = selectedBillForDetails;
+  
+  try {
+    setLoading(true);
+    const voucherDetails = billDetailsData[voucherNo];
     
-    if (!checkedItems || checkedItems.length === 0) {
-      toast.warning("Please select at least one item by checking the checkbox.");
-      return;
-    }
-    
-    const voucherNo = selectedBillForDetails;
-    
-    try {
-      setLoading(true);
-      const voucherDetails = billDetailsData[voucherNo];
+    if (voucherDetails) {
+      // Set the bill number in the form
+      setBillDetails(prev => ({ ...prev, newBillNo: voucherNo }));
       
-      if (voucherDetails) {
-        // Set the bill number in the form
-        setBillDetails(prev => ({ ...prev, newBillNo: voucherNo }));
+      const header = voucherDetails.header || voucherDetails;
+      const itemsArray = voucherDetails.items || voucherDetails.details || [];
+      
+      if (header) {
+        setBillDetails(prev => ({
+          ...prev,
+          custName: header.customerName || header.customer || "",
+          customerCode: header.customerCode || header.customerId || "",
+          partyCode: header.customerCode || header.customerId || "",
+          mobileNo: header.mobileNO || header.mobileNo || header.mobile || header.phone || "",
+          gstno: header.gstNo || header.gstNumber || header.gst || "",
+          salesman: header.sManName || header.salesMansName || "",
+          salesmanCode: header.sManCode || header.salesMansCode || "002"
+        }));
+      }
+      
+      if (itemsArray && itemsArray.length > 0) {
+        // Filter only checked items - FIXED: Match by the actual key used in renderBillDetailsContent
+        const filteredItems = itemsArray.filter((item, index) => {
+          // The key format used in renderBillDetailsContent: `${item.barcode}-${idx}`
+          const itemKey = `${item.barcode || item.barcode || ""}-${index}`;
+          return checkedItemKeys.includes(itemKey);
+        });
         
-        const header = voucherDetails.header || voucherDetails;
-        const itemsArray = voucherDetails.items || voucherDetails.details || [];
-        
-        if (header) {
-          setBillDetails(prev => ({
-            ...prev,
-            custName: header.customerName || header.customer || "",
-            customerCode: header.customerCode || header.customerId || "",
-            partyCode: header.customerCode || header.customerId || "",
-            mobileNo: header.mobileNO || header.mobileNo || header.mobile || header.phone || "",
-            gstno: header.gstNo || header.gstNumber || header.gst || "",
-            salesman: header.sManName || header.salesMansName || "",
-            salesmanCode: header.sManCode || header.salesMansCode || "002"
-          }));
-        }
-        
-        if (itemsArray && itemsArray.length > 0) {
-          // Filter only checked items
-          const checkedItemCodes = checkedItems;
-          const filteredItems = itemsArray.filter(item => {
+        if (filteredItems.length > 0) {
+          const transformedItems = filteredItems.map((item, index) => {
             const itemCode = item.fItemcode || item.itemCode || item.productCode || "";
-            return checkedItemCodes.includes(itemCode);
+            const itemName = item.fitemNme || item.itemName || item.barcode || item.productName || "";
+            const originalQty = parseFloat(item.fTotQty || item.qty || item.quantity || 0);
+            
+            const returnQty = Math.abs(originalQty);
+            
+            return {
+              id: index + 1,
+              sNo: index + 1,
+              barcode: item.barcode || "",
+              itemName: itemName,
+              stock: item.fstock || item.stock || "0",
+              mrp: item.mrp || item.maxRetailPrice || "0.00",
+              uom: item.fUnit || item.uom || item.unit || "",
+              hsn: item.fHSN || item.hsn || item.hsnCode || "",
+              tax: item.fTax || item.tax || item.taxRate || "0",
+              sRate: item.fRate || item.sellingRate || item.rate || "0",
+              qty: returnQty.toString(),
+              amount: (returnQty * parseFloat(item.fRate || item.rate || item.sellingRate || 0)).toFixed(2),
+              itemCode: itemCode || `0000${index + 1}`,
+              isReadOnly: true // Mark items from bill selection as read-only except qty
+            };
           });
           
-          if (filteredItems.length > 0) {
-            const transformedItems = filteredItems.map((item, index) => {
-              const itemCode = item.fItemcode || item.itemCode || item.productCode || "";
-              const itemName = item.fitemNme || item.itemName || item.barcode || item.productName || "";
-              const originalQty = parseFloat(item.fTotQty || item.qty || item.quantity || 0);
-              
-              const returnQty = Math.abs(originalQty);
-
-              
-              return {
-                id: index + 1,
-                sNo: index + 1,
-                barcode: item.barcode || "",
-                itemName: itemName,
-                stock: item.fstock || item.stock || "0",
-                mrp: item.mrp || item.maxRetailPrice || "0.00",
-                uom: item.fUnit || item.uom || item.unit || "",
-                hsn: item.fHSN || item.hsn || item.hsnCode || "",
-                tax: item.fTax || item.tax || item.taxRate || "0",
-                sRate: item.fRate || item.sellingRate || item.rate || "0",
-                qty: returnQty.toString(),
-                amount: (returnQty * parseFloat(item.fRate || item.rate || item.sellingRate || 0)).toFixed(2),
-                itemCode: itemCode || `0000${index + 1}`,
-                isReadOnly: true // Mark items from bill selection as read-only except qty
-              };
-            });
-            
-            setItems(transformedItems);
-            
-            // toast.success(
-            //   `Selected items from ${voucherNo} applied successfully!\n${filteredItems.length} items loaded for return.`,
-            //   { autoClose: 3000 }
-            // );
-          } else {
-            toast.warning("No items selected. Please check at least one item checkbox.");
-          }
+          setItems(transformedItems);
+          
+          // toast.success(
+          //   `Selected ${filteredItems.length} items applied successfully!`,
+          //   { autoClose: 2000 }
+          // );
         } else {
-          toast.info(`Bill number ${voucherNo} selected, but no items found to apply.`);
+          toast.warning("No items selected. Please check at least one item checkbox.");
         }
       } else {
-        toast.error(`Bill number ${voucherNo} selected, but could not fetch voucher details.`);
+        toast.info(`Bill number ${voucherNo} selected, but no items found to apply.`);
       }
-    } catch (error) {
-      console.error("Error applying voucher details:", error);
-      toast.error(`Error applying voucher details: ${error.message}`);
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error(`Bill number ${voucherNo} selected, but could not fetch voucher details.`);
     }
-    
-    // Focus on first item's barcode field after applying
-    setTimeout(() => {
-      const firstBarcodeInput = document.querySelector(`input[data-row="0"][data-field="barcode"]`);
-      if (firstBarcodeInput) {
-        firstBarcodeInput.focus();
-        setFocusedElement({
-          type: 'table',
-          rowIndex: 0,
-          fieldIndex: 0,
-          fieldName: 'barcode'
-        });
-      }
-    }, 150);
-  };
+  } catch (error) {
+    console.error("Error applying voucher details:", error);
+    toast.error(`Error applying voucher details: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+  
+  // Focus on first item's barcode field after applying
+  setTimeout(() => {
+    const firstBarcodeInput = document.querySelector(`input[data-row="0"][data-field="barcode"]`);
+    if (firstBarcodeInput) {
+      firstBarcodeInput.focus();
+      setFocusedElement({
+        type: 'table',
+        rowIndex: 0,
+        fieldIndex: 0,
+        fieldName: 'barcode'
+      });
+    }
+  }, 150);
+};
 
   // Clear selected bill number
   const handleClearBillNumber = () => {
@@ -3573,112 +3570,117 @@ const handlePrint = () => {
     }
   };
 
-  const renderBillDetailsContent = () => {
+const renderBillDetailsContent = () => {
+  const billNo = selectedBillForDetails;
+  if (!billNo) return null;
 
-    const billNo = selectedBillForDetails;
-    if (!billNo) return null;
+  const details = billDetailsData[billNo];
+  if (!details) {
+    return <div style={{ padding: 30, textAlign: "center" }}>Loading items...</div>;
+  }
 
-    const details = billDetailsData[billNo];
-    if (!details) {
-      return <div style={{ padding: 30, textAlign: "center" }}>No data</div>;
-    }
+  const itemsArray = details.items || details.details || [];
 
-    const itemsArray = details.items || details.details || [];
-
-    const handleSelectAll = (checked) => {
-      setSelectAllItems(checked);
-      const updated = {};
-      itemsArray.forEach(item => {
-        const key = item.fItemcode || item.itemCode;
-        updated[key] = checked;
-      });
-      setCheckedBills(updated);
-    };
-
-    return (
-      <div style={{ padding: "20px", animation: "fadeSlide 0.3s ease" }}>
-        
-        <h4 style={{
-          marginBottom: 12,
-          fontWeight: 700,
-          color: "#1B91DA"
-        }}>
-          Items – Select items to return
-        </h4>
-
-        <table style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          fontSize: "13px"
-        }}>
-          <thead>
-            <tr style={{ background: "#f0f6ff" }}>
-              <th style={{ padding: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={selectAllItems}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                />
-              </th>
-              <th style={thStyle}>barcode</th>
-              <th style={thStyle}>Item Name</th>
-              <th style={thStyle}>Qty</th>
-              <th style={thStyle}>Unit</th>
-              <th style={thStyle}>Rate</th>
-              <th style={thStyle}>Amount</th>
-            </tr>
-          </thead>
-
-          <tbody>
-             
-            {itemsArray.map((item, idx) => {
-              const key = item.fItemcode || item.itemCode;
-              return (
-                <tr
-                  key={idx}
-                  ref={(el) => (billRowRefs.current[idx] = el)}
-                  style={{
-                    transition: "background 0.2s",
-                    background:
-                      billPopupRowIndex === idx
-                        ? "#cce5ff"
-                        : checkedBills[key]
-                        ? "#e3f2fd"
-                        : "#fff"
-                  }}
-                >
-                  <td style={tdStyle}>
-                    <input
-                      type="checkbox"
-                      checked={checkedBills[key] || false}
-                      onChange={(e) =>
-                        setCheckedBills(prev => ({
-                          ...prev,
-                          [key]: e.target.checked
-                        }))
-                      }
-                    />
-                  </td>
-                   <td style={tdStyle}>{item.barcode || item.barcode}</td>
-                  <td style={{ ...tdStyle, fontWeight: 600 }}>
-                    {item.fitemNme || item.itemName}
-                  </td>
-                  <td style={tdStyle}>{item.fTotQty || item.qty}</td>
-                
-                  <td style={tdStyle}>{item.fUnit || item.uom}</td>
-                  <td style={tdStyle}>₹{item.fRate || item.rate}</td>
-                  <td style={{ ...tdStyle, fontWeight: 600 }}>
-                    ₹{item.fAmount || item.amount}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
+  const handleSelectAll = (checked) => {
+    setSelectAllItems(checked);
+    const updated = {};
+    itemsArray.forEach((item, idx) => {
+      // Use consistent key format: `${item.barcode}-${idx}`
+      const key = `${item.barcode || item.barcode || ""}-${idx}`;
+      updated[key] = checked;
+    });
+    setCheckedBills(updated);
   };
 
+  return (
+    <div style={{ padding: "20px", animation: "fadeSlide 0.3s ease" }}>
+      <h4 style={{
+        marginBottom: 12,
+        fontWeight: 700,
+        color: "#1B91DA"
+      }}>
+        Items – Select items to return
+      </h4>
+
+      <table style={{
+        width: "100%",
+        borderCollapse: "collapse",
+        fontSize: "13px"
+      }}>
+        <thead>
+          <tr style={{ background: "#f0f6ff" }}>
+            <th style={{ padding: 8 }}>
+              <input
+                type="checkbox"
+                checked={selectAllItems}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+              />
+            </th>
+            <th style={thStyle}>Barcode</th>
+            <th style={thStyle}>Item Name</th>
+            <th style={thStyle}>Qty</th>
+            <th style={thStyle}>Unit</th>
+            <th style={thStyle}>Rate</th>
+            <th style={thStyle}>Amount</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {itemsArray.map((item, idx) => {
+            // Use consistent key format
+            const key = `${item.barcode || item.barcode || ""}-${idx}`;
+
+            return (
+              <tr
+                key={key}
+                ref={(el) => (billRowRefs.current[idx] = el)}
+                style={{
+                  transition: "background 0.2s",
+                  background:
+                    billPopupRowIndex === idx
+                      ? "#cce5ff"
+                      : checkedBills[key]
+                      ? "#e3f2fd"
+                      : "#fff"
+                }}
+              >
+                <td style={tdStyle}>
+                  <input
+                    type="checkbox"
+                    checked={checkedBills[key] || false}
+                    onChange={(e) =>
+                      setCheckedBills(prev => ({
+                        ...prev,
+                        [key]: e.target.checked
+                      }))
+                    }
+                  />
+                </td>
+                <td style={tdStyle}>{item.barcode || item.barcode}</td>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>
+                  {item.fitemNme || item.itemName}
+                </td>
+                <td style={tdStyle}>{item.fTotQty || item.qty}</td>
+                <td style={tdStyle}>{item.fUnit || item.uom}</td>
+                <td style={tdStyle}>₹{item.fRate || item.rate}</td>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>
+                  ₹{item.fAmount || item.amount}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      
+      {/* Add a summary of selected items */}
+      <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+        <span style={{ fontWeight: 600, color: '#1B91DA' }}>
+          Selected: {Object.keys(checkedBills).filter(k => checkedBills[k]).length} of {itemsArray.length} items
+        </span>
+      </div>
+    </div>
+  );
+};
   const thStyle = {
     padding: 8,
     fontWeight: 700,

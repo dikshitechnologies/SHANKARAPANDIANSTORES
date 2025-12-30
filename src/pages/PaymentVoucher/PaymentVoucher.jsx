@@ -823,92 +823,144 @@ const PaymentVoucher = () => {
     }
   }, [userData?.companyCode]);
 
-  const fetchVoucherDetails = async (voucherNo) => {
-    try {
-      setIsLoading(true);
-      const url = API_ENDPOINTS.PAYMENTVOUCHER.GET_PAYMENT_VOUCHER_DETAILS(voucherNo);
-      const response = await apiService.get(url);
+ const fetchVoucherDetails = async (voucherNo) => {
+  try {
+    setIsLoading(true);
+    const url = API_ENDPOINTS.PAYMENTVOUCHER.GET_PAYMENT_VOUCHER_DETAILS(voucherNo);
+    const response = await apiService.get(url);
+    
+    if (response?.bledger) {
+      const ledger = response.bledger;
       
-      if (response?.bledger) {
-        const ledger = response.bledger;
-        
-        const safeFormatDate = (dateValue) => {
-          if (!dateValue) return new Date().toISOString().substring(0, 10);
-          try {
-            if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-              return dateValue;
-            }
-            const date = new Date(dateValue);
-            if (isNaN(date.getTime())) {
-              return new Date().toISOString().substring(0, 10);
-            }
-            return date.toISOString().substring(0, 10);
-          } catch (e) {
-            console.warn('Date parsing error:', e);
+      const safeFormatDate = (dateValue) => {
+        if (!dateValue) return new Date().toISOString().substring(0, 10);
+        try {
+          if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+            return dateValue;
+          }
+          const date = new Date(dateValue);
+          if (isNaN(date.getTime())) {
             return new Date().toISOString().substring(0, 10);
           }
-        };
-        
-        setVoucherDetails({
-          voucherNo: ledger.fVouchno || '',
-          gstType: ledger.fGSTTYPE || 'CGST/SGST',
-          date: safeFormatDate(ledger.fVouchdt),
-          costCenter: '',
-          accountName: ledger.fRefName || ledger.customerName || '',
-          accountCode: ledger.fCucode || '',
-          balance: (ledger.fBillAmt || 0).toString()
-        });
-        
-        if (response?.ledgers && Array.isArray(response.ledgers)) {
-          const items = response.ledgers.map((item, idx) => ({
-            id: idx + 1,
-            sNo: idx + 1,
-            cashBank: item.accountName || '',
-            cashBankCode: item.faccode || '',
-            accountCode: item.faccode || '',
-            accountName: item.accountName || '',
-            crDr: item.fCrDb || 'CR',
-            type: item.type || '',
-            chqNo: item.fchqno || '',
-            chqDt: safeFormatDate(item.fchqdt),
-            narration: item.narration || '',
-            amount: (item.fvrAmount || item.fvrAmount || 0).toString()
-          }));
-          setPaymentItems(items);
-          
-          // Calculate total amount from ledgers
-          const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-          setTotalAmount(total);
+          return date.toISOString().substring(0, 10);
+        } catch (e) {
+          console.warn('Date parsing error:', e);
+          return new Date().toISOString().substring(0, 10);
         }
-
-        // Handle reference bills if present
-        if (response?.referenceBills && Array.isArray(response.referenceBills)) {
-          const bills = response.referenceBills.map((bill, idx) => ({
-            id: idx + 1,
-            sNo: idx + 1,
-            refNo: '',
-            billNo: bill.billNo || '',
-            date: safeFormatDate(bill.date),
-            billAmount: (bill.billAmount || 0).toString(),
-            paidAmount: (bill.paidAmount || 0).toString(),
-            balanceAmount: (bill.balanceAmount || 0).toString(),
-            amount: (bill.amount || 0).toString()
-          }));
-          setBillDetails(bills);
-          
-          // Calculate total bill amount
-          const billTotal = bills.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0);
-          setBillTotalAmount(billTotal);
-        }
+      };
+      
+      setVoucherDetails({
+        voucherNo: ledger.fVouchno || '',
+        gstType: ledger.fGSTTYPE || 'CGST/SGST',
+        date: safeFormatDate(ledger.fVouchdt),
+        costCenter: '',
+        accountName: ledger.fRefName || ledger.customerName || '',
+        accountCode: ledger.fCucode || '',
+        balance: (ledger.fBillAmt || 0).toString()
+      });
+      
+      if (response?.ledgers && Array.isArray(response.ledgers)) {
+        const items = response.ledgers.map((item, idx) => ({
+          id: idx + 1,
+          sNo: idx + 1,
+          cashBank: item.accountName || '',
+          cashBankCode: item.faccode || '',
+          accountCode: item.faccode || '',
+          accountName: item.accountName || '',
+          crDr: item.fCrDb || 'CR',
+          type: item.type || '',
+          chqNo: item.fchqno || '',
+          chqDt: safeFormatDate(item.fchqdt),
+          narration: item.narration || '',
+          amount: (item.fvrAmount || item.fvrAmount || 0).toString()
+        }));
+        setPaymentItems(items);
+        
+        // Calculate total amount from ledgers
+        const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+        setTotalAmount(total);
       }
-    } catch (err) {
-      console.error('Error fetching voucher details:', err);
-      setError('Failed to load voucher details');
-      toast.error('Failed to load voucher details: ' + err.message, { autoClose: 3000 });
-    } finally {
-      setIsLoading(false);
+
+      // Handle reference bills if present
+      if (response?.referenceBills && Array.isArray(response.referenceBills)) {
+        const bills = response.referenceBills.map((bill, idx) => ({
+          id: idx + 1,
+          sNo: idx + 1,
+          refNo: '',
+          billNo: bill.billNo || '',
+          date: safeFormatDate(bill.date),
+          billAmount: (bill.billAmount || 0).toString(),
+          paidAmount: (bill.paidAmount || 0).toString(),
+          balanceAmount: (bill.balanceAmount || 0).toString(),
+          amount: (bill.amount || 0).toString()
+        }));
+        setBillDetails(bills);
+        
+        // Calculate total bill amount
+        const billTotal = bills.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0);
+        setBillTotalAmount(billTotal);
+      }
+      
+      // === NEW CODE: Handle collect and issue particulars ===
+      if (response?.collect && response?.issue) {
+        const updatedParticulars = {
+          '500': { 
+            available: 0, 
+            collect: response.collect.r500 || 0, 
+            issue: response.issue.r500 || 0 
+          },
+          '200': { 
+            available: 0, 
+            collect: response.collect.r200 || 0, 
+            issue: response.issue.r200 || 0 
+          },
+          '100': { 
+            available: 0, 
+            collect: response.collect.r100 || 0, 
+            issue: response.issue.r100 || 0 
+          },
+          '50': { 
+            available: 0, 
+            collect: response.collect.r50 || 0, 
+            issue: response.issue.r50 || 0 
+          },
+          '20': { 
+            available: 0, 
+            collect: response.collect.r20 || 0, 
+            issue: response.issue.r20 || 0 
+          },
+          '10': { 
+            available: 0, 
+            collect: response.collect.r10 || 0, 
+            issue: response.issue.r10 || 0 
+          },
+          '5': { 
+            available: 0, 
+            collect: response.collect.r5 || 0, 
+            issue: response.issue.r5 || 0 
+          },
+          '2': { 
+            available: 0, 
+            collect: response.collect.r2 || 0, 
+            issue: response.issue.r2 || 0 
+          },
+          '1': { 
+            available: 0, 
+            collect: response.collect.r1 || 0, 
+            issue: response.issue.r1 || 0 
+          }
+        };
+        setParticulars(updatedParticulars);
+      }
     }
-  };
+  } catch (err) {
+    console.error('Error fetching voucher details:', err);
+    setError('Failed to load voucher details');
+    toast.error('Failed to load voucher details: ' + err.message, { autoClose: 3000 });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const deleteVoucher = async (voucherNo) => {
     try {

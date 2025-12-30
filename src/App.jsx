@@ -43,7 +43,7 @@ import RouteCreationPage from './pages/Route/Routecreation';
 import SalesRegister from './pages/SalesRegister/SalesRegister';
 import TaxCreation from './pages/TaxCreation/TaxCreation';
 import DayBook from './pages/Report/DayBokk/Daybook';
-
+import Ledger from './pages/Report/Ledger/Ledger';
 
 
 // Protected Route Component
@@ -131,6 +131,7 @@ function App() {
           <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
    <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
    <Route path="/reports/day-book" element={<ProtectedRoute><LayoutWithNavbar><DayBook /></LayoutWithNavbar></ProtectedRoute>} />
+    <Route path="/reports/ledger" element={<ProtectedRoute><LayoutWithNavbar><Ledger /></LayoutWithNavbar></ProtectedRoute>} />
 
     </Routes>
      <ToastContainer

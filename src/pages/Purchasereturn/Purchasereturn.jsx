@@ -1324,73 +1324,60 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     return;
   }
 
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    e.stopPropagation(); // Prevent form submission or other Enter handlers
-
-    // Select all text in the current cell on Enter
-    const currentInput = e.target;
-    if (currentInput && currentInput.tagName === 'INPUT' && !currentInput.readOnly) {
-      currentInput.select();
-    }
-
-    const currentRow = items[currentRowIndex];
-
-    // If Enter is pressed in qty field, move to add/less
-    // if (currentField === 'qty') {
-    //   e.preventDefault();
-    //   setTimeout(() => {
-    //     if (addLessRef.current) {
-    //       addLessRef.current.focus();
-    //       addLessRef.current.select();
-    //     }
-    //   }, 50);
-    //   return;
-    // }
-
-    // If Enter is pressed in the amt field (last field)
-    if (currentField === 'amt') {
+if (e.key === 'Enter') {
   e.preventDefault();
   e.stopPropagation();
 
-  const currentRow = items[currentRowIndex];
+  const isLastRow = currentRowIndex === items.length - 1;
+  const isLastField = currentField === 'amt';
 
-  // 🚫 DO NOT add row if name is empty
-  if (!currentRow?.name || currentRow.name.trim() === '') {
-    // Move cursor back to name field
-    const nameInput = document.querySelector(
-      `input[data-row="${currentRowIndex}"][data-field="name"]`
+  // 👉 CASE 1: AMT + NOT last row → go to next row NAME
+  if (isLastField && !isLastRow) {
+    const nextRowName = document.querySelector(
+      `input[data-row="${currentRowIndex + 1}"][data-field="name"]`
     );
-    if (nameInput) {
-      nameInput.focus();
-      nameInput.select();
+    if (nextRowName) {
+      nextRowName.focus();
+      nextRowName.select();
     }
     return;
   }
 
-  // ✅ Only now add new row
-  handleAddRow('name');
-  return;
-}
+  // 👉 CASE 2: LAST row + LAST field → add new row
+  if (isLastField && isLastRow) {
+    const currentRow = items[currentRowIndex];
 
-    // Always move to next field if available (for non-amt fields)
-    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
-      
-      const nextInput = document.querySelector(
-        `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
-         select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+    // 🚫 Block empty name
+    if (!currentRow?.name || currentRow.name.trim() === '') {
+      const nameInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="name"]`
       );
-      if (nextInput) {
-        nextInput.focus();
-        // Select text in the next input field if it's an input element
-        if (nextInput.tagName === 'INPUT' && !nextInput.readOnly) {
-          setTimeout(() => nextInput.select(), 0);
-        }
-        return;
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.select();
       }
+      return;
+    }
+
+    handleAddRow('name');
+    return;
+  }
+
+  // 👉 CASE 3: Normal fields → move RIGHT
+  if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+    const nextField = fields[currentFieldIndex + 1];
+    const nextInput = document.querySelector(
+      `input[data-row="${currentRowIndex}"][data-field="${nextField}"],
+       select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+    );
+
+    if (nextInput) {
+      nextInput.focus();
+      if (nextInput.tagName === 'INPUT') nextInput.select();
     }
   }
+}
+
 };
 
   const handleClear = () => {
@@ -1514,7 +1501,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             profitPercent: toNumber(it.profitPercent),
             preRate: toNumber(it.preRT),
             sRate: toNumber(it.sRate),
-            asRate: toNumber(it.asRate),
+            asRate: toNumber(it.asRate) || toNumber(it.sRate),
             mrp: toNumber(it.mrp),
             letProfPer: toNumber(it.letProfPer),
             ntCost: toNumber(it.ntCost),
@@ -2518,7 +2505,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
                 <th style={styles.th}>WRate</th>
-                <th style={styles.th}>Total</th>
+                <th style={{...styles.th, minWidth: screenSize.isMobile ? '100px' : '120px'}}>Total</th>
                 <th style={styles.th}>Action</th>
               </tr>
             </thead>
@@ -2974,18 +2961,25 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       onBlur={() => setFocusedField('')}
                     />
                   </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `amt-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.amt || ''}
-                      data-row={index}
-                      data-field="amt"
-                      readOnly
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'amt')}
-                      onFocus={() => setFocusedField(`amt-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
+                 <td style={{ ...styles.td, width: '120px', maxWidth: '120px' }}>
+                <input
+                  style={{
+                    ...(focusedField === `amt-${item.id}`
+                      ? styles.editableInputFocused
+                      : styles.editableInput),
+                    width: '120px',   // 🔥 2x width
+                    maxWidth: '120px'
+                  }}
+                  value={item.amt || ''}
+                  data-row={index}
+                  data-field="amt"
+                  readOnly
+                  onKeyDown={(e) => handleTableKeyDown(e, index, 'amt')}
+                  onFocus={() => setFocusedField(`amt-${item.id}`)}
+                  onBlur={() => setFocusedField('')}
+                />
+              </td>
+
                   <td style={styles.td}>
                     <button
                       aria-label="Delete row"

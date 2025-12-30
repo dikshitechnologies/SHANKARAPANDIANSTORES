@@ -945,93 +945,143 @@ const ReceiptVoucher = () => {
     }
   }, [userData?.companyCode, userData?.username]);
   
-  const fetchVoucherDetails = async (voucherNo) => {
-    try {
-      setIsLoading(true);
-      const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_VOUCHER_DETAILS(voucherNo));
-      console.log('Fetched Voucher Details Response:', response);
+ const fetchVoucherDetails = async (voucherNo) => {
+  try {
+    setIsLoading(true);
+    const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_VOUCHER_DETAILS(voucherNo));
+    console.log('Fetched Voucher Details Response:', response);
+    
+    if (response?.bledger) {
+      const ledger = response.bledger;
       
-      if (response?.bledger) {
-        const ledger = response.bledger;
-        
-        // Helper function to safely format date
-        const safeFormatDate = (dateValue) => {
-          if (!dateValue) return new Date().toISOString().substring(0, 10);
-          try {
-            // If already in YYYY-MM-DD format, return as is
-            if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-              return dateValue;
-            }
-            // Otherwise parse and format
-            const date = new Date(dateValue);
-            if (isNaN(date.getTime())) {
-              return new Date().toISOString().substring(0, 10);
-            }
-            return date.toISOString().substring(0, 10);
-          } catch (e) {
-            console.warn('Date parsing error:', e);
+      // Helper function to safely format date
+      const safeFormatDate = (dateValue) => {
+        if (!dateValue) return new Date().toISOString().substring(0, 10);
+        try {
+          // If already in YYYY-MM-DD format, return as is
+          if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+            return dateValue;
+          }
+          // Otherwise parse and format
+          const date = new Date(dateValue);
+          if (isNaN(date.getTime())) {
             return new Date().toISOString().substring(0, 10);
           }
-        };
-        
-        setVoucherDetails({
-          voucherNo: ledger.fVouchno || '',
-          gstType: ledger.fGSTTYPE || 'CGST/SGST',
-          date: safeFormatDate(ledger.fVouchdt),
-          costCenter: '',
-          accountName: ledger.fRefName || ledger.customerName || '',
-          accountCode: ledger.fCucode || '',
-          balance: (ledger.fBillAmt || 0).toString(),
-          crDr: 'CR'
-        });
-        
-        // Map ledger details to receipt items
-        if (response?.ledgers && Array.isArray(response.ledgers) && response.ledgers.length > 0) {
-          console.log('Receipt Items from API:', response.ledgers);
-          const items = response.ledgers.map((item, idx) => ({
-            id: idx + 1,
-            sNo: idx + 1,
-            cashBank: item.accountName || '',
-            accountCode: item.faccode || '',
-            accountName: item.accountName || '',
-            crDr: item.fCrDb || 'CR',
-            type: item.type || '',
-            chqNo: item.fchqno || '',
-            chqDt: safeFormatDate(item.fchqdt),
-            narration: item.narration || '',
-            amount: (item.fvrAmount || item.fchqAmt || 0).toString()
-          }));
-          console.log('Mapped Receipt Items:', items);
-          setReceiptItems(items);
-        } else {
-          console.log('No ledgers found in response, keeping current receipt items or setting empty');
-          // Don't clear - keep the items if they exist
+          return date.toISOString().substring(0, 10);
+        } catch (e) {
+          console.warn('Date parsing error:', e);
+          return new Date().toISOString().substring(0, 10);
         }
-
-        // Load particulars from salesTransaction if available
-        if (response?.salesTransaction) {
-          const sales = response.salesTransaction;
-          setParticulars({
-            '500': { available: 0, collect: parseInt(sales.given500) || 0, issue: 0 },
-            '200': { available: 0, collect: parseInt(sales.given200) || 0, issue: 0 },
-            '100': { available: 0, collect: parseInt(sales.given100) || 0, issue: 0 },
-            '50': { available: 0, collect: parseInt(sales.given50) || 0, issue: 0 },
-            '20': { available: 0, collect: parseInt(sales.given20) || 0, issue: 0 },
-            '10': { available: 0, collect: parseInt(sales.given10) || 0, issue: 0 },
-            '5': { available: 0, collect: parseInt(sales.given5) || 0, issue: 0 },
-            '2': { available: 0, collect: parseInt(sales.given2) || 0, issue: 0 },
-            '1': { available: 0, collect: parseInt(sales.given1) || 0, issue: 0 }
-          });
-        }
+      };
+      
+      setVoucherDetails({
+        voucherNo: ledger.fVouchno || '',
+        gstType: ledger.fGSTTYPE || 'CGST/SGST',
+        date: safeFormatDate(ledger.fVouchdt),
+        costCenter: '',
+        accountName: ledger.fRefName || ledger.customerName || '',
+        accountCode: ledger.fCucode || '',
+        balance: (ledger.fBillAmt || 0).toString(),
+        crDr: 'CR'
+      });
+      
+      // Map ledger details to receipt items
+      if (response?.ledgers && Array.isArray(response.ledgers) && response.ledgers.length > 0) {
+        console.log('Receipt Items from API:', response.ledgers);
+        const items = response.ledgers.map((item, idx) => ({
+          id: idx + 1,
+          sNo: idx + 1,
+          cashBank: item.accountName || '',
+          accountCode: item.faccode || '',
+          accountName: item.accountName || '',
+          crDr: item.fCrDb || 'CR',
+          type: item.type || '',
+          chqNo: item.fchqno || '',
+          chqDt: safeFormatDate(item.fchqdt),
+          narration: item.narration || '',
+          amount: (item.fvrAmount || item.fchqAmt || 0).toString()
+        }));
+        console.log('Mapped Receipt Items:', items);
+        setReceiptItems(items);
+      } else {
+        console.log('No ledgers found in response, keeping current receipt items or setting empty');
+        // Don't clear - keep the items if they exist
       }
-    } catch (err) {
-      console.error('Error fetching voucher details:', err);
-      setError('Failed to load voucher details');
-      alert('Failed to load voucher details: ' + err.message);
-    } finally {
-      setIsLoading(false);
+
+      // === NEW CODE: Handle collect and issue particulars ===
+      if (response?.collect && response?.issue) {
+        const updatedParticulars = {
+          '500': { 
+            available: 0, 
+            collect: response.collect.r500 || 0, 
+            issue: response.issue.r500 || 0 
+          },
+          '200': { 
+            available: 0, 
+            collect: response.collect.r200 || 0, 
+            issue: response.issue.r200 || 0 
+          },
+          '100': { 
+            available: 0, 
+            collect: response.collect.r100 || 0, 
+            issue: response.issue.r100 || 0 
+          },
+          '50': { 
+            available: 0, 
+            collect: response.collect.r50 || 0, 
+            issue: response.issue.r50 || 0 
+          },
+          '20': { 
+            available: 0, 
+            collect: response.collect.r20 || 0, 
+            issue: response.issue.r20 || 0 
+          },
+          '10': { 
+            available: 0, 
+            collect: response.collect.r10 || 0, 
+            issue: response.issue.r10 || 0 
+          },
+          '5': { 
+            available: 0, 
+            collect: response.collect.r5 || 0, 
+            issue: response.issue.r5 || 0 
+          },
+          '2': { 
+            available: 0, 
+            collect: response.collect.r2 || 0, 
+            issue: response.issue.r2 || 0 
+          },
+          '1': { 
+            available: 0, 
+            collect: response.collect.r1 || 0, 
+            issue: response.issue.r1 || 0 
+          }
+        };
+        setParticulars(updatedParticulars);
+      } else if (response?.salesTransaction) {
+        // Keep existing salesTransaction logic as fallback
+        const sales = response.salesTransaction;
+        setParticulars({
+          '500': { available: 0, collect: parseInt(sales.given500) || 0, issue: 0 },
+          '200': { available: 0, collect: parseInt(sales.given200) || 0, issue: 0 },
+          '100': { available: 0, collect: parseInt(sales.given100) || 0, issue: 0 },
+          '50': { available: 0, collect: parseInt(sales.given50) || 0, issue: 0 },
+          '20': { available: 0, collect: parseInt(sales.given20) || 0, issue: 0 },
+          '10': { available: 0, collect: parseInt(sales.given10) || 0, issue: 0 },
+          '5': { available: 0, collect: parseInt(sales.given5) || 0, issue: 0 },
+          '2': { available: 0, collect: parseInt(sales.given2) || 0, issue: 0 },
+          '1': { available: 0, collect: parseInt(sales.given1) || 0, issue: 0 }
+        });
+      }
     }
-  };
+  } catch (err) {
+    console.error('Error fetching voucher details:', err);
+    setError('Failed to load voucher details');
+    alert('Failed to load voucher details: ' + err.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Delete voucher from database
   const deleteVoucher = async (voucherNo) => {
