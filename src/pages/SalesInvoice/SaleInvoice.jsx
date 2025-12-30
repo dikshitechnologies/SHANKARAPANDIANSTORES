@@ -1550,13 +1550,9 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
   };
 
 const handleBarcodeKeyDown = async (e, currentRowIndex) => {
-  const key = e.key;
+  if (e.key !== "Enter") return;
 
-  /* =====================================================
-     ⬆️ ARROW UP → PREVIOUS ROW BARCODE
-  ===================================================== */
-  if (key === "ArrowUp") {
-    e.preventDefault();
+  e.preventDefault();
 
   const barcode = items[currentRowIndex].barcode?.trim();
   //=============================Chnage 1: ITEM NAME ALREADY FILLED → NORMAL NAVIGATION=============================
@@ -1575,29 +1571,12 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
     return;
   }
 
+
+
+
   /* =====================================================
-     ⏎ ENTER → EXISTING BARCODE LOGIC
+     1️⃣ BARCODE EMPTY → NORMAL NAVIGATION
   ===================================================== */
-  if (key !== "Enter") return;
-
-  e.preventDefault();
-
-  const barcode = items[currentRowIndex].barcode?.trim();
-  const currentItemName = items[currentRowIndex].itemName?.trim();
-
-  // 1️⃣ Item already selected → go to item name
-  if (currentItemName) {
-    setTimeout(() => {
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-        )
-        ?.focus();
-    }, 0);
-    return;
-  }
-
-  // 2️⃣ Barcode empty → normal navigation
   if (!barcode) {
     setTimeout(() => {
       document
@@ -1681,10 +1660,24 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
             setBarcodeErrorOpen(true);
       lastBarcodeRowRef.current = currentRowIndex;
 
-  } catch (err) {
-    lastBarcodeRowRef.current = currentRowIndex;
-    setBarcodeErrorOpen(true);
-  }
+      }
+    } catch (err) {
+      console.error("Barcode fetch error:", err);
+       setBarcodeErrorOpen(true);
+       
+      toast.error("Failed to fetch item by barcode", {
+        autoClose: 1500,
+      });
+      
+      // Move focus to item name field on error
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+        )
+        ?.focus();
+    }
+    return;  
+
 };
 
 
