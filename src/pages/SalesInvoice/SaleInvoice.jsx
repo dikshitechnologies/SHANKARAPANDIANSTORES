@@ -1554,6 +1554,24 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
   e.preventDefault();
 
   const barcode = items[currentRowIndex].barcode?.trim();
+  //=============================Chnage 1: ITEM NAME ALREADY FILLED → NORMAL NAVIGATION=============================
+   const currentItemName = items[currentRowIndex].itemName?.trim();
+
+
+  if (currentItemName && currentItemName !== "") {
+
+    setTimeout(() => {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+        )
+        ?.focus();
+    }, 0);
+    return;
+  }
+
+
+
 
   /* =====================================================
      1️⃣ BARCODE EMPTY → NORMAL NAVIGATION
