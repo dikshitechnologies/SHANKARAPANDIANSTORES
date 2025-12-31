@@ -89,6 +89,7 @@ const PurchaseInvoice = () => {
     invoiceAmount: '',
     transType: 'PURCHASE',
     city: '',
+    groupName: '',
     isLedger: false,
   });
 
@@ -149,6 +150,7 @@ const PurchaseInvoice = () => {
   const gstNoRef = useRef(null);
   const firstRowNameRef = useRef(null);
   const addLessRef = useRef(null);
+  const groupNameRef = useRef(null);
   
   // Track if we should ignore Enter key (for edit invoice loading)
   const ignoreNextEnterRef = useRef(false);
@@ -157,6 +159,7 @@ const PurchaseInvoice = () => {
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
+  const [showGroupNamePopup, setShowGroupNamePopup] = useState(false);
   const [showBillListPopup, setShowBillListPopup] = useState(false);
   const [showItemCodePopup, setShowItemCodePopup] = useState(false);
   const [popupMode, setPopupMode] = useState(''); // 'edit' or 'delete'
@@ -364,7 +367,6 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
-  
 
   // COMPLETE NEW FORM FUNCTION
   const createNewForm = async () => {
@@ -379,6 +381,7 @@ const handleBlur = () => {
       setItemSearchTerm('');
       setFocusedField('');
       setShowSupplierPopup(false);
+      setShowGroupNamePopup(false);
       setShowBillListPopup(false);
       setShowItemCodePopup(false);
       setPopupMode('');
@@ -438,6 +441,7 @@ const handleBlur = () => {
         invoiceAmount: '',
         transType: 'PURCHASE',
         city: '',
+        groupName: '',
         isLedger: false,
       });
       
@@ -449,8 +453,8 @@ const handleBlur = () => {
       
       // Force a state update
       setTimeout(() => {
-        if (dateRef.current) {
-          dateRef.current.focus();
+        if (billNoRef.current) {
+          billNoRef.current.focus();
         }
       }, 100);
       
@@ -998,6 +1002,13 @@ const handleBlur = () => {
 
   const fetchSupplierItems = async (pageNum = 1, search = '') => {
     const url = API_ENDPOINTS.PURCHASE_INVOICE.SUPPLIER_LIST(search || '', pageNum, 20);
+    const res = await axiosInstance.get(url);
+    const data = res?.data || [];
+    return Array.isArray(data) ? data : [];
+  };
+
+  const fetchGroupNameItems = async (pageNum = 1, search = '') => {
+    const url = API_ENDPOINTS.PURCHASE_INVOICE.GROUP_NAME_LIST(search || '', pageNum, 20);
     const res = await axiosInstance.get(url);
     const data = res?.data || [];
     return Array.isArray(data) ? data : [];
@@ -2348,10 +2359,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                   ...styles.inlineInput,
                   flex: 1,
                   paddingRight: '40px',
-                  ...(focusedField === 'customerName' && styles.focusedInput)
+                  ...(focusedField === 'groupName' && styles.focusedInput)
                 }}
-                value={billDetails.customerName}
-                name="customerName"
+                value={billDetails.groupName}
+                name="groupName"
                 onChange={(e) => {
                   const value = e.target.value;
                   handleInputChange(e);
@@ -2538,6 +2549,85 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onFocus={() => setFocusedField('gstno')}
               onBlur={() => setFocusedField('')}
             />
+          </div>
+          {/* Group Name */}
+          <div style={{ ...styles.formField, gridColumn: 'span 2' }}>
+            <label style={styles.inlineLabel}>Group Name:</label>
+            <div style={{ position: 'relative', display: 'flex', flex: 1 }}>
+              <input
+                type="text"
+                ref={groupNameRef}
+                style={{
+                  ...styles.inlineInput,
+                  flex: 1,
+                  paddingRight: '40px',
+                  ...(focusedField === 'groupName' && styles.focusedInput)
+                }}
+                value={billDetails.groupName}
+                name="groupName"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleInputChange(e);
+                  
+                  if (value.length > 0) {
+                    setItemSearchTerm(value);
+                    setTimeout(() => setShowGroupNamePopup(true), 300);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === '/' || e.key === 'F2') {
+                    e.preventDefault();
+                    setItemSearchTerm(billDetails.groupName);
+                    setShowGroupNamePopup(true);
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Navigate to first row's name field in the table
+                    const firstRowNameInput = document.querySelector(
+                      `input[data-row="0"][data-field="name"]`
+                    );
+                    if (firstRowNameInput) {
+                      firstRowNameInput.focus();
+                    }
+                  }
+                }}
+                onFocus={() => setFocusedField('groupName')}
+                onBlur={() => {
+                  setFocusedField('');
+                  setTimeout(() => {
+                    if (!showGroupNamePopup) {
+                      setItemSearchTerm('');
+                    }
+                  }, 200);
+                }}
+              />
+              <button
+                type="button"
+                aria-label="Search group name"
+                title="Search group name"
+                onClick={() => setShowGroupNamePopup(true)}
+                style={{
+                  position: 'absolute',
+                  right: '4px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  height: screenSize.isMobile ? '24px' : '28px',
+                  width: screenSize.isMobile ? '24px' : '28px',
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#1B91DA',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: screenSize.isMobile ? '14px' : '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  zIndex: 1,
+                }}
+              >
+                <Icon.Search size={16} />
+              </button>
+            </div>
           </div>
 
 
@@ -3153,6 +3243,44 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           }, 500);
         }}
       />     
+      {/*groupname popup*/}
+      <PopupListSelector
+        open={showGroupNamePopup}
+        onClose={() => { 
+          setShowGroupNamePopup(false); 
+          setItemSearchTerm('');
+        }}
+        title="Select Group Name"
+        fetchItems={fetchGroupNameItems}
+        displayFieldKeys={['name']}
+        headerNames={['Name']}
+        searchFields={['name']}
+        columnWidths={{ name: '100%' }}
+        searchPlaceholder="Search group name..."
+        initialSearch={itemSearchTerm}
+        onSelect={(s) => {
+          setBillDetails(prev => ({
+            ...prev,
+            partyCode: s.code || '',
+            customerName: s.name || '',
+            city: s.city || '',
+            gstType: s.gstType || prev.gstType || 'CGST',
+            mobileNo: s.phone || prev.mobileNo || '',
+            gstno: s.gstNumber || prev.gstNumber || ''
+          }));
+
+          setShowGroupNamePopup(false);
+          setItemSearchTerm('');
+
+          // ✅ Focus back to Group Name input
+          setTimeout(() => {
+            if (groupNameRef.current) {
+              groupNameRef.current.focus();
+              groupNameRef.current.select(); // optional: selects text
+            }
+          }, 500);
+        }}
+      />
       
       {/* Item Code Selection Popup */}     
       <PopupListSelector

@@ -82,6 +82,7 @@ const lastBarcodeRowRef = useRef(null);
   const [editConfirmationOpen, setEditConfirmationOpen] = useState(false);
   const [editConfirmationData, setEditConfirmationData] = useState(null);
   const [popupSearchText, setPopupSearchText] = useState('');
+  const deleteInProgressRef = useRef(false);
 
   // Delete confirmation popup
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
@@ -161,7 +162,8 @@ const [taxList, setTaxList] = useState([]);
       tax: '', 
       sRate: '', 
       qty: '',
-      amount: '0.00'
+      amount: '0.00',
+      PrevBarcode:""
     }
   ]);
 
@@ -1549,14 +1551,123 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
   };
 
 const handleBarcodeKeyDown = async (e, currentRowIndex) => {
+
+  /* =====================================================
+     ⬆️ ARROW UP → PREVIOUS ROW BARCODE
+  ===================================================== */
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (currentRowIndex > 0) {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex - 1}"][data-field="barcode"]`
+        )
+        ?.focus();
+    }
+    return;
+  }
+
+  /* =====================================================
+     ⬇️ ARROW DOWN → NEXT ROW BARCODE
+  ===================================================== */
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (currentRowIndex < items.length - 1) {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex + 1}"][data-field="barcode"]`
+        )
+        ?.focus();
+    }
+    return;
+  }
+
+  /* =====================================================
+     ⏎ ENTER ONLY BELOW
+  ===================================================== */
   if (e.key !== "Enter") return;
 
   e.preventDefault();
+  e.stopPropagation();
 
   const barcode = items[currentRowIndex].barcode?.trim();
 
   /* =====================================================
-     1️⃣ BARCODE EMPTY → NORMAL NAVIGATION
+     🔁 STEP A: DUPLICATE BARCODE → INCREMENT QTY
+  ===================================================== */
+  const existingIndex = items.findIndex(
+    (it, idx) =>
+      idx !== currentRowIndex &&
+      it.barcode &&
+      it.barcode.trim() === barcode
+  );
+
+  if (existingIndex !== -1) {
+    const updatedItems = [...items];
+    const existingItem = updatedItems[existingIndex];
+
+    const newQty = (Number(existingItem.qty) || 0) + 1;
+    const newAmount = calculateAmount(newQty, existingItem.sRate);
+
+    updatedItems[existingIndex] = {
+      ...existingItem,
+      qty: newQty.toString(),
+      amount: newAmount
+    };
+
+    // clear scan row
+    updatedItems[currentRowIndex] = {
+      ...updatedItems[currentRowIndex],
+      barcode: '',
+      PrevBarcode: '',
+      itemCode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      qty: '',
+      amount: '0.00'
+    };
+
+    setItems(updatedItems);
+
+    // keep focus in barcode
+    setTimeout(() => {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="barcode"]`
+        )
+        ?.focus();
+    }, 50);
+
+    return;
+  }
+
+  /* =====================================================
+     🔁 STEP B: SAME BARCODE ENTER AGAIN → ITEM NAME
+  ===================================================== */
+  const prevBar = items[currentRowIndex].PrevBarcode?.trim();
+
+  if (prevBar && prevBar === barcode) {
+    setTimeout(() => {
+      document
+        .querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
+        )
+        ?.focus();
+    }, 0);
+    return;
+  }
+
+  /* =====================================================
+     1️⃣ EMPTY BARCODE → ITEM NAME
   ===================================================== */
   if (!barcode) {
     setTimeout(() => {
@@ -1568,77 +1679,78 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
     }, 0);
     return;
   }
-  
-    
-    try {
-      // Fetch item details by barcode
-      const barcodeData = await getPurchaseStockDetailsByBarcode(barcode);
-      
-      if (barcodeData) {
-        console.log("Barcode data received:", barcodeData); // Debug log
-        
-        // Update the current row with barcode data
-        const updatedItems = [...items];
-        const selectedRate = getRateByType(barcodeData);
-        const qty = Number(barcodeData.qty || 1);
-        const amount = calculateAmount(qty, selectedRate);
-        updatedItems[currentRowIndex] = {
-          ...updatedItems[currentRowIndex],
-          barcode: barcode,
-          itemCode: barcodeData.itemcode || barcode,
-          itemName: barcodeData.fItemName || '',
-          stock: (barcodeData.fstock || 0).toString(),
-          mrp: (barcodeData.mrp || 0).toString(),
-          uom: barcodeData.fUnit || '',
-          hsn: barcodeData.fHSN || '',
-          tax: (barcodeData.inTax || 0).toString(),
 
-          // ✅ RATE BASED ON TYPE
-          sRate: selectedRate.toString(),
+  /* =====================================================
+     🔍 FETCH BARCODE DATA
+  ===================================================== */
+  try {
+    const barcodeData = await getPurchaseStockDetailsByBarcode(barcode);
 
-          // ✅ QTY + AMOUNT CALCULATION
-          qty: qty.toString(),
-          amount: amount
-        };
-        
-        setItems(updatedItems);
-        
-      
-        
-        // Move focus to quantity field
-         setTimeout(() => {
-        const qtyInput = document.querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="qty"]`
-        );
-
-        if (qtyInput) {
-          qtyInput.focus();
-          qtyInput.select();
-        }
-      }, 120);
-      } else {
-       setBarcodeErrorOpen(true);
+    if (!barcodeData) {
       lastBarcodeRowRef.current = currentRowIndex;
+      setBarcodeErrorOpen(true);
 
-      }
-    } catch (err) {
-      console.error("Barcode fetch error:", err);
-       setBarcodeErrorOpen(true);
-       
-      toast.error("Failed to fetch item by barcode", {
-        autoClose: 1500,
-      });
-      
-      // Move focus to item name field on error
-      document
-        .querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="itemName"]`
-        )
-        ?.focus();
+      const updatedItems = [...items];
+      updatedItems[currentRowIndex] = {
+        ...updatedItems[currentRowIndex],
+        barcode: '',
+        PrevBarcode: '',
+        itemCode: '',
+        itemName: '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        sRate: '',
+        qty: '',
+        amount: '0.00'
+      };
+      setItems(updatedItems);
+      return;
     }
-    return;  
 
+    // ✅ VALID BARCODE
+    const updatedItems = [...items];
+    const selectedRate = getRateByType(barcodeData);
+    const qty = Number(barcodeData.qty || 1);
+    const amount = calculateAmount(qty, selectedRate);
+
+    updatedItems[currentRowIndex] = {
+      ...updatedItems[currentRowIndex],
+      barcode,
+      PrevBarcode: barcode,
+      itemCode: barcodeData.itemcode || barcode,
+      itemName: barcodeData.fItemName || '',
+      stock: String(barcodeData.fstock || 0),
+      mrp: String(barcodeData.mrp || 0),
+      uom: barcodeData.fUnit || '',
+      hsn: barcodeData.fHSN || '',
+      tax: String(barcodeData.inTax || 0),
+      sRate: selectedRate.toString(),
+      qty: qty.toString(),
+      amount
+    };
+
+    setItems(updatedItems);
+
+    // 👉 MOVE TO QTY
+    setTimeout(() => {
+      const qtyInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="qty"]`
+      );
+      qtyInput?.focus();
+      qtyInput?.select();
+    }, 120);
+
+  } catch (err) {
+    console.error("Barcode fetch error:", err);
+    lastBarcodeRowRef.current = currentRowIndex;
+    setBarcodeErrorOpen(true);
+  }
 };
+
+
 
   
 const getRateByType = (barcodeData) => {
@@ -2038,51 +2150,72 @@ const handleItemChange = (id, field, value) => {
 
 
   const handleDeleteRow = (id) => {
-    const itemToDelete = items.find(item => item.id === id);
-    const itemName = itemToDelete?.itemName || 'this item';
-    const barcode = itemToDelete?.barcode ? `(Barcode: ${itemToDelete.barcode})` : '';
-    
-    // Set the item to delete and show confirmation popup
-    setRowToDelete({ id, itemName, barcode });
-    setRowDeleteConfirmationOpen(true);
-  };
+  deleteInProgressRef.current = true; // 🔒 LOCK
+  setFocusedField('');                // 🔥 CLEAR ANY FOCUS STATE
+
+  const itemToDelete = items.find(item => item.id === id);
+  const itemName = itemToDelete?.itemName || 'this item';
+
+  setRowToDelete({ id, itemName });
+  setRowDeleteConfirmationOpen(true);
+};
+
 
   // Handle confirmed row deletion
-  const handleConfirmedRowDelete = () => {
-    if (!rowToDelete) return;
-    
-    const { id } = rowToDelete;
-    
-    if (items.length > 1) {
-      const filteredItems = items.filter(item => item.id !== id);
-      const updatedItems = filteredItems.map((item, index) => ({
+const handleConfirmedRowDelete = () => {
+  if (!rowToDelete) return;
+
+  const { id } = rowToDelete;
+
+  let updatedItems = [];
+
+  if (items.length > 1) {
+    updatedItems = items
+      .filter(item => item.id !== id)
+      .map((item, index) => ({
         ...item,
-        sNo: index + 1
+        sNo: index + 1,
+        id: index + 1 // 🔥 VERY IMPORTANT (stable ids)
       }));
-      setItems(updatedItems);
-    } else {
-      const clearedItem = {
-        id: 1,
-        sNo: 1,
-        barcode: '',
-        itemCode: '',
-        itemName: '',
-        stock: '',
-        mrp: '',
-        uom: '',
-        hsn: '',
-        tax: '',
-        sRate: '',
-        qty: '',
-        amount: '0.00'
-      };
-      setItems([clearedItem]);
-    }
-    
-    // Close popup and reset
-    setRowDeleteConfirmationOpen(false);
-    setRowToDelete(null);
-  };
+  } else {
+    updatedItems = [{
+      id: 1,
+      sNo: 1,
+      barcode: '',
+      itemCode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      qty: '',
+      amount: '0.00'
+    }];
+  }
+
+  setItems(updatedItems);
+  setRowDeleteConfirmationOpen(false);
+  setRowToDelete(null);
+  setFocusedField('');
+
+  // ✅ SINGLE, CONTROLLED FOCUS
+  requestAnimationFrame(() => {
+    const focusIndex = Math.min(
+      items.findIndex(i => i.id === id),
+      updatedItems.length - 1
+    );
+
+    const barcodeInput = document.querySelector(
+      `input[data-row="${focusIndex >= 0 ? focusIndex : 0}"][data-field="barcode"]`
+    );
+
+    barcodeInput?.focus();
+    deleteInProgressRef.current = false; // 🔓 UNLOCK
+  });
+};
+
 
   const handleClear = () => {
     setClearConfirmationOpen(true);
@@ -3402,7 +3535,11 @@ const itemsData = validItems.map(item => ({
   onKeyDown={(e) => {
     handleBarcodeKeyDown(e, index);
   }}
-  onFocus={() => setFocusedField(`barcode-${item.id}`)}
+ onFocus={() => {
+  if (deleteInProgressRef.current) return;
+  setFocusedField(`barcode-${item.id}`);
+}}
+
   onBlur={() => setFocusedField('')}
 />
 

@@ -1,55 +1,49 @@
 import React, { useState, useEffect, useRef } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
 
 const Ledger = () => {
-  // State management
+  // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('2024-06-14');
   const [toDate, setToDate] = useState('2025-11-26');
-  const [selectedParties, setSelectedParties] = useState(['ANBU 123']);
-  const [selectedCompanies, setSelectedCompanies] = useState(['Select Company']);
-  const [showPartyPopup, setShowPartyPopup] = useState(false);
-  const [showCompanyPopup, setShowCompanyPopup] = useState(false);
-  const [tempSelectedParties, setTempSelectedParties] = useState([]);
-  const [tempSelectedCompanies, setTempSelectedCompanies] = useState([]);
-  const [selectAllParties, setSelectAllParties] = useState(false);
-  const [selectAllCompanies, setSelectAllCompanies] = useState(false);
+  const [party, setParty] = useState('ANBU 123');
+  const [company, setCompany] = useState('Select Company');
   const [tableLoaded, setTableLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
-  
-  // Refs for keyboard navigation
+
+  // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
   const partyRef = useRef(null);
   const companyRef = useRef(null);
   const searchButtonRef = useRef(null);
-  const refreshButtonRef = useRef(null);
 
-  // Sample data
-  const allParties = [
-    'ANBU 123',
-    'John Doe',
-    'Jane Smith',
-    'ABC Corporation',
-    'XYZ Enterprises',
-    'Global Traders',
-    'Tech Solutions Inc.',
-    'Retail Masters',
-    'Manufacturing Hub'
-  ];
-
-  const allCompanies = [
-    'Select Company',
-    'DIKSHI DEMO',
-    'DIKSHI TECH',
-    'DIKSHIWEBSITE',
-    'SAKTHI',
-    'JUST AK THINGS',
-    'PRIVANKA',
-    'CORPORATE SOLUTIONS',
-    'BUSINESS PARTNERS'
-  ];
+  // --- DATA ---
+  const [ledgerData, setLedgerData] = useState([]);
 
   // Sample ledger data
-  const ledgerData = [
+  const sampleLedgerData = [
     {
       date: '14/06/2024',
       name: 'ANBU 123',
@@ -79,892 +73,693 @@ const Ledger = () => {
       billNo: 'BL003',
       billet: 'BT003',
       amount: '3000.00'
-    },
-    {
-      date: '25/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH004',
-      type: 'Payment',
-      crDr: 'Dr',
-      billNo: 'BL004',
-      billet: 'BT004',
-      amount: '1500.00'
-    },
-    {
-      date: '30/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH005',
-      type: 'Sales',
-      crDr: 'Cr',
-      billNo: 'BL005',
-      billet: 'BT005',
-      amount: '4500.00'
     }
   ];
 
-  // Focusable elements in order
-  const focusableElements = [
-    { ref: fromDateRef, name: 'fromDate', type: 'input' },
-    { ref: toDateRef, name: 'toDate', type: 'input' },
-    { ref: partyRef, name: 'party', type: 'button' },
-    { ref: companyRef, name: 'company', type: 'button' },
-    { ref: searchButtonRef, name: 'search', type: 'button' },
-    { ref: refreshButtonRef, name: 'refresh', type: 'button' }
+  // Sample data for dropdowns
+  const allParties = [
+    'ANBU 123',
+    'John Doe',
+    'Jane Smith',
+    'ABC Corporation',
+    'XYZ Enterprises',
+    'Global Traders'
   ];
 
-  // Initialize temp selections
-  useEffect(() => {
-    setTempSelectedParties([...selectedParties]);
-  }, [selectedParties]);
+  const allCompanies = [
+    'Select Company',
+    'DIKSHI DEMO',
+    'DIKSHI TECH',
+    'DIKSHIWEBSITE',
+    'SAKTHI',
+    'JUST AK THINGS',
+    'PRIVANKA'
+  ];
 
-  useEffect(() => {
-    setTempSelectedCompanies([...selectedCompanies]);
-  }, [selectedCompanies]);
-
-  // Keyboard navigation handler
-  const handleKeyDown = (e, currentIndex, fieldName) => {
-    const totalElements = focusableElements.length;
-    
-    switch (e.key) {
-      case 'Enter':
-        e.preventDefault();
-        if (fieldName === 'search') {
-          handleSearch();
-        } else if (fieldName === 'refresh') {
-          handleRefresh();
-        } else if (fieldName === 'party') {
-          handlePartyClick();
-        } else if (fieldName === 'company') {
-          handleCompanyClick();
-        } else {
-          // Move to next element
-          const nextIndex = (currentIndex + 1) % totalElements;
-          focusableElements[nextIndex].ref.current.focus();
-        }
-        break;
-        
-      case 'Tab':
-        if (showPartyPopup || showCompanyPopup) {
-          e.preventDefault();
-        }
-        break;
-        
-      case 'ArrowRight':
-        e.preventDefault();
-        const nextIndex = (currentIndex + 1) % totalElements;
-        focusableElements[nextIndex].ref.current.focus();
-        break;
-        
-      case 'ArrowLeft':
-        e.preventDefault();
-        const prevIndex = (currentIndex - 1 + totalElements) % totalElements;
-        focusableElements[prevIndex].ref.current.focus();
-        break;
-        
-      case 'ArrowDown':
-        if ((fieldName === 'party' && !showPartyPopup) || 
-            (fieldName === 'company' && !showCompanyPopup)) {
-          e.preventDefault();
-          if (fieldName === 'party') handlePartyClick();
-          if (fieldName === 'company') handleCompanyClick();
-        }
-        break;
-        
-      case 'Escape':
-        if (showPartyPopup) {
-          e.preventDefault();
-          handlePartyPopupClose();
-        } else if (showCompanyPopup) {
-          e.preventDefault();
-          handleCompanyPopupClose();
-        } else {
-          e.currentTarget.blur();
-        }
-        break;
-        
-      case ' ':
-        if (fieldName === 'party') {
-          e.preventDefault();
-          handlePartyClick();
-        } else if (fieldName === 'company') {
-          e.preventDefault();
-          handleCompanyClick();
-        } else if (fieldName === 'search') {
-          e.preventDefault();
-          handleSearch();
-        } else if (fieldName === 'refresh') {
-          e.preventDefault();
-          handleRefresh();
-        }
-        break;
-    }
+  // --- HANDLERS ---
+  const handleFromDateChange = (e) => {
+    setFromDate(e.target.value);
   };
 
-  // Popup keyboard navigation
-  const handlePopupKeyDown = (e, popupType) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      if (popupType === 'party') handlePartyPopupClose();
-      if (popupType === 'company') handleCompanyPopupClose();
-    }
+  const handleToDateChange = (e) => {
+    setToDate(e.target.value);
   };
 
-  // Popup button keyboard navigation
-  const handlePopupButtonKeyDown = (e, buttonType, popupType) => {
-    switch (e.key) {
-      case 'Enter':
-        e.preventDefault();
-        if (buttonType === 'ok') {
-          if (popupType === 'party') handlePartyPopupOk();
-          if (popupType === 'company') handleCompanyPopupOk();
-        } else if (buttonType === 'clear') {
-          if (popupType === 'party') handlePartyClearSelection();
-          if (popupType === 'company') handleCompanyClearSelection();
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        if (popupType === 'party') handlePartyPopupClose();
-        if (popupType === 'company') handleCompanyPopupClose();
-        break;
-    }
+  const handlePartyChange = (e) => {
+    setParty(e.target.value);
   };
 
-  // Focus management for popups
-  useEffect(() => {
-    if (showPartyPopup || showCompanyPopup) {
-      setTimeout(() => {
-        const firstItem = document.querySelector('.popup-item');
-        if (firstItem) firstItem.focus();
-      }, 100);
-    }
-  }, [showPartyPopup, showCompanyPopup]);
-
-  // Party popup handlers
-  const handlePartyClick = () => {
-    setTempSelectedParties([...selectedParties]);
-    setShowPartyPopup(true);
+  const handleCompanyChange = (e) => {
+    setCompany(e.target.value);
   };
 
-  const handlePartySelect = (party) => {
-    if (party === 'ANBU 123') {
-      if (tempSelectedParties.includes('ANBU 123')) {
-        setTempSelectedParties([]);
-        setSelectAllParties(false);
-      } else {
-        setTempSelectedParties(allParties);
-        setSelectAllParties(true);
-      }
-    } else {
-      let updatedParties;
-      if (tempSelectedParties.includes(party)) {
-        updatedParties = tempSelectedParties.filter(p => p !== party);
-        if (updatedParties.includes('ANBU 123')) {
-          updatedParties = updatedParties.filter(p => p !== 'ANBU 123');
-        }
-      } else {
-        updatedParties = [...tempSelectedParties, party];
-        const otherParties = allParties.filter(p => p !== 'ANBU 123');
-        if (otherParties.every(p => updatedParties.includes(p))) {
-          updatedParties = allParties;
-        }
-      }
-      setTempSelectedParties(updatedParties);
-      setSelectAllParties(updatedParties.length === allParties.length);
-    }
-  };
-
-  const handlePartyPopupOk = () => {
-    setSelectedParties([...tempSelectedParties]);
-    setShowPartyPopup(false);
-    setTimeout(() => partyRef.current?.focus(), 100);
-  };
-
-  const handlePartyClearSelection = () => {
-    setTempSelectedParties([]);
-    setSelectAllParties(false);
-  };
-
-  const handlePartyPopupClose = () => {
-    setShowPartyPopup(false);
-    setTimeout(() => partyRef.current?.focus(), 100);
-  };
-
-  // Company popup handlers
-  const handleCompanyClick = () => {
-    setTempSelectedCompanies([...selectedCompanies]);
-    setShowCompanyPopup(true);
-  };
-
-  const handleCompanySelect = (company) => {
-    if (company === 'Select Company') {
-      if (tempSelectedCompanies.includes('Select Company')) {
-        setTempSelectedCompanies([]);
-        setSelectAllCompanies(false);
-      } else {
-        setTempSelectedCompanies(allCompanies);
-        setSelectAllCompanies(true);
-      }
-    } else {
-      let updatedCompanies;
-      if (tempSelectedCompanies.includes(company)) {
-        updatedCompanies = tempSelectedCompanies.filter(c => c !== company);
-        if (updatedCompanies.includes('Select Company')) {
-          updatedCompanies = updatedCompanies.filter(c => c !== 'Select Company');
-        }
-      } else {
-        updatedCompanies = [...tempSelectedCompanies, company];
-        const otherCompanies = allCompanies.filter(c => c !== 'Select Company');
-        if (otherCompanies.every(c => updatedCompanies.includes(c))) {
-          updatedCompanies = allCompanies;
-        }
-      }
-      setTempSelectedCompanies(updatedCompanies);
-      setSelectAllCompanies(updatedCompanies.length === allCompanies.length);
-    }
-  };
-
-  const handleCompanyPopupOk = () => {
-    setSelectedCompanies([...tempSelectedCompanies]);
-    setShowCompanyPopup(false);
-    setTimeout(() => companyRef.current?.focus(), 100);
-  };
-
-  const handleCompanyClearSelection = () => {
-    setTempSelectedCompanies([]);
-    setSelectAllCompanies(false);
-  };
-
-  const handleCompanyPopupClose = () => {
-    setShowCompanyPopup(false);
-    setTimeout(() => companyRef.current?.focus(), 100);
-  };
-
-  // Search functionality
   const handleSearch = () => {
-    if (!fromDate || !toDate || selectedParties.length === 0 || selectedCompanies.length === 0) {
-      alert('Please fill all fields: From Date, To Date, Party, and Company');
+    if (!fromDate || !toDate || !party || company === 'Select Company') {
+      toast.warning('Please fill all fields: From Date, To Date, Party, and Company', {
+        autoClose: 2000,
+      });
       return;
     }
     
     console.log('Searching Ledger with:', {
       fromDate,
       toDate,
-      selectedParties,
-      selectedCompanies
+      party,
+      company
     });
     
-    setTableLoaded(true);
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setLedgerData(sampleLedgerData);
+      setTableLoaded(true);
+      setIsLoading(false);
+      
+      // toast.success('Ledger report loaded successfully', {
+      //   autoClose: 1500,
+      // });
+    }, 500);
   };
 
-  // Refresh functionality
   const handleRefresh = () => {
     setTableLoaded(false);
-    setSelectedParties(['ANBU 123']);
-    setSelectedCompanies(['Select Company']);
     setFromDate('2024-06-14');
     setToDate('2025-11-26');
+    setParty('ANBU 123');
+    setCompany('Select Company');
+    setLedgerData([]);
   };
 
-  // Date change handler
-  const handleDateChange = (field, value) => {
-    if (field === 'from') {
-      setFromDate(value);
-    } else {
-      setToDate(value);
+  // Handle key navigation
+  const handleKeyDown = (e, currentField) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      switch(currentField) {
+        case 'fromDate':
+          toDateRef.current?.focus();
+          break;
+        case 'toDate':
+          partyRef.current?.focus();
+          break;
+        case 'party':
+          companyRef.current?.focus();
+          break;
+        case 'company':
+          searchButtonRef.current?.focus();
+          break;
+        default:
+          break;
+      }
     }
   };
 
-  // Calculate totals for footer
-  const calculateTotal = () => {
-    if (!tableLoaded || ledgerData.length === 0) return '0.00';
-    
-    const total = ledgerData.reduce((sum, item) => {
-      const amount = parseFloat(item.amount) || 0;
-      return sum + amount;
-    }, 0);
-    
-    return total.toFixed(2);
+  // --- SCREEN SIZE DETECTION ---
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isMobile = width < 640;
+      const isTablet = width >= 640 && width < 1024;
+      const isDesktop = width >= 1024;
+      
+      setScreenSize({
+        width,
+        height,
+        isMobile,
+        isTablet,
+        isDesktop
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // --- STYLES ---
+  const TYPOGRAPHY = {
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: {
+      xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      base: screenSize.isMobile ? '13px' : screenSize.isTablet ? '14px' : '16px',
+      lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
+    },
+    fontWeight: {
+      normal: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700
+    },
+    lineHeight: {
+      tight: 1.2,
+      normal: 1.5,
+      relaxed: 1.6
+    }
   };
 
-  // Styles matching Day Book design
   const styles = {
     container: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: '#f5f5f5',
-      fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
-      overflow: 'auto'
-    },
-    
-    header: {
-      background: 'white',
-      color: '#333',
-      padding: '20px 30px',
-      borderBottom: '1px solid #ddd',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-    },
-    
-    headerTitle: {
-      fontSize: '28px',
-      fontWeight: '600',
-      marginBottom: '25px',
-      color: '#1B91DA',
-      textAlign: 'center'
-    },
-    
-    firstRow: {
-      display: 'grid',
-      gridTemplateColumns: '0.8fr 0.8fr 2fr 2fr 0.7fr 0.7fr',
-      gap: '15px',
-      marginBottom: '20px',
-      position: 'relative',
-      alignItems: 'end'
-    },
-    
-    controlGroup: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      backgroundColor: '#f5f7fa',
+      height: '100vh',
+      width: '100%',
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px'
+      margin: 0,
+      padding: 0,
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+      position: 'fixed',
     },
-    
-    controlLabel: {
-      fontSize: '14px',
+    headerSection: {
+      flex: '0 0 auto',
+      backgroundColor: 'white',
+      borderRadius: 0,
+      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
+      margin: 0,
+      marginBottom: 0,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      overflowY: 'visible',
+      maxHeight: 'none',
+    },
+    tableSection: {
+      flex: '1 1 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0,
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
+    },
+    formRow: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+    },
+    formField: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '8px' : '10px',
+    },
+    inlineLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
       color: '#333',
-      marginBottom: '0',
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px'
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
     },
-    
-    dateInputWrapper: {
-      position: 'relative',
-      width: '100%'
-    },
-    
     inlineInput: {
-      width: '100%',
-      padding: '8px 10px',
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '1px solid #ddd',
-      borderRadius: '3px',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      color: '#333',
-      minHeight: '36px',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
-      transition: 'all 0.2s ease',
-      outline: 'none'
-    },
-    
-    focusedInput: {
-      borderColor: '#1B91DA',
-      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)'
-    },
-    
-    partyInput: {
-      width: '100%',
-      padding: '8px 12px',
-      border: '1px solid #ddd',
-      borderRadius: '3px',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      color: '#333',
-      minHeight: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      boxSizing: 'border-box',
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      outline: 'none'
-    },
-    
-    companyInput: {
-      width: '100%',
-      padding: '8px 12px',
-      border: '1px solid #ddd',
-      borderRadius: '3px',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      color: '#333',
-      minHeight: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      boxSizing: 'border-box',
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      outline: 'none'
-    },
-    
-    searchButton: {
-      padding: '8px 12px',
-      background: '#1B91DA',
-      color: 'white',
-      border: 'none',
-      borderRadius: '3px',
-      fontSize: '13px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      width: '100%',
-      height: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
-      ':hover': {
-        backgroundColor: '#0c7bb8'
-      }
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
     },
-    
-    buttonContainer: {
-      display: 'flex',
-      alignItems: 'flex-end',
-      height: '100%'
+    inlineInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
-    
-    content: {
-      padding: '20px 30px',
-      minHeight: 'calc(100vh - 180px)',
-      boxSizing: 'border-box'
+    gridRow: {
+      display: 'grid',
+      gap: '8px',
+      marginBottom: 10,
     },
-    
     tableContainer: {
       backgroundColor: 'white',
-      borderRadius: '4px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      border: '1px solid #ddd',
-      height: 'calc(100vh - 250px)',
+      borderRadius: 10,
+      overflowX: 'auto',
+      overflowY: 'auto',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1px solid #e0e0e0',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginBottom: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      WebkitOverflowScrolling: 'touch',
+      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      boxSizing: 'border-box',
+      flex: 'none',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
+      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
     },
-    
-    tableWrapper: {
-      flex: 1,
-      overflow: 'auto'
-    },
-    
     table: {
-      width: '100%',
+      width: 'max-content',
+      minWidth: '100%',
       borderCollapse: 'collapse',
-      minWidth: '1200px'
+      tableLayout: 'fixed',
     },
-    
-    tableHeader: {
+    th: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
       backgroundColor: '#1B91DA',
       color: 'white',
-      padding: '12px 15px',
-      textAlign: 'left',
-      fontWeight: '600',
-      fontSize: '14px',
-      borderRight: '1px solid #0c7bb8',
+      padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
+      textAlign: 'center',
+      letterSpacing: '0.5px',
       position: 'sticky',
       top: 0,
-      zIndex: 10
+      zIndex: 10,
+      border: '1px solid white',
+      borderBottom: '2px solid white',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      whiteSpace: 'nowrap',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
     },
-    
-    tableCell: {
-      padding: '12px 15px',
-      borderBottom: '1px solid #ddd',
-      fontSize: '14px',
-      color: '#333',
-      fontWeight: '400'
-    },
-    
-    tableRow: {
-      ':hover': {
-        backgroundColor: '#f8f9fa'
-      }
-    },
-    
-    emptyState: {
+    td: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: '8px 6px',
       textAlign: 'center',
-      padding: '40px 20px',
-      color: '#666',
-      fontSize: '16px',
-      background: '#f8f9fa',
-      borderRadius: '4px',
-      margin: '20px',
-      border: '2px dashed #ddd',
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center'
+      border: '1px solid #ccc',
+      color: '#333',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
     },
-    
-    emptyStateIcon: {
-      fontSize: '40px',
-      marginBottom: '15px',
-      color: '#1B91DA',
-      opacity: 0.5
-    },
-    
-    // Footer with balances
-    footer: {
-      padding: '20px 30px',
-      backgroundColor: 'white',
-      borderTop: '1px solid #ddd',
+    footerSection: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flex: '0 0 auto',
       display: 'flex',
+      flexDirection: screenSize.isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      position: 'sticky',
-      bottom: 0,
-      zIndex: 90,
-      boxShadow: '0 -2px 4px rgba(0,0,0,0.1)'
+      padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
+      backgroundColor: 'white',
+      borderTop: '2px solid #e0e0e0',
+      boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
+      flexWrap: 'wrap',
+      flexShrink: 0,
+      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
+      width: '100%',
+      boxSizing: 'border-box',
+      zIndex: 100,
     },
-    
-    balanceBox: {
-      background: '#f8f9fa',
-      padding: '15px 25px',
-      borderRadius: '3px',
-      border: '1px solid #ddd',
-      minWidth: '200px',
+    balanceContainer: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.sm : screenSize.isTablet ? TYPOGRAPHY.fontSize.base : TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#1B91DA',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '8px 12px' : '10px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '15px' : screenSize.isTablet ? '25px' : '35px',
+      minWidth: 'max-content',
+      justifyContent: 'center',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      order: screenSize.isMobile ? 1 : 0,
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      backgroundColor: '#f0f8ff',
+    },
+    balanceItem: {
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center'
+      alignItems: 'center',
+      gap: '2px',
     },
-    
     balanceLabel: {
-      fontSize: '14px',
-      color: '#666',
-      marginBottom: '5px',
-      fontWeight: '600',
+      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      color: '#555',
       textTransform: 'uppercase',
-      letterSpacing: '0.5px'
+      letterSpacing: '0.5px',
     },
-    
     balanceValue: {
-      fontSize: '22px',
-      fontWeight: '700',
-      color: '#1B91DA'
+      fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      color: '#1976d2',
+      fontWeight: 'bold',
     },
-    
-    // Popup styles
-    popupOverlay: {
+    searchButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
+      color: 'white',
+      border: 'none',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 4px 12px rgba(27, 145, 218, 0.4)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    refreshButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: '#1B91DA',
+        boxShadow: '0 4px 10px rgba(27, 145, 218, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    buttonGlow: {
+      position: 'absolute',
+      top: '0',
+      left: '-100%',
+      width: '100%',
+      height: '100%',
+      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+      transition: 'left 0.7s ease'
+    },
+    loadingOverlay: {
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000
-    },
-    
-    popupContent: {
-      backgroundColor: 'white',
-      borderRadius: '4px',
-      width: '90%',
-      maxWidth: '500px',
-      maxHeight: '80vh',
-      overflow: 'hidden',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-      border: '1px solid #ddd'
-    },
-    
-    popupHeader: {
-      background: '#1B91DA',
-      color: 'white',
-      padding: '15px 20px',
-      margin: 0,
-      fontSize: '16px',
-      fontWeight: '600',
-      borderBottom: '1px solid #0c7bb8',
-      position: 'relative'
-    },
-    
-    closeButton: {
-      position: 'absolute',
-      right: '15px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      background: 'rgba(255,255,255,0.2)',
-      border: 'none',
-      color: 'white',
-      fontSize: '20px',
-      cursor: 'pointer',
-      width: '28px',
-      height: '28px',
+      background: 'rgba(255, 255, 255, 0.8)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: '3px',
-      outline: 'none',
-      ':hover': {
-        background: 'rgba(255,255,255,0.3)'
-      }
+      zIndex: 1000,
+      fontFamily: TYPOGRAPHY.fontFamily,
     },
-    
-    popupList: {
-      padding: '15px 20px',
-      maxHeight: '350px',
-      overflowY: 'auto'
-    },
-    
-    popupItem: {
-      display: 'flex',
-      alignItems: 'center',
-      padding: '10px 12px',
-      margin: '4px 0',
-      borderRadius: '3px',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      border: '1px solid transparent',
-      outline: 'none',
-      ':hover': {
-        backgroundColor: '#f8f9fa'
-      }
-    },
-    
-    selectedPopupItem: {
-      display: 'flex',
-      alignItems: 'center',
-      padding: '10px 12px',
-      margin: '4px 0',
-      borderRadius: '3px',
-      cursor: 'pointer',
-      backgroundColor: '#e8f0fe',
-      borderLeft: '3px solid #1B91DA',
-      outline: 'none'
-    },
-    
-    popupCheckbox: {
-      width: '18px',
-      height: '18px',
-      border: '2px solid #ddd',
-      borderRadius: '3px',
-      marginRight: '10px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      backgroundColor: 'white'
-    },
-    
-    selectedPopupCheckbox: {
-      width: '18px',
-      height: '18px',
-      border: '2px solid #1B91DA',
-      borderRadius: '3px',
-      marginRight: '10px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      backgroundColor: '#1B91DA'
-    },
-    
-    checkmark: {
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: '12px'
-    },
-    
-    popupText: {
-      color: '#333',
-      fontSize: '14px',
-      fontWeight: '400'
-    },
-    
-    popupActions: {
-      borderTop: '1px solid #ddd',
-      padding: '15px 20px',
-      backgroundColor: '#f8f9fa'
-    },
-    
-    popupButtons: {
-      display: 'flex',
-      justifyContent: 'flex-end',
-      gap: '10px'
-    },
-    
-    popupButton: {
-      padding: '8px 16px',
-      border: 'none',
-      borderRadius: '3px',
-      fontSize: '14px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      minWidth: '80px',
-      outline: 'none'
-    },
-    
-    okButton: {
-      background: '#1B91DA',
-      color: 'white',
-      ':hover': {
-        backgroundColor: '#0c7bb8'
-      }
-    },
-    
-    clearButton: {
+    loadingBox: {
       background: 'white',
-      color: '#666',
-      border: '1px solid #ddd',
-      ':hover': {
-        backgroundColor: '#f8f9fa'
-      }
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      textAlign: 'center',
     },
-
-    refreshButton: {
-      padding: '8px 12px',
-      background: 'white',
-      color: '#333',
+    selectInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       border: '1px solid #ddd',
-      borderRadius: '3px',
-      fontSize: '13px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
       width: '100%',
-      height: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+    },
+    selectInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
-      ':hover': {
-        backgroundColor: '#f8f9fa',
-        borderColor: '#1B91DA'
-      }
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+  };
+
+  // Get grid columns based on screen size
+  const getGridColumns = () => {
+    if (screenSize.isMobile) {
+      return 'repeat(2, 1fr)';
+    } else if (screenSize.isTablet) {
+      return 'repeat(3, 1fr)';
+    } else {
+      return 'repeat(4, 1fr)';
     }
   };
 
-  return (
+  // Calculate opening and closing balances
+  const openingBalance = 0.00;
+  const closingBalance = 0.00;
+
+ return (
     <div style={styles.container}>
-      {/* HEADER */}
-      <div style={styles.header}>
-        <h1 style={styles.headerTitle}>Ledger Report</h1>
-        
-        {/* FIRST ROW: From Date, To Date, Party, Company, Search, Refresh */}
-        <div style={styles.firstRow}>
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div style={styles.loadingOverlay}>
+          <div style={styles.loadingBox}>
+            <div>Loading Ledger Report...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Header Section - ALL ON ONE LINE */}
+      <div style={styles.headerSection}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
+          flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
+          width: '100%',
+        }}>
           {/* From Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>From Date</div>
-            <div style={styles.dateInputWrapper}>
-              <input
-                type="date"
-                style={{
-                  ...styles.inlineInput,
-                  ...(focusedField === 'fromDate' && styles.focusedInput)
-                }}
-                ref={fromDateRef}
-                value={fromDate}
-                onChange={(e) => handleDateChange('from', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, 0, 'fromDate')}
-                onFocus={() => setFocusedField('fromDate')}
-                onBlur={() => setFocusedField('')}
-              />
-            </div>
-          </div>
-          
-          {/* To Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>To Date</div>
-            <div style={styles.dateInputWrapper}>
-              <input
-                type="date"
-                style={{
-                  ...styles.inlineInput,
-                  ...(focusedField === 'toDate' && styles.focusedInput)
-                }}
-                ref={toDateRef}
-                value={toDate}
-                onChange={(e) => handleDateChange('to', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, 1, 'toDate')}
-                onFocus={() => setFocusedField('toDate')}
-                onBlur={() => setFocusedField('')}
-              />
-            </div>
-          </div>
-          
-          {/* Party */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>Party</div>
-            <button
-              ref={partyRef}
-              style={{
-                ...styles.partyInput,
-                ...(focusedField === 'party' && styles.focusedInput)
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>From Date:</label>
+            <input
+              type="date"
+              data-header="fromDate"
+              style={
+                focusedField === 'fromDate'
+                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+              }
+              value={fromDate}
+              onChange={handleFromDateChange}
+              ref={fromDateRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'fromDate');
               }}
-              onClick={handlePartyClick}
-              onKeyDown={(e) => handleKeyDown(e, 2, 'party')}
+              onFocus={() => setFocusedField('fromDate')}
+              onBlur={() => setFocusedField('')}
+            />
+          </div>
+
+          {/* To Date */}
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>To Date:</label>
+            <input
+              type="date"
+              data-header="toDate"
+              style={
+                focusedField === 'toDate'
+                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+              }
+              value={toDate}
+              onChange={handleToDateChange}
+              ref={toDateRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'toDate');
+              }}
+              onFocus={() => setFocusedField('toDate')}
+              onBlur={() => setFocusedField('')}
+            />
+          </div>
+
+          {/* Party */}
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>Party:</label>
+            <select
+              data-header="party"
+              style={
+                focusedField === 'party'
+                  ? styles.selectInputFocused
+                  : styles.selectInput
+              }
+              value={party}
+              onChange={handlePartyChange}
+              ref={partyRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'party');
+              }}
               onFocus={() => setFocusedField('party')}
               onBlur={() => setFocusedField('')}
             >
-              {selectedParties.length > 0 
-                ? selectedParties.join(', ') 
-                : 'Select Party'}
-              <span style={{color: '#666', fontSize: '10px'}}>▼</span>
-            </button>
+              {allParties.map((partyItem, index) => (
+                <option key={index} value={partyItem}>
+                  {partyItem}
+                </option>
+              ))}
+            </select>
           </div>
-          
+
           {/* Company */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>Company</div>
-            <button
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>Company:</label>
+            <select
+              data-header="company"
+              style={
+                focusedField === 'company'
+                  ? styles.selectInputFocused
+                  : styles.selectInput
+              }
+              value={company}
+              onChange={handleCompanyChange}
               ref={companyRef}
-              style={{
-                ...styles.companyInput,
-                ...(focusedField === 'company' && styles.focusedInput)
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'company');
               }}
-              onClick={handleCompanyClick}
-              onKeyDown={(e) => handleKeyDown(e, 3, 'company')}
               onFocus={() => setFocusedField('company')}
               onBlur={() => setFocusedField('')}
             >
-              {selectedCompanies.length > 0 
-                ? selectedCompanies.join(', ') 
-                : 'Select Company'}
-              <span style={{color: '#666', fontSize: '10px'}}>▼</span>
-            </button>
+              {allCompanies.map((companyItem, index) => (
+                <option key={index} value={companyItem}>
+                  {companyItem}
+                </option>
+              ))}
+            </select>
           </div>
-          
+
           {/* Search Button */}
-          <div style={styles.buttonContainer}>
-            <button 
-              ref={searchButtonRef}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+            marginLeft: screenSize.isMobile ? '0' : 'auto',
+          }}>
+            <button
               style={{
                 ...styles.searchButton,
-                ...(focusedField === 'search' && { outline: '2px solid #1B91DA', outlineOffset: '2px' })
+                width: screenSize.isMobile ? '100%' : 'auto',
+                marginBottom: screenSize.isMobile ? '8px' : '0',
               }}
               onClick={handleSearch}
-              onKeyDown={(e) => handleKeyDown(e, 4, 'search')}
-              onFocus={() => setFocusedField('search')}
-              onBlur={() => setFocusedField('')}
+              onMouseEnter={() => setHoveredButton(true)}
+              onMouseLeave={() => setHoveredButton(false)}
+              ref={searchButtonRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
             >
               Search
+              {hoveredButton && <div style={styles.buttonGlow}></div>}
             </button>
           </div>
 
           {/* Refresh Button */}
-          <div style={styles.buttonContainer}>
-            <button 
-              ref={refreshButtonRef}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}>
+            <button
               style={{
                 ...styles.refreshButton,
-                ...(focusedField === 'refresh' && { outline: '2px solid #1B91DA', outlineOffset: '2px' })
+                width: screenSize.isMobile ? '100%' : 'auto',
               }}
               onClick={handleRefresh}
-              onKeyDown={(e) => handleKeyDown(e, 5, 'refresh')}
-              onFocus={() => setFocusedField('refresh')}
-              onBlur={() => setFocusedField('')}
             >
               Refresh
             </button>
@@ -972,209 +767,82 @@ const Ledger = () => {
         </div>
       </div>
 
-      {/* TABLE CONTENT */}
-      <div style={styles.content}>
+      {/* Table Section */}
+      <div style={styles.tableSection}>
         <div style={styles.tableContainer}>
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.tableHeader}>Date</th>
-                  <th style={styles.tableHeader}>Name</th>
-                  <th style={styles.tableHeader}>Voucher No</th>
-                  <th style={styles.tableHeader}>Type</th>
-                  <th style={styles.tableHeader}>Cr/Dr</th>
-                  <th style={styles.tableHeader}>Bill No</th>
-                  <th style={styles.tableHeader}>Billet</th>
-                  <th style={{...styles.tableHeader, borderRight: 'none'}}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(tableLoaded ? ledgerData : []).map((row, index) => (
-                  <tr key={index} style={styles.tableRow}>
-                    <td style={styles.tableCell}>{row.date}</td>
-                    <td style={styles.tableCell}>{row.name}</td>
-                    <td style={styles.tableCell}>{row.voucherNo}</td>
-                    <td style={styles.tableCell}>{row.type}</td>
-                    <td style={styles.tableCell}>{row.crDr}</td>
-                    <td style={styles.tableCell}>{row.billNo}</td>
-                    <td style={styles.tableCell}>{row.billet}</td>
-                    <td style={{...styles.tableCell, borderRight: 'none'}}>{row.amount}</td>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Date</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Name</th>
+                <th style={styles.th}>Voucher No</th>
+                <th style={styles.th}>Type</th>
+                <th style={styles.th}>Cr/Dr</th>
+                <th style={styles.th}>Bill No</th>
+                <th style={styles.th}>Billet</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableLoaded ? (
+                ledgerData.length > 0 ? (
+                  ledgerData.map((row, index) => (
+                    <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                      <td style={styles.td}>{row.date}</td>
+                      <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px' }}>{row.name}</td>
+                      <td style={styles.td}>{row.voucherNo}</td>
+                      <td style={styles.td}>{row.type}</td>
+                      <td style={styles.td}>{row.crDr}</td>
+                      <td style={styles.td}>{row.billNo}</td>
+                      <td style={styles.td}>{row.billet}</td>
+                      <td style={{ ...styles.td, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'right', fontWeight: 'bold', color: '#1565c0' }}>
+                        ₹{parseFloat(row.amount || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      No records found
+                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {tableLoaded && ledgerData.length === 0 && (
-              <div style={styles.emptyState}>
-                <div style={styles.emptyStateIcon}>📊</div>
-                No records found
-              </div>
-            )}
-            
-            {!tableLoaded && (
-              <div style={styles.emptyState}>
-                {/* <div style={styles.emptyStateIcon}>🔍</div> */}
-            
-              </div>
-            )}
-          </div>
+                )
+              ) : (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    Enter search criteria and click "Search" to view ledger entries
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* FOOTER WITH BALANCES */}
-      <div style={styles.footer}>
-        <div style={styles.balanceBox}>
-          <div style={styles.balanceLabel}>Opening Balance</div>
-          <div style={styles.balanceValue}>0.00</div>
-        </div>
-        <div style={styles.balanceBox}>
-          <div style={styles.balanceLabel}>Closing Balance</div>
-          <div style={styles.balanceValue}>{calculateTotal()}</div>
+            {/* Footer Section with Balances - CENTERED */}
+      <div style={styles.footerSection}>
+        <div style={{
+          ...styles.balanceContainer,
+          justifyContent: 'center',
+          width: '100%',
+        }}>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Opening Balance</span>
+            <span style={styles.balanceValue}>
+              ₹{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Closing Balance</span>
+            <span style={styles.balanceValue}>
+              ₹{closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
         </div>
       </div>
-
-      {/* PARTY POPUP */}
-      {showPartyPopup && (
-        <div style={styles.popupOverlay} onClick={handlePartyPopupClose}>
-          <div 
-            style={styles.popupContent} 
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => handlePopupKeyDown(e, 'party')}
-          >
-            <div style={styles.popupHeader}>
-              Select Party
-              <button 
-                style={styles.closeButton}
-                onClick={handlePartyPopupClose}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') handlePartyPopupClose();
-                }}
-              >
-                ×
-              </button>
-            </div>
-            
-            <div style={styles.popupList}>
-              {allParties.map((party) => {
-                const isSelected = tempSelectedParties.includes(party);
-                return (
-                  <div 
-                    key={party}
-                    className="popup-item"
-                    tabIndex="0"
-                    style={isSelected ? styles.selectedPopupItem : styles.popupItem}
-                    onClick={() => handlePartySelect(party)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handlePartySelect(party);
-                      }
-                    }}
-                  >
-                    <div style={isSelected ? styles.selectedPopupCheckbox : styles.popupCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
-                    </div>
-                    <span style={styles.popupText}>{party}</span>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div style={styles.popupActions}>
-              <div style={styles.popupButtons}>
-                <button 
-                  className="popup-button clear"
-                  style={{...styles.popupButton, ...styles.clearButton}}
-                  onClick={handlePartyClearSelection}
-                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'clear', 'party')}
-                >
-                  Clear
-                </button>
-                <button 
-                  className="popup-button ok"
-                  style={{...styles.popupButton, ...styles.okButton}}
-                  onClick={handlePartyPopupOk}
-                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'ok', 'party')}
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* COMPANY POPUP */}
-      {showCompanyPopup && (
-        <div style={styles.popupOverlay} onClick={handleCompanyPopupClose}>
-          <div 
-            style={styles.popupContent} 
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => handlePopupKeyDown(e, 'company')}
-          >
-            <div style={styles.popupHeader}>
-              Select Company
-              <button 
-                style={styles.closeButton}
-                onClick={handleCompanyPopupClose}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') handleCompanyPopupClose();
-                }}
-              >
-                ×
-              </button>
-            </div>
-            
-            <div style={styles.popupList}>
-              {allCompanies.map((company) => {
-                const isSelected = tempSelectedCompanies.includes(company);
-                return (
-                  <div 
-                    key={company}
-                    className="popup-item"
-                    tabIndex="0"
-                    style={isSelected ? styles.selectedPopupItem : styles.popupItem}
-                    onClick={() => handleCompanySelect(company)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleCompanySelect(company);
-                      }
-                    }}
-                  >
-                    <div style={isSelected ? styles.selectedPopupCheckbox : styles.popupCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
-                    </div>
-                    <span style={styles.popupText}>{company}</span>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div style={styles.popupActions}>
-              <div style={styles.popupButtons}>
-                <button 
-                  className="popup-button clear"
-                  style={{...styles.popupButton, ...styles.clearButton}}
-                  onClick={handleCompanyClearSelection}
-                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'clear', 'company')}
-                >
-                  Clear
-                </button>
-                <button 
-                  className="popup-button ok"
-                  style={{...styles.popupButton, ...styles.okButton}}
-                  onClick={handleCompanyPopupOk}
-                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'ok', 'company')}
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

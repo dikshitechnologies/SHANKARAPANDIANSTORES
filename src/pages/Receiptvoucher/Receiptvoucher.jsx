@@ -641,7 +641,7 @@ const ReceiptVoucher = () => {
                 cashBank: '',
                 cashBankCode: '',
                 crDr: 'CR',
-                type: 'CASH',
+                type: '',
                 chqNo: '',
                 chqDt: '',
                 narration: '',
@@ -667,7 +667,9 @@ const ReceiptVoucher = () => {
     if (fieldType === 'cashBank' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
       if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
         setTimeout(() => {
-          openCashBankPopup(paymentItems[rowIndex].id, rowIndex);
+          setCashBankSearchTerm('');
+          setAccountPopupContext({ itemId: receiptItems[rowIndex].id, field: 'cashBank', rowIndex });
+          setAccountPopupOpen(true);
         }, 100);
       }
     }
@@ -2707,72 +2709,47 @@ const ReceiptVoucher = () => {
                       <option value="UPI">UPI</option>
                     </select>
                   </td>
-                 <td style={styles.td}>
-  <input
-    id={`receipt_${item.id}_chqNo`}
-    type="text"
-    value={item.chqNo}
-    onChange={(e) => {
-      // Allow only numbers
-      const value = e.target.value.replace(/[^0-9]/g, '');
-      handleReceiptItemChange(item.id, 'chqNo', value);
-    }}
-    onKeyDown={(e) => {
-      // Prevent non-numeric keys (except navigation keys)
-      if (
-        !/^[0-9]$/.test(e.key) &&
-        ![
-          'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
-          'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-          'Home', 'End'
-        ].includes(e.key)
-      ) {
-        e.preventDefault();
-      }
-      handleReceiptFieldKeyDown(e, index, 'chqNo');
-    }}
-    disabled={item.type !== 'CHQ'}
-    style={{
-      ...styles.editableInput,
-      ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
-    }}
-    onFocus={(e) => {
-      if (item.type === 'CHQ') {
-        e.target.style.border = '2px solid #1B91DA';
-      }
-    }}
-    onBlur={(e) => (e.target.style.border = 'none')}
-    // Add input mode for mobile keyboards
-    inputMode="numeric"
-    pattern="[0-9]*"
-  />
-</td>
                   <td style={styles.td}>
-  <input
-    id={`receipt_${item.id}_chqDt`}
-    type="date"
-    placeholder=""
-    value={item.chqDt || new Date().toISOString().substring(0, 10)}
-    onChange={(e) => handleReceiptItemChange(item.id, 'chqDt', e.target.value)}
-    onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqDt')}
-    onFocus={(e) => {
-      if (item.type === 'CHQ') {
-        e.target.style.border = '2px solid #1B91DA';
-        // If empty, set current date when focused
-        if (!item.chqDt) {
-          const currentDate = new Date().toISOString().substring(0, 10);
-          handleReceiptItemChange(item.id, 'chqDt', currentDate);
-        }
-      }
-    }}
-    onBlur={(e) => (e.target.style.border = 'none')}
-    disabled={item.type !== 'CHQ'}
-    style={{
-      ...styles.editableInput,
-      ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
-    }}
-  />
-</td>
+                    <input
+                      id={`receipt_${item.id}_chqNo`}
+                      type="text"
+                      value={item.chqNo}
+                      onChange={(e) => handleReceiptItemChange(item.id, 'chqNo', e.target.value)}
+                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqNo')}
+                      disabled={item.type !== 'CHQ'}
+                      style={{
+                        ...styles.editableInput,
+                        ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
+                      }}
+                      onFocus={(e) => {
+                        if (item.type === 'CHQ') {
+                          e.target.style.border = '2px solid #1B91DA';
+                        }
+                      }}
+                      onBlur={(e) => (e.target.style.border = 'none')}
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      id={`receipt_${item.id}_chqDt`}
+                      type="date"
+                      placeholder=""
+                      value={item.chqDt}
+                      onChange={(e) => handleReceiptItemChange(item.id, 'chqDt', e.target.value)}
+                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqDt')}
+                      disabled={item.type !== 'CHQ'}
+                      style={{
+                        ...styles.editableInput,
+                        ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
+                      }}
+                      onFocus={(e) => {
+                        if (item.type === 'CHQ') {
+                          e.target.style.border = '2px solid #1B91DA';
+                        }
+                      }}
+                      onBlur={(e) => (e.target.style.border = 'none')}
+                    />
+                  </td>
                   <td style={{...styles.td, minWidth: '200px', width: '200px'}}>
                     <input
                       id={`receipt_${item.id}_narration`}
