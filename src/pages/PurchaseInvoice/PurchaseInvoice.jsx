@@ -777,7 +777,7 @@ const handleBlur = () => {
   };
 
   const handleItemCodeSelect = (itemId, searchTerm = '') => {
-    console.log('Opening item code popup for row:', itemId, 'with search:', searchTerm);
+    // console.log('Opening item code popup for row:', itemId, 'with search:', searchTerm);
     setSelectedRowId(itemId);
     setItemSearchTerm(searchTerm || ''); // Ensure we set empty string if no search term
     setShowItemCodePopup(true);
@@ -883,6 +883,162 @@ const handleBlur = () => {
       setItemSearchTerm('');
     }
   };
+
+const handleGroupItemCodeSelection = async (selectedItem) => {
+  if (!selectedItem) {
+    console.log('No item selected');
+    return;
+  }
+  
+  setShowGroupNamePopup(false);
+  
+  try {
+    const groupCode = selectedItem.fparent || '';
+    
+    console.log('Extracted group code:', groupCode);
+    
+    if (!groupCode) {
+      showAlertConfirmation('No group code found in selected item', null, 'warning');
+      return;
+    }
+    
+    // Build the API URL
+    const apiUrl = API_ENDPOINTS.PURCHASE_INVOICE.GET_GROUPITEMS_BY_GROUP(groupCode);
+    
+    // Fetch items for the selected group
+    const response = await axiosInstance.get(apiUrl);
+    const itemsArray = response?.data || [];
+    
+    if (!Array.isArray(itemsArray) || itemsArray.length === 0) {
+      showAlertConfirmation('No items found in this group', null, 'warning');
+      return;
+    }
+    
+    // Get current items and filter out COMPLETELY empty rows
+    const currentItems = items.filter(item => {
+      // Check if row has any meaningful data
+      const hasData = 
+        (item.name && item.name.trim() !== '') ||
+        (item.itemcode && item.itemcode.trim() !== '') ||
+        (item.barcode && item.barcode.trim() !== '') ||
+        (parseFloat(item.qty) > 0) ||
+        (parseFloat(item.prate) > 0);
+      
+      return hasData;
+    });
+    
+    // If ALL rows are empty, we'll start fresh
+    const isEmptyTable = currentItems.length === 0;
+    
+    // Find the highest ID
+    const maxId = currentItems.length > 0 
+      ? Math.max(...currentItems.map(item => item.id))
+      : 0;
+    
+    // Format new items
+    const formattedItems = itemsArray.map((item, index) => {
+      const qty = 1; // Default quantity
+      const prate = parseFloat(item.previousRate) || 0;
+      
+      return {
+        id: maxId + index + 1,
+        barcode: item.prefix || item.itemCode || '',
+        itemcode: item.itemCode || '',
+        name: item.itemName || '',
+        stock: item.stock || 0,
+        intax: item.tax || '',
+        uom: item.units || '',
+        hsn: item.hsn || '',
+        preRT: prate.toString(),
+        prate: prate.toString(),
+        // Add other fields with defaults
+        sub: '',
+        mrp: '',
+        tax: '',
+        rate: '',
+        qty: qty.toString(),
+        ovrwt: '',
+        avgwt: '',
+        outtax: '',
+        acost: '',
+        sudo: '',
+        profitPercent: '',
+        sRate: '',
+        asRate: '',
+        letProfPer: '',
+        ntCost: '',
+        wsPercent: '',
+        wsRate: '',
+        amt: '',
+        min: '',
+        max: ''
+      };
+    });
+    
+    // If table was empty, replace with new items
+    // Otherwise, append to existing valid items
+    const mergedItems = isEmptyTable 
+      ? formattedItems 
+      : [...currentItems, ...formattedItems];
+    
+    console.log('Table was empty:', isEmptyTable);
+    console.log('Merged items count:', mergedItems.length);
+    
+    // Set the merged items
+    setItems(mergedItems);
+    
+    // Update the group name in the header
+    setBillDetails(prev => ({
+      ...prev,
+      groupName: selectedItem.fItemName || selectedItem.itemName || selectedItem.name || ''
+    }));
+    
+    // // Show appropriate message
+    // if (isEmptyTable) {
+    //   showAlertConfirmation(
+    //     `Loaded ${formattedItems.length} items from group`,
+    //     null,
+    //     'success'
+    //   );
+    // } else {
+    //   showAlertConfirmation(
+    //     `Added ${formattedItems.length} items from group (Total: ${mergedItems.length})`,
+    //     null,
+    //     'success'
+    //   );
+    // }
+    
+    // Focus logic
+    setTimeout(() => {
+      if (isEmptyTable) {
+        // Focus on first item if table was empty
+        const nameInput = document.querySelector(
+          `input[data-row="0"][data-field="name"]`
+        );
+        if (nameInput) nameInput.focus();
+      } else {
+        // Focus on first new item if appended
+        const firstNewRowIndex = currentItems.length;
+        const nameInput = document.querySelector(
+          `input[data-row="${firstNewRowIndex}"][data-field="name"]`
+        );
+        if (nameInput) nameInput.focus();
+      }
+    }, 100);
+    
+  } catch (error) {
+    console.error('Error fetching group items:', error);
+    console.error('Error details:', error.response?.data);
+    
+    showAlertConfirmation(
+      `Failed to load group items: ${error.message}`,
+      null,
+      'danger'
+    );
+  } finally {
+    setItemSearchTerm('');
+  }
+};
 
   // Delete purchase bill
   const deletePurchaseBill = async (voucherNo) => {
@@ -1007,12 +1163,33 @@ const handleBlur = () => {
     return Array.isArray(data) ? data : [];
   };
 
-  const fetchGroupNameItems = async (pageNum = 1, search = '') => {
-    const url = API_ENDPOINTS.PURCHASE_INVOICE.GROUP_NAME_LIST(search || '', pageNum, 20);
+const fetchGroupNameItems = async (pageNum = 1, search = '') => {
+  try {
+    const url = API_ENDPOINTS.PURCHASE_INVOICE.GET_GROUP_LIST(search || '', pageNum, 20);
+    // console.log('Fetching group list from URL:', url);
     const res = await axiosInstance.get(url);
-    const data = res?.data || [];
-    return Array.isArray(data) ? data : [];
-  };
+    const responseData = res?.data || {};
+    
+    // console.log('Group list raw response:', responseData);
+    
+    // Extract data array from the response
+    const data = responseData.data || [];
+    
+    // Map to ensure we have the right field names
+    const mappedData = Array.isArray(data) ? data.map(item => ({
+      id: item.fItemcode || item.id,
+      fItemcode: item.fItemcode || '',
+      fItemName: item.fItemName || item.name || '',
+      fparent: item.fparent || ''
+    })) : [];
+    
+    // console.log('Mapped group list:', mappedData);
+    return mappedData;
+  } catch (err) {
+    // console.error('Error fetching group list:', err);
+    return [];
+  }
+};
 
   // Handle Enter Key Navigation and Arrow Keys for Header Fields
   const handleKeyDown = (e, nextRef, fieldName = '') => {
@@ -2359,10 +2536,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                   ...styles.inlineInput,
                   flex: 1,
                   paddingRight: '40px',
-                  ...(focusedField === 'groupName' && styles.focusedInput)
+                  ...(focusedField === 'customerName' && styles.focusedInput)
                 }}
-                value={billDetails.groupName}
-                name="groupName"
+                value={billDetails.customerName}
+                name="customerName"
                 onChange={(e) => {
                   const value = e.target.value;
                   handleInputChange(e);
@@ -2379,15 +2556,23 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     setShowSupplierPopup(true);
                   } else if (e.key === 'Enter') {
                     e.preventDefault();
-                    // Navigate to first row's name field in the table
-                    const firstRowNameInput = document.querySelector(
-                      `input[data-row="0"][data-field="name"]`
-                    );
-                    if (firstRowNameInput) {
-                      firstRowNameInput.focus();
-                    }
+                    // Navigate to group field
+                    if(groupNameRef.current){
+                      groupNameRef.current.focus();
+                    } 
+                  }  else if (e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  // Navigate to group field
+                  if (groupNameRef && groupNameRef.current) {
+                    groupNameRef.current.focus();
                   }
-                }}
+                } else if (e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  // Navigate to GST No field (previous field)
+                  if (gstTypeRef && gstTypeRef.current) {
+                    gstTypeRef.current.focus();
+                  }
+              }}}
                 onFocus={() => setFocusedField('customerName')}
                 onBlur={() => {
                   setFocusedField('');
@@ -3243,51 +3428,40 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           }, 500);
         }}
       />     
-      {/*groupname popup*/}
-      <PopupListSelector
-        open={showGroupNamePopup}
-        onClose={() => { 
-          setShowGroupNamePopup(false); 
-          setItemSearchTerm('');
-        }}
-        title="Select Group Name"
-        fetchItems={fetchGroupNameItems}
-        displayFieldKeys={['name']}
-        headerNames={['Name']}
-        searchFields={['name']}
-        columnWidths={{ name: '100%' }}
-        searchPlaceholder="Search group name..."
-        initialSearch={itemSearchTerm}
-        onSelect={(s) => {
-          setBillDetails(prev => ({
-            ...prev,
-            partyCode: s.code || '',
-            customerName: s.name || '',
-            city: s.city || '',
-            gstType: s.gstType || prev.gstType || 'CGST',
-            mobileNo: s.phone || prev.mobileNo || '',
-            gstno: s.gstNumber || prev.gstNumber || ''
-          }));
+      
+     {/* Group Name Popup */}
+<PopupListSelector
+  open={showGroupNamePopup}
+  onClose={() => { 
+    setShowGroupNamePopup(false); 
+    setItemSearchTerm('');
+  }}
+  title="Select Group Name"
+  fetchItems={fetchGroupNameItems}
+  displayFieldKeys={['fItemName']}
+  headerNames={['Group Name']}
+  searchFields={['fItemName']}
+  columnWidths={{ fItemName: '100%' }}
+  searchPlaceholder="Search group name..."
+  initialSearch={itemSearchTerm}
+  onSelect={(item) => {
+    handleGroupItemCodeSelection(item);
 
-          setShowGroupNamePopup(false);
-          setItemSearchTerm('');
-
-          // ✅ Focus back to Group Name input
-          setTimeout(() => {
+    setTimeout(() => {
             if (groupNameRef.current) {
               groupNameRef.current.focus();
               groupNameRef.current.select(); // optional: selects text
             }
           }, 500);
-        }}
-      />
+  }}
+/>
       
       {/* Item Code Selection Popup */}     
       <PopupListSelector
         open={showItemCodePopup}
         onClose={() => {
           setShowItemCodePopup(false);
-          setItemSearchTerm(''); // Clear search term when closing
+          // setItemSearchTerm(''); // Clear search term when closing
           setSelectedRowId(null); // Clear selected row
         }}
         title="Select Item Code"
