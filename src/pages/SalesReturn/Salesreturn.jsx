@@ -191,19 +191,11 @@ const SalesReturn = () => {
     isDesktop: true
   });
 
- // Add this useEffect for Spacebar handling in bill details popup
+// Add this useEffect for arrow navigation in bill details popup
 useEffect(() => {
   if (!billDetailsPopupOpen) return;
 
   const handleKeyDown = (e) => {
-    // ❗ Ignore if user typing in input
-    if (
-      e.target.tagName === "INPUT" ||
-      e.target.tagName === "TEXTAREA"
-    ) {
-      return;
-    }
-
     const billNo = selectedBillForDetails;
     if (!billNo) return;
 
@@ -211,55 +203,138 @@ useEffect(() => {
     const itemsArray = details?.items || details?.details || [];
     if (itemsArray.length === 0) return;
 
-    // Arrow navigation
-    if (e.key === "ArrowDown") {
+    // Handle Space key (toggle checkbox)
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      // If focused on a checkbox, don't prevent default
+      if (e.target.type === 'checkbox') {
+        // Let the checkbox handle its own space key
+        return;
+      }
+      
       e.preventDefault();
-      setBillPopupRowIndex(prev =>
-        Math.min(prev + 1, itemsArray.length - 1)
-      );
+      e.stopPropagation();
+      
+      const currentRow = document.querySelector(`.custom-popup-table tbody tr[data-index="${billPopupRowIndex}"]`);
+      if (currentRow) {
+        const checkbox = currentRow.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+          checkbox.checked = !checkbox.checked;
+          // Trigger change event
+          const event = new Event('change', { bubbles: true });
+          checkbox.dispatchEvent(event);
+          
+          // Update state
+          const item = itemsArray[billPopupRowIndex];
+          if (item) {
+            const key = `${item.barcode || ""}-${billPopupRowIndex}`;
+            setCheckedBills(prev => ({
+              ...prev,
+              [key]: checkbox.checked
+            }));
+          }
+        }
+      }
+      return;
     }
 
-    if (e.key === "ArrowUp") {
+    // Handle Enter key (toggle checkbox)
+    if (e.key === 'Enter') {
       e.preventDefault();
-      setBillPopupRowIndex(prev =>
-        Math.max(prev - 1, 0)
-      );
+      e.stopPropagation();
+      
+      const currentRow = document.querySelector(`.custom-popup-table tbody tr[data-index="${billPopupRowIndex}"]`);
+      if (currentRow) {
+        const checkbox = currentRow.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+          checkbox.checked = !checkbox.checked;
+          // Trigger change event
+          const event = new Event('change', { bubbles: true });
+          checkbox.dispatchEvent(event);
+          
+          // Update state
+          const item = itemsArray[billPopupRowIndex];
+          if (item) {
+            const key = `${item.barcode || ""}-${billPopupRowIndex}`;
+            setCheckedBills(prev => ({
+              ...prev,
+              [key]: checkbox.checked
+            }));
+          }
+        }
+      }
+      return;
     }
 
-    // ✅ ENTER KEY: Toggle checkbox
-    if (e.key === "Enter") {
+    // Handle Arrow Down
+    if (e.key === 'ArrowDown') {
       e.preventDefault();
-      toggleCheckbox();
+      e.stopPropagation();
+      
+      setBillPopupRowIndex(prev => {
+        const newIndex = Math.min(prev + 1, itemsArray.length - 1);
+        
+        setTimeout(() => {
+          // Focus the row
+          const row = document.querySelector(`.custom-popup-table tbody tr[data-index="${newIndex}"]`);
+          if (row) {
+            row.focus();
+            row.style.outline = "2px solid #1B91DA";
+            row.scrollIntoView({
+              behavior: "smooth",
+              block: "nearest"
+            });
+            
+            // Remove outline from previous row
+            const prevRow = document.querySelector(`.custom-popup-table tbody tr[data-index="${prev}"]`);
+            if (prevRow) {
+              prevRow.style.outline = "none";
+            }
+          }
+        }, 10);
+        
+        return newIndex;
+      });
+      return;
     }
 
-    // ✅ SPACEBAR KEY: Toggle checkbox
-    if (e.key === " " || e.key === "Spacebar") {
+    // Handle Arrow Up
+    if (e.key === 'ArrowUp') {
       e.preventDefault();
-      toggleCheckbox();
+      e.stopPropagation();
+      
+      setBillPopupRowIndex(prev => {
+        const newIndex = Math.max(prev - 1, 0);
+        
+        setTimeout(() => {
+          // Focus the row
+          const row = document.querySelector(`.custom-popup-table tbody tr[data-index="${newIndex}"]`);
+          if (row) {
+            row.focus();
+            row.style.outline = "2px solid #1B91DA";
+            row.scrollIntoView({
+              behavior: "smooth",
+              block: "nearest"
+            });
+            
+            // Remove outline from previous row
+            const prevRow = document.querySelector(`.custom-popup-table tbody tr[data-index="${prev}"]`);
+            if (prevRow) {
+              prevRow.style.outline = "none";
+            }
+          }
+        }, 10);
+        
+        return newIndex;
+      });
+      return;
     }
   };
 
-  const toggleCheckbox = () => {
-    const billNo = selectedBillForDetails;
-    if (!billNo) return;
-
-    const details = billDetailsData[billNo];
-    const itemsArray = details?.items || details?.details || [];
-    const item = itemsArray[billPopupRowIndex];
-    
-    if (!item) return;
-
-    // Use consistent key format
-    const key = `${item.barcode || item.barcode || ""}-${billPopupRowIndex}`;
-    
-    setCheckedBills(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  window.addEventListener("keydown", handleKeyDown, true);
+  
+  return () => {
+    window.removeEventListener("keydown", handleKeyDown, true);
   };
-
-  window.addEventListener("keydown", handleKeyDown);
-  return () => window.removeEventListener("keydown", handleKeyDown);
 }, [
   billDetailsPopupOpen,
   selectedBillForDetails,
@@ -267,6 +342,157 @@ useEffect(() => {
   billPopupRowIndex,
   checkedBills
 ]);
+
+// Also, update the global keyboard handler to skip arrow keys when bill details popup is open
+useEffect(() => {
+  const handleGlobalKeyDown = (e) => {
+    // Skip if bill details popup is open - let its own handler manage
+    if (billDetailsPopupOpen) {
+      if (['ArrowUp', 'ArrowDown', 'Enter', ' '].includes(e.key)) {
+        return;
+      }
+    }
+    
+    // ... rest of your global keyboard handler remains the same
+  };
+
+  window.addEventListener('keydown', handleGlobalKeyDown);
+  return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+}, [focusedElement, popupOpen, billDetailsPopupOpen, showConfirmPopup]);
+
+// Update the global keyboard handler to skip when bill details popup is open
+useEffect(() => {
+  const handleGlobalKeyDown = (e) => {
+    // Skip if bill details popup is open
+    if (billDetailsPopupOpen) {
+      // Allow arrow keys, enter, and spacebar to work in the bill details popup
+      if (['ArrowUp', 'ArrowDown', 'Enter', ' ', 'Spacebar'].includes(e.key)) {
+        return;
+      }
+    }
+    
+    // Skip if other popups are open
+    if (popupOpen || showConfirmPopup) {
+      // Handle Enter in confirmation popup
+      if (showConfirmPopup && e.key === 'Enter') {
+        e.preventDefault();
+        const confirmButton = document.querySelector('.confirmation-popup button.confirm-button');
+        if (confirmButton) {
+          confirmButton.click();
+        }
+        return;
+      }
+      return;
+    }
+
+    // Skip if typing in input field (except Enter and Arrow keys)
+    if (
+      e.target.tagName === 'INPUT' && 
+      !['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)
+    ) {
+      return;
+    }
+
+    const { type, rowIndex, fieldIndex, fieldName } = focusedElement;
+
+    // Arrow key navigation
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      
+      if (type === 'header') {
+        handleHeaderArrowNavigation(e.key, rowIndex, fieldIndex);
+      } else if (type === 'table') {
+        handleTableArrowNavigation(e.key, rowIndex, fieldIndex);
+      } else if (type === 'footer') {
+        handleFooterArrowNavigation(e.key);
+      }
+   
+  } else if (e.key === 'Enter') {
+
+  // ✅ ALLOW BARCODE ENTER
+  if (
+    focusedElement.type === 'table' &&
+    focusedElement.fieldName === 'barcode'
+  ) {
+    return;
+  }
+
+  if (blockGlobalEnterRef.current) {
+    blockGlobalEnterRef.current = false;
+    return;
+  }
+
+  e.preventDefault();
+
+
+
+      
+      // Handle Enter on Save button
+      if (type === 'footer' && fieldName === 'save') {
+        handleSave();
+        return;
+      }
+      
+      // 🔥 CRITICAL: Never open popups on Enter key
+      // Just use arrow navigation to move to next field
+      if (type === 'header') {
+        handleHeaderArrowNavigation('ArrowRight', rowIndex, fieldIndex);
+      } else if (type === 'table') {
+        handleTableArrowNavigation('ArrowRight', rowIndex, fieldIndex);
+      } else if (type === 'footer') {
+        handleFooterArrowNavigation('ArrowRight');
+      }
+    } else if (e.key === 'Tab') {
+      // Let default Tab behavior handle focus
+      setTimeout(() => {
+        const activeElement = document.activeElement;
+        if (activeElement.tagName === 'INPUT') {
+          const dataRow = activeElement.getAttribute('data-row');
+          const dataField = activeElement.getAttribute('data-field');
+          
+          if (dataRow !== null) {
+            // Table field
+            setFocusedElement({
+              type: 'table',
+              rowIndex: parseInt(dataRow),
+              fieldIndex: getTableFieldIndex(dataField),
+              fieldName: dataField
+            });
+          } else {
+            // Header field
+         const headerFields = [
+  ['billNo', 'billDate', 'salesman', 'newBillNo'],
+  ['custName', 'mobileNo']
+];
+
+
+            const fieldName = activeElement.name;
+            const fieldIndex = headerFields.indexOf(fieldName);
+            
+            if (fieldIndex !== -1) {
+              setFocusedElement({
+                type: 'header',
+                rowIndex: fieldName === 'newBillNo' || fieldName === 'custName' ? 1 : 0,
+                fieldIndex: fieldIndex,
+                fieldName: fieldName
+              });
+            }
+          }
+        }
+      }, 10);
+    }
+  };
+
+  window.addEventListener('keydown', handleGlobalKeyDown);
+  return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+}, [focusedElement, popupOpen, billDetailsPopupOpen, showConfirmPopup]);
+
+
+
+
+
+
+
   useEffect(() => {
     if (!billDetailsPopupOpen) return;
 
@@ -518,34 +744,50 @@ const fetchSalesInvoiceVoucherDetails = async (voucherNo) => {
     }
   };
 
-  // Open Second Popup - Bill Details with Checkboxes
-  const openBillDetailsPopup = async (billNo) => {
-    try {
-      setSelectedBillForDetails(billNo);
-      setBillDetailsSearchText(""); // Reset search text
-      setCheckedBills({}); // Reset checked items
+ // Open Second Popup - Bill Details with Checkboxes
+const openBillDetailsPopup = async (billNo) => {
+  try {
+    setSelectedBillForDetails(billNo);
+    setBillDetailsSearchText(""); // Reset search text
+    setCheckedBills({}); // Reset checked items
+    
+    // Close the first popup
+    setPopupOpen(false);
+    setPopupType("");
+    setPopupData([]);
+    
+    // Fetch bill details
+    const details = await fetchBillDetailsForPopup(billNo);
+    
+    if (!details) {
+      alert(`Could not fetch details for bill ${billNo}. Please try again.`);
+      return;
+    }
+    
+    setBillDetailsPopupOpen(true);
+    setBillPopupRowIndex(0); // reset keyboard cursor
+    
+    // 🔥 NEW: Set focus to the first row in the bill details popup
+    setTimeout(() => {
+      // Focus on the first checkbox or first row
+      const firstCheckbox = document.querySelector(
+        '.custom-popup-table input[type="checkbox"]'
+      );
       
-      // Close the first popup
-      setPopupOpen(false);
-      setPopupType("");
-      setPopupData([]);
-      
-      // Fetch bill details
-      const details = await fetchBillDetailsForPopup(billNo);
-      
-      if (!details) {
-        alert(`Could not fetch details for bill ${billNo}. Please try again.`);
-        return;
+      if (firstCheckbox) {
+        firstCheckbox.focus();
+        firstCheckbox.style.outline = "2px solid #1B91DA";
       }
       
-      setBillDetailsPopupOpen(true);
-      setBillPopupRowIndex(0); // reset keyboard cursor
-
-    } catch (error) {
-      console.error("Error opening bill details popup:", error);
-      alert("Error loading bill details. Please try again.");
-    }
-  };
+      // Also set the visual selection
+      setBillPopupRowIndex(0);
+      
+    }, 200); // Small delay to allow DOM to render
+  } catch (error) {
+    console.error("Error opening bill details popup:", error);
+    alert("Error loading bill details. Please try again.");
+  }
+};
 
   const applyBillNumberCore = async () => {
   await handleApplyBillNumber();
@@ -3606,11 +3848,42 @@ const renderBillDetailsContent = () => {
     setSelectAllItems(checked);
     const updated = {};
     itemsArray.forEach((item, idx) => {
-      // Use consistent key format: `${item.barcode}-${idx}`
-      const key = `${item.barcode || item.barcode || ""}-${idx}`;
+      const key = `${item.barcode || ""}-${idx}`;
       updated[key] = checked;
     });
     setCheckedBills(updated);
+  };
+
+  // Handle checkbox change for a specific row
+  const handleCheckboxChange = (index, e) => {
+    const item = itemsArray[index];
+    if (!item) return;
+    
+    const key = `${item.barcode || ""}-${index}`;
+    setCheckedBills(prev => ({
+      ...prev,
+      [key]: e.target.checked
+    }));
+  };
+
+  // Handle row click to select row and toggle checkbox
+  const handleRowClick = (index) => {
+    setBillPopupRowIndex(index);
+    const item = itemsArray[index];
+    if (!item) return;
+    
+    const key = `${item.barcode || ""}-${index}`;
+    const newChecked = !checkedBills[key];
+    setCheckedBills(prev => ({
+      ...prev,
+      [key]: newChecked
+    }));
+    
+    // Also update the checkbox input
+    const checkbox = document.querySelector(`.custom-popup-table tbody tr[data-index="${index}"] input[type="checkbox"]`);
+    if (checkbox) {
+      checkbox.checked = newChecked;
+    }
   };
 
   return (
@@ -3627,7 +3900,7 @@ const renderBillDetailsContent = () => {
         width: "100%",
         borderCollapse: "collapse",
         fontSize: "13px"
-      }}>
+      }} className="custom-popup-table">
         <thead>
           <tr style={{ background: "#f0f6ff" }}>
             <th style={{ padding: 8 }}>
@@ -3635,6 +3908,7 @@ const renderBillDetailsContent = () => {
                 type="checkbox"
                 checked={selectAllItems}
                 onChange={(e) => handleSelectAll(e.target.checked)}
+                tabIndex={0}
               />
             </th>
             <th style={thStyle}>Barcode</th>
@@ -3648,44 +3922,74 @@ const renderBillDetailsContent = () => {
 
         <tbody>
           {itemsArray.map((item, idx) => {
-            // Use consistent key format
-            const key = `${item.barcode || item.barcode || ""}-${idx}`;
+            const key = `${item.barcode || ""}-${idx}`;
+            const isSelected = billPopupRowIndex === idx;
 
             return (
               <tr
                 key={key}
+                data-index={idx}
                 ref={(el) => (billRowRefs.current[idx] = el)}
                 style={{
                   transition: "background 0.2s",
-                  background:
-                    billPopupRowIndex === idx
-                      ? "#cce5ff"
-                      : checkedBills[key]
-                      ? "#e3f2fd"
-                      : "#fff"
+                  background: isSelected ? "#cce5ff" : (checkedBills[key] ? "#e3f2fd" : "#fff"),
+                  cursor: "pointer",
+                  outline: isSelected ? "2px solid #1B91DA" : "none"
+                }}
+                tabIndex={0}
+                onClick={() => handleRowClick(idx)}
+                onFocus={() => {
+                  setBillPopupRowIndex(idx);
+                  // Add outline when focused
+                  const row = document.querySelector(`.custom-popup-table tbody tr[data-index="${idx}"]`);
+                  if (row) {
+                    row.style.outline = "2px solid #1B91DA";
+                  }
+                }}
+                onBlur={() => {
+                  // Remove outline when blurred
+                  const row = document.querySelector(`.custom-popup-table tbody tr[data-index="${idx}"]`);
+                  if (row) {
+                    row.style.outline = "none";
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleRowClick(idx);
+                  }
                 }}
               >
-                <td style={tdStyle}>
+                <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={checkedBills[key] || false}
-                    onChange={(e) =>
-                      setCheckedBills(prev => ({
-                        ...prev,
-                        [key]: e.target.checked
-                      }))
-                    }
+                    onChange={(e) => handleCheckboxChange(idx, e)}
+                    onClick={(e) => e.stopPropagation()}
+                    ref={(el) => {
+                      // Auto-focus the first checkbox when popup opens
+                      if (el && idx === 0 && billDetailsPopupOpen && billPopupRowIndex === 0) {
+                        setTimeout(() => {
+                          el.parentElement.parentElement.focus();
+                          el.parentElement.parentElement.style.outline = "2px solid #1B91DA";
+                        }, 100);
+                      }
+                    }}
+                    tabIndex={-1} // Make checkbox not focusable via tab
+                    style={{
+                      cursor: "pointer"
+                    }}
                   />
                 </td>
-                <td style={tdStyle}>{item.barcode || item.barcode}</td>
+                <td style={tdStyle}>{item.barcode || ""}</td>
                 <td style={{ ...tdStyle, fontWeight: 600 }}>
-                  {item.fitemNme || item.itemName}
+                  {item.fitemNme || item.itemName || ""}
                 </td>
-                <td style={tdStyle}>{item.fTotQty || item.qty}</td>
-                <td style={tdStyle}>{item.fUnit || item.uom}</td>
-                <td style={tdStyle}>₹{item.fRate || item.rate}</td>
+                <td style={tdStyle}>{item.fTotQty || item.qty || 0}</td>
+                <td style={tdStyle}>{item.fUnit || item.uom || ""}</td>
+                <td style={tdStyle}>₹{item.fRate || item.rate || 0}</td>
                 <td style={{ ...tdStyle, fontWeight: 600 }}>
-                  ₹{item.fAmount || item.amount}
+                  ₹{item.fAmount || item.amount || 0}
                 </td>
               </tr>
             );
