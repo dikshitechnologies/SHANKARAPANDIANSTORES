@@ -27,6 +27,7 @@ const SaveConfirmationModal = ({
   totalAmount = 0,
   cashTotals = null,
   hasCashPayments = false,
+  Type = ""
 }) => {
   console.log('🔴 SaveConfirmationModal Props Received:', {
     isOpen,
@@ -47,7 +48,9 @@ const SaveConfirmationModal = ({
   });
   const [saveConfirmationOpen, setSaveConfirmationOpen] = useState(false);
   const [saveConfirmationLoading, setSaveConfirmationLoading] = useState(false);
-  
+  const pyIssueRefs = useRef({});
+const pyCollectRefs = useRef({});
+
   const [formData, setFormData] = useState({
     receivedCash: '',
     issuedCash: '',
@@ -127,7 +130,7 @@ const SaveConfirmationModal = ({
     updated[denom].closing = available + collect - issue;
     
     // If collect field is being updated, calculate balance and auto-fill issue
-    if (field === 'collect') {
+ if (Type !== "PY" && field === 'collect') {
       // Calculate total collected amount from all denominations
       let totalCollected = 0;
       [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
@@ -175,12 +178,61 @@ const SaveConfirmationModal = ({
     setDenominations(updated);
   };
 
+  useEffect(() => {
+  if (isOpen) {
+    setDenominations(particulars);
+    fetchLiveCash();
+
+    setTimeout(() => {
+      // Focus first input in PY or non-PY mode
+      if (fieldRefs.current[500]) {
+        fieldRefs.current[500].focus();
+      }
+    }, 100);
+  }
+}, [isOpen, particulars, userData?.companyCode]);
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
+const handlePYFieldKeyDown = (e, denom, type) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+
+    const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+    const currentIndex = denomSequence.indexOf(denom);
+
+    if (type === 'issue') {
+      if (currentIndex < denomSequence.length - 1) {
+        // Move to next Issue field
+        const nextDenom = denomSequence[currentIndex + 1];
+        if (pyIssueRefs.current[nextDenom]) pyIssueRefs.current[nextDenom].focus();
+      } else {
+        // Last Issue field
+        // Only move to Collect if there is a Collect row with any editable value
+        const hasCollectRow = Object.values(pyCollectRefs.current).some(ref => ref);
+        if (hasCollectRow) {
+          if (pyCollectRefs.current[500]) pyCollectRefs.current[500].focus();
+        }
+        // else do nothing, stay on last Issue field
+      }
+    } else if (type === 'collect') {
+      if (currentIndex < denomSequence.length - 1) {
+        // Move to next Collect field
+        const nextDenom = denomSequence[currentIndex + 1];
+        if (pyCollectRefs.current[nextDenom]) pyCollectRefs.current[nextDenom].focus();
+      } else {
+        // Last Collect field → Save button
+        if (confirmRef.current) confirmRef.current.focus();
+      }
+    }
+  }
+};
+
+
 
   // Handle keydown in collect fields for navigation
   const handleCollectFieldKeyDown = (e, currentDenom) => {
@@ -204,26 +256,20 @@ const SaveConfirmationModal = ({
       }
     }
   };
+useEffect(() => {
+  if (isOpen) {
+    setDenominations(particulars);
+    fetchLiveCash();
 
-  useEffect(() => {
-    if (isOpen) {
-      console.log('SaveConfirmationModal opened with props:', {
-        hasCashPayments,
-        cashTotals,
-        totalAmount,
-        voucherNo
-      });
-      setDenominations(particulars);
-      fetchLiveCash();
-      
-      // Focus first field (500) when modal opens
-      setTimeout(() => {
-        if (fieldRefs.current[500]) {
-          fieldRefs.current[500].focus();
-        }
-      }, 100);
-    }
-  }, [isOpen, particulars, userData?.companyCode, hasCashPayments, cashTotals]);
+    setTimeout(() => {
+      if (Type === 'PY' && pyIssueRefs.current[500]) {
+        pyIssueRefs.current[500].focus(); // Default focus on first Issue
+      } else if (fieldRefs.current[500]) {
+        fieldRefs.current[500].focus(); // Non-PY default
+      }
+    }, 100);
+  }
+}, [isOpen, particulars, Type]);
 
   // Update closing values when liveAvailable changes
   useEffect(() => {
@@ -258,14 +304,81 @@ const SaveConfirmationModal = ({
     isLoading: false
   });
 
-  const handleConfirmClick = () => {
-    let collected = 0;
-    [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-      const collectValue = Number(denominations[d]?.collect) || 0;
-      collected += collectValue * d;
-    });
+  const handleFieldKeyDown = (e, currentDenom) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
 
-    const balance = collected - totalAmount;
+    const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+    const currentIndex = denomSequence.indexOf(currentDenom);
+
+    if (currentIndex < denomSequence.length - 1) {
+      const nextDenom = denomSequence[currentIndex + 1];
+      if (fieldRefs.current[nextDenom]) {
+        fieldRefs.current[nextDenom].focus();
+      }
+    } else {
+      // Last field, move to Save button
+      if (confirmRef.current) confirmRef.current.focus();
+    }
+  }
+};
+
+  // const handleConfirmClick = () => {
+  //   let collected = 0;
+  //   [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+  //     const collectValue = Number(denominations[d]?.collect) || 0;
+  //     collected += collectValue * d;
+  //   });
+
+  //   const balance = collected - totalAmount;
+  //   if (balance < 0) {
+  //     setValidationPopup({
+  //       isOpen: true,
+  //       title: 'Validation Error',
+  //       message: 'Bill Amount Mismatch. Please check the entered amounts.',
+  //       type: 'warning',
+  //       confirmText: 'OK',
+  //       cancelText: null,
+  //       action: null,
+  //       isLoading: false
+  //     });
+  //     return;
+  //   }
+  //   setSaveConfirmationOpen(true);
+  // };
+
+const handleConfirmClick = () => {
+  let collected = 0;
+  let issued = 0;
+
+  [500,200,100,50,20,10,5,2,1].forEach(d => {
+    collected += (Number(denominations[d]?.collect) || 0) * d;
+    issued += (Number(denominations[d]?.issue) || 0) * d;
+  });
+
+  // 🔑 Correct net calculation for PY
+  const net = issued - collected;
+
+
+
+
+  if (Type === "PY" && Math.abs(net) !== Math.abs(totalAmount)) {
+   
+      setValidationPopup({
+        isOpen: true,
+        title: 'Validation Error',
+        message: 'Bill Amount Mismatch. Please check the entered amounts.',
+        type: 'warning',
+        confirmText: 'OK',
+        cancelText: null,
+        action: null,
+        isLoading: false
+      });
+      return;
+    
+  }
+
+     const balance = collected - totalAmount;
     if (balance < 0) {
       setValidationPopup({
         isOpen: true,
@@ -279,8 +392,11 @@ const SaveConfirmationModal = ({
       });
       return;
     }
-    setSaveConfirmationOpen(true);
-  };
+
+  // ✅ Valid → allow save
+  setSaveConfirmationOpen(true);
+};
+
 
   // Handle the actual save after confirmation
   const handleSaveConfirmation = async () => {
@@ -356,40 +472,87 @@ const SaveConfirmationModal = ({
                 </div>
 
                 {/* Collect Row */}
-                <div className={styles.tableRow}>
-                  <div className={styles.tableLabelCell}>Collect</div>
-                  {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
-                    <div key={denom} className={styles.tableCell}>
-                      <input
-                        ref={(el) => {
-                          fieldRefs.current[denom] = el;
-                          collectFieldRefs.current[denom] = el;
-                        }}
-                        type="number"
-                        value={denominations[denom].collect === 0 ? '' : denominations[denom].collect}
-                        onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
-                        onKeyDown={(e) => handleCollectFieldKeyDown(e, denom)}
-                        className={styles.tableInput}
-                      />
+               {/* Conditional rendering based on Type */}
+                {Type !== "PY" ? (
+                  <>
+                    {/* For non-PY type (RE type): Collect row is editable, Issue row is auto-calculated */}
+                    <div className={styles.tableRow}>
+                      <div className={styles.tableLabelCell}>Collect</div>
+                      {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
+                        <div key={denom} className={styles.tableCell}>
+                          <input
+                            ref={(el) => {
+                              fieldRefs.current[denom] = el;
+                              collectFieldRefs.current[denom] = el;
+                            }}
+                            type="number"
+                            value={denominations[denom].collect === 0 ? '' : denominations[denom].collect}
+                            onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
+                            onKeyDown={(e) => handleCollectFieldKeyDown(e, denom)}
+                            className={styles.tableInput}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
 
-                {/* Issue Row */}
-                <div className={styles.tableRow}>
-                  <div className={styles.tableLabelCell}>Issue</div>
-                  {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
-                    <div key={denom} className={styles.tableCell}>
-                      <input
-                        type="number"
-                        value={denominations[denom].issue === 0 ? '' : denominations[denom].issue}
-                        readOnly
-                        className={styles.tableInput}
-                      />
+                    {/* Issue Row (auto-calculated, readonly) */}
+                    <div className={styles.tableRow}>
+                      <div className={styles.tableLabelCell}>Issue</div>
+                      {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
+                        <div key={denom} className={styles.tableCell}>
+                          <input
+                            type="number"
+                            value={denominations[denom].issue === 0 ? '' : denominations[denom].issue}
+                            readOnly
+                            className={styles.tableInput}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                ) : (
+                  <>
+    {/* Issue Row */}
+<div className={styles.tableRow}>
+  <div className={styles.tableLabelCell}>Issue</div>
+  {[500,200,100,50,20,10,5,2,1].map(denom => (
+    <div key={denom} className={styles.tableCell}>
+      <input
+        ref={el => pyIssueRefs.current[denom] = el}
+        type="number"
+        value={denominations[denom].issue || ''}
+        onChange={(e) => handleDenominationChange(denom, 'issue', e.target.value)}
+        onKeyDown={(e) => handlePYFieldKeyDown(e, denom, 'issue')}
+        className={styles.tableInput}
+      />
+    </div>
+  ))}
+</div>
 
+{/* Collect Row */}
+<div className={styles.tableRow}>
+  <div className={styles.tableLabelCell}>Collect</div>
+  {[500,200,100,50,20,10,5,2,1].map(denom => (
+    <div key={denom} className={styles.tableCell}>
+      <input
+        ref={el => pyCollectRefs.current[denom] = el}
+        type="number"
+        value={denominations[denom].collect || ''}
+        onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
+        onKeyDown={(e) => handlePYFieldKeyDown(e, denom, 'collect')}
+        className={styles.tableInput}
+      />
+    </div>
+  ))}
+</div>
+
+
+                  </>
+                )}
+
+
+
+                  
                 {/* Closing Row */}
                 <div className={styles.tableRow}>
                   <div className={styles.tableLabelCell}>Closing</div>

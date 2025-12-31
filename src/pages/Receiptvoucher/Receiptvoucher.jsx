@@ -3181,6 +3181,7 @@ const ReceiptVoucher = () => {
           totalAmount={totalAmount}
           cashTotals={saveConfirmationData?.cashTotals}
           hasCashPayments={saveConfirmationData?.hasCashPayments || false}
+           Type = "RE"
         />
       )}
 
