@@ -1559,7 +1559,7 @@ const PaymentVoucher = () => {
       
       // **VALIDATION: Net Amount = Collected Amount - Issued Amount (ONLY FOR CASH PAYMENTS)**
       if (hasCashPayments) {
-        const netAmount = givenTotal - issuedTotal;
+        const netAmount = givenTotal + totalAmount - issuedTotal;
         // Custom validation: Collected amount < total amount
         if (givenTotal < totalAmount) {
           setConfirmationPopup({
@@ -1575,7 +1575,7 @@ const PaymentVoucher = () => {
           setIsSaving(false);
           return;
         }
-        if (Math.abs(netAmount - totalAmount) > 0.01) {
+        if (Math.abs(netAmount == totalAmount)) {
           const errorMessage = `Net amount not tallying`;
           setError(errorMessage);
           setConfirmationPopup({
