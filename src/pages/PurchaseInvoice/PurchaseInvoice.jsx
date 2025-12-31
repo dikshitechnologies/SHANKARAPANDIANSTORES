@@ -339,6 +339,7 @@ const handleBlur = () => {
       // console.log(response);
       if (response?.data?.barcode) {
         setAutoBarcode(response.data.barcode);
+        console.log('Fetched auto barcode:', response.data.barcode);
       }
     } catch (err) {
       console.warn('Failed to fetch auto barcode, using default:', err);
@@ -942,7 +943,7 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
       
       return {
         id: maxId + index + 1,
-        barcode: item.prefix || item.itemCode || '',
+        barcode: item.prefix || '',
         itemcode: item.itemCode || '',
         name: item.itemName || '',
         stock: item.stock || 0,
