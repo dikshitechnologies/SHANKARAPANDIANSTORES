@@ -165,6 +165,8 @@ export const API_ENDPOINTS = {
     GET_ITEM_CODE_LIST: "Salesinvoices/GetItemsByType?type=FG",
     GET_ITEM_DETAILS_BY_CODE: (itemCode) => `Salesinvoices/GetStockByItemName?itemcode=${itemCode}&billType=FG`,
     AUTO_GENERATE_BARCODE: "barcodeGenerate/AutoGenerateBarcode",
+    GET_GROUP_LIST: (search = '', page = 1, pageSize = 20) => `GroupSelection/item-GroupList?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
+    GET_GROUPITEMS_BY_GROUP: (groupCode) => `GroupSelection/items/get-Group-Items?fparent=${groupCode}`,
   },
 
 
