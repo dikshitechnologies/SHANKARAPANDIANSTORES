@@ -178,7 +178,7 @@ const ItemCreation = ({ onCreated }) => {
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [message, setMessage] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
-  
+
   // Confirmation Popup States (ADDED to match Unit Creation)
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [confirmEditOpen, setConfirmEditOpen] = useState(false);
@@ -187,7 +187,7 @@ const ItemCreation = ({ onCreated }) => {
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
-  
+
   // Checkbox states
   const [gstChecked, setGstChecked] = useState(false);
   const [manualPrefixChecked, setManualPrefixChecked] = useState(false);
@@ -272,13 +272,13 @@ const ItemCreation = ({ onCreated }) => {
   const costPriceRef = useRef(null);
   const unitRef = useRef(null);
   const isInitialFocusRef = useRef(true);
-  
+
   // Add this with your other refs - FIXED: Using a ref for the submit button
   const submitButtonRef = useRef(null);
 
   // Get permissions for this form using the usePermissions hook
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
-  
+
   // Get permissions for ITEM_CREATION form
   const formPermissions = useMemo(() => ({
     add: hasAddPermission('ITEM_CREATION'),
@@ -295,17 +295,17 @@ const ItemCreation = ({ onCreated }) => {
           submitButtonRef.current.focus();
         }
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [actionType, formData.itemName, formData.fitemCode]);
 
   // Auto-focus Item Name on component mount
-useEffect(() => {
-  if (itemNameRef.current) {
-    itemNameRef.current.focus();
-  }
-}, []);
+  useEffect(() => {
+    if (itemNameRef.current) {
+      itemNameRef.current.focus();
+    }
+  }, []);
 
   useEffect(() => {
     loadInitial();
@@ -326,7 +326,7 @@ useEffect(() => {
     try {
       console.log('Starting loadInitial...');
       console.log('Using endpoint:', API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
-      await fetchTreeData();     
+      await fetchTreeData();
     } catch (err) {
       console.error('Failed to load initial data:', err);
       setMessage({ type: "error", text: "Failed to load data. Please check your connection." });
@@ -338,13 +338,13 @@ useEffect(() => {
   const fetchTreeData = async () => {
     try {
       const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
-      
+
       // Log response for debugging
       console.log('Tree API Response:', response);
-      
+
       // Handle both direct array and data property
       const data = Array.isArray(response) ? response : (response?.data || response);
-      
+
       if (Array.isArray(data) && data.length > 0) {
         // Transform API response to match tree structure
         const transformTreeData = (nodes) => {
@@ -359,7 +359,7 @@ useEffect(() => {
             children: node.children && Array.isArray(node.children) ? transformTreeData(node.children) : []
           }));
         };
-        
+
         const treeData = transformTreeData(data);
         setTreeData(treeData);
         setExpandedKeys(new Set(treeData.map(item => item.key)));
@@ -400,7 +400,7 @@ useEffect(() => {
     const newValue = !gstChecked;
     setGstChecked(newValue);
     handleChange('gst', newValue ? 'Y' : 'N');
-    
+
     if (newValue) {
       // Auto-populate with 3% when GST is checked
       const defaultGst = "3";
@@ -414,7 +414,7 @@ useEffect(() => {
     const newValue = !manualPrefixChecked;
     setManualPrefixChecked(newValue);
     handleChange('manualprefix', newValue ? 'Y' : 'N');
-    
+
     if (newValue) {
       await getMaxPrefixFromAPI();
     } else {
@@ -431,13 +431,13 @@ useEffect(() => {
   // UPDATED: Arrow key navigation with special handling for delete button
   const handleKeyNavigation = (e) => {
     const key = e.key;
-    
+
     // Special handling for Delete button when in delete mode
-    if (key === 'Enter' && actionType === 'delete' && 
-        (e.target.classList.contains('submit-primary') || e.target === submitButtonRef.current)) {
+    if (key === 'Enter' && actionType === 'delete' &&
+      (e.target.classList.contains('submit-primary') || e.target === submitButtonRef.current)) {
       e.preventDefault();
       e.stopPropagation();
-      
+
       if (!formData.itemName) {
         setMessage({ type: "error", text: 'Please enter Item Name.' });
         itemNameRef.current?.focus();
@@ -447,27 +447,27 @@ useEffect(() => {
         setMessage({ type: "error", text: 'Please select Group Name.' });
         return;
       }
-      
+
       showDeleteConfirmation();
       return;
     }
-    
+
     // Handle all arrow keys and Enter for navigation
     if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(key)) {
       // If tree is open and we're in tree navigation, let tree handle it
       if (isTreeOpen && (e.target.closest('.tree-scroll') || e.target === groupNameRef.current)) {
         return;
       }
-      
+
       // If dropdown is open, let it handle arrow keys
       if (typeRef.current && typeRef.current.size > 0) {
         return;
       }
-      
+
       // Check if we're in a text input that should allow cursor movement
       const isTextInput = e.target.tagName === 'INPUT' && e.target.type === 'text';
       const isTextarea = e.target.tagName === 'TEXTAREA';
-      
+
       // For LEFT/RIGHT arrows in text inputs/areas, allow normal cursor movement
       // unless the cursor is at the beginning/end of the text
       if ((key === 'ArrowLeft' || key === 'ArrowRight') && (isTextInput || isTextarea)) {
@@ -475,12 +475,12 @@ useEffect(() => {
         const start = e.target.selectionStart;
         const end = e.target.selectionEnd;
         const value = e.target.value;
-        
+
         // For LEFT arrow: only navigate if cursor is at beginning AND no text selected
         if (key === 'ArrowLeft' && start === 0 && end === 0) {
           e.preventDefault();
           // Allow navigation to previous field
-        } 
+        }
         // For RIGHT arrow: only navigate if cursor is at end AND no text selected
         else if (key === 'ArrowRight' && start === value.length && end === value.length) {
           e.preventDefault();
@@ -493,7 +493,7 @@ useEffect(() => {
         // For all other cases, prevent default
         e.preventDefault();
       }
-      
+
       try {
         const container = e.currentTarget;
         if (!container) return;
@@ -537,7 +537,7 @@ useEffect(() => {
             // If at last element, loop to first
             elements[0].focus();
           }
-        } 
+        }
         // Handle UP arrow (for moving backward)
         else if (key === 'ArrowUp') {
           // ✅ Move to previous field (or last if none focused)
@@ -588,7 +588,7 @@ useEffect(() => {
   const getMaxPrefixFromAPI = async () => {
     try {
       const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getMaxPrefix);
-      
+
       if (response.data && response.data.maxPrefix) {
         handleChange('prefix', response.data.maxPrefix.toString());
       } else if (response.data && response.data.nextPrefix) {
@@ -677,12 +677,12 @@ useEffect(() => {
   // Handle Create confirmation (ADDED to match Unit Creation) - UPDATED with validation
   const confirmCreate = async () => {
     setConfirmSaveOpen(false);
-    
+
     // Validate form before proceeding
     if (!validateForm()) {
       return;
     }
-    
+
     if (!formPermissions.add) {
       setMessage({ type: "error", text: "You don't have permission to create items." });
       return;
@@ -699,12 +699,12 @@ useEffect(() => {
   // Handle Edit confirmation (ADDED to match Unit Creation) - UPDATED with validation
   const confirmEdit = async () => {
     setConfirmEditOpen(false);
-    
+
     // Validate form before proceeding
     if (!validateForm()) {
       return;
     }
-    
+
     if (!formPermissions.edit) {
       setMessage({ type: "error", text: "You don't have permission to edit items." });
       return;
@@ -721,12 +721,12 @@ useEffect(() => {
   // Handle Delete confirmation (ADDED to match Unit Creation) - UPDATED with validation
   const confirmDelete = async () => {
     setConfirmDeleteOpen(false);
-    
+
     // Validate form before proceeding
     if (!validateForm()) {
       return;
     }
-    
+
     if (!formPermissions.delete) {
       setMessage({ type: "error", text: "You don't have permission to delete items." });
       return;
@@ -748,10 +748,10 @@ useEffect(() => {
     if (!validateForm()) {
       return; // Stop if validation fails
     }
-    
+
     setIsLoading(true);
     setMessage(null);
-     const sizeCodesArray = fieldCodes.sizeCode 
+    const sizeCodesArray = fieldCodes.sizeCode
       ? fieldCodes.sizeCode.split(',').filter(code => code.trim() !== '')
       : [];
     try {
@@ -759,87 +759,87 @@ useEffect(() => {
 
 
       let requestData;
-    
-    // Prepare different request data for CREATE vs EDIT/DELETE
-    if (actionType === 'create') {
-      // For CREATE: Use array format for sizes
-      const sizeCodesArray = fieldCodes.sizeCode 
-        ? fieldCodes.sizeCode.split(',').filter(code => code.trim() !== '')
-        : [];
-      requestData = {
-        fitemCode: formData.fitemCode || '',
-        fitemName: formData.itemName || '',
-        groupName: mainGroup || '',
-        shortName: formData.shortName || '',
-        fbrand: fieldCodes.brandCode || '',
-        fcategory: fieldCodes.categoryCode || '',
-        fproduct: fieldCodes.productCode || '',
-        fmodel: fieldCodes.modelCode || '',
-        sizes: sizeCodesArray || '',
-        fmax: formData.max || '',
-        fmin: formData.min || '',
-        prefix: formData.prefix || '',
-        gstNumber: formData.gstin || '',
-        gst: formData.gst === 'Y' ? 'Y' : 'N',
-        manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
-        hsnCode: formData.hsnCode || '',
-        pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
-        ftype: formData.type || '',
-        fSellPrice: formData.sellingPrice || '',
-        fCostPrice: formData.costPrice || '',
-        fUnits: formData.unit || '',
-      };
-    } else {
-      requestData = {
-        fitemCode: formData.fitemCode || '',
-        fitemName: formData.itemName || '',
-        groupName: mainGroup || '',
-        gstNumber: formData.gstin || '',
-        prefix: formData.prefix || '',
-        shortName: formData.shortName || '',
-        hsnCode: formData.hsnCode || '',
-        pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
-        gst: formData.gst === 'Y' ? 'Y' : 'N',
-        manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
-        fproduct: fieldCodes.productCode || '',
-        fbrand: fieldCodes.brandCode || '',
-        fcategory: fieldCodes.categoryCode || '',
-        fmodel: fieldCodes.modelCode || '',
-        // For EDIT/DELETE: Send as comma-separated string
-        fsize: fieldCodes.sizeCode || '',
-        fmin: formData.min || '',
-        fmax: formData.max || '',
-        ftype: formData.type || '',
-        fSellPrice: formData.sellingPrice || '',
-        fCostPrice: formData.costPrice || '',
-        fUnits: formData.unit || ''
-      };
-    }
+
+      // Prepare different request data for CREATE vs EDIT/DELETE
+      if (actionType === 'create') {
+        // For CREATE: Use array format for sizes
+        const sizeCodesArray = fieldCodes.sizeCode
+          ? fieldCodes.sizeCode.split(',').filter(code => code.trim() !== '')
+          : [];
+        requestData = {
+          fitemCode: formData.fitemCode || '',
+          fitemName: formData.itemName || '',
+          groupName: mainGroup || '',
+          shortName: formData.shortName || '',
+          fbrand: fieldCodes.brandCode || '',
+          fcategory: fieldCodes.categoryCode || '',
+          fproduct: fieldCodes.productCode || '',
+          fmodel: fieldCodes.modelCode || '',
+          sizes: sizeCodesArray || '',
+          fmax: formData.max || '',
+          fmin: formData.min || '',
+          prefix: formData.prefix || '',
+          gstNumber: formData.gstin || '',
+          gst: formData.gst === 'Y' ? 'Y' : 'N',
+          manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
+          hsnCode: formData.hsnCode || '',
+          pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
+          ftype: formData.type || '',
+          fSellPrice: formData.sellingPrice || '',
+          fCostPrice: formData.costPrice || '',
+          fUnits: formData.unit || '',
+        };
+      } else {
+        requestData = {
+          fitemCode: formData.fitemCode || '',
+          fitemName: formData.itemName || '',
+          groupName: mainGroup || '',
+          gstNumber: formData.gstin || '',
+          prefix: formData.prefix || '',
+          shortName: formData.shortName || '',
+          hsnCode: formData.hsnCode || '',
+          pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
+          gst: formData.gst === 'Y' ? 'Y' : 'N',
+          manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
+          fproduct: fieldCodes.productCode || '',
+          fbrand: fieldCodes.brandCode || '',
+          fcategory: fieldCodes.categoryCode || '',
+          fmodel: fieldCodes.modelCode || '',
+          // For EDIT/DELETE: Send as comma-separated string
+          fsize: fieldCodes.sizeCode || '',
+          fmin: formData.min || '',
+          fmax: formData.max || '',
+          ftype: formData.type || '',
+          fSellPrice: formData.sellingPrice || '',
+          fCostPrice: formData.costPrice || '',
+          fUnits: formData.unit || ''
+        };
+      }
       console.log('Submitting data:', JSON.stringify(requestData));
 
       let response;
       let successMessage = '';
-      
+
       switch (actionType) {
         case 'create':
           // Duplicate check
           const duplicateCheck = await apiService.get(
             `${API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown}?search=${encodeURIComponent(formData.itemName)}`
           );
-          
+
           if (duplicateCheck.data && duplicateCheck.data.length > 0) {
             // Handle duplicate
           }
-         
+
           response = await apiService.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
           successMessage = `Item "${formData.itemName}" created successfully.`; // ADDED
           break;
-          
+
         case 'edit':
           response = await apiService.put(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.putEdit, requestData);
           successMessage = `Item "${formData.itemName}" updated successfully.`; // ADDED
           break;
-          
+
         case 'delete':
           response = await apiService.del(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.delete(formData.fitemCode));
           successMessage = `Item "${formData.itemName}" deleted successfully.`; // ADDED
@@ -854,20 +854,20 @@ useEffect(() => {
       // Refresh tree data
       await fetchTreeData();
       handleClear();
-      
+
       // Show success toast notification - ADDED
-      
-      
+
+
     } catch (error) {
       console.error('Submit error:', error);
       setMessage({ type: "error", text: error.response?.data?.message || error.message || 'An unexpected server error occurred.' });
-      
+
       if (error.response) {
         const status = error.response.status;
         const errorMessage = error.response.data?.message || error.response.data || 'An unexpected server error occurred.';
 
         if (status === 409) {
-          setMessage({  type: "error", text: error.response?.data?.message || error.message || 'An unexpected server error occurred.' });
+          setMessage({ type: "error", text: error.response?.data?.message || error.message || 'An unexpected server error occurred.' });
         } else if (status === 400) {
           setMessage({ type: "error", text: `Validation error: ${errorMessage}` });
         } else if (status === 404) {
@@ -888,60 +888,60 @@ useEffect(() => {
   };
 
   // Fetch function used by PopupListSelector for Edit/Delete - UPDATED
-const PAGE_SIZE = 20;
+  const PAGE_SIZE = 20;
 
-const fetchPopupItems = useCallback(
-  async (page = 1, search = '') => {
-    try {
-      const response = await apiService.get(
-        API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown,
-        {
-          page,
-          pageSize: PAGE_SIZE,
-          search: search || ''
-        }
-      );
-      console.debug('fetchPopupItems response:', response);
-      const data = response?.data || [];
+  const fetchPopupItems = useCallback(
+    async (page = 1, search = '') => {
+      try {
+        const response = await apiService.get(
+          API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown,
+          {
+            page,
+            pageSize: PAGE_SIZE,
+            search: search || ''
+          }
+        );
+        console.debug('fetchPopupItems response:', response);
+        const data = response?.data || [];
 
-      if (!Array.isArray(data)) return [];
+        if (!Array.isArray(data)) return [];
 
-      return data.map((it) => ({
-        fItemcode: it.fItemcode || '',
-        fItemName: it.fItemName || '',
-        fParent: it.fParent || '',
-        fShort: it.fShort || '',
-        fhsn: it.fhsn || '',
-        ftax: it.ftax || '',
-        fPrefix: it.fPrefix || '',
-        manualprefix: it.manualprefix || 'N',
-        fUnits: it.fUnits || '',
-        fCostPrice: it.fCostPrice || '',
-        fSellPrice: it.fSellPrice || '',
-        fbrand: it.fbrand || '',
-        fcategory: it.fcategory || '',
-        fmodel: it.fmodel || '',
-        fsize: it.fsize || '',
-        fmin: it.fmin || '',
-        fmax: it.fmax || '',
-        ftype: it.ftype || '',
-        fproduct: it.fproduct || '',
-        pieceRate: it.pieceRate || it.fPieceRate || 'N',
-        fPieceRate: it.fPieceRate || it.pieceRate || 'N',
-        brand: it.brand || '',
-        category: it.category || '',
-        model: it.model || '',
-        size: it.size || '',
-        product: it.product || '',
-        gstcheckbox: it.gstcheckbox || (it.ftax ? 'Y' : 'N')
-      }));
-    } catch (err) {
-      console.error('fetchPopupItems error', err);
-      return [];
-    }
-  },
-  []
-);
+        return data.map((it) => ({
+          fItemcode: it.fItemcode || '',
+          fItemName: it.fItemName || '' ,
+          fParent: it.fParent || '',
+          fShort: it.fShort || '',
+          fhsn: it.fhsn || '',
+          ftax: it.ftax || '',
+          fPrefix: it.fPrefix || '',
+          manualprefix: it.manualprefix || 'N',
+          fUnits: it.fUnits || '',
+          fCostPrice: it.fCostPrice || '',
+          fSellPrice: it.fSellPrice || '',
+          fbrand: it.fbrand || '',
+          fcategory: it.fcategory || '',
+          fmodel: it.fmodel || '',
+          fsize: it.fsize || '',
+          fmin: it.fmin || '',
+          fmax: it.fmax || '',
+          ftype: it.ftype || '',
+          fproduct: it.fproduct || '',
+          pieceRate: it.pieceRate || it.fPieceRate || 'N',
+          fPieceRate: it.fPieceRate || it.pieceRate || 'N',
+          brand: it.brand || '',
+          category: it.category || '',
+          model: it.model || '',
+          size: it.size || '',
+          product: it.product || '',
+          gstcheckbox: it.gstcheckbox || (it.ftax ? 'Y' : 'N')
+        }));
+      } catch (err) {
+        console.error('fetchPopupItems error', err);
+        return [];
+      }
+    },
+    []
+  );
 
 
   // Fetch functions for popups (Brand, Category, Product, Model, Size, Unit)
@@ -1037,8 +1037,8 @@ const fetchPopupItems = useCallback(
 
       return [];
     } catch (err) {
-    console.error('fetchModels error', err);
-    return [];
+      console.error('fetchModels error', err);
+      return [];
     }
   }, []);
 
@@ -1085,13 +1085,13 @@ const fetchPopupItems = useCallback(
   // NEW: Handle keyboard typing in popup fields - UPDATED SIMPLIFIED VERSION
   const handlePopupFieldKeyPress = (field, e) => {
     const key = e.key;
-    
+
     // Handle Backspace to clear the field
     if (key === 'Backspace') {
       e.preventDefault();
-      
+
       // Clear the field value and code
-      switch(field) {
+      switch (field) {
         case 'brand':
           setFormData(prev => ({ ...prev, brand: '' }));
           setFieldCodes(prev => ({ ...prev, brandCode: '' }));
@@ -1119,19 +1119,19 @@ const fetchPopupItems = useCallback(
       }
       return;
     }
-    
+
     // Only handle letter keys (a-z, A-Z) and number keys (0-9)
     if (key.length === 1 && /^[a-zA-Z0-9]$/.test(key)) {
       e.preventDefault();
-      
+
       // Store the typed key as initial search for this popup
       setInitialPopupSearch(prev => ({
         ...prev,
         [field]: key
       }));
-      
+
       // Open the appropriate popup
-      switch(field) {
+      switch (field) {
         case 'brand':
           setIsBrandPopupOpen(true);
           break;
@@ -1234,7 +1234,7 @@ const fetchPopupItems = useCallback(
       resetForm(true);
     }
     setIsTreeOpen(true);
-    
+
     if (type === 'edit' || type === 'delete') {
       // PopupListSelector will handle data fetching
     }
@@ -1242,7 +1242,7 @@ const fetchPopupItems = useCallback(
 
   const handleClear = () => {
     resetForm(false);
-    
+
   };
 
   const filteredTree = useMemo(() => {
@@ -1274,7 +1274,7 @@ const fetchPopupItems = useCallback(
 
     const allNodes = getAllNodes(filteredTree);
     const currentIndex = allNodes.findIndex(n => n.key === currentKey);
-    
+
     if (direction === "up") {
       const newIndex = Math.max(0, currentIndex - 1);
       const newNode = allNodes[newIndex];
@@ -1300,60 +1300,60 @@ const fetchPopupItems = useCallback(
   const fetchBrandsWithSearch = useCallback(async (page = 1, search = '') => {
     // If we have an initial search for brand, combine it with current search
     const initialSearch = initialPopupSearch.brand;
-    const effectiveSearch = initialSearch ? 
-      initialSearch + (search || '') : 
+    const effectiveSearch = initialSearch ?
+      initialSearch + (search || '') :
       search;
-    
+
     console.log('Fetching brands with search:', effectiveSearch);
     return fetchBrands(page, effectiveSearch);
   }, [fetchBrands, initialPopupSearch.brand]);
 
   const fetchCategoriesWithSearch = useCallback(async (page = 1, search = '') => {
     const initialSearch = initialPopupSearch.category;
-    const effectiveSearch = initialSearch ? 
-      initialSearch + (search || '') : 
+    const effectiveSearch = initialSearch ?
+      initialSearch + (search || '') :
       search;
-    
+
     console.log('Fetching categories with search:', effectiveSearch);
     return fetchCategories(page, effectiveSearch);
   }, [fetchCategories, initialPopupSearch.category]);
 
   const fetchProductsWithSearch = useCallback(async (page = 1, search = '') => {
     const initialSearch = initialPopupSearch.product;
-    const effectiveSearch = initialSearch ? 
-      initialSearch + (search || '') : 
+    const effectiveSearch = initialSearch ?
+      initialSearch + (search || '') :
       search;
-    
+
     console.log('Fetching products with search:', effectiveSearch);
     return fetchProducts(page, effectiveSearch);
   }, [fetchProducts, initialPopupSearch.product]);
 
   const fetchModelsWithSearch = useCallback(async (page = 1, search = '') => {
     const initialSearch = initialPopupSearch.model;
-    const effectiveSearch = initialSearch ? 
-      initialSearch + (search || '') : 
+    const effectiveSearch = initialSearch ?
+      initialSearch + (search || '') :
       search;
-    
+
     console.log('Fetching models with search:', effectiveSearch);
     return fetchModels(page, effectiveSearch);
   }, [fetchModels, initialPopupSearch.model]);
 
   const fetchSizesWithSearch = useCallback(async (page = 1, search = '') => {
     const initialSearch = initialPopupSearch.size;
-    const effectiveSearch = initialSearch ? 
-      initialSearch + (search || '') : 
+    const effectiveSearch = initialSearch ?
+      initialSearch + (search || '') :
       search;
-    
+
     console.log('Fetching sizes with search:', effectiveSearch);
     return fetchSizes(page, effectiveSearch);
   }, [fetchSizes, initialPopupSearch.size]);
 
   const fetchUnitsWithSearch = useCallback(async (page = 1, search = '') => {
     const initialSearch = initialPopupSearch.unit;
-    const effectiveSearch = initialSearch ? 
-      initialSearch + (search || '') : 
+    const effectiveSearch = initialSearch ?
+      initialSearch + (search || '') :
       search;
-    
+
     console.log('Fetching units with search:', effectiveSearch);
     return fetchUnits(page, effectiveSearch);
   }, [fetchUnits, initialPopupSearch.unit]);
@@ -2325,32 +2325,32 @@ const fetchPopupItems = useCallback(
             />
 
             <EditButton
-  onClick={(e) => {
-    e.currentTarget.blur();   // ✅ REMOVE focus from Edit button
-    changeActionType('edit');
-    setIsPopupOpen(true);
-  }}
-  disabled={isSubmitting || !formPermissions.edit}
-  isActive={actionType === 'edit'}
-/>
+              onClick={(e) => {
+                e.currentTarget.blur();   // ✅ REMOVE focus from Edit button
+                changeActionType('edit');
+                setIsPopupOpen(true);
+              }}
+              disabled={isSubmitting || !formPermissions.edit}
+              isActive={actionType === 'edit'}
+            />
 
 
-        <DeleteButton
-  onClick={(e) => {
-    e.currentTarget.blur();   // ✅ CRITICAL
-    changeActionType('delete');
-    setIsPopupOpen(true);
-  }}
-  disabled={isSubmitting || !formPermissions.delete}
-  isActive={actionType === 'delete'}
-/>
+            <DeleteButton
+              onClick={(e) => {
+                e.currentTarget.blur();   // ✅ CRITICAL
+                changeActionType('delete');
+                setIsPopupOpen(true);
+              }}
+              disabled={isSubmitting || !formPermissions.delete}
+              isActive={actionType === 'delete'}
+            />
 
           </div>
         </div>
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
-           
+
             {/* Item Name field */}
             <div className="field">
               <label className="field-label">Item Name <span className="asterisk">*</span></label>
@@ -2369,7 +2369,7 @@ const fetchPopupItems = useCallback(
                     className="input"
                     value={formData.itemName}
                     onChange={(e) => handleChange('itemName', e.target.value)}
-                    
+
                     disabled={isSubmitting || isDeleteMode}
                     aria-label="Item Name"
                     style={{
@@ -2385,94 +2385,94 @@ const fetchPopupItems = useCallback(
                 </div>
               </div>
             </div>
-             {/* Group Name field */}
-        <div className="field">
-  <label className="field-label">Group Name <span className="asterisk">*</span></label>
-  <div className="row" style={{ display: "flex", alignItems: "center" }}>
-    <div style={{ 
-      display: "flex", 
-      flex: 1, 
-      border: "1px solid rgba(15,23,42,0.06)",
-      borderRadius: "10px",
-      overflow: "hidden",
-      backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
-    }}>
-      <input
-        ref={groupNameRef}
-        className="input"
-        value={mainGroup}
-        onChange={(e) => {
-          setMainGroup(e.target.value);
-          // Open tree when typing
-          if (e.target.value.trim() && !isTreeOpen) {
-            setIsTreeOpen(true);
-          }
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            setIsTreeOpen(true); // Tree opens ONLY on Enter
-            // Focus first visible node
-            setTimeout(() => {
-              const firstNode = document.querySelector(".tree-row");
-              firstNode?.focus();
-            }, 50);
-          }
-          // Open tree when typing letters/numbers
-          else if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
-            setIsTreeOpen(true);
-          }
-        }}
-        disabled={isSubmitting || isDeleteMode}
-        readOnly={true}
-        aria-label="Group Name"
-        style={{ 
-          flex: 1,
-          border: "none",
-          borderRadius: "0",
-          padding: "10px 12px",
-          minWidth: "0",
-          fontSize: "14px",
-          outline: "none",
-          cursor: "pointer"
-        }}
-      />
-      <button
-        onClick={() => { if (!isDeleteMode && !isSubmitting) setIsTreeOpen(!isTreeOpen); }}
-        disabled={isSubmitting || isDeleteMode}
-        style={{
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          padding: "0 12px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--accent)"
-        }}
-        aria-label={isTreeOpen ? "Close tree" : "Open tree"}
-      >
-        <Icon.Chevron down={!isTreeOpen} />
-      </button>
-    </div>
-  </div>
+            {/* Group Name field */}
+            <div className="field">
+              <label className="field-label">Group Name <span className="asterisk">*</span></label>
+              <div className="row" style={{ display: "flex", alignItems: "center" }}>
+                <div style={{
+                  display: "flex",
+                  flex: 1,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
+                }}>
+                  <input
+                    ref={groupNameRef}
+                    className="input"
+                    value={mainGroup}
+                    onChange={(e) => {
+                      setMainGroup(e.target.value);
+                      // Open tree when typing
+                      if (e.target.value.trim() && !isTreeOpen) {
+                        setIsTreeOpen(true);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        setIsTreeOpen(true); // Tree opens ONLY on Enter
+                        // Focus first visible node
+                        setTimeout(() => {
+                          const firstNode = document.querySelector(".tree-row");
+                          firstNode?.focus();
+                        }, 50);
+                      }
+                      // Open tree when typing letters/numbers
+                      else if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
+                        setIsTreeOpen(true);
+                      }
+                    }}
+                    disabled={isSubmitting || isDeleteMode}
+                    readOnly={true}
+                    aria-label="Group Name"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderRadius: "0",
+                      padding: "10px 12px",
+                      minWidth: "0",
+                      fontSize: "14px",
+                      outline: "none",
+                      cursor: "pointer"
+                    }}
+                  />
+                  <button
+                    onClick={() => { if (!isDeleteMode && !isSubmitting) setIsTreeOpen(!isTreeOpen); }}
+                    disabled={isSubmitting || isDeleteMode}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "0 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--accent)"
+                    }}
+                    aria-label={isTreeOpen ? "Close tree" : "Open tree"}
+                  >
+                    <Icon.Chevron down={!isTreeOpen} />
+                  </button>
+                </div>
+              </div>
 
-  {isTreeOpen && (
-    isMobile ? (
-      <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
-        <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <h3 style={{ margin: 0, fontSize: 18 }}>Groups</h3>
-            <button
-              onClick={() => setIsTreeOpen(false)}
-              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-              aria-label="Close"
-            >
-              <Icon.Close />
-            </button>
-          </div>
+              {isTreeOpen && (
+                isMobile ? (
+                  <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <h3 style={{ margin: 0, fontSize: 18 }}>Groups</h3>
+                        <button
+                          onClick={() => setIsTreeOpen(false)}
+                          style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
+                          aria-label="Close"
+                        >
+                          <Icon.Close />
+                        </button>
+                      </div>
 
-          {/* <div className="row" style={{ marginBottom: 8 }}>
+                      {/* <div className="row" style={{ marginBottom: 8 }}>
             <div className="search-container">
               <input
                 className="search-with-clear"
@@ -2494,49 +2494,49 @@ const fetchPopupItems = useCallback(
             </div>
           </div> */}
 
-          <div
-            className="tree-scroll"
-            role="tree"
-            aria-label="Group list"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setIsTreeOpen(false);
-                groupNameRef.current?.focus(); // Return focus to input
-              }
-            }}
-          >
-            {loading ? (
-              <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-            ) : filteredTree.length === 0 ? (
-              <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-            ) : (
-              filteredTree.map((node) => (
-                <TreeNode
-                  key={node.key}
-                  node={node}
-                  onSelect={(n) => { 
-                    handleSelectNode(n); 
-                    setIsTreeOpen(false);
-                    // Focus item name field after selection
-                    setTimeout(() => {
-                      itemNameRef.current?.focus();
-                    }, 10);
-                  }}
-                  expandedKeys={expandedKeys}
-                  toggleExpand={toggleExpand}
-                  selectedKey={selectedNode?.key}
-                  onNavigate={handleTreeNavigation}
-                />
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    ) : (
-      <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
-        {/* Header with close button for desktop */}
-        {/* <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div
+                        className="tree-scroll"
+                        role="tree"
+                        aria-label="Group list"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            setIsTreeOpen(false);
+                            groupNameRef.current?.focus(); // Return focus to input
+                          }
+                        }}
+                      >
+                        {loading ? (
+                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
+                        ) : filteredTree.length === 0 ? (
+                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+                        ) : (
+                          filteredTree.map((node) => (
+                            <TreeNode
+                              key={node.key}
+                              node={node}
+                              onSelect={(n) => {
+                                handleSelectNode(n);
+                                setIsTreeOpen(false);
+                                // Focus item name field after selection
+                                setTimeout(() => {
+                                  itemNameRef.current?.focus();
+                                }, 10);
+                              }}
+                              expandedKeys={expandedKeys}
+                              toggleExpand={toggleExpand}
+                              selectedKey={selectedNode?.key}
+                              onNavigate={handleTreeNavigation}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
+                    {/* Header with close button for desktop */}
+                    {/* <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div className="search-container">
             <input
               className="search-with-clear"
@@ -2565,47 +2565,47 @@ const fetchPopupItems = useCallback(
           </button>
         </div> */}
 
-        <div
-          className="tree-scroll"
-          role="tree"
-          aria-label="Group list"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              setIsTreeOpen(false);
-              groupNameRef.current?.focus(); // Return focus to input
-            }
-          }}
-        >
-          {loading ? (
-            <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-          ) : filteredTree.length === 0 ? (
-            <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-          ) : (
-            filteredTree.map((node) => (
-              <TreeNode
-                key={node.key}
-                node={node}
-                onSelect={(n) => { 
-                  handleSelectNode(n); 
-                  setIsTreeOpen(false);
-                  // Focus item name field after selection
-                  setTimeout(() => {
-                    shortNameRef.current?.focus();
-                  }, 10);
-                }}
-                expandedKeys={expandedKeys}
-                toggleExpand={toggleExpand}
-                selectedKey={selectedNode?.key}
-                onNavigate={handleTreeNavigation}
-              />
-            ))
-          )}
-        </div>
-      </div>
-    )
-  )}
-</div>
+                    <div
+                      className="tree-scroll"
+                      role="tree"
+                      aria-label="Group list"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setIsTreeOpen(false);
+                          groupNameRef.current?.focus(); // Return focus to input
+                        }
+                      }}
+                    >
+                      {loading ? (
+                        <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
+                      ) : filteredTree.length === 0 ? (
+                        <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+                      ) : (
+                        filteredTree.map((node) => (
+                          <TreeNode
+                            key={node.key}
+                            node={node}
+                            onSelect={(n) => {
+                              handleSelectNode(n);
+                              setIsTreeOpen(false);
+                              // Focus item name field after selection
+                              setTimeout(() => {
+                                shortNameRef.current?.focus();
+                              }, 10);
+                            }}
+                            expandedKeys={expandedKeys}
+                            toggleExpand={toggleExpand}
+                            selectedKey={selectedNode?.key}
+                            onNavigate={handleTreeNavigation}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
 
             {/* Short Name field */}
             <div className="field">
@@ -2625,7 +2625,7 @@ const fetchPopupItems = useCallback(
                     className="input"
                     value={formData.shortName}
                     onChange={(e) => handleChange('shortName', e.target.value)}
-                    
+
                     disabled={isSubmitting || isDeleteMode}
                     aria-label="Short Name"
                     style={{
@@ -2673,7 +2673,7 @@ const fetchPopupItems = useCallback(
                       disabled={isSubmitting}
                       aria-label="Clear brand"
                     >
-                    
+
                     </button>
                   )}
                   <div className="input-search-icon">
@@ -2711,7 +2711,7 @@ const fetchPopupItems = useCallback(
                       disabled={isSubmitting}
                       aria-label="Clear category"
                     >
-                    
+
                     </button>
                   )}
                   <div className="input-search-icon">
@@ -2749,7 +2749,7 @@ const fetchPopupItems = useCallback(
                       disabled={isSubmitting}
                       aria-label="Clear product"
                     >
-                    
+
                     </button>
                   )}
                   <div className="input-search-icon">
@@ -2787,7 +2787,7 @@ const fetchPopupItems = useCallback(
                       disabled={isSubmitting}
                       aria-label="Clear model"
                     >
-                    
+
                     </button>
                   )}
                   <div className="input-search-icon">
@@ -2797,84 +2797,84 @@ const fetchPopupItems = useCallback(
               </div>
 
               {/* Size */}
-             <div className="field">
-  <label className="field-label">Size</label>
-  <div className="input-with-search">
-    <input
-      ref={sizeRef}
-      className="input"
-      value={formData.size}
-      onChange={(e) => handleChange('size', e.target.value)}
-      onClick={() => setIsSizePopupOpen(true)}
-      onKeyDown={(e) => handlePopupFieldKeyPress('size', e)}
-      onFocus={() => setActiveField('size')}
-      onBlur={() => setActiveField(null)}
-      disabled={isSubmitting || isDeleteMode}
-      readOnly
-      aria-label="Size"
-    />
-    {formData.size && activeField === 'size' && (
-      <button
-        type="button"
-        className="input-clear-btn"
-        onClick={() => {
-          setFormData(prev => ({ ...prev, size: '' }));
-          setFieldCodes(prev => ({ ...prev, sizeCode: '' }));
-        }}
-        title="Clear size selection"
-        disabled={isSubmitting}
-        aria-label="Clear size"
-      >
-        <Icon.Close size={14} />
-      </button>
-    )}
-    <div className="input-search-icon">
-      <Icon.Search size={16} />
-    </div>
-  </div>
-</div>
+              <div className="field">
+                <label className="field-label">Size</label>
+                <div className="input-with-search">
+                  <input
+                    ref={sizeRef}
+                    className="input"
+                    value={formData.size}
+                    onChange={(e) => handleChange('size', e.target.value)}
+                    onClick={() => setIsSizePopupOpen(true)}
+                    onKeyDown={(e) => handlePopupFieldKeyPress('size', e)}
+                    onFocus={() => setActiveField('size')}
+                    onBlur={() => setActiveField(null)}
+                    disabled={isSubmitting || isDeleteMode}
+                    readOnly
+                    aria-label="Size"
+                  />
+                  {formData.size && activeField === 'size' && (
+                    <button
+                      type="button"
+                      className="input-clear-btn"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, size: '' }));
+                        setFieldCodes(prev => ({ ...prev, sizeCode: '' }));
+                      }}
+                      title="Clear size selection"
+                      disabled={isSubmitting}
+                      aria-label="Clear size"
+                    >
+                      <Icon.Close size={14} />
+                    </button>
+                  )}
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
 
               {/* Units */}
               <div className="field">
-  <label className="field-label">
-    Units
-    <span className="asterisk">*</span>
-  </label>
-  <div className="input-with-search">
-    <input
-      ref={unitRef}
-      className="input"
-      value={formData.unit}
-      onChange={(e) => handleChange('unit', e.target.value)}
-      onClick={() => { if (!isDeleteMode && !isSubmitting) setIsUnitPopupOpen(true); }}
-      onKeyDown={(e) => handlePopupFieldKeyPress('unit', e)}
-      onFocus={() => setActiveField('unit')}
-      onBlur={() => setActiveField(null)}
-      disabled={isSubmitting || isDeleteMode}
-      readOnly
-      aria-label="Units"
-      required
-    />
-    {formData.unit && activeField === 'unit' && (
-      <button
-        type="button"
-        className="input-clear-btn"
-        onClick={() => {
-          setFormData(prev => ({ ...prev, unit: '' }));
-          setFieldCodes(prev => ({ ...prev, unitCode: '' }));
-        }}
-        title="Clear unit selection"
-        disabled={isSubmitting}
-        aria-label="Clear unit"
-      >
-      
-      </button>
-    )}
-    <div className="input-search-icon">
-      <Icon.Search size={16} />
-    </div>
-  </div>
-</div>
+                <label className="field-label">
+                  Units
+                  <span className="asterisk">*</span>
+                </label>
+                <div className="input-with-search">
+                  <input
+                    ref={unitRef}
+                    className="input"
+                    value={formData.unit}
+                    onChange={(e) => handleChange('unit', e.target.value)}
+                    onClick={() => { if (!isDeleteMode && !isSubmitting) setIsUnitPopupOpen(true); }}
+                    onKeyDown={(e) => handlePopupFieldKeyPress('unit', e)}
+                    onFocus={() => setActiveField('unit')}
+                    onBlur={() => setActiveField(null)}
+                    disabled={isSubmitting || isDeleteMode}
+                    readOnly
+                    aria-label="Units"
+                    required
+                  />
+                  {formData.unit && activeField === 'unit' && (
+                    <button
+                      type="button"
+                      className="input-clear-btn"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, unit: '' }));
+                        setFieldCodes(prev => ({ ...prev, unitCode: '' }));
+                      }}
+                      title="Clear unit selection"
+                      disabled={isSubmitting}
+                      aria-label="Clear unit"
+                    >
+
+                    </button>
+                  )}
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+              </div>
 
               {/* LEFT SIDE: Min */}
               <div className="field">
@@ -2884,10 +2884,10 @@ const fetchPopupItems = useCallback(
                   className="input"
                   value={formData.min}
                   onChange={(e) => handleChange('min', e.target.value)}
-                  
-                    disabled={isSubmitting || isDeleteMode}
+
+                  disabled={isSubmitting || isDeleteMode}
                   aria-label="Min"
-                  style={{ textAlign: "center" ,width:300}}
+                  style={{ textAlign: "center", width: 300 }}
                 />
               </div>
 
@@ -2899,215 +2899,215 @@ const fetchPopupItems = useCallback(
                   className="input"
                   value={formData.max}
                   onChange={(e) => handleChange('max', e.target.value)}
-                 
-                    disabled={isSubmitting || isDeleteMode}
+
+                  disabled={isSubmitting || isDeleteMode}
                   aria-label="Max"
-                  style={{ textAlign: "center" ,width:300}}
+                  style={{ textAlign: "center", width: 300 }}
                 />
               </div>
 
               {/* LEFT SIDE: HSN Code */}
-           <div className="field">
-  <label className="field-label">
-    HSN Code
-    <span className="asterisk">*</span>
-  </label>
-  <input
-    ref={hsnCodeRef}
-    className="input"
-    value={formData.hsnCode}
-    onChange={(e) => {
-      const value = e.target.value;
-      // Allow any combination: only letters, only digits, or alphanumeric
-      if (/^[a-zA-Z0-9]{0,20}$/.test(value)) {
-        handleChange('hsnCode', value.toUpperCase());
-      }
-    }}
-    disabled={isSubmitting || isDeleteMode}
-    aria-label="HSN Code"
-    title="Alphanumeric HSN Code (max 20 characters)"
-    style={{ textAlign: "center", width: 300 }}
-    required
-  />
-</div>
+              <div className="field">
+                <label className="field-label">
+                  HSN Code
+                  <span className="asterisk">*</span>
+                </label>
+                <input
+                  ref={hsnCodeRef}
+                  className="input"
+                  value={formData.hsnCode}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow any combination: only letters, only digits, or alphanumeric
+                    if (/^[a-zA-Z0-9]{0,20}$/.test(value)) {
+                      handleChange('hsnCode', value.toUpperCase());
+                    }
+                  }}
+                  disabled={isSubmitting || isDeleteMode}
+                  aria-label="HSN Code"
+                  title="Alphanumeric HSN Code (max 20 characters)"
+                  style={{ textAlign: "center", width: 300 }}
+                  required
+                />
+              </div>
               {/* RIGHT SIDE: Type Dropdown - MOVED to replace Piece Rate */}
-       <div className="field">
-  <label className="field-label">
-    Type <span className="asterisk">*</span>
-  </label>
-  <select
-    ref={typeRef}
-    className="select"
-    value={formData.type}
-    onChange={(e) => {
-      handleChange('type', e.target.value);
-      e.target.size = 0; // Close dropdown after selection
-    }}
-    onKeyDown={(e) => {
-      const selectElement = e.target;
-      const options = selectElement.options;
-      const selectedIndex = selectElement.selectedIndex;
-      
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        // Toggle dropdown on Enter
-        if (selectElement.size === 0) {
-          selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
-        } else {
-          selectElement.size = 0; // Close dropdown
-          handleChange('type', selectElement.value);
-        }
-      } 
-      else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        
-        if (selectElement.size === 0) {
-          // If dropdown is closed, open it first
-          selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
-          return;
-        }
-        
-        // Move down through options
-        let newIndex;
-        if (selectedIndex === options.length - 1) {
-          newIndex = 0; // Wrap to first option
-        } else {
-          newIndex = selectedIndex + 1;
-        }
-        
-        // Update selection
-        selectElement.selectedIndex = newIndex;
-        handleChange('type', options[newIndex].value);
-      } 
-      else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        
-        if (selectElement.size === 0) {
-          // If dropdown is closed, open it first
-          selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
-          return;
-        }
-        
-        // Move up through options
-        let newIndex;
-        if (selectedIndex <= 0) {
-          newIndex = options.length - 1; // Wrap to last option
-        } else {
-          newIndex = selectedIndex - 1;
-        }
-        
-        // Update selection
-        selectElement.selectedIndex = newIndex;
-        handleChange('type', options[newIndex].value);
-      }
-    }}
-    onBlur={(e) => {
-      // Close dropdown when losing focus
-      e.target.size = 0;
-    }}
-    onClick={(e) => {
-      // Toggle dropdown on click
-      if (e.target.size === 0) {
-        e.target.size = 3; // 3 options: empty placeholder + scrap + finished
-      } else {
-        e.target.size = 0;
-      }
-    }}
-    size={0}
-    disabled={isSubmitting || isDeleteMode}
-    aria-label="Type"
-    style={{ textAlign: "center", width: 300 }}
-    required // This makes it mandatory for HTML form validation
-  >
-    <option value="" disabled selected>
-      {/* Empty placeholder */}
-    </option>
-    <option value="SC">Scrap Product</option>
-    <option value="FG">Finished Product</option>
-  </select>
-</div>
+              <div className="field">
+                <label className="field-label">
+                  Type <span className="asterisk">*</span>
+                </label>
+                <select
+                  ref={typeRef}
+                  className="select"
+                  value={formData.type}
+                  onChange={(e) => {
+                    handleChange('type', e.target.value);
+                    e.target.size = 0; // Close dropdown after selection
+                  }}
+                  onKeyDown={(e) => {
+                    const selectElement = e.target;
+                    const options = selectElement.options;
+                    const selectedIndex = selectElement.selectedIndex;
+
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      // Toggle dropdown on Enter
+                      if (selectElement.size === 0) {
+                        selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
+                      } else {
+                        selectElement.size = 0; // Close dropdown
+                        handleChange('type', selectElement.value);
+                      }
+                    }
+                    else if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+
+                      if (selectElement.size === 0) {
+                        // If dropdown is closed, open it first
+                        selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
+                        return;
+                      }
+
+                      // Move down through options
+                      let newIndex;
+                      if (selectedIndex === options.length - 1) {
+                        newIndex = 0; // Wrap to first option
+                      } else {
+                        newIndex = selectedIndex + 1;
+                      }
+
+                      // Update selection
+                      selectElement.selectedIndex = newIndex;
+                      handleChange('type', options[newIndex].value);
+                    }
+                    else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+
+                      if (selectElement.size === 0) {
+                        // If dropdown is closed, open it first
+                        selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
+                        return;
+                      }
+
+                      // Move up through options
+                      let newIndex;
+                      if (selectedIndex <= 0) {
+                        newIndex = options.length - 1; // Wrap to last option
+                      } else {
+                        newIndex = selectedIndex - 1;
+                      }
+
+                      // Update selection
+                      selectElement.selectedIndex = newIndex;
+                      handleChange('type', options[newIndex].value);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    // Close dropdown when losing focus
+                    e.target.size = 0;
+                  }}
+                  onClick={(e) => {
+                    // Toggle dropdown on click
+                    if (e.target.size === 0) {
+                      e.target.size = 3; // 3 options: empty placeholder + scrap + finished
+                    } else {
+                      e.target.size = 0;
+                    }
+                  }}
+                  size={0}
+                  disabled={isSubmitting || isDeleteMode}
+                  aria-label="Type"
+                  style={{ textAlign: "center", width: 300 }}
+                  required // This makes it mandatory for HTML form validation
+                >
+                  <option value="" disabled selected>
+                    {/* Empty placeholder */}
+                  </option>
+                  <option value="SC">Scrap Product</option>
+                  <option value="FG">Finished Product</option>
+                </select>
+              </div>
               {/* LEFT SIDE: GST Checkbox */}
-             <div className="field">
-  <div 
-    className="checkbox-group" 
-    onClick={() => { if (!isDeleteMode) handleGstToggle(); }}
-    onKeyDown={(e) => {
-      if (!isDeleteMode && e.key === ' ') {
-        e.preventDefault();
-        handleGstToggle();
-      }
-    }}
-    role="checkbox"
-    tabIndex={isDeleteMode ? -1 : 0}
-    aria-checked={gstChecked}
-    aria-disabled={isDeleteMode}
-  >
-    <div 
-      className={`checkbox ${gstChecked ? 'checked' : ''}`}
-    />
-    <span className="checkbox-label">GST</span>
-  </div>
-</div>
+              <div className="field">
+                <div
+                  className="checkbox-group"
+                  onClick={() => { if (!isDeleteMode) handleGstToggle(); }}
+                  onKeyDown={(e) => {
+                    if (!isDeleteMode && e.key === ' ') {
+                      e.preventDefault();
+                      handleGstToggle();
+                    }
+                  }}
+                  role="checkbox"
+                  tabIndex={isDeleteMode ? -1 : 0}
+                  aria-checked={gstChecked}
+                  aria-disabled={isDeleteMode}
+                >
+                  <div
+                    className={`checkbox ${gstChecked ? 'checked' : ''}`}
+                  />
+                  <span className="checkbox-label">GST</span>
+                </div>
+              </div>
 
               {/* RIGHT SIDE: GST% */}
-            <div className="field">
-  <label className="field-label">
-    GST%
-    <span className="asterisk">*</span>
-  </label>
-  <input
-    ref={gstinRef}
-    className="input"
-    value={formData.gstin}
-    onChange={(e) => {
-      const value = e.target.value;
-      // Allow empty or numbers only
-      if (/^\d{0,2}$/.test(value)) {
-        handleChange('gstin', value);
-      }
-    }}
-    onBlur={() => {
-      // Validate GST value when user leaves the field
-      const allowedGSTValues = ['0', '3', '5', '12', '18', '28'];
-      const gstValue = formData.gstin;
-      if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
-        // Show error message
-        setMessage({ type: "error", text: 'Only 0, 3, 5, 12, 18,, or 28 are allowed for GST%.' });
-        // Clear invalid value
-        handleChange('gstin', '');
-        // Focus back to show error
-        setTimeout(() => gstinRef.current?.focus(), 10);
-      }
-    }}
-    disabled={isSubmitting || isDeleteMode}
-    aria-label="GST Percentage"
-    style={{ textAlign: "center", width: 300 }}
-    required
-  />
-</div>
+              <div className="field">
+                <label className="field-label">
+                  GST%
+                  <span className="asterisk">*</span>
+                </label>
+                <input
+                  ref={gstinRef}
+                  className="input"
+                  value={formData.gstin}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty or numbers only
+                    if (/^\d{0,2}$/.test(value)) {
+                      handleChange('gstin', value);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Validate GST value when user leaves the field
+                    const allowedGSTValues = ['0', '3', '5', '12', '18', '28'];
+                    const gstValue = formData.gstin;
+                    if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
+                      // Show error message
+                      setMessage({ type: "error", text: 'Only 0, 3, 5, 12, 18,, or 28 are allowed for GST%.' });
+                      // Clear invalid value
+                      handleChange('gstin', '');
+                      // Focus back to show error
+                      setTimeout(() => gstinRef.current?.focus(), 10);
+                    }
+                  }}
+                  disabled={isSubmitting || isDeleteMode}
+                  aria-label="GST Percentage"
+                  style={{ textAlign: "center", width: 300 }}
+                  required
+                />
+              </div>
 
               {/* LEFT SIDE: Manual Prefix Checkbox */}
-             <div className="field">
-  <div 
-    className="checkbox-group" 
-    onClick={() => { if (!isDeleteMode) handleManualPrefixToggle(); }}
-    onKeyDown={(e) => {
-      if (!isDeleteMode && e.key === ' ') {
-        e.preventDefault();
-        handleManualPrefixToggle();
-      }
-    }}
-    role="checkbox"
-    tabIndex={isDeleteMode ? -1 : 0}
-    aria-checked={manualPrefixChecked}
-    aria-disabled={isDeleteMode}
-  >
-    <div 
-      className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
-    />
-    <span className="checkbox-label">Manual Prefix</span>
-  </div>
-</div>
+              <div className="field">
+                <div
+                  className="checkbox-group"
+                  onClick={() => { if (!isDeleteMode) handleManualPrefixToggle(); }}
+                  onKeyDown={(e) => {
+                    if (!isDeleteMode && e.key === ' ') {
+                      e.preventDefault();
+                      handleManualPrefixToggle();
+                    }
+                  }}
+                  role="checkbox"
+                  tabIndex={isDeleteMode ? -1 : 0}
+                  aria-checked={manualPrefixChecked}
+                  aria-disabled={isDeleteMode}
+                >
+                  <div
+                    className={`checkbox ${manualPrefixChecked ? 'checked' : ''}`}
+                  />
+                  <span className="checkbox-label">Manual Prefix</span>
+                </div>
+              </div>
 
               {/* RIGHT SIDE: Prefix */}
               <div className="field">
@@ -3121,90 +3121,90 @@ const fetchPopupItems = useCallback(
                       handleChange('prefix', e.target.value);
                     }
                   }}
-                 
+
                   disabled={isSubmitting || !manualPrefixChecked || isDeleteMode}
                   aria-label="Prefix"
-                    style={{ textAlign: "center" ,width:300}}
+                  style={{ textAlign: "center", width: 300 }}
                 />
               </div>
 
               {/* LEFT SIDE: Cost Price - Changed to text input with validation */}
-             <div className="field">
-  <label className="field-label">Cost Price</label>
-  <input
-    ref={costPriceRef}
-    className="input"
-    value={formData.costPrice}
-    onChange={(e) => {
-      // Allow only numbers and decimal point
-      const value = e.target.value;
-      if (/^\d*\.?\d{0,2}$/.test(value)) {
-        handleChange('costPrice', value);
-      }
-    }}
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Move to Selling Price field
-        sellingPriceRef.current?.focus();
-      }
-    }}
-    disabled={isSubmitting || isDeleteMode}
-    aria-label="Cost Price"
-    style={{ textAlign: "center", width: 300 }}
-    // Use text type instead of number to remove spinners
-    type="text"
-    inputMode="decimal"
-  />
-</div>
+              <div className="field">
+                <label className="field-label">Cost Price</label>
+                <input
+                  ref={costPriceRef}
+                  className="input"
+                  value={formData.costPrice}
+                  onChange={(e) => {
+                    // Allow only numbers and decimal point
+                    const value = e.target.value;
+                    if (/^\d*\.?\d{0,2}$/.test(value)) {
+                      handleChange('costPrice', value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
 
-{/* RIGHT SIDE: Selling Price - Changed to text input with validation */}
-<div className="field">
-  <label className="field-label">Selling Price</label>
-  <input
-    ref={sellingPriceRef}
-    className="input"
-    value={formData.sellingPrice}
-    onChange={(e) => {
-      // Allow only numbers and decimal point
-      const value = e.target.value;
-      if (/^\d*\.?\d{0,2}$/.test(value)) {
-        handleChange('sellingPrice', value);
-      }
-    }}
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        e.stopPropagation(); // 🔥 REQUIRED
+                      // Move to Selling Price field
+                      sellingPriceRef.current?.focus();
+                    }
+                  }}
+                  disabled={isSubmitting || isDeleteMode}
+                  aria-label="Cost Price"
+                  style={{ textAlign: "center", width: 300 }}
+                  // Use text type instead of number to remove spinners
+                  type="text"
+                  inputMode="decimal"
+                />
+              </div>
 
-        // Validation
-        if (!formData.itemName) {
-          setMessage({ type: "error", text: 'Please enter Item Name.' });
-          itemNameRef.current?.focus();
-          return;
-        }
+              {/* RIGHT SIDE: Selling Price - Changed to text input with validation */}
+              <div className="field">
+                <label className="field-label">Selling Price</label>
+                <input
+                  ref={sellingPriceRef}
+                  className="input"
+                  value={formData.sellingPrice}
+                  onChange={(e) => {
+                    // Allow only numbers and decimal point
+                    const value = e.target.value;
+                    if (/^\d*\.?\d{0,2}$/.test(value)) {
+                      handleChange('sellingPrice', value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation(); // 🔥 REQUIRED
 
-        if (!mainGroup) {
-          setMessage({ type: "error", text: 'Please select Group Name.' });
-          return;
-        }
+                      // Validation
+                      if (!formData.itemName) {
+                        setMessage({ type: "error", text: 'Please enter Item Name.' });
+                        itemNameRef.current?.focus();
+                        return;
+                      }
 
-        // Open confirmation dialog
-        if (actionType === 'create') showCreateConfirmation();
-        else if (actionType === 'edit') showEditConfirmation();
-        else if (actionType === 'delete') showDeleteConfirmation();
-      }
-    }}
-    disabled={isSubmitting || isDeleteMode}
-    aria-label="Selling Price"
-    style={{ textAlign: "center", width: 300 }}
-    // Use text type instead of number to remove spinners
-    type="text"
-    inputMode="decimal"
-  />
-</div>
+                      if (!mainGroup) {
+                        setMessage({ type: "error", text: 'Please select Group Name.' });
+                        return;
+                      }
+
+                      // Open confirmation dialog
+                      if (actionType === 'create') showCreateConfirmation();
+                      else if (actionType === 'edit') showEditConfirmation();
+                      else if (actionType === 'delete') showDeleteConfirmation();
+                    }
+                  }}
+                  disabled={isSubmitting || isDeleteMode}
+                  aria-label="Selling Price"
+                  style={{ textAlign: "center", width: 300 }}
+                  // Use text type instead of number to remove spinners
+                  type="text"
+                  inputMode="decimal"
+                />
+              </div>
               {/* Piece Rate Checkbox - REMOVED (replaced by Type dropdown above) */}
             </div>
 
@@ -3241,7 +3241,7 @@ const fetchPopupItems = useCallback(
                   if (e.key === 'Enter' && actionType === 'delete') {
                     e.preventDefault();
                     e.stopPropagation();
-                    
+
                     if (!formData.itemName) {
                       setMessage({ type: "error", text: 'Please enter Item Name.' });
                       itemNameRef.current?.focus();
@@ -3251,7 +3251,7 @@ const fetchPopupItems = useCallback(
                       setMessage({ type: "error", text: 'Please select Group Name.' });
                       return;
                     }
-                    
+
                     showDeleteConfirmation();
                   }
                 }}
@@ -3259,9 +3259,9 @@ const fetchPopupItems = useCallback(
                 type="button"
                 id="action-button"
               >
-                {isLoading ? "Processing..." : 
-                 actionType === 'create' ? 'Save' : 
-                 actionType === 'edit' ? 'Update' : 'Delete'}
+                {isLoading ? "Processing..." :
+                  actionType === 'create' ? 'Save' :
+                    actionType === 'edit' ? 'Update' : 'Delete'}
               </button>
               <button
                 className="submit-clear"
@@ -3274,7 +3274,7 @@ const fetchPopupItems = useCallback(
             </div>
           </div>
 
-          
+
         </div>
       </div>
 
@@ -3351,222 +3351,227 @@ const fetchPopupItems = useCallback(
       />
 
       {/* PopupListSelector for Brand Selection */}
-     <PopupListSelector
-  open={isBrandPopupOpen}
-  onClose={() => {
-    setIsBrandPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
-  }}
-  onSelect={(item) => {
-    setFormData(prev => ({ ...prev, brand: item.fname || '' }));
-    setFieldCodes(prev => ({ ...prev, brandCode: item.fcode || '' }));
-    setIsBrandPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
-  }}
-  fetchItems={fetchBrandsWithSearch}
-  title="Select Brand"
-  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
-  searchFields={['fname', 'fcode']}
-  headerNames={['Brand Name']}  // CHANGED: Single header for name only
-  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
-  maxHeight="60vh"
-  responsiveBreakpoint={640}
-  initialSearch={initialPopupSearch.brand}
-/>
+      <PopupListSelector
+        open={isBrandPopupOpen}
+        onClose={() => {
+          setIsBrandPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
+        }}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, brand: item.fname || '' }));
+          setFieldCodes(prev => ({ ...prev, brandCode: item.fcode || '' }));
+          setIsBrandPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, brand: '' }));
+        }}
+        fetchItems={fetchBrandsWithSearch}
+        title="Select Brand"
+        displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+        searchFields={['fname', 'fcode']}
+        headerNames={['Brand Name']}  // CHANGED: Single header for name only
+        columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.brand}
+      />
 
       {/* PopupListSelector for Category Selection */}
-     <PopupListSelector
-  open={isCategoryPopupOpen}
-  onClose={() => {
-    setIsCategoryPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, category: '' }));
-  }}
-  onSelect={(item) => {
-    setFormData(prev => ({ ...prev, category: item.fname || '' }));
-    setFieldCodes(prev => ({ ...prev, categoryCode: item.fcode || '' }));
-    setIsCategoryPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, category: '' }));
-  }}
-  fetchItems={fetchCategoriesWithSearch}
-  title="Select Category"
-  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
-  searchFields={['fname', 'fcode']}
-  headerNames={['Category Name']}  // CHANGED: Single header for name only
-  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
-  maxHeight="60vh"
-  responsiveBreakpoint={640}
-  initialSearch={initialPopupSearch.category}
-/>
+      <PopupListSelector
+        open={isCategoryPopupOpen}
+        onClose={() => {
+          setIsCategoryPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, category: '' }));
+        }}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, category: item.fname || '' }));
+          setFieldCodes(prev => ({ ...prev, categoryCode: item.fcode || '' }));
+          setIsCategoryPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, category: '' }));
+        }}
+        fetchItems={fetchCategoriesWithSearch}
+        title="Select Category"
+        displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+        searchFields={['fname', 'fcode']}
+        headerNames={['Category Name']}  // CHANGED: Single header for name only
+        columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.category}
+      />
 
       {/* PopupListSelector for Product Selection */}
       <PopupListSelector
-  open={isProductPopupOpen}
-  onClose={() => {
-    setIsProductPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, product: '' }));
-  }}
-  onSelect={(item) => {
-    setFormData(prev => ({ ...prev, product: item.fname || '' }));
-    setFieldCodes(prev => ({ ...prev, productCode: item.fcode || '' }));
-    setIsProductPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, product: '' }));
-  }}
-  fetchItems={fetchProductsWithSearch}
-  title="Select Product"
-  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
-  searchFields={['fname', 'fcode']}
-  headerNames={['Product Name']}  // CHANGED: Single header for name only
-  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
-  maxHeight="60vh"
-  responsiveBreakpoint={640}
-  initialSearch={initialPopupSearch.product}
-/>
+        open={isProductPopupOpen}
+        onClose={() => {
+          setIsProductPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, product: '' }));
+        }}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, product: item.fname || '' }));
+          setFieldCodes(prev => ({ ...prev, productCode: item.fcode || '' }));
+          setIsProductPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, product: '' }));
+        }}
+        fetchItems={fetchProductsWithSearch}
+        title="Select Product"
+        displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+        searchFields={['fname', 'fcode']}
+        headerNames={['Product Name']}  // CHANGED: Single header for name only
+        columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.product}
+      />
       {/* PopupListSelector for Model Selection */}
       <PopupListSelector
-  open={isModelPopupOpen}
-  onClose={() => {
-    setIsModelPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, model: '' }));
-  }}
-  onSelect={(item) => {
-    setFormData(prev => ({ ...prev, model: item.fname || '' }));
-    setFieldCodes(prev => ({ ...prev, modelCode: item.fcode || '' }));
-    setIsModelPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, model: '' }));
-  }}
-  fetchItems={fetchModelsWithSearch}
-  title="Select Model"
-  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
-  searchFields={['fname', 'fcode']}
-  headerNames={['Model Name']}  // CHANGED: Single header for name only
-  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
-  maxHeight="60vh"
-  responsiveBreakpoint={640}
-  initialSearch={initialPopupSearch.model}
-/>
+        open={isModelPopupOpen}
+        onClose={() => {
+          setIsModelPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, model: '' }));
+        }}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, model: item.fname || '' }));
+          setFieldCodes(prev => ({ ...prev, modelCode: item.fcode || '' }));
+          setIsModelPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, model: '' }));
+        }}
+        fetchItems={fetchModelsWithSearch}
+        title="Select Model"
+        displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+        searchFields={['fname', 'fcode']}
+        headerNames={['Model Name']}  // CHANGED: Single header for name only
+        columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.model}
+      />
       {/* PopupListSelector for Size Selection */}
-   <CheckboxPopup
-  open={isSizePopupOpen}
-  initialSelectedCodes={selectedSizes.map(s => s.fcode)}
-  onClose={() => {
-    setIsSizePopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, size: '' }));
-  }}
-  onSelect={(items) => {
-    // CheckboxPopup now returns an array of selected items
-    const sel = Array.isArray(items) ? items : (items ? [items] : []);
-    // persist selection so reopening the popup shows previous choices
-    setSelectedSizes(sel);
-    const names = sel.map(it => it.fname || it.fsize || it.name || '').filter(Boolean).join(', ');
-    const codes = sel.map(it => it.fcode || '').filter(Boolean).join(',');
-    setFormData(prev => ({ ...prev, size: names }));
-    setFieldCodes(prev => ({ ...prev, sizeCode: codes }));
-    setIsSizePopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, size: '' }));
-  }}
-  fetchItems={fetchSizesWithSearch}
-  title="Select Size"
-  maxHeight="60vh"
-  variant="size"
-/>
-      
+      <CheckboxPopup
+        open={isSizePopupOpen}
+        initialSelectedCodes={selectedSizes.map(s => s.fcode)}
+        onClose={() => {
+          setIsSizePopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, size: '' }));
+        }}
+        onSelect={(items) => {
+          // CheckboxPopup now returns an array of selected items
+          const sel = Array.isArray(items) ? items : (items ? [items] : []);
+          // persist selection so reopening the popup shows previous choices
+          setSelectedSizes(sel);
+          const names = sel.map(it => it.fname || it.fsize || it.name || '').filter(Boolean).join(', ');
+          const codes = sel.map(it => it.fcode || '').filter(Boolean).join(',');
+          setFormData(prev => ({ ...prev, size: names }));
+          setFieldCodes(prev => ({ ...prev, sizeCode: codes }));
+          setIsSizePopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, size: '' }));
+          // Move focus to Units input after popup closes
+          setTimeout(() => {
+            unitRef.current?.focus();
+          }, 10);
+        }}
+        fetchItems={fetchSizesWithSearch}
+        title="Select Size"
+        maxHeight="60vh"
+        variant="size"
+        autoFocusOk={true}
+      />
+
 
       {/* PopupListSelector for Unit Selection */}
       <PopupListSelector
-  open={isUnitPopupOpen}
-  onClose={() => {
-    setIsUnitPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
-  }}
-  onSelect={(item) => {
-    setFormData(prev => ({ ...prev, unit: item.fname || '', unitCode: item.fcode || '' }));
-    setIsUnitPopupOpen(false);
-    setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
-  }}
-  fetchItems={fetchUnitsWithSearch}
-  title="Select Unit"
-  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
-  searchFields={['fname', 'fcode']}
-  headerNames={['Unit Name']}  // CHANGED: Single header for name only
-  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
-  maxHeight="60vh"
-  responsiveBreakpoint={640}
-  initialSearch={initialPopupSearch.unit}
-/>
+        open={isUnitPopupOpen}
+        onClose={() => {
+          setIsUnitPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
+        }}
+        onSelect={(item) => {
+          setFormData(prev => ({ ...prev, unit: item.fname || '', unitCode: item.fcode || '' }));
+          setIsUnitPopupOpen(false);
+          setInitialPopupSearch(prev => ({ ...prev, unit: '' }));
+        }}
+        fetchItems={fetchUnitsWithSearch}
+        title="Select Unit"
+        displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
+        searchFields={['fname', 'fcode']}
+        headerNames={['Unit Name']}  // CHANGED: Single header for name only
+        columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
+        maxHeight="60vh"
+        responsiveBreakpoint={640}
+        initialSearch={initialPopupSearch.unit}
+      />
 
       {/* PopupListSelector for Edit/Delete actions - FIXED VERSION */}
       <PopupListSelector
         open={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
-       onSelect={(item) => {
-        
-  // Map backend fields to form fields
-  console.log("✔️ RAW SELECTED ITEM:", item);
-  setFormData({
-    fitemCode: item.fItemcode || '',
-    itemName: item.fItemName || '',
-    groupName: item.fParent || '',
-    shortName: item.fShort || '',
-    brand: item.brand || '',
-    category: item.category || '',
-    product: item.product || '',
-    model: item.model || '',
-    size: item.size || '',
-    max: item.fmax || item.fMax || '',
-    min: item.fmin || item.fMin || '',
-    prefix: item.fPrefix || '',
-    gstin: item.ftax || '',
-    gst: (item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '')) ? 'Y' : 'N',
-    manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N',
-    hsnCode: item.fhsn || '',
-    // CHANGED: Fetch pieceRate from backend if available
-    pieceRate: item.pieceRate || item.fPieceRate || 'N',
-    type: item.ftype || '',
-    sellingPrice: item.fSellPrice || '',
-    costPrice: item.fCostPrice || '',
-    unit: item.fUnits || '',
-    unitCode: item.funitcode || '',
-  });
-  
-  // Also set the field codes for backend submission
-  setFieldCodes({
-    brandCode: item.fbrand || '',
-    categoryCode: item.fcategory || '',
-    productCode: item.fproduct || '',
-    modelCode: item.fmodel || '',
-    sizeCode: item.fsize || '',
-    unitCode: item.funitcode || '',
-  });
-  
-  // Set checkbox states
-  const hasGst = item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '');
-  setGstChecked(hasGst);
-  setManualPrefixChecked(item.manualprefix === 'Y');
-  // CHANGED: Set pieceRate checkbox based on backend data
-  const hasPieceRate = item.pieceRate === 'Y' || item.fPieceRate === 'Y';
-  setPieceRateChecked(hasPieceRate);
-  
-  // Set main group
-  setMainGroup(item.fParent || '');
-  
-  setIsPopupOpen(false);
-  
-  // ✅ FIXED: Focus the Delete button when in delete mode
-  if (actionType === 'delete') {
-    // Small delay to ensure component is updated
-    setTimeout(() => {
-      if (submitButtonRef.current) {
-        submitButtonRef.current.focus();
-      }
-    }, 100);
-  } else {
-    // For edit mode, focus item name field
-    setTimeout(() => {
-      itemNameRef.current?.focus();
-    }, 50);
-  }
-}}
-       fetchItems={fetchPopupItems}
+        onSelect={(item) => {
+
+          // Map backend fields to form fields
+          console.log("✔️ RAW SELECTED ITEM:", item);
+          setFormData({
+            fitemCode: item.fItemcode || '',
+            itemName: item.fItemName || '',
+            groupName: item.fParent || '',
+            shortName: item.fShort || '',
+            brand: item.brand || '',
+            category: item.category || '',
+            product: item.product || '',
+            model: item.model || '',
+            size: item.size || '',
+            max: item.fmax || item.fMax || '',
+            min: item.fmin || item.fMin || '',
+            prefix: item.fPrefix || '',
+            gstin: item.ftax || '',
+            gst: (item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '')) ? 'Y' : 'N',
+            manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N',
+            hsnCode: item.fhsn || '',
+            // CHANGED: Fetch pieceRate from backend if available
+            pieceRate: item.pieceRate || item.fPieceRate || 'N',
+            type: item.ftype || '',
+            sellingPrice: item.fSellPrice || '',
+            costPrice: item.fCostPrice || '',
+            unit: item.fUnits || '',
+            unitCode: item.funitcode || '',
+          });
+
+          // Also set the field codes for backend submission
+          setFieldCodes({
+            brandCode: item.fbrand || '',
+            categoryCode: item.fcategory || '',
+            productCode: item.fproduct || '',
+            modelCode: item.fmodel || '',
+            sizeCode: item.fsize || '',
+            unitCode: item.funitcode || '',
+          });
+
+          // Set checkbox states
+          const hasGst = item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '');
+          setGstChecked(hasGst);
+          setManualPrefixChecked(item.manualprefix === 'Y');
+          // CHANGED: Set pieceRate checkbox based on backend data
+          const hasPieceRate = item.pieceRate === 'Y' || item.fPieceRate === 'Y';
+          setPieceRateChecked(hasPieceRate);
+
+          // Set main group
+          setMainGroup(item.fParent || '');
+
+          setIsPopupOpen(false);
+
+          // ✅ FIXED: Focus the Delete button when in delete mode
+          if (actionType === 'delete') {
+            // Small delay to ensure component is updated
+            setTimeout(() => {
+              if (submitButtonRef.current) {
+                submitButtonRef.current.focus();
+              }
+            }, 100);
+          } else {
+            // For edit mode, focus item name field
+            setTimeout(() => {
+              itemNameRef.current?.focus();
+            }, 50);
+          }
+        }}
+        fetchItems={fetchPopupItems}
         title={`Select Item to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
         displayFieldKeys={['fItemName', 'fParent']}
         searchFields={['fItemName', 'fParent']}
