@@ -237,6 +237,9 @@ const ItemCreation = ({ onCreated }) => {
   const [isSizePopupOpen, setIsSizePopupOpen] = useState(false);
   const [isUnitPopupOpen, setIsUnitPopupOpen] = useState(false);
 
+  // Persisted selections for multi-select popups
+  const [selectedSizes, setSelectedSizes] = useState([]);
+
   // Track active field for close icon visibility
   const [activeField, setActiveField] = useState(null);
 
@@ -323,7 +326,7 @@ useEffect(() => {
     try {
       console.log('Starting loadInitial...');
       console.log('Using endpoint:', API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
-      await fetchTreeData();
+      await fetchTreeData();     
     } catch (err) {
       console.error('Failed to load initial data:', err);
       setMessage({ type: "error", text: "Failed to load data. Please check your connection." });
@@ -748,10 +751,22 @@ useEffect(() => {
     
     setIsLoading(true);
     setMessage(null);
-    
+     const sizeCodesArray = fieldCodes.sizeCode 
+      ? fieldCodes.sizeCode.split(',').filter(code => code.trim() !== '')
+      : [];
     try {
       // Prepare request data matching API expected field names
-      const requestData = {
+
+
+      let requestData;
+    
+    // Prepare different request data for CREATE vs EDIT/DELETE
+    if (actionType === 'create') {
+      // For CREATE: Use array format for sizes
+      const sizeCodesArray = fieldCodes.sizeCode 
+        ? fieldCodes.sizeCode.split(',').filter(code => code.trim() !== '')
+        : [];
+      requestData = {
         fitemCode: formData.fitemCode || '',
         fitemName: formData.itemName || '',
         groupName: mainGroup || '',
@@ -760,7 +775,7 @@ useEffect(() => {
         fcategory: fieldCodes.categoryCode || '',
         fproduct: fieldCodes.productCode || '',
         fmodel: fieldCodes.modelCode || '',
-        fsize: fieldCodes.sizeCode || '',
+        sizes: sizeCodesArray || '',
         fmax: formData.max || '',
         fmin: formData.min || '',
         prefix: formData.prefix || '',
@@ -774,8 +789,33 @@ useEffect(() => {
         fCostPrice: formData.costPrice || '',
         fUnits: formData.unit || '',
       };
-
-      console.log('Submitting data:', requestData);
+    } else {
+      requestData = {
+        fitemCode: formData.fitemCode || '',
+        fitemName: formData.itemName || '',
+        groupName: mainGroup || '',
+        gstNumber: formData.gstin || '',
+        prefix: formData.prefix || '',
+        shortName: formData.shortName || '',
+        hsnCode: formData.hsnCode || '',
+        pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
+        gst: formData.gst === 'Y' ? 'Y' : 'N',
+        manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
+        fproduct: fieldCodes.productCode || '',
+        fbrand: fieldCodes.brandCode || '',
+        fcategory: fieldCodes.categoryCode || '',
+        fmodel: fieldCodes.modelCode || '',
+        // For EDIT/DELETE: Send as comma-separated string
+        fsize: fieldCodes.sizeCode || '',
+        fmin: formData.min || '',
+        fmax: formData.max || '',
+        ftype: formData.type || '',
+        fSellPrice: formData.sellingPrice || '',
+        fCostPrice: formData.costPrice || '',
+        fUnits: formData.unit || ''
+      };
+    }
+      console.log('Submitting data:', JSON.stringify(requestData));
 
       let response;
       let successMessage = '';
@@ -848,28 +888,25 @@ useEffect(() => {
   };
 
   // Fetch function used by PopupListSelector for Edit/Delete - UPDATED
- const fetchPopupItems = useCallback(async (page = 1, search = '') => {
-  try {
-    const response = await apiService.get(
-      API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown
-    );
-    
-    if (response.data && Array.isArray(response.data)) {
-      // Filter by search term on frontend if needed
-      let filteredData = response.data;
-      if (search) {
-        filteredData = response.data.filter(item => 
-          (item.fItemName || '').toLowerCase().includes(search.toLowerCase()) ||
-          (item.fParent || '').toLowerCase().includes(search.toLowerCase())
-        );
-      }
-      
-      // Apply pagination on frontend
-      const startIndex = (page - 1) * 10;
-      const paginatedData = filteredData.slice(startIndex, startIndex + 10);
-      
-      // Map backend response to include all necessary fields
-      return paginatedData.map((it) => ({
+const PAGE_SIZE = 20;
+
+const fetchPopupItems = useCallback(
+  async (page = 1, search = '') => {
+    try {
+      const response = await apiService.get(
+        API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getDropdown,
+        {
+          page,
+          pageSize: PAGE_SIZE,
+          search: search || ''
+        }
+      );
+      console.debug('fetchPopupItems response:', response);
+      const data = response?.data || [];
+
+      if (!Array.isArray(data)) return [];
+
+      return data.map((it) => ({
         fItemcode: it.fItemcode || '',
         fItemName: it.fItemName || '',
         fParent: it.fParent || '',
@@ -889,7 +926,6 @@ useEffect(() => {
         fmax: it.fmax || '',
         ftype: it.ftype || '',
         fproduct: it.fproduct || '',
-        // ADDED: Piece rate field
         pieceRate: it.pieceRate || it.fPieceRate || 'N',
         fPieceRate: it.fPieceRate || it.pieceRate || 'N',
         brand: it.brand || '',
@@ -897,16 +933,16 @@ useEffect(() => {
         model: it.model || '',
         size: it.size || '',
         product: it.product || '',
-        gstcheckbox: it.gstcheckbox || (it.ftax && it.ftax !== '' ? 'Y' : 'N')
+        gstcheckbox: it.gstcheckbox || (it.ftax ? 'Y' : 'N')
       }));
+    } catch (err) {
+      console.error('fetchPopupItems error', err);
+      return [];
     }
-    
-    return [];
-  } catch (err) {
-    console.error('fetchPopupItems error', err);
-    return [];
-  }
-}, []);
+  },
+  []
+);
+
 
   // Fetch functions for popups (Brand, Category, Product, Model, Size, Unit)
   const fetchBrands = useCallback(async (page = 1, search = '') => {
@@ -1206,6 +1242,7 @@ useEffect(() => {
 
   const handleClear = () => {
     resetForm(false);
+    
   };
 
   const filteredTree = useMemo(() => {
@@ -1819,6 +1856,7 @@ useEffect(() => {
         .modal .search-with-clear {
           max-width: 420px;
           width: 100%;
+          margin-top: 10px;
         }
 
         .search-with-clear:focus {
@@ -1870,9 +1908,11 @@ useEffect(() => {
           padding: 20px;
           max-width: 900px;
           width: 100%;
-          max-height: 80vh;
+          max-height: 90vh;
           overflow: auto;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+          position: relative;
+          align-self: center;
         }
          
         .dropdown-list { 
@@ -3407,20 +3447,29 @@ useEffect(() => {
       {/* PopupListSelector for Size Selection */}
    <CheckboxPopup
   open={isSizePopupOpen}
+  initialSelectedCodes={selectedSizes.map(s => s.fcode)}
   onClose={() => {
     setIsSizePopupOpen(false);
     setInitialPopupSearch(prev => ({ ...prev, size: '' }));
   }}
-  onSelect={(item) => {
-    setFormData(prev => ({ ...prev, size: item.fname || '' }));
-    setFieldCodes(prev => ({ ...prev, sizeCode: item.fcode || '' }));
+  onSelect={(items) => {
+    // CheckboxPopup now returns an array of selected items
+    const sel = Array.isArray(items) ? items : (items ? [items] : []);
+    // persist selection so reopening the popup shows previous choices
+    setSelectedSizes(sel);
+    const names = sel.map(it => it.fname || it.fsize || it.name || '').filter(Boolean).join(', ');
+    const codes = sel.map(it => it.fcode || '').filter(Boolean).join(',');
+    setFormData(prev => ({ ...prev, size: names }));
+    setFieldCodes(prev => ({ ...prev, sizeCode: codes }));
     setIsSizePopupOpen(false);
     setInitialPopupSearch(prev => ({ ...prev, size: '' }));
   }}
   fetchItems={fetchSizesWithSearch}
   title="Select Size"
   maxHeight="60vh"
+  variant="size"
 />
+      
 
       {/* PopupListSelector for Unit Selection */}
       <PopupListSelector
@@ -3517,7 +3566,7 @@ useEffect(() => {
     }, 50);
   }
 }}
-        fetchItems={fetchPopupItems}
+       fetchItems={fetchPopupItems}
         title={`Select Item to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
         displayFieldKeys={['fItemName', 'fParent']}
         searchFields={['fItemName', 'fParent']}

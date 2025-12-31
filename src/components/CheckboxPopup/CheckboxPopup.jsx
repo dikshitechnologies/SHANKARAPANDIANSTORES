@@ -21,7 +21,9 @@ const CheckboxPopup = ({
   onSelect,
   fetchItems,
   title,
-  maxHeight = "60vh"
+  maxHeight = "60vh",
+  initialSelectedCodes = [],
+  variant = ''
 }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,11 +32,57 @@ const CheckboxPopup = ({
   const [selectAll, setSelectAll] = useState(false);
   const modalRef = useRef();
 
+  const isSizeVariant = (variant === 'size');
+
+  const modalStyle = isSizeVariant ? {
+    width: '520px',
+    maxHeight: maxHeight,
+    display: 'flex',
+    flexDirection: 'column',
+    margin: '6% auto',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
+  } : {
+    maxWidth: '500px',
+    maxHeight: maxHeight,
+    display: 'flex',
+    flexDirection: 'column',
+    marginLeft: '35%',
+    marginTop: '13%'
+  };
+
+  const headerStyle = isSizeVariant ? {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '14px 18px',
+    background: 'linear-gradient(180deg,#4fb0ff,#3aa0ee)',
+    color: 'white'
+  } : {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+    borderBottom: '1px solid #e5e7eb',
+    paddingBottom: '12px'
+  };
+
+  const closeBtnStyle = {
+    background: 'white',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '6px',
+    borderRadius: '15px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    
+  } ;
+
   useEffect(() => {
     if (open) {
       loadItems();
-      setSelectedCodes(new Set());
-      setSelectAll(false);
     }
   }, [open]);
 
@@ -59,6 +107,23 @@ const CheckboxPopup = ({
     try {
       const fetchedItems = await fetchItems(1, search);
       setItems(fetchedItems);
+      // initialize selected codes from provided initial selection if any
+      try {
+        const init = Array.isArray(initialSelectedCodes) ? initialSelectedCodes : [];
+        if (init.length > 0) {
+          // Only keep codes that exist in fetched items
+          const availableCodes = new Set(fetchedItems.map(it => it.fcode).filter(Boolean));
+          const filtered = init.filter(code => availableCodes.has(code));
+          setSelectedCodes(new Set(filtered));
+          setSelectAll(filtered.length > 0 && filtered.length === fetchedItems.length);
+        } else {
+          setSelectedCodes(new Set());
+          setSelectAll(false);
+        }
+      } catch (err) {
+        setSelectedCodes(new Set());
+        setSelectAll(false);
+      }
     } catch (error) {
       console.error('Error loading items:', error);
     } finally {
@@ -113,23 +178,16 @@ const CheckboxPopup = ({
   };
 
   const handleConfirm = () => {
-    if (selectedCodes.size > 0) {
-      const selectedItems = items.filter(item => 
-        item.fcode && selectedCodes.has(item.fcode)
-      );
-      
-      if (selectedItems.length > 0) {
-        const selectedItem = selectedItems[0];
-        onSelect(selectedItem);
-      }
-    } else {
-      onClose();
-    }
+    const selectedItems = items.filter(item => item.fcode && selectedCodes.has(item.fcode));
+    if (onSelect) onSelect(selectedItems);
+    onClose();
   };
 
   const handleClear = () => {
     setSelectedCodes(new Set());
     setSelectAll(false);
+    // Notify caller that selection was cleared so they can clear their input
+    if (onSelect) onSelect([]);
   };
 
   if (!open) return null;
@@ -139,46 +197,12 @@ const CheckboxPopup = ({
       <div 
         className="modal" 
         ref={modalRef}
-        style={{ 
-          maxWidth: '500px',
-          maxHeight: maxHeight,
-          display: 'flex',
-          flexDirection: 'column',
-          marginLeft: '35%',    
-          marginTop: '13%', 
-        }}
+        style={modalStyle}
       >
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '16px',
-          borderBottom: '1px solid #e5e7eb',
-          paddingBottom: '12px'
-        }}>
-          <h3 style={{ 
-            margin: 0, 
-            fontSize: '18px', 
-            fontWeight: '600',
-            color: '#1f2937'
-          }}>
-            {title}
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            aria-label="Close"
-          >
-            <Icon.Close size={20} />
+        <div style={headerStyle}>
+          <h3 style={{ margin: 0, fontSize: isSizeVariant ? '16px' : '18px', fontWeight: isSizeVariant ? 700 : 600, color: isSizeVariant ? 'white' : '#1f2937' }}>{title}</h3>
+          <button onClick={onClose} style={closeBtnStyle} aria-label="Close">
+            X
           </button>
         </div>
 
@@ -201,7 +225,8 @@ const CheckboxPopup = ({
                   borderRadius: '8px',
                   fontSize: '14px',
                   outline: 'none',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  marginTop: '8px'
                 }}
               />
               <button
@@ -228,30 +253,41 @@ const CheckboxPopup = ({
           </div>
         </div>
 
-        <div style={{ 
-          marginBottom: '12px',
-          padding: '8px 12px',
-          background: '#f9fafb',
-          borderRadius: '6px',
-          border: '1px solid #e5e7eb'
+        <div style={{           
+     
         }}>
-          <label style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '10px',
-            cursor: 'pointer',
-            userSelect: 'none'
-          }}>
+          <label
+            tabIndex={0}
+            role="button"
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                toggleSelectAll();
+              }
+            }}
+            onClick={toggleSelectAll}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px',
+              cursor: 'pointer',
+              userSelect: 'none',
+              padding: '8px',
+              borderRadius: '8px',
+              background: selectAll ? (isSizeVariant ? '#eaf6ff' : '#f9fafb') : 'transparent',
+              border: selectAll ? (isSizeVariant ? '1px solid #c7e9ff' : '1px solid #e5e7eb') : '1px solid transparent'
+            }}>
             <div style={{ 
-              width: '18px',
-              height: '18px',
-              border: '2px solid #d1d5db',
-              borderRadius: '4px',
+              width: isSizeVariant ? '20px' : '18px',
+              height: isSizeVariant ? '20px' : '18px',
+              border: '2px solid #cbd5e1',
+              borderRadius: isSizeVariant ? '50%' : '4px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: selectAll ? '#307AC8' : 'white',
-              transition: 'all 0.2s'
+              background: selectAll ? (isSizeVariant ? '#2f9cf0' : '#307AC8') : 'white',
+              transition: 'all 0.2s',
+              flexShrink: 0
             }}>
               {selectAll && (
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -259,16 +295,16 @@ const CheckboxPopup = ({
                 </svg>
               )}
             </div>
-            <span 
-              onClick={toggleSelectAll}
+            <span
               style={{ 
                 fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                flex: 1
+                fontWeight: '600',
+                color: isSizeVariant ? '#0f172a' : '#374151',
+                flex: 1,
+                textTransform: isSizeVariant ? 'uppercase' : 'none'
               }}
             >
-              Select All
+              {isSizeVariant ? 'All' : 'Select All'}
             </span>
           </label>
         </div>
@@ -301,28 +337,28 @@ const CheckboxPopup = ({
               <div
                 key={item.fcode || index}
                 style={{
-                  padding: '12px 16px',
-                  borderBottom: '1px solid #f3f4f6',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                  backgroundColor: selectedCodes.has(item.fcode) ? '#f0f9ff' : 'white'
-                }}
+                      padding: '12px 16px',
+                      borderBottom: '1px solid #f3f4f6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.15s',
+                      backgroundColor: selectedCodes.has(item.fcode) ? (isSizeVariant ? '#f0fbff' : '#f0f9ff') : 'white'
+                    }}
                 onClick={() => toggleItem(item.fcode)}
               >
                 <div style={{ 
-                  width: '18px',
-                  height: '18px',
-                  border: '2px solid #d1d5db',
-                  borderRadius: '4px',
+                  width: isSizeVariant ? '20px' : '18px',
+                  height: isSizeVariant ? '20px' : '18px',
+                  border: '2px solid #cbd5e1',
+                  borderRadius: isSizeVariant ? '50%' : '4px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: selectedCodes.has(item.fcode) ? '#307AC8' : 'white',
+                  background: selectedCodes.has(item.fcode) ? (isSizeVariant ? '#2f9cf0' : '#307AC8') : 'white',
                   flexShrink: 0,
-                  transition: 'all 0.2s'
+                  transition: 'all 0.15s'
                 }}>
                   {selectedCodes.has(item.fcode) && (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -357,23 +393,23 @@ const CheckboxPopup = ({
           display: 'flex',
           gap: '12px',
           justifyContent: 'flex-end',
-          borderTop: '1px solid #e5e7eb',
-          paddingTop: '16px'
+          borderTop: isSizeVariant ? '1px solid #f3f6f9' : '1px solid #e5e7eb',         
+          
         }}>
           <button
             onClick={handleClear}
             style={{
-              padding: '10px 16px',
-              background: 'white',
-              border: '1px solid #d1d5db',
+              padding: '10px 20px',
+              background: isSizeVariant ? 'white' : 'white',
+              border: isSizeVariant ? '1px solid #f4c7c7' : '1px solid #d1d5db',
               borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151',
-              transition: 'all 0.2s'
+              fontWeight: isSizeVariant ? 600 : 500,
+              color: isSizeVariant ? '#ef4444' : '#374151',
+              transition: 'all 0.15s'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isSizeVariant ? '#fff6f6' : '#f9fafb'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
           >
             Clear
@@ -381,29 +417,20 @@ const CheckboxPopup = ({
           <button
             onClick={handleConfirm}
             style={{
-              padding: '10px 24px',
-              background: selectedCodes.size > 0 ? '#307AC8' : '#9ca3af',
+              padding: isSizeVariant ? '10px 26px' : '10px 24px',
+              background: '#2f9cf0',
               border: 'none',
               borderRadius: '8px',
-              cursor: selectedCodes.size > 0 ? 'pointer' : 'not-allowed',
+              cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500',
+              fontWeight: 600,
               color: 'white',
-              transition: 'all 0.2s'
+              transition: 'all 0.15s'
             }}
-            onMouseEnter={(e) => {
-              if (selectedCodes.size > 0) {
-                e.currentTarget.style.backgroundColor = '#2563eb';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (selectedCodes.size > 0) {
-                e.currentTarget.style.backgroundColor = '#307AC8';
-              }
-            }}
-            disabled={selectedCodes.size === 0}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2a8be0'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2f9cf0'}
           >
-            Confirm ({selectedCodes.size})
+            OK
           </button>
         </div>
       </div>
