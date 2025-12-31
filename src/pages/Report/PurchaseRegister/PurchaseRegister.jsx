@@ -1,13 +1,34 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
 
 const PurchaseRegister = () => {
-  // Initial data state
+  // --- STATE MANAGEMENT ---
   const [data, setData] = useState([
     {
       id: 1,
       no: 1,
-      PurchaseParty: 'AMIT FASHION',
-      billNo: 'C00001AA',
+      salesParty: 'AMIT FASHION',
+      billNo: 'P00001AA',
       billDate: '27-09-2025',
       billAmount: '29,303.00',
       qty: '15.00',
@@ -18,8 +39,8 @@ const PurchaseRegister = () => {
     {
       id: 2,
       no: 2,
-      PurchaseParty: 'CASH A/C',
-      billNo: 'C00002AA',
+      salesParty: 'CASH A/C',
+      billNo: 'P00002AA',
       billDate: '10-12-2025',
       billAmount: '380.00',
       qty: '10.00',
@@ -32,7 +53,7 @@ const PurchaseRegister = () => {
   // State for date range
   const [dateRange, setDateRange] = useState({
     from: '2025-01-01',
-    to: '2025-12-31'
+    to: Date.now()
   });
 
   // State for editing
@@ -41,11 +62,25 @@ const PurchaseRegister = () => {
   const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
   const [focusedField, setFocusedField] = useState('');
   const [tableLoaded, setTableLoaded] = useState(true);
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const [hoveredButton, setHoveredButton] = useState(false);
+  const [fromDate, setFromDate] = useState('2025-01-01');
+  const [toDate, setToDate] = useState(Date.now());
+  const [purchaseRegisterData, setPurchaseRegisterData] = useState([]);
+
+  // --- SCREEN SIZE DETECTION ---
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true
+  });
+
   // Refs for keyboard navigation
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
-  const viewButtonRef = useRef(null);
+  const searchButtonRef = useRef(null);
   const clearButtonRef = useRef(null);
 
   // Calculate totals
@@ -69,31 +104,64 @@ const PurchaseRegister = () => {
   };
 
   // Handle date change
-  const handleDateChange = (field, value) => {
+  const handleFromDateChange = (e) => {
+    setFromDate(e.target.value);
     setDateRange({
       ...dateRange,
-      [field]: value
+      from: e.target.value
+    });
+  };
+
+  const handleToDateChange = (e) => {
+    setToDate(e.target.value);
+    setDateRange({
+      ...dateRange,
+      to: e.target.value
     });
   };
 
   // Filter data by date range
-  const filterDataByDate = () => {
-    if (!dateRange.from || !dateRange.to) {
-      alert('Please select both From Date and To Date');
+  const handleSearch = () => {
+    if (!fromDate || !toDate) {
+      toast.warning('Please select both From Date and To Date');
       return;
     }
     
-    console.log('Filtering data from:', dateRange.from, 'to:', dateRange.to);
-    setTableLoaded(true);
-    // In a real app, you would fetch filtered data here
+    // setIsLoading(true);
+    console.log('Filtering data from:', fromDate, 'to:', toDate);
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Transform the data to match table structure
+      const transformedData = data.map(item => ({
+        date: item.billDate,
+        name: item.salesParty,
+        voucherNo: item.billNo,
+        type: 'Purchase', // You might want to adjust this based on your data
+        crDr: 'Dr', // You might want to adjust this based on your data
+        billNo: item.billNo,
+        billet: item.noOfBale,
+        amount: item.billAmount.replace(/,/g, '')
+      }));
+      
+      setPurchaseRegisterData(transformedData);
+      // setTableLoaded(true);
+      setIsLoading(false);
+      // toast.success('Data loaded successfully!');
+    }, 1000);
   };
 
   // Clear date filters
-  const clearFilters = () => {
+  const handleRefresh = () => {
+    setFromDate('2025-01-01');
+    setToDate('2025-12-31');
     setDateRange({
-      from: '',
-      to: ''
+      from: '2025-01-01',
+      to: '2025-12-31'
     });
+    setPurchaseRegisterData([]);
+    setTableLoaded(false);
+    toast.info('Filters cleared!');
   };
 
   // Start editing a cell
@@ -125,37 +193,38 @@ const PurchaseRegister = () => {
   const focusableElements = [
     { ref: fromDateRef, name: 'fromDate', type: 'input' },
     { ref: toDateRef, name: 'toDate', type: 'input' },
-    { ref: viewButtonRef, name: 'view', type: 'button' },
+    { ref: searchButtonRef, name: 'search', type: 'button' },
     { ref: clearButtonRef, name: 'clear', type: 'button' }
   ];
 
   // Handle keyboard navigation for main controls
-  const handleKeyDown = (e, currentIndex, fieldName) => {
-    const totalElements = focusableElements.length;
+  const handleKeyDown = (e, fieldName) => {
+    const currentIndex = focusableElements.findIndex(el => el.name === fieldName);
     
     switch (e.key) {
       case 'Enter':
         e.preventDefault();
-        if (fieldName === 'view') {
-          filterDataByDate();
+        if (fieldName === 'search') {
+          handleSearch();
         } else if (fieldName === 'clear') {
-          clearFilters();
+          handleRefresh();
         } else {
           // Move to next element
-          const nextIndex = (currentIndex + 1) % totalElements;
+          const nextIndex = (currentIndex + 1) % focusableElements.length;
           focusableElements[nextIndex].ref.current.focus();
         }
         break;
         
       case 'ArrowRight':
+      case 'Tab':
         e.preventDefault();
-        const nextIndex = (currentIndex + 1) % totalElements;
+        const nextIndex = (currentIndex + 1) % focusableElements.length;
         focusableElements[nextIndex].ref.current.focus();
         break;
         
       case 'ArrowLeft':
         e.preventDefault();
-        const prevIndex = (currentIndex - 1 + totalElements) % totalElements;
+        const prevIndex = (currentIndex - 1 + focusableElements.length) % focusableElements.length;
         focusableElements[prevIndex].ref.current.focus();
         break;
         
@@ -164,12 +233,12 @@ const PurchaseRegister = () => {
         break;
         
       case ' ':
-        if (fieldName === 'view') {
+        if (fieldName === 'search') {
           e.preventDefault();
-          filterDataByDate();
+          handleSearch();
         } else if (fieldName === 'clear') {
           e.preventDefault();
-          clearFilters();
+          handleRefresh();
         }
         break;
     }
@@ -179,7 +248,7 @@ const PurchaseRegister = () => {
   useEffect(() => {
     const handleTableKeyDown = (e) => {
       const { row, col } = selectedCell;
-      const colNames = ['no', 'PurchaseParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
+      const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
       
       if (editingCell) {
         if (e.key === 'Enter') {
@@ -245,7 +314,7 @@ const PurchaseRegister = () => {
     const newRow = {
       id: data.length + 1,
       no: data.length + 1,
-      PurchaseParty: '',
+      salesParty: '',
       billNo: '',
       billDate: '',
       billAmount: '0.00',
@@ -272,482 +341,570 @@ const PurchaseRegister = () => {
     }
   };
 
-  // Styles matching Day Book design
+  // Handle screen resize
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setScreenSize({
+        width,
+        height: window.innerHeight,
+        isMobile: width < 768,
+        isTablet: width >= 768 && width < 1024,
+        isDesktop: width >= 1024
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // --- STYLES ---
+  const TYPOGRAPHY = {
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: {
+      xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      base: screenSize.isMobile ? '13px' : screenSize.isTablet ? '14px' : '16px',
+      lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
+    },
+    fontWeight: {
+      normal: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700
+    },
+    lineHeight: {
+      tight: 1.2,
+      normal: 1.5,
+      relaxed: 1.6
+    }
+  };
+
   const styles = {
     container: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      backgroundColor: '#f5f7fa',
+      height: '100vh',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      margin: 0,
+      padding: 0,
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+      position: 'fixed',
+    },
+    headerSection: {
+      flex: '0 0 auto',
+      backgroundColor: 'white',
+      borderRadius: 0,
+      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
+      margin: 0,
+      marginBottom: 0,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      overflowY: 'visible',
+      maxHeight: 'none',
+    },
+    tableSection: {
+      flex: '1 1 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0,
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
+    },
+    formRow: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+    },
+    formField: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '8px' : '10px',
+    },
+    inlineLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+    },
+    inlineInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+    },
+    inlineInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    gridRow: {
+      display: 'grid',
+      gap: '8px',
+      marginBottom: 10,
+    },
+    tableContainer: {
+      backgroundColor: 'white',
+      borderRadius: 10,
+      overflowX: 'auto',
+      overflowY: 'auto',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1px solid #e0e0e0',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginBottom: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      WebkitOverflowScrolling: 'touch',
+      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      boxSizing: 'border-box',
+      flex: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
+      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
+    },
+    table: {
+      width: '100%',
+      minWidth: '100%',
+      borderCollapse: 'collapse',
+      tableLayout: 'auto',
+    },
+    th: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      padding: screenSize.isMobile ? '8px 4px' : screenSize.isTablet ? '10px 6px' : '12px 8px',
+      textAlign: 'center',
+      letterSpacing: '0.5px',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10,
+      border: '1px solid white',
+      borderBottom: '2px solid white',
+      minWidth: '80px',
+      whiteSpace: 'nowrap',
+    },
+    td: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '8px 4px' : screenSize.isTablet ? '10px 6px' : '12px 8px',
+      textAlign: 'center',
+      border: '1px solid #e0e0e0',
+      color: '#333',
+      minWidth: '80px',
+    },
+    footerSection: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flex: '0 0 auto',
+      display: 'flex',
+      flexDirection: screenSize.isMobile ? 'column' : 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
+      backgroundColor: 'white',
+      borderTop: '2px solid #e0e0e0',
+      boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
+      flexWrap: 'wrap',
+      flexShrink: 0,
+      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '60px',
+      width: '100%',
+      boxSizing: 'border-box',
+      zIndex: 100,
+    },
+    balanceContainer: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.sm : screenSize.isTablet ? TYPOGRAPHY.fontSize.base : TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#1B91DA',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '8px 12px' : '10px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '15px' : screenSize.isTablet ? '25px' : '35px',
+      minWidth: 'max-content',
+      justifyContent: 'center',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      backgroundColor: '#f0f8ff',
+    },
+    balanceItem: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '2px',
+    },
+    balanceLabel: {
+      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      color: '#555',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+    },
+    balanceValue: {
+      fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      color: '#1976d2',
+      fontWeight: 'bold',
+    },
+    searchButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
+      color: 'white',
+      border: 'none',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    refreshButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonGlow: {
+      position: 'absolute',
+      top: '0',
+      left: '-100%',
+      width: '100%',
+      height: '100%',
+      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+      transition: 'left 0.7s ease'
+    },
+    loadingOverlay: {
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: '#f5f5f5',
-      fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
-      overflow: 'auto'
+      background: 'rgba(255, 255, 255, 0.9)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2000,
+      fontFamily: TYPOGRAPHY.fontFamily,
     },
-    
-    header: {
+    loadingBox: {
       background: 'white',
-      color: '#333',
-      padding: '20px 30px',
-      borderBottom: '1px solid #ddd',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-    },
-    
-    headerTitle: {
-      fontSize: '28px',
-      fontWeight: '600',
-      marginBottom: '25px',
-      color: '#1B91DA',
-      textAlign: 'center'
-    },
-    
-    firstRow: {
-      display: 'grid',
-      gridTemplateColumns: '0.8fr 0.8fr 0.7fr 0.7fr',
-      gap: '15px',
-      marginBottom: '20px',
-      position: 'relative',
-      alignItems: 'end'
-    },
-    
-    controlGroup: {
+      padding: '24px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+      textAlign: 'center',
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px'
-    },
-    
-    controlLabel: {
-      fontSize: '14px',
-      color: '#333',
-      marginBottom: '0',
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px'
-    },
-    
-    dateInputWrapper: {
-      position: 'relative',
-      width: '100%'
-    },
-    
-    inlineInput: {
-      width: '100%',
-      padding: '8px 10px',
-      border: '1px solid #ddd',
-      borderRadius: '3px',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      color: '#333',
-      minHeight: '36px',
-      boxSizing: 'border-box',
-      transition: 'all 0.2s ease',
-      outline: 'none'
-    },
-    
-    focusedInput: {
-      borderColor: '#1B91DA',
-      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)'
-    },
-    
-    viewButton: {
-      padding: '8px 12px',
-      background: '#1B91DA',
-      color: 'white',
-      border: 'none',
-      borderRadius: '3px',
-      fontSize: '13px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      width: '100%',
-      height: '36px',
-      display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      outline: 'none'
+      gap: '12px',
     },
-    
-    clearButton: {
-      padding: '8px 12px',
-      background: 'white',
-      color: '#333',
-      border: '1px solid #ddd',
-      borderRadius: '3px',
-      fontSize: '13px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      width: '100%',
-      height: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      outline: 'none'
+    loadingSpinner: {
+      border: '3px solid #f3f3f3',
+      borderTop: '3px solid #1B91DA',
+      borderRadius: '50%',
+      width: '40px',
+      height: '40px',
+      animation: 'spin 1s linear infinite',
     },
-    
-    buttonContainer: {
-      display: 'flex',
-      alignItems: 'flex-end',
-      height: '100%'
-    },
-    
-    content: {
-      padding: '20px 30px',
-      minHeight: 'calc(100vh - 180px)',
-      boxSizing: 'border-box'
-    },
-    
-    tableContainer: {
-      backgroundColor: 'white',
-      borderRadius: '4px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      border: '1px solid #ddd',
-      height: 'calc(100vh - 250px)',
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    
-    tableWrapper: {
-      flex: 1,
-      overflow: 'auto'
-    },
-    
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      minWidth: '1200px'
-    },
-    
-    tableHeader: {
-      backgroundColor: '#1B91DA',
-      color: 'white',
-      padding: '12px 15px',
-      textAlign: 'left',
-      fontWeight: '600',
-      fontSize: '14px',
-      borderRight: '1px solid #0c7bb8',
-      position: 'sticky',
-      top: 0,
-      zIndex: 10
-    },
-    
-    tableCell: {
-      padding: '12px 15px',
-      borderBottom: '1px solid #ddd',
-      fontSize: '14px',
-      color: '#333',
-      fontWeight: '400'
-    },
-    
-    tableRow: {
-      ':hover': {
-        backgroundColor: '#f8f9fa'
+  };
+
+  // Calculate opening and closing balances
+  const openingBalance = 0.00;
+  const closingBalance = totals.billAmount;
+
+  // Initialize purchase register data
+  useEffect(() => {
+    if (tableLoaded && purchaseRegisterData.length === 0) {
+      handleSearch();
+    }
+  }, []);
+
+  // Add CSS animation for spinner
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
-    },
-    
-    emptyState: {
-      textAlign: 'center',
-      padding: '40px 20px',
-      color: '#666',
-      fontSize: '16px',
-      background: '#f8f9fa',
-      borderRadius: '4px',
-      margin: '20px',
-      border: '2px dashed #ddd'
-    },
-    
-    totalsRow: {
-      backgroundColor: '#f8f9fa',
-      fontWeight: 'bold',
-      borderTop: '2px solid #1B91DA'
-    },
-    
-    totalsCell: {
-      padding: '12px 15px',
-      borderBottom: '1px solid #ddd',
-      fontSize: '14px',
-      color: '#333',
-      fontWeight: '400'
-    },
-    
-    // For selected cell in table
-    selectedCell: {
-      outline: '2px solid #1B91DA',
-      outlineOffset: '-1px',
-      boxShadow: '0 0 0 1px rgba(27, 145, 218, 0.3)'
-    },
-    
-    // For editing cell
-    editingCell: {
-      outline: '2px solid #1B91DA',
-      outlineOffset: '-1px',
-      boxShadow: '0 0 0 1px rgba(27, 145, 218, 0.3)',
-      padding: '0',
-      position: 'relative'
-    },
-    
-    inputStyle: {
-      width: '100%',
-      height: '100%',
-      border: 'none',
-      padding: '12px 15px',
-      boxSizing: 'border-box',
-      fontFamily: 'inherit',
-      fontSize: 'inherit',
-      backgroundColor: '#fff',
-      outline: 'none'
-    }
-  };
-
-  // Get cell style based on state
-  const getCellStyle = (rowIndex, colName) => {
-    const isSelected = selectedCell.row === rowIndex && 
-      ['no', 'PurchaseParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'].indexOf(colName) === selectedCell.col;
-    
-    const isEditing = editingCell && 
-      editingCell.row === rowIndex && 
-      editingCell.col === colName;
-
-    const baseStyle = {
-      ...styles.tableCell,
-      textAlign: colName === 'billAmount' || colName === 'qty' || colName === 'noOfBale' || colName === 'no' ? 'right' : 'left',
-      fontFamily: colName === 'billAmount' || colName === 'qty' ? '"Courier New", monospace' : 'inherit',
-      fontWeight: colName === 'billAmount' || colName === 'qty' ? '600' : '400',
-      cursor: 'cell'
-    };
-
-    if (isSelected && !isEditing) {
-      return { ...baseStyle, ...styles.selectedCell };
-    }
-
-    if (isEditing) {
-      return { ...baseStyle, ...styles.editingCell };
-    }
-
-    return baseStyle;
-  };
-
-  // Render cell content
-  const renderCell = (rowIndex, colName, value) => {
-    if (editingCell && editingCell.row === rowIndex && editingCell.col === colName) {
-      return (
-        <input
-          type="text"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={saveEdit}
-          autoFocus
-          style={styles.inputStyle}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              saveEdit();
-            } else if (e.key === 'Escape') {
-              cancelEdit();
-            }
-          }}
-        />
-      );
-    }
-
-    return value;
-  };
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   return (
     <div style={styles.container}>
-      {/* HEADER */}
-      <div style={styles.header}>
-        <h1 style={styles.headerTitle}>Purchase Register</h1>
-        
-        {/* FIRST ROW: From Date, To Date, View Button, Clear Button */}
-        <div style={styles.firstRow}>
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div style={styles.loadingOverlay}>
+          <div style={styles.loadingBox}>
+            <div style={styles.loadingSpinner}></div>
+            <div>Loading Purchase Register Report...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Header Section */}
+      <div style={styles.headerSection}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
+          flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
+          width: '100%',
+        }}>
           {/* From Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>From Date</div>
-            <div style={styles.dateInputWrapper}>
-              <input
-                type="date"
-                style={{
-                  ...styles.inlineInput,
-                  ...(focusedField === 'fromDate' && styles.focusedInput)
-                }}
-                ref={fromDateRef}
-                value={dateRange.from}
-                onChange={(e) => handleDateChange('from', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, 0, 'fromDate')}
-                onFocus={() => setFocusedField('fromDate')}
-                onBlur={() => setFocusedField('')}
-              />
-            </div>
+          <div style={{
+            ...styles.formField,
+            // flex: screenSize.isMobile ? '1 0 40%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>From Date:</label>
+            <input
+              type="date"
+              data-header="fromDate"
+              style={
+                focusedField === 'fromDate'
+                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+              }
+              value={fromDate}
+              onChange={handleFromDateChange}
+              ref={fromDateRef}
+              onKeyDown={(e) => handleKeyDown(e, 'fromDate')}
+              onFocus={() => setFocusedField('fromDate')}
+              onBlur={() => setFocusedField('')}
+            />
           </div>
-          
+
           {/* To Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>To Date</div>
-            <div style={styles.dateInputWrapper}>
-              <input
-                type="date"
-                style={{
-                  ...styles.inlineInput,
-                  ...(focusedField === 'toDate' && styles.focusedInput)
-                }}
-                ref={toDateRef}
-                value={dateRange.to}
-                onChange={(e) => handleDateChange('to', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, 1, 'toDate')}
-                onFocus={() => setFocusedField('toDate')}
-                onBlur={() => setFocusedField('')}
-              />
-            </div>
+          <div style={{
+            ...styles.formField,
+            // flex: screenSize.isMobile ? '1 0 40%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>To Date:</label>
+            <input
+              type="date"
+              data-header="toDate"
+              style={
+                focusedField === 'toDate'
+                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+              }
+              value={toDate}
+              onChange={handleToDateChange}
+              ref={toDateRef}
+              onKeyDown={(e) => handleKeyDown(e, 'toDate')}
+              onFocus={() => setFocusedField('toDate')}
+              onBlur={() => setFocusedField('')}
+            />
           </div>
-          
-          {/* View Button */}
-          <div style={styles.buttonContainer}>
-            <button 
-              ref={viewButtonRef}
+
+          {/* Search Button */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+            marginLeft: screenSize.isMobile ? '0' : 'auto',
+          }}>
+            <button
               style={{
-                ...styles.viewButton,
-                ...(focusedField === 'view' && { outline: '2px solid #1B91DA', outlineOffset: '2px' })
+                ...styles.searchButton,
+                width: screenSize.isMobile ? '100%' : 'auto',
+                marginBottom: screenSize.isMobile ? '8px' : '0',
               }}
-              onClick={filterDataByDate}
-              onKeyDown={(e) => handleKeyDown(e, 2, 'view')}
-              onFocus={() => setFocusedField('view')}
+              onClick={handleSearch}
+              onMouseEnter={() => setHoveredButton(true)}
+              onMouseLeave={() => setHoveredButton(false)}
+              ref={searchButtonRef}
+              onKeyDown={(e) => handleKeyDown(e, 'search')}
+              onFocus={() => setFocusedField('search')}
               onBlur={() => setFocusedField('')}
             >
-              View Purchase Register
+              Search
+              {hoveredButton && <div style={styles.buttonGlow}></div>}
             </button>
           </div>
 
-          {/* Clear Button */}
-          <div style={styles.buttonContainer}>
-            <button 
-              ref={clearButtonRef}
+          {/* Refresh Button */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}>
+            <button
               style={{
-                ...styles.clearButton,
-                ...(focusedField === 'clear' && { outline: '2px solid #1B91DA', outlineOffset: '2px' })
+                ...styles.refreshButton,
+                width: screenSize.isMobile ? '100%' : 'auto',
               }}
-              onClick={clearFilters}
-              onKeyDown={(e) => handleKeyDown(e, 3, 'clear')}
+              onClick={handleRefresh}
+              ref={clearButtonRef}
+              onKeyDown={(e) => handleKeyDown(e, 'clear')}
               onFocus={() => setFocusedField('clear')}
               onBlur={() => setFocusedField('')}
             >
-              Clear
+              Refresh
             </button>
           </div>
         </div>
       </div>
 
-      {/* TABLE CONTENT */}
-      <div style={styles.content}>
+      {/* Table Section */}
+      <div style={styles.tableSection}>
         <div style={styles.tableContainer}>
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={{ ...styles.tableHeader, textAlign: 'right' }}>No</th>
-                  <th style={styles.tableHeader}>Purchase Party</th>
-                  <th style={styles.tableHeader}>Bill No</th>
-                  <th style={styles.tableHeader}>Bill Date</th>
-                  <th style={{ ...styles.tableHeader, textAlign: 'right' }}>Bill Amount</th>
-                  <th style={{ ...styles.tableHeader, textAlign: 'right' }}>Qty</th>
-                  <th style={styles.tableHeader}>Time</th>
-                  <th style={{ ...styles.tableHeader, textAlign: 'right' }}>No of Bale</th>
-                  <th style={{ ...styles.tableHeader, borderRight: 'none' }}>Transport</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(tableLoaded ? data : []).map((row, rowIndex) => (
-                  <tr 
-                    key={row.id}
-                    onClick={() => {
-                      const colNames = ['no', 'PurchaseParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
-                      const colIndex = colNames.indexOf('no');
-                      setSelectedCell({ row: rowIndex, col: colIndex });
-                    }}
-                    style={styles.tableRow}
-                  >
-                    <td 
-                      style={getCellStyle(rowIndex, 'no')}
-                      onDoubleClick={() => startEditing(rowIndex, 'no', row.no)}
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>No</th>
+                <th style={styles.th}>Purchase Party</th>
+                <th style={styles.th}>Bill No</th>
+                <th style={styles.th}>Bill Date</th>
+                <th style={styles.th}>Amount</th>
+                <th style={styles.th}>Qty</th>
+                <th style={styles.th}>Time</th>
+                <th style={styles.th}>No of Bale</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableLoaded ? (
+                purchaseRegisterData.length > 0 ? (
+                  purchaseRegisterData.map((row, index) => (
+                    <tr 
+                      key={index} 
+                      style={{ 
+                        backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff'}
                     >
-                      {renderCell(rowIndex, 'no', row.no)}
-                    </td>
-                    <td 
-                      style={getCellStyle(rowIndex, 'PurchaseParty')}
-                      onDoubleClick={() => startEditing(rowIndex, 'PurchaseParty', row.PurchaseParty)}
-                    >
-                      {renderCell(rowIndex, 'PurchaseParty', row.PurchaseParty)}
-                    </td>
-                    <td 
-                      style={getCellStyle(rowIndex, 'billNo')}
-                      onDoubleClick={() => startEditing(rowIndex, 'billNo', row.billNo)}
-                    >
-                      {renderCell(rowIndex, 'billNo', row.billNo)}
-                    </td>
-                    <td 
-                      style={getCellStyle(rowIndex, 'billDate')}
-                      onDoubleClick={() => startEditing(rowIndex, 'billDate', row.billDate)}
-                    >
-                      {renderCell(rowIndex, 'billDate', row.billDate)}
-                    </td>
-                    <td 
-                      style={getCellStyle(rowIndex, 'billAmount')}
-                      onDoubleClick={() => startEditing(rowIndex, 'billAmount', row.billAmount)}
-                    >
-                      {renderCell(rowIndex, 'billAmount', row.billAmount)}
-                    </td>
-                    <td 
-                      style={getCellStyle(rowIndex, 'qty')}
-                      onDoubleClick={() => startEditing(rowIndex, 'qty', row.qty)}
-                    >
-                      {renderCell(rowIndex, 'qty', row.qty)}
-                    </td>
-                    <td 
-                      style={getCellStyle(rowIndex, 'time')}
-                      onDoubleClick={() => startEditing(rowIndex, 'time', row.time)}
-                    >
-                      {renderCell(rowIndex, 'time', row.time)}
-                    </td>
-                    <td 
-                      style={getCellStyle(rowIndex, 'noOfBale')}
-                      onDoubleClick={() => startEditing(rowIndex, 'noOfBale', row.noOfBale)}
-                    >
-                      {renderCell(rowIndex, 'noOfBale', row.noOfBale)}
-                    </td>
-                    <td 
-                      style={{ ...getCellStyle(rowIndex, 'transport'), borderRight: 'none' }}
-                      onDoubleClick={() => startEditing(rowIndex, 'transport', row.transport)}
-                    >
-                      {renderCell(rowIndex, 'transport', row.transport)}
+                      <td style={styles.td}>{index + 1}</td>
+                      <td style={styles.td}>{row.name}</td>
+                      <td style={styles.td}>{row.voucherNo}</td>
+                      <td style={styles.td}>{row.date}</td>
+                      <td style={{...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1565c0'}}>
+                        ₹{parseFloat(row.amount || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </td>
+                      <td style={styles.td}>{row.qty || '0.00'}</td>
+                      <td style={styles.td}>{row.time || 'N/A'}</td>
+                      <td style={styles.td}>{row.billet || '0'}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#666', fontStyle: 'italic' }}>
+                      No purchase records found for the selected date range
                     </td>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr style={styles.totalsRow}>
-                  <td colSpan="4" style={{ ...styles.totalsCell, fontWeight: 'bold', textAlign: 'left' }}>
-                    Total
+                )
+              ) : (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                    Enter search criteria and click "Search" to view purchase register entries
                   </td>
-                  <td style={{ ...styles.totalsCell, textAlign: 'right', fontFamily: '"Courier New", monospace', fontWeight: '600' }}>
-                    {formatNumber(totals.billAmount)}
-                  </td>
-                  <td style={{ ...styles.totalsCell, textAlign: 'right', fontFamily: '"Courier New", monospace', fontWeight: '600' }}>
-                    {totals.qty.toFixed(2)}
-                  </td>
-                  <td style={{ ...styles.totalsCell, textAlign: 'center' }}>-</td>
-                  <td style={{ ...styles.totalsCell, textAlign: 'center' }}>-</td>
-                  <td style={{ ...styles.totalsCell, borderRight: 'none', textAlign: 'center' }}>-</td>
                 </tr>
-              </tfoot>
-            </table>
-            
-            {tableLoaded && data.length === 0 && (
-              <div style={styles.emptyState}>
-                No records found
-              </div>
-            )}
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Footer Section with Balances */}
+      <div style={styles.footerSection}>
+        <div style={styles.balanceContainer}>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Opening Balance</span>
+            <span style={styles.balanceValue}>
+              ₹{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Amount</span>
+            <span style={styles.balanceValue}>
+              ₹{totals.billAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Quantity</span>
+            <span style={styles.balanceValue}>
+              {totals.qty.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Closing Balance</span>
+            <span style={styles.balanceValue}>
+              ₹{closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
           </div>
         </div>
       </div>

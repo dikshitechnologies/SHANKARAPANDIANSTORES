@@ -8,7 +8,6 @@ import { useAuth } from '../../context/AuthContext';
 import axiosInstance from "../../api/axiosInstance";
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
-// import { axiosInstance } from '../../api/axiosInstance';
 
 const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const { userData } = useAuth() || {};
@@ -25,6 +24,8 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     action: null,
     isLoading: false
   });
+  
+  // Refs for focus management
   const collectFieldRefs = useRef({});
   const saveButtonRef = useRef(null);
   const billDiscountPercentRef = useRef(null);
@@ -33,6 +34,13 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const salesReturnBillNoRef = useRef(null);
   const upiRef = useRef(null);
   const cardRef = useRef(null);
+  
+  // NEW: Added refs for new focus flow
+  const upiBankRef = useRef(null);
+  const cardBankRef = useRef(null);
+  const serviceChargeCheckboxRef = useRef(null);
+  const serviceChargePercentRef = useRef(null);
+
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: '', issue: '', closing: 0 },
     200: { available: 0, collect: '', issue: '', closing: 0 },
@@ -66,70 +74,73 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     issuedCash: '',
     upi: '',
     card: '',
-    balance: '',
+    upiBank: '',
+    cardBank: '',
+    serviceChargePercent: '',
+    serviceChargeAmount: '',
     isServiceCharge: false,
     isCreditBill: false,
     delivery: false,
+    balance: '',
   });
 
   // Update form data when billData changes
-// Update form data when billData changes
-useEffect(() => {
-  if (billData && isOpen) {
-    // Create completely new form data - DON'T use ...prev
-    const newFormData = {
-      billNo: billData.billNo || '',
-      salesman: billData.salesman || '',
-      date: billData.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
-      originalDate: billData.date || '',
-      grossAmt: billData.amount ? billData.amount.toString() : '',
-      itemDAmt: '',
-      billAmount: billData.amount ? billData.amount.toString() : '',
-      billDiscountPercent: '',
-      billDiscAmt: '',
-      granTotal: billData.amount ? billData.amount.toString() : '',
-      roudOff: '',
-      scrapAmountBillNo: '',
-      scrapAmount: '',
-      salesReturnBillNo: '',
-      salesReturn: '',
-      netAmount: billData.amount ? billData.amount.toString() : '',
-      receivedCash: '',
-      issuedCash: '',
-      upi: '',
-      card: '',
-      balance: '',
-      isServiceCharge: false,
-      isCreditBill: false,
-      delivery: false,
-    };
-    
-    setFormData(newFormData);
-    
-    // Clear all collect and issue fields in denominations
-    setDenominations(prev => ({
-      500: { ...prev[500], collect: '', issue: '', closing: prev[500].available },
-      200: { ...prev[200], collect: '', issue: '', closing: prev[200].available },
-      100: { ...prev[100], collect: '', issue: '', closing: prev[100].available },
-      50: { ...prev[50], collect: '', issue: '', closing: prev[50].available },
-      20: { ...prev[20], collect: '', issue: '', closing: prev[20].available },
-      10: { ...prev[10], collect: '', issue: '', closing: prev[10].available },
-      5: { ...prev[5], collect: '', issue: '', closing: prev[5].available },
-      2: { ...prev[2], collect: '', issue: '', closing: prev[2].available },
-      1: { ...prev[1], collect: '', issue: '', closing: prev[1].available },
-    }));
-    
-    // Fetch live drawer data when modal opens
-    fetchLiveDrawer();
-    
-    // Focus on discount field
-    setTimeout(() => {
-      if (billDiscountPercentRef.current) {
-        billDiscountPercentRef.current.focus();
-      }
-    }, 100);
-  }
-}, [billData, isOpen, userData?.companyCode]);
+  useEffect(() => {
+    if (billData && isOpen) {
+      const newFormData = {
+        billNo: billData.billNo || '',
+        salesman: billData.salesman || '',
+        date: billData.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
+        originalDate: billData.date || '',
+        grossAmt: billData.amount ? billData.amount.toString() : '',
+        itemDAmt: '',
+        billAmount: billData.amount ? billData.amount.toString() : '',
+        billDiscountPercent: '',
+        billDiscAmt: '',
+        granTotal: billData.amount ? billData.amount.toString() : '',
+        roudOff: '',
+        scrapAmountBillNo: '',
+        scrapAmount: '',
+        salesReturnBillNo: '',
+        salesReturn: '',
+        netAmount: billData.amount ? billData.amount.toString() : '',
+        receivedCash: '',
+        issuedCash: '',
+        upi: '',
+        card: '',
+        upiBank: '',
+        cardBank: '',
+        serviceChargePercent: '',
+        serviceChargeAmount: '',
+        isServiceCharge: false,
+        isCreditBill: false,
+        delivery: false,
+        balance: billData.amount ? billData.amount.toString() : '',
+      };
+      
+      setFormData(newFormData);
+      
+      setDenominations(prev => ({
+        500: { ...prev[500], collect: '', issue: '', closing: prev[500].available },
+        200: { ...prev[200], collect: '', issue: '', closing: prev[200].available },
+        100: { ...prev[100], collect: '', issue: '', closing: prev[100].available },
+        50: { ...prev[50], collect: '', issue: '', closing: prev[50].available },
+        20: { ...prev[20], collect: '', issue: '', closing: prev[20].available },
+        10: { ...prev[10], collect: '', issue: '', closing: prev[10].available },
+        5: { ...prev[5], collect: '', issue: '', closing: prev[5].available },
+        2: { ...prev[2], collect: '', issue: '', closing: prev[2].available },
+        1: { ...prev[1], collect: '', issue: '', closing: prev[1].available },
+      }));
+      
+      fetchLiveDrawer();
+      
+      setTimeout(() => {
+        if (billDiscountPercentRef.current) {
+          billDiscountPercentRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [billData, isOpen, userData?.companyCode]);
 
   // Auto-focus on billDiscountPercent field when modal opens
   useEffect(() => {
@@ -140,25 +151,37 @@ useEffect(() => {
     }
   }, [isOpen]);
 
-  // Update closing and issue values whenever collect values change
+  // Update balance whenever cash collected, upi, or card changes
   useEffect(() => {
-    // Calculate total collected amount from all denominations
-    let totalCollected = 0;
+    // Calculate total collected cash amount from all denominations
+    let totalCollectedCash = 0;
     [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
       const collectValue = Number(denominations[d].collect) || 0;
-      totalCollected += collectValue * d;
+      totalCollectedCash += collectValue * d;
     });
 
-    // Calculate balance
+    // Get UPI and Card amounts
+    const upiAmount = Number(formData.upi) || 0;
+    const cardAmount = Number(formData.card) || 0;
+    
+    // Calculate net amount
     const netAmount = Number(formData.netAmount) || 0;
-    const balance = totalCollected - netAmount;
+    
+    // Calculate total payment received (cash + upi + card)
+    const totalPaymentReceived = totalCollectedCash + upiAmount + cardAmount;
+    
+    // Calculate balance: Net Amount - Total Payment Received
+    const balance = netAmount - totalPaymentReceived;
+    
+    // If balance is negative, we need to issue cash (give change)
+    const issuedCash = balance < 0 ? Math.abs(balance) : 0;
 
-    // Update form data with received cash and balance
+    // Update form data
     setFormData(prev => ({
       ...prev,
-      receivedCash: totalCollected.toString(),
+      receivedCash: totalCollectedCash.toString(),
       balance: balance.toString(),
-      issuedCash: balance > 0 ? balance.toString() : ''
+      issuedCash: issuedCash.toString()
     }));
 
     // Update denominations with new closing and issue values
@@ -172,9 +195,9 @@ useEffect(() => {
         newDenom[d].closing = newDenom[d].available + col - iss;
       });
 
-      // If balance is positive, auto-calculate issue denominations
-      if (balance > 0) {
-        const optimalIssue = calculateOptimalDenominations(balance);
+      // If we need to issue cash (balance is negative), auto-calculate issue denominations
+      if (balance < 0) {
+        const optimalIssue = calculateOptimalDenominations(issuedCash);
         [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
           const iss = optimalIssue[d];
           newDenom[d] = { ...newDenom[d], issue: iss.toString() };
@@ -183,7 +206,7 @@ useEffect(() => {
           newDenom[d].closing = newDenom[d].available + col - iss;
         });
       } else {
-        // Clear issue denominations if balance is 0 or negative
+        // Clear issue denominations if no cash to issue
         [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
           newDenom[d] = { ...newDenom[d], issue: '' };
           const col = Number(newDenom[d].collect) || 0;
@@ -193,7 +216,12 @@ useEffect(() => {
 
       return newDenom;
     });
-  }, [Object.values(denominations).map(d => d.collect).join(','), formData.netAmount]);
+  }, [
+    Object.values(denominations).map(d => d.collect).join(','), 
+    formData.netAmount, 
+    formData.upi, 
+    formData.card
+  ]);
 
   // Fetch live drawer available from API
   const fetchLiveDrawer = async () => {
@@ -202,19 +230,12 @@ useEffect(() => {
       const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const companyCode = userData?.companyCode || '001';
       
-      console.log('Fetching live drawer with:', { dateStr, companyCode });
-      
       const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_LIVE_DRAWER(dateStr, companyCode);
       const response = await apiService.get(endpoint);
       
-      console.log('Live drawer API response:', response);
-      
       if (response) {
-        // apiService.get returns the data directly
         const data = response.data || response;
-        console.log('Parsed data:', data);
         
-        // Map API response keys (r500, r200, etc.) to denominations
         setDenominations(prev => ({
           500: { ...prev[500], available: data.r500 || 0, closing: data.r500 || 0 },
           200: { ...prev[200], available: data.r200 || 0, closing: data.r200 || 0 },
@@ -226,7 +247,6 @@ useEffect(() => {
           2: { ...prev[2], available: data.r2 || 0, closing: data.r2 || 0 },
           1: { ...prev[1], available: data.r1 || 0, closing: data.r1 || 0 },
         }));
-        console.log('Live drawer data loaded successfully');
       }
     } catch (err) {
       console.error('Error fetching live drawer:', err);
@@ -238,23 +258,18 @@ useEffect(() => {
     const denomList = [500, 200, 100, 50, 20, 10, 5, 2, 1];
     const result = {};
     
-    // Initialize all denominations to 0
     denomList.forEach(d => result[d] = 0);
     
     let remaining = amount;
     
-    // Greedy algorithm: use largest denominations first
-    // BUT only use denominations that have available quantity
     for (let denom of denomList) {
       const available = denominations[denom]?.available || 0;
       
-      // Skip denominations with 0 available
       if (available <= 0) {
         continue;
       }
       
       if (remaining >= denom) {
-        // Use minimum of: calculated needed amount or available quantity
         const needed = Math.floor(remaining / denom);
         const canUse = Math.min(needed, available);
         result[denom] = canUse;
@@ -267,40 +282,38 @@ useEffect(() => {
 
   const handleDenominationChange = (denom, field, value) => {
     const updated = { ...denominations };
-    // Store the exact value (including empty string) to maintain user input
     updated[denom] = { ...updated[denom], [field]: value === '' ? '' : value };
     
     const collect = Number(updated[denom].collect) || 0;
     const issue = Number(updated[denom].issue) || 0;
     updated[denom].closing = updated[denom].available + collect - issue;
     
-    // If collect field is being updated, calculate balance and auto-fill issue
     if (field === 'collect') {
-      // Calculate total collected amount from all denominations
       let totalCollected = 0;
       [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
         const collectValue = d === denom ? Number(value) || 0 : Number(updated[d].collect) || 0;
         totalCollected += collectValue * d;
       });
       
-      // Calculate balance
       const netAmount = Number(formData.netAmount) || 0;
-      const balance = totalCollected - netAmount;
+      const upiAmount = Number(formData.upi) || 0;
+      const cardAmount = Number(formData.card) || 0;
+      const totalCollectedAll = totalCollected + upiAmount + cardAmount;
       
-      // Update form data balance and issued cash
+      const balance = netAmount - totalCollectedAll;
+      const issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
+      
       setFormData(prev => ({
         ...prev,
         receivedCash: totalCollected.toString(),
         balance: balance.toString(),
-        issuedCash: balance > 0 ? balance.toString() : ''
+        issuedCash: issuedCash
       }));
       
-      // If balance is positive, auto-calculate and fill issue row
-      if (balance > 0) {
-        const optimalIssue = calculateOptimalDenominations(balance);
+      if (balance < 0) {
+        const optimalIssue = calculateOptimalDenominations(Math.abs(balance));
         [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
           updated[d] = { ...updated[d], issue: optimalIssue[d].toString() };
-          // Recalculate closing for each denomination
           const col = Number(updated[d].collect) || 0;
           const iss = optimalIssue[d];
           updated[d].closing = updated[d].available + col - iss;
@@ -339,7 +352,6 @@ useEffect(() => {
         const grandTotal = billAmount - discountAmount;
         updated.granTotal = grandTotal.toFixed(2);
         
-        // Also recalculate Net Amount when Grand Total changes
         const roundOff = Number(prev.roudOff) || 0;
         const scrapAmount = Number(prev.scrapAmount) || 0;
         const salesReturn = Number(prev.salesReturn) || 0;
@@ -377,26 +389,47 @@ useEffect(() => {
         updated.netAmount = netAmount.toFixed(2);
       }
 
-      // When Net Amount is updated, calculate the balance and issue denominations
-      if (field === 'netAmount' || field === 'roudOff' || field === 'scrapAmount' || field === 'salesReturn' || field === 'billDiscountPercent') {
-        const totalCollected = Object.entries(denominations).reduce((sum, [denom, data]) => {
+      // When UPI or Card changes, recalculate balance
+      if (field === 'upi' || field === 'card') {
+        const totalCollectedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
           return sum + ((Number(data.collect) || 0) * Number(denom));
         }, 0);
         
         const netAmt = Number(updated.netAmount || prev.netAmount) || 0;
-        const balance = totalCollected - netAmt;
+        const upiAmt = field === 'upi' ? Number(value) || 0 : Number(prev.upi) || 0;
+        const cardAmt = field === 'card' ? Number(value) || 0 : Number(prev.card) || 0;
         
-        // Update issued cash
-        updated.issuedCash = balance > 0 ? balance.toString() : '';
+        const totalPayment = totalCollectedCash + upiAmt + cardAmt;
+        const balance = netAmt - totalPayment;
         
-        // Auto-calculate issue denominations if balance is positive
-        if (balance > 0) {
-          const optimalIssue = calculateOptimalDenominations(balance);
+        updated.balance = balance.toString();
+        updated.issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
+      }
+
+      // When Net Amount is updated, calculate the balance
+      if (field === 'netAmount' || field === 'roudOff' || field === 'scrapAmount' || field === 'salesReturn' || field === 'billDiscountPercent') {
+        const totalCollectedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
+          return sum + ((Number(data.collect) || 0) * Number(denom));
+        }, 0);
+        
+        const netAmt = Number(updated.netAmount || prev.netAmount) || 0;
+        const upiAmt = Number(updated.upi || prev.upi) || 0;
+        const cardAmt = Number(updated.card || prev.card) || 0;
+        const totalPayment = totalCollectedCash + upiAmt + cardAmt;
+        
+        const balance = netAmt - totalPayment;
+        const issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
+        
+        updated.balance = balance.toString();
+        updated.issuedCash = issuedCash;
+        
+        // If we need to issue cash (balance is negative), auto-calculate issue denominations
+        if (balance < 0) {
+          const optimalIssue = calculateOptimalDenominations(Math.abs(balance));
           setDenominations(prevDenom => {
             const newDenom = { ...prevDenom };
             [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
               newDenom[d] = { ...newDenom[d], issue: optimalIssue[d].toString() };
-              // Recalculate closing for each denomination
               const col = Number(newDenom[d].collect) || 0;
               const iss = optimalIssue[d];
               newDenom[d].closing = newDenom[d].available + col - iss;
@@ -404,11 +437,11 @@ useEffect(() => {
             return newDenom;
           });
         } else {
-          // Clear issue denominations if balance is 0 or negative
+          // Clear issue denominations if no cash to issue
           setDenominations(prevDenom => {
             const newDenom = { ...prevDenom };
             [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-              newDenom[d] = { ...newDenom[d], issue: '0' };
+              newDenom[d] = { ...newDenom[d], issue: '' };
               const col = Number(newDenom[d].collect) || 0;
               newDenom[d].closing = newDenom[d].available + col;
             });
@@ -421,6 +454,77 @@ useEffect(() => {
     });
   };
 
+  // Handle Service Charge Toggle and Calculation
+  const handleServiceChargeToggle = (e) => {
+    const isChecked = e.target.checked;
+    setFormData(prev => {
+      const updated = { ...prev, isServiceCharge: isChecked };
+      
+      if (isChecked) {
+        const cardAmount = Number(prev.card) || 0;
+        const serviceChargePercent = Number(prev.serviceChargePercent) || 0;
+        const serviceChargeAmount = (cardAmount * serviceChargePercent) / 100;
+        
+        updated.serviceChargeAmount = serviceChargeAmount.toFixed(2);
+      } else {
+        updated.serviceChargePercent = '';
+        updated.serviceChargeAmount = '';
+      }
+      
+      return updated;
+    });
+  };
+
+  // Handle Card Amount Change (to recalc service charge AND balance)
+  const handleCardAmountChange = (value) => {
+    setFormData(prev => {
+      const updated = { ...prev, card: value };
+      
+      // If service charge is enabled, recalculate
+      if (prev.isServiceCharge) {
+        const cardAmount = Number(value) || 0;
+        const serviceChargePercent = Number(prev.serviceChargePercent) || 0;
+        const serviceChargeAmount = (cardAmount * serviceChargePercent) / 100;
+        
+        updated.serviceChargeAmount = serviceChargeAmount.toFixed(2);
+      }
+      
+      // Recalculate balance
+      const totalCollectedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
+        return sum + ((Number(data.collect) || 0) * Number(denom));
+      }, 0);
+      
+      const netAmt = Number(updated.netAmount) || 0;
+      const upiAmt = Number(updated.upi) || 0;
+      const cardAmt = Number(value) || 0;
+      
+      const totalPayment = totalCollectedCash + upiAmt + cardAmt;
+      const balance = netAmt - totalPayment;
+      
+      updated.balance = balance.toString();
+      updated.issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
+      
+      return updated;
+    });
+  };
+
+  // Handle Service Charge Percent Change
+  const handleServiceChargePercentChange = (value) => {
+    setFormData(prev => {
+      const updated = { ...prev, serviceChargePercent: value };
+      
+      const cardAmount = Number(prev.card) || 0;
+      const serviceChargePercent = Number(value) || 0;
+      const serviceChargeAmount = (cardAmount * serviceChargePercent) / 100;
+      
+      updated.serviceChargeAmount = serviceChargeAmount.toFixed(2);
+      
+      return updated;
+    });
+  };
+
+  // NEW FOCUS HANDLERS START HERE
+  
   // Handle keydown in collect fields for navigation
   const handleCollectFieldKeyDown = (e, currentDenom) => {
     const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
@@ -436,9 +540,9 @@ useEffect(() => {
           collectFieldRefs.current[nextDenom].focus();
         }
       } else if (currentIndex === denomSequence.length - 1) {
-        // Last field (1), move to UPI field
-        if (upiRef.current) {
-          upiRef.current.focus();
+        // Last field (1), move to UPI BANK field (not UPI Amount)
+        if (upiBankRef.current) {
+          upiBankRef.current.focus();
         }
       }
     } else if (e.key === 'ArrowRight') {
@@ -450,9 +554,9 @@ useEffect(() => {
           collectFieldRefs.current[nextDenom].focus();
         }
       } else if (currentIndex === denomSequence.length - 1) {
-        // Last field (1), move to UPI field
-        if (upiRef.current) {
-          upiRef.current.focus();
+        // Last field (1), move to UPI BANK field
+        if (upiBankRef.current) {
+          upiBankRef.current.focus();
         }
       }
     } else if (e.key === 'ArrowLeft') {
@@ -466,10 +570,9 @@ useEffect(() => {
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
-      // Move to next row (Issue row) - same denomination
-      // For now, we'll just move to the UPI field at the end
-      if (upiRef.current) {
-        upiRef.current.focus();
+      // Move to UPI Bank field
+      if (upiBankRef.current) {
+        upiBankRef.current.focus();
       }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
@@ -495,7 +598,6 @@ useEffect(() => {
     if (e.key === 'Enter') {
       e.preventDefault();
       
-      // Trigger calculation by updating form data
       const billAmount = Number(formData.billAmount) || 0;
       const discountPercent = Number(formData.billDiscountPercent) || 0;
       const discountAmount = (billAmount * discountPercent) / 100;
@@ -506,7 +608,6 @@ useEffect(() => {
       const salesReturn = Number(formData.salesReturn) || 0;
       const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
       
-      // Update form data with calculated values
       setFormData(prev => ({
         ...prev,
         billDiscAmt: discountAmount.toFixed(2),
@@ -521,8 +622,28 @@ useEffect(() => {
     }
   };
 
-  // Handle keydown for UPI field - move to Card field
+  // NEW: Handle keydown for UPI Bank field - move to UPI Amount
+  const handleUPIBankKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (upiRef.current) {
+        upiRef.current.focus();
+      }
+    }
+  };
+
+  // NEW: Handle keydown for UPI Amount field - move to Card Bank
   const handleUPIKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (cardBankRef.current) {
+        cardBankRef.current.focus();
+      }
+    }
+  };
+
+  // NEW: Handle keydown for Card Bank field - move to Card Amount
+  const handleCardBankKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (cardRef.current) {
@@ -531,8 +652,46 @@ useEffect(() => {
     }
   };
 
-  // Handle keydown for Card field - move to Save button
+  // NEW: Handle keydown for Card Amount field - move to Service Charge or Save
   const handleCardKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // If card amount is greater than 0, move to Service Charge checkbox
+      if (Number(formData.card) > 0) {
+        if (serviceChargeCheckboxRef.current) {
+          serviceChargeCheckboxRef.current.focus();
+        }
+      } else {
+        // Otherwise, move directly to Save button
+        if (saveButtonRef.current) {
+          saveButtonRef.current.focus();
+        }
+      }
+    }
+  };
+
+  // NEW: Handle keydown for Service Charge Checkbox
+  const handleServiceChargeCheckboxKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // If service charge is checked and we need to enter percentage
+      if (formData.isServiceCharge) {
+        if (serviceChargePercentRef.current) {
+          serviceChargePercentRef.current.focus();
+        }
+      } else {
+        // If service charge is not checked, move to Save
+        if (saveButtonRef.current) {
+          saveButtonRef.current.focus();
+        }
+      }
+    }
+  };
+
+  // NEW: Handle keydown for Service Charge Percent field - move to Save
+  const handleServiceChargePercentKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (saveButtonRef.current) {
@@ -560,7 +719,6 @@ useEffect(() => {
       );
       
       const data = response.data;
-      console.log('Fetched bill amount data:', data);
       
       if (data && data.fBillAmt) {
         if (fieldType === 'scrap') {
@@ -571,7 +729,6 @@ useEffect(() => {
       }
     } catch (error) {
       console.error('Error fetching bill amount:', error);
-     
     }
   };
 
@@ -579,11 +736,9 @@ useEffect(() => {
     const value = e.target.value;
     handleInputChange('scrapAmountBillNo', value);
     
-    // Clear amount if bill number is empty
     if (!value.trim()) {
       handleInputChange('scrapAmount', '');
     } else if (value.length > 2) {
-      // Fetch amount when user finishes typing (on blur would be better, but this triggers on change)
       fetchBillAmount(value, 'scrap');
     }
   };
@@ -592,22 +747,17 @@ useEffect(() => {
     const value = e.target.value;
     handleInputChange('salesReturnBillNo', value);
     
-    // Clear amount if bill number is empty
     if (!value.trim()) {
       handleInputChange('salesReturn', '');
     } else if (value.length > 2) {
-      // Fetch amount when user finishes typing
       fetchBillAmount(value, 'salesReturn');
     }
   };
 
   const handleSave = () => {
-    // Validation logic before showing save confirmation
-    // Net Amount = (Received Cash + UPI + Card) - Issued Cash
     const receivedCash = Number(formData.receivedCash) || 0;
     const upi = Number(formData.upi) || 0;
     const card = Number(formData.card) || 0;
-    // Calculate total issued cash from all denominations
     const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
       return sum + ((Number(data.issue) || 0) * Number(denom));
     }, 0);
@@ -632,41 +782,32 @@ useEffect(() => {
   const confirmSave = async () => {
     try {
       setIsSaving(true);
-      // Calculate net amount validation
       const receivedCash = Number(formData.receivedCash) || 0;
       const upi = Number(formData.upi) || 0;
       const card = Number(formData.card) || 0;
       
-      // Calculate total issued cash from all denominations by multiplying count * denomination value
       const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
         return sum + ((Number(data.issue) || 0) * Number(denom));
       }, 0);
       
-      // Net Amount = (Received Cash + UPI + Card) - Issued Cash
       const calculatedNetAmount = (receivedCash + upi + card) - totalIssuedCash;
       
-      // Get the net amount from form
       const formNetAmount = Number(formData.netAmount) || 0;
       
-      // Validate if the calculation matches
       if (calculatedNetAmount !== formNetAmount) {
         alert(' Bill Amount Mismatch. Please check the entered amounts.');
         return;
       }
 
-      // Prepare the payload based on the API structure
-      // Handle date properly - create ISO string with correct local date
       let dateToSend;
       if (formData.originalDate) {
         const dateObj = new Date(formData.originalDate);
-        // Get local year, month, day without timezone conversion
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
         const hours = String(dateObj.getHours()).padStart(2, '0');
         const minutes = String(dateObj.getMinutes()).padStart(2, '0');
         const seconds = String(dateObj.getSeconds()).padStart(2, '0');
-        // Create ISO string manually with local date (no timezone shift)
         dateToSend = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
       } else {
         const now = new Date();
@@ -684,7 +825,7 @@ useEffect(() => {
         date: dateToSend,
         billAmount: Number(formData.granTotal) || 0,
         givenTotal: Number(formData.receivedCash) || 0,
-        balanceGiven: Number(formData.balance) || 0,
+        balanceGiven: Number(formData.issuedCash) || 0,
         fCompCode: userData?.companyCode || '001',
         fGrossAMT: Number(formData.grossAmt) || 0,
         fitemAMT: Number(formData.itemDAmt) || 0,
@@ -721,79 +862,73 @@ useEffect(() => {
         }
       };
 
-      console.log('Tender Payload:', payload);
-
-      // Make API call to InsertTender endpoint
       const response = await apiService.post(
         'BillCollector/InsertTender',
         payload
       );
 
-      console.log('API Response:', response);
-
-   if (response) {
-  setConfirmSaveOpen(false);
-  
-  // Clear the form completely
-  const resetFormData = {
-    billNo: '',
-    salesman: '',
-    date: '',
-    originalDate: '',
-    grossAmt: '',
-    itemDAmt: '',
-    billAmount: '',
-    billDiscountPercent: '',
-    billDiscAmt: '',
-    granTotal: '',
-    roudOff: '',
-    scrapAmountBillNo: '',
-    scrapAmount: '',
-    salesReturnBillNo: '',
-    salesReturn: '',
-    netAmount: '',
-    receivedCash: '',
-    issuedCash: '',
-    upi: '',
-    card: '',
-    balance: '',
-    isServiceCharge: false,
-    isCreditBill: false,
-    delivery: false,
-  };
-  
-  setFormData(resetFormData);
-  
-  // Clear all collect and issue fields in denominations
-  setDenominations(prev => ({
-    500: { ...prev[500], collect: '', issue: '', closing: prev[500].available },
-    200: { ...prev[200], collect: '', issue: '', closing: prev[200].available },
-    100: { ...prev[100], collect: '', issue: '', closing: prev[100].available },
-    50: { ...prev[50], collect: '', issue: '', closing: prev[50].available },
-    20: { ...prev[20], collect: '', issue: '', closing: prev[20].available },
-    10: { ...prev[10], collect: '', issue: '', closing: prev[10].available },
-    5: { ...prev[5], collect: '', issue: '', closing: prev[5].available },
-    2: { ...prev[2], collect: '', issue: '', closing: prev[2].available },
-    1: { ...prev[1], collect: '', issue: '', closing: prev[1].available },
-  }));
-  
-  // Refresh parent component
-  if (onSaveSuccess) {
-    onSaveSuccess();
-  }
-  
-  // Don't close modal, keep it open for next entry
-  if (onClose) {
-    onClose();
-  }
-  
-  // Focus on discount field for next entry
-  setTimeout(() => {
-    if (billDiscountPercentRef.current) {
-      billDiscountPercentRef.current.focus();
-    }
-  }, 0);
-}else {
+      if (response) {
+        setConfirmSaveOpen(false);
+        
+        const resetFormData = {
+          billNo: '',
+          salesman: '',
+          date: '',
+          originalDate: '',
+          grossAmt: '',
+          itemDAmt: '',
+          billAmount: '',
+          billDiscountPercent: '',
+          billDiscAmt: '',
+          granTotal: '',
+          roudOff: '',
+          scrapAmountBillNo: '',
+          scrapAmount: '',
+          salesReturnBillNo: '',
+          salesReturn: '',
+          netAmount: '',
+          receivedCash: '',
+          issuedCash: '',
+          upi: '',
+          card: '',
+          upiBank: '',
+          cardBank: '',
+          serviceChargePercent: '',
+          serviceChargeAmount: '',
+          isServiceCharge: false,
+          isCreditBill: false,
+          delivery: false,
+          balance: '',
+        };
+        
+        setFormData(resetFormData);
+        
+        setDenominations(prev => ({
+          500: { ...prev[500], collect: '', issue: '', closing: prev[500].available },
+          200: { ...prev[200], collect: '', issue: '', closing: prev[200].available },
+          100: { ...prev[100], collect: '', issue: '', closing: prev[100].available },
+          50: { ...prev[50], collect: '', issue: '', closing: prev[50].available },
+          20: { ...prev[20], collect: '', issue: '', closing: prev[20].available },
+          10: { ...prev[10], collect: '', issue: '', closing: prev[10].available },
+          5: { ...prev[5], collect: '', issue: '', closing: prev[5].available },
+          2: { ...prev[2], collect: '', issue: '', closing: prev[2].available },
+          1: { ...prev[1], collect: '', issue: '', closing: prev[1].available },
+        }));
+        
+        if (onSaveSuccess) {
+          onSaveSuccess();
+        }
+        
+        if (onClose) {
+          onClose();
+        }
+        
+        setTimeout(() => {
+          if (billDiscountPercentRef.current) {
+            billDiscountPercentRef.current.focus();
+          }
+        }, 0);
+      } else {
         setConfirmSaveOpen(false);
         alert('Failed to save tender details: ' + (response.data?.message || 'Unknown error'));
       }
@@ -839,10 +974,14 @@ useEffect(() => {
       issuedCash: '',
       upi: '',
       card: '',
-      balance: '',
+      upiBank: '',
+      cardBank: '',
+      serviceChargePercent: '',
+      serviceChargeAmount: '',
       isServiceCharge: false,
       isCreditBill: false,
       delivery: false,
+      balance: billData?.amount ? billData.amount.toString() : '',
     });
     setDenominations(prev => ({
       500: { ...prev[500], collect: '', issue: '' },
@@ -1061,8 +1200,8 @@ useEffect(() => {
               </div>
 
               {/* Checkboxes Row */}
-              {/* <div className={styles.checkboxRow}>
-                <div className={styles.checkboxGroup}>
+              <div className={styles.checkboxRow}>
+                {/* <div className={styles.checkboxGroup}>
                   <label className={styles.checkboxLabel}>
                     <input
                       type="checkbox"
@@ -1072,9 +1211,9 @@ useEffect(() => {
                     />
                     <span>Service</span>
                   </label>
-                </div>
+                </div> */}
                 
-                <div className={styles.checkboxGroup}>
+                {/* <div className={styles.checkboxGroup}>
                   <label className={styles.checkboxLabel}>
                     <input
                       type="checkbox"
@@ -1084,13 +1223,8 @@ useEffect(() => {
                     />
                     <span>Delivery</span>
                   </label>
-                </div>
-              </div> */}
-
-              {/* F8-Delete Note */}
-              {/* <div className={styles.f8Note}>
-                F8-Delete
-              </div> */}
+                </div> */}
+              </div>
             </div>
 
             {/* Right Section - Bottom Details */}
@@ -1176,12 +1310,13 @@ useEffect(() => {
 
               {/* Bottom: Payment Details */}
               <div className={styles.paymentSection}>
+                {/* First Row: Received Cash, Issued Cash, and Balance */}
                 <div className={styles.paymentRow}>
-                  <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
+                  <div className={styles.paymentGroup}>
                     <label className={styles.paymentLabel}>Received Cash</label>
                     <div className={styles.paymentInputContainer}>
                       <input
-                        type="number"
+                        type="number"                 
                         value={formData.receivedCash}
                         readOnly
                         className={`${styles.paymentInput} ${styles.readonlyPayment}`}
@@ -1189,7 +1324,7 @@ useEffect(() => {
                     </div>
                   </div>
                   
-                  <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
+                  <div className={styles.paymentGroup}>
                     <label className={styles.paymentLabel}>Issued Cash</label>
                     <div className={styles.paymentInputContainer}>
                       <input
@@ -1201,12 +1336,45 @@ useEffect(() => {
                     </div>
                   </div>
 
-                  <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
-                    <label className={styles.paymentLabel}>UPI</label>
+                  <div className={styles.paymentGroup}>
+                    <label className={styles.paymentLabel}>Balance</label>
+                    <div className={styles.paymentInputContainer}>
+                      <input
+                        type="text"
+                        value={formData.balance}
+                        readOnly
+                        className={`${styles.paymentInput} ${styles.readonlyPayment} ${Number(formData.balance) < 0 ? styles.negativeBalance : ''}`}
+                        title="Net Amount - (Cash Collected + UPI + Card)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Second Row: UPI and Card with Bank Selection */}
+                <div className={styles.paymentRow}>
+                  {/* UPI Bank */}
+                  <div className={styles.paymentGroup}>
+                    <label className={styles.paymentLabel}>UPI Bank</label>
+                    <div className={styles.paymentInputContainer}>
+                      <input
+                        ref={upiBankRef}
+                        type="text"
+                        value={formData.upiBank}
+                        onChange={(e) => handleInputChange('upiBank', e.target.value)}
+                        onKeyDown={handleUPIBankKeyDown}
+                        placeholder="Select UPI Bank"
+                        className={styles.paymentInput}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* UPI Amount */}
+                  <div className={styles.paymentGroup}>
+                    <label className={styles.paymentLabel}>UPI Amount</label>
                     <div className={styles.paymentInputContainer}>
                       <input
                         ref={upiRef}
-                        type="text"
+                        type="number"
                         value={formData.upi}
                         onChange={(e) => handleInputChange('upi', e.target.value)}
                         onKeyDown={handleUPIKeyDown}
@@ -1215,14 +1383,31 @@ useEffect(() => {
                     </div>
                   </div>
                   
-                  <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
-                    <label className={styles.paymentLabel}>Card</label>
+                  {/* Card Bank */}
+                  <div className={styles.paymentGroup}>
+                    <label className={styles.paymentLabel}>Card Bank</label>
+                    <div className={styles.paymentInputContainer}>
+                      <input
+                        ref={cardBankRef}
+                        type="text"
+                        value={formData.cardBank}
+                        onChange={(e) => handleInputChange('cardBank', e.target.value)}
+                        onKeyDown={handleCardBankKeyDown}
+                        placeholder="Select Card Bank"
+                        className={styles.paymentInput}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Card Amount */}
+                  <div className={styles.paymentGroup}>
+                    <label className={styles.paymentLabel}>Card Amount</label>
                     <div className={styles.paymentInputContainer}>
                       <input
                         ref={cardRef}
                         type="number"
                         value={formData.card}
-                        onChange={(e) => handleInputChange('card', e.target.value)}
+                        onChange={(e) => handleCardAmountChange(e.target.value)}
                         onKeyDown={handleCardKeyDown}
                         className={styles.paymentInput}
                       />
@@ -1230,55 +1415,67 @@ useEffect(() => {
                   </div>
                 </div>
 
-                {/* <div className={styles.paymentRow} style={{ gap: '12px' }}>
-                  <div className={styles.paymentGroup} style={{ maxWidth: '150px' }}>
-                    <label className={styles.paymentLabel}>Balance</label>
-                    <div className={styles.paymentInputContainer}>
+                {/* Third Row: Service Charge */}
+                <div className={styles.paymentRow}>
+                  <div className={styles.paymentGroup}>
+                    <label className={styles.checkboxLabel}>
                       <input
-                        type="text"
-                        value={formData.balance}
-                        readOnly
-                        className={`${styles.paymentInput} ${styles.balanceField}`}
-                      />
-                    </div>
-                  </div>
-                </div> */}
-
-                {/* Right Side Checkboxes */}
-                {/* <div className={styles.rightCheckboxRow}>
-                  <div className={styles.rightCheckboxGroup}>
-                    <label className={styles.rightCheckboxLabel}>
-                      <input
+                        ref={serviceChargeCheckboxRef}
                         type="checkbox"
                         checked={formData.isServiceCharge}
-                        onChange={(e) => handleInputChange('isServiceCharge', e.target.checked)}
-                        className={styles.rightCheckbox}
+                        onChange={handleServiceChargeToggle}
+                        onKeyDown={handleServiceChargeCheckboxKeyDown}
+                        className={styles.checkbox}
                       />
                       <span>Is Service Charge</span>
-                      {formData.isServiceCharge && (
+                    </label>
+                    
+                    {formData.isServiceCharge && (
+                      <div className={styles.serviceChargeContainer}>
+                        <input
+                          ref={serviceChargePercentRef}
+                          type="number"
+                          value={formData.serviceChargePercent}
+                          onChange={(e) => handleServiceChargePercentChange(e.target.value)}
+                          onKeyDown={handleServiceChargePercentKeyDown}
+                          placeholder=""
+                          className={styles.serviceChargeInput}
+                        />
+                        <span>%</span>
                         <input
                           type="number"
-                          value={formData.isServiceCharge}
-                          onChange={(e) => handleInputChange('isServiceCharge', e.target.value)}
-                          className={styles.serviceAmountInput}
-                          placeholder="0"
+                          value={formData.serviceChargeAmount}
+                          readOnly
+                          className={`${styles.serviceChargeInput} ${styles.readonlyPayment}`}
+                          placeholder="Amount"
                         />
-                      )}
-                    </label>
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className={styles.rightCheckboxGroup}>
-                    <label className={styles.rightCheckboxLabel}>
+                </div>
+
+                {/* Fourth Row: Is Credit Bill */}
+                <div className={styles.paymentRow}>
+                  {/* <div className={styles.paymentGroup}>
+                    <label className={styles.checkboxLabel}>
                       <input
                         type="checkbox"
                         checked={formData.isCreditBill}
                         onChange={(e) => handleInputChange('isCreditBill', e.target.checked)}
-                        className={styles.rightCheckbox}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (saveButtonRef.current) {
+                              saveButtonRef.current.focus();
+                            }
+                          }
+                        }}
+                        className={styles.checkbox}
                       />
                       <span>Is Credit Bill</span>
                     </label>
-                  </div>
-                </div> */}
+                  </div> */}
+                </div>
               </div>
             </div>
           </div>
@@ -1306,12 +1503,10 @@ useEffect(() => {
         confirmText={validationPopup.confirmText}
         cancelText={validationPopup.cancelText}
         onConfirm={(e) => {
-          // Prevent event bubbling to modal overlay
           if (e && e.stopPropagation) e.stopPropagation();
           setValidationPopup(p => ({ ...p, isOpen: false }));
         }}
         onClose={(e) => {
-          // Prevent event bubbling to modal overlay
           if (e && e.stopPropagation) e.stopPropagation();
           setValidationPopup(p => ({ ...p, isOpen: false }));
         }}

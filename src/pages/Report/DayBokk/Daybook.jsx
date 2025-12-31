@@ -313,62 +313,106 @@ const DayBook = () => {
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
     },
-    formRow: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-    },
     formField: {
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '4px' : '6px',
+      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '3px' : '4px',
     },
-    inlineLabel: {
+    // VERY SMALL DATE INPUT STYLES
+    dateLabel: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       color: '#333',
-      minWidth: screenSize.isMobile ? '50px' : screenSize.isTablet ? '55px' : '60px',
+      minWidth: screenSize.isMobile ? '32px' : screenSize.isTablet ? '35px' : '40px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
     },
-    inlineInput: {
+    dateInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
       fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
+      lineHeight: '1',
+      padding: screenSize.isMobile ? '2px 4px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      height: screenSize.isMobile ? '24px' : screenSize.isTablet ? '26px' : '28px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '90px' : '110px',
+      minWidth: screenSize.isMobile ? '85px' : screenSize.isTablet ? '95px' : '105px',
     },
-    inlineInputFocused: {
+    dateInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
       fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
+      lineHeight: '1',
+      padding: screenSize.isMobile ? '2px 4px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
       border: '2px solid #1B91DA',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      height: screenSize.isMobile ? '24px' : screenSize.isTablet ? '26px' : '28px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '90px' : '110px',
+      minWidth: screenSize.isMobile ? '85px' : screenSize.isTablet ? '95px' : '105px',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
-    gridRow: {
-      display: 'grid',
-      gap: '8px',
-      marginBottom: 10,
+    // MEDIUM/LARGE BRANCH INPUT STYLES
+    branchLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      minWidth: screenSize.isMobile ? '45px' : screenSize.isTablet ? '50px' : '55px',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+    },
+    branchInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: '1.2',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '7px 10px' : '8px 12px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '120px' : screenSize.isTablet ? '150px' : '180px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    branchInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: '1.2',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '7px 10px' : '8px 12px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '120px' : screenSize.isTablet ? '150px' : '180px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     tableContainer: {
       backgroundColor: 'white',
@@ -484,13 +528,14 @@ const DayBook = () => {
       color: '#1976d2',
       fontWeight: 'bold',
     },
+    // MEDIUM BUTTONS
     searchButton: {
       padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '7px 14px' : '8px 16px',
       background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
       color: 'white',
       border: 'none',
       borderRadius: screenSize.isMobile ? '4px' : '6px',
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -498,8 +543,8 @@ const DayBook = () => {
       letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      minWidth: screenSize.isMobile ? '70px' : '80px',
-      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -517,7 +562,7 @@ const DayBook = () => {
       color: '#333',
       border: '1.5px solid #ddd',
       borderRadius: screenSize.isMobile ? '4px' : '6px',
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -525,8 +570,8 @@ const DayBook = () => {
       letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      minWidth: screenSize.isMobile ? '70px' : '80px',
-      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -567,86 +612,6 @@ const DayBook = () => {
       borderRadius: '8px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
-    },
-    selectInput: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
-      border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-      outline: 'none',
-      width: '100%',
-      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
-      flex: 1,
-      minWidth: screenSize.isMobile ? '90px' : '110px',
-      backgroundColor: 'white',
-      cursor: 'pointer',
-    },
-    selectInputFocused: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
-      border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-      outline: 'none',
-      width: '100%',
-      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
-      flex: 1,
-      minWidth: screenSize.isMobile ? '90px' : '110px',
-      backgroundColor: 'white',
-      cursor: 'pointer',
-      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
-    },
-    branchInput: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
-      border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-      outline: 'none',
-      width: '100%',
-      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
-      flex: 1,
-      minWidth: screenSize.isMobile ? '90px' : '110px',
-      backgroundColor: 'white',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    branchInputFocused: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
-      border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-      outline: 'none',
-      width: '100%',
-      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
-      flex: 1,
-      minWidth: screenSize.isMobile ? '90px' : '110px',
-      backgroundColor: 'white',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     popupOverlay: {
       position: 'fixed',
@@ -803,17 +768,6 @@ const DayBook = () => {
     },
   };
 
-  // Get grid columns based on screen size
-  const getGridColumns = () => {
-    if (screenSize.isMobile) {
-      return 'repeat(2, 1fr)';
-    } else if (screenSize.isTablet) {
-      return 'repeat(3, 1fr)';
-    } else {
-      return 'repeat(4, 1fr)';
-    }
-  };
-
   // Calculate totals
   const totalReceipts = dayBookData
     .filter(row => !row.isTotal && row.receipts)
@@ -834,122 +788,136 @@ const DayBook = () => {
         </div>
       )}
 
-      {/* Header Section - ALL ON ONE LINE */}
+      {/* Header Section - Left side: Dates + Branch, Right side: Buttons */}
       <div style={styles.headerSection}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '12px',
+          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* From Date */}
-          <div style={{
-            ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 calc(50% - 6px)' : '1',
-            minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : '120px',
-          }}>
-            <label style={styles.inlineLabel}>From:</label>
-            <input
-              type="date"
-              data-header="fromDate"
-              style={
-                focusedField === 'fromDate'
-                  ? styles.inlineInputFocused
-                  : styles.inlineInput
-              }
-              value={fromDate}
-              onChange={handleFromDateChange}
-              ref={fromDateRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'fromDate');
-              }}
-              onFocus={() => setFocusedField('fromDate')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
-
-          {/* To Date */}
-          <div style={{
-            ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 calc(50% - 6px)' : '1',
-            minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : '120px',
-          }}>
-            <label style={styles.inlineLabel}>To:</label>
-            <input
-              type="date"
-              data-header="toDate"
-              style={
-                focusedField === 'toDate'
-                  ? styles.inlineInputFocused
-                  : styles.inlineInput
-              }
-              value={toDate}
-              onChange={handleToDateChange}
-              ref={toDateRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'toDate');
-              }}
-              onFocus={() => setFocusedField('toDate')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
-
-          {/* Branch */}
-          <div style={{
-            ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '2',
-            minWidth: screenSize.isMobile ? '100%' : '150px',
-          }}>
-            <label style={styles.inlineLabel}>Branch:</label>
-            <div
-              style={
-                focusedField === 'branch'
-                  ? styles.branchInputFocused
-                  : styles.branchInput
-              }
-              onClick={() => {
-                handleBranchClick();
-                setFocusedField('branch');
-              }}
-              ref={branchRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'branch');
-                if (e.key === 'Enter') {
-                  handleBranchClick();
-                }
-              }}
-              onFocus={() => setFocusedField('branch')}
-              onBlur={() => setFocusedField('')}
-              tabIndex={0}
-            >
-              <span style={{
-                fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
-                color: '#333',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1
-              }}>
-                {branchDisplay}
-              </span>
-              <span style={{ color: '#1B91DA', fontSize: screenSize.isMobile ? '9px' : '10px', marginLeft: '6px' }}>▼</span>
-            </div>
-          </div>
-
-          {/* Search Button */}
+          {/* LEFT SIDE: Dates and Branch */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            flexShrink: 0,
-            marginLeft: screenSize.isMobile ? '0' : 'auto',
+            flex: 1,
+            gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+            flexWrap: 'wrap',
           }}>
+            {/* From Date - VERY SMALL */}
+            <div style={{
+              ...styles.formField,
+              minWidth: screenSize.isMobile ? 'calc(50% - 8px)' : 'auto',
+            }}>
+              <label style={styles.dateLabel}>From:</label>
+              <input
+                type="date"
+                data-header="fromDate"
+                style={
+                  focusedField === 'fromDate'
+                    ? styles.dateInputFocused
+                    : styles.dateInput
+                }
+                value={fromDate}
+                onChange={handleFromDateChange}
+                ref={fromDateRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'fromDate');
+                }}
+                onFocus={() => setFocusedField('fromDate')}
+                onBlur={() => setFocusedField('')}
+              />
+            </div>
+
+            {/* To Date - VERY SMALL */}
+            <div style={{
+              ...styles.formField,
+              minWidth: screenSize.isMobile ? 'calc(50% - 8px)' : 'auto',
+            }}>
+              <label style={styles.dateLabel}>To:</label>
+              <input
+                type="date"
+                data-header="toDate"
+                style={
+                  focusedField === 'toDate'
+                    ? styles.dateInputFocused
+                    : styles.dateInput
+                }
+                value={toDate}
+                onChange={handleToDateChange}
+                ref={toDateRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'toDate');
+                }}
+                onFocus={() => setFocusedField('toDate')}
+                onBlur={() => setFocusedField('')}
+              />
+            </div>
+
+            {/* Branch - MEDIUM/LARGE with SPACER */}
+            <div style={{
+              ...styles.formField,
+              flex: 1,
+              minWidth: screenSize.isMobile ? '100%' : '180px',
+            }}>
+              <label style={styles.branchLabel}>Branch:</label>
+              <div
+                style={
+                  focusedField === 'branch'
+                    ? styles.branchInputFocused
+                    : styles.branchInput
+                }
+                onClick={() => {
+                  handleBranchClick();
+                  setFocusedField('branch');
+                }}
+                ref={branchRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'branch');
+                  if (e.key === 'Enter') {
+                    handleBranchClick();
+                  }
+                }}
+                onFocus={() => setFocusedField('branch')}
+                onBlur={() => setFocusedField('')}
+                tabIndex={0}
+              >
+                <span style={{
+                  fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+                  color: '#333',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}>
+                  {branchDisplay}
+                </span>
+                <span style={{ 
+                  color: '#1B91DA', 
+                  fontSize: screenSize.isMobile ? '10px' : '11px', 
+                  marginLeft: '8px' 
+                }}>▼</span>
+              </div>
+            </div>
+          </div>
+
+          {/* SPACER BETWEEN LEFT AND RIGHT SIDES - LARGE GAP */}
+          <div style={{
+            width: screenSize.isMobile ? '0' : screenSize.isTablet ? '30px' : '40px',
+            flexShrink: 0,
+          }} />
+
+          {/* RIGHT SIDE: Buttons */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+            flexShrink: 0,
+          }}>
+            {/* Search Button - MEDIUM */}
             <button
-              style={{
-                ...styles.searchButton,
-                width: screenSize.isMobile ? '100%' : 'auto',
-                marginBottom: screenSize.isMobile ? '8px' : '0',
-              }}
+              style={styles.searchButton}
               onClick={handleSearch}
               onMouseEnter={() => setHoveredButton(true)}
               onMouseLeave={() => setHoveredButton(false)}
@@ -963,19 +931,10 @@ const DayBook = () => {
               Search
               {hoveredButton && <div style={styles.buttonGlow}></div>}
             </button>
-          </div>
 
-          {/* Refresh Button */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            flexShrink: 0,
-          }}>
+            {/* Refresh Button - MEDIUM */}
             <button
-              style={{
-                ...styles.refreshButton,
-                width: screenSize.isMobile ? '100%' : 'auto',
-              }}
+              style={styles.refreshButton}
               onClick={handleRefresh}
             >
               Refresh
