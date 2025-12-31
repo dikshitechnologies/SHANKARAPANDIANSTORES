@@ -88,7 +88,7 @@ const PaymentVoucher = () => {
       crDr: 'CR',
       type: 'CASH',
       chqNo: '',
-      chqDt: '',
+      chqDt:  new Date().toISOString().substring(0, 10),
       narration: '',
       amount: ''
     }
@@ -496,9 +496,26 @@ const PaymentVoucher = () => {
           break;
           
         case 'accountName':
-          gstTypeRef.current?.focus();
-          setNavigationStep('gstType');
-          break;
+  if (!voucherDetails.accountName?.trim()) {
+    toast.warning('Please fill A/C Name', {
+      autoClose: 2000,
+      position: 'top-right',
+    });
+
+    // keep focus here
+    setTimeout(() => {
+      accountNameRef.current?.focus();
+      setNavigationStep('accountName');
+    }, 0);
+
+    return; // ⛔ STOP ENTER navigation
+  }
+
+  // ✅ move only if filled
+  gstTypeRef.current?.focus();
+  setNavigationStep('gstType');
+  break;
+
           
         case 'gstType':
           if (paymentCashBankRefs.current[0]) {
@@ -567,16 +584,23 @@ const PaymentVoucher = () => {
       // Check if Cash/Bank is empty
       const isCashBankEmpty = !currentItem.cashBank.trim();
 
-      // Special case: If at cashBank field and it's empty, skip to reference bill amount field
-      if (fieldType === 'cashBank' && isCashBankEmpty) {
-        if (billDetails.length > 0) {
-          setCurrentBillRowIndex(0);
-          setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
-        } else {
-          setTimeout(() => saveButtonRef.current?.focus(), 0);
-        }
-        return;
-      }
+   // ⛔ Cash/Bank mandatory check (TOAST)
+if (fieldType === 'cashBank' && !currentItem.cashBank?.trim()) {
+  toast.warning('Please fill Cash/Bank', {
+    autoClose: 2000,
+    position: 'top-right',
+  });
+
+  // keep focus on same cell
+  setTimeout(() => {
+    document.getElementById(`payment_${currentItem.id}_cashBank`)?.focus();
+    setNavigationStep('paymentCashBank');
+    setCurrentPaymentRowIndex(rowIndex);
+  }, 0);
+
+  return; // ⛔ STOP ENTER navigation
+}
+
 
       // Special case: If at amount field and amount is not entered, don't move to next row
       if (fieldType === 'amount' && (!currentItem.amount || parseFloat(currentItem.amount) <= 0)) {
@@ -2425,6 +2449,12 @@ const PaymentVoucher = () => {
                       value={item.chqNo}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqNo', e.target.value)}
                       onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqNo')}
+                      onKeyPress={(e) => {
+  // Allow only numbers (0-9)
+  if (!/[0-9]/.test(e.key)) {
+    e.preventDefault();
+  }
+}}
                       disabled={item.type !== 'CHQ'}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
