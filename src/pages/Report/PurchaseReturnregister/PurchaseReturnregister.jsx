@@ -1468,7 +1468,7 @@ const PurchaseReturnRegister = () => {
               ) : (
                 <tr>
                   <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view purchase return register entries
+                    {/* Enter search criteria and click "Search" to view purchase return register entries */}
                   </td>
                 </tr>
               )}

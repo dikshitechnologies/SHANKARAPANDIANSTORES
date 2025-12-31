@@ -91,7 +91,7 @@ const ReceiptVoucher = () => {
       crDr: 'CR',
       type: 'CASH',
       chqNo: '',
-      chqDt: '',
+      chqDt: new Date().toISOString().substring(0, 10),
       narration: '',
       amount: ''
     }
@@ -2754,6 +2754,12 @@ const ReceiptVoucher = () => {
                       value={item.chqNo}
                       onChange={(e) => handleReceiptItemChange(item.id, 'chqNo', e.target.value)}
                       onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqNo')}
+                      onKeyPress={(e) => {
+  // Allow only numbers (0-9)
+  if (!/[0-9]/.test(e.key)) {
+    e.preventDefault();
+  }
+}}
                       disabled={item.type !== 'CHQ'}
                       style={{
                         ...styles.editableInput,

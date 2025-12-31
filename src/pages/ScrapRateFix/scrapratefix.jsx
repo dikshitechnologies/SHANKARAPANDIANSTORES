@@ -403,10 +403,10 @@ const handleRefresh = async () => {
     
     await fetchScrapRates();
     
-    toast.success("Scrap rates refreshed successfully!", {
-      position: "top-right",
-      autoClose: 2000,
-    });
+    // toast.success("Scrap rates refreshed successfully!", {
+    //   position: "top-right",
+    //   autoClose: 2000,
+    // });
   } catch (error) {
     console.error("Refresh error:", error);
     toast.error("Failed to refresh scrap rates", {
