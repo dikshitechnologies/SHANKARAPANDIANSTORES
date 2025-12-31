@@ -36,6 +36,17 @@ const SalesRegister = () => {
   const [editValue, setEditValue] = useState('');
   const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
 
+  // Popup states for Sales Party
+  const [showSalesPartyPopup, setShowSalesPartyPopup] = useState(false);
+  const [tempSelectedSalesParties, setTempSelectedSalesParties] = useState(['ALL']);
+  const [salesPartyDisplay, setSalesPartyDisplay] = useState('ALL');
+  const [salesPartySelectAll, setSalesPartySelectAll] = useState(true);
+
+  // Popup states for Company
+  const [showCompanyPopup, setShowCompanyPopup] = useState(false);
+  const [tempSelectedCompanies, setTempSelectedCompanies] = useState(['Select Company']);
+  const [companyDisplay, setCompanyDisplay] = useState('Select Company');
+
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
@@ -71,7 +82,7 @@ const SalesRegister = () => {
     }
   ];
 
-  // Sample data for dropdowns
+  // Sample data for popups
   const allSalesParties = [
     'ALL',
     'AMIT FASHION',
@@ -101,16 +112,95 @@ const SalesRegister = () => {
     setToDate(e.target.value);
   };
 
-  const handleSalesPartyChange = (e) => {
-    setSalesParty(e.target.value);
+  // Sales Party Popup Handlers
+  const handleSalesPartyClick = () => {
+    setTempSelectedSalesParties([...salesPartyDisplay === 'ALL' ? ['ALL'] : [salesPartyDisplay]]);
+    setShowSalesPartyPopup(true);
   };
 
-  const handleCompanyChange = (e) => {
-    setCompany(e.target.value);
+  const handleSalesPartySelect = (party) => {
+    if (party === 'ALL') {
+      if (tempSelectedSalesParties.includes('ALL')) {
+        setTempSelectedSalesParties([]);
+        setSalesPartySelectAll(false);
+      } else {
+        setTempSelectedSalesParties(allSalesParties);
+        setSalesPartySelectAll(true);
+      }
+    } else {
+      let updatedParties;
+      if (tempSelectedSalesParties.includes(party)) {
+        updatedParties = tempSelectedSalesParties.filter(p => p !== party);
+        if (updatedParties.includes('ALL')) {
+          updatedParties = updatedParties.filter(p => p !== 'ALL');
+        }
+      } else {
+        updatedParties = [...tempSelectedSalesParties, party];
+        const otherParties = allSalesParties.filter(p => p !== 'ALL');
+        if (otherParties.every(p => updatedParties.includes(p))) {
+          updatedParties = allSalesParties;
+        }
+      }
+      setTempSelectedSalesParties(updatedParties);
+      setSalesPartySelectAll(updatedParties.length === allSalesParties.length);
+    }
+  };
+
+  const handleSalesPartyPopupOk = () => {
+    if (tempSelectedSalesParties.length === 0) {
+      toast.warning('Please select at least one sales party', { autoClose: 2000 });
+      return;
+    }
+    
+    const displayText = tempSelectedSalesParties.length === allSalesParties.length || tempSelectedSalesParties.includes('ALL') 
+      ? 'ALL' 
+      : tempSelectedSalesParties.join(', ');
+    setSalesParty(displayText === 'ALL' ? 'ALL' : tempSelectedSalesParties[0]);
+    setSalesPartyDisplay(displayText);
+    setShowSalesPartyPopup(false);
+  };
+
+  const handleSalesPartyClearSelection = () => {
+    setTempSelectedSalesParties([]);
+    setSalesPartySelectAll(false);
+  };
+
+  const handleSalesPartyPopupClose = () => {
+    setShowSalesPartyPopup(false);
+  };
+
+  // Company Popup Handlers
+  const handleCompanyClick = () => {
+    setTempSelectedCompanies(company === 'Select Company' ? ['Select Company'] : [company]);
+    setShowCompanyPopup(true);
+  };
+
+  const handleCompanySelect = (companyItem) => {
+    setTempSelectedCompanies([companyItem]);
+  };
+
+  const handleCompanyPopupOk = () => {
+    if (tempSelectedCompanies.length === 0) {
+      toast.warning('Please select a company', { autoClose: 2000 });
+      return;
+    }
+    
+    const selectedCompany = tempSelectedCompanies[0];
+    setCompany(selectedCompany);
+    setCompanyDisplay(selectedCompany);
+    setShowCompanyPopup(false);
+  };
+
+  const handleCompanyClearSelection = () => {
+    setTempSelectedCompanies([]);
+  };
+
+  const handleCompanyPopupClose = () => {
+    setShowCompanyPopup(false);
   };
 
   const handleSearch = () => {
-    if (!fromDate || !toDate || !salesParty || company === 'Select Company') {
+    if (!fromDate || !toDate || salesPartyDisplay === 'ALL' || companyDisplay === 'Select Company') {
       toast.warning('Please fill all fields: From Date, To Date, Sales Party, and Company', {
         autoClose: 2000,
       });
@@ -120,8 +210,8 @@ const SalesRegister = () => {
     console.log('Searching Sales Register with:', {
       fromDate,
       toDate,
-      salesParty,
-      company
+      salesParty: salesPartyDisplay,
+      company: companyDisplay
     });
     
     setIsLoading(true);
@@ -139,7 +229,12 @@ const SalesRegister = () => {
     setFromDate('2024-06-14');
     setToDate('2025-11-26');
     setSalesParty('ALL');
+    setSalesPartyDisplay('ALL');
     setCompany('Select Company');
+    setCompanyDisplay('Select Company');
+    setTempSelectedSalesParties(['ALL']);
+    setTempSelectedCompanies(['Select Company']);
+    setSalesPartySelectAll(true);
     setSalesData([]);
   };
 
@@ -405,11 +500,6 @@ const SalesRegister = () => {
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
     },
-    formRow: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-    },
     formField: {
       display: 'flex',
       alignItems: 'center',
@@ -462,11 +552,6 @@ const SalesRegister = () => {
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
-    },
-    gridRow: {
-      display: 'grid',
-      gap: '8px',
-      marginBottom: 10,
     },
     tableContainer: {
       backgroundColor: 'white',
@@ -722,7 +807,7 @@ const SalesRegister = () => {
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
     },
-    selectInput: {
+    salesPartyInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
@@ -742,8 +827,11 @@ const SalesRegister = () => {
       minWidth: screenSize.isMobile ? '80px' : '100px',
       backgroundColor: 'white',
       cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
     },
-    selectInputFocused: {
+    salesPartyInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
@@ -763,7 +851,213 @@ const SalesRegister = () => {
       minWidth: screenSize.isMobile ? '80px' : '100px',
       backgroundColor: 'white',
       cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    companyInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    companyInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    popupOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+      backdropFilter: 'blur(4px)',
+    },
+    popupContent: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      width: '90%',
+      maxWidth: '500px',
+      maxHeight: '80vh',
+      overflow: 'hidden',
+      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+      border: '1px solid #ddd',
+    },
+    popupHeader: {
+      background: '#1B91DA',
+      color: 'white',
+      padding: '16px 20px',
+      margin: 0,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      borderBottom: '1px solid #1479c0',
+      position: 'relative',
+    },
+    closeButton: {
+      position: 'absolute',
+      right: '15px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'rgba(255,255,255,0.2)',
+      border: 'none',
+      color: 'white',
+      fontSize: '20px',
+      cursor: 'pointer',
+      width: '30px',
+      height: '30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '4px',
+      transition: 'all 0.3s ease',
+      ':hover': {
+        background: 'rgba(255,255,255,0.3)',
+      }
+    },
+    listContainer: {
+      padding: '20px',
+      maxHeight: '300px',
+      overflowY: 'auto',
+    },
+    listItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: '10px 12px',
+      margin: '6px 0',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      border: '1px solid transparent',
+      ':hover': {
+        backgroundColor: '#f0f8ff',
+        borderColor: '#1B91DA',
+      }
+    },
+    selectedListItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: '10px 12px',
+      margin: '6px 0',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      backgroundColor: '#f0f8ff',
+      border: '1px solid #1B91DA',
+    },
+    listCheckbox: {
+      width: '18px',
+      height: '18px',
+      border: '2px solid #ddd',
+      borderRadius: '4px',
+      marginRight: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      backgroundColor: 'white',
+      transition: 'all 0.3s ease'
+    },
+    selectedListCheckbox: {
+      width: '18px',
+      height: '18px',
+      border: '2px solid #1B91DA',
+      borderRadius: '4px',
+      marginRight: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      backgroundColor: '#1B91DA',
+    },
+    checkmark: {
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: '12px'
+    },
+    listText: {
+      color: '#333',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium
+    },
+    popupActions: {
+      borderTop: '1px solid #ddd',
+      padding: '15px 20px',
+      backgroundColor: '#f5f7fa',
+    },
+    popupButtons: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: '10px'
+    },
+    popupButton: {
+      padding: '8px 16px',
+      border: 'none',
+      borderRadius: '4px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      minWidth: '80px',
+    },
+    okButton: {
+      background: '#1B91DA',
+      color: 'white',
+      ':hover': {
+        background: '#1479c0',
+      }
+    },
+    clearButton: {
+      background: 'white',
+      color: '#d32f2f',
+      border: '1px solid #ffcdd2',
+      ':hover': {
+        background: '#ffebee',
+      }
     },
   };
 
@@ -925,66 +1219,88 @@ const SalesRegister = () => {
             />
           </div>
 
-          {/* Sales Party */}
+          {/* Sales Party with Popup */}
           <div style={{
             ...styles.formField,
             flex: screenSize.isMobile ? '1 0 100%' : '1',
             minWidth: screenSize.isMobile ? '100%' : '120px',
           }}>
             <label style={styles.inlineLabel}>Sales Party:</label>
-            <select
-              data-header="salesParty"
+            <div
               style={
                 focusedField === 'salesParty'
-                  ? styles.selectInputFocused
-                  : styles.selectInput
+                  ? styles.salesPartyInputFocused
+                  : styles.salesPartyInput
               }
-              value={salesParty}
-              onChange={handleSalesPartyChange}
+              onClick={() => {
+                handleSalesPartyClick();
+                setFocusedField('salesParty');
+              }}
               ref={salesPartyRef}
               onKeyDown={(e) => {
                 handleKeyDown(e, 'salesParty');
+                if (e.key === 'Enter') {
+                  handleSalesPartyClick();
+                }
               }}
               onFocus={() => setFocusedField('salesParty')}
               onBlur={() => setFocusedField('')}
+              tabIndex={0}
             >
-              {allSalesParties.map((party, index) => (
-                <option key={index} value={party}>
-                  {party}
-                </option>
-              ))}
-            </select>
+              <span style={{
+                fontSize: TYPOGRAPHY.fontSize.sm,
+                color: '#333',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}>
+                {salesPartyDisplay}
+              </span>
+              <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+            </div>
           </div>
 
-          {/* Company */}
+          {/* Company with Popup */}
           <div style={{
             ...styles.formField,
             flex: screenSize.isMobile ? '1 0 100%' : '1',
             minWidth: screenSize.isMobile ? '100%' : '120px',
           }}>
             <label style={styles.inlineLabel}>Company:</label>
-            <select
-              data-header="company"
+            <div
               style={
                 focusedField === 'company'
-                  ? styles.selectInputFocused
-                  : styles.selectInput
+                  ? styles.companyInputFocused
+                  : styles.companyInput
               }
-              value={company}
-              onChange={handleCompanyChange}
+              onClick={() => {
+                handleCompanyClick();
+                setFocusedField('company');
+              }}
               ref={companyRef}
               onKeyDown={(e) => {
                 handleKeyDown(e, 'company');
+                if (e.key === 'Enter') {
+                  handleCompanyClick();
+                }
               }}
               onFocus={() => setFocusedField('company')}
               onBlur={() => setFocusedField('')}
+              tabIndex={0}
             >
-              {allCompanies.map((companyItem, index) => (
-                <option key={index} value={companyItem}>
-                  {companyItem}
-                </option>
-              ))}
-            </select>
+              <span style={{
+                fontSize: TYPOGRAPHY.fontSize.sm,
+                color: company === 'Select Company' ? '#999' : '#333',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}>
+                {companyDisplay}
+              </span>
+              <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+            </div>
           </div>
 
           {/* Search Button */}
@@ -1144,10 +1460,10 @@ const SalesRegister = () => {
                 )
               ) : (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view sales register entries
-                  </td>
-                </tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      Enter search criteria and click "Search" to view sales register entries
+                    </td>
+                  </tr>
               )}
             </tbody>
             {tableLoaded && salesData.length > 0 && (
@@ -1201,6 +1517,116 @@ const SalesRegister = () => {
           )}
         </div>
       </div>
+
+      {/* Sales Party Selection Popup */}
+      {showSalesPartyPopup && (
+        <div style={styles.popupOverlay} onClick={handleSalesPartyPopupClose}>
+          <div 
+            style={styles.popupContent} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.popupHeader}>
+              Select Sales Party
+              <button 
+                style={styles.closeButton}
+                onClick={handleSalesPartyPopupClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.listContainer}>
+              {allSalesParties.map((party) => {
+                const isSelected = tempSelectedSalesParties.includes(party);
+                return (
+                  <div 
+                    key={party} 
+                    style={isSelected ? styles.selectedListItem : styles.listItem}
+                    onClick={() => handleSalesPartySelect(party)}
+                  >
+                    <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
+                      {isSelected && <div style={styles.checkmark}>✓</div>}
+                    </div>
+                    <span style={styles.listText}>{party}</span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div style={styles.popupActions}>
+              <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.clearButton}}
+                  onClick={handleSalesPartyClearSelection}
+                >
+                  Clear
+                </button>
+                <button 
+                  style={{...styles.popupButton, ...styles.okButton}}
+                  onClick={handleSalesPartyPopupOk}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Company Selection Popup */}
+      {showCompanyPopup && (
+        <div style={styles.popupOverlay} onClick={handleCompanyPopupClose}>
+          <div 
+            style={styles.popupContent} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.popupHeader}>
+              Select Company
+              <button 
+                style={styles.closeButton}
+                onClick={handleCompanyPopupClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.listContainer}>
+              {allCompanies.map((companyItem) => {
+                const isSelected = tempSelectedCompanies.includes(companyItem);
+                return (
+                  <div 
+                    key={companyItem} 
+                    style={isSelected ? styles.selectedListItem : styles.listItem}
+                    onClick={() => handleCompanySelect(companyItem)}
+                  >
+                    <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
+                      {isSelected && <div style={styles.checkmark}>✓</div>}
+                    </div>
+                    <span style={styles.listText}>{companyItem}</span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div style={styles.popupActions}>
+              <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.clearButton}}
+                  onClick={handleCompanyClearSelection}
+                >
+                  Clear
+                </button>
+                <button 
+                  style={{...styles.popupButton, ...styles.okButton}}
+                  onClick={handleCompanyPopupOk}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
