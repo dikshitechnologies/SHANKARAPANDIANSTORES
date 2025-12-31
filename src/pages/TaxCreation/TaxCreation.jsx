@@ -134,9 +134,9 @@ const fetchGSTs = async () => {
     setMessage(null);
     return transformedData;
   } catch (err) {
-    setMessage({ type: "error", text: "Failed to load GST/Tax list" });
+    setMessage({ type: "error", text: "Failed to load Tax list" });
     console.error("API Error:", err);
-    toast.error("Failed to load GST/Tax list");
+    toast.error("Failed to loadTax list");
     throw err;
   } finally {
     setLoading(false);
@@ -191,8 +191,8 @@ const getGSTByCode = async (code) => {
       gstName: item.ftaxName || ''
     };
   } catch (err) {
-    console.error("Failed to fetch GST by code", err);
-    toast.error("Failed to fetch GST details");
+    console.error("Failed to fetch Tax by code", err);
+    toast.error("Failed to fetch Tax details");
     throw err;
   } finally {
     setLoading(false);
@@ -330,20 +330,20 @@ const getGSTByCode = async (code) => {
     if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
-        text: "You do not have permission to edit GST/Tax entries." 
+        text: "You do not have permission to edit Tax entries." 
       });
       return;
     }
 
     if (!form.gstCode || !form.gstName) {
-      setMessage({ type: "error", text: "Please fill GST Code and GST Name." });
+      setMessage({ type: "error", text: "Please fill Tax Code and Tax Name." });
       return;
     }
-    
-    // Validate GST name is a number
-    const gstValue = parseFloat(form.gstName.trim());
-    if (isNaN(gstValue)) {
-      setMessage({ type: "error", text: "GST Name must be a numeric value (e.g., 5, 12, 18, 28)" });
+
+    // Validate Tax name is a number
+    const taxValue = parseFloat(form.gstName.trim());
+    if (isNaN(taxValue)) {
+      setMessage({ type: "error", text: "Tax Name must be a numeric value (e.g., 5, 12, 18, 28)" });
       return;
     }
     
@@ -360,7 +360,7 @@ const getGSTByCode = async (code) => {
       await updateGST(gstData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "GST updated successfully." });
+      setMessage({ type: "success", text: "Tax updated successfully." });
       resetForm();
       setConfirmEditOpen(false);
     } catch (err) {
@@ -374,13 +374,13 @@ const getGSTByCode = async (code) => {
     if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
-        text: "You do not have permission to delete GST/Tax entries." 
+        text: "You do not have permission to delete Tax entries." 
       });
       return;
     }
 
     if (!form.gstCode) {
-      setMessage({ type: "error", text: "Please select a GST to delete." });
+      setMessage({ type: "error", text: "Please select a Tax to delete." });
       return;
     }
     setConfirmDeleteOpen(true);
@@ -392,7 +392,7 @@ const getGSTByCode = async (code) => {
       await deleteGST(form.gstCode);
       await loadInitial();
       
-      setMessage({ type: "success", text: "GST deleted successfully." });
+      setMessage({ type: "success", text: "Tax deleted successfully." });
       resetForm();
       setConfirmDeleteOpen(false);
     } catch (err) {
@@ -412,20 +412,20 @@ const getGSTByCode = async (code) => {
     if (!formPermissions.Add) {
       setMessage({ 
         type: "error", 
-        text: "You do not have permission to create GST/Tax entries." 
+        text: "You do not have permission to create Tax entries." 
       });
       return;
     }
 
     if (!form.gstCode || !form.gstName) {
-      setMessage({ type: "error", text: "Please fill GST Code and GST Name." });
+      setMessage({ type: "error", text: "Please fill Tax Code and Tax Name." });
       return;
     }
 
-    // Validate GST name is a number
-    const gstValue = parseFloat(form.gstName.trim());
-    if (isNaN(gstValue)) {
-      setMessage({ type: "error", text: "GST Name must be a numeric value (e.g., 5, 12, 18, 28)" });
+    // Validate Tax name is a number
+    const taxValue = parseFloat(form.gstName.trim());
+    if (isNaN(taxValue)) {
+      setMessage({ type: "error", text: "Tax Name must be a numeric value (e.g., 5, 12, 18, 28)" });
       return;
     }
 
@@ -462,7 +462,7 @@ const getGSTByCode = async (code) => {
       await createGST(gstData);
       await loadInitial();
       
-      setMessage({ type: "success", text: "GST created successfully." });
+      setMessage({ type: "success", text: "Tax created successfully." });
       resetForm(true);
       setConfirmSaveOpen(false);
     } catch (err) {
@@ -1171,7 +1171,7 @@ const getGSTByCode = async (code) => {
             {/* GST Name field */}
             <div className="field">
               <label className="field-label">
-                TAX Percentage <span className="asterisk">*</span>
+                TAX % <span className="asterisk">*</span>
               </label>
               <div className="row">
                 <input 
@@ -1179,10 +1179,10 @@ const getGSTByCode = async (code) => {
                   className="input" 
                   value={form.gstName} 
                   onChange={(e) => setForm(s => ({ ...s, gstName: e.target.value }))} 
-                  // placeholder="Enter GST percentage (e.g., 5, 12, 18, 28)"
+                  // placeholder="Enter Tax percentage (e.g., 5, 12, 18, 28)"
                   onKeyDown={onGstNameKeyDown}
                   disabled={loading}
-                  aria-label="GST Percentage"
+                  aria-label="TAX %"
                   readOnly={actionType === "Delete"}
                   type="text"
                   inputMode="numeric"
@@ -1226,7 +1226,7 @@ const getGSTByCode = async (code) => {
                   placeholder="Search existing Tax entries"
                   value={existingQuery}
                   onChange={(e) => setExistingQuery(e.target.value)}
-                  aria-label="Search GST/Tax entries"
+                  aria-label="SearchTax entries"
                 />
                 {existingQuery && (
                   <button
@@ -1243,18 +1243,18 @@ const getGSTByCode = async (code) => {
               <div className="gsts-table-container">
                 {loading ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }} className="loading">
-                    Loading GST/Tax entries...
+                    Loading Tax entries...
                   </div>
                 ) : filteredExisting.length === 0 ? (
                   <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>
-                    {gstList.length === 0 ? "No GST/Tax entries found" : "No matching entries"}
+                    {gstList.length === 0 ? "No Tax entries found" : "No matching entries"}
                   </div>
                 ) : (
                   <table className="gsts-table">
                     <thead>
                       <tr>
                         <th>Code</th>
-                        <th>GST Percentage</th>
+                        <th>TAX %</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1271,7 +1271,7 @@ const getGSTByCode = async (code) => {
                           }}
                         >
                           <td>{b.gstCode}</td>
-                          <td>{b.gstName}%</td>
+                          <td>{b.gstName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1286,7 +1286,7 @@ const getGSTByCode = async (code) => {
             <div className="stat">
               <div className="muted">Current Action</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>
-                {actionType === "Add" ? "Create New" : actionType === "Edit" ? "Edit GST/Tax" : "Delete GST/Tax"}
+                {actionType === "Add" ? "Create New" : actionType === "Edit" ? "Edit Tax" : "Delete Tax"}
               </div>
             </div>
 
@@ -1345,10 +1345,10 @@ const getGSTByCode = async (code) => {
         onClose={() => setEditModalOpen(false)}
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select GST/Tax to Edit"
+        title="Select Tax to Edit"
         displayFieldKeys={[ 'gstName',  ]}
         searchFields={[ 'gstName',  ]}
-        headerNames={[ 'GST Percentage',  ]}
+        headerNames={[ 'TAX %',  ]}
         columnWidths={{ gstName: '70%',  }}
         maxHeight="60vh"
       />
@@ -1358,10 +1358,10 @@ const getGSTByCode = async (code) => {
         onClose={() => setDeleteModalOpen(false)}
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
-        title="Select GST/Tax to Delete"
+        title="SelectTax to Delete"
         displayFieldKeys={[ 'gstName',  ]}
         searchFields={[ 'gstName',  ]}
-        headerNames={[ 'GST Percentage',  ]}
+        headerNames={[ 'Tax %',  ]}
         columnWidths={{ gstName: '70%',  }}
         maxHeight="60vh"
       />
@@ -1371,8 +1371,8 @@ const getGSTByCode = async (code) => {
         isOpen={confirmSaveOpen}
         onClose={() => setConfirmSaveOpen(false)}
         onConfirm={confirmSave}
-        title="Create GST/Tax"
-        message={`Do you want to save GST ${form.gstName}%?`}
+        title="Create Tax"
+        message={`Do you want to save Tax ${form.gstName}%?`}
         type="success"
         confirmText={isLoading ? "Creating..." : "Yes"}
         cancelText="No"
@@ -1395,8 +1395,8 @@ const getGSTByCode = async (code) => {
         isOpen={confirmEditOpen}
         onClose={() => setConfirmEditOpen(false)}
         onConfirm={confirmEdit}
-        title="Update GST/Tax"
-        message={`Do you want to update GST to ${form.gstName}%?`}
+        title="Update Tax"
+        message={`Do you want to update Tax to ${form.gstName}%?`}
         type="warning"
         confirmText={isLoading ? "Updating..." : "Yes"}
         cancelText="No"
@@ -1419,8 +1419,8 @@ const getGSTByCode = async (code) => {
         isOpen={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}
-        title="Delete GST/Tax"
-        message={`Do you want to delete GST ${form.gstName}%?`}
+        title="Delete Tax"
+        message={`Do you want to delete Tax ${form.gstName}%?`}
         type="danger"
         confirmText={isLoading ? "Deleting..." : "Yes"}
         cancelText="No"
