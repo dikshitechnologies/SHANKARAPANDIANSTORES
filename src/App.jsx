@@ -140,6 +140,8 @@ function App() {
           <Route path="/reports/PurchaseReturnregister" element={<ProtectedRoute><LayoutWithNavbar><PurchaseReturnregister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/Purchase-register" element={<ProtectedRoute><LayoutWithNavbar><PurchaseRegister /></LayoutWithNavbar></ProtectedRoute>} />
 
+
+
     </Routes>
      <ToastContainer
         position="top-right"

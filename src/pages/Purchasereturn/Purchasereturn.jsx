@@ -1454,6 +1454,29 @@ if (e.key === 'Enter') {
 
       const totals = calculateTotals(items);
 
+        // Prepare barcode generator for empty barcodes: returns current then increments
+      const createBarcodeGenerator = (start) => {
+        const s = String(start || '');
+        const m = s.match(/(\d+)$/);
+        if (!m) {
+          // No trailing number: use numeric counter starting at 1 with width 6
+          let counter = 1;
+          const width = 6;
+          return () => String(counter++).padStart(width, '0');
+        }
+        const numStr = m[1];
+        const prefix = s.slice(0, -numStr.length);
+        let counter = parseInt(numStr, 10);
+        const width = numStr.length;
+        return () => {
+          const current = prefix + String(counter).padStart(width, '0');
+          counter += 1;
+          return current;
+        };
+      };
+
+      const nextBarcode = createBarcodeGenerator(autoBarcode);
+
       const payload = {
         bledger: {
           customerCode: billDetails.partyCode || '',
@@ -1482,7 +1505,7 @@ if (e.key === 'Enter') {
         items: items
           .filter((it) => it.itemcode && it.itemcode.trim() !== '')
           .map((it) => ({          
-            barcode: it.barcode || autoBarcode,
+            barcode: (it.barcode && String(it.barcode).trim()) ? it.barcode : nextBarcode(),
             itemCode: it.itemcode || '',
             qty: toNumber(it.qty),
             rate: toNumber(it.prate),
@@ -1526,7 +1549,7 @@ if (e.key === 'Enter') {
             );
             createNewForm();
             console.log('Save response:', res);
-            
+            fetchAutoBarcode();
             // Close the confirmation popup first
             setShowConfirmPopup(false);
             
@@ -1571,45 +1594,108 @@ if (e.key === 'Enter') {
   };
 
   // Handle delete row
+  //   const handleDeleteRow = (id) => {
+  //   if (items.length <= 1) {
+  //     // showAlertConfirmation("Cannot delete the last row", null, 'warning');
+  //     showConfirmation({
+  //     title: 'Clear First Row',
+  //     message: 'Do you want to clear?',
+  //     onConfirm: () => {
+  //       setItems([
+  //         {
+  //           id: 1, 
+  //     barcode: '', 
+  //     name: '', 
+  //     sub: '', 
+  //     stock: '', 
+  //     mrp: '', 
+  //     uom: '', 
+  //     hsn: '', 
+  //     tax: '', 
+  //     rate: '', 
+  //     qty: '',
+  //     ovrwt: '',
+  //     avgwt: '',
+  //     prate: '',
+  //     intax: '',
+  //     outtax: '',
+  //     acost: '',
+  //     sudo: '',
+  //     profitPercent: '',
+  //     preRT: '',
+  //     sRate: '',
+  //     asRate: '',
+  //     letProfPer: '',
+  //     ntCost: '',
+  //     wsPercent: '',
+  //     wsRate: '',
+  //     amt: '',
+  //     min: '',
+  //     max: ''
+    
+  //         }
+  //       ]);
+  //     },
+  //     type: 'danger',
+  //     confirmText: 'Yes',
+  //     cancelText: 'No'
+  //   });
+  //     // createNewForm();
+  //     // toast.warning("Cannot delete the last row");
+  //     return;
+
+  //   }
+    
+  //   showConfirmation({
+  //     title: 'Delete Row',
+  //     message: 'Are you sure you want to delete this row?',
+  //     onConfirm: () => {
+  //       setItems(items.filter(item => item.id !== id));
+  //     },
+  //     type: 'danger',
+  //     confirmText: 'Delete',
+  //     cancelText: 'Cancel'
+  //   });
+  // };
+
+
     const handleDeleteRow = (id) => {
-    if (items.length <= 1) {
-      // showAlertConfirmation("Cannot delete the last row", null, 'warning');
-      showConfirmation({
+  if (items.length <= 1) {
+    showConfirmation({
       title: 'Clear First Row',
       message: 'Do you want to clear?',
       onConfirm: () => {
         setItems([
           {
             id: 1, 
-      barcode: '', 
-      name: '', 
-      sub: '', 
-      stock: '', 
-      mrp: '', 
-      uom: '', 
-      hsn: '', 
-      tax: '', 
-      rate: '', 
-      qty: '',
-      ovrwt: '',
-      avgwt: '',
-      prate: '',
-      intax: '',
-      outtax: '',
-      acost: '',
-      sudo: '',
-      profitPercent: '',
-      preRT: '',
-      sRate: '',
-      asRate: '',
-      letProfPer: '',
-      ntCost: '',
-      wsPercent: '',
-      wsRate: '',
-      amt: '',
-      min: '',
-      max: ''
-    
+            barcode: '', 
+            name: '', 
+            sub: '', 
+            stock: '', 
+            mrp: '', 
+            uom: '', 
+            hsn: '', 
+            tax: '', 
+            rate: '', 
+            qty: '',
+            ovrwt: '',
+            avgwt: '',
+            prate: '',
+            intax: '',
+            outtax: '',
+            acost: '',
+            sudo: '',
+            profitPercent: '',
+            preRT: '',
+            sRate: '',
+            asRate: '',
+            letProfPer: '',
+            ntCost: '',
+            wsPercent: '',
+            wsRate: '',
+            amt: '',
+            min: '',
+            max: ''
           }
         ]);
       },
@@ -1617,23 +1703,66 @@ if (e.key === 'Enter') {
       confirmText: 'Yes',
       cancelText: 'No'
     });
-      // createNewForm();
-      // toast.warning("Cannot delete the last row");
-      return;
-
-    }
-    
-    showConfirmation({
-      title: 'Delete Row',
-      message: 'Are you sure you want to delete this row?',
-      onConfirm: () => {
-        setItems(items.filter(item => item.id !== id));
-      },
-      type: 'danger',
-      confirmText: 'Delete',
-      cancelText: 'Cancel'
-    });
-  };
+    return;
+  }
+  
+  // Find the index of the row being deleted
+  const deleteIndex = items.findIndex(item => item.id === id);
+  
+  showConfirmation({
+    title: 'Delete Row',
+    message: 'Are you sure you want to delete this row?',
+    onConfirm: () => {
+      // Filter out the deleted row
+      const newItems = items.filter(item => item.id !== id);
+      
+      // Reassign IDs sequentially starting from 1
+      const updatedItems = newItems.map((item, index) => ({
+        ...item,
+        id: index + 1
+      }));
+      
+      // Update the items state
+      setItems(updatedItems);
+      
+      // Focus logic based on which row was deleted
+      setTimeout(() => {
+        if (deleteIndex === 0) {
+          // If first row was deleted, focus on new first row's name field
+          const nameInput = document.querySelector(
+            `input[data-row="0"][data-field="name"]`
+          );
+          if (nameInput) {
+            nameInput.focus();
+            nameInput.select();
+          }
+        } else if (deleteIndex === items.length - 1) {
+          // If last row was deleted, focus on the new last row
+          const newLastIndex = updatedItems.length - 1;
+          const nameInput = document.querySelector(
+            `input[data-row="${newLastIndex}"][data-field="name"]`
+          );
+          if (nameInput) {
+            nameInput.focus();
+            nameInput.select();
+          }
+        } else {
+          // If a middle row was deleted, focus on the row at the same index
+          const nameInput = document.querySelector(
+            `input[data-row="${deleteIndex}"][data-field="name"]`
+          );
+          if (nameInput) {
+            nameInput.focus();
+            nameInput.select();
+          }
+        }
+      }, 0);
+    },
+    type: 'danger',
+    confirmText: 'Delete',
+    cancelText: 'Cancel'
+  });
+};
 
   // --- RESPONSIVE STYLES ---
   const TYPOGRAPHY = {
