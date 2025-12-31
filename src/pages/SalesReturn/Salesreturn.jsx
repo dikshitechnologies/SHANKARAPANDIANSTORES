@@ -139,6 +139,7 @@ const SalesReturn = () => {
   const [itemList, setItemList] = useState([]);
   const [voucherList, setVoucherList] = useState([]);
   const [salesmen, setSalesmen] = useState([]);
+  const [taxList, setTaxList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [shouldFocusBillDate, setShouldFocusBillDate] = useState(false);
@@ -225,34 +226,39 @@ useEffect(() => {
           
           // Update state
           const item = itemsArray[billPopupRowIndex];
-          if (item) {
-            const key = `${item.barcode || ""}-${billPopupRowIndex}`;
-            setCheckedBills(prev => ({
-              ...prev,
-              [key]: checkbox.checked
-            }));
-          }
-        }
-      }
-      return;
-    }
+          if (!isAllowed) {
+            // Show confirmation popup (OK only) and focus tax on confirm
+            setConfirmPopupConfig({
+              title: 'Invalid tax',
+              message: 'Please use 0,3,5,12',
+              type: 'warning',
+              onConfirm: () => {
+                const taxInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="tax"]`);
+                if (taxInput) {
+                  try {
+                    taxInput.focus();
+                    if (typeof taxInput.select === 'function') taxInput.select();
+                  } catch (e) {}
+                }
 
-    // Handle Enter key (toggle checkbox)
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const currentRow = document.querySelector(`.custom-popup-table tbody tr[data-index="${billPopupRowIndex}"]`);
-      if (currentRow) {
-        const checkbox = currentRow.querySelector('input[type="checkbox"]');
-        if (checkbox) {
-          checkbox.checked = !checkbox.checked;
-          // Trigger change event
-          const event = new Event('change', { bubbles: true });
-          checkbox.dispatchEvent(event);
-          
+                setFocusedField(`tax-${itemId}`);
+                setFocusedElement({
+                  type: 'table',
+                  rowIndex,
+                  fieldIndex: 6,
+                  fieldName: 'tax'
+                });
+              },
+              confirmText: 'OK',
+              cancelText: '',
+              hideCancelButton: true
+            });
+
+            setShowConfirmPopup(true);
+            return;
+          }
           // Update state
-          const item = itemsArray[billPopupRowIndex];
+          // const item = itemsArray[billPopupRowIndex];
           if (item) {
             const key = `${item.barcode || ""}-${billPopupRowIndex}`;
             setCheckedBills(prev => ({
@@ -1179,6 +1185,22 @@ const handleApplyBillNumber = async () => {
   }
 };
 
+// Fetch tax list for validation
+const fetchTaxList = async () => {
+  try {
+    const response = await axiosInstance.get('TaxCreation/gettaxlist');
+    const data = response?.data?.data || response?.data || [];
+    const list = Array.isArray(data)
+      ? data.map(d => (d?.ftaxName !== undefined && d?.ftaxName !== null) ? String(d.ftaxName) : '').filter(Boolean)
+      : [];
+    setTaxList(list);
+    return list;
+  } catch (err) {
+    console.error('Error fetching tax list:', err);
+    return [];
+  }
+};
+
 // Get stock by item name - same as SalesInvoice
 const getStockByItemName = async (itemCode) => {
   if (!itemCode || itemCode.trim() === '') {
@@ -1256,16 +1278,26 @@ const handleBarcodeEnter = async (rowIndex, barcode) => {
         uom: item[0].fUnit || "",
         hsn: item[0].fHSN || "",
         tax: item[0].inTax || "0",  // ✅ Set tax from inTax (API response)
-        sRate: item[0].rate || "0",
+          sRate: item[0].rate || item[0].sRate || item[0].preRate || "0",
 
-        // ❌ DO NOT TOUCH qty
-        qty: updated[rowIndex].qty || "",
+          // ✅ Set qty from API when available (try several common fields), otherwise default to 1
+          qty: (
+            (item[0].qty !== undefined && item[0].qty !== null && item[0].qty !== '') ? item[0].qty :
+            (item[0].fTotQty !== undefined && item[0].fTotQty !== null && item[0].fTotQty !== '') ? item[0].fTotQty :
+            (item[0].quantity !== undefined && item[0].quantity !== null && item[0].quantity !== '') ? item[0].quantity :
+            (item[0].finalQty !== undefined && item[0].finalQty !== null && item[0].finalQty !== '') ? item[0].finalQty :
+            1
+          ).toString(),
 
-        // amount should depend on qty entered by user
-        amount: calculateAmount(
-          updated[rowIndex].qty || 0,
-          item[0].rate || 0
-        )
+          // amount should depend on qty fetched from API
+          amount: calculateAmount(
+            ((item[0].qty !== undefined && item[0].qty !== null && item[0].qty !== '') ? Number(item[0].qty) :
+              (item[0].fTotQty !== undefined && item[0].fTotQty !== null && item[0].fTotQty !== '') ? Number(item[0].fTotQty) :
+              (item[0].quantity !== undefined && item[0].quantity !== null && item[0].quantity !== '') ? Number(item[0].quantity) :
+              (item[0].finalQty !== undefined && item[0].finalQty !== null && item[0].finalQty !== '') ? Number(item[0].finalQty) :
+              1),
+            Number(item[0].rate || item[0].sRate || item[0].preRate || 0)
+          )
       };
 
       return updated;
@@ -1273,9 +1305,15 @@ const handleBarcodeEnter = async (rowIndex, barcode) => {
 
 // ❌ REMOVE THIS
 setTimeout(() => {
-  document
-    .querySelector(`input[data-row="${rowIndex}"][data-field="qty"]`)
-    ?.focus();
+  const qtyInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="qty"]`);
+  if (qtyInput) {
+    try {
+      qtyInput.focus();
+      if (typeof qtyInput.select === 'function') qtyInput.select();
+    } catch (e) {
+      // ignore selection errors
+    }
+  }
 }, 120);
 
 
@@ -1782,6 +1820,58 @@ const updateSalesReturn = async () => {
     const sRateNum = parseFloat(sRate || 0);
     return (qtyNum * sRateNum).toFixed(2);
   };
+
+// Validate tax on blur for a given row
+const handleTaxBlur = async (rowIndex, itemId) => {
+  const val = String(items[rowIndex]?.tax || '').trim();
+
+  if (!val) {
+    setFocusedField('');
+    return;
+  }
+
+  let list = taxList;
+  if (!list || list.length === 0) {
+    list = await fetchTaxList();
+  }
+
+  const isAllowed = Array.isArray(list) && list.includes(val);
+
+  if (!isAllowed) {
+    // Show confirmation popup (OK only) and focus tax on confirm
+    setConfirmPopupConfig({
+      title: 'Invalid tax',
+      message: Array.isArray(list) && list.length > 0 ? `Please use ${list.join(',')}` : 'Please use 0,3,5,12',
+      type: 'warning',
+      onConfirm: () => {
+        const taxInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="tax"]`);
+        if (taxInput) {
+          try {
+            taxInput.focus();
+            if (typeof taxInput.select === 'function') taxInput.select();
+          } catch (e) {}
+        }
+
+        setFocusedField(`tax-${itemId}`);
+        setFocusedElement({
+          type: 'table',
+          rowIndex,
+          fieldIndex: 6,
+          fieldName: 'tax'
+        });
+      },
+      confirmText: 'OK',
+      cancelText: '',
+      hideCancelButton: true
+    });
+
+    setShowConfirmPopup(true);
+    return;
+  }
+
+  // Valid
+  setFocusedField('');
+};
 
   // --- POPUP HANDLERS ---
   const openCustomerPopup = (searchText = '') => {
@@ -4044,7 +4134,7 @@ const renderBillDetailsContent = () => {
         showLoading={false}
         defaultFocusedButton="confirm"
         borderColor="#1B91DA"
-        hideCancelButton={false}
+        hideCancelButton={confirmPopupConfig.hideCancelButton || false}
       />
 
 {/* --- HEADER SECTION --- */}
@@ -4696,7 +4786,7 @@ const renderBillDetailsContent = () => {
                           fieldName: 'tax'
                         });
                       }}
-                      onBlur={() => setFocusedField('')}
+                      onBlur={() => handleTaxBlur(index, item.id)}
                       step="0.01"
                     />
                   </td>
