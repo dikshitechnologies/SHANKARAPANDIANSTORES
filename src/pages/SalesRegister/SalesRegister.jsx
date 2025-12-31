@@ -1,8 +1,61 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
 
 const SalesRegister = () => {
-  // Initial data state
-  const [data, setData] = useState([
+  // --- STATE MANAGEMENT ---
+  const [fromDate, setFromDate] = useState('2024-06-14');
+  const [toDate, setToDate] = useState('2025-11-26');
+  const [salesParty, setSalesParty] = useState('ALL');
+  const [company, setCompany] = useState('Select Company');
+  const [tableLoaded, setTableLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hoveredButton, setHoveredButton] = useState(false);
+  const [focusedField, setFocusedField] = useState('');
+  const [salesData, setSalesData] = useState([]);
+  const [editingCell, setEditingCell] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
+
+  // Popup states for Sales Party
+  const [showSalesPartyPopup, setShowSalesPartyPopup] = useState(false);
+  const [tempSelectedSalesParties, setTempSelectedSalesParties] = useState(['ALL']);
+  const [salesPartyDisplay, setSalesPartyDisplay] = useState('ALL');
+  const [salesPartySelectAll, setSalesPartySelectAll] = useState(true);
+
+  // Popup states for Company
+  const [showCompanyPopup, setShowCompanyPopup] = useState(false);
+  const [tempSelectedCompanies, setTempSelectedCompanies] = useState(['Select Company']);
+  const [companyDisplay, setCompanyDisplay] = useState('Select Company');
+
+  // --- REFS ---
+  const fromDateRef = useRef(null);
+  const toDateRef = useRef(null);
+  const salesPartyRef = useRef(null);
+  const companyRef = useRef(null);
+  const searchButtonRef = useRef(null);
+
+  // Sample sales register data
+  const sampleSalesData = [
     {
       id: 1,
       no: 1,
@@ -27,65 +80,186 @@ const SalesRegister = () => {
       noOfBale: '0',
       transport: ''
     }
-  ]);
+  ];
 
-  // State for date range
-  const [dateRange, setDateRange] = useState({
-    from: '01-01-2025',
-    to: '31-12-2025'
-  });
+  // Sample data for popups
+  const allSalesParties = [
+    'ALL',
+    'AMIT FASHION',
+    'CASH A/C',
+    'JOHN TRADERS',
+    'SMITH ENTERPRISES',
+    'GLOBAL FASHION',
+    'PREMIUM TEXTILES'
+  ];
 
-  // State for editing
-  const [editingCell, setEditingCell] = useState(null);
-  const [editValue, setEditValue] = useState('');
-  const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
-  
-  // Refs for cell navigation
-  const tableRef = useRef(null);
-  const cellRefs = useRef([]);
+  const allCompanies = [
+    'Select Company',
+    'DIKSHI DEMO',
+    'DIKSHI TECH',
+    'DIKSHIWEBSITE',
+    'SAKTHI',
+    'JUST AK THINGS',
+    'PRIVANKA'
+  ];
 
-  // Calculate totals
-  const totals = {
-    billAmount: data.reduce((sum, row) => {
-      const amount = parseFloat(row.billAmount.replace(/,/g, '')) || 0;
-      return sum + amount;
-    }, 0),
-    qty: data.reduce((sum, row) => {
-      const qty = parseFloat(row.qty) || 0;
-      return sum + qty;
-    }, 0)
+  // --- HANDLERS ---
+  const handleFromDateChange = (e) => {
+    setFromDate(e.target.value);
   };
 
-  // Format number with commas
-  const formatNumber = (num) => {
-    return num.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+  const handleToDateChange = (e) => {
+    setToDate(e.target.value);
+  };
+
+  // Sales Party Popup Handlers
+  const handleSalesPartyClick = () => {
+    setTempSelectedSalesParties([...salesPartyDisplay === 'ALL' ? ['ALL'] : [salesPartyDisplay]]);
+    setShowSalesPartyPopup(true);
+  };
+
+  const handleSalesPartySelect = (party) => {
+    if (party === 'ALL') {
+      if (tempSelectedSalesParties.includes('ALL')) {
+        setTempSelectedSalesParties([]);
+        setSalesPartySelectAll(false);
+      } else {
+        setTempSelectedSalesParties(allSalesParties);
+        setSalesPartySelectAll(true);
+      }
+    } else {
+      let updatedParties;
+      if (tempSelectedSalesParties.includes(party)) {
+        updatedParties = tempSelectedSalesParties.filter(p => p !== party);
+        if (updatedParties.includes('ALL')) {
+          updatedParties = updatedParties.filter(p => p !== 'ALL');
+        }
+      } else {
+        updatedParties = [...tempSelectedSalesParties, party];
+        const otherParties = allSalesParties.filter(p => p !== 'ALL');
+        if (otherParties.every(p => updatedParties.includes(p))) {
+          updatedParties = allSalesParties;
+        }
+      }
+      setTempSelectedSalesParties(updatedParties);
+      setSalesPartySelectAll(updatedParties.length === allSalesParties.length);
+    }
+  };
+
+  const handleSalesPartyPopupOk = () => {
+    if (tempSelectedSalesParties.length === 0) {
+      toast.warning('Please select at least one sales party', { autoClose: 2000 });
+      return;
+    }
+    
+    const displayText = tempSelectedSalesParties.length === allSalesParties.length || tempSelectedSalesParties.includes('ALL') 
+      ? 'ALL' 
+      : tempSelectedSalesParties.join(', ');
+    setSalesParty(displayText === 'ALL' ? 'ALL' : tempSelectedSalesParties[0]);
+    setSalesPartyDisplay(displayText);
+    setShowSalesPartyPopup(false);
+  };
+
+  const handleSalesPartyClearSelection = () => {
+    setTempSelectedSalesParties([]);
+    setSalesPartySelectAll(false);
+  };
+
+  const handleSalesPartyPopupClose = () => {
+    setShowSalesPartyPopup(false);
+  };
+
+  // Company Popup Handlers
+  const handleCompanyClick = () => {
+    setTempSelectedCompanies(company === 'Select Company' ? ['Select Company'] : [company]);
+    setShowCompanyPopup(true);
+  };
+
+  const handleCompanySelect = (companyItem) => {
+    setTempSelectedCompanies([companyItem]);
+  };
+
+  const handleCompanyPopupOk = () => {
+    if (tempSelectedCompanies.length === 0) {
+      toast.warning('Please select a company', { autoClose: 2000 });
+      return;
+    }
+    
+    const selectedCompany = tempSelectedCompanies[0];
+    setCompany(selectedCompany);
+    setCompanyDisplay(selectedCompany);
+    setShowCompanyPopup(false);
+  };
+
+  const handleCompanyClearSelection = () => {
+    setTempSelectedCompanies([]);
+  };
+
+  const handleCompanyPopupClose = () => {
+    setShowCompanyPopup(false);
+  };
+
+  const handleSearch = () => {
+    if (!fromDate || !toDate || salesPartyDisplay === 'ALL' || companyDisplay === 'Select Company') {
+      toast.warning('Please fill all fields: From Date, To Date, Sales Party, and Company', {
+        autoClose: 2000,
+      });
+      return;
+    }
+    
+    console.log('Searching Sales Register with:', {
+      fromDate,
+      toDate,
+      salesParty: salesPartyDisplay,
+      company: companyDisplay
     });
+    
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setSalesData(sampleSalesData);
+      setTableLoaded(true);
+      setIsLoading(false);
+    }, 500);
   };
 
-  // Handle date change
-  const handleDateChange = (field, value) => {
-    setDateRange({
-      ...dateRange,
-      [field]: value
-    });
+  const handleRefresh = () => {
+    setTableLoaded(false);
+    setFromDate('2024-06-14');
+    setToDate('2025-11-26');
+    setSalesParty('ALL');
+    setSalesPartyDisplay('ALL');
+    setCompany('Select Company');
+    setCompanyDisplay('Select Company');
+    setTempSelectedSalesParties(['ALL']);
+    setTempSelectedCompanies(['Select Company']);
+    setSalesPartySelectAll(true);
+    setSalesData([]);
   };
 
-  // Filter data by date range
-  const filterDataByDate = () => {
-    // This would normally filter data from an API or larger dataset
-    // For now, we'll just show a message
-    alert(`Filtering data from ${dateRange.from} to ${dateRange.to}`);
-    // In a real app, you would fetch filtered data here
-  };
-
-  // Clear date filters
-  const clearFilters = () => {
-    setDateRange({
-      from: '',
-      to: ''
-    });
+  // Handle key navigation
+  const handleKeyDown = (e, currentField) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      switch(currentField) {
+        case 'fromDate':
+          toDateRef.current?.focus();
+          break;
+        case 'toDate':
+          salesPartyRef.current?.focus();
+          break;
+        case 'salesParty':
+          companyRef.current?.focus();
+          break;
+        case 'company':
+          searchButtonRef.current?.focus();
+          break;
+        default:
+          break;
+      }
+    }
   };
 
   // Start editing a cell
@@ -98,12 +272,12 @@ const SalesRegister = () => {
   const saveEdit = () => {
     if (editingCell) {
       const { row, col } = editingCell;
-      const newData = [...data];
+      const newData = [...salesData];
       newData[row] = {
         ...newData[row],
         [col]: editValue
       };
-      setData(newData);
+      setSalesData(newData);
       setEditingCell(null);
     }
   };
@@ -113,9 +287,9 @@ const SalesRegister = () => {
     setEditingCell(null);
   };
 
-  // Handle keyboard navigation
+  // Handle keyboard navigation in table
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleTableKeyDown = (e) => {
       const { row, col } = selectedCell;
       const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
       
@@ -130,10 +304,12 @@ const SalesRegister = () => {
         return;
       }
 
+      if (salesData.length === 0) return;
+
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          if (row < data.length - 1) {
+          if (row < salesData.length - 1) {
             setSelectedCell({ row: row + 1, col });
           }
           break;
@@ -158,31 +334,33 @@ const SalesRegister = () => {
         case 'Enter':
         case 'F2':
           e.preventDefault();
-          startEditing(row, colNames[col], data[row][colNames[col]]);
+          startEditing(row, colNames[col], salesData[row][colNames[col]]);
           break;
         case 'Delete':
           e.preventDefault();
           if (window.confirm('Clear this cell?')) {
-            const newData = [...data];
+            const newData = [...salesData];
             newData[row] = {
               ...newData[row],
               [colNames[col]]: ''
             };
-            setData(newData);
+            setSalesData(newData);
           }
           break;
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCell, editingCell, data]);
+    window.addEventListener('keydown', handleTableKeyDown);
+    return () => window.removeEventListener('keydown', handleTableKeyDown);
+  }, [selectedCell, editingCell, salesData]);
 
   // Add new row
   const addNewRow = () => {
+    if (!tableLoaded) return;
+    
     const newRow = {
-      id: data.length + 1,
-      no: data.length + 1,
+      id: salesData.length + 1,
+      no: salesData.length + 1,
       salesParty: '',
       billNo: '',
       billDate: '',
@@ -192,249 +370,746 @@ const SalesRegister = () => {
       noOfBale: '0',
       transport: ''
     };
-    setData([...data, newRow]);
-    setSelectedCell({ row: data.length, col: 0 });
+    setSalesData([...salesData, newRow]);
+    setSelectedCell({ row: salesData.length, col: 0 });
   };
 
   // Delete selected row
   const deleteSelectedRow = () => {
-    if (selectedCell.row >= 0 && selectedCell.row < data.length) {
-      const newData = data.filter((_, index) => index !== selectedCell.row);
+    if (!tableLoaded || salesData.length === 0) return;
+    
+    if (selectedCell.row >= 0 && selectedCell.row < salesData.length) {
+      const newData = salesData.filter((_, index) => index !== selectedCell.row);
       // Update row numbers
       const updatedData = newData.map((row, index) => ({
         ...row,
         no: index + 1
       }));
-      setData(updatedData);
+      setSalesData(updatedData);
       setSelectedCell({ row: Math.min(selectedCell.row, updatedData.length - 1), col: selectedCell.col });
     }
   };
 
-  // Container styles
-  const containerStyle = {   
-    fontSize: '15px',
-    backgroundColor: '#f5f5f5',
-    padding: '20px',
-    minHeight: '100vh',
-    boxSizing: 'border-box'
-  };
-
-  // Header styles
-  const headerStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '15px'
-  };
-
-  const titleStyle = {
-    color: '#333',
-    fontSize: '18px',
-    fontWeight: '600',
-    margin: '0'
-  };
-
-  // Date filter header styles
-  const dateFilterHeaderStyle = {
-    backgroundColor: 'white',
-    borderRadius: '4px',
-    padding: '15px',
-    marginBottom: '15px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '20px'
-  };
-
-  const dateFilterLabelStyle = {
-    fontWeight: '600',
-    color: '#333',
-    fontSize: '15px',
-    whiteSpace: 'nowrap'
-  };
-
-  const dateInputStyle = {
-    padding: '6px 10px',
-    border: '1px solid #ddd',
-    borderRadius: '3px',
-    fontSize: '15px',
-    width: '120px',
-    backgroundColor: '#fff'
-  };
-
-  const dateFilterButtonStyle = {
-    padding: '6px 15px',
-    backgroundColor: '#1B91DA',
-    color: 'white',
-    border: 'none',
-    borderRadius: '3px',
-    cursor: 'pointer',
-    fontSize: '15px',
-    fontWeight: '500',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px'
-  };
-
-  const clearButtonStyle = {
-    padding: '6px 15px',
-    backgroundColor: '#f0f0f0',
-    color: '#666',
-    border: '1px solid #ddd',
-    borderRadius: '3px',
-    cursor: 'pointer',
-    fontSize: '15px',
-    fontWeight: '500',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px'
-  };
-
-  const buttonContainerStyle = {
-    display: 'flex',
-    gap: '8px'
-  };
-
-  const actionButtonStyle = (primary = false) => ({
-    padding: '6px 12px',
-    backgroundColor: primary ? '#1B91DA' : '#f0f0f0',
-    color: primary ? 'white' : '#333',
-    border: `1px solid ${primary ? '#1B91DA' : '#ccc'}`,
-    borderRadius: '3px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    fontWeight: '500',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px'
+  // --- SCREEN SIZE DETECTION ---
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true
   });
 
-  // Table container styles
-  const tableContainerStyle = {
-    backgroundColor: 'white',
-    borderRadius: '4px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    overflow: 'hidden',
-    maxHeight: 'calc(100vh - 230px)',
-    display: 'flex',
-    flexDirection: 'column'
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isMobile = width < 640;
+      const isTablet = width >= 640 && width < 1024;
+      const isDesktop = width >= 1024;
+      
+      setScreenSize({
+        width,
+        height,
+        isMobile,
+        isTablet,
+        isDesktop
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate totals
+  const totals = {
+    billAmount: salesData.reduce((sum, row) => {
+      const amount = parseFloat(row.billAmount?.replace(/,/g, '')) || 0;
+      return sum + amount;
+    }, 0),
+    qty: salesData.reduce((sum, row) => {
+      const qty = parseFloat(row.qty) || 0;
+      return sum + qty;
+    }, 0)
   };
 
-  // Table styles
-  const tableStyle = {
-    width: '100%',
-    borderCollapse: 'collapse',
-    tableLayout: 'fixed'
+  // Format number with commas
+  const formatNumber = (num) => {
+    return num.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   };
 
-  // Table header styles
-  const thStyle = {
-    backgroundColor: '#1B91DA',
-    color: 'white',
-    fontWeight: '600',
-    padding: '8px 6px',
-    borderRight: '1px solid #0c7bb8',
-    textAlign: 'left',
-    position: 'sticky',
-    top: 0,
-    zIndex: 10,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
+  // --- STYLES ---
+  const TYPOGRAPHY = {
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: {
+      xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      base: screenSize.isMobile ? '13px' : screenSize.isTablet ? '14px' : '16px',
+      lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
+    },
+    fontWeight: {
+      normal: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700
+    },
+    lineHeight: {
+      tight: 1.2,
+      normal: 1.5,
+      relaxed: 1.6
+    }
   };
 
-  // Column width styles
-  const columnWidths = {
-    no: '50px',
-    salesParty: '180px',
-    billNo: '120px',
-    billDate: '100px',
-    billAmount: '120px',
-    qty: '80px',
-    time: '150px',
-    noOfBale: '80px',
-    transport: '120px'
+  const styles = {
+    container: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      backgroundColor: '#f5f7fa',
+      height: '100vh',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      margin: 0,
+      padding: 0,
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+      position: 'fixed',
+    },
+    headerSection: {
+      flex: '0 0 auto',
+      backgroundColor: 'white',
+      borderRadius: 0,
+      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
+      margin: 0,
+      marginBottom: 0,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      overflowY: 'visible',
+      maxHeight: 'none',
+    },
+    tableSection: {
+      flex: '1 1 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0,
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
+    },
+    formField: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '8px' : '10px',
+    },
+    inlineLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '85px',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+    },
+    inlineInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+    },
+    inlineInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    tableContainer: {
+      backgroundColor: 'white',
+      borderRadius: 10,
+      overflowX: 'auto',
+      overflowY: 'auto',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1px solid #e0e0e0',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginBottom: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      WebkitOverflowScrolling: 'touch',
+      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      boxSizing: 'border-box',
+      flex: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
+      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
+    },
+    table: {
+      width: 'max-content',
+      minWidth: '100%',
+      borderCollapse: 'collapse',
+      tableLayout: 'fixed',
+    },
+    th: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
+      textAlign: 'center',
+      letterSpacing: '0.5px',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10,
+      border: '1px solid white',
+      borderBottom: '2px solid white',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      whiteSpace: 'nowrap',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+    },
+    td: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: '8px 6px',
+      textAlign: 'center',
+      border: '1px solid #ccc',
+      color: '#333',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+    },
+    footerSection: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flex: '0 0 auto',
+      display: 'flex',
+      flexDirection: screenSize.isMobile ? 'column' : 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
+      backgroundColor: 'white',
+      borderTop: '2px solid #e0e0e0',
+      boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
+      flexWrap: 'wrap',
+      flexShrink: 0,
+      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
+      width: '100%',
+      boxSizing: 'border-box',
+      zIndex: 100,
+    },
+    balanceContainer: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.sm : screenSize.isTablet ? TYPOGRAPHY.fontSize.base : TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#1B91DA',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '8px 12px' : '10px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '15px' : screenSize.isTablet ? '25px' : '35px',
+      minWidth: 'max-content',
+      justifyContent: 'center',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      order: screenSize.isMobile ? 1 : 0,
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      backgroundColor: '#f0f8ff',
+    },
+    balanceItem: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '2px',
+    },
+    balanceLabel: {
+      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      color: '#555',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+    },
+    balanceValue: {
+      fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      color: '#1976d2',
+      fontWeight: 'bold',
+    },
+    searchButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
+      color: 'white',
+      border: 'none',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 4px 12px rgba(27, 145, 218, 0.4)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    refreshButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: '#1B91DA',
+        boxShadow: '0 4px 10px rgba(27, 145, 218, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    addButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: '#28a745',
+        boxShadow: '0 4px 10px rgba(40, 167, 69, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    deleteButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: '#dc3545',
+        boxShadow: '0 4px 10px rgba(220, 53, 69, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    buttonGlow: {
+      position: 'absolute',
+      top: '0',
+      left: '-100%',
+      width: '100%',
+      height: '100%',
+      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+      transition: 'left 0.7s ease'
+    },
+    loadingOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(255, 255, 255, 0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      fontFamily: TYPOGRAPHY.fontFamily,
+    },
+    loadingBox: {
+      background: 'white',
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      textAlign: 'center',
+    },
+    salesPartyInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    salesPartyInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    companyInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    companyInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    popupOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+      backdropFilter: 'blur(4px)',
+    },
+    popupContent: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      width: '90%',
+      maxWidth: '500px',
+      maxHeight: '80vh',
+      overflow: 'hidden',
+      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+      border: '1px solid #ddd',
+    },
+    popupHeader: {
+      background: '#1B91DA',
+      color: 'white',
+      padding: '16px 20px',
+      margin: 0,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      borderBottom: '1px solid #1479c0',
+      position: 'relative',
+    },
+    closeButton: {
+      position: 'absolute',
+      right: '15px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'rgba(255,255,255,0.2)',
+      border: 'none',
+      color: 'white',
+      fontSize: '20px',
+      cursor: 'pointer',
+      width: '30px',
+      height: '30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '4px',
+      transition: 'all 0.3s ease',
+      ':hover': {
+        background: 'rgba(255,255,255,0.3)',
+      }
+    },
+    listContainer: {
+      padding: '20px',
+      maxHeight: '300px',
+      overflowY: 'auto',
+    },
+    listItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: '10px 12px',
+      margin: '6px 0',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      border: '1px solid transparent',
+      ':hover': {
+        backgroundColor: '#f0f8ff',
+        borderColor: '#1B91DA',
+      }
+    },
+    selectedListItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: '10px 12px',
+      margin: '6px 0',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      backgroundColor: '#f0f8ff',
+      border: '1px solid #1B91DA',
+    },
+    listCheckbox: {
+      width: '18px',
+      height: '18px',
+      border: '2px solid #ddd',
+      borderRadius: '4px',
+      marginRight: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      backgroundColor: 'white',
+      transition: 'all 0.3s ease'
+    },
+    selectedListCheckbox: {
+      width: '18px',
+      height: '18px',
+      border: '2px solid #1B91DA',
+      borderRadius: '4px',
+      marginRight: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      backgroundColor: '#1B91DA',
+    },
+    checkmark: {
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: '12px'
+    },
+    listText: {
+      color: '#333',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium
+    },
+    popupActions: {
+      borderTop: '1px solid #ddd',
+      padding: '15px 20px',
+      backgroundColor: '#f5f7fa',
+    },
+    popupButtons: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: '10px'
+    },
+    popupButton: {
+      padding: '8px 16px',
+      border: 'none',
+      borderRadius: '4px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      minWidth: '80px',
+    },
+    okButton: {
+      background: '#1B91DA',
+      color: 'white',
+      ':hover': {
+        background: '#1479c0',
+      }
+    },
+    clearButton: {
+      background: 'white',
+      color: '#d32f2f',
+      border: '1px solid #ffcdd2',
+      ':hover': {
+        background: '#ffebee',
+      }
+    },
   };
 
-  // Table cell styles
+  // Get cell style based on state
   const getCellStyle = (rowIndex, colName) => {
-    const isSelected = selectedCell.row === rowIndex && 
-      ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'].indexOf(colName) === selectedCell.col;
-    
-    const isEditing = editingCell && 
-      editingCell.row === rowIndex && 
-      editingCell.col === colName;
+    const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
+    const isSelected = selectedCell.row === rowIndex && colNames.indexOf(colName) === selectedCell.col;
+    const isEditing = editingCell && editingCell.row === rowIndex && editingCell.col === colName;
 
     const baseStyle = {
-      padding: '6px',
-      borderBottom: '1px solid #e0e0e0',
-      borderRight: '1px solid #e0e0e0',
-      height: '32px',
-      verticalAlign: 'middle',
-      textAlign: colName === 'billAmount' || colName === 'qty' || colName === 'noOfBale' ? 'right' : 'left',
-      backgroundColor: isSelected ? '#e6f2fa' : 'white',
-      fontFamily: colName === 'billAmount' || colName === 'qty' ? '"Courier New", monospace' : 'inherit',
-      fontSize: colName === 'billAmount' || colName === 'qty' ? '15px' : '15px',
-      fontWeight: colName === 'billAmount' || colName === 'qty' ? '600' : '400',
-      width: columnWidths[colName] || 'auto',
-      boxSizing: 'border-box'
+      ...styles.td,
+      textAlign: ['billAmount', 'qty', 'noOfBale', 'no'].includes(colName) ? 'right' : 'left',
+      minWidth: colName === 'salesParty' ? '120px' : 
+               colName === 'billNo' ? '100px' :
+               colName === 'billDate' ? '100px' :
+               colName === 'billAmount' ? '100px' :
+               colName === 'transport' ? '120px' : '80px',
+      width: colName === 'salesParty' ? '120px' : 
+             colName === 'billNo' ? '100px' :
+             colName === 'billDate' ? '100px' :
+             colName === 'billAmount' ? '100px' :
+             colName === 'transport' ? '120px' : '80px',
+      maxWidth: colName === 'salesParty' ? '120px' : 
+                colName === 'billNo' ? '100px' :
+                colName === 'billDate' ? '100px' :
+                colName === 'billAmount' ? '100px' :
+                colName === 'transport' ? '120px' : '80px',
+      fontFamily: ['billAmount', 'qty'].includes(colName) ? '"Courier New", monospace' : 'inherit',
+      fontWeight: ['billAmount', 'qty'].includes(colName) ? '600' : '400',
+      cursor: 'cell'
     };
 
     if (isSelected && !isEditing) {
-      baseStyle.outline = '2px solid #1B91DA';
-      baseStyle.outlineOffset = '-1px';
-      baseStyle.boxShadow = '0 0 0 1px rgba(27, 145, 218, 0.3)';
+      return { 
+        ...baseStyle, 
+        outline: '2px solid #1B91DA',
+        outlineOffset: '-1px',
+        boxShadow: '0 0 0 1px rgba(27, 145, 218, 0.3)'
+      };
     }
 
     if (isEditing) {
-      baseStyle.outline = '2px solid #1B91DA';
-      baseStyle.outlineOffset = '-1px';
-      baseStyle.boxShadow = '0 0 0 1px rgba(27, 145, 218, 0.3)';
-      baseStyle.padding = '0';
-      baseStyle.position = 'relative';
+      return { 
+        ...baseStyle, 
+        outline: '2px solid #1B91DA',
+        outlineOffset: '-1px',
+        boxShadow: '0 0 0 1px rgba(27, 145, 218, 0.3)',
+        padding: '0'
+      };
     }
 
     return baseStyle;
-  };
-
-  // Input style for editing
-  const inputStyle = {
-    width: '100%',
-    height: '100%',
-    border: 'none',
-    padding: '6px',
-    boxSizing: 'border-box',
-    fontFamily: 'inherit',
-    fontSize: 'inherit',
-    backgroundColor: '#fff',
-    outline: 'none'
-  };
-
-  // Totals row style
-  const totalsRowStyle = {
-    backgroundColor: '#f8f9fa',
-    fontWeight: 'bold',
-    borderTop: '2px solid #1B91DA'
-  };
-
-  const totalsCellStyle = {
-    padding: '8px 6px',
-    borderRight: '1px solid #e0e0e0',
-    textAlign: 'right',
-    fontFamily: '"Courier New", monospace',
-    fontSize: '15px'
-  };
-
-  // Instruction panel style
-  const instructionStyle = {
-    marginTop: '15px',
-    fontSize: '11px',
-    color: '#666',
-    backgroundColor: '#f9f9f9',
-    padding: '8px 12px',
-    borderRadius: '3px',
-    borderLeft: '3px solid #1B91DA'
   };
 
   // Render cell content
@@ -447,7 +1122,17 @@ const SalesRegister = () => {
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={saveEdit}
           autoFocus
-          style={inputStyle}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            padding: '8px 6px',
+            boxSizing: 'border-box',
+            fontFamily: ['billAmount', 'qty'].includes(colName) ? '"Courier New", monospace' : 'inherit',
+            fontSize: TYPOGRAPHY.fontSize.sm,
+            backgroundColor: '#fff',
+            outline: 'none'
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               saveEdit();
@@ -463,153 +1148,485 @@ const SalesRegister = () => {
   };
 
   return (
-    <div style={containerStyle}>     
-      {/* Date Filter Header */}
-      <div style={dateFilterHeaderStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={dateFilterLabelStyle}>From:</span>
-          <input
-            type="date"
-            value={dateRange.from}
-            onChange={(e) => handleDateChange('from', e.target.value)}
-            style={dateInputStyle}
-          />
+    <div style={styles.container}>
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div style={styles.loadingOverlay}>
+          <div style={styles.loadingBox}>
+            <div>Loading Sales Register Report...</div>
+          </div>
         </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={dateFilterLabelStyle}>To:</span>
-          <input
-            type="date"
-            value={dateRange.to}
-            onChange={(e) => handleDateChange('to', e.target.value)}
-            style={dateInputStyle}
-          />
+      )}
+
+      {/* Header Section - ALL ON ONE LINE */}
+      <div style={styles.headerSection}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
+          flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
+          width: '100%',
+        }}>
+          {/* From Date */}
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>From Date:</label>
+            <input
+              type="date"
+              data-header="fromDate"
+              style={
+                focusedField === 'fromDate'
+                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+              }
+              value={fromDate}
+              onChange={handleFromDateChange}
+              ref={fromDateRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'fromDate');
+              }}
+              onFocus={() => setFocusedField('fromDate')}
+              onBlur={() => setFocusedField('')}
+            />
+          </div>
+
+          {/* To Date */}
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>To Date:</label>
+            <input
+              type="date"
+              data-header="toDate"
+              style={
+                focusedField === 'toDate'
+                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+              }
+              value={toDate}
+              onChange={handleToDateChange}
+              ref={toDateRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'toDate');
+              }}
+              onFocus={() => setFocusedField('toDate')}
+              onBlur={() => setFocusedField('')}
+            />
+          </div>
+
+          {/* Sales Party with Popup */}
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>Sales Party:</label>
+            <div
+              style={
+                focusedField === 'salesParty'
+                  ? styles.salesPartyInputFocused
+                  : styles.salesPartyInput
+              }
+              onClick={() => {
+                handleSalesPartyClick();
+                setFocusedField('salesParty');
+              }}
+              ref={salesPartyRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'salesParty');
+                if (e.key === 'Enter') {
+                  handleSalesPartyClick();
+                }
+              }}
+              onFocus={() => setFocusedField('salesParty')}
+              onBlur={() => setFocusedField('')}
+              tabIndex={0}
+            >
+              <span style={{
+                fontSize: TYPOGRAPHY.fontSize.sm,
+                color: '#333',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}>
+                {salesPartyDisplay}
+              </span>
+              <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+            </div>
+          </div>
+
+          {/* Company with Popup */}
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>Company:</label>
+            <div
+              style={
+                focusedField === 'company'
+                  ? styles.companyInputFocused
+                  : styles.companyInput
+              }
+              onClick={() => {
+                handleCompanyClick();
+                setFocusedField('company');
+              }}
+              ref={companyRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'company');
+                if (e.key === 'Enter') {
+                  handleCompanyClick();
+                }
+              }}
+              onFocus={() => setFocusedField('company')}
+              onBlur={() => setFocusedField('')}
+              tabIndex={0}
+            >
+              <span style={{
+                fontSize: TYPOGRAPHY.fontSize.sm,
+                color: company === 'Select Company' ? '#999' : '#333',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}>
+                {companyDisplay}
+              </span>
+              <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}>
+            <button
+              style={{
+                ...styles.searchButton,
+                width: screenSize.isMobile ? '100%' : 'auto',
+                marginBottom: screenSize.isMobile ? '8px' : '0',
+              }}
+              onClick={handleSearch}
+              onMouseEnter={() => setHoveredButton(true)}
+              onMouseLeave={() => setHoveredButton(false)}
+              ref={searchButtonRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+            >
+              Search
+              {hoveredButton && <div style={styles.buttonGlow}></div>}
+            </button>
+          </div>
+
+          {/* Refresh Button */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}>
+            <button
+              style={{
+                ...styles.refreshButton,
+                width: screenSize.isMobile ? '100%' : 'auto',
+              }}
+              onClick={handleRefresh}
+            >
+              Refresh
+            </button>
+          </div>
+
+          {/* Add Row Button (only when table is loaded) */}
+          {tableLoaded && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <button
+                style={{
+                  ...styles.addButton,
+                  width: screenSize.isMobile ? '100%' : 'auto',
+                }}
+                onClick={addNewRow}
+                title="Add New Row (Ctrl+N)"
+              >
+                Add Row
+              </button>
+            </div>
+          )}
+
+          {/* Delete Row Button (only when table is loaded) */}
+          {tableLoaded && salesData.length > 0 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <button
+                style={{
+                  ...styles.deleteButton,
+                  width: screenSize.isMobile ? '100%' : 'auto',
+                }}
+                onClick={deleteSelectedRow}
+                title="Delete Selected Row (Ctrl+D)"
+              >
+                Delete Row
+              </button>
+            </div>
+          )}
         </div>
-        
-        <button 
-          style={dateFilterButtonStyle}
-          onClick={filterDataByDate}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#0c7bb8'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#1B91DA'}
-        >
-          View Sales Register
-        </button>
-        
-        <button 
-          style={clearButtonStyle}
-          onClick={clearFilters}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#e0e0e0'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#f0f0f0'}
-        >
-          <span>🗙</span> Clear
-        </button>
       </div>
 
-      {/* Table Container */}
-      <div style={tableContainerStyle}>
-        <div style={{ overflowX: 'auto', overflowY: 'auto', flex: 1 }}>
-          <table style={tableStyle} ref={tableRef}>
+      {/* Table Section */}
+      <div style={styles.tableSection}>
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...thStyle, width: columnWidths.no }}>No</th>
-                <th style={{ ...thStyle, width: columnWidths.salesParty }}>Sales Party</th>
-                <th style={{ ...thStyle, width: columnWidths.billNo }}>Bill No</th>
-                <th style={{ ...thStyle, width: columnWidths.billDate }}>Bill Date</th>
-                <th style={{ ...thStyle, width: columnWidths.billAmount }}>Bill Amount</th>
-                <th style={{ ...thStyle, width: columnWidths.qty }}>Qty</th>
-                <th style={{ ...thStyle, width: columnWidths.time }}>Time</th>
-                <th style={{ ...thStyle, width: columnWidths.noOfBale }}>No of Bale</th>
-                <th style={{ ...thStyle, width: columnWidths.transport, borderRight: 'none' }}>Transport</th>
+                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px', textAlign: 'right' }}>No</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px', textAlign: 'left' }}>Sales Party</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'left' }}>Bill No</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'left' }}>Bill Date</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'right' }}>Bill Amount</th>
+                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px', textAlign: 'right' }}>Qty</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px', textAlign: 'left' }}>Time</th>
+                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px', textAlign: 'right' }}>No of Bale</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px', textAlign: 'left' }}>Transport</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((row, rowIndex) => (
-                <tr 
-                  key={row.id}
-                  onClick={() => {
-                    const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
-                    const colIndex = colNames.indexOf('no');
-                    setSelectedCell({ row: rowIndex, col: colIndex });
-                  }}
-                  style={{ cursor: 'cell' }}
-                >
-                  <td 
-                    style={getCellStyle(rowIndex, 'no')}
-                    onDoubleClick={() => startEditing(rowIndex, 'no', row.no)}
-                  >
-                    {renderCell(rowIndex, 'no', row.no)}
+              {tableLoaded ? (
+                salesData.length > 0 ? (
+                  salesData.map((row, rowIndex) => (
+                    <tr 
+                      key={row.id} 
+                      style={{ 
+                        backgroundColor: rowIndex % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
+                        const colIndex = colNames.indexOf('no');
+                        setSelectedCell({ row: rowIndex, col: colIndex });
+                      }}
+                    >
+                      <td style={getCellStyle(rowIndex, 'no')} onDoubleClick={() => startEditing(rowIndex, 'no', row.no)}>
+                        {renderCell(rowIndex, 'no', row.no)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'salesParty')} onDoubleClick={() => startEditing(rowIndex, 'salesParty', row.salesParty)}>
+                        {renderCell(rowIndex, 'salesParty', row.salesParty)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'billNo')} onDoubleClick={() => startEditing(rowIndex, 'billNo', row.billNo)}>
+                        {renderCell(rowIndex, 'billNo', row.billNo)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'billDate')} onDoubleClick={() => startEditing(rowIndex, 'billDate', row.billDate)}>
+                        {renderCell(rowIndex, 'billDate', row.billDate)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'billAmount')} onDoubleClick={() => startEditing(rowIndex, 'billAmount', row.billAmount)}>
+                        {renderCell(rowIndex, 'billAmount', row.billAmount)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'qty')} onDoubleClick={() => startEditing(rowIndex, 'qty', row.qty)}>
+                        {renderCell(rowIndex, 'qty', row.qty)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'time')} onDoubleClick={() => startEditing(rowIndex, 'time', row.time)}>
+                        {renderCell(rowIndex, 'time', row.time)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'noOfBale')} onDoubleClick={() => startEditing(rowIndex, 'noOfBale', row.noOfBale)}>
+                        {renderCell(rowIndex, 'noOfBale', row.noOfBale)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'transport')} onDoubleClick={() => startEditing(rowIndex, 'transport', row.transport)}>
+                        {renderCell(rowIndex, 'transport', row.transport)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      No records found
+                    </td>
+                  </tr>
+                )
+              ) : (
+                <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      Enter search criteria and click "Search" to view sales register entries
+                    </td>
+                  </tr>
+              )}
+            </tbody>
+            {tableLoaded && salesData.length > 0 && (
+              <tfoot>
+                <tr style={{ backgroundColor: '#f0f8ff', borderTop: '2px solid #1B91DA' }}>
+                  <td colSpan="4" style={{ ...styles.td, textAlign: 'left', fontWeight: 'bold' }}>
+                    Total
                   </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'salesParty')}
-                    onDoubleClick={() => startEditing(rowIndex, 'salesParty', row.salesParty)}
-                  >
-                    {renderCell(rowIndex, 'salesParty', row.salesParty)}
+                  <td style={{ ...styles.td, textAlign: 'right', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
+                    ₹{formatNumber(totals.billAmount)}
                   </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'billNo')}
-                    onDoubleClick={() => startEditing(rowIndex, 'billNo', row.billNo)}
-                  >
-                    {renderCell(rowIndex, 'billNo', row.billNo)}
+                  <td style={{ ...styles.td, textAlign: 'right', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
+                    {totals.qty.toFixed(2)}
                   </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'billDate')}
-                    onDoubleClick={() => startEditing(rowIndex, 'billDate', row.billDate)}
-                  >
-                    {renderCell(rowIndex, 'billDate', row.billDate)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'billAmount')}
-                    onDoubleClick={() => startEditing(rowIndex, 'billAmount', row.billAmount)}
-                  >
-                    {renderCell(rowIndex, 'billAmount', row.billAmount)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'qty')}
-                    onDoubleClick={() => startEditing(rowIndex, 'qty', row.qty)}
-                  >
-                    {renderCell(rowIndex, 'qty', row.qty)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'time')}
-                    onDoubleClick={() => startEditing(rowIndex, 'time', row.time)}
-                  >
-                    {renderCell(rowIndex, 'time', row.time)}
-                  </td>
-                  <td 
-                    style={getCellStyle(rowIndex, 'noOfBale')}
-                    onDoubleClick={() => startEditing(rowIndex, 'noOfBale', row.noOfBale)}
-                  >
-                    {renderCell(rowIndex, 'noOfBale', row.noOfBale)}
-                  </td>
-                  <td 
-                    style={{ ...getCellStyle(rowIndex, 'transport'), borderRight: 'none' }}
-                    onDoubleClick={() => startEditing(rowIndex, 'transport', row.transport)}
-                  >
-                    {renderCell(rowIndex, 'transport', row.transport)}
+                  <td colSpan="3" style={{ ...styles.td, textAlign: 'center', fontStyle: 'italic' }}>
+                    -
                   </td>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={totalsRowStyle}>
-                <td colSpan="4" style={{ padding: '8px 6px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold' }}>
-                  Total
-                </td>
-                <td style={totalsCellStyle}>
-                  {formatNumber(totals.billAmount)}
-                </td>
-                <td style={totalsCellStyle}>
-                  {totals.qty.toFixed(2)}
-                </td>
-                <td style={{ ...totalsCellStyle, textAlign: 'center' }}>-</td>
-                <td style={totalsCellStyle}>-</td>
-                <td style={{ ...totalsCellStyle, borderRight: 'none' }}>-</td>
-              </tr>
-            </tfoot>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
-      
+
+      {/* Footer Section with Totals - CENTERED */}
+      <div style={styles.footerSection}>
+        <div style={{
+          ...styles.balanceContainer,
+          justifyContent: 'center',
+          width: '100%',
+        }}>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Bill Amount</span>
+            <span style={styles.balanceValue}>
+              ₹{formatNumber(totals.billAmount)}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Quantity</span>
+            <span style={styles.balanceValue}>
+              {totals.qty.toFixed(2)}
+            </span>
+          </div>
+          {tableLoaded && salesData.length > 0 && (
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Total Records</span>
+              <span style={styles.balanceValue}>
+                {salesData.length}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sales Party Selection Popup */}
+      {showSalesPartyPopup && (
+        <div style={styles.popupOverlay} onClick={handleSalesPartyPopupClose}>
+          <div 
+            style={styles.popupContent} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.popupHeader}>
+              Select Sales Party
+              <button 
+                style={styles.closeButton}
+                onClick={handleSalesPartyPopupClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.listContainer}>
+              {allSalesParties.map((party) => {
+                const isSelected = tempSelectedSalesParties.includes(party);
+                return (
+                  <div 
+                    key={party} 
+                    style={isSelected ? styles.selectedListItem : styles.listItem}
+                    onClick={() => handleSalesPartySelect(party)}
+                  >
+                    <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
+                      {isSelected && <div style={styles.checkmark}>✓</div>}
+                    </div>
+                    <span style={styles.listText}>{party}</span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div style={styles.popupActions}>
+              <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.clearButton}}
+                  onClick={handleSalesPartyClearSelection}
+                >
+                  Clear
+                </button>
+                <button 
+                  style={{...styles.popupButton, ...styles.okButton}}
+                  onClick={handleSalesPartyPopupOk}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Company Selection Popup */}
+      {showCompanyPopup && (
+        <div style={styles.popupOverlay} onClick={handleCompanyPopupClose}>
+          <div 
+            style={styles.popupContent} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.popupHeader}>
+              Select Company
+              <button 
+                style={styles.closeButton}
+                onClick={handleCompanyPopupClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.listContainer}>
+              {allCompanies.map((companyItem) => {
+                const isSelected = tempSelectedCompanies.includes(companyItem);
+                return (
+                  <div 
+                    key={companyItem} 
+                    style={isSelected ? styles.selectedListItem : styles.listItem}
+                    onClick={() => handleCompanySelect(companyItem)}
+                  >
+                    <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
+                      {isSelected && <div style={styles.checkmark}>✓</div>}
+                    </div>
+                    <span style={styles.listText}>{companyItem}</span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div style={styles.popupActions}>
+              <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.clearButton}}
+                  onClick={handleCompanyClearSelection}
+                >
+                  Clear
+                </button>
+                <button 
+                  style={{...styles.popupButton, ...styles.okButton}}
+                  onClick={handleCompanyPopupOk}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

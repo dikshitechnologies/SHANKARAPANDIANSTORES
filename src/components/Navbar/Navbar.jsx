@@ -249,7 +249,7 @@ const Navbar = () => {
     },
     {
       name: "Sales Return Register",
-      path: "/reports/sales-return-register",
+      path: "/reports/SalesReturnregister",
       icon: <FileTextOutlined />,
       permission: "SALES_RETURN_REGISTER",
     },
@@ -261,7 +261,7 @@ const Navbar = () => {
     },
     {
       name: "Purchase Return Register",
-      path: "/reports/purchase-return-register",
+      path: "/reports/PurchaseReturnregister",
       icon: <FileTextOutlined />,
       permission: "PURCHASE_RETURN_REGISTER",
     },

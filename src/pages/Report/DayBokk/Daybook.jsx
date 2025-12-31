@@ -1,48 +1,51 @@
 import React, { useState, useEffect, useRef } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
 
 const DayBook = () => {
-  const [fromDate, setFromDate] = useState('2025-12-29');
-  const [toDate, setToDate] = useState('2025-12-30');
+  // --- STATE MANAGEMENT ---
+  const [fromDate, setFromDate] = useState('2024-06-14');
+  const [toDate, setToDate] = useState('2025-11-26');
   const [selectedBranches, setSelectedBranches] = useState(['ALL']);
   const [showBranchPopup, setShowBranchPopup] = useState(false);
-  const [tempSelectedBranches, setTempSelectedBranches] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
+  const [tempSelectedBranches, setTempSelectedBranches] = useState(['ALL']);
+  const [selectAll, setSelectAll] = useState(true);
   const [tableLoaded, setTableLoaded] = useState(false);
-  const [showFromCalendar, setShowFromCalendar] = useState(false);
-  const [showToCalendar, setShowToCalendar] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
-  
-  // Refs for all focusable elements
+  const [branchDisplay, setBranchDisplay] = useState('ALL');
+
+  // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
   const branchRef = useRef(null);
   const searchButtonRef = useRef(null);
-  const refreshButtonRef = useRef(null);
-  const branchItemsRef = useRef([]);
-  
-  // Store all focusable elements in order
-  const focusableElements = [
-    { ref: fromDateRef, name: 'fromDate', type: 'input' },
-    { ref: toDateRef, name: 'toDate', type: 'input' },
-    { ref: branchRef, name: 'branch', type: 'button' },
-    { ref: searchButtonRef, name: 'search', type: 'button' },
-    { ref: refreshButtonRef, name: 'refresh', type: 'button' }
-  ];
 
-  const allBranches = [
-    'ALL',
-    'DIKSHI DEMO',
-    'DIKSH',
-    'DIKSHI TECH',
-    'DIKSHIWEBSITE',
-    'DIKSHIWBCOMDOT',
-    'SAKTHI',
-    'JUST AK THINGS',
-    'PRIVANKA'
-  ];
+  // --- DATA ---
+  const [dayBookData, setDayBookData] = useState([]);
 
-  const dayBookData = [
+  // Sample daybook data
+  const sampleDayBookData = [
     {
       accName: "OPG ON :29-02-12",
       receipts: "0.00",
@@ -93,208 +96,27 @@ const DayBook = () => {
     }
   ];
 
-  // Handle date input change
-  const handleDateChange = (field, value) => {
-    if (field === 'from') {
-      setFromDate(value);
-    } else {
-      setToDate(value);
-    }
+  // Sample data for branches
+  const allBranches = [
+    'ALL',
+    'DIKSHI DEMO',
+    'DIKSH',
+    'DIKSHI TECH',
+    'DIKSHIWEBSITE',
+    'DIKSHIWBCOMDOT',
+    'SAKTHI',
+    'JUST AK THINGS',
+    'PRIVANKA'
+  ];
+
+  // --- HANDLERS ---
+  const handleFromDateChange = (e) => {
+    setFromDate(e.target.value);
   };
 
-  // Handle keyboard navigation for main controls
-  const handleKeyDown = (e, currentIndex, fieldName) => {
-    const totalElements = focusableElements.length;
-    
-    switch (e.key) {
-      case 'Enter':
-        e.preventDefault();
-        if (fieldName === 'search') {
-          handleSearch();
-        } else if (fieldName === 'refresh') {
-          setTableLoaded(false);
-        } else if (fieldName === 'branch') {
-          handleBranchClick();
-        } else {
-          // Move to next element
-          const nextIndex = (currentIndex + 1) % totalElements;
-          focusableElements[nextIndex].ref.current.focus();
-        }
-        break;
-        
-      case 'Tab':
-        // Allow default Tab behavior but prevent when in popup
-        if (showBranchPopup) {
-          e.preventDefault();
-          // Handle tab in popup
-          const popupFocusable = document.querySelectorAll(
-            '.branch-item, .popup-button'
-          );
-          if (popupFocusable.length > 0) {
-            const firstElement = popupFocusable[0];
-            if (document.activeElement === popupFocusable[popupFocusable.length - 1] && !e.shiftKey) {
-              // Cycle back to first element
-              firstElement.focus();
-              e.preventDefault();
-            }
-          }
-        }
-        break;
-        
-      case 'ArrowRight':
-        e.preventDefault();
-        if (showBranchPopup) {
-          // Navigate within popup
-          handlePopupArrowNavigation(e);
-        } else {
-          // Navigate to next field
-          const nextIndex = (currentIndex + 1) % totalElements;
-          focusableElements[nextIndex].ref.current.focus();
-        }
-        break;
-        
-      case 'ArrowLeft':
-        e.preventDefault();
-        if (showBranchPopup) {
-          // Navigate within popup
-          handlePopupArrowNavigation(e);
-        } else {
-          // Navigate to previous field
-          const prevIndex = (currentIndex - 1 + totalElements) % totalElements;
-          focusableElements[prevIndex].ref.current.focus();
-        }
-        break;
-        
-      case 'ArrowDown':
-        if (fieldName === 'branch' && !showBranchPopup) {
-          e.preventDefault();
-          handleBranchClick();
-        } else if (showBranchPopup) {
-          e.preventDefault();
-          handlePopupArrowNavigation(e);
-        }
-        break;
-        
-      case 'ArrowUp':
-        if (showBranchPopup) {
-          e.preventDefault();
-          handlePopupArrowNavigation(e);
-        }
-        break;
-        
-      case 'Escape':
-        if (showBranchPopup) {
-          e.preventDefault();
-          handlePopupClose();
-        } else {
-          e.currentTarget.blur();
-        }
-        break;
-        
-      case ' ':
-        if (fieldName === 'branch') {
-          e.preventDefault();
-          handleBranchClick();
-        } else if (fieldName === 'search') {
-          e.preventDefault();
-          handleSearch();
-        } else if (fieldName === 'refresh') {
-          e.preventDefault();
-          setTableLoaded(false);
-        }
-        break;
-    }
+  const handleToDateChange = (e) => {
+    setToDate(e.target.value);
   };
-
-  // Handle arrow navigation within branch popup
-  const handlePopupArrowNavigation = (e) => {
-    if (!showBranchPopup) return;
-    
-    const branchItems = document.querySelectorAll('.branch-item');
-    if (branchItems.length === 0) return;
-    
-    const currentIndex = Array.from(branchItems).findIndex(
-      item => item === document.activeElement
-    );
-    
-    let nextIndex = currentIndex;
-    
-    switch (e.key) {
-      case 'ArrowDown':
-        nextIndex = currentIndex < branchItems.length - 1 ? currentIndex + 1 : 0;
-        break;
-      case 'ArrowUp':
-        nextIndex = currentIndex > 0 ? currentIndex - 1 : branchItems.length - 1;
-        break;
-      case 'ArrowRight':
-      case 'ArrowLeft':
-        // Move to OK/Clear buttons from last branch item
-        if (e.key === 'ArrowRight' && currentIndex === branchItems.length - 1) {
-          const okButton = document.querySelector('.popup-button.ok');
-          if (okButton) okButton.focus();
-        } else if (e.key === 'ArrowLeft' && currentIndex === 0) {
-          const clearButton = document.querySelector('.popup-button.clear');
-          if (clearButton) clearButton.focus();
-        }
-        return;
-    }
-    
-    if (nextIndex !== -1) {
-      branchItems[nextIndex].focus();
-    }
-  };
-
-  // Handle keyboard in popup buttons
-  const handlePopupButtonKeyDown = (e, buttonType) => {
-    switch (e.key) {
-      case 'Enter':
-        e.preventDefault();
-        if (buttonType === 'ok') {
-          handlePopupOk();
-        } else if (buttonType === 'clear') {
-          handleClearSelection();
-        }
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        if (buttonType === 'ok') {
-          const clearButton = document.querySelector('.popup-button.clear');
-          if (clearButton) clearButton.focus();
-        } else {
-          const lastBranchItem = document.querySelectorAll('.branch-item');
-          if (lastBranchItem.length > 0) {
-            lastBranchItem[lastBranchItem.length - 1].focus();
-          }
-        }
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        if (buttonType === 'clear') {
-          const okButton = document.querySelector('.popup-button.ok');
-          if (okButton) okButton.focus();
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        handlePopupClose();
-        break;
-    }
-  };
-
-  useEffect(() => {
-    setTempSelectedBranches([...selectedBranches]);
-  }, [selectedBranches]);
-
-  // Focus management when popup opens/closes
-  useEffect(() => {
-    if (showBranchPopup) {
-      // Focus first branch item when popup opens
-      setTimeout(() => {
-        const firstBranchItem = document.querySelector('.branch-item');
-        if (firstBranchItem) firstBranchItem.focus();
-      }, 100);
-    }
-  }, [showBranchPopup]);
 
   const handleBranchClick = () => {
     setTempSelectedBranches([...selectedBranches]);
@@ -331,9 +153,11 @@ const DayBook = () => {
 
   const handlePopupOk = () => {
     setSelectedBranches([...tempSelectedBranches]);
+    const displayText = tempSelectedBranches.length === allBranches.length || tempSelectedBranches.includes('ALL') 
+      ? 'ALL' 
+      : tempSelectedBranches.join(', ');
+    setBranchDisplay(displayText);
     setShowBranchPopup(false);
-    // Return focus to branch button
-    setTimeout(() => branchRef.current?.focus(), 100);
   };
 
   const handleClearSelection = () => {
@@ -343,260 +167,519 @@ const DayBook = () => {
 
   const handlePopupClose = () => {
     setShowBranchPopup(false);
-    // Return focus to branch button
-    setTimeout(() => branchRef.current?.focus(), 100);
   };
 
   const handleSearch = () => {
     if (!fromDate || !toDate || selectedBranches.length === 0) {
-      alert('Please fill all fields: From Date, To Date, and select at least one branch');
+      toast.warning('Please fill all fields: From Date, To Date, and select at least one branch', {
+        autoClose: 2000,
+      });
       return;
     }
     
-    console.log('Searching with:', {
+    console.log('Searching DayBook with:', {
       fromDate,
       toDate,
       selectedBranches
     });
     
-    setTableLoaded(true);
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setDayBookData(sampleDayBookData);
+      setTableLoaded(true);
+      setIsLoading(false);
+    }, 500);
   };
 
-  // Same styles object as before...
+  const handleRefresh = () => {
+    setTableLoaded(false);
+    setFromDate('2024-06-14');
+    setToDate('2025-11-26');
+    setSelectedBranches(['ALL']);
+    setBranchDisplay('ALL');
+    setDayBookData([]);
+  };
+
+  // Handle key navigation
+  const handleKeyDown = (e, currentField) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      switch(currentField) {
+        case 'fromDate':
+          toDateRef.current?.focus();
+          break;
+        case 'toDate':
+          branchRef.current?.focus();
+          break;
+        case 'branch':
+          searchButtonRef.current?.focus();
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
+  // --- SCREEN SIZE DETECTION ---
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isMobile = width < 640;
+      const isTablet = width >= 640 && width < 1024;
+      const isDesktop = width >= 1024;
+      
+      setScreenSize({
+        width,
+        height,
+        isMobile,
+        isTablet,
+        isDesktop
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // --- STYLES ---
+  const TYPOGRAPHY = {
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: {
+      xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      base: screenSize.isMobile ? '13px' : screenSize.isTablet ? '14px' : '16px',
+      lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
+    },
+    fontWeight: {
+      normal: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700
+    },
+    lineHeight: {
+      tight: 1.2,
+      normal: 1.5,
+      relaxed: 1.6
+    }
+  };
+
   const styles = {
     container: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      backgroundColor: '#f5f7fa',
+      height: '100vh',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      margin: 0,
+      padding: 0,
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+      position: 'fixed',
+    },
+    headerSection: {
+      flex: '0 0 auto',
+      backgroundColor: 'white',
+      borderRadius: 0,
+      padding: screenSize.isMobile ? '8px 10px' : screenSize.isTablet ? '10px 12px' : '12px 16px',
+      margin: 0,
+      marginBottom: 0,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      overflowY: 'visible',
+      maxHeight: 'none',
+    },
+    tableSection: {
+      flex: '1 1 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0,
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
+    },
+    formRow: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+    },
+    formField: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '4px' : '6px',
+    },
+    inlineLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      minWidth: screenSize.isMobile ? '50px' : screenSize.isTablet ? '55px' : '60px',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+    },
+    inlineInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '90px' : '110px',
+    },
+    inlineInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '90px' : '110px',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    gridRow: {
+      display: 'grid',
+      gap: '8px',
+      marginBottom: 10,
+    },
+    tableContainer: {
+      backgroundColor: 'white',
+      borderRadius: 10,
+      overflowX: 'auto',
+      overflowY: 'auto',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1px solid #e0e0e0',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginBottom: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      WebkitOverflowScrolling: 'touch',
+      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      boxSizing: 'border-box',
+      flex: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
+      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
+    },
+    table: {
+      width: 'max-content',
+      minWidth: '100%',
+      borderCollapse: 'collapse',
+      tableLayout: 'fixed',
+    },
+    th: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      backgroundColor: '#1B91DA',
+      color: 'white',
+      padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
+      textAlign: 'center',
+      letterSpacing: '0.5px',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10,
+      border: '1px solid white',
+      borderBottom: '2px solid white',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      whiteSpace: 'nowrap',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+    },
+    td: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: '8px 6px',
+      textAlign: 'center',
+      border: '1px solid #ccc',
+      color: '#333',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+    },
+    footerSection: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flex: '0 0 auto',
+      display: 'flex',
+      flexDirection: screenSize.isMobile ? 'column' : 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
+      backgroundColor: 'white',
+      borderTop: '2px solid #e0e0e0',
+      boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
+      flexWrap: 'wrap',
+      flexShrink: 0,
+      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
+      width: '100%',
+      boxSizing: 'border-box',
+      zIndex: 100,
+    },
+    balanceContainer: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.sm : screenSize.isTablet ? TYPOGRAPHY.fontSize.base : TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#1B91DA',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '8px 12px' : '10px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '15px' : screenSize.isTablet ? '25px' : '35px',
+      minWidth: 'max-content',
+      justifyContent: 'center',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      order: screenSize.isMobile ? 1 : 0,
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      backgroundColor: '#f0f8ff',
+    },
+    balanceItem: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '2px',
+    },
+    balanceLabel: {
+      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      color: '#555',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+    },
+    balanceValue: {
+      fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      color: '#1976d2',
+      fontWeight: 'bold',
+    },
+    searchButton: {
+      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '7px 14px' : '8px 16px',
+      background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
+      color: 'white',
+      border: 'none',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '70px' : '80px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 4px 12px rgba(27, 145, 218, 0.4)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    refreshButton: {
+      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '7px 14px' : '8px 16px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '70px' : '80px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: '#1B91DA',
+        boxShadow: '0 4px 10px rgba(27, 145, 218, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    buttonGlow: {
+      position: 'absolute',
+      top: '0',
+      left: '-100%',
+      width: '100%',
+      height: '100%',
+      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+      transition: 'left 0.7s ease'
+    },
+    loadingOverlay: {
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: '#f5f5f5',
-      fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
-      overflow: 'auto'
-    },
-    
-    header: {
-      background: 'white',
-      color: '#333',
-      padding: '20px 30px',
-      borderBottom: '1px solid #ddd',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-    },
-    
-    headerTitle: {
-      fontSize: '28px',
-      fontWeight: '600',
-      marginBottom: '25px',
-      color: '#1B91DA',
-      textAlign: 'center'
-    },
-    
-    firstRow: {
-      display: 'grid',
-      gridTemplateColumns: '0.8fr 0.8fr 2fr 0.7fr 0.7fr',
-      gap: '15px',
-      marginBottom: '20px',
-      position: 'relative',
-      alignItems: 'end'
-    },
-    
-    controlGroup: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px'
-    },
-    
-    controlLabel: {
-      fontSize: '14px',
-      color: '#333',
-      marginBottom: '0',
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px'
-    },
-    
-    dateInputWrapper: {
-      position: 'relative',
-      width: '100%'
-    },
-    
-    inlineInput: {
-      width: '100%',
-      padding: '8px 10px',
-      border: '1px solid #ddd',
-      borderRadius: '3px',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      color: '#333',
-      minHeight: '36px',
-      boxSizing: 'border-box',
-      transition: 'all 0.2s ease',
-      outline: 'none'
-    },
-    
-    focusedInput: {
-      borderColor: '#1B91DA',
-      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)'
-    },
-    
-    branchInput: {
-      width: '100%',
-      padding: '8px 12px',
-      border: '1px solid #ddd',
-      borderRadius: '3px',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      color: '#333',
-      minHeight: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      boxSizing: 'border-box',
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      outline: 'none'
-    },
-    
-    searchButton: {
-      padding: '8px 12px',
-      background: '#1B91DA',
-      color: 'white',
-      border: 'none',
-      borderRadius: '3px',
-      fontSize: '13px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      width: '100%',
-      height: '36px',
+      background: 'rgba(255, 255, 255, 0.8)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      outline: 'none'
+      zIndex: 1000,
+      fontFamily: TYPOGRAPHY.fontFamily,
     },
-    
-    buttonContainer: {
-      display: 'flex',
-      alignItems: 'flex-end',
-      height: '100%'
-    },
-    
-    content: {
-      padding: '20px 30px',
-      minHeight: 'calc(100vh - 180px)',
-      boxSizing: 'border-box'
-    },
-    
-    tableContainer: {
-      backgroundColor: 'white',
-      borderRadius: '4px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      border: '1px solid #ddd',
-      height: 'calc(100vh - 250px)',
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    
-    tableWrapper: {
-      flex: 1,
-      overflow: 'auto'
-    },
-    
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      minWidth: '800px'
-    },
-    
-    tableHeader: {
-      backgroundColor: '#1B91DA',
-      color: 'white',
-      padding: '12px 15px',
-      textAlign: 'left',
-      fontWeight: '600',
-      fontSize: '14px',
-      borderRight: '1px solid #0c7bb8',
-      position: 'sticky',
-      top: 0,
-      zIndex: 10
-    },
-    
-    tableCell: {
-      padding: '12px 15px',
-      borderBottom: '1px solid #ddd',
-      fontSize: '14px',
-      color: '#333',
-      fontWeight: '400'
-    },
-    
-    totalCell: {
-      padding: '12px 15px',
-      borderBottom: '1px solid #ddd',
-      fontSize: '14px',
-      fontWeight: '700',
-      background: '#f8f9fa',
-      borderTop: '2px solid #1B91DA',
-      color: '#0c7bb8'
-    },
-    
-    tableRow: {
-      ':hover': {
-        backgroundColor: '#f8f9fa'
-      }
-    },
-    
-    emptyState: {
+    loadingBox: {
+      background: 'white',
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
-      padding: '40px 20px',
-      color: '#666',
-      fontSize: '16px',
-      background: '#f8f9fa',
-      borderRadius: '4px',
-      margin: '20px',
-      border: '2px dashed #ddd'
     },
-    
+    selectInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '90px' : '110px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+    },
+    selectInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '90px' : '110px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    branchInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '90px' : '110px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    branchInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '90px' : '110px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
     popupOverlay: {
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 1000
+      zIndex: 1000,
+      backdropFilter: 'blur(4px)',
     },
-    
     popupContent: {
       backgroundColor: 'white',
-      borderRadius: '4px',
+      borderRadius: '8px',
       width: '90%',
       maxWidth: '500px',
       maxHeight: '80vh',
       overflow: 'hidden',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-      border: '1px solid #ddd'
+      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+      border: '1px solid #ddd',
     },
-    
     popupHeader: {
       background: '#1B91DA',
       color: 'white',
-      padding: '15px 20px',
+      padding: '16px 20px',
       margin: 0,
-      fontSize: '16px',
-      fontWeight: '600',
-      borderBottom: '1px solid #0c7bb8',
-      position: 'relative'
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      borderBottom: '1px solid #1479c0',
     },
-    
     closeButton: {
       position: 'absolute',
       right: '15px',
@@ -607,237 +690,293 @@ const DayBook = () => {
       color: 'white',
       fontSize: '20px',
       cursor: 'pointer',
-      width: '28px',
-      height: '28px',
+      width: '30px',
+      height: '30px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: '3px',
-      outline: 'none'
+      borderRadius: '4px',
+      transition: 'all 0.3s ease',
+      ':hover': {
+        background: 'rgba(255,255,255,0.3)',
+      }
     },
-    
     branchList: {
-      padding: '15px 20px',
-      maxHeight: '350px',
-      overflowY: 'auto'
+      padding: '20px',
+      maxHeight: '300px',
+      overflowY: 'auto',
     },
-    
     branchItem: {
       display: 'flex',
       alignItems: 'center',
       padding: '10px 12px',
-      margin: '4px 0',
-      borderRadius: '3px',
+      margin: '6px 0',
+      borderRadius: '4px',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
+      transition: 'all 0.3s ease',
       border: '1px solid transparent',
-      outline: 'none'
+      ':hover': {
+        backgroundColor: '#f0f8ff',
+        borderColor: '#1B91DA',
+      }
     },
-    
     selectedBranchItem: {
       display: 'flex',
       alignItems: 'center',
       padding: '10px 12px',
-      margin: '4px 0',
-      borderRadius: '3px',
+      margin: '6px 0',
+      borderRadius: '4px',
       cursor: 'pointer',
-      backgroundColor: '#e8f0fe',
-      borderLeft: '3px solid #1B91DA',
-      outline: 'none'
+      transition: 'all 0.3s ease',
+      backgroundColor: '#f0f8ff',
+      border: '1px solid #1B91DA',
     },
-    
     branchCheckbox: {
       width: '18px',
       height: '18px',
       border: '2px solid #ddd',
-      borderRadius: '3px',
-      marginRight: '10px',
+      borderRadius: '4px',
+      marginRight: '12px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
-      backgroundColor: 'white'
+      backgroundColor: 'white',
+      transition: 'all 0.3s ease'
     },
-    
     selectedBranchCheckbox: {
       width: '18px',
       height: '18px',
       border: '2px solid #1B91DA',
-      borderRadius: '3px',
-      marginRight: '10px',
+      borderRadius: '4px',
+      marginRight: '12px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
-      backgroundColor: '#1B91DA'
+      backgroundColor: '#1B91DA',
     },
-    
     checkmark: {
       color: 'white',
       fontWeight: 'bold',
       fontSize: '12px'
     },
-    
     branchText: {
       color: '#333',
-      fontSize: '14px',
-      fontWeight: '400'
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium
     },
-    
     popupActions: {
       borderTop: '1px solid #ddd',
       padding: '15px 20px',
-      backgroundColor: '#f8f9fa'
+      backgroundColor: '#f5f7fa',
     },
-    
     popupButtons: {
       display: 'flex',
       justifyContent: 'flex-end',
       gap: '10px'
     },
-    
     popupButton: {
       padding: '8px 16px',
       border: 'none',
-      borderRadius: '3px',
-      fontSize: '14px',
-      fontWeight: '600',
+      borderRadius: '4px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
+      transition: 'all 0.3s ease',
       minWidth: '80px',
-      outline: 'none'
     },
-    
     okButton: {
       background: '#1B91DA',
-      color: 'white'
+      color: 'white',
+      ':hover': {
+        background: '#1479c0',
+      }
     },
-    
     clearButton: {
       background: 'white',
-      color: '#666',
-      border: '1px solid #ddd'
+      color: '#d32f2f',
+      border: '1px solid #ffcdd2',
+      ':hover': {
+        background: '#ffebee',
+      }
     },
+  };
 
-    refreshButton: {
-      padding: '8px 12px',
-      background: 'white',
-      color: '#333',
-      border: '1px solid #ddd',
-      borderRadius: '3px',
-      fontSize: '13px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      width: '100%',
-      height: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      outline: 'none'
+  // Get grid columns based on screen size
+  const getGridColumns = () => {
+    if (screenSize.isMobile) {
+      return 'repeat(2, 1fr)';
+    } else if (screenSize.isTablet) {
+      return 'repeat(3, 1fr)';
+    } else {
+      return 'repeat(4, 1fr)';
     }
   };
 
+  // Calculate totals
+  const totalReceipts = dayBookData
+    .filter(row => !row.isTotal && row.receipts)
+    .reduce((sum, row) => sum + parseFloat(row.receipts || 0), 0);
+  
+  const totalPayments = dayBookData
+    .filter(row => !row.isTotal && row.payments)
+    .reduce((sum, row) => sum + parseFloat(row.payments || 0), 0);
+
   return (
     <div style={styles.container}>
-      {/* HEADER */}
-      <div style={styles.header}>
-        <h1 style={styles.headerTitle}>Day Book</h1>
-        
-        {/* FIRST ROW: From Date, To Date, Branch, Search Button, Refresh Button */}
-        <div style={styles.firstRow}>
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div style={styles.loadingOverlay}>
+          <div style={styles.loadingBox}>
+            <div>Loading Day Book Report...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Header Section - ALL ON ONE LINE */}
+      <div style={styles.headerSection}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '12px',
+          flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
+          width: '100%',
+        }}>
           {/* From Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>From Date</div>
-            <div style={styles.dateInputWrapper}>
-              <input
-                type="date"
-                style={{
-                  ...styles.inlineInput,
-                  ...(focusedField === 'fromDate' && styles.focusedInput)
-                }}
-                ref={fromDateRef}
-                value={fromDate}
-                onChange={(e) => handleDateChange('from', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, 0, 'fromDate')}
-                onFocus={() => setFocusedField('fromDate')}
-                onBlur={() => setFocusedField('')}
-              />
-            </div>
-          </div>
-          
-          {/* To Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>To Date</div>
-            <div style={styles.dateInputWrapper}>
-              <input
-                type="date"
-                style={{
-                  ...styles.inlineInput,
-                  ...(focusedField === 'toDate' && styles.focusedInput)
-                }}
-                ref={toDateRef}
-                value={toDate}
-                onChange={(e) => handleDateChange('to', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, 1, 'toDate')}
-                onFocus={() => setFocusedField('toDate')}
-                onBlur={() => setFocusedField('')}
-              />
-            </div>
-          </div>
-          
-          {/* Branch */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>Branch</div>
-            <button
-              ref={branchRef}
-              style={{
-                ...styles.branchInput,
-                ...(focusedField === 'branch' && styles.focusedInput)
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 calc(50% - 6px)' : '1',
+            minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>From:</label>
+            <input
+              type="date"
+              data-header="fromDate"
+              style={
+                focusedField === 'fromDate'
+                  ? styles.inlineInputFocused
+                  : styles.inlineInput
+              }
+              value={fromDate}
+              onChange={handleFromDateChange}
+              ref={fromDateRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'fromDate');
               }}
-              onClick={handleBranchClick}
-              onKeyDown={(e) => handleKeyDown(e, 2, 'branch')}
+              onFocus={() => setFocusedField('fromDate')}
+              onBlur={() => setFocusedField('')}
+            />
+          </div>
+
+          {/* To Date */}
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 calc(50% - 6px)' : '1',
+            minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : '120px',
+          }}>
+            <label style={styles.inlineLabel}>To:</label>
+            <input
+              type="date"
+              data-header="toDate"
+              style={
+                focusedField === 'toDate'
+                  ? styles.inlineInputFocused
+                  : styles.inlineInput
+              }
+              value={toDate}
+              onChange={handleToDateChange}
+              ref={toDateRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'toDate');
+              }}
+              onFocus={() => setFocusedField('toDate')}
+              onBlur={() => setFocusedField('')}
+            />
+          </div>
+
+          {/* Branch */}
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '2',
+            minWidth: screenSize.isMobile ? '100%' : '150px',
+          }}>
+            <label style={styles.inlineLabel}>Branch:</label>
+            <div
+              style={
+                focusedField === 'branch'
+                  ? styles.branchInputFocused
+                  : styles.branchInput
+              }
+              onClick={() => {
+                handleBranchClick();
+                setFocusedField('branch');
+              }}
+              ref={branchRef}
+              onKeyDown={(e) => {
+                handleKeyDown(e, 'branch');
+                if (e.key === 'Enter') {
+                  handleBranchClick();
+                }
+              }}
               onFocus={() => setFocusedField('branch')}
               onBlur={() => setFocusedField('')}
+              tabIndex={0}
             >
-              {selectedBranches.length > 0 
-                ? selectedBranches.join(', ') 
-                : 'Select Branch'}
-              <span style={{color: '#666', fontSize: '10px'}}>▼</span>
-            </button>
+              <span style={{
+                fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
+                color: '#333',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}>
+                {branchDisplay}
+              </span>
+              <span style={{ color: '#1B91DA', fontSize: screenSize.isMobile ? '9px' : '10px', marginLeft: '6px' }}>▼</span>
+            </div>
           </div>
-          
+
           {/* Search Button */}
-          <div style={styles.buttonContainer}>
-            <button 
-              ref={searchButtonRef}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+            marginLeft: screenSize.isMobile ? '0' : 'auto',
+          }}>
+            <button
               style={{
                 ...styles.searchButton,
-                ...(focusedField === 'search' && { outline: '2px solid #1B91DA', outlineOffset: '2px' })
+                width: screenSize.isMobile ? '100%' : 'auto',
+                marginBottom: screenSize.isMobile ? '8px' : '0',
               }}
               onClick={handleSearch}
-              onKeyDown={(e) => handleKeyDown(e, 3, 'search')}
-              onFocus={() => setFocusedField('search')}
-              onBlur={() => setFocusedField('')}
               onMouseEnter={() => setHoveredButton(true)}
               onMouseLeave={() => setHoveredButton(false)}
+              ref={searchButtonRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
             >
               Search
+              {hoveredButton && <div style={styles.buttonGlow}></div>}
             </button>
           </div>
 
           {/* Refresh Button */}
-          <div style={styles.buttonContainer}>
-            <button 
-              ref={refreshButtonRef}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}>
+            <button
               style={{
                 ...styles.refreshButton,
-                ...(focusedField === 'refresh' && { outline: '2px solid #1B91DA', outlineOffset: '2px' })
+                width: screenSize.isMobile ? '100%' : 'auto',
               }}
-              onClick={() => setTableLoaded(false)}
-              onKeyDown={(e) => handleKeyDown(e, 4, 'refresh')}
-              onFocus={() => setFocusedField('refresh')}
-              onBlur={() => setFocusedField('')}
+              onClick={handleRefresh}
             >
               Refresh
             </button>
@@ -845,80 +984,132 @@ const DayBook = () => {
         </div>
       </div>
 
-      {/* TABLE CONTENT */}
-      <div style={styles.content}>
+      {/* Table Section */}
+      <div style={styles.tableSection}>
         <div style={styles.tableContainer}>
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.tableHeader}>Acc Name</th>
-                  <th style={styles.tableHeader}>Receipts</th>
-                  <th style={{...styles.tableHeader, borderRight: 'none'}}>Payments</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(tableLoaded ? dayBookData : []).map((row, index) => (
-                  <tr key={index} style={styles.tableRow}>
-                    <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
-                      {row.accName}
-                    </td>
-                    <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
-                      {row.receipts}
-                    </td>
-                    <td style={row.isTotal ? {...styles.totalCell, borderRight: 'none'} : {...styles.tableCell, borderRight: 'none'}}>
-                      {row.payments}
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Acc Name</th>
+                <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Receipts</th>
+                <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Payments</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableLoaded ? (
+                dayBookData.length > 0 ? (
+                  dayBookData.map((row, index) => (
+                    <tr key={index} style={{ 
+                      backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                      ...(row.isTotal ? { backgroundColor: '#f0f8ff', fontWeight: 'bold' } : {})
+                    }}>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '200px', 
+                        width: '200px', 
+                        maxWidth: '200px',
+                        textAlign: 'left',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.accName}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '150px', 
+                        width: '150px', 
+                        maxWidth: '150px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.receipts ? `₹${parseFloat(row.receipts || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}` : ''}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '150px', 
+                        width: '150px', 
+                        maxWidth: '150px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.payments ? `₹${parseFloat(row.payments || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}` : ''}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      No records found
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                )
+              ) : (
+                <tr>
+                  <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    Enter search criteria and click "Search" to view day book entries
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Footer Section with Totals - CENTERED */}
+      <div style={styles.footerSection}>
+        <div style={{
+          ...styles.balanceContainer,
+          justifyContent: 'center',
+          width: '100%',
+        }}>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Receipts</span>
+            <span style={styles.balanceValue}>
+              ₹{totalReceipts.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Payments</span>
+            <span style={styles.balanceValue}>
+              ₹{totalPayments.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* BRANCH POPUP */}
+      {/* Branch Selection Popup */}
       {showBranchPopup && (
         <div style={styles.popupOverlay} onClick={handlePopupClose}>
           <div 
             style={styles.popupContent} 
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') handlePopupClose();
-            }}
           >
             <div style={styles.popupHeader}>
               Select Branch
               <button 
                 style={styles.closeButton}
                 onClick={handlePopupClose}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') handlePopupClose();
-                }}
               >
                 ×
               </button>
             </div>
             
             <div style={styles.branchList}>
-              {allBranches.map((branch, index) => {
+              {allBranches.map((branch) => {
                 const isSelected = tempSelectedBranches.includes(branch);
                 return (
                   <div 
-                    key={branch}
-                    className="branch-item"
-                    tabIndex="0"
+                    key={branch} 
                     style={isSelected ? styles.selectedBranchItem : styles.branchItem}
                     onClick={() => handleBranchSelect(branch)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleBranchSelect(branch);
-                      } else {
-                        handlePopupArrowNavigation(e);
-                      }
-                    }}
-                    ref={(el) => (branchItemsRef.current[index] = el)}
                   >
                     <div style={isSelected ? styles.selectedBranchCheckbox : styles.branchCheckbox}>
                       {isSelected && <div style={styles.checkmark}>✓</div>}
@@ -932,18 +1123,14 @@ const DayBook = () => {
             <div style={styles.popupActions}>
               <div style={styles.popupButtons}>
                 <button 
-                  className="popup-button clear"
                   style={{...styles.popupButton, ...styles.clearButton}}
                   onClick={handleClearSelection}
-                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'clear')}
                 >
                   Clear
                 </button>
                 <button 
-                  className="popup-button ok"
                   style={{...styles.popupButton, ...styles.okButton}}
                   onClick={handlePopupOk}
-                  onKeyDown={(e) => handlePopupButtonKeyDown(e, 'ok')}
                 >
                   OK
                 </button>

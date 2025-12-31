@@ -21,95 +21,95 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
-const Ledger = () => {
+const PurchaseReturnRegister = () => {
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('2024-06-14');
   const [toDate, setToDate] = useState('2025-11-26');
-  const [party, setParty] = useState('ANBU 123');
+  const [purchaseParty, setPurchaseParty] = useState('ALL');
   const [company, setCompany] = useState('Select Company');
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
-  
-  // Popup states for Party
-  const [showPartyPopup, setShowPartyPopup] = useState(false);
-  const [tempSelectedParty, setTempSelectedParty] = useState('ANBU 123');
-  const [partyDisplay, setPartyDisplay] = useState('ANBU 123');
-  
+  const [purchaseReturnData, setPurchaseReturnData] = useState([]);
+  const [editingCell, setEditingCell] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
+
+  // Popup states for Purchase Party
+  const [showPurchasePartyPopup, setShowPurchasePartyPopup] = useState(false);
+  const [tempSelectedPurchaseParties, setTempSelectedPurchaseParties] = useState(['ALL']);
+  const [purchasePartyDisplay, setPurchasePartyDisplay] = useState('ALL');
+  const [purchasePartySelectAll, setPurchasePartySelectAll] = useState(true);
+
   // Popup states for Company
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
-  const [tempSelectedCompany, setTempSelectedCompany] = useState('Select Company');
+  const [tempSelectedCompanies, setTempSelectedCompanies] = useState(['Select Company']);
   const [companyDisplay, setCompanyDisplay] = useState('Select Company');
 
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
-  const partyRef = useRef(null);
+  const purchasePartyRef = useRef(null);
   const companyRef = useRef(null);
   const searchButtonRef = useRef(null);
 
-  // --- DATA ---
-  const [ledgerData, setLedgerData] = useState([]);
-
-  // Sample ledger data
-  const sampleLedgerData = [
+  // Sample purchase return register data
+  const samplePurchaseReturnData = [
     {
-      date: '14/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH001',
-      type: 'Sales',
-      crDr: 'Cr',
-      billNo: 'BL001',
-      billet: 'BT001',
-      amount: '5000.00'
+      id: 1,
+      no: 1,
+      partyName: 'JOHN TRADERS',
+      returnNo: 'PR0001',
+      returnDate: '27-09-2025',
+      returnAmount: '15,450.00',
+      qty: '25.50',
+      time: '01-01-1900 10:30:15',
+      reason: 'Damaged Goods'
     },
     {
-      date: '15/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH002',
-      type: 'Purchase',
-      crDr: 'Dr',
-      billNo: 'BL002',
-      billet: 'BT002',
-      amount: '2500.00'
+      id: 2,
+      no: 2,
+      partyName: 'SMITH ENTERPRISES',
+      returnNo: 'PR0002',
+      returnDate: '10-12-2025',
+      returnAmount: '8,750.00',
+      qty: '12.75',
+      time: '01-01-1900 14:45:30',
+      reason: 'Wrong Size'
     },
     {
-      date: '20/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH003',
-      type: 'Receipt',
-      crDr: 'Cr',
-      billNo: 'BL003',
-      billet: 'BT003',
-      amount: '3000.00'
+      id: 3,
+      no: 3,
+      partyName: 'GLOBAL SUPPLIERS',
+      returnNo: 'PR0003',
+      returnDate: '15-12-2025',
+      returnAmount: '22,300.00',
+      qty: '35.00',
+      time: '01-01-1900 11:20:45',
+      reason: 'Quality Issue'
     }
   ];
 
   // Sample data for popups
-  const allParties = [
-    'ANBU 123',
-    'John Doe',
-    'Jane Smith',
-    'ABC Corporation',
-    'XYZ Enterprises',
-    'Global Traders',
-    'Tech Solutions Ltd',
-    'Manufacturing Inc',
-    'Retail World',
-    'Service Providers'
+  const allPurchaseParties = [
+    'ALL',
+    'JOHN TRADERS',
+    'SMITH ENTERPRISES',
+    'GLOBAL SUPPLIERS',
+    'PREMIUM TEXTILES',
+    'QUALITY FABRICS',
+    'MEGA SUPPLIERS'
   ];
 
   const allCompanies = [
+    'Select Company',
     'DIKSHI DEMO',
     'DIKSHI TECH',
     'DIKSHIWEBSITE',
     'SAKTHI',
     'JUST AK THINGS',
-    'PRIVANKA',
-    'Global Corp',
-    'Tech Innovators',
-    'Business Solutions'
+    'PRIVANKA'
   ];
 
   // --- HANDLERS ---
@@ -121,72 +121,113 @@ const Ledger = () => {
     setToDate(e.target.value);
   };
 
-  const handlePartyClick = () => {
-    setTempSelectedParty(party);
-    setShowPartyPopup(true);
+  // Purchase Party Popup Handlers
+  const handlePurchasePartyClick = () => {
+    setTempSelectedPurchaseParties(purchasePartyDisplay === 'ALL' ? ['ALL'] : [purchasePartyDisplay]);
+    setShowPurchasePartyPopup(true);
   };
 
+  const handlePurchasePartySelect = (party) => {
+    if (party === 'ALL') {
+      if (tempSelectedPurchaseParties.includes('ALL')) {
+        setTempSelectedPurchaseParties([]);
+        setPurchasePartySelectAll(false);
+      } else {
+        setTempSelectedPurchaseParties(allPurchaseParties);
+        setPurchasePartySelectAll(true);
+      }
+    } else {
+      let updatedParties;
+      if (tempSelectedPurchaseParties.includes(party)) {
+        updatedParties = tempSelectedPurchaseParties.filter(p => p !== party);
+        if (updatedParties.includes('ALL')) {
+          updatedParties = updatedParties.filter(p => p !== 'ALL');
+        }
+      } else {
+        updatedParties = [...tempSelectedPurchaseParties, party];
+        const otherParties = allPurchaseParties.filter(p => p !== 'ALL');
+        if (otherParties.every(p => updatedParties.includes(p))) {
+          updatedParties = allPurchaseParties;
+        }
+      }
+      setTempSelectedPurchaseParties(updatedParties);
+      setPurchasePartySelectAll(updatedParties.length === allPurchaseParties.length);
+    }
+  };
+
+  const handlePurchasePartyPopupOk = () => {
+    if (tempSelectedPurchaseParties.length === 0) {
+      toast.warning('Please select at least one purchase party', { autoClose: 2000 });
+      return;
+    }
+    
+    const displayText = tempSelectedPurchaseParties.length === allPurchaseParties.length || tempSelectedPurchaseParties.includes('ALL') 
+      ? 'ALL' 
+      : tempSelectedPurchaseParties.join(', ');
+    setPurchaseParty(displayText === 'ALL' ? 'ALL' : tempSelectedPurchaseParties[0]);
+    setPurchasePartyDisplay(displayText);
+    setShowPurchasePartyPopup(false);
+  };
+
+  const handlePurchasePartyClearSelection = () => {
+    setTempSelectedPurchaseParties([]);
+    setPurchasePartySelectAll(false);
+  };
+
+  const handlePurchasePartyPopupClose = () => {
+    setShowPurchasePartyPopup(false);
+  };
+
+  // Company Popup Handlers
   const handleCompanyClick = () => {
-    setTempSelectedCompany(company);
+    setTempSelectedCompanies(company === 'Select Company' ? ['Select Company'] : [company]);
     setShowCompanyPopup(true);
   };
 
-  const handlePartySelect = (selectedParty) => {
-    setTempSelectedParty(selectedParty);
-  };
-
-  const handleCompanySelect = (selectedCompany) => {
-    setTempSelectedCompany(selectedCompany);
-  };
-
-  const handlePartyPopupOk = () => {
-    setParty(tempSelectedParty);
-    setPartyDisplay(tempSelectedParty);
-    setShowPartyPopup(false);
+  const handleCompanySelect = (companyItem) => {
+    setTempSelectedCompanies([companyItem]);
   };
 
   const handleCompanyPopupOk = () => {
-    setCompany(tempSelectedCompany);
-    setCompanyDisplay(tempSelectedCompany);
+    if (tempSelectedCompanies.length === 0) {
+      toast.warning('Please select a company', { autoClose: 2000 });
+      return;
+    }
+    
+    const selectedCompany = tempSelectedCompanies[0];
+    setCompany(selectedCompany);
+    setCompanyDisplay(selectedCompany);
     setShowCompanyPopup(false);
   };
 
-  const handlePartyPopupClose = () => {
-    setShowPartyPopup(false);
+  const handleCompanyClearSelection = () => {
+    setTempSelectedCompanies([]);
   };
 
   const handleCompanyPopupClose = () => {
     setShowCompanyPopup(false);
   };
 
-  const handlePartyClearSelection = () => {
-    setTempSelectedParty('');
-  };
-
-  const handleCompanyClearSelection = () => {
-    setTempSelectedCompany('');
-  };
-
   const handleSearch = () => {
-    if (!fromDate || !toDate || !party || company === 'Select Company') {
-      toast.warning('Please fill all fields: From Date, To Date, Party, and Company', {
+    if (!fromDate || !toDate || purchasePartyDisplay === 'ALL' || companyDisplay === 'Select Company') {
+      toast.warning('Please fill all fields: From Date, To Date, Purchase Party, and Company', {
         autoClose: 2000,
       });
       return;
     }
     
-    console.log('Searching Ledger with:', {
+    console.log('Searching Purchase Return Register with:', {
       fromDate,
       toDate,
-      party,
-      company
+      purchaseParty: purchasePartyDisplay,
+      company: companyDisplay
     });
     
     setIsLoading(true);
     
     // Simulate API call
     setTimeout(() => {
-      setLedgerData(sampleLedgerData);
+      setPurchaseReturnData(samplePurchaseReturnData);
       setTableLoaded(true);
       setIsLoading(false);
     }, 500);
@@ -196,13 +237,14 @@ const Ledger = () => {
     setTableLoaded(false);
     setFromDate('2024-06-14');
     setToDate('2025-11-26');
-    setParty('ANBU 123');
-    setTempSelectedParty('ANBU 123');
-    setPartyDisplay('ANBU 123');
+    setPurchaseParty('ALL');
+    setPurchasePartyDisplay('ALL');
     setCompany('Select Company');
-    setTempSelectedCompany('Select Company');
     setCompanyDisplay('Select Company');
-    setLedgerData([]);
+    setTempSelectedPurchaseParties(['ALL']);
+    setTempSelectedCompanies(['Select Company']);
+    setPurchasePartySelectAll(true);
+    setPurchaseReturnData([]);
   };
 
   // Handle key navigation
@@ -215,9 +257,9 @@ const Ledger = () => {
           toDateRef.current?.focus();
           break;
         case 'toDate':
-          partyRef.current?.focus();
+          purchasePartyRef.current?.focus();
           break;
-        case 'party':
+        case 'purchaseParty':
           companyRef.current?.focus();
           break;
         case 'company':
@@ -226,6 +268,133 @@ const Ledger = () => {
         default:
           break;
       }
+    }
+  };
+
+  // Start editing a cell
+  const startEditing = (rowIndex, colName, value) => {
+    setEditingCell({ row: rowIndex, col: colName });
+    setEditValue(value);
+  };
+
+  // Save the edited value
+  const saveEdit = () => {
+    if (editingCell) {
+      const { row, col } = editingCell;
+      const newData = [...purchaseReturnData];
+      newData[row] = {
+        ...newData[row],
+        [col]: editValue
+      };
+      setPurchaseReturnData(newData);
+      setEditingCell(null);
+    }
+  };
+
+  // Cancel editing
+  const cancelEdit = () => {
+    setEditingCell(null);
+  };
+
+  // Handle keyboard navigation in table
+  useEffect(() => {
+    const handleTableKeyDown = (e) => {
+      const { row, col } = selectedCell;
+      const colNames = ['no', 'partyName', 'returnNo', 'returnDate', 'returnAmount', 'qty', 'time', 'reason'];
+      
+      if (editingCell) {
+        if (e.key === 'Enter') {
+          saveEdit();
+          e.preventDefault();
+        } else if (e.key === 'Escape') {
+          cancelEdit();
+          e.preventDefault();
+        }
+        return;
+      }
+
+      if (purchaseReturnData.length === 0) return;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          if (row < purchaseReturnData.length - 1) {
+            setSelectedCell({ row: row + 1, col });
+          }
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          if (row > 0) {
+            setSelectedCell({ row: row - 1, col });
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (col > 0) {
+            setSelectedCell({ row, col: col - 1 });
+          }
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          if (col < colNames.length - 1) {
+            setSelectedCell({ row, col: col + 1 });
+          }
+          break;
+        case 'Enter':
+        case 'F2':
+          e.preventDefault();
+          startEditing(row, colNames[col], purchaseReturnData[row][colNames[col]]);
+          break;
+        case 'Delete':
+          e.preventDefault();
+          if (window.confirm('Clear this cell?')) {
+            const newData = [...purchaseReturnData];
+            newData[row] = {
+              ...newData[row],
+              [colNames[col]]: ''
+            };
+            setPurchaseReturnData(newData);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleTableKeyDown);
+    return () => window.removeEventListener('keydown', handleTableKeyDown);
+  }, [selectedCell, editingCell, purchaseReturnData]);
+
+  // Add new row
+  const addNewRow = () => {
+    if (!tableLoaded) return;
+    
+    const newRow = {
+      id: purchaseReturnData.length + 1,
+      no: purchaseReturnData.length + 1,
+      partyName: '',
+      returnNo: `PR${String(purchaseReturnData.length + 1).padStart(4, '0')}`,
+      returnDate: new Date().toLocaleDateString('en-GB').split('/').join('-'),
+      returnAmount: '0.00',
+      qty: '0.00',
+      time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+      reason: ''
+    };
+    setPurchaseReturnData([...purchaseReturnData, newRow]);
+    setSelectedCell({ row: purchaseReturnData.length, col: 0 });
+  };
+
+  // Delete selected row
+  const deleteSelectedRow = () => {
+    if (!tableLoaded || purchaseReturnData.length === 0) return;
+    
+    if (selectedCell.row >= 0 && selectedCell.row < purchaseReturnData.length) {
+      const newData = purchaseReturnData.filter((_, index) => index !== selectedCell.row);
+      // Update row numbers
+      const updatedData = newData.map((row, index) => ({
+        ...row,
+        no: index + 1
+      }));
+      setPurchaseReturnData(updatedData);
+      setSelectedCell({ row: Math.min(selectedCell.row, updatedData.length - 1), col: selectedCell.col });
     }
   };
 
@@ -259,6 +428,26 @@ const Ledger = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Calculate totals
+  const totals = {
+    returnAmount: purchaseReturnData.reduce((sum, row) => {
+      const amount = parseFloat(row.returnAmount?.replace(/,/g, '')) || 0;
+      return sum + amount;
+    }, 0),
+    qty: purchaseReturnData.reduce((sum, row) => {
+      const qty = parseFloat(row.qty) || 0;
+      return sum + qty;
+    }, 0)
+  };
+
+  // Format number with commas
+  const formatNumber = (num) => {
+    return num.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
 
   // --- STYLES ---
   const TYPOGRAPHY = {
@@ -329,7 +518,7 @@ const Ledger = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       color: '#333',
-      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px',
+      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '85px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
     },
@@ -541,6 +730,62 @@ const Ledger = () => {
         transform: 'translateY(-1px)',
       }
     },
+    addButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: '#28a745',
+        boxShadow: '0 4px 10px rgba(40, 167, 69, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    deleteButton: {
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: '#dc3545',
+        boxShadow: '0 4px 10px rgba(220, 53, 69, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
     buttonGlow: {
       position: 'absolute',
       top: '0',
@@ -570,7 +815,7 @@ const Ledger = () => {
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
     },
-    partyInput: {
+    purchasePartyInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
@@ -594,7 +839,7 @@ const Ledger = () => {
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    partyInputFocused: {
+    purchasePartyInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
@@ -824,9 +1069,94 @@ const Ledger = () => {
     },
   };
 
-  // Calculate opening and closing balances
-  const openingBalance = 0.00;
-  const closingBalance = 0.00;
+  // Get cell style based on state
+  const getCellStyle = (rowIndex, colName) => {
+    const colNames = ['no', 'partyName', 'returnNo', 'returnDate', 'returnAmount', 'qty', 'time', 'reason'];
+    const isSelected = selectedCell.row === rowIndex && colNames.indexOf(colName) === selectedCell.col;
+    const isEditing = editingCell && editingCell.row === rowIndex && editingCell.col === colName;
+
+    const baseStyle = {
+      ...styles.td,
+      textAlign: ['returnAmount', 'qty', 'no'].includes(colName) ? 'right' : 'left',
+      minWidth: colName === 'partyName' ? '150px' : 
+               colName === 'reason' ? '180px' :
+               colName === 'returnNo' ? '100px' :
+               colName === 'returnDate' ? '100px' :
+               colName === 'returnAmount' ? '120px' :
+               colName === 'time' ? '140px' : '80px',
+      width: colName === 'partyName' ? '150px' : 
+             colName === 'reason' ? '180px' :
+             colName === 'returnNo' ? '100px' :
+             colName === 'returnDate' ? '100px' :
+             colName === 'returnAmount' ? '120px' :
+             colName === 'time' ? '140px' : '80px',
+      maxWidth: colName === 'partyName' ? '150px' : 
+                colName === 'reason' ? '180px' :
+                colName === 'returnNo' ? '100px' :
+                colName === 'returnDate' ? '100px' :
+                colName === 'returnAmount' ? '120px' :
+                colName === 'time' ? '140px' : '80px',
+      fontFamily: ['returnAmount', 'qty'].includes(colName) ? '"Courier New", monospace' : 'inherit',
+      fontWeight: ['returnAmount', 'qty'].includes(colName) ? '600' : '400',
+      cursor: 'cell'
+    };
+
+    if (isSelected && !isEditing) {
+      return { 
+        ...baseStyle, 
+        outline: '2px solid #1B91DA',
+        outlineOffset: '-1px',
+        boxShadow: '0 0 0 1px rgba(27, 145, 218, 0.3)'
+      };
+    }
+
+    if (isEditing) {
+      return { 
+        ...baseStyle, 
+        outline: '2px solid #1B91DA',
+        outlineOffset: '-1px',
+        boxShadow: '0 0 0 1px rgba(27, 145, 218, 0.3)',
+        padding: '0'
+      };
+    }
+
+    return baseStyle;
+  };
+
+  // Render cell content
+  const renderCell = (rowIndex, colName, value) => {
+    if (editingCell && editingCell.row === rowIndex && editingCell.col === colName) {
+      return (
+        <input
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={saveEdit}
+          autoFocus
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            padding: '8px 6px',
+            boxSizing: 'border-box',
+            fontFamily: ['returnAmount', 'qty'].includes(colName) ? '"Courier New", monospace' : 'inherit',
+            fontSize: TYPOGRAPHY.fontSize.sm,
+            backgroundColor: '#fff',
+            outline: 'none'
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              saveEdit();
+            } else if (e.key === 'Escape') {
+              cancelEdit();
+            }
+          }}
+        />
+      );
+    }
+
+    return value;
+  };
 
   return (
     <div style={styles.container}>
@@ -834,7 +1164,7 @@ const Ledger = () => {
       {isLoading && (
         <div style={styles.loadingOverlay}>
           <div style={styles.loadingBox}>
-            <div>Loading Ledger Report...</div>
+            <div>Loading Purchase Return Register Report...</div>
           </div>
         </div>
       )}
@@ -900,31 +1230,31 @@ const Ledger = () => {
             />
           </div>
 
-          {/* Party with Popup */}
+          {/* Purchase Party with Popup */}
           <div style={{
             ...styles.formField,
             flex: screenSize.isMobile ? '1 0 100%' : '1',
             minWidth: screenSize.isMobile ? '100%' : '120px',
           }}>
-            <label style={styles.inlineLabel}>Party:</label>
+            <label style={styles.inlineLabel}>Purchase Party:</label>
             <div
               style={
-                focusedField === 'party'
-                  ? styles.partyInputFocused
-                  : styles.partyInput
+                focusedField === 'purchaseParty'
+                  ? styles.purchasePartyInputFocused
+                  : styles.purchasePartyInput
               }
               onClick={() => {
-                handlePartyClick();
-                setFocusedField('party');
+                handlePurchasePartyClick();
+                setFocusedField('purchaseParty');
               }}
-              ref={partyRef}
+              ref={purchasePartyRef}
               onKeyDown={(e) => {
-                handleKeyDown(e, 'party');
+                handleKeyDown(e, 'purchaseParty');
                 if (e.key === 'Enter') {
-                  handlePartyClick();
+                  handlePurchasePartyClick();
                 }
               }}
-              onFocus={() => setFocusedField('party')}
+              onFocus={() => setFocusedField('purchaseParty')}
               onBlur={() => setFocusedField('')}
               tabIndex={0}
             >
@@ -936,7 +1266,7 @@ const Ledger = () => {
                 whiteSpace: 'nowrap',
                 flex: 1
               }}>
-                {partyDisplay}
+                {purchasePartyDisplay}
               </span>
               <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
             </div>
@@ -989,7 +1319,6 @@ const Ledger = () => {
             display: 'flex',
             alignItems: 'center',
             flexShrink: 0,
-            marginLeft: screenSize.isMobile ? '0' : 'auto',
           }}>
             <button
               style={{
@@ -1028,6 +1357,46 @@ const Ledger = () => {
               Refresh
             </button>
           </div>
+
+          {/* Add Row Button (only when table is loaded) */}
+          {tableLoaded && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <button
+                style={{
+                  ...styles.addButton,
+                  width: screenSize.isMobile ? '100%' : 'auto',
+                }}
+                onClick={addNewRow}
+                title="Add New Return (Ctrl+N)"
+              >
+                Add Return
+              </button>
+            </div>
+          )}
+
+          {/* Delete Row Button (only when table is loaded) */}
+          {tableLoaded && purchaseReturnData.length > 0 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <button
+                style={{
+                  ...styles.deleteButton,
+                  width: screenSize.isMobile ? '100%' : 'auto',
+                }}
+                onClick={deleteSelectedRow}
+                title="Delete Selected Return (Ctrl+D)"
+              >
+                Delete Return
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1037,56 +1406,96 @@ const Ledger = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Date</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Name</th>
-                <th style={styles.th}>Voucher No</th>
-                <th style={styles.th}>Type</th>
-                <th style={styles.th}>Cr/Dr</th>
-                <th style={styles.th}>Bill No</th>
-                <th style={styles.th}>Billet</th>
-                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Amount</th>
+                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px', textAlign: 'right' }}>No</th>
+                <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px', textAlign: 'left' }}>Party Name</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'left' }}>Return No</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'left' }}>Return Date</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px', textAlign: 'right' }}>Return Amount</th>
+                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px', textAlign: 'right' }}>Qty</th>
+                <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px', textAlign: 'left' }}>Time</th>
+                <th style={{ ...styles.th, minWidth: '180px', width: '180px', maxWidth: '180px', textAlign: 'left' }}>Reason</th>
               </tr>
             </thead>
             <tbody>
               {tableLoaded ? (
-                ledgerData.length > 0 ? (
-                  ledgerData.map((row, index) => (
-                    <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
-                      <td style={styles.td}>{row.date}</td>
-                      <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px' }}>{row.name}</td>
-                      <td style={styles.td}>{row.voucherNo}</td>
-                      <td style={styles.td}>{row.type}</td>
-                      <td style={styles.td}>{row.crDr}</td>
-                      <td style={styles.td}>{row.billNo}</td>
-                      <td style={styles.td}>{row.billet}</td>
-                      <td style={{ ...styles.td, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'right', fontWeight: 'bold', color: '#1565c0' }}>
-                        ₹{parseFloat(row.amount || 0).toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}
+                purchaseReturnData.length > 0 ? (
+                  purchaseReturnData.map((row, rowIndex) => (
+                    <tr 
+                      key={row.id} 
+                      style={{ 
+                        backgroundColor: rowIndex % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        const colNames = ['no', 'partyName', 'returnNo', 'returnDate', 'returnAmount', 'qty', 'time', 'reason'];
+                        const colIndex = colNames.indexOf('no');
+                        setSelectedCell({ row: rowIndex, col: colIndex });
+                      }}
+                    >
+                      <td style={getCellStyle(rowIndex, 'no')} onDoubleClick={() => startEditing(rowIndex, 'no', row.no)}>
+                        {renderCell(rowIndex, 'no', row.no)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'partyName')} onDoubleClick={() => startEditing(rowIndex, 'partyName', row.partyName)}>
+                        {renderCell(rowIndex, 'partyName', row.partyName)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'returnNo')} onDoubleClick={() => startEditing(rowIndex, 'returnNo', row.returnNo)}>
+                        {renderCell(rowIndex, 'returnNo', row.returnNo)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'returnDate')} onDoubleClick={() => startEditing(rowIndex, 'returnDate', row.returnDate)}>
+                        {renderCell(rowIndex, 'returnDate', row.returnDate)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'returnAmount')} onDoubleClick={() => startEditing(rowIndex, 'returnAmount', row.returnAmount)}>
+                        {renderCell(rowIndex, 'returnAmount', row.returnAmount)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'qty')} onDoubleClick={() => startEditing(rowIndex, 'qty', row.qty)}>
+                        {renderCell(rowIndex, 'qty', row.qty)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'time')} onDoubleClick={() => startEditing(rowIndex, 'time', row.time)}>
+                        {renderCell(rowIndex, 'time', row.time)}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'reason')} onDoubleClick={() => startEditing(rowIndex, 'reason', row.reason)}>
+                        {renderCell(rowIndex, 'reason', row.reason)}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      No records found
+                      No purchase return records found
                     </td>
                   </tr>
                 )
               ) : (
                 <tr>
                   <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view ledger entries
+                    Enter search criteria and click "Search" to view purchase return register entries
                   </td>
                 </tr>
               )}
             </tbody>
+            {tableLoaded && purchaseReturnData.length > 0 && (
+              <tfoot>
+                <tr style={{ backgroundColor: '#f0f8ff', borderTop: '2px solid #1B91DA' }}>
+                  <td colSpan="4" style={{ ...styles.td, textAlign: 'left', fontWeight: 'bold' }}>
+                    Total Purchase Returns
+                  </td>
+                  <td style={{ ...styles.td, textAlign: 'right', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
+                    ₹{formatNumber(totals.returnAmount)}
+                  </td>
+                  <td style={{ ...styles.td, textAlign: 'right', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
+                    {totals.qty.toFixed(2)}
+                  </td>
+                  <td colSpan="2" style={{ ...styles.td, textAlign: 'center', fontStyle: 'italic' }}>
+                    -
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
 
-      {/* Footer Section with Balances - CENTERED */}
+      {/* Footer Section with Totals - CENTERED */}
       <div style={styles.footerSection}>
         <div style={{
           ...styles.balanceContainer,
@@ -1094,50 +1503,66 @@ const Ledger = () => {
           width: '100%',
         }}>
           <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Opening Balance</span>
+            <span style={styles.balanceLabel}>Total Return Amount</span>
             <span style={styles.balanceValue}>
-              ₹{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{formatNumber(totals.returnAmount)}
             </span>
           </div>
           <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Closing Balance</span>
+            <span style={styles.balanceLabel}>Total Quantity</span>
             <span style={styles.balanceValue}>
-              ₹{closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {totals.qty.toFixed(2)}
             </span>
           </div>
+          {tableLoaded && purchaseReturnData.length > 0 && (
+            <>
+              <div style={styles.balanceItem}>
+                <span style={styles.balanceLabel}>Total Returns</span>
+                <span style={styles.balanceValue}>
+                  {purchaseReturnData.length}
+                </span>
+              </div>
+              <div style={styles.balanceItem}>
+                <span style={styles.balanceLabel}>Average Return</span>
+                <span style={styles.balanceValue}>
+                  ₹{formatNumber(totals.returnAmount / purchaseReturnData.length)}
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Party Selection Popup */}
-      {showPartyPopup && (
-        <div style={styles.popupOverlay} onClick={handlePartyPopupClose}>
+      {/* Purchase Party Selection Popup */}
+      {showPurchasePartyPopup && (
+        <div style={styles.popupOverlay} onClick={handlePurchasePartyPopupClose}>
           <div 
             style={styles.popupContent} 
             onClick={(e) => e.stopPropagation()}
           >
             <div style={styles.popupHeader}>
-              Select Party
+              Select Purchase Party
               <button 
                 style={styles.closeButton}
-                onClick={handlePartyPopupClose}
+                onClick={handlePurchasePartyPopupClose}
               >
                 ×
               </button>
             </div>
             
             <div style={styles.listContainer}>
-              {allParties.map((partyItem) => {
-                const isSelected = tempSelectedParty === partyItem;
+              {allPurchaseParties.map((party) => {
+                const isSelected = tempSelectedPurchaseParties.includes(party);
                 return (
                   <div 
-                    key={partyItem} 
+                    key={party} 
                     style={isSelected ? styles.selectedListItem : styles.listItem}
-                    onClick={() => handlePartySelect(partyItem)}
+                    onClick={() => handlePurchasePartySelect(party)}
                   >
                     <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
                       {isSelected && <div style={styles.checkmark}>✓</div>}
                     </div>
-                    <span style={styles.listText}>{partyItem}</span>
+                    <span style={styles.listText}>{party}</span>
                   </div>
                 );
               })}
@@ -1147,13 +1572,13 @@ const Ledger = () => {
               <div style={styles.popupButtons}>
                 <button 
                   style={{...styles.popupButton, ...styles.clearButton}}
-                  onClick={handlePartyClearSelection}
+                  onClick={handlePurchasePartyClearSelection}
                 >
                   Clear
                 </button>
                 <button 
                   style={{...styles.popupButton, ...styles.okButton}}
-                  onClick={handlePartyPopupOk}
+                  onClick={handlePurchasePartyPopupOk}
                 >
                   OK
                 </button>
@@ -1182,7 +1607,7 @@ const Ledger = () => {
             
             <div style={styles.listContainer}>
               {allCompanies.map((companyItem) => {
-                const isSelected = tempSelectedCompany === companyItem;
+                const isSelected = tempSelectedCompanies.includes(companyItem);
                 return (
                   <div 
                     key={companyItem} 
@@ -1221,4 +1646,4 @@ const Ledger = () => {
   );
 };
 
-export default Ledger;
+export default PurchaseReturnRegister;
