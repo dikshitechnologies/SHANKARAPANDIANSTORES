@@ -379,7 +379,7 @@ const handleConfirmClick = () => {
   }
 
      const balance = collected - totalAmount;
-    if (balance < 0) {
+    if (Type !== "PY" && balance < 0) {
       setValidationPopup({
         isOpen: true,
         title: 'Validation Error',
