@@ -91,7 +91,7 @@ const ReceiptVoucher = () => {
       crDr: 'CR',
       type: 'CASH',
       chqNo: '',
-      chqDt: new Date().toISOString().substring(0, 10),
+      chqDt: '',
       narration: '',
       amount: ''
     }
@@ -620,12 +620,15 @@ const ReceiptVoucher = () => {
       const isCashBankEmpty = !currentItem.cashBank.trim();
 
       // Special case: If at cashBank field and it's empty, skip to reference bill amount field
-     if (fieldType === 'cashBank' && !currentItem.cashBank?.trim()) {
-  showMandatoryToast('Cash / Bank');
-  document.getElementById(`receipt_${currentItem.id}_cashBank`)?.focus();
-  return;
-}
-
+      if (fieldType === 'cashBank' && isCashBankEmpty) {
+        if (billDetails.length > 0) {
+          setCurrentBillRowIndex(0);
+          setTimeout(() => document.getElementById(`bill_${billDetails[0].id}_amount`)?.focus(), 0);
+        } else {
+          setTimeout(() => saveButtonRef.current?.focus(), 0);
+        }
+        return;
+      }
 
       // Special case: If at amount field and amount is not entered, don't move to next row
       if (fieldType === 'amount' && (!currentItem.amount || parseFloat(currentItem.amount) <= 0)) {
@@ -2754,12 +2757,6 @@ const ReceiptVoucher = () => {
                       value={item.chqNo}
                       onChange={(e) => handleReceiptItemChange(item.id, 'chqNo', e.target.value)}
                       onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqNo')}
-                      onKeyPress={(e) => {
-  // Allow only numbers (0-9)
-  if (!/[0-9]/.test(e.key)) {
-    e.preventDefault();
-  }
-}}
                       disabled={item.type !== 'CHQ'}
                       style={{
                         ...styles.editableInput,
