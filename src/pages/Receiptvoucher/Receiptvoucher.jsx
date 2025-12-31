@@ -643,7 +643,7 @@ const ReceiptVoucher = () => {
                 crDr: 'CR',
                 type: '',
                 chqNo: '',
-                chqDt: '',
+                chqDt: new Date().toISOString().substring(0, 10),
                 narration: '',
                 amount: ''
               }
@@ -1497,12 +1497,22 @@ const ReceiptVoucher = () => {
   };
   // Handle receipt item change
   const handleReceiptItemChange = (id, field, value) => {
-    setReceiptItems(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    );
-  };
+  setReceiptItems(prev =>
+    prev.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        
+        // Automatically set current date when type changes to CHQ
+        if (field === 'type' && value === 'CHQ' && !item.chqDt) {
+          updatedItem.chqDt = new Date().toISOString().substring(0, 10);
+        }
+        
+        return updatedItem;
+      }
+      return item;
+    })
+  );
+};
 
   // Handle bill item change
   const handleBillItemChange = (id, field, value) => {
@@ -1581,7 +1591,7 @@ const ReceiptVoucher = () => {
         crDr: 'CR',
         type: 'CASH',
         chqNo: '',
-        chqDt: '',
+        chqDt:  currentDate,
         narration: '',
         amount: ''
       }
