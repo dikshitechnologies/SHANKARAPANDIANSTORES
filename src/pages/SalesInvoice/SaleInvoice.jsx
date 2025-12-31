@@ -1570,6 +1570,43 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
   }
 
   /* =====================================================
+     ⬅️ LEFT  & ➡️ RIGHT -> MOVE TO ADJACENT FIELD IN SAME ROW
+  ===================================================== */
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const fieldIndex = TABLE_FIELDS.indexOf('barcode');
+    if (fieldIndex === -1) return;
+
+    if (e.key === 'ArrowLeft') {
+      if (fieldIndex > 0) {
+        const prev = TABLE_FIELDS[fieldIndex - 1];
+        const el = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${prev}"], div[data-row="${currentRowIndex}"][data-field="${prev}"]`
+        );
+        if (el) {
+          el.focus();
+          if (el.tagName === 'INPUT' && typeof el.select === 'function') el.select();
+        }
+      }
+    } else {
+      if (fieldIndex < TABLE_FIELDS.length - 1) {
+        const next = TABLE_FIELDS[fieldIndex + 1];
+        const el = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${next}"], div[data-row="${currentRowIndex}"][data-field="${next}"]`
+        );
+        if (el) {
+          el.focus();
+          if (el.tagName === 'INPUT' && typeof el.select === 'function') el.select();
+        }
+      }
+    }
+
+    return;
+  }
+
+  /* =====================================================
      ⬇️ ARROW DOWN → NEXT ROW BARCODE
   ===================================================== */
   if (e.key === "ArrowDown") {

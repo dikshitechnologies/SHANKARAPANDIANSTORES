@@ -339,6 +339,7 @@ const handleBlur = () => {
       // console.log(response);
       if (response?.data?.barcode) {
         setAutoBarcode(response.data.barcode);
+        console.log('Fetched auto barcode:', response.data.barcode);
       }
     } catch (err) {
       console.warn('Failed to fetch auto barcode, using default:', err);
@@ -942,7 +943,7 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
       
       return {
         id: maxId + index + 1,
-        barcode: item.prefix || item.itemCode || '',
+        barcode: item.prefix || '',
         itemcode: item.itemCode || '',
         name: item.itemName || '',
         stock: item.stock || 0,
@@ -1714,6 +1715,29 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
 
       const totals = calculateTotals(items);
 
+      // Prepare barcode generator for empty barcodes: returns current then increments
+      const createBarcodeGenerator = (start) => {
+        const s = String(start || '');
+        const m = s.match(/(\d+)$/);
+        if (!m) {
+          // No trailing number: use numeric counter starting at 1 with width 6
+          let counter = 1;
+          const width = 6;
+          return () => String(counter++).padStart(width, '0');
+        }
+        const numStr = m[1];
+        const prefix = s.slice(0, -numStr.length);
+        let counter = parseInt(numStr, 10);
+        const width = numStr.length;
+        return () => {
+          const current = prefix + String(counter).padStart(width, '0');
+          counter += 1;
+          return current;
+        };
+      };
+
+      const nextBarcode = createBarcodeGenerator(autoBarcode);
+
       const payload = {
         bledger: {
           customerCode: billDetails.partyCode || '',
@@ -1741,8 +1765,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         },
         items: items
           .filter((it) => it.itemcode && it.itemcode.trim() !== '')
-          .map((it) => ({          
-            barcode: it.barcode || autoBarcode,
+          .map((it) => ({
+            barcode: (it.barcode && String(it.barcode).trim()) ? it.barcode : nextBarcode(),
             itemCode: it.itemcode || '',
             qty: toNumber(it.qty),
             rate: toNumber(it.prate),
