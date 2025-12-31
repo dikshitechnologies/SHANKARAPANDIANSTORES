@@ -2429,6 +2429,12 @@ const PaymentVoucher = () => {
                     <input
                       ref={el => paymentChqNoRefs.current[index] = el}
                       id={`payment_${item.id}_chqNo`}
+                      onKeyPress={(e) => {
+  // Allow only numbers (0-9)
+  if (!/[0-9]/.test(e.key)) {
+    e.preventDefault();
+  }
+}}
                       type="text"
                       value={item.chqNo}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqNo', e.target.value)}
