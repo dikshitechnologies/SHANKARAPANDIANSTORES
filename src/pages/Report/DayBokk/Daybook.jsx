@@ -298,7 +298,7 @@ const DayBook = () => {
       flex: '0 0 auto',
       backgroundColor: 'white',
       borderRadius: 0,
-      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
+      padding: screenSize.isMobile ? '8px 10px' : screenSize.isTablet ? '10px 12px' : '12px 16px',
       margin: 0,
       marginBottom: 0,
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
@@ -316,59 +316,53 @@ const DayBook = () => {
     formRow: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '12px',
+      gap: '8px',
     },
     formField: {
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '8px' : '10px',
+      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '4px' : '6px',
     },
     inlineLabel: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       color: '#333',
-      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px',
+      minWidth: screenSize.isMobile ? '50px' : screenSize.isTablet ? '55px' : '60px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
     },
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: screenSize.isMobile ? '90px' : '110px',
     },
     inlineInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
       border: '2px solid #1B91DA',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: screenSize.isMobile ? '90px' : '110px',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     gridRow: {
@@ -491,12 +485,12 @@ const DayBook = () => {
       fontWeight: 'bold',
     },
     searchButton: {
-      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '7px 14px' : '8px 16px',
       background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
       color: 'white',
       border: 'none',
       borderRadius: screenSize.isMobile ? '4px' : '6px',
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -504,8 +498,8 @@ const DayBook = () => {
       letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      minWidth: screenSize.isMobile ? '80px' : '100px',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      minWidth: screenSize.isMobile ? '70px' : '80px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -518,12 +512,12 @@ const DayBook = () => {
       }
     },
     refreshButton: {
-      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '7px 14px' : '8px 16px',
       background: 'white',
       color: '#333',
       border: '1.5px solid #ddd',
       borderRadius: screenSize.isMobile ? '4px' : '6px',
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -531,8 +525,8 @@ const DayBook = () => {
       letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      minWidth: screenSize.isMobile ? '80px' : '100px',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      minWidth: screenSize.isMobile ? '70px' : '80px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -576,65 +570,56 @@ const DayBook = () => {
     },
     selectInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: screenSize.isMobile ? '90px' : '110px',
       backgroundColor: 'white',
       cursor: 'pointer',
     },
     selectInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
       border: '2px solid #1B91DA',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: screenSize.isMobile ? '90px' : '110px',
       backgroundColor: 'white',
       cursor: 'pointer',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     branchInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: screenSize.isMobile ? '90px' : '110px',
       backgroundColor: 'white',
       cursor: 'pointer',
       display: 'flex',
@@ -643,22 +628,19 @@ const DayBook = () => {
     },
     branchInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      padding: screenSize.isMobile ? '4px 6px' : screenSize.isTablet ? '5px 8px' : '6px 10px',
       border: '2px solid #1B91DA',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '36px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: screenSize.isMobile ? '90px' : '110px',
       backgroundColor: 'white',
       cursor: 'pointer',
       display: 'flex',
@@ -857,24 +839,24 @@ const DayBook = () => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
+          gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '12px',
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
           {/* From Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 calc(50% - 6px)' : '1',
+            minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : '120px',
           }}>
-            <label style={styles.inlineLabel}>From Date:</label>
+            <label style={styles.inlineLabel}>From:</label>
             <input
               type="date"
               data-header="fromDate"
               style={
                 focusedField === 'fromDate'
-                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
-                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  ? styles.inlineInputFocused
+                  : styles.inlineInput
               }
               value={fromDate}
               onChange={handleFromDateChange}
@@ -890,17 +872,17 @@ const DayBook = () => {
           {/* To Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 calc(50% - 6px)' : '1',
+            minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : '120px',
           }}>
-            <label style={styles.inlineLabel}>To Date:</label>
+            <label style={styles.inlineLabel}>To:</label>
             <input
               type="date"
               data-header="toDate"
               style={
                 focusedField === 'toDate'
-                  ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
-                  : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+                  ? styles.inlineInputFocused
+                  : styles.inlineInput
               }
               value={toDate}
               onChange={handleToDateChange}
@@ -916,8 +898,8 @@ const DayBook = () => {
           {/* Branch */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '2',
+            minWidth: screenSize.isMobile ? '100%' : '150px',
           }}>
             <label style={styles.inlineLabel}>Branch:</label>
             <div
@@ -942,7 +924,7 @@ const DayBook = () => {
               tabIndex={0}
             >
               <span style={{
-                fontSize: TYPOGRAPHY.fontSize.sm,
+                fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.xs : TYPOGRAPHY.fontSize.sm,
                 color: '#333',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -951,7 +933,7 @@ const DayBook = () => {
               }}>
                 {branchDisplay}
               </span>
-              <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+              <span style={{ color: '#1B91DA', fontSize: screenSize.isMobile ? '9px' : '10px', marginLeft: '6px' }}>▼</span>
             </div>
           </div>
 
