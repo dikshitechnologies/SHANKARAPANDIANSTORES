@@ -1,31 +1,52 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const SalesRegister = () => {
-  // Initial data state
+const SalesReturnRegister = () => {
+  // Initial data state for sales returns
   const [data, setData] = useState([
     {
       id: 1,
       no: 1,
       salesParty: 'AMIT FASHION',
+      returnBillNo: 'SR00001AA',
       billNo: 'C00001AA',
-      billDate: '27-09-2025',
-      billAmount: '29,303.00',
-      qty: '15.00',
-      time: '01-01-1900 09:52:12',
-      noOfBale: '0',
-      transport: ''
+      billDate: '28-09-2025',
+      returnDate: '29-09-2025',
+      returnAmount: '3,500.00',
+      qty: '5.00',
+      time: '01-01-1900 10:30:15',
+      reason: 'Damaged Goods',
+      transport: '',
+      status: 'Approved'
     },
     {
       id: 2,
       no: 2,
       salesParty: 'CASH A/C',
+      returnBillNo: 'SR00002AA',
       billNo: 'C00002AA',
-      billDate: '10-12-2025',
-      billAmount: '380.00',
-      qty: '10.00',
-      time: '01-01-1900 12:49:20',
-      noOfBale: '0',
-      transport: ''
+      billDate: '11-12-2025',
+      returnDate: '12-12-2025',
+      returnAmount: '150.00',
+      qty: '3.00',
+      time: '01-01-1900 14:20:45',
+      reason: 'Wrong Size',
+      transport: '',
+      status: 'Pending'
+    },
+    {
+      id: 3,
+      no: 3,
+      salesParty: 'FASHION HOUSE',
+      returnBillNo: 'SR00003AA',
+      billNo: 'C00015AA',
+      billDate: '15-10-2025',
+      returnDate: '18-10-2025',
+      returnAmount: '8,250.00',
+      qty: '12.00',
+      time: '01-01-1900 11:15:30',
+      reason: 'Color Mismatch',
+      transport: 'XYZ Transport',
+      status: 'Approved'
     }
   ]);
 
@@ -50,8 +71,8 @@ const SalesRegister = () => {
 
   // Calculate totals
   const totals = {
-    billAmount: data.reduce((sum, row) => {
-      const amount = parseFloat(row.billAmount.replace(/,/g, '')) || 0;
+    returnAmount: data.reduce((sum, row) => {
+      const amount = parseFloat(row.returnAmount.replace(/,/g, '')) || 0;
       return sum + amount;
     }, 0),
     qty: data.reduce((sum, row) => {
@@ -83,7 +104,7 @@ const SalesRegister = () => {
       return;
     }
     
-    console.log('Filtering data from:', dateRange.from, 'to:', dateRange.to);
+    console.log('Filtering sales return data from:', dateRange.from, 'to:', dateRange.to);
     setTableLoaded(true);
     // In a real app, you would fetch filtered data here
   };
@@ -179,7 +200,7 @@ const SalesRegister = () => {
   useEffect(() => {
     const handleTableKeyDown = (e) => {
       const { row, col } = selectedCell;
-      const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
+      const colNames = ['no', 'salesParty', 'returnBillNo', 'billNo', 'billDate', 'returnDate', 'returnAmount', 'qty', 'time', 'reason', 'transport', 'status'];
       
       if (editingCell) {
         if (e.key === 'Enter') {
@@ -246,13 +267,16 @@ const SalesRegister = () => {
       id: data.length + 1,
       no: data.length + 1,
       salesParty: '',
+      returnBillNo: '',
       billNo: '',
       billDate: '',
-      billAmount: '0.00',
+      returnDate: '',
+      returnAmount: '0.00',
       qty: '0.00',
       time: '',
-      noOfBale: '0',
-      transport: ''
+      reason: '',
+      transport: '',
+      status: 'Pending'
     };
     setData([...data, newRow]);
     setSelectedCell({ row: data.length, col: 0 });
@@ -272,7 +296,7 @@ const SalesRegister = () => {
     }
   };
 
-  // Styles matching Day Book design
+  // Styles matching Sales Register design
   const styles = {
     container: {
       position: 'fixed',
@@ -418,7 +442,7 @@ const SalesRegister = () => {
     table: {
       width: '100%',
       borderCollapse: 'collapse',
-      minWidth: '1200px'
+      minWidth: '1400px'
     },
     
     tableHeader: {
@@ -473,6 +497,36 @@ const SalesRegister = () => {
       fontWeight: '400'
     },
     
+    // Status badge styles
+    statusBadge: {
+      padding: '4px 8px',
+      borderRadius: '12px',
+      fontSize: '12px',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      display: 'inline-block',
+      minWidth: '80px',
+      textAlign: 'center'
+    },
+    
+    statusApproved: {
+      backgroundColor: '#d4edda',
+      color: '#155724',
+      border: '1px solid #c3e6cb'
+    },
+    
+    statusPending: {
+      backgroundColor: '#fff3cd',
+      color: '#856404',
+      border: '1px solid #ffeaa7'
+    },
+    
+    statusRejected: {
+      backgroundColor: '#f8d7da',
+      color: '#721c24',
+      border: '1px solid #f5c6cb'
+    },
+    
     // For selected cell in table
     selectedCell: {
       outline: '2px solid #1B91DA',
@@ -502,10 +556,25 @@ const SalesRegister = () => {
     }
   };
 
+  // Get status badge style
+  const getStatusStyle = (status) => {
+    const baseStyle = styles.statusBadge;
+    switch(status?.toLowerCase()) {
+      case 'approved':
+        return { ...baseStyle, ...styles.statusApproved };
+      case 'pending':
+        return { ...baseStyle, ...styles.statusPending };
+      case 'rejected':
+        return { ...baseStyle, ...styles.statusRejected };
+      default:
+        return { ...baseStyle, ...styles.statusPending };
+    }
+  };
+
   // Get cell style based on state
   const getCellStyle = (rowIndex, colName) => {
     const isSelected = selectedCell.row === rowIndex && 
-      ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'].indexOf(colName) === selectedCell.col;
+      ['no', 'salesParty', 'returnBillNo', 'billNo', 'billDate', 'returnDate', 'returnAmount', 'qty', 'time', 'reason', 'transport', 'status'].indexOf(colName) === selectedCell.col;
     
     const isEditing = editingCell && 
       editingCell.row === rowIndex && 
@@ -513,9 +582,9 @@ const SalesRegister = () => {
 
     const baseStyle = {
       ...styles.tableCell,
-      textAlign: colName === 'billAmount' || colName === 'qty' || colName === 'noOfBale' || colName === 'no' ? 'right' : 'left',
-      fontFamily: colName === 'billAmount' || colName === 'qty' ? '"Courier New", monospace' : 'inherit',
-      fontWeight: colName === 'billAmount' || colName === 'qty' ? '600' : '400',
+      textAlign: colName === 'returnAmount' || colName === 'qty' || colName === 'no' ? 'right' : 'left',
+      fontFamily: colName === 'returnAmount' || colName === 'qty' ? '"Courier New", monospace' : 'inherit',
+      fontWeight: colName === 'returnAmount' || colName === 'qty' ? '600' : '400',
       cursor: 'cell'
     };
 
@@ -552,6 +621,10 @@ const SalesRegister = () => {
       );
     }
 
+    if (colName === 'status') {
+      return <span style={getStatusStyle(value)}>{value}</span>;
+    }
+
     return value;
   };
 
@@ -559,7 +632,7 @@ const SalesRegister = () => {
     <div style={styles.container}>
       {/* HEADER */}
       <div style={styles.header}>
-        <h1 style={styles.headerTitle}>Sales Register</h1>
+        <h1 style={styles.headerTitle}>Sales Return Register</h1>
         
         {/* FIRST ROW: From Date, To Date, View Button, Clear Button */}
         <div style={styles.firstRow}>
@@ -616,7 +689,7 @@ const SalesRegister = () => {
               onFocus={() => setFocusedField('view')}
               onBlur={() => setFocusedField('')}
             >
-              View Sales Register
+              View Sales Return Register
             </button>
           </div>
 
@@ -648,13 +721,16 @@ const SalesRegister = () => {
                 <tr>
                   <th style={{ ...styles.tableHeader, textAlign: 'right' }}>No</th>
                   <th style={styles.tableHeader}>Sales Party</th>
-                  <th style={styles.tableHeader}>Bill No</th>
+                  <th style={styles.tableHeader}>Return Bill No</th>
+                  <th style={styles.tableHeader}>Original Bill No</th>
                   <th style={styles.tableHeader}>Bill Date</th>
-                  <th style={{ ...styles.tableHeader, textAlign: 'right' }}>Bill Amount</th>
+                  <th style={styles.tableHeader}>Return Date</th>
+                  <th style={{ ...styles.tableHeader, textAlign: 'right' }}>Return Amount</th>
                   <th style={{ ...styles.tableHeader, textAlign: 'right' }}>Qty</th>
                   <th style={styles.tableHeader}>Time</th>
-                  <th style={{ ...styles.tableHeader, textAlign: 'right' }}>No of Bale</th>
-                  <th style={{ ...styles.tableHeader, borderRight: 'none' }}>Transport</th>
+                  <th style={styles.tableHeader}>Reason</th>
+                  <th style={styles.tableHeader}>Transport</th>
+                  <th style={{ ...styles.tableHeader, borderRight: 'none' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -662,7 +738,7 @@ const SalesRegister = () => {
                   <tr 
                     key={row.id}
                     onClick={() => {
-                      const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
+                      const colNames = ['no', 'salesParty', 'returnBillNo', 'billNo', 'billDate', 'returnDate', 'returnAmount', 'qty', 'time', 'reason', 'transport', 'status'];
                       const colIndex = colNames.indexOf('no');
                       setSelectedCell({ row: rowIndex, col: colIndex });
                     }}
@@ -681,6 +757,12 @@ const SalesRegister = () => {
                       {renderCell(rowIndex, 'salesParty', row.salesParty)}
                     </td>
                     <td 
+                      style={getCellStyle(rowIndex, 'returnBillNo')}
+                      onDoubleClick={() => startEditing(rowIndex, 'returnBillNo', row.returnBillNo)}
+                    >
+                      {renderCell(rowIndex, 'returnBillNo', row.returnBillNo)}
+                    </td>
+                    <td 
                       style={getCellStyle(rowIndex, 'billNo')}
                       onDoubleClick={() => startEditing(rowIndex, 'billNo', row.billNo)}
                     >
@@ -693,10 +775,16 @@ const SalesRegister = () => {
                       {renderCell(rowIndex, 'billDate', row.billDate)}
                     </td>
                     <td 
-                      style={getCellStyle(rowIndex, 'billAmount')}
-                      onDoubleClick={() => startEditing(rowIndex, 'billAmount', row.billAmount)}
+                      style={getCellStyle(rowIndex, 'returnDate')}
+                      onDoubleClick={() => startEditing(rowIndex, 'returnDate', row.returnDate)}
                     >
-                      {renderCell(rowIndex, 'billAmount', row.billAmount)}
+                      {renderCell(rowIndex, 'returnDate', row.returnDate)}
+                    </td>
+                    <td 
+                      style={getCellStyle(rowIndex, 'returnAmount')}
+                      onDoubleClick={() => startEditing(rowIndex, 'returnAmount', row.returnAmount)}
+                    >
+                      {renderCell(rowIndex, 'returnAmount', row.returnAmount)}
                     </td>
                     <td 
                       style={getCellStyle(rowIndex, 'qty')}
@@ -711,31 +799,38 @@ const SalesRegister = () => {
                       {renderCell(rowIndex, 'time', row.time)}
                     </td>
                     <td 
-                      style={getCellStyle(rowIndex, 'noOfBale')}
-                      onDoubleClick={() => startEditing(rowIndex, 'noOfBale', row.noOfBale)}
+                      style={getCellStyle(rowIndex, 'reason')}
+                      onDoubleClick={() => startEditing(rowIndex, 'reason', row.reason)}
                     >
-                      {renderCell(rowIndex, 'noOfBale', row.noOfBale)}
+                      {renderCell(rowIndex, 'reason', row.reason)}
                     </td>
                     <td 
-                      style={{ ...getCellStyle(rowIndex, 'transport'), borderRight: 'none' }}
+                      style={getCellStyle(rowIndex, 'transport')}
                       onDoubleClick={() => startEditing(rowIndex, 'transport', row.transport)}
                     >
                       {renderCell(rowIndex, 'transport', row.transport)}
+                    </td>
+                    <td 
+                      style={{ ...getCellStyle(rowIndex, 'status'), borderRight: 'none', textAlign: 'center' }}
+                      onDoubleClick={() => startEditing(rowIndex, 'status', row.status)}
+                    >
+                      {renderCell(rowIndex, 'status', row.status)}
                     </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr style={styles.totalsRow}>
-                  <td colSpan="4" style={{ ...styles.totalsCell, fontWeight: 'bold', textAlign: 'left' }}>
+                  <td colSpan="6" style={{ ...styles.totalsCell, fontWeight: 'bold', textAlign: 'left' }}>
                     Total
                   </td>
                   <td style={{ ...styles.totalsCell, textAlign: 'right', fontFamily: '"Courier New", monospace', fontWeight: '600' }}>
-                    {formatNumber(totals.billAmount)}
+                    {formatNumber(totals.returnAmount)}
                   </td>
                   <td style={{ ...styles.totalsCell, textAlign: 'right', fontFamily: '"Courier New", monospace', fontWeight: '600' }}>
                     {totals.qty.toFixed(2)}
                   </td>
+                  <td style={{ ...styles.totalsCell, textAlign: 'center' }}>-</td>
                   <td style={{ ...styles.totalsCell, textAlign: 'center' }}>-</td>
                   <td style={{ ...styles.totalsCell, textAlign: 'center' }}>-</td>
                   <td style={{ ...styles.totalsCell, borderRight: 'none', textAlign: 'center' }}>-</td>
@@ -745,7 +840,7 @@ const SalesRegister = () => {
             
             {tableLoaded && data.length === 0 && (
               <div style={styles.emptyState}>
-                No records found
+                No sales return records found
               </div>
             )}
           </div>
@@ -755,4 +850,4 @@ const SalesRegister = () => {
   );
 };
 
-export default SalesRegister;
+export default SalesReturnRegister;

@@ -136,9 +136,9 @@ const Ledger = () => {
       setTableLoaded(true);
       setIsLoading(false);
       
-      toast.success('Ledger report loaded successfully', {
-        autoClose: 1500,
-      });
+      // toast.success('Ledger report loaded successfully', {
+      //   autoClose: 1500,
+      // });
     }, 500);
   };
 
@@ -586,7 +586,7 @@ const Ledger = () => {
   const openingBalance = 0.00;
   const closingBalance = 0.00;
 
-  return (
+ return (
     <div style={styles.container}>
       {/* Loading Overlay */}
       {isLoading && (
@@ -597,14 +597,21 @@ const Ledger = () => {
         </div>
       )}
 
-      {/* Header Section - All in one line */}
+      {/* Header Section - ALL ON ONE LINE */}
       <div style={styles.headerSection}>
         <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
+          display: 'flex',
+          alignItems: 'center',
+          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
+          flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
+          width: '100%',
         }}>
           {/* From Date */}
-          <div style={styles.formField}>
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
             <label style={styles.inlineLabel}>From Date:</label>
             <input
               type="date"
@@ -626,7 +633,11 @@ const Ledger = () => {
           </div>
 
           {/* To Date */}
-          <div style={styles.formField}>
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
             <label style={styles.inlineLabel}>To Date:</label>
             <input
               type="date"
@@ -648,7 +659,11 @@ const Ledger = () => {
           </div>
 
           {/* Party */}
-          <div style={styles.formField}>
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
             <label style={styles.inlineLabel}>Party:</label>
             <select
               data-header="party"
@@ -675,7 +690,11 @@ const Ledger = () => {
           </div>
 
           {/* Company */}
-          <div style={styles.formField}>
+          <div style={{
+            ...styles.formField,
+            flex: screenSize.isMobile ? '1 0 100%' : '1',
+            minWidth: screenSize.isMobile ? '100%' : '120px',
+          }}>
             <label style={styles.inlineLabel}>Company:</label>
             <select
               data-header="company"
@@ -700,20 +719,19 @@ const Ledger = () => {
               ))}
             </select>
           </div>
-        </div>
 
-        {/* Second Row for Buttons */}
-        <div style={{
-          ...styles.gridRow,
-          gridTemplateColumns: getGridColumns(),
-          marginTop: '10px',
-        }}>
           {/* Search Button */}
-          <div style={{ ...styles.formField, gridColumn: screenSize.isMobile ? 'span 2' : 'span 1' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+            marginLeft: screenSize.isMobile ? '0' : 'auto',
+          }}>
             <button
               style={{
                 ...styles.searchButton,
-                width: '100%'
+                width: screenSize.isMobile ? '100%' : 'auto',
+                marginBottom: screenSize.isMobile ? '8px' : '0',
               }}
               onClick={handleSearch}
               onMouseEnter={() => setHoveredButton(true)}
@@ -731,25 +749,21 @@ const Ledger = () => {
           </div>
 
           {/* Refresh Button */}
-          <div style={{ ...styles.formField, gridColumn: screenSize.isMobile ? 'span 2' : 'span 1' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}>
             <button
               style={{
                 ...styles.refreshButton,
-                width: '100%'
+                width: screenSize.isMobile ? '100%' : 'auto',
               }}
               onClick={handleRefresh}
             >
               Refresh
             </button>
           </div>
-
-          {/* Empty divs to maintain grid structure */}
-          {screenSize.isDesktop && (
-            <>
-              <div style={styles.formField}></div>
-              <div style={styles.formField}></div>
-            </>
-          )}
         </div>
       </div>
 
@@ -808,9 +822,13 @@ const Ledger = () => {
         </div>
       </div>
 
-      {/* Footer Section with Balances */}
+            {/* Footer Section with Balances - CENTERED */}
       <div style={styles.footerSection}>
-        <div style={styles.balanceContainer}>
+        <div style={{
+          ...styles.balanceContainer,
+          justifyContent: 'center',
+          width: '100%',
+        }}>
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Opening Balance</span>
             <span style={styles.balanceValue}>
