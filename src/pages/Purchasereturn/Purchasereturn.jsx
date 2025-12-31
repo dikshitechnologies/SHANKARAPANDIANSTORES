@@ -1549,7 +1549,7 @@ if (e.key === 'Enter') {
             );
             createNewForm();
             console.log('Save response:', res);
-            
+            fetchAutoBarcode();
             // Close the confirmation popup first
             setShowConfirmPopup(false);
             
