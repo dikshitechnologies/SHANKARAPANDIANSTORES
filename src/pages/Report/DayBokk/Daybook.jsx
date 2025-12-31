@@ -1019,7 +1019,7 @@ const DayBook = () => {
               ) : (
                 <tr>
                   <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view day book entries
+                    {/* Enter search criteria and click "Search" to view day book entries */}
                   </td>
                 </tr>
               )}
