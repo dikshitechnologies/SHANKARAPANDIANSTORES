@@ -8,6 +8,7 @@ import { AddButton, EditButton, DeleteButton } from '../../components/Buttons/Ac
 import { usePermissions } from '../../hooks/usePermissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import CheckboxPopup from '../../components/CheckboxPopup/CheckboxPopup';
 
 const FCompCode = "001";
 
@@ -1867,7 +1868,7 @@ useEffect(() => {
           background: white;
           border-radius: 12px;
           padding: 20px;
-          max-width: 600px;
+          max-width: 900px;
           width: 100%;
           max-height: 80vh;
           overflow: auto;
@@ -2218,6 +2219,49 @@ useEffect(() => {
           outline-offset: 2px;
           background: linear-gradient(90deg, rgba(74,222,128,0.1), rgba(74,222,128,0.05));
         }
+          /* Add to your existing CSS */
+.checkbox-popup-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.checkbox-popup-item:hover {
+  background-color: #f9fafb;
+}
+
+.checkbox-popup-item.selected {
+  background-color: #f0f9ff;
+}
+
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.custom-checkbox.checked {
+  background-color: #307AC8;
+  border-color: #307AC8;
+}
+
+.select-all-checkbox {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
       `}</style>
 
       <div className="dashboard" aria-labelledby="item-title">
@@ -2713,42 +2757,42 @@ useEffect(() => {
               </div>
 
               {/* Size */}
-              <div className="field">
-                <label className="field-label">Size</label>
-                <div className="input-with-search">
-                  <input
-                    ref={sizeRef}
-                    className="input"
-                    value={formData.size}
-                    onChange={(e) => handleChange('size', e.target.value)}
-                    onClick={() => setIsSizePopupOpen(true)}
-                    onKeyDown={(e) => handlePopupFieldKeyPress('size', e)}
-                    onFocus={() => setActiveField('size')}
-                    onBlur={() => setActiveField(null)}
-                    disabled={isSubmitting || isDeleteMode}
-                    readOnly
-                    aria-label="Size"
-                  />
-                  {formData.size && activeField === 'size' && (
-                    <button
-                      type="button"
-                      className="input-clear-btn"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, size: '' }));
-                        setFieldCodes(prev => ({ ...prev, sizeCode: '' }));
-                      }}
-                      title="Clear size selection"
-                      disabled={isSubmitting}
-                      aria-label="Clear size"
-                    >
-                    
-                    </button>
-                  )}
-                  <div className="input-search-icon">
-                    <Icon.Search size={16} />
-                  </div>
-                </div>
-              </div>
+             <div className="field">
+  <label className="field-label">Size</label>
+  <div className="input-with-search">
+    <input
+      ref={sizeRef}
+      className="input"
+      value={formData.size}
+      onChange={(e) => handleChange('size', e.target.value)}
+      onClick={() => setIsSizePopupOpen(true)}
+      onKeyDown={(e) => handlePopupFieldKeyPress('size', e)}
+      onFocus={() => setActiveField('size')}
+      onBlur={() => setActiveField(null)}
+      disabled={isSubmitting || isDeleteMode}
+      readOnly
+      aria-label="Size"
+    />
+    {formData.size && activeField === 'size' && (
+      <button
+        type="button"
+        className="input-clear-btn"
+        onClick={() => {
+          setFormData(prev => ({ ...prev, size: '' }));
+          setFieldCodes(prev => ({ ...prev, sizeCode: '' }));
+        }}
+        title="Clear size selection"
+        disabled={isSubmitting}
+        aria-label="Clear size"
+      >
+        <Icon.Close size={14} />
+      </button>
+    )}
+    <div className="input-search-icon">
+      <Icon.Search size={16} />
+    </div>
+  </div>
+</div>
 
               {/* Units */}
               <div className="field">
@@ -3361,7 +3405,7 @@ useEffect(() => {
   initialSearch={initialPopupSearch.model}
 />
       {/* PopupListSelector for Size Selection */}
-     <PopupListSelector
+   <CheckboxPopup
   open={isSizePopupOpen}
   onClose={() => {
     setIsSizePopupOpen(false);
@@ -3375,15 +3419,8 @@ useEffect(() => {
   }}
   fetchItems={fetchSizesWithSearch}
   title="Select Size"
-  displayFieldKeys={['fname']}  // CHANGED: Show only name, not code
-  searchFields={['fname', 'fcode']}
-  headerNames={['Size Name']}  // CHANGED: Single header for name only
-  columnWidths={{ fname: '100%' }}  // CHANGED: Full width for name
   maxHeight="60vh"
-  responsiveBreakpoint={640}
-  initialSearch={initialPopupSearch.size}
 />
-
 
       {/* PopupListSelector for Unit Selection */}
       <PopupListSelector
