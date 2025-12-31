@@ -1461,7 +1461,7 @@ const SalesRegister = () => {
               ) : (
                 <tr>
                     <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      Enter search criteria and click "Search" to view sales register entries
+                      {/* Enter search criteria and click "Search" to view sales register entries */}
                     </td>
                   </tr>
               )}

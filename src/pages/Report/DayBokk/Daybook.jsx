@@ -316,102 +316,57 @@ const DayBook = () => {
     formField: {
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '3px' : '4px',
+      gap: screenSize.isMobile ? '4px' : screenSize.isTablet ? '6px' : '8px',
     },
-    // VERY SMALL DATE INPUT STYLES
-    dateLabel: {
+    // NARROW DATE INPUT STYLES - ONLY WIDTH REDUCED
+    inlineLabel: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       color: '#333',
-      minWidth: screenSize.isMobile ? '32px' : screenSize.isTablet ? '35px' : '40px',
+      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '75px' : '80px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
     },
-    dateInput: {
+    inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: '1',
-      padding: screenSize.isMobile ? '2px 4px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
-      border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-      outline: 'none',
-      width: '100%',
-      height: screenSize.isMobile ? '24px' : screenSize.isTablet ? '26px' : '28px',
-      flex: 1,
-      minWidth: screenSize.isMobile ? '85px' : screenSize.isTablet ? '95px' : '105px',
-    },
-    dateInputFocused: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: '1',
-      padding: screenSize.isMobile ? '2px 4px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
-      border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-      outline: 'none',
-      width: '100%',
-      height: screenSize.isMobile ? '24px' : screenSize.isTablet ? '26px' : '28px',
-      flex: 1,
-      minWidth: screenSize.isMobile ? '85px' : screenSize.isTablet ? '95px' : '105px',
-      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
-    },
-    // MEDIUM/LARGE BRANCH INPUT STYLES
-    branchLabel: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
-      fontWeight: TYPOGRAPHY.fontWeight.semibold,
-      color: '#333',
-      minWidth: screenSize.isMobile ? '45px' : screenSize.isTablet ? '50px' : '55px',
-      whiteSpace: 'nowrap',
-      flexShrink: 0,
-    },
-    branchInput: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: '1.2',
-      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '7px 10px' : '8px 12px',
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingBottom: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '4px' : '5px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '120px' : screenSize.isTablet ? '150px' : '180px',
-      backgroundColor: 'white',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      // ONLY WIDTH REDUCED - KEEP SAME HEIGHT
+      minWidth: screenSize.isMobile ? '90px' : screenSize.isTablet ? '100px' : '110px', // Reduced from 120px
     },
-    branchInputFocused: {
+    inlineInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
-      lineHeight: '1.2',
-      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '7px 10px' : '8px 12px',
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingBottom: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '2px solid #1B91DA',
       borderRadius: screenSize.isMobile ? '4px' : '5px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '120px' : screenSize.isTablet ? '150px' : '180px',
-      backgroundColor: 'white',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      // ONLY WIDTH REDUCED - KEEP SAME HEIGHT
+      minWidth: screenSize.isMobile ? '90px' : screenSize.isTablet ? '100px' : '110px', // Reduced from 120px
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     tableContainer: {
@@ -528,14 +483,65 @@ const DayBook = () => {
       color: '#1976d2',
       fontWeight: 'bold',
     },
-    // MEDIUM BUTTONS
+    // REGULAR BRANCH INPUT - MEDIUM/LARGE WIDTH
+    branchInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingBottom: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
+      flex: 1,
+      // MEDIUM/LARGE WIDTH FOR BRANCH
+      minWidth: screenSize.isMobile ? '140px' : screenSize.isTablet ? '160px' : '180px', // Wider than date inputs
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    branchInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingBottom: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
+      flex: 1,
+      // MEDIUM/LARGE WIDTH FOR BRANCH
+      minWidth: screenSize.isMobile ? '140px' : screenSize.isTablet ? '160px' : '180px', // Wider than date inputs
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
     searchButton: {
-      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '7px 14px' : '8px 16px',
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '9px 18px' : '10px 20px',
       background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
       color: 'white',
       border: 'none',
-      borderRadius: screenSize.isMobile ? '4px' : '6px',
-      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -543,8 +549,8 @@ const DayBook = () => {
       letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
-      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
+      minWidth: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -557,12 +563,12 @@ const DayBook = () => {
       }
     },
     refreshButton: {
-      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '7px 14px' : '8px 16px',
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '9px 18px' : '10px 20px',
       background: 'white',
       color: '#333',
       border: '1.5px solid #ddd',
-      borderRadius: screenSize.isMobile ? '4px' : '6px',
-      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -570,8 +576,8 @@ const DayBook = () => {
       letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
-      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
+      minWidth: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -793,7 +799,7 @@ const DayBook = () => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
+          gap: screenSize.isMobile ? '12px' : screenSize.isTablet ? '16px' : '20px',
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
@@ -802,22 +808,22 @@ const DayBook = () => {
             display: 'flex',
             alignItems: 'center',
             flex: 1,
-            gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+            gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
             flexWrap: 'wrap',
           }}>
-            {/* From Date - VERY SMALL */}
+            {/* From Date - NARROW WIDTH */}
             <div style={{
               ...styles.formField,
-              minWidth: screenSize.isMobile ? 'calc(50% - 8px)' : 'auto',
+              minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : 'auto',
             }}>
-              <label style={styles.dateLabel}>From:</label>
+              <label style={styles.inlineLabel}>From Date:</label>
               <input
                 type="date"
                 data-header="fromDate"
                 style={
                   focusedField === 'fromDate'
-                    ? styles.dateInputFocused
-                    : styles.dateInput
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
                 }
                 value={fromDate}
                 onChange={handleFromDateChange}
@@ -830,19 +836,19 @@ const DayBook = () => {
               />
             </div>
 
-            {/* To Date - VERY SMALL */}
+            {/* To Date - NARROW WIDTH */}
             <div style={{
               ...styles.formField,
-              minWidth: screenSize.isMobile ? 'calc(50% - 8px)' : 'auto',
+              minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : 'auto',
             }}>
-              <label style={styles.dateLabel}>To:</label>
+              <label style={styles.inlineLabel}>To Date:</label>
               <input
                 type="date"
                 data-header="toDate"
                 style={
                   focusedField === 'toDate'
-                    ? styles.dateInputFocused
-                    : styles.dateInput
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
                 }
                 value={toDate}
                 onChange={handleToDateChange}
@@ -855,13 +861,13 @@ const DayBook = () => {
               />
             </div>
 
-            {/* Branch - MEDIUM/LARGE with SPACER */}
+            {/* Branch - WIDER WIDTH */}
             <div style={{
               ...styles.formField,
               flex: 1,
-              minWidth: screenSize.isMobile ? '100%' : '180px',
+              minWidth: screenSize.isMobile ? '100%' : '200px',
             }}>
-              <label style={styles.branchLabel}>Branch:</label>
+              <label style={styles.inlineLabel}>Branch:</label>
               <div
                 style={
                   focusedField === 'branch'
@@ -884,7 +890,7 @@ const DayBook = () => {
                 tabIndex={0}
               >
                 <span style={{
-                  fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+                  fontSize: TYPOGRAPHY.fontSize.sm,
                   color: '#333',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -895,7 +901,7 @@ const DayBook = () => {
                 </span>
                 <span style={{ 
                   color: '#1B91DA', 
-                  fontSize: screenSize.isMobile ? '10px' : '11px', 
+                  fontSize: '10px', 
                   marginLeft: '8px' 
                 }}>▼</span>
               </div>
@@ -904,7 +910,7 @@ const DayBook = () => {
 
           {/* SPACER BETWEEN LEFT AND RIGHT SIDES - LARGE GAP */}
           <div style={{
-            width: screenSize.isMobile ? '0' : screenSize.isTablet ? '30px' : '40px',
+            width: screenSize.isMobile ? '0' : screenSize.isTablet ? '40px' : '60px',
             flexShrink: 0,
           }} />
 
@@ -912,10 +918,10 @@ const DayBook = () => {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+            gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
             flexShrink: 0,
           }}>
-            {/* Search Button - MEDIUM */}
+            {/* Search Button */}
             <button
               style={styles.searchButton}
               onClick={handleSearch}
@@ -932,7 +938,7 @@ const DayBook = () => {
               {hoveredButton && <div style={styles.buttonGlow}></div>}
             </button>
 
-            {/* Refresh Button - MEDIUM */}
+            {/* Refresh Button */}
             <button
               style={styles.refreshButton}
               onClick={handleRefresh}
@@ -1013,7 +1019,7 @@ const DayBook = () => {
               ) : (
                 <tr>
                   <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view day book entries
+                    {/* Enter search criteria and click "Search" to view day book entries */}
                   </td>
                 </tr>
               )}

@@ -1077,7 +1077,7 @@ const Ledger = () => {
               ) : (
                 <tr>
                   <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view ledger entries
+                    {/* Enter search criteria and click "Search" to view ledger entries */}
                   </td>
                 </tr>
               )}

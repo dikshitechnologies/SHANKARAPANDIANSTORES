@@ -88,7 +88,7 @@ const PaymentVoucher = () => {
       crDr: 'CR',
       type: 'CASH',
       chqNo: '',
-      chqDt: '',
+      chqDt:  new Date().toISOString().substring(0, 10),
       narration: '',
       amount: ''
     }
@@ -2425,6 +2425,12 @@ const PaymentVoucher = () => {
                       value={item.chqNo}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqNo', e.target.value)}
                       onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqNo')}
+                      onKeyPress={(e) => {
+  // Allow only numbers (0-9)
+  if (!/[0-9]/.test(e.key)) {
+    e.preventDefault();
+  }
+}}
                       disabled={item.type !== 'CHQ'}
                       onFocus={(e) => {
                         e.target.style.border = '2px solid #1B91DA';
