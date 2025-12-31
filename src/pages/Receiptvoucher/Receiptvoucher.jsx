@@ -91,7 +91,7 @@ const ReceiptVoucher = () => {
       crDr: 'CR',
       type: 'CASH',
       chqNo: '',
-      chqDt: new Date().toISOString().substring(0, 10),
+      chqDt: '',
       narration: '',
       amount: ''
     }
@@ -201,6 +201,18 @@ const ReceiptVoucher = () => {
 
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('add');
+
+
+
+
+  const showMandatoryToast = (label) => {
+  toast.warning(`Please fill ${label}`, {
+    position: 'top-right',
+    autoClose: 1500,
+    hideProgressBar: true,
+    pauseOnHover: false
+  });
+};
 
   // Screen size state
   const [screenSize, setScreenSize] = useState({
@@ -485,13 +497,22 @@ const ReceiptVoucher = () => {
 
   // Handle keydown in header fields with arrow support
   const handleHeaderFieldKeyDown = (e, currentField) => {
-    // Arrow key navigation
     if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
-      e.preventDefault();
-      const direction = e.key.replace('Arrow', '').toLowerCase();
-      navigateWithArrow(direction, currentField);
-      return;
-    }
+
+  // ⛔ BLOCK navigation if A/C Name empty
+  if (currentField === 'accountName' && !voucherDetails.accountName?.trim()) {
+    e.preventDefault();
+    showMandatoryToast('A/C Name');
+    accountNameRef.current?.focus();
+    return;
+  }
+
+  e.preventDefault();
+  const direction = e.key.replace('Arrow', '').toLowerCase();
+  navigateWithArrow(direction, currentField);
+  return;
+}
+
     
     // Enter key navigation (existing functionality)
     if (e.key === 'Enter') {
@@ -509,9 +530,15 @@ const ReceiptVoucher = () => {
           break;
           
         case 'accountName':
-          gstTypeRef.current?.focus();
-          setNavigationStep('gstType');
-          break;
+  if (!voucherDetails.accountName?.trim()) {
+    showMandatoryToast('A/C Name');
+    accountNameRef.current?.focus();
+    return;
+  }
+  gstTypeRef.current?.focus();
+  setNavigationStep('gstType');
+  break;
+
           
         case 'gstType':
           if (receiptItems.length > 0) {
@@ -533,12 +560,26 @@ const ReceiptVoucher = () => {
 
   // Handle keydown in receipt fields with arrow support
   const handleReceiptFieldKeyDown = (e, rowIndex, fieldType) => {
-    // Arrow key navigation
-    if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
-      e.preventDefault();
-      navigateWithArrow(e.key.replace('Arrow', '').toLowerCase(), '', rowIndex, fieldType);
-      return;
-    }
+   if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+
+  // ⛔ BLOCK navigation if Cash/Bank empty
+  if (fieldType === 'cashBank' && !receiptItems[rowIndex].cashBank?.trim()) {
+    e.preventDefault();
+    showMandatoryToast('Cash / Bank');
+    document.getElementById(`receipt_${receiptItems[rowIndex].id}_cashBank`)?.focus();
+    return;
+  }
+
+  e.preventDefault();
+  navigateWithArrow(
+    e.key.replace('Arrow', '').toLowerCase(),
+    '',
+    rowIndex,
+    fieldType
+  );
+  return;
+}
+
     
     // Existing Enter key navigation
     if (e.key === 'Enter') {
@@ -2716,12 +2757,6 @@ const ReceiptVoucher = () => {
                       value={item.chqNo}
                       onChange={(e) => handleReceiptItemChange(item.id, 'chqNo', e.target.value)}
                       onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqNo')}
-                      onKeyPress={(e) => {
-  // Allow only numbers (0-9)
-  if (!/[0-9]/.test(e.key)) {
-    e.preventDefault();
-  }
-}}
                       disabled={item.type !== 'CHQ'}
                       style={{
                         ...styles.editableInput,

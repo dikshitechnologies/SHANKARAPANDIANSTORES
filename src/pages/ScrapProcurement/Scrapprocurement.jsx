@@ -1142,22 +1142,22 @@ const fetchItemList = async (pageNum = 1, search = '') => {
     }
   };
 
-  const handleAddRow = () => {
-    const newRow = {
-      id: items.length + 1,
-      sNo: items.length + 1,
-      scrapProductName: '',
-      scrapCode: '',
-      itemName: '',
-      itemCode: '',
-      uom: '',
-      tax: '',
-      sRate: '',
-      qty: '',
-      amount: '0.00'
-    };
-    setItems([...items, newRow]);
+const handleAddRow = () => {
+  const newId = Math.max(...items.map(item => item.id), 0) + 1;
+  const newRow = {
+    id: newId,
+    sNo: items.length + 1,
+    scrapCode: '',
+    itemName: '',
+    itemCode: '',
+    uom: '',
+    tax: '',
+    sRate: '',
+    qty: '',
+    amount: '0.00'
   };
+  setItems([...items, newRow]);
+};
 
   const handleItemChange = (id, field, value) => {
     setItems(items.map(item => {
@@ -1188,101 +1188,113 @@ const fetchItemList = async (pageNum = 1, search = '') => {
     }
   };
 
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    // Check if we should ignore Enter key
-    if (ignoreNextEnterRef.current && e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
+const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  // Check if we should ignore Enter key
+  if (ignoreNextEnterRef.current && e.key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+
+  // Handle / key for item search popup
+  if (currentField === 'itemName' && e.key === '/') {
+    e.preventDefault();
+    setSelectedRowForItem(currentRowIndex);
+    setItemSearchTerm('');
+    setClosedItemByUser(false);
+    setShowItemPopup(true);
+    return;
+  }
+
+  // Handle arrow keys for table navigation
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    handleTableArrowNavigation(e, currentRowIndex, currentField);
+    return;
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Get current items to ensure we have the latest data
+    const currentItems = [...items];
+    const currentItem = currentItems[currentRowIndex];
+    
+    if (!currentItem) {
+      console.warn(`No item found at row index ${currentRowIndex}`);
       return;
     }
+    
+    // Fields in the visual order (excluding UOM since it's not editable)
+    const fields = ['itemName', 'tax', 'sRate', 'qty'];
+    const currentFieldIndex = fields.indexOf(currentField);
 
-    // Handle / key for item search popup
-    if (currentField === 'itemName' && e.key === '/') {
-      e.preventDefault();
-      setSelectedRowForItem(currentRowIndex);
-      setItemSearchTerm('');
-      setClosedItemByUser(false);
-      setShowItemPopup(true);
-      return;
-    }
-
-    // Handle arrow keys for table navigation
-    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      handleTableArrowNavigation(e, currentRowIndex, currentField);
-      return;
-    }
-
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // Fields in the visual order (excluding UOM since it's not editable)
-      const fields = ['itemName', 'tax', 'sRate', 'qty'];
-      const currentFieldIndex = fields.indexOf(currentField);
-
+    // Check if itemName is empty in the current row
+    const isItemNameEmpty = !currentItem.itemName || currentItem.itemName.trim() === '';
+    const isQtyEmpty = !currentItem.qty || currentItem.qty.trim() === '';
+    
+    // If Enter is pressed in the itemName field
+    if (currentField === 'itemName') {
       // Check if itemName is empty in the current row
-      const currentRow = items[currentRowIndex];
-      const isItemNameEmpty = !currentRow.itemName || currentRow.itemName.trim() === '';
-      const isQtyEmpty = !currentRow.qty || currentRow.qty.trim() === '';
-      // If Enter is pressed in the qty field
-      if (currentField === 'itemName') {
-        // Check if itemName is empty in the current row
-        if (isItemNameEmpty) {
-          handleSave();
-          // Do NOT clearFormData() here! Only clear after successful save or explicit confirmation.
+      if (isItemNameEmpty) {
+        handleSave();
+        return;
+      }
+    }
+
+    // Always move to next field if available
+    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+      const nextField = fields[currentFieldIndex + 1];
+      let nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
+      
+      if (nextInput) {
+        nextInput.focus();
+        const nextFieldIndex = tableFields.indexOf(nextField);
+        setCurrentFocus({ section: 'table', rowIndex: currentRowIndex, fieldIndex: nextFieldIndex });
+        return;
+      }
+    }
+
+    // If Enter is pressed in the qty field and itemName is not empty
+    if (currentField === 'qty' && !isItemNameEmpty && !isQtyEmpty) {
+      // Check if the current row index is still valid after deletion
+      const updatedItems = [...items];
+      const maxRowIndex = updatedItems.length - 1;
+      
+      // If currentRowIndex exceeds the maximum index after deletion, adjust it
+      const validRowIndex = currentRowIndex > maxRowIndex ? maxRowIndex : currentRowIndex;
+      
+      // If there is a next row, move to its first field
+      if (validRowIndex < updatedItems.length - 1) {
+        const nextRowIndex = validRowIndex + 1;
+        const nextRowInput = document.querySelector(`input[data-row="${nextRowIndex}"][data-field="itemName"]`);
+        if (nextRowInput) {
+          nextRowInput.focus();
+          setCurrentFocus({ section: 'table', rowIndex: nextRowIndex, fieldIndex: 0 });
           return;
         }
-      }
-
-      // Always move to next field if available
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        let nextInput = document.querySelector(`input[data-row="${currentRowIndex}"][data-field="${nextField}"]`);
-        
-        if (nextInput) {
-          nextInput.focus();
-          const nextFieldIndex = tableFields.indexOf(nextField);
-          setCurrentFocus({ section: 'table', rowIndex: currentRowIndex, fieldIndex: nextFieldIndex });
-          return;
-        }
-      }
-
-      // If Enter is pressed in the qty field and itemName is not empty
-      if (currentField === 'qty' && !isItemNameEmpty && !isQtyEmpty) {
-        // If there is a next row, move to its first field
-       if (currentRowIndex < items.length - 1) {
-          const nextRowInput = document.querySelector(`input[data-row="${currentRowIndex + 1}"][data-field="itemName"]`);
-          if (nextRowInput) {
-            nextRowInput.focus();
-            setCurrentFocus({ section: 'table', rowIndex: currentRowIndex + 1, fieldIndex: 0 });
-            return;
-          }
-        }
-        // Otherwise, add a new row
-        handleAddRow();
-        setTimeout(() => {
-          const newRowInput = document.querySelector(`input[data-row="${items.length}"][data-field="itemName"]`);
-          if (newRowInput) {
-            newRowInput.focus();
-            setCurrentFocus({ section: 'table', rowIndex: items.length, fieldIndex: 0 });
-          }
-        }, 60);
       }
       
-      return;
+      // Otherwise, add a new row
+      handleAddRow();
+      // Wait for the new row to be rendered, then focus on it
+      setTimeout(() => {
+        const newRowInput = document.querySelector(`input[data-row="${updatedItems.length}"][data-field="itemName"]`);
+        if (newRowInput) {
+          newRowInput.focus();
+          setCurrentFocus({ section: 'table', rowIndex: updatedItems.length, fieldIndex: 0 });
+        }
+      }, 60);
     }
-  };
+    
+    return;
+  }
+};
 
-  const handleDeleteRow = (id) => {
-    const itemToDelete = items.find(item => item.id === id);
-    const itemName = itemToDelete?.scrapProductName || 'this scrap product';
+  const handleDeleteRow = (id) => {    
     
-    // Check if this is the first row (by sNo)
-    const rowIndex = items.findIndex(item => item.id === id);
-    const isFirstRow = rowIndex === 0;
-    
-    if (isFirstRow) {
+   if (items.length <= 1) {
       showConfirmation({
         title: 'Clear First Row',
         message: 'Do you want to clear',
