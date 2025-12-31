@@ -579,6 +579,76 @@
   flex-shrink: 0;
 }
 
+/* Add these styles to your existing CSS file */
+
+/* Service Charge Container */
+.serviceChargeContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px;
+  background: #f9f9f9;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.serviceChargeInput {
+  width: 80px;
+  height: 32px;
+  padding: 0 8px;
+  border: 2px solid #b0b0b0;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.serviceChargeInput:focus {
+  outline: none;
+  border-color: #1e88e5;
+}
+
+/* Adjust payment rows for better spacing */
+.paymentRow {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  align-items: flex-start;
+}
+
+.paymentGroup {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Ensure checkboxes align properly */
+.paymentGroup .checkboxLabel {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+/* Remove spinner arrows from number inputs */
+.serviceChargeInput::-webkit-outer-spin-button,
+.serviceChargeInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.serviceChargeInput[type=number] {
+  -moz-appearance: textfield;
+}
+
+.negativeBalance {
+  color: #d32f2f !important;
+  background: #ffebee !important;
+  border-color: #ffcdd2 !important;
+  font-weight: bold;
+}
+
 @media (max-width: 1024px) {
   .mainContent {
     flex-direction: column;

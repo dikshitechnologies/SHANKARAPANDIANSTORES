@@ -163,8 +163,10 @@ export const API_ENDPOINTS = {
     DELETE_PURCHASE_INVOICE: "PurchaseInvoice/RemovePurchaseBill",
     GET_PURCHASE_DETAILS: "PurchaseInvoice/GetPurchaseDetails",
     GET_ITEM_CODE_LIST: "Salesinvoices/GetItemsByType?type=FG",
-    GET_ITEM_DETAILS_BY_CODE: (itemCode) => `Salesinvoices/GetStockByItemName?itemcode=${itemCode}&billType=FG`,
+    GET_ITEM_DETAILS_BY_CODE: (itemCode) => `Salesinvoices/GetStockByItemName1?itemcode=${itemCode}`,
     AUTO_GENERATE_BARCODE: "barcodeGenerate/AutoGenerateBarcode",
+    GET_GROUP_LIST: (search = '', page = 1, pageSize = 20) => `GroupSelection/item-GroupList?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
+    GET_GROUPITEMS_BY_GROUP: (groupCode) => `GroupSelection/items/get-Group-Items?fparent=${groupCode}`,
   },
 
 

@@ -44,6 +44,8 @@ import SalesRegister from './pages/SalesRegister/SalesRegister';
 import TaxCreation from './pages/TaxCreation/TaxCreation';
 import DayBook from './pages/Report/DayBokk/Daybook';
 import Ledger from './pages/Report/Ledger/Ledger';
+import SalesReturnregister from './pages/Report/SalesReturnregister/SalesReturnregister';
+import PurchaseReturnregister from './pages/Report/PurchaseReturnregister/PurchaseReturnregister';
 import PurchaseRegister from './pages/Report/PurchaseRegister/PurchaseRegister';
 
 
@@ -130,10 +132,13 @@ function App() {
           <Route path="/masters/route-creation" element={<ProtectedRoute><LayoutWithNavbar><RouteCreationPage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/sales-register" element={<ProtectedRoute><LayoutWithNavbar><SalesRegister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
-   <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
-   <Route path="/reports/day-book" element={<ProtectedRoute><LayoutWithNavbar><DayBook /></LayoutWithNavbar></ProtectedRoute>} />
-    <Route path="/reports/ledger" element={<ProtectedRoute><LayoutWithNavbar><Ledger /></LayoutWithNavbar></ProtectedRoute>} />
-    <Route path="/reports/purchase-register" element={<ProtectedRoute><LayoutWithNavbar><PurchaseRegister /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/reports/day-book" element={<ProtectedRoute><LayoutWithNavbar><DayBook /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/reports/ledger" element={<ProtectedRoute><LayoutWithNavbar><Ledger /></LayoutWithNavbar></ProtectedRoute>} />
+          {/* <Route path="/reports/ledger" element={<ProtectedRoute><LayoutWithNavbar><Ledger /></LayoutWithNavbar></ProtectedRoute>} /> */}
+          <Route path="/reports/SalesReturnregister" element={<ProtectedRoute><LayoutWithNavbar><SalesReturnregister /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/reports/PurchaseReturnregister" element={<ProtectedRoute><LayoutWithNavbar><PurchaseReturnregister /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/reports/Purchase-register" element={<ProtectedRoute><LayoutWithNavbar><PurchaseRegister /></LayoutWithNavbar></ProtectedRoute>} />
 
     </Routes>
      <ToastContainer

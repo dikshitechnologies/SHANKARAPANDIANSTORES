@@ -377,6 +377,7 @@ const handleKeyDown = (e, index) => {
   
   setShowClearConfirmation(true);
 };
+
 const handleConfirmClearAll = () => {
   setShowClearConfirmation(false);
 
@@ -390,6 +391,32 @@ const handleConfirmClearAll = () => {
   // });
 };
 
+// Add this function for Refresh button
+const handleRefresh = async () => {
+  try {
+    setIsFetching(true);
+    setLoading(true);
+    
+    // Reset auto-focus flag so it will focus on first input again
+    hasAutoFocused.current = false;
+    enterTriggered.current = false;
+    
+    await fetchScrapRates();
+    
+    toast.success("Scrap rates refreshed successfully!", {
+      position: "top-right",
+      autoClose: 2000,
+    });
+  } catch (error) {
+    console.error("Refresh error:", error);
+    toast.error("Failed to refresh scrap rates", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Filter scraps based on search term
   const filteredScrapRates = scrapRates.filter(scrap =>
@@ -796,7 +823,7 @@ const handleConfirmClearAll = () => {
           </span>
         </div>
 
-        {/* Clear All and Update Buttons - Both on Right Side */}
+        {/* Clear All, Refresh and Update Buttons - All on Right Side */}
         <div style={{
           display: 'flex',
           justifyContent: 'flex-end',
@@ -853,7 +880,44 @@ const handleConfirmClearAll = () => {
             ) : 'Update '}
           </button>
 
-          {/* Clear All Button - Moved to right side next to Update */}
+          {/* Refresh Button - Added between Update and Clear */}
+          <button
+            onClick={handleRefresh}
+            disabled={loading || isFetching}
+            style={{
+              padding: isMobile ? '10px 20px' : '12px 24px',
+              borderRadius: '50px',
+              border: `1px solid ${loading || isFetching ? '#cbd5e1' : colors.border}`,
+              background: '#ffffff',
+              color: loading || isFetching ? '#cbd5e1' : colors.muted,
+              fontWeight: '600',
+              fontSize: isMobile ? '14px' : '15px',
+              cursor: loading || isFetching ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s ease',
+              minWidth: isMobile ? '100px' : '120px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              height: isMobile ? '38px' : '42px',
+              opacity: loading || isFetching ? 0.6 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (!loading && !isFetching) {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.12)';
+                e.target.style.borderColor = colors.primary;
+                e.target.style.color = colors.primary;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+              e.target.style.borderColor = colors.border;
+              e.target.style.color = colors.muted;
+            }}
+          >
+            Refresh
+          </button>
+
+          {/* Clear All Button */}
           <button
             onClick={handleClearAll}
             disabled={loading || isFetching || scrapRates.length === 0 || !formPermissions.delete}

@@ -1,30 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: "block" }}
+  >
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
 
 const DayBook = () => {
-  const [fromDate, setFromDate] = useState('2025-12-29');
-  const [toDate, setToDate] = useState('2025-12-30');
+  // --- STATE MANAGEMENT ---
+  const [fromDate, setFromDate] = useState('2024-06-14');
+  const [toDate, setToDate] = useState('2025-11-26');
   const [selectedBranches, setSelectedBranches] = useState(['ALL']);
   const [showBranchPopup, setShowBranchPopup] = useState(false);
-  const [tempSelectedBranches, setTempSelectedBranches] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
+  const [tempSelectedBranches, setTempSelectedBranches] = useState(['ALL']);
+  const [selectAll, setSelectAll] = useState(true);
   const [tableLoaded, setTableLoaded] = useState(false);
-  const [showFromCalendar, setShowFromCalendar] = useState(false);
-  const [showToCalendar, setShowToCalendar] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
+  const [focusedField, setFocusedField] = useState('');
+  const [branchDisplay, setBranchDisplay] = useState('ALL');
 
-  const allBranches = [
-    'ALL',
-    'DIKSHI DEMO',
-    'DIKSH',
-    'DIKSHI TECH',
-    'DIKSHIWEBSITE',
-    'DIKSHIWBCOMDOT',
-    'SAKTHI',
-    'JUST AK THINGS',
-    'PRIVANKA'
-  ];
+  // --- REFS ---
+  const fromDateRef = useRef(null);
+  const toDateRef = useRef(null);
+  const branchRef = useRef(null);
+  const searchButtonRef = useRef(null);
 
-  const dayBookData = [
+  // --- DATA ---
+  const [dayBookData, setDayBookData] = useState([]);
+
+  // Sample daybook data
+  const sampleDayBookData = [
     {
       accName: "OPG ON :29-02-12",
       receipts: "0.00",
@@ -75,14 +96,27 @@ const DayBook = () => {
     }
   ];
 
-  const formatDateForDisplay = (dateString) => {
-    const date = new Date(dateString);
-    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  // Sample data for branches
+  const allBranches = [
+    'ALL',
+    'DIKSHI DEMO',
+    'DIKSH',
+    'DIKSHI TECH',
+    'DIKSHIWEBSITE',
+    'DIKSHIWBCOMDOT',
+    'SAKTHI',
+    'JUST AK THINGS',
+    'PRIVANKA'
+  ];
+
+  // --- HANDLERS ---
+  const handleFromDateChange = (e) => {
+    setFromDate(e.target.value);
   };
 
-  useEffect(() => {
-    setTempSelectedBranches([...selectedBranches]);
-  }, [selectedBranches]);
+  const handleToDateChange = (e) => {
+    setToDate(e.target.value);
+  };
 
   const handleBranchClick = () => {
     setTempSelectedBranches([...selectedBranches]);
@@ -119,6 +153,10 @@ const DayBook = () => {
 
   const handlePopupOk = () => {
     setSelectedBranches([...tempSelectedBranches]);
+    const displayText = tempSelectedBranches.length === allBranches.length || tempSelectedBranches.includes('ALL') 
+      ? 'ALL' 
+      : tempSelectedBranches.join(', ');
+    setBranchDisplay(displayText);
     setShowBranchPopup(false);
   };
 
@@ -133,356 +171,420 @@ const DayBook = () => {
 
   const handleSearch = () => {
     if (!fromDate || !toDate || selectedBranches.length === 0) {
-      alert('Please fill all fields: From Date, To Date, and select at least one branch');
+      toast.warning('Please fill all fields: From Date, To Date, and select at least one branch', {
+        autoClose: 2000,
+      });
       return;
     }
     
-    console.log('Searching with:', {
+    console.log('Searching DayBook with:', {
       fromDate,
       toDate,
       selectedBranches
     });
     
-    setTableLoaded(true);
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setDayBookData(sampleDayBookData);
+      setTableLoaded(true);
+      setIsLoading(false);
+    }, 500);
   };
 
-  const handleDateChange = (type, value) => {
-    if (type === 'from') {
-      setFromDate(value);
-      setShowFromCalendar(false);
-    } else {
-      setToDate(value);
-      setShowToCalendar(false);
-    }
+  const handleRefresh = () => {
+    setTableLoaded(false);
+    setFromDate('2024-06-14');
+    setToDate('2025-11-26');
+    setSelectedBranches(['ALL']);
+    setBranchDisplay('ALL');
+    setDayBookData([]);
   };
 
-  const generateCalendar = (currentDate, type) => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const today = new Date();
-    
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDay = firstDay.getDay();
-    
-    const days = [];
-    
-    for (let i = 0; i < startDay; i++) {
-      days.push(<div key={`empty-${i}`} style={styles.calendarEmptyDay}></div>);
-    }
-    
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-      const isSelected = (type === 'from' && fromDate === dateStr) || (type === 'to' && toDate === dateStr);
-      const isToday = today.toISOString().split('T')[0] === dateStr;
+  // Handle key navigation
+  const handleKeyDown = (e, currentField) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
       
-      days.push(
-        <div 
-          key={day}
-          style={{
-            ...styles.calendarDay,
-            ...(isSelected ? styles.calendarSelectedDay : {}),
-            ...(isToday ? styles.calendarToday : {}),
-            ':hover': {
-              backgroundColor: !isSelected ? accentColors.light : accentColors.primary,
-              transform: 'translateY(-1px)'
-            }
-          }}
-          onClick={() => handleDateChange(type, dateStr)}
-        >
-          {day}
-        </div>
-      );
+      switch(currentField) {
+        case 'fromDate':
+          toDateRef.current?.focus();
+          break;
+        case 'toDate':
+          branchRef.current?.focus();
+          break;
+        case 'branch':
+          searchButtonRef.current?.focus();
+          break;
+        default:
+          break;
+      }
     }
-    
-    return days;
   };
 
-  const accentColors = {
-    primary: '#4A90E2',
-    secondary: '#64B5F6',
-    tertiary: '#81D4FA',
-    light: '#F0F8FF',
-    dark: '#1976D2',
-    text: '#2C3E50',
-    textLight: '#7F8C8D',
-    border: '#E1E8ED',
-    background: '#F8FAFD'
+  // --- SCREEN SIZE DETECTION ---
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isMobile = width < 640;
+      const isTablet = width >= 640 && width < 1024;
+      const isDesktop = width >= 1024;
+      
+      setScreenSize({
+        width,
+        height,
+        isMobile,
+        isTablet,
+        isDesktop
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // --- STYLES ---
+  const TYPOGRAPHY = {
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: {
+      xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      base: screenSize.isMobile ? '13px' : screenSize.isTablet ? '14px' : '16px',
+      lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
+    },
+    fontWeight: {
+      normal: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700
+    },
+    lineHeight: {
+      tight: 1.2,
+      normal: 1.5,
+      relaxed: 1.6
+    }
   };
 
   const styles = {
     container: {
-      maxWidth: '1400px',
-      margin: '30px auto',
-      backgroundColor: 'white',
-      borderRadius: '16px',
-      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-      fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
-      transition: 'all 0.3s ease'
-    },
-    
-    header: {
-      background: 'linear-gradient(135deg, white 0%, #f8fafd 100%)',
-      color: accentColors.text,
-      padding: '35px 40px',
-      borderBottom: `1px solid ${accentColors.border}`,
-      position: 'relative'
-    },
-    
-    headerDecoration: {
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      width: '200px',
-      height: '200px',
-      background: `radial-gradient(circle, ${accentColors.light} 0%, transparent 70%)`,
-      opacity: 0.5
-    },
-    
-    headerTitle: {
-      fontSize: '32px',
-      fontWeight: '700',
-      marginBottom: '35px',
-      color: accentColors.primary,
-      textAlign: 'center',
-      letterSpacing: '-0.5px',
-      position: 'relative',
-      paddingBottom: '15px'
-    },
-    
-    headerTitleUnderline: {
-      position: 'absolute',
-      bottom: 0,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: '80px',
-      height: '4px',
-      background: `linear-gradient(90deg, ${accentColors.primary}, ${accentColors.secondary})`,
-      borderRadius: '2px'
-    },
-    
-    // UPDATED: Better grid proportions with even spacing
-    firstRow: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1.5fr 0.8fr 0.8fr', // More balanced columns
-      gap: '25px', // Increased gap for better spacing
-      marginBottom: '35px',
-      position: 'relative',
-      alignItems: 'center' // Align items vertically
-    },
-    
-    controlGroup: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      backgroundColor: '#f5f7fa',
+      height: '100vh',
+      width: '100%',
       display: 'flex',
       flexDirection: 'column',
-      gap: '12px' // Added gap between label and input
+      margin: 0,
+      padding: 0,
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+      position: 'fixed',
     },
-    
-    controlLabel: {
-      fontSize: '15px',
-      color: 'black',
-      marginBottom: '0', // Removed bottom margin since we use gap
-      fontWeight: '600',
-      letterSpacing: '0.5px',
-      textTransform: 'uppercase'
+    headerSection: {
+      flex: '0 0 auto',
+      backgroundColor: 'white',
+      borderRadius: 0,
+      padding: screenSize.isMobile ? '8px 10px' : screenSize.isTablet ? '10px 12px' : '12px 16px',
+      margin: 0,
+      marginBottom: 0,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      overflowY: 'visible',
+      maxHeight: 'none',
     },
-    
-    dateInputWrapper: {
-      position: 'relative',
-      width: '100%'
+    tableSection: {
+      flex: '1 1 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0,
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
     },
-    
-    dateDisplay: {
+    formField: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '14px 18px',
-      paddingRight: '45px',
-      border: `1.5px solid ${accentColors.border}`,
-      borderRadius: '10px',
-      backgroundColor: 'white',
-      fontSize: '15px',
-      color: accentColors.text,
-      minHeight: '48px',
-      cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      ':hover': {
-        borderColor: accentColors.secondary,
-        boxShadow: `0 4px 12px ${accentColors.secondary}20`,
-        transform: 'translateY(-1px)'
-      }
+      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '3px' : '4px',
     },
-    
-    calendarIcon: {
-      position: 'absolute',
-      right: '15px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      color: accentColors.secondary,
-      cursor: 'pointer',
-      fontSize: '20px',
-      transition: 'transform 0.3s ease',
-      ':hover': {
-        transform: 'translateY(-50%) scale(1.1)'
-      }
+    // VERY SMALL DATE INPUT STYLES
+    dateLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      minWidth: screenSize.isMobile ? '32px' : screenSize.isTablet ? '35px' : '40px',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
     },
-    
-    branchInput: {
+    dateInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: '1',
+      padding: screenSize.isMobile ? '2px 4px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
       width: '100%',
-      padding: '14px 18px',
-      border: `1.5px solid ${accentColors.border}`,
-      borderRadius: '10px',
-      fontSize: '15px',
+      height: screenSize.isMobile ? '24px' : screenSize.isTablet ? '26px' : '28px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '85px' : screenSize.isTablet ? '95px' : '105px',
+    },
+    dateInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: '1',
+      padding: screenSize.isMobile ? '2px 4px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '24px' : screenSize.isTablet ? '26px' : '28px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '85px' : screenSize.isTablet ? '95px' : '105px',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
+    // MEDIUM/LARGE BRANCH INPUT STYLES
+    branchLabel: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: '#333',
+      minWidth: screenSize.isMobile ? '45px' : screenSize.isTablet ? '50px' : '55px',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+    },
+    branchInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: '1.2',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '7px 10px' : '8px 12px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '120px' : screenSize.isTablet ? '150px' : '180px',
       backgroundColor: 'white',
-      color: accentColors.text,
-      minHeight: '48px',
+      cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      ':hover': {
-        borderColor: accentColors.secondary,
-        boxShadow: `0 4px 12px ${accentColors.secondary}20`,
-        transform: 'translateY(-1px)'
-      }
     },
-    
-    calendarPopup: {
-      position: 'absolute',
-      top: 'calc(100% + 8px)',
-      left: '0',
-      zIndex: 1001,
+    branchInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: '1.2',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '7px 10px' : '8px 12px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '120px' : screenSize.isTablet ? '150px' : '180px',
       backgroundColor: 'white',
-      border: `1px solid ${accentColors.border}`,
-      borderRadius: '16px',
-      boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-      width: '320px',
-      overflow: 'hidden',
-      animation: 'slideDown 0.3s ease'
-    },
-    
-    calendarHeader: {
+      cursor: 'pointer',
       display: 'flex',
+      alignItems: 'center',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '20px',
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white',
-      position: 'relative'
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
-    
-    calendarNavButton: {
-      background: 'rgba(255,255,255,0.2)',
-      border: 'none',
-      color: 'white',
-      fontSize: '18px',
-      cursor: 'pointer',
-      padding: '8px 12px',
-      borderRadius: '8px',
-      transition: 'all 0.2s ease',
+    tableContainer: {
+      backgroundColor: 'white',
+      borderRadius: 10,
+      overflowX: 'auto',
+      overflowY: 'auto',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1px solid #e0e0e0',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginBottom: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      WebkitOverflowScrolling: 'touch',
+      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      boxSizing: 'border-box',
+      flex: 'none',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '40px',
-      height: '40px',
-      ':hover': {
-        background: 'rgba(255,255,255,0.3)',
-        transform: 'scale(1.05)'
-      }
+      flexDirection: 'column',
+      maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
+      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '70%',
     },
-    
-    calendarMonthYear: {
-      fontSize: '16px',
-      fontWeight: '600',
-      letterSpacing: '0.5px'
+    table: {
+      width: 'max-content',
+      minWidth: '100%',
+      borderCollapse: 'collapse',
+      tableLayout: 'fixed',
     },
-    
-    calendarWeekDays: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      padding: '15px',
-      backgroundColor: accentColors.background,
-      borderBottom: `1px solid ${accentColors.border}`
-    },
-    
-    calendarWeekDay: {
-      textAlign: 'center',
-      fontSize: '12px',
-      fontWeight: '700',
-      color: accentColors.textLight,
-      padding: '8px',
-      textTransform: 'uppercase',
-      letterSpacing: '1px'
-    },
-    
-    calendarDays: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      padding: '15px',
-      gap: '6px'
-    },
-    
-    calendarDay: {
-      textAlign: 'center',
-      padding: '12px 8px',
-      cursor: 'pointer',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '500',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      color: accentColors.text
-    },
-    
-    calendarSelectedDay: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
+    th: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      backgroundColor: '#1B91DA',
       color: 'white',
-      boxShadow: `0 4px 12px ${accentColors.secondary}40`,
-      transform: 'scale(1.05)'
-    },
-    
-    calendarToday: {
-      border: `2px solid ${accentColors.secondary}`,
-      backgroundColor: accentColors.light,
-      fontWeight: '700'
-    },
-    
-    calendarEmptyDay: {
-      padding: '12px 8px'
-    },
-    
-    // UPDATED: More compact button styling
-    searchButton: {
-      padding: '16px 24px',
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white',
-      border: 'none',
-      borderRadius: '10px',
-      fontSize: '15px',
-      fontWeight: '700',
-      cursor: 'pointer',
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: `0 4px 16px ${accentColors.secondary}40`,
+      padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
+      textAlign: 'center',
       letterSpacing: '0.5px',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10,
+      border: '1px solid white',
+      borderBottom: '2px solid white',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      whiteSpace: 'nowrap',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+    },
+    td: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: '8px 6px',
+      textAlign: 'center',
+      border: '1px solid #ccc',
+      color: '#333',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+    },
+    footerSection: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flex: '0 0 auto',
+      display: 'flex',
+      flexDirection: screenSize.isMobile ? 'column' : 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
+      backgroundColor: 'white',
+      borderTop: '2px solid #e0e0e0',
+      boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
+      flexWrap: 'wrap',
+      flexShrink: 0,
+      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
+      width: '100%',
+      boxSizing: 'border-box',
+      zIndex: 100,
+    },
+    balanceContainer: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.sm : screenSize.isTablet ? TYPOGRAPHY.fontSize.base : TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      lineHeight: TYPOGRAPHY.lineHeight.tight,
+      color: '#1B91DA',
+      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '8px 12px' : '10px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '15px' : screenSize.isTablet ? '25px' : '35px',
+      minWidth: 'max-content',
+      justifyContent: 'center',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      order: screenSize.isMobile ? 1 : 0,
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      backgroundColor: '#f0f8ff',
+    },
+    balanceItem: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '2px',
+    },
+    balanceLabel: {
+      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      color: '#555',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+    },
+    balanceValue: {
+      fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      color: '#1976d2',
+      fontWeight: 'bold',
+    },
+    // MEDIUM BUTTONS
+    searchButton: {
+      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '7px 14px' : '8px 16px',
+      background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
+      color: 'white',
+      border: 'none',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)',
+      letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      width: '100%', // Make button take full width of its cell
-      height: '48px', // Match input height
+      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       ':hover': {
         transform: 'translateY(-2px)',
-        boxShadow: `0 8px 25px ${accentColors.secondary}60`,
-        letterSpacing: '1px'
+        boxShadow: '0 4px 12px rgba(27, 145, 218, 0.4)',
       },
       ':active': {
-        transform: 'translateY(-1px)'
+        transform: 'translateY(-1px)',
       }
     },
-    
-    searchButtonGlow: {
+    refreshButton: {
+      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '7px 14px' : '8px 16px',
+      background: 'white',
+      color: '#333',
+      border: '1.5px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      letterSpacing: '0.3px',
+      position: 'relative',
+      overflow: 'hidden',
+      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      height: screenSize.isMobile ? '34px' : screenSize.isTablet ? '38px' : '42px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ':hover': {
+        borderColor: '#1B91DA',
+        boxShadow: '0 4px 10px rgba(27, 145, 218, 0.2)',
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(-1px)',
+      }
+    },
+    buttonGlow: {
       position: 'absolute',
       top: '0',
       left: '-100%',
@@ -491,106 +593,26 @@ const DayBook = () => {
       background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
       transition: 'left 0.7s ease'
     },
-    
-    // UPDATED: Button container for proper alignment
-    buttonContainer: {
+    loadingOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(255, 255, 255, 0.8)',
       display: 'flex',
-      alignItems: 'flex-end',
-      height: '100%'
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      fontFamily: TYPOGRAPHY.fontFamily,
     },
-    
-    content: {
-      padding: '30px'
-    },
-    
-    tableContainer: {
-      borderRadius: '12px',
-      overflow: 'hidden',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-      border: `1px solid ${accentColors.border}`,
-      background: 'white'
-    },
-    
-    table: {
-      width: '100%',
-      borderCollapse: 'separate',
-      borderSpacing: '0',
-      marginTop: '0'
-    },
-    
-    tableHeader: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.dark} 100%)`,
-      color: 'white',
-      padding: '18px 20px',
-      textAlign: 'left',
-      fontWeight: '600',
-      fontSize: '14px',
-      border: 'none',
-      position: 'relative',
-      overflow: 'hidden',
-      ':first-child': {
-        borderTopLeftRadius: '12px'
-      },
-      ':last-child': {
-        borderTopRightRadius: '12px'
-      }
-    },
-    
-    tableHeaderGlow: {
-      position: 'absolute',
-      top: '0',
-      left: '0',
-      right: '0',
-      height: '2px',
-      background: `linear-gradient(90deg, transparent, ${accentColors.tertiary}, transparent)`
-    },
-    
-    tableCell: {
-      padding: '16px 20px',
-      borderBottom: `1px solid ${accentColors.border}`,
-      fontSize: '14px',
-      color: accentColors.text,
-      transition: 'all 0.2s ease',
-      fontWeight: '500'
-    },
-    
-    totalCell: {
-      padding: '18px 20px',
-      borderBottom: `1px solid ${accentColors.border}`,
-      fontSize: '15px',
-      fontWeight: '700',
-      background: accentColors.light,
-      borderTop: `2px solid ${accentColors.secondary}`,
-      color: accentColors.dark
-    },
-    
-    tableRow: {
-      transition: 'all 0.3s ease',
-      ':hover': {
-        backgroundColor: `${accentColors.light}80`,
-        transform: 'translateX(2px)'
-      }
-    },
-    
-    emptyState: {
+    loadingBox: {
+      background: 'white',
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
-      padding: '60px 30px',
-      color: accentColors.textLight,
-      fontSize: '16px',
-      background: accentColors.background,
-      borderRadius: '12px',
-      margin: '20px',
-      border: `2px dashed ${accentColors.border}`,
-      transition: 'all 0.3s ease'
     },
-    
-    emptyStateIcon: {
-      fontSize: '48px',
-      marginBottom: '20px',
-      color: accentColors.secondary,
-      opacity: 0.5
-    },
-    
     popupOverlay: {
       position: 'fixed',
       top: 0,
@@ -603,99 +625,83 @@ const DayBook = () => {
       alignItems: 'center',
       zIndex: 1000,
       backdropFilter: 'blur(4px)',
-      animation: 'fadeIn 0.3s ease'
     },
-    
     popupContent: {
       backgroundColor: 'white',
-      borderRadius: '20px',
+      borderRadius: '8px',
       width: '90%',
-      maxWidth: '520px',
+      maxWidth: '500px',
       maxHeight: '80vh',
       overflow: 'hidden',
-      boxShadow: '0 30px 80px rgba(0, 0, 0, 0.2)',
-      border: `1px solid ${accentColors.secondary}`,
-      animation: 'slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+      border: '1px solid #ddd',
     },
-    
     popupHeader: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
+      background: '#1B91DA',
       color: 'white',
-      padding: '24px 30px 24px 30px',
+      padding: '16px 20px',
       margin: 0,
-      fontSize: '22px',
-      fontWeight: '700',
-      borderBottom: `1px solid ${accentColors.dark}`,
-      position: 'relative',
-      letterSpacing: '0.5px'
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      borderBottom: '1px solid #1479c0',
     },
-    
     closeButton: {
       position: 'absolute',
-      right: '20px',
+      right: '15px',
       top: '50%',
       transform: 'translateY(-50%)',
       background: 'rgba(255,255,255,0.2)',
       border: 'none',
       color: 'white',
-      fontSize: '24px',
+      fontSize: '20px',
       cursor: 'pointer',
-      width: '36px',
-      height: '36px',
+      width: '30px',
+      height: '30px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: '10px',
+      borderRadius: '4px',
       transition: 'all 0.3s ease',
       ':hover': {
         background: 'rgba(255,255,255,0.3)',
-        transform: 'translateY(-50%) rotate(90deg)'
       }
     },
-    
     branchList: {
-      padding: '25px',
-      maxHeight: '350px',
-      overflowY: 'auto'
+      padding: '20px',
+      maxHeight: '300px',
+      overflowY: 'auto',
     },
-    
     branchItem: {
       display: 'flex',
       alignItems: 'center',
-      padding: '14px 16px',
-      margin: '8px 0',
-      borderRadius: '10px',
+      padding: '10px 12px',
+      margin: '6px 0',
+      borderRadius: '4px',
       cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      border: `1px solid transparent`,
+      transition: 'all 0.3s ease',
+      border: '1px solid transparent',
       ':hover': {
-        backgroundColor: `${accentColors.light}80`,
-        transform: 'translateX(4px)',
-        borderColor: accentColors.secondary
+        backgroundColor: '#f0f8ff',
+        borderColor: '#1B91DA',
       }
     },
-    
     selectedBranchItem: {
       display: 'flex',
       alignItems: 'center',
-      padding: '14px 16px',
-      margin: '8px 0',
-      borderRadius: '10px',
+      padding: '10px 12px',
+      margin: '6px 0',
+      borderRadius: '4px',
       cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      backgroundColor: `${accentColors.light}`,
-      borderLeft: `4px solid ${accentColors.secondary}`,
-      border: `1px solid ${accentColors.secondary}40`,
-      boxShadow: `0 4px 12px ${accentColors.secondary}20`,
-      transform: 'translateX(4px)'
+      transition: 'all 0.3s ease',
+      backgroundColor: '#f0f8ff',
+      border: '1px solid #1B91DA',
     },
-    
     branchCheckbox: {
-      width: '22px',
-      height: '22px',
-      border: `2px solid ${accentColors.secondary}`,
-      borderRadius: '6px',
-      marginRight: '15px',
+      width: '18px',
+      height: '18px',
+      border: '2px solid #ddd',
+      borderRadius: '4px',
+      marginRight: '12px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -703,280 +709,233 @@ const DayBook = () => {
       backgroundColor: 'white',
       transition: 'all 0.3s ease'
     },
-    
     selectedBranchCheckbox: {
-      width: '22px',
-      height: '22px',
-      border: `2px solid ${accentColors.secondary}`,
-      borderRadius: '6px',
-      marginRight: '15px',
+      width: '18px',
+      height: '18px',
+      border: '2px solid #1B91DA',
+      borderRadius: '4px',
+      marginRight: '12px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
-      backgroundColor: accentColors.secondary,
-      boxShadow: `0 4px 12px ${accentColors.secondary}40`
+      backgroundColor: '#1B91DA',
     },
-    
     checkmark: {
       color: 'white',
       fontWeight: 'bold',
-      fontSize: '14px'
+      fontSize: '12px'
     },
-    
     branchText: {
-      color: accentColors.text,
-      fontSize: '15px',
-      fontWeight: '500'
+      color: '#333',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium
     },
-    
     popupActions: {
-      borderTop: `1px solid ${accentColors.border}`,
-      padding: '25px',
-      backgroundColor: accentColors.background
+      borderTop: '1px solid #ddd',
+      padding: '15px 20px',
+      backgroundColor: '#f5f7fa',
     },
-    
     popupButtons: {
       display: 'flex',
       justifyContent: 'flex-end',
-      gap: '15px'
+      gap: '10px'
     },
-    
     popupButton: {
-      padding: '12px 28px',
+      padding: '8px 16px',
       border: 'none',
-      borderRadius: '10px',
-      fontSize: '14px',
-      fontWeight: '700',
+      borderRadius: '4px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      minWidth: '100px',
-      letterSpacing: '0.5px',
+      transition: 'all 0.3s ease',
+      minWidth: '80px',
+    },
+    okButton: {
+      background: '#1B91DA',
+      color: 'white',
       ':hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 6px 20px rgba(0,0,0,0.1)'
+        background: '#1479c0',
       }
     },
-    
-    okButton: {
-      background: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
-      color: 'white'
-    },
-    
     clearButton: {
       background: 'white',
       color: '#d32f2f',
-      border: `2px solid #ffcdd2`,
+      border: '1px solid #ffcdd2',
       ':hover': {
         background: '#ffebee',
-        boxShadow: '0 6px 20px rgba(211, 47, 47, 0.1)'
       }
     },
-
-    footer: {
-      padding: '20px',
-      backgroundColor: accentColors.background,
-      borderTop: `1px solid ${accentColors.border}`,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
-    },
-
-    // UPDATED: Refresh button styling to match search button
-    refreshButton: {
-      padding: '16px 24px',
-      background: 'white',
-      color: accentColors.text,
-      border: `1.5px solid ${accentColors.border}`,
-      borderRadius: '10px',
-      fontSize: '15px',
-      fontWeight: '700',
-      cursor: 'pointer',
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      letterSpacing: '0.5px',
-      position: 'relative',
-      overflow: 'hidden',
-      width: '100%', // Make button take full width of its cell
-      height: '48px', // Match input height
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      ':hover': {
-        borderColor: accentColors.secondary,
-        boxShadow: `0 4px 12px ${accentColors.secondary}20`,
-        transform: 'translateY(-1px)'
-      },
-      ':active': {
-        transform: 'translateY(-1px)'
-      }
-    }
   };
 
-  const fromCalendarDate = new Date(fromDate);
-  const toCalendarDate = new Date(toDate);
+  // Calculate totals
+  const totalReceipts = dayBookData
+    .filter(row => !row.isTotal && row.receipts)
+    .reduce((sum, row) => sum + parseFloat(row.receipts || 0), 0);
   
-  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const totalPayments = dayBookData
+    .filter(row => !row.isTotal && row.payments)
+    .reduce((sum, row) => sum + parseFloat(row.payments || 0), 0);
 
   return (
     <div style={styles.container}>
-      {/* HEADER */}
-      <div style={styles.header}>
-        <div style={styles.headerDecoration}></div>
-        <h1 style={styles.headerTitle}>
-          Day Book
-          <div style={styles.headerTitleUnderline}></div>
-        </h1>
-        
-        {/* FIRST ROW: From Date, To Date, Branch, Search Button */}
-        <div style={styles.firstRow}>
-          {/* From Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>From Date</div>
-            <div style={styles.dateInputWrapper}>
-              <div 
-                style={styles.dateDisplay}
-                onClick={() => {
-                  setShowFromCalendar(!showFromCalendar);
-                  setShowToCalendar(false);
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div style={styles.loadingOverlay}>
+          <div style={styles.loadingBox}>
+            <div>Loading Day Book Report...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Header Section - Left side: Dates + Branch, Right side: Buttons */}
+      <div style={styles.headerSection}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
+          flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
+          width: '100%',
+        }}>
+          {/* LEFT SIDE: Dates and Branch */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flex: 1,
+            gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+            flexWrap: 'wrap',
+          }}>
+            {/* From Date - VERY SMALL */}
+            <div style={{
+              ...styles.formField,
+              minWidth: screenSize.isMobile ? 'calc(50% - 8px)' : 'auto',
+            }}>
+              <label style={styles.dateLabel}>From:</label>
+              <input
+                type="date"
+                data-header="fromDate"
+                style={
+                  focusedField === 'fromDate'
+                    ? styles.dateInputFocused
+                    : styles.dateInput
+                }
+                value={fromDate}
+                onChange={handleFromDateChange}
+                ref={fromDateRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'fromDate');
                 }}
-              >
-                {formatDateForDisplay(fromDate)}
-                <span style={styles.calendarIcon}>📅</span>
-              </div>
-              
-              {showFromCalendar && (
-                <div style={styles.calendarPopup}>
-                  <div style={styles.calendarHeader}>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(fromCalendarDate);
-                        newDate.setMonth(newDate.getMonth() - 1);
-                        handleDateChange('from', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ‹
-                    </button>
-                    <div style={styles.calendarMonthYear}>
-                      {months[fromCalendarDate.getMonth()]} {fromCalendarDate.getFullYear()}
-                    </div>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(fromCalendarDate);
-                        newDate.setMonth(newDate.getMonth() + 1);
-                        handleDateChange('from', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ›
-                    </button>
-                  </div>
-                  
-                  <div style={styles.calendarWeekDays}>
-                    {weekDays.map(day => (
-                      <div key={day} style={styles.calendarWeekDay}>{day}</div>
-                    ))}
-                  </div>
-                  
-                  <div style={styles.calendarDays}>
-                    {generateCalendar(fromCalendarDate, 'from')}
-                  </div>
-                </div>
-              )}
+                onFocus={() => setFocusedField('fromDate')}
+                onBlur={() => setFocusedField('')}
+              />
             </div>
-          </div>
-          
-          {/* To Date */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>To Date</div>
-            <div style={styles.dateInputWrapper}>
-              <div 
-                style={styles.dateDisplay}
-                onClick={() => {
-                  setShowToCalendar(!showToCalendar);
-                  setShowFromCalendar(false);
+
+            {/* To Date - VERY SMALL */}
+            <div style={{
+              ...styles.formField,
+              minWidth: screenSize.isMobile ? 'calc(50% - 8px)' : 'auto',
+            }}>
+              <label style={styles.dateLabel}>To:</label>
+              <input
+                type="date"
+                data-header="toDate"
+                style={
+                  focusedField === 'toDate'
+                    ? styles.dateInputFocused
+                    : styles.dateInput
+                }
+                value={toDate}
+                onChange={handleToDateChange}
+                ref={toDateRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'toDate');
                 }}
+                onFocus={() => setFocusedField('toDate')}
+                onBlur={() => setFocusedField('')}
+              />
+            </div>
+
+            {/* Branch - MEDIUM/LARGE with SPACER */}
+            <div style={{
+              ...styles.formField,
+              flex: 1,
+              minWidth: screenSize.isMobile ? '100%' : '180px',
+            }}>
+              <label style={styles.branchLabel}>Branch:</label>
+              <div
+                style={
+                  focusedField === 'branch'
+                    ? styles.branchInputFocused
+                    : styles.branchInput
+                }
+                onClick={() => {
+                  handleBranchClick();
+                  setFocusedField('branch');
+                }}
+                ref={branchRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'branch');
+                  if (e.key === 'Enter') {
+                    handleBranchClick();
+                  }
+                }}
+                onFocus={() => setFocusedField('branch')}
+                onBlur={() => setFocusedField('')}
+                tabIndex={0}
               >
-                {formatDateForDisplay(toDate)}
-                <span style={styles.calendarIcon}>📅</span>
+                <span style={{
+                  fontSize: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
+                  color: '#333',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}>
+                  {branchDisplay}
+                </span>
+                <span style={{ 
+                  color: '#1B91DA', 
+                  fontSize: screenSize.isMobile ? '10px' : '11px', 
+                  marginLeft: '8px' 
+                }}>▼</span>
               </div>
-              
-              {showToCalendar && (
-                <div style={styles.calendarPopup}>
-                  <div style={styles.calendarHeader}>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(toCalendarDate);
-                        newDate.setMonth(newDate.getMonth() - 1);
-                        handleDateChange('to', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ‹
-                    </button>
-                    <div style={styles.calendarMonthYear}>
-                      {months[toCalendarDate.getMonth()]} {toCalendarDate.getFullYear()}
-                    </div>
-                    <button 
-                      style={styles.calendarNavButton}
-                      onClick={() => {
-                        const newDate = new Date(toCalendarDate);
-                        newDate.setMonth(newDate.getMonth() + 1);
-                        handleDateChange('to', newDate.toISOString().split('T')[0]);
-                      }}
-                    >
-                      ›
-                    </button>
-                  </div>
-                  
-                  <div style={styles.calendarWeekDays}>
-                    {weekDays.map(day => (
-                      <div key={day} style={styles.calendarWeekDay}>{day}</div>
-                    ))}
-                  </div>
-                  
-                  <div style={styles.calendarDays}>
-                    {generateCalendar(toCalendarDate, 'to')}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-          
-          {/* Branch */}
-          <div style={styles.controlGroup}>
-            <div style={styles.controlLabel}>Branch</div>
-            <div 
-              style={styles.branchInput}
-              onClick={handleBranchClick}
-            >
-              {selectedBranches.length > 0 
-                ? selectedBranches.join(', ') 
-                : 'Select Branch'}
-              <span style={{color: accentColors.secondary, fontSize: '12px', transition: 'transform 0.3s ease'}}>▼</span>
-            </div>
-          </div>
-          
-          {/* Search Button */}
-          <div style={styles.buttonContainer}>
-            <button 
+
+          {/* SPACER BETWEEN LEFT AND RIGHT SIDES - LARGE GAP */}
+          <div style={{
+            width: screenSize.isMobile ? '0' : screenSize.isTablet ? '30px' : '40px',
+            flexShrink: 0,
+          }} />
+
+          {/* RIGHT SIDE: Buttons */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+            flexShrink: 0,
+          }}>
+            {/* Search Button - MEDIUM */}
+            <button
               style={styles.searchButton}
               onClick={handleSearch}
               onMouseEnter={() => setHoveredButton(true)}
               onMouseLeave={() => setHoveredButton(false)}
+              ref={searchButtonRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
             >
               Search
-              {hoveredButton && <div style={styles.searchButtonGlow}></div>}
+              {hoveredButton && <div style={styles.buttonGlow}></div>}
             </button>
-          </div>
 
-          {/* Refresh Button */}
-          <div style={styles.buttonContainer}>
-            <button 
+            {/* Refresh Button - MEDIUM */}
+            <button
               style={styles.refreshButton}
-              onClick={() => setTableLoaded(false)}
+              onClick={handleRefresh}
             >
               Refresh
             </button>
@@ -984,46 +943,108 @@ const DayBook = () => {
         </div>
       </div>
 
-      {/* TABLE CONTENT */}
-      <div style={styles.content}>
+      {/* Table Section */}
+      <div style={styles.tableSection}>
         <div style={styles.tableContainer}>
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.tableHeader}>
-                  Acc Name
-                  <div style={styles.tableHeaderGlow}></div>
-                </th>
-                <th style={styles.tableHeader}>
-                  Receipts
-                  <div style={styles.tableHeaderGlow}></div>
-                </th>
-                <th style={styles.tableHeader}>
-                  Payments
-                  <div style={styles.tableHeaderGlow}></div>
-                </th>
+                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Acc Name</th>
+                <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Receipts</th>
+                <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Payments</th>
               </tr>
             </thead>
             <tbody>
-              {(tableLoaded ? dayBookData : []).map((row, index) => (
-                <tr key={index} style={styles.tableRow}>
-                  <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
-                    {row.accName}
-                  </td>
-                  <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
-                    {row.receipts}
-                  </td>
-                  <td style={row.isTotal ? styles.totalCell : styles.tableCell}>
-                    {row.payments}
+              {tableLoaded ? (
+                dayBookData.length > 0 ? (
+                  dayBookData.map((row, index) => (
+                    <tr key={index} style={{ 
+                      backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                      ...(row.isTotal ? { backgroundColor: '#f0f8ff', fontWeight: 'bold' } : {})
+                    }}>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '200px', 
+                        width: '200px', 
+                        maxWidth: '200px',
+                        textAlign: 'left',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.accName}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '150px', 
+                        width: '150px', 
+                        maxWidth: '150px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.receipts ? `₹${parseFloat(row.receipts || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}` : ''}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '150px', 
+                        width: '150px', 
+                        maxWidth: '150px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.payments ? `₹${parseFloat(row.payments || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}` : ''}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      No records found
+                    </td>
+                  </tr>
+                )
+              ) : (
+                <tr>
+                  <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    Enter search criteria and click "Search" to view day book entries
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* BRANCH POPUP */}
+      {/* Footer Section with Totals - CENTERED */}
+      <div style={styles.footerSection}>
+        <div style={{
+          ...styles.balanceContainer,
+          justifyContent: 'center',
+          width: '100%',
+        }}>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Receipts</span>
+            <span style={styles.balanceValue}>
+              ₹{totalReceipts.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Payments</span>
+            <span style={styles.balanceValue}>
+              ₹{totalPayments.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Branch Selection Popup */}
       {showBranchPopup && (
         <div style={styles.popupOverlay} onClick={handlePopupClose}>
           <div 
