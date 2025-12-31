@@ -1454,6 +1454,29 @@ if (e.key === 'Enter') {
 
       const totals = calculateTotals(items);
 
+        // Prepare barcode generator for empty barcodes: returns current then increments
+      const createBarcodeGenerator = (start) => {
+        const s = String(start || '');
+        const m = s.match(/(\d+)$/);
+        if (!m) {
+          // No trailing number: use numeric counter starting at 1 with width 6
+          let counter = 1;
+          const width = 6;
+          return () => String(counter++).padStart(width, '0');
+        }
+        const numStr = m[1];
+        const prefix = s.slice(0, -numStr.length);
+        let counter = parseInt(numStr, 10);
+        const width = numStr.length;
+        return () => {
+          const current = prefix + String(counter).padStart(width, '0');
+          counter += 1;
+          return current;
+        };
+      };
+
+      const nextBarcode = createBarcodeGenerator(autoBarcode);
+
       const payload = {
         bledger: {
           customerCode: billDetails.partyCode || '',
@@ -1482,7 +1505,7 @@ if (e.key === 'Enter') {
         items: items
           .filter((it) => it.itemcode && it.itemcode.trim() !== '')
           .map((it) => ({          
-            barcode: it.barcode || autoBarcode,
+            barcode: (it.barcode && String(it.barcode).trim()) ? it.barcode : nextBarcode(),
             itemCode: it.itemcode || '',
             qty: toNumber(it.qty),
             rate: toNumber(it.prate),
