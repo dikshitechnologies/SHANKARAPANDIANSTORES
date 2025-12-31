@@ -23,7 +23,8 @@ const CheckboxPopup = ({
   title,
   maxHeight = "60vh",
   initialSelectedCodes = [],
-  variant = ''
+  variant = '',
+  autoFocusOk = false
 }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ const CheckboxPopup = ({
   const [selectedCodes, setSelectedCodes] = useState(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const modalRef = useRef();
+  const okButtonRef = useRef(null);
 
   const isSizeVariant = (variant === 'size');
 
@@ -83,6 +85,12 @@ const CheckboxPopup = ({
   useEffect(() => {
     if (open) {
       loadItems();
+    }
+    // If opening and autoFocusOk requested, focus OK button after render
+    if (open && autoFocusOk) {
+      setTimeout(() => {
+        okButtonRef.current?.focus();
+      }, 10);
     }
   }, [open]);
 
@@ -415,7 +423,9 @@ const CheckboxPopup = ({
             Clear
           </button>
           <button
+            ref={okButtonRef}
             onClick={handleConfirm}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleConfirm(); } }}
             style={{
               padding: isSizeVariant ? '10px 26px' : '10px 24px',
               background: '#2f9cf0',
