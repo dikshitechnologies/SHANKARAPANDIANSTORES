@@ -191,61 +191,82 @@ const SalesReturn = () => {
     isDesktop: true
   });
 
-  useEffect(() => {
-    if (!billDetailsPopupOpen) return;
+ // Add this useEffect for Spacebar handling in bill details popup
+useEffect(() => {
+  if (!billDetailsPopupOpen) return;
 
-    const handleKeyDown = (e) => {
-      // ❗ Ignore if user typing in input
-      if (
-        
-        e.target.tagName === "TEXTAREA"
-      ) {
-        return;
-      }
+  const handleKeyDown = (e) => {
+    // ❗ Ignore if user typing in input
+    if (
+      e.target.tagName === "INPUT" ||
+      e.target.tagName === "TEXTAREA"
+    ) {
+      return;
+    }
 
-      const billNo = selectedBillForDetails;
-      if (!billNo) return;
+    const billNo = selectedBillForDetails;
+    if (!billNo) return;
 
-      const details = billDetailsData[billNo];
-      const itemsArray = details?.items || details?.details || [];
-      if (itemsArray.length === 0) return;
+    const details = billDetailsData[billNo];
+    const itemsArray = details?.items || details?.details || [];
+    if (itemsArray.length === 0) return;
 
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setBillPopupRowIndex(prev =>
-          Math.min(prev + 1, itemsArray.length - 1)
-        );
-      }
+    // Arrow navigation
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setBillPopupRowIndex(prev =>
+        Math.min(prev + 1, itemsArray.length - 1)
+      );
+    }
 
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setBillPopupRowIndex(prev =>
-          Math.max(prev - 1, 0)
-        );
-      }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setBillPopupRowIndex(prev =>
+        Math.max(prev - 1, 0)
+      );
+    }
 
-      if (e.key === "Enter") {
-        e.preventDefault();
-        const item = itemsArray[billPopupRowIndex];
-        if (!item) return;
+    // ✅ ENTER KEY: Toggle checkbox
+    if (e.key === "Enter") {
+      e.preventDefault();
+      toggleCheckbox();
+    }
 
-        const key = item.fItemcode || item.itemCode;
-        setCheckedBills(prev => ({
-          ...prev,
-          [key]: !prev[key]
-        }));
-      }
-    };
+    // ✅ SPACEBAR KEY: Toggle checkbox
+    if (e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      toggleCheckbox();
+    }
+  };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    billDetailsPopupOpen,
-    selectedBillForDetails,
-    billDetailsData,
-    billPopupRowIndex
-  ]);
+  const toggleCheckbox = () => {
+    const billNo = selectedBillForDetails;
+    if (!billNo) return;
 
+    const details = billDetailsData[billNo];
+    const itemsArray = details?.items || details?.details || [];
+    const item = itemsArray[billPopupRowIndex];
+    
+    if (!item) return;
+
+    // Use consistent key format
+    const key = `${item.barcode || item.barcode || ""}-${billPopupRowIndex}`;
+    
+    setCheckedBills(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [
+  billDetailsPopupOpen,
+  selectedBillForDetails,
+  billDetailsData,
+  billPopupRowIndex,
+  checkedBills
+]);
   useEffect(() => {
     if (!billDetailsPopupOpen) return;
 
