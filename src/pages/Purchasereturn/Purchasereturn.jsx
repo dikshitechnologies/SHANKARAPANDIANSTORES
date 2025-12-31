@@ -1440,6 +1440,28 @@ if (e.key === 'Enter') {
       //   return;
       // }
 
+
+
+       const invalidQtyIndex = items.findIndex(it => {
+        const hasItem = (it.itemcode && it.itemcode.toString().trim() !== '') || (it.name && it.name.toString().trim() !== '');
+        const qtyNum = Number(it.qty);
+        return hasItem && (!it.qty || Number.isNaN(qtyNum) || qtyNum <= 0);
+      });
+
+      if (invalidQtyIndex !== -1) {
+        showAlertConfirmation('Please enter quantity for all items before saving', () => {
+          // Focus the qty input for the first invalid row
+          setTimeout(() => {
+            const qtyInput = document.querySelector(`input[data-row="${invalidQtyIndex}"][data-field="qty"]`);
+            if (qtyInput) {
+              qtyInput.focus();
+              qtyInput.select && qtyInput.select();
+            }
+          }, 100);
+        }, 'warning');
+        return;
+      }
+
       // Validation: Check if at least one row has item data
       const hasValidItems = items.some(item =>         
         item.name && item.name.trim() !== ''
