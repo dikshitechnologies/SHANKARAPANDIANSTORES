@@ -239,6 +239,10 @@ const fetchBankList = async (page, search) => {
 const [upiPopupOpen, setUpiPopupOpen] = useState(false);
 const [cardPopupOpen, setCardPopupOpen] = useState(false);
 
+// initial search text when opening popups by typing
+const [upiPopupInitialSearch, setUpiPopupInitialSearch] = useState('');
+const [cardPopupInitialSearch, setCardPopupInitialSearch] = useState('');
+
 const [upiBank, setUpiBank] = useState(null);
 const [cardBank, setCardBank] = useState(null);
 
@@ -1031,7 +1035,17 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
+    <div
+      className={styles.modalOverlay}
+      onClick={(e) => {
+        // When either popup is open, avoid closing the Tender modal by outer overlay clicks
+        if (upiPopupOpen || cardPopupOpen) {
+          e.stopPropagation();
+          return;
+        }
+        onClose();
+      }}
+    >
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.container}>
           {/* Header */}
@@ -1390,10 +1404,20 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                         type="text"
                         value={formData.upiBank}
                         onChange={(e) => handleInputChange('upiBank', e.target.value)}
-                        onKeyDown={handleUPIBankKeyDown}
+                        onKeyDown={(e) => {
+                          // If user types a printable character, open popup and prefill search
+                          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setUpiPopupInitialSearch(e.key);
+                            setUpiPopupOpen(true);
+                          } else {
+                            handleUPIBankKeyDown(e);
+                          }
+                        }}
                         placeholder="Select UPI Bank"
                         className={styles.paymentInput}
-                        onClick={() => setUpiPopupOpen(true)}
+                        onClick={() => { setUpiPopupInitialSearch(''); setUpiPopupOpen(true); }}
                       />
                     </div>
                   </div>
@@ -1422,8 +1446,17 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                         type="text"
                         value={formData.cardBank}
                         onChange={(e) => handleInputChange('cardBank', e.target.value)}
-                        onKeyDown={handleCardBankKeyDown}
-                        onClick={() => setCardPopupOpen(true)}
+                        onKeyDown={(e) => {
+                          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setCardPopupInitialSearch(e.key);
+                            setCardPopupOpen(true);
+                          } else {
+                            handleCardBankKeyDown(e);
+                          }
+                        }}
+                        onClick={() => { setCardPopupInitialSearch(''); setCardPopupOpen(true); }}
                         placeholder="Select Card Bank"
                         className={styles.paymentInput}
                       />
@@ -1559,40 +1592,44 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
 
 
       <PopupListSelector
-  open={upiPopupOpen}
-  onClose={() => setUpiPopupOpen(false)}
-  title="Select UPI Bank"
-  fetchItems={fetchBankList}
-  displayFieldKeys={['fAcname']}
-  searchFields={['fAcname']}
-  headerNames={['UPI Bank Name']}
-  onSelect={(item) => {
-    setUpiBank(item); // for fCode
-    setFormData(prev => ({
-      ...prev,
-      upiBank: item.fAcname   // ✅ SHOW in input
-    }));
-    setUpiPopupOpen(false);
-  }}
-/>
+        open={upiPopupOpen}
+        onClose={() => { setUpiPopupOpen(false); setUpiPopupInitialSearch(''); }}
+        initialSearch={upiPopupInitialSearch}
+        title="Select UPI Bank"
+        fetchItems={fetchBankList}
+        displayFieldKeys={['fAcname']}
+        searchFields={['fAcname']}
+        headerNames={['UPI Bank Name']}
+        onSelect={(item) => {
+          setUpiBank(item); // for fCode
+          setFormData(prev => ({
+            ...prev,
+            upiBank: item.fAcname   // ✅ SHOW in input
+          }));
+          setUpiPopupInitialSearch('');
+          setUpiPopupOpen(false);
+        }}
+      />
 
-<PopupListSelector
-  open={cardPopupOpen}
-  onClose={() => setCardPopupOpen(false)}
-  title="Select Card Bank"
-  fetchItems={fetchBankList}
-  displayFieldKeys={['fAcname']}
-  searchFields={['fAcname']}
-  headerNames={['Card Bank Name']}
-  onSelect={(item) => {
-    setCardBank(item); // for fCode
-    setFormData(prev => ({
-      ...prev,
-      cardBank: item.fAcname  // ✅ SHOW in input
-    }));
-    setCardPopupOpen(false);
-  }}
-/>
+      <PopupListSelector
+        open={cardPopupOpen}
+        onClose={() => { setCardPopupOpen(false); setCardPopupInitialSearch(''); }}
+        initialSearch={cardPopupInitialSearch}
+        title="Select Card Bank"
+        fetchItems={fetchBankList}
+        displayFieldKeys={['fAcname']}
+        searchFields={['fAcname']}
+        headerNames={['Card Bank Name']}
+        onSelect={(item) => {
+          setCardBank(item); // for fCode
+          setFormData(prev => ({
+            ...prev,
+            cardBank: item.fAcname  // ✅ SHOW in input
+          }));
+          setCardPopupInitialSearch('');
+          setCardPopupOpen(false);
+        }}
+      />
 
 
     </div>
