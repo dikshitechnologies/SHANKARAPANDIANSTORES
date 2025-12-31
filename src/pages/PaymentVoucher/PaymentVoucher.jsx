@@ -496,26 +496,9 @@ const PaymentVoucher = () => {
           break;
           
         case 'accountName':
-  if (!voucherDetails.accountName?.trim()) {
-    toast.warning('Please fill A/C Name', {
-      autoClose: 2000,
-      position: 'top-right',
-    });
-
-    // keep focus here
-    setTimeout(() => {
-      accountNameRef.current?.focus();
-      setNavigationStep('accountName');
-    }, 0);
-
-    return; // ⛔ STOP ENTER navigation
-  }
-
-  // ✅ move only if filled
-  gstTypeRef.current?.focus();
-  setNavigationStep('gstType');
-  break;
-
+          gstTypeRef.current?.focus();
+          setNavigationStep('gstType');
+          break;
           
         case 'gstType':
           if (paymentCashBankRefs.current[0]) {
@@ -1573,26 +1556,34 @@ const PaymentVoucher = () => {
         const issueCount = parseInt(issueValue) || 0;
         issuedTotal += issueCount * denom;
       });
+
+
+
+      
+      
       
       // **VALIDATION: Net Amount = Collected Amount - Issued Amount (ONLY FOR CASH PAYMENTS)**
       if (hasCashPayments) {
-        const netAmount = givenTotal + totalAmount - issuedTotal;
+        const netAmount = givenTotal - issuedTotal;
         // Custom validation: Collected amount < total amount
-        if (givenTotal < totalAmount) {
-          setConfirmationPopup({
-            isOpen: true,
-            title: 'Validation Error',
-            message: 'Collected amount is less than total amount. Please check the denominations entered.',
-            type: 'warning',
-            confirmText: 'OK',
-            cancelText: null,
-            action: null,
-            isLoading: false
-          });
-          setIsSaving(false);
-          return;
-        }
-        if (Math.abs(netAmount == totalAmount)) {
+        // if (givenTotal < totalAmount) {
+        // if (Math.abs(netAmount) !== Math.abs(totalAmount)) {
+        //   setConfirmationPopup({
+        //     isOpen: true,
+        //     title: 'Validation Error',
+        //     message: 'Collected amount is less than total amount. Please check the denominations entered.',
+        //     type: 'warning',
+        //     confirmText: 'OK',
+        //     cancelText: null,
+        //     action: null,
+        //     isLoading: false
+        //   });
+        //   setIsSaving(false);
+        //   return;
+        // }
+        // if (Math.abs(netAmount - totalAmount) > 0.01) {
+        
+        if (Math.abs(netAmount) !== Math.abs(totalAmount)) {
           const errorMessage = `Net amount not tallying`;
           setError(errorMessage);
           setConfirmationPopup({
