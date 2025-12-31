@@ -862,11 +862,11 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
         fIssueCash: Number(formData.issuedCash) || 0,
         fupi: Number(formData.upi) || 0,
         fcard: Number(formData.card) || 0,
-         fcardcode: cardBank?.fCode || '',   // Card Bank
-          fupIcode: upiBank?.fCode || '',     // UPI Bank
-          balanceAmt: balanceAmt,
-          servicechrge: serviceChargePercent,
-          servicechrgeAmt: serviceChargeAmount,
+        fcardcode: cardBank?.fCode || '',   // Card Bank
+        fupIcode: upiBank?.fCode || '',     // UPI Bank
+        balanceAmt: balanceAmt,
+        servicechrge: formData.serviceChargePercent || 0,
+        servicechrgeAmt: formData.serviceChargeAmount || 0,
         collect: {
           r500: Number(denominations[500].collect) || 0,
           r200: Number(denominations[200].collect) || 0,
