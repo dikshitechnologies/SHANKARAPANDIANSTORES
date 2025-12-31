@@ -91,7 +91,7 @@ const ReceiptVoucher = () => {
       crDr: 'CR',
       type: 'CASH',
       chqNo: '',
-      chqDt: '',
+      chqDt: new Date().toISOString().substring(0, 10),
       narration: '',
       amount: ''
     }
