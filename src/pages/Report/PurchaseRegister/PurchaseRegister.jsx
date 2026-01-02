@@ -541,7 +541,7 @@ const PurchaseRegister = () => {
       left: 0,
       right: 0,
       flex: '0 0 auto',
-      display: 'flex',
+      // display: 'flex',
       flexDirection: screenSize.isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
