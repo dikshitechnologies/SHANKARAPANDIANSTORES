@@ -2565,6 +2565,9 @@ if (e.key === 'Enter') {
                   } else if (e.key === 'Enter') {
                     e.preventDefault();
                     // Navigate to first row's name field in the table
+                      if (!billDetails.customerName?.trim()) {
+                      validateCustomer();
+                    }
                     const firstRowNameInput = document.querySelector(
                       `input[data-row="0"][data-field="name"]`
                     );
@@ -2577,9 +2580,7 @@ if (e.key === 'Enter') {
                 onBlur={() => {
                   setFocusedField('');
 
-                   if (!billDetails.customerName?.trim()) {
-                      validateCustomer();
-                    }
+                 
                   setTimeout(() => {
                     if (!showSupplierPopup) {
                       setItemSearchTerm('');

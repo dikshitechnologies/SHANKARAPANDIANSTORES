@@ -3735,11 +3735,11 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         }}
         title="Select Item Code"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search)}
-        displayFieldKeys={['barcode','name']}
-        headerNames={['Barcode','Name']}
-        searchFields={['barcode','name']}
-        columnWidths={{ barcode: '50%', name: '50%' }}
-        searchPlaceholder="Search by barcode or name..."
+        displayFieldKeys={['name','barcode']}
+        headerNames={['Name','Barcode']}
+        searchFields={['name',' barcode']}
+        columnWidths={{ name: '50%',barcode : '50%' }}
+        searchPlaceholder="Search by name or barcode..."
         initialSearch={itemSearchTerm}
         onSelect={handleItemCodeSelection}
       />
