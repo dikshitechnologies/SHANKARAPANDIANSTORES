@@ -96,8 +96,10 @@ const SalesReturn = () => {
   // 3. Totals State
   const [totalQty, setTotalQty] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
-  
- 
+  const PAGE_SIZE = 20;
+  const [discountPercent, setDiscountPercent] = useState(0);
+const [discountAmount, setDiscountAmount] = useState(0);
+
   const [roundedTotalAmount, setRoundedTotalAmount] = useState(0);
 const [roundOffValue, setRoundOffValue] = useState(0);
 
@@ -138,6 +140,7 @@ const [roundOffValue, setRoundOffValue] = useState(0);
   const [selectedBillForDetails, setSelectedBillForDetails] = useState(null);
   const [billDetailsSearchText, setBillDetailsSearchText] = useState("");
   const [billPopupRowIndex, setBillPopupRowIndex] = useState(0);
+
 
   // 7. API Data State
   const [customers, setCustomers] = useState([]);
@@ -187,6 +190,9 @@ const [roundOffValue, setRoundOffValue] = useState(0);
     fieldIndex: 0,
     fieldName: 'billDate'
   });
+
+
+  
 
   const [screenSize, setScreenSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
@@ -549,59 +555,64 @@ useEffect(() => {
     }, [activeTopAction]);
 
   const resetForm = async () => {
-    try {
-      // Ensure we're in ADD mode
-      setIsEditMode(false);
+  try {
+    // Ensure we're in ADD mode
+    setIsEditMode(false);
 
-      // Reset bill details to default
-      setBillDetails({
-        billNo: 'SR0000001',
-        billDate: new Date().toISOString().substring(0, 10),
-        mobileNo: '',
-        salesman: '',
-        salesmanCode: '002',
-        custName: '',
-        customerCode: '',
-        returnReason: '',
-        partyCode: '',
-        gstno: '',
-        city: '',
-        type: 'Retail',
-        transType: 'SALES RETURN',
-        billAMT: '0',
-        newBillNo: ''
-      });
+    // Reset bill details to default
+    setBillDetails({
+      billNo: 'SR0000001',
+      billDate: new Date().toISOString().substring(0, 10),
+      mobileNo: '',
+      salesman: '',
+      salesmanCode: '002',
+      custName: '',
+      customerCode: '',
+      returnReason: '',
+      partyCode: '',
+      gstno: '',
+      city: '',
+      type: 'Retail',
+      transType: 'SALES RETURN',
+      billAMT: '0',
+      newBillNo: ''
+    });
 
-      // Reset items to single empty row (WRate field removed)
-      setItems([
-        {
-          id: 1,
-          sNo: 1,
-          barcode: '',
-          itemName: '',
-          stock: '',
-          mrp: '',
-          uom: '',
-          hsn: '',
-          tax: '',
-          sRate: '',
-          qty: '',
-          amount: '0.00',
-          itemCode: '',
-          isReadOnly: false
-        }
-      ]);
+    // Reset items to single empty row (WRate field removed)
+    setItems([
+      {
+        id: 1,
+        sNo: 1,
+        barcode: '',
+        itemName: '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        sRate: '',
+        qty: '',
+        amount: '0.00',
+        itemCode: '',
+        isReadOnly: false
+      }
+    ]);
 
-      // Fetch new voucher number and refresh voucher list
-      await fetchMaxVoucherNo();
-      await fetchVoucherList();
-      setActiveTopAction('add');
-      
-    } catch (err) {
-      console.error("Error resetting form:", err);
-      toast.error("Error resetting form. Please try again.");
-    }
-  };
+    // Reset discount fields
+    setDiscount("");
+    setDiscountPercent(0);
+    setDiscountAmount(0);
+
+    // Fetch new voucher number and refresh voucher list
+    await fetchMaxVoucherNo();
+    await fetchVoucherList();
+    setActiveTopAction('add');
+    
+  } catch (err) {
+    console.error("Error resetting form:", err);
+    toast.error("Error resetting form. Please try again.");
+  }
+};
 
   // ---------- CONFIRMATION POPUP HANDLERS ----------
   const showConfirmation = (config) => {
@@ -846,6 +857,10 @@ const handleApplyBillNumber = async () => {
       const itemsArray = voucherDetails.items || voucherDetails.details || [];
       
       if (header) {
+        // Extract discount values from header
+        const discountValue = parseFloat(header.discount || 0);
+        const discountAmountValue = parseFloat(header.discountAMT || 0);
+        
         setBillDetails(prev => ({
           ...prev,
           custName: header.customerName || header.customer || "",
@@ -856,6 +871,11 @@ const handleApplyBillNumber = async () => {
           salesman: header.sManName || header.salesMansName || "",
           salesmanCode: header.sManCode || header.salesMansCode || "002"
         }));
+        
+        // Set discount values
+        setDiscount(discountValue.toString());
+        setDiscountPercent(discountValue);
+        setDiscountAmount(discountAmountValue);
       }
       
       if (itemsArray && itemsArray.length > 0) {
@@ -894,10 +914,13 @@ const handleApplyBillNumber = async () => {
           
           setItems(transformedItems);
           
-          // toast.success(
-          //   `Selected ${filteredItems.length} items applied successfully!`,
-          //   { autoClose: 2000 }
-          // );
+          // Show success message with discount info
+          if (header.discount || header.discountAMT) {
+            // toast.success(
+            //   `Selected ${filteredItems.length} items applied successfully!\nDiscount: ${header.discount || 0}% (₹${header.discountAMT || 0})`,
+            //   { autoClose: 2500 }
+            // );
+          }
         } else {
           toast.warning("No items selected. Please check at least one item checkbox.");
         }
@@ -928,7 +951,6 @@ const handleApplyBillNumber = async () => {
     }
   }, 150);
 };
-
   // Clear selected bill number
   const handleClearBillNumber = () => {
     setBillDetails(prev => ({ ...prev, newBillNo: '' }));
@@ -1345,7 +1367,8 @@ const createSalesReturn = async () => {
         userCode: "001",
         billAMT: totalAmount.toFixed(2).toString(),
         RefNo: (billDetails.newBillNo || "").toString(),
-      
+        discount: discountPercent.toString(), // Add discount percentage
+        discountAMT: discountAmount.toString(), // Add discount amount
       },
       items: validItems.map((item, index) => ({
         barcode: (item.barcode || "").toString(),
@@ -1370,12 +1393,15 @@ const createSalesReturn = async () => {
     
     if (response && response.success) {
       // toast.success(
-      //   `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+      //   `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}\nDiscount: ${discountPercent}% (₹${discountAmount})`,
       //   { autoClose: 3000 }
       // );
       
       // Reset form after successful creation
       await resetForm();
+      setDiscountPercent(0);
+      setDiscountAmount(0);
+      setDiscount("");
       
       return response;
     } else {
@@ -1431,7 +1457,6 @@ const createSalesReturn = async () => {
 
 
 
-  // ==================== UPDATE SALES RETURN ====================
 // ==================== UPDATE SALES RETURN ====================
 const updateSalesReturn = async () => {
   try {
@@ -1458,7 +1483,8 @@ const updateSalesReturn = async () => {
         userCode: "001",
         billAMT: totalAmount.toFixed(2).toString(),
         refNo: (billDetails.newBillNo || "").toString(),
-    
+        discount: discountPercent.toString(), // Add discount percentage
+        discountAMT: discountAmount.toString(), // Add discount amount
       },
       items: validItems.map((item, index) => ({
         barcode: (item.barcode || "").toString(),
@@ -1472,7 +1498,6 @@ const updateSalesReturn = async () => {
         srate: (item.sRate || "0").toString(),
         qty: (parseFloat(item.qty || 0)).toFixed(2).toString(), // ✅ POSITIVE quantity for return
         amount: (item.amount || "0").toString(),
-      
       }))
     };
 
@@ -1483,12 +1508,15 @@ const updateSalesReturn = async () => {
     
     if (response && response.success) {
       // toast.success(
-      //   `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}`,
+      //   `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}\nDiscount: ${discountPercent}% (₹${discountAmount})`,
       //   { autoClose: 3000 }
       // );
       
       // Reset form after successful update
       await resetForm();
+      setDiscountPercent(0);
+      setDiscountAmount(0);
+      setDiscount("");
       
       return response;
     } else {
@@ -2192,87 +2220,123 @@ const updateSalesReturn = async () => {
     }
   };
 
-  const fetchItemsForPopup = async (pageNum, search) => {
-    let filtered = [];
-    
-    if (popupType === "billNumber") {
-      const bills = await fetchSalesInvoiceBillList(pageNum, 20);
-      
-      filtered = bills.map((bill, index) => {
-        const billNo = bill.voucherNo || bill.billNo || bill.invoiceNo || 
-                      bill.code || bill.id || `BILL-${((pageNum-1) * 20) + index + 1}`;
-        
-        const customerName = bill.customerName || bill.customer || bill.partyName || "";
-        const displayText = customerName ? `${customerName}` : billNo;
-        
-        return {
-          id: billNo,
-          code: billNo,
-          name: displayText,
-          displayName: displayText,
-          customerName: customerName,
-          voucherDate: bill.voucherDate || bill.billDate || bill.date || "",
-          originalData: bill,
-        };
-      });
-      
-      if (search) {
-        const searchLower = search.toLowerCase();
-        filtered = filtered.filter(item => {
-          return (
-            (item.name && item.name.toLowerCase().includes(searchLower)) ||
-            (item.customerName && item.customerName.toLowerCase().includes(searchLower))
-          );
-        });
-      }
-    } else if (popupType === "item") {
-      // Fetch items from API
-      await fetchItems();
-      
-      // Map items from itemList state
-      filtered = itemList.map((item, index) => {
-        const itemCode = item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
-        const itemName = item.fItemName || item.itemName || item.name || 'Unknown Item';
-        
-        return {
-          ...item, // ✅ Spread ALL item properties (finalPrefix, units, hsn, preRate, maxQty, etc.)
-          id: itemCode || `item-${index}`,
-          code: itemCode,
-          name: itemName,
-          displayName: itemName,
-          itemCode: itemCode,
-          itemName: itemName
-        };
-      });
-      
-      // Apply search filter
-      if (search) {
-        const searchLower = search.toLowerCase();
-        filtered = filtered.filter(item => {
-          return (
-            (item.name && item.name.toLowerCase().includes(searchLower)) ||
-            (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
-            (item.itemName && item.itemName.toLowerCase().includes(searchLower))
-          );
-        });
-      }
-    } else {
-      filtered = popupData.filter(item => {
-        if (!search) return true;
-        const searchLower = search.toLowerCase();
-        return (
-          (item.name && item.name.toLowerCase().includes(searchLower)) ||
-          (item.displayName && item.displayName.toLowerCase().includes(searchLower)) ||
-          (item.itemName && item.itemName.toLowerCase().includes(searchLower)) ||
-          (item.fItemName && item.fItemName.toLowerCase().includes(searchLower))
-        );
-      });
+
+
+const fetchItemsForPopup = async (pageNum, search) => {
+  let filtered = [];
+
+  /* ===============================
+     BILL NUMBER POPUP (API PAGED)
+     =============================== */
+  if (popupType === "billNumber") {
+    // ✅ API already returns paged data
+    const bills = await fetchSalesInvoiceBillList(pageNum, PAGE_SIZE);
+
+    filtered = bills.map((bill, index) => {
+      const billNo =
+        bill.voucherNo ||
+        bill.billNo ||
+        bill.invoiceNo ||
+        bill.code ||
+        bill.id ||
+        `BILL-${(pageNum - 1) * PAGE_SIZE + index + 1}`;
+
+      const customerName =
+        bill.customerName || bill.customer || bill.partyName || "";
+
+      const displayText = customerName || billNo;
+
+      return {
+        id: billNo,
+        code: billNo,
+        name: displayText,
+        displayName: displayText,
+        customerName,
+        voucherDate: bill.voucherDate || bill.billDate || bill.date || "",
+        originalData: bill,
+      };
+    });
+
+    // 🔍 Search inside current page only
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filtered = filtered.filter(item =>
+        (item.name && item.name.toLowerCase().includes(searchLower)) ||
+        (item.customerName &&
+          item.customerName.toLowerCase().includes(searchLower))
+      );
     }
-    
-    const startIndex = (pageNum - 1) * 20;
-    const endIndex = startIndex + 20;
+
+    // ❌ DO NOT slice again
+    return filtered;
+  }
+
+  /* ===============================
+     ITEM POPUP (FRONTEND PAGED)
+     =============================== */
+  if (popupType === "item") {
+    // Fetch once (if not already fetched)
+    if (!itemList || itemList.length === 0) {
+      await fetchItems();
+    }
+
+    filtered = itemList.map((item, index) => {
+      const itemCode =
+        item.fItemcode || item.itemCode || item.code || `ITEM${index + 1}`;
+      const itemName =
+        item.fItemName || item.itemName || item.name || "Unknown Item";
+
+      return {
+        ...item,
+        id: itemCode,
+        code: itemCode,
+        name: itemName,
+        displayName: itemName,
+        itemCode,
+        itemName,
+      };
+    });
+
+    // 🔍 Search first
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filtered = filtered.filter(item =>
+        (item.name && item.name.toLowerCase().includes(searchLower)) ||
+        (item.displayName &&
+          item.displayName.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // ✅ THEN paginate (1–20, 21–40…)
+    const startIndex = (pageNum - 1) * PAGE_SIZE;
+    const endIndex = startIndex + PAGE_SIZE;
+
     return filtered.slice(startIndex, endIndex);
-  };
+  }
+
+  /* ===============================
+     OTHER POPUPS (FRONTEND PAGED)
+     =============================== */
+  filtered = popupData.filter(item => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return (
+      (item.name && item.name.toLowerCase().includes(searchLower)) ||
+      (item.displayName &&
+        item.displayName.toLowerCase().includes(searchLower)) ||
+      (item.itemName &&
+        item.itemName.toLowerCase().includes(searchLower)) ||
+      (item.fItemName &&
+        item.fItemName.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const startIndex = (pageNum - 1) * PAGE_SIZE;
+  const endIndex = startIndex + PAGE_SIZE;
+
+  return filtered.slice(startIndex, endIndex);
+};
+
 
   const getPopupConfig = () => {
     const configs = {
@@ -2737,7 +2801,8 @@ const updateSalesReturn = async () => {
     // Handle footer button actions
     if (fieldName === 'add') {
       setActiveTopAction('add');
-      handleClear();
+      // For Add: reset form immediately without showing confirmation
+      resetForm().catch(err => console.error('Error resetting form on Add key action:', err));
     } else if (fieldName === 'edit') {
       openEditPopup();
     } else if (fieldName === 'delete') {
@@ -4864,9 +4929,9 @@ const renderBillDetailsContent = () => {
             onButtonClick={(type) => {
               setActiveTopAction(type);
               if (type === 'add') {
-                // Reset to add mode when Add button is clicked
+                // Reset to add mode when Add button is clicked (no confirmation)
                 setIsEditMode(false);
-                handleClear(); // This will clear and reset to Add mode
+                resetForm().catch(err => console.error('Error resetting form on Add click:', err));
               } else if (type === 'edit') {
                 openEditPopup();
               } else if (type === 'delete') {
@@ -4881,46 +4946,119 @@ const renderBillDetailsContent = () => {
         </div>
 
 
-        {/* DISCOUNT INPUT */}
-<div style={{
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  backgroundColor: "#f0f8ff",
-  padding: "6px 10px",
-  borderRadius: "6px",
-}}>
-  <span style={{
-    fontSize: "12px",
-    fontWeight: 600,
-    color: "#555",
-    whiteSpace: "nowrap"
-  }}>
-    Discount
-  </span>
+ 
 
-  <input
-    type="number"
-    value={discount}
-    onChange={(e) => setDiscount(e.target.value)}
-    placeholder="0.00"
+{/* DISCOUNT INPUTS */}
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    background: "linear-gradient(135deg, #e3f2fd, #bbdefb)",
+    padding: "8px 14px",
+    borderRadius: "10px",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+  }}
+>
+  {/* Discount % */}
+  <div
     style={{
-      width: "90px",
-      textAlign: "right",
-      border: "1px solid #1B91DA",
-      borderRadius: "4px",
-      padding: "6px",
-      fontWeight: "bold",
-      outline: "none"
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
     }}
-    onKeyDown={(e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleSave(); // optional: jump to save
-      }
+  >
+    <span
+      style={{
+        fontSize: "13px",
+        fontWeight: "700",
+        color: "#0d47a1",
+      }}
+    >
+      Discount %
+    </span>
+
+    <input
+      type="text"          // ✅ changed
+      readOnly             // ✅ added
+      value={discountPercent}
+      onChange={(e) => {
+        const val = Number(e.target.value) || 0;
+        setDiscountPercent(val);
+        setDiscountAmount(0);
+      }}
+      style={{
+        width: "70px",
+       textAlign: "center",
+        border: "2px solid #1976d2",
+        borderRadius: "6px",
+        padding: "6px",
+        fontWeight: "bold",
+        fontSize: "14px",
+        color: "#0d47a1",
+        backgroundColor: "#ffffff",
+        outline: "none",
+        cursor: "default",
+        userSelect: "none",
+      }}
+    />
+  </div>
+
+  {/* Divider */}
+  <div
+    style={{
+      width: "1px",
+      height: "28px",
+      backgroundColor: "#90caf9",
     }}
   />
+
+  {/* Discount Amount */}
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+    }}
+  >
+    <span
+      style={{
+        fontSize: "13px",
+        fontWeight: "700",
+        color: "#1b5e20",
+      }}
+    >
+      Net Amt
+    </span>
+
+    <input
+      type="text"          // ✅ changed
+      readOnly             // ✅ added
+      value={discountAmount}
+      onChange={(e) => {
+        const val = Number(e.target.value) || 0;
+        setDiscountAmount(val);
+        setDiscountPercent(0);
+      }}
+      style={{
+        width: "95px",
+        textAlign: "center",
+        border: "2px solid #2e7d32",
+        borderRadius: "6px",
+        padding: "6px",
+        fontWeight: "bold",
+        fontSize: "14px",
+        color: "#1b5e20",
+        backgroundColor: "#ffffff",
+        outline: "none",
+        cursor: "default",
+        userSelect: "none",
+      }}
+    />
+  </div>
 </div>
+
+
 
         <div style={styles.totalsContainer}>
   <div style={styles.totalItem}>

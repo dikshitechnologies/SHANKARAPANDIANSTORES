@@ -682,7 +682,7 @@ const ReceiptVoucher = () => {
                 cashBank: '',
                 cashBankCode: '',
                 crDr: 'CR',
-                type: '',
+                type: 'CASH',
                 chqNo: '',
                 chqDt: new Date().toISOString().substring(0, 10),
                 narration: '',
@@ -708,7 +708,7 @@ const ReceiptVoucher = () => {
     if (fieldType === 'cashBank' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
       if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
         setTimeout(() => {
-          setCashBankSearchTerm('');
+          setCashBankSearchTerm(e.key);
           setAccountPopupContext({ itemId: receiptItems[rowIndex].id, field: 'cashBank', rowIndex });
           setAccountPopupOpen(true);
         }, 100);
@@ -1038,7 +1038,7 @@ const ReceiptVoucher = () => {
           accountCode: item.faccode || '',
           accountName: item.accountName || '',
           crDr: item.fCrDb || 'CR',
-          type: item.type || '',
+          type: item.type || 'CASH',
           chqNo: item.fchqno || '',
           chqDt: safeFormatDate(item.fchqdt),
           narration: item.narration || '',
@@ -1908,7 +1908,7 @@ const ReceiptVoucher = () => {
         }
       };
 
-      console.log('Payload:', payload);
+      console.log('Payload:',JSON.stringify(payload));
       console.log('Is Editing:', isEditing);
 
       const endpoint = isEditing 
@@ -2739,7 +2739,7 @@ const ReceiptVoucher = () => {
                   <td style={styles.td}>
                     <select
                       id={`receipt_${item.id}_type`}
-                      value={item.type}
+                      value={item.type || 'CASH'}
                       onChange={(e) => handleReceiptItemChange(item.id, 'type', e.target.value)}
                       onKeyDown={(e) => {
                         if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
