@@ -930,6 +930,7 @@ const fetchItemList = async (pageNum = 1, search = '') => {
       itemName: item.itemName || '',
       itemCode: item.itemCode || '',
       uom: item.units || '',
+      sRate: item.scRate || '',
     }));
   } catch (error) {
     console.error('Error fetching items:', error);
@@ -2323,6 +2324,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     setSalesmanSearchTerm(billDetails.salesman);
                     setShowSalesmanPopup(true);
                   } else if (e.key === 'Enter') {
+                    const isSalesmanNameEmpty = !billDetails.salesman || billDetails.salesman.trim() === '';
+                    if (isSalesmanNameEmpty) {
+                      showAlertConfirmation('Please select a salesman before proceeding.', null, 'warning');
+                      setTimeout(() => {
+                        salesmanRef.current.focus();
+                        setFocusedField('salesman');
+                        setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
+                      }, 100);
+                      return;
+                    }
                     e.preventDefault();
                     // Move focus to the first field in the table
                     const firstTableInput = document.querySelector('input[data-row="0"][data-field="itemName"]');
@@ -2839,8 +2850,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           itemName: selectedItem.itemName || '',
           itemCode: selectedItem.itemCode || '',
           uom: selectedItem.uom || '',
+          sRate: selectedItem.sRate || '',
         };
-        
+        // console.log('Updated Item:', updatedItems[itemIndex]);
         setItems(updatedItems);
       }
     }

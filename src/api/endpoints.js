@@ -148,9 +148,9 @@ export const API_ENDPOINTS = {
     getVoucherDetails: (voucherNo) => `SalesReturn/GetVoucherDetails?voucherNo=${voucherNo}`,
 
   },
-  
+  //ScrapRateFixing/getFullScrapRateFixing
   SCRAP_RATE_FIXING: {
-    GET_FULL_SCRAP_RATES: 'ScrapRateFixing/getFullScrapRateFixing',
+    GET_FULL_SCRAP_RATES:(pageNumber = 1, pageSize, search) => `ScrapRateFixing/getFullScrapRateFixing?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
     UPDATE_FULL_SCRAP_RATES: 'ScrapRateFixing/updateFullScrapRateFixing',
   },
 

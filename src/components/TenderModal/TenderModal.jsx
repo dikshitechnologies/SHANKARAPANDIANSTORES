@@ -1351,7 +1351,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                     <div className={styles.paymentInputContainer}>
                       <input
                         type="number"
-                        value={formData.receivedCash}
+                        value={formData.receivedCash === '0' ? '' : formData.receivedCash}
                         readOnly
                         className={`${styles.paymentInput} ${styles.readonlyPayment}`}
                       />
@@ -1362,7 +1362,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                     <div className={styles.paymentInputContainer}>
                       <input
                         type="text"
-                        value={formData.issuedCash}
+                        value={formData.issuedCash === '0' ? '' : formData.issuedCash}
                         readOnly
                         className={`${styles.paymentInput} ${styles.readonlyPayment}`}
                       />
@@ -1415,7 +1415,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                             handleUPIBankKeyDown(e);
                           }
                         }}
-                        placeholder="Select UPI Bank"
+                        placeholder=""
                         className={styles.paymentInput}
                         onClick={() => { setUpiPopupInitialSearch(''); setUpiPopupOpen(true); }}
                       />
@@ -1457,7 +1457,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                           }
                         }}
                         onClick={() => { setCardPopupInitialSearch(''); setCardPopupOpen(true); }}
-                        placeholder="Select Card Bank"
+                        placeholder=""
                         className={styles.paymentInput}
                       />
                     </div>
@@ -1488,7 +1488,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                         <span>%</span>
                         <input
                           type="number"
-                          value={formData.serviceChargeAmount}
+                          value={formData.serviceChargeAmount === '0.00' || formData.serviceChargeAmount === '0' ? '' : formData.serviceChargeAmount}
                           readOnly
                           className={`${styles.serviceChargeInput} ${styles.readonlyPayment}`}
                           placeholder="Amount"
