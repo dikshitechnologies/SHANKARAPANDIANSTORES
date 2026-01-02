@@ -285,6 +285,26 @@ const handleBlur = () => {
     return '';
   };
 
+
+  const validateCustomer = () => {
+  if (!billDetails.customerName || billDetails.customerName.trim() === "") {
+
+    // ⛔ Stop everything immediately
+    setTimeout(() => {
+      showAlertConfirmation("Please select Customer first", () => {
+        setTimeout(() => {
+          nameRef.current?.focus();
+          nameRef.current?.select?.();
+        }, 50);
+      });
+    }, 0);
+
+    return false;
+  }
+  return true;
+};
+
+
   // Helper: Validate sudo letters against fseudoMap
   const validateSudoLetters = (sudoValue, rowIndex) => {
     if (!sudoValue || sudoValue.trim() === '') return true; // Empty is valid
@@ -454,8 +474,104 @@ const handleBlur = () => {
       
       // Force a state update
       setTimeout(() => {
-        if (billNoRef.current) {
-          billNoRef.current.focus();
+        if (dateRef.current) {
+          dateRef.current.focus();
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error creating new form:', error);
+      showAlertConfirmation('Error refreshing form. Please try again.', null, 'danger');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const clearForm = async () => {
+    try {
+      setIsLoading(true);
+      
+      // First, clear all states
+      setIsEditMode(false);
+      setEditingBillNo('');
+      setActiveTopAction('add');
+      setActiveFooterAction('null');
+      setItemSearchTerm('');
+      setFocusedField('');
+      setShowSupplierPopup(false);
+      setShowGroupNamePopup(false);
+      setShowBillListPopup(false);
+      setShowItemCodePopup(false);
+      setPopupMode('');
+      setSelectedRowId(null);
+      setAddLessAmount('');
+      fetchAutoBarcode();
+      // Clear table items first
+      setItems([{
+        id: 1, 
+        barcode: '', 
+        name: '', 
+        sub: '', 
+        stock: '', 
+        mrp: '', 
+        uom: '', 
+        hsn: '', 
+        tax: '', 
+        rate: '', 
+        qty: '',
+        ovrwt: '',
+        avgwt: '',
+        prate: '',
+        intax: '',
+        outtax: '',
+        acost: '',
+        sudo: '',
+        profitPercent: '',
+        preRT: '',
+        sRate: '',
+        asRate: '',
+        letProfPer: '',
+        ntCost: '',
+        wsPercent: '',
+        wsRate: '',
+        amt: '',
+        min: '',
+        max: ''
+      }]);
+      
+      // Clear header fields
+      const currentDate = new Date().toISOString().substring(0, 10);
+      setBillDetails({
+        invNo: '',
+        billDate: currentDate,
+        mobileNo: '',
+        customerName: '',
+        type: 'Retail',
+        barcodeInput: '',
+        entryDate: '',
+        amount: '',
+        partyCode: '',
+        gstno: '',
+        gstType: 'G',
+        purNo: '',
+        invoiceNo: '',
+        purDate: currentDate,
+        invoiceAmount: '',
+        transType: 'PURCHASE',
+        city: '',
+        groupName: '',
+        isLedger: false,
+      });
+      
+      // Reset ignore Enter flag
+      ignoreNextEnterRef.current = false;
+      
+      // Then fetch next invoice number
+      await fetchNextInvNo();
+      
+      // Force a state update
+      setTimeout(() => {
+        if (dateRef.current) {
+          dateRef.current.focus();
         }
       }, 100);
       
@@ -1203,6 +1319,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     
     if (e.key === 'Enter') {
       e.preventDefault();
+
+
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
       }
@@ -2707,6 +2825,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                   } else if (e.key === 'Enter') {
                     e.preventDefault();
                     // Navigate to group field
+                    
                     if(groupNameRef.current){
                       groupNameRef.current.focus();
                     } 
@@ -2725,7 +2844,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               }}}
                 onFocus={() => setFocusedField('customerName')}
                 onBlur={() => {
-                  setFocusedField('');
+                  setFocusedField('');                   
                   setTimeout(() => {
                     if (!showSupplierPopup) {
                       setItemSearchTerm('');
@@ -3616,11 +3735,11 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         }}
         title="Select Item Code"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search)}
-        displayFieldKeys={['barcode','name']}
-        headerNames={['Barcode','Name']}
-        searchFields={['barcode','name']}
-        columnWidths={{ barcode: '50%', name: '50%' }}
-        searchPlaceholder="Search by barcode or name..."
+        displayFieldKeys={['name','barcode']}
+        headerNames={['Name','Barcode']}
+        searchFields={['name',' barcode']}
+        columnWidths={{ name: '50%',barcode : '50%' }}
+        searchPlaceholder="Search by name or barcode..."
         initialSearch={itemSearchTerm}
         onSelect={handleItemCodeSelection}
       />
@@ -3651,7 +3770,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             onButtonClick={(type) => {
               console.log("Top action clicked:", type);
               setActiveTopAction(type);
-              if (type === 'add') handleClear();
+              if (type === 'add') clearForm();
               else if (type === 'edit') handleEdit();
               else if (type === 'delete') handleDelete();
             }}         
