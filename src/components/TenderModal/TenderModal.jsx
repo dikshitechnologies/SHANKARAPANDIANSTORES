@@ -560,7 +560,6 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
 
     if (e.key === 'Enter') {
       e.preventDefault();
-      
       if (currentIndex < denomSequence.length - 1) {
         // Move to next denomination field
         const nextDenom = denomSequence[currentIndex + 1];
@@ -568,28 +567,26 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
           collectFieldRefs.current[nextDenom].focus();
         }
       } else if (currentIndex === denomSequence.length - 1) {
-        // Last field (1), move to UPI BANK field (not UPI Amount)
-        if (upiBankRef.current) {
-          upiBankRef.current.focus();
+        // Last field (1), move to UPI Amount
+        if (upiRef.current) {
+          upiRef.current.focus();
         }
       }
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
-      // Move to next denomination field (right)
       if (currentIndex < denomSequence.length - 1) {
         const nextDenom = denomSequence[currentIndex + 1];
         if (collectFieldRefs.current[nextDenom]) {
           collectFieldRefs.current[nextDenom].focus();
         }
       } else if (currentIndex === denomSequence.length - 1) {
-        // Last field (1), move to UPI BANK field
-        if (upiBankRef.current) {
-          upiBankRef.current.focus();
+        // Last field (1), move to UPI Amount
+        if (upiRef.current) {
+          upiRef.current.focus();
         }
       }
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      // Move to previous denomination field (left)
       if (currentIndex > 0) {
         const prevDenom = denomSequence[currentIndex - 1];
         if (collectFieldRefs.current[prevDenom]) {
@@ -654,8 +651,8 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
   const handleUPIBankKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (upiRef.current) {
-        upiRef.current.focus();
+      if (cardRef.current) {
+        cardRef.current.focus();
       }
     }
   };
@@ -664,8 +661,8 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
   const handleUPIKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (cardBankRef.current) {
-        cardBankRef.current.focus();
+      if (upiBankRef.current) {
+        upiBankRef.current.focus();
       }
     }
   };
@@ -674,8 +671,10 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
   const handleCardBankKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (cardRef.current) {
-        cardRef.current.focus();
+      if (serviceChargeCheckboxRef.current) {
+        serviceChargeCheckboxRef.current.focus();
+      } else if (saveButtonRef.current) {
+        saveButtonRef.current.focus();
       }
     }
   };
@@ -684,17 +683,8 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
   const handleCardKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      
-      // If card amount is greater than 0, move to Service Charge checkbox
-      if (Number(formData.card) > 0) {
-        if (serviceChargeCheckboxRef.current) {
-          serviceChargeCheckboxRef.current.focus();
-        }
-      } else {
-        // Otherwise, move directly to Save button
-        if (saveButtonRef.current) {
-          saveButtonRef.current.focus();
-        }
+      if (cardBankRef.current) {
+        cardBankRef.current.focus();
       }
     }
   };
@@ -1351,34 +1341,33 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                 </div>
               </div>
 
-              {/* Bottom: Payment Details */}
+
+              {/* Bottom: Payment Details (Updated Rows) */}
               <div className={styles.paymentSection}>
-                {/* First Row: Received Cash, Issued Cash, and Balance */}
+                {/* First Row: Received Cash, Issued Cash, Balance */}
                 <div className={styles.paymentRow}>
                   <div className={styles.paymentGroup}>
                     <label className={styles.paymentLabel}>Received Cash</label>
                     <div className={styles.paymentInputContainer}>
                       <input
-                        type="number"                 
-                        value={formData.receivedCash}
+                        type="number"
+                        value={formData.receivedCash === '0' ? '' : formData.receivedCash}
                         readOnly
                         className={`${styles.paymentInput} ${styles.readonlyPayment}`}
                       />
                     </div>
                   </div>
-                  
                   <div className={styles.paymentGroup}>
                     <label className={styles.paymentLabel}>Issued Cash</label>
                     <div className={styles.paymentInputContainer}>
                       <input
                         type="text"
-                        value={formData.issuedCash}
+                        value={formData.issuedCash === '0' ? '' : formData.issuedCash}
                         readOnly
                         className={`${styles.paymentInput} ${styles.readonlyPayment}`}
                       />
                     </div>
                   </div>
-
                   <div className={styles.paymentGroup}>
                     <label className={styles.paymentLabel}>Balance</label>
                     <div className={styles.paymentInputContainer}>
@@ -1393,36 +1382,8 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                   </div>
                 </div>
 
-                {/* Second Row: UPI and Card with Bank Selection */}
+                {/* Second Row: UPI Amount, UPI Bank */}
                 <div className={styles.paymentRow}>
-                  {/* UPI Bank */}
-                  <div className={styles.paymentGroup}>
-                    <label className={styles.paymentLabel}>UPI Bank</label>
-                    <div className={styles.paymentInputContainer}>
-                      <input
-                        ref={upiBankRef}
-                        type="text"
-                        value={formData.upiBank}
-                        onChange={(e) => handleInputChange('upiBank', e.target.value)}
-                        onKeyDown={(e) => {
-                          // If user types a printable character, open popup and prefill search
-                          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setUpiPopupInitialSearch(e.key);
-                            setUpiPopupOpen(true);
-                          } else {
-                            handleUPIBankKeyDown(e);
-                          }
-                        }}
-                        placeholder="Select UPI Bank"
-                        className={styles.paymentInput}
-                        onClick={() => { setUpiPopupInitialSearch(''); setUpiPopupOpen(true); }}
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* UPI Amount */}
                   <div className={styles.paymentGroup}>
                     <label className={styles.paymentLabel}>UPI Amount</label>
                     <div className={styles.paymentInputContainer}>
@@ -1436,8 +1397,47 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                       />
                     </div>
                   </div>
-                  
-                  {/* Card Bank */}
+                  <div className={styles.paymentGroup}>
+                    <label className={styles.paymentLabel}>UPI Bank</label>
+                    <div className={styles.paymentInputContainer}>
+                      <input
+                        ref={upiBankRef}
+                        type="text"
+                        value={formData.upiBank}
+                        onChange={(e) => handleInputChange('upiBank', e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setUpiPopupInitialSearch(e.key);
+                            setUpiPopupOpen(true);
+                          } else {
+                            handleUPIBankKeyDown(e);
+                          }
+                        }}
+                        placeholder=""
+                        className={styles.paymentInput}
+                        onClick={() => { setUpiPopupInitialSearch(''); setUpiPopupOpen(true); }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Third Row: Card Amount, Card Bank, Is Service Charge */}
+                <div className={styles.paymentRow}>
+                  <div className={styles.paymentGroup}>
+                    <label className={styles.paymentLabel}>Card Amount</label>
+                    <div className={styles.paymentInputContainer}>
+                      <input
+                        ref={cardRef}
+                        type="number"
+                        value={formData.card}
+                        onChange={(e) => handleCardAmountChange(e.target.value)}
+                        onKeyDown={handleCardKeyDown}
+                        className={styles.paymentInput}
+                      />
+                    </div>
+                  </div>
                   <div className={styles.paymentGroup}>
                     <label className={styles.paymentLabel}>Card Bank</label>
                     <div className={styles.paymentInputContainer}>
@@ -1457,30 +1457,11 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                           }
                         }}
                         onClick={() => { setCardPopupInitialSearch(''); setCardPopupOpen(true); }}
-                        placeholder="Select Card Bank"
+                        placeholder=""
                         className={styles.paymentInput}
                       />
                     </div>
                   </div>
-                  
-                  {/* Card Amount */}
-                  <div className={styles.paymentGroup}>
-                    <label className={styles.paymentLabel}>Card Amount</label>
-                    <div className={styles.paymentInputContainer}>
-                      <input
-                        ref={cardRef}
-                        type="number"
-                        value={formData.card}
-                        onChange={(e) => handleCardAmountChange(e.target.value)}
-                        onKeyDown={handleCardKeyDown}
-                        className={styles.paymentInput}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Third Row: Service Charge */}
-                <div className={styles.paymentRow}>
                   <div className={styles.paymentGroup}>
                     <label className={styles.checkboxLabel}>
                       <input
@@ -1493,7 +1474,6 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                       />
                       <span>Is Service Charge</span>
                     </label>
-                    
                     {formData.isServiceCharge && (
                       <div className={styles.serviceChargeContainer}>
                         <input
@@ -1508,7 +1488,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                         <span>%</span>
                         <input
                           type="number"
-                          value={formData.serviceChargeAmount}
+                          value={formData.serviceChargeAmount === '0.00' || formData.serviceChargeAmount === '0' ? '' : formData.serviceChargeAmount}
                           readOnly
                           className={`${styles.serviceChargeInput} ${styles.readonlyPayment}`}
                           placeholder="Amount"
