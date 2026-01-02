@@ -5028,7 +5028,7 @@ const renderBillDetailsContent = () => {
         color: "#1b5e20",
       }}
     >
-      Disc Amt
+      Net Amt
     </span>
 
     <input
