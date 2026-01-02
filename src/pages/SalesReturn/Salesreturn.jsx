@@ -5062,7 +5062,7 @@ const renderBillDetailsContent = () => {
       }, 100);
     }}
     onSelect={handlePopupSelect}
-    fetchItems={handleLoadMoreBills}
+    fetchItems={fetchItemsForPopup}
     title={popupTitle}
     initialSearch={popupSearchText}
     displayFieldKeys={getPopupConfig().displayFieldKeys}
