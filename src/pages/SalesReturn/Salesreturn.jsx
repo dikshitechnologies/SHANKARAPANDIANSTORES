@@ -39,7 +39,7 @@ const ENTER_FIELDS = [
   'hsn',
   'tax',
   'sRate',
-  'qty'
+  
 ];
 
 
