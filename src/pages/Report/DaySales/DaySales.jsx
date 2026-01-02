@@ -21,7 +21,7 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
-const SalesReturnRegister = () => {
+const DaySales = () => {
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('2024-06-14');
   const [toDate, setToDate] = useState('2025-11-26');
@@ -29,59 +29,67 @@ const SalesReturnRegister = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
-  const [salesReturnData, setSalesReturnData] = useState([]);
+  const [salesData, setSalesData] = useState([]);
 
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
   const searchButtonRef = useRef(null);
 
-  // Sample sales return register data
-  const sampleSalesReturnData = [
+  // Sample day sales data
+  const sampleSalesData = [
     {
       id: 1,
-      no: 1,
-      salesParty: 'AMIT FASHION',
-      billNo: 'SR0001',
-      billDate: '27-09-2025',
-      billAmount: '8,450.00'
+      billNo: 'INV001',
+      name: 'AMIT FASHION',
+      srate: '450.00',
+      qty: '25.50',
+      amount: '11,475.00'
     },
     {
       id: 2,
-      no: 2,
-      salesParty: 'CASH A/C',
-      billNo: 'SR0002',
-      billDate: '10-12-2025',
-      billAmount: '2,250.00'
+      billNo: 'INV002',
+      name: 'CASH A/C',
+      srate: '280.00',
+      qty: '15.75',
+      amount: '4,410.00'
     },
     {
       id: 3,
-      no: 3,
-      salesParty: 'JOHN TRADERS',
-      billNo: 'SR0003',
-      billDate: '15-12-2025',
-      billAmount: '15,800.00'
+      billNo: 'INV003',
+      name: 'JOHN TRADERS',
+      srate: '680.00',
+      qty: '32.00',
+      amount: '21,760.00'
     },
     {
       id: 4,
-      no: 4,
-      salesParty: 'GLOBAL FASHION',
-      billNo: 'SR0004',
-      billDate: '18-12-2025',
-      billAmount: '6,500.00'
+      billNo: 'INV004',
+      name: 'GLOBAL FASHION',
+      srate: '320.00',
+      qty: '18.25',
+      amount: '5,840.00'
     },
     {
       id: 5,
-      no: 5,
-      salesParty: 'PREMIUM TEXTILES',
-      billNo: 'SR0005',
-      billDate: '20-12-2025',
-      billAmount: '12,750.00'
+      billNo: 'INV005',
+      name: 'PREMIUM TEXTILES',
+      srate: '520.00',
+      qty: '22.50',
+      amount: '11,700.00'
+    },
+    {
+      id: 6,
+      billNo: 'INV006',
+      name: 'QUALITY FABRICS',
+      srate: '380.00',
+      qty: '12.75',
+      amount: '4,845.00'
     },
     {
       isTotal: true,
-      salesParty: 'Total',
-      billAmount: '45,750.00'
+      name: 'Total',
+      amount: '60,030.00'
     }
   ];
 
@@ -102,7 +110,7 @@ const SalesReturnRegister = () => {
       return;
     }
     
-    console.log('Searching Sales Return Register with:', {
+    console.log('Searching Day Sales with:', {
       fromDate,
       toDate
     });
@@ -111,7 +119,7 @@ const SalesReturnRegister = () => {
     
     // Simulate API call
     setTimeout(() => {
-      setSalesReturnData(sampleSalesReturnData);
+      setSalesData(sampleSalesData);
       setTableLoaded(true);
       setIsLoading(false);
     }, 500);
@@ -121,7 +129,7 @@ const SalesReturnRegister = () => {
     setTableLoaded(false);
     setFromDate('2024-06-14');
     setToDate('2025-11-26');
-    setSalesReturnData([]);
+    setSalesData([]);
   };
 
   // Handle key navigation
@@ -173,10 +181,18 @@ const SalesReturnRegister = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Calculate total bill amount
-  const totalBillAmount = salesReturnData
-    .filter(row => !row.isTotal && row.billAmount)
-    .reduce((sum, row) => sum + parseFloat(row.billAmount?.replace(/,/g, '') || 0), 0);
+  // Calculate totals
+  const totals = {
+    srate: salesData
+      .filter(row => !row.isTotal && row.srate)
+      .reduce((sum, row) => sum + parseFloat(row.srate?.replace(/,/g, '') || 0), 0),
+    qty: salesData
+      .filter(row => !row.isTotal && row.qty)
+      .reduce((sum, row) => sum + parseFloat(row.qty || 0), 0),
+    amount: salesData
+      .filter(row => !row.isTotal && row.amount)
+      .reduce((sum, row) => sum + parseFloat(row.amount?.replace(/,/g, '') || 0), 0)
+  };
 
   // Format number with commas
   const formatNumber = (num) => {
@@ -288,7 +304,7 @@ const SalesReturnRegister = () => {
       paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
@@ -504,7 +520,7 @@ const SalesReturnRegister = () => {
       {isLoading && (
         <div style={styles.loadingOverlay}>
           <div style={styles.loadingBox}>
-            <div>Loading Sales Return Register Report...</div>
+            <div>Loading Day Sales Report...</div>
           </div>
         </div>
       )}
@@ -624,17 +640,17 @@ const SalesReturnRegister = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th, minWidth: '70px', width: '70px', maxWidth: '70px' }}>No.</th>
-                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Sales Party</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill No.</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill Date</th>
-                <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px' }}>Bill Amount</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill No.</th>
+                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Name</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>S.Rate</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Qty</th>
+                <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
               {tableLoaded ? (
-                salesReturnData.length > 0 ? (
-                  salesReturnData.map((row, index) => (
+                salesData.length > 0 ? (
+                  salesData.map((row, index) => (
                     <tr key={index} style={{ 
                       backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                       ...(row.isTotal ? { 
@@ -645,14 +661,14 @@ const SalesReturnRegister = () => {
                     }}>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '70px', 
-                        width: '70px', 
-                        maxWidth: '70px',
+                        minWidth: '100px', 
+                        width: '100px', 
+                        maxWidth: '100px',
                         textAlign: 'center',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.no || ''}
+                        {row.billNo || ''}
                       </td>
                       <td style={{ 
                         ...styles.td, 
@@ -663,29 +679,29 @@ const SalesReturnRegister = () => {
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.salesParty}
+                        {row.name}
                       </td>
                       <td style={{ 
                         ...styles.td, 
                         minWidth: '120px', 
                         width: '120px', 
                         maxWidth: '120px',
-                        textAlign: 'center',
+                        textAlign: 'right',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.billNo || ''}
+                        {row.srate ? `₹${row.srate}` : ''}
                       </td>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '120px', 
-                        width: '120px', 
-                        maxWidth: '120px',
-                        textAlign: 'center',
+                        minWidth: '100px', 
+                        width: '100px', 
+                        maxWidth: '100px',
+                        textAlign: 'right',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.billDate || ''}
+                        {row.qty || ''}
                       </td>
                       <td style={{ 
                         ...styles.td, 
@@ -696,21 +712,21 @@ const SalesReturnRegister = () => {
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.billAmount ? `₹${row.billAmount}` : ''}
+                        {row.amount ? `₹${row.amount}` : ''}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      No sales return records found
+                      No sales records found
                     </td>
                   </tr>
                 )
               ) : (
                 <tr>
                   <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view sales return register
+                    Enter search criteria and click "Search" to view day sales
                   </td>
                 </tr>
               )}
@@ -727,26 +743,30 @@ const SalesReturnRegister = () => {
           width: '100%',
         }}>
           <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Bill Amount</span>
+            <span style={styles.balanceLabel}>Total Sales</span>
             <span style={styles.balanceValue}>
-              ₹{formatNumber(totalBillAmount)}
+              ₹{formatNumber(totals.amount)}
             </span>
           </div>
-          {tableLoaded && salesReturnData.length > 0 && (
-            <>
-              <div style={styles.balanceItem}>
-                <span style={styles.balanceLabel}>Total Returns</span>
-                <span style={styles.balanceValue}>
-                  {salesReturnData.filter(row => !row.isTotal).length}
-                </span>
-              </div>
-              <div style={styles.balanceItem}>
-                <span style={styles.balanceLabel}>Average Return</span>
-                <span style={styles.balanceValue}>
-                  ₹{formatNumber(totalBillAmount / Math.max(1, salesReturnData.filter(row => !row.isTotal).length))}
-                </span>
-              </div>
-            </>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Quantity</span>
+            <span style={styles.balanceValue}>
+              {formatNumber(totals.qty)}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Avg S.Rate</span>
+            <span style={styles.balanceValue}>
+              {totals.qty > 0 ? `₹${formatNumber(totals.amount / totals.qty)}` : '₹0.00'}
+            </span>
+          </div>
+          {tableLoaded && salesData.filter(row => !row.isTotal).length > 0 && (
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Total Invoices</span>
+              <span style={styles.balanceValue}>
+                {salesData.filter(row => !row.isTotal).length}
+              </span>
+            </div>
           )}
         </div>
       </div>
@@ -754,4 +774,4 @@ const SalesReturnRegister = () => {
   );
 };
 
-export default SalesReturnRegister;
+export default DaySales;
