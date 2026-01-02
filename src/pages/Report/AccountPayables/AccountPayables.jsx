@@ -21,68 +21,92 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
-const SalesReturnRegister = () => {
+const AccountPayables = () => {
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('2024-06-14');
   const [toDate, setToDate] = useState('2025-11-26');
+  const [selectedVendors, setSelectedVendors] = useState(['ALL']);
+  const [showVendorPopup, setShowVendorPopup] = useState(false);
+  const [tempSelectedVendors, setTempSelectedVendors] = useState(['ALL']);
+  const [selectAll, setSelectAll] = useState(true);
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
-  const [salesReturnData, setSalesReturnData] = useState([]);
+  const [vendorDisplay, setVendorDisplay] = useState('ALL');
 
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
+  const vendorRef = useRef(null);
   const searchButtonRef = useRef(null);
 
-  // Sample sales return register data
-  const sampleSalesReturnData = [
+  // --- DATA ---
+  const [payablesData, setPayablesData] = useState([]);
+
+  // Sample Account Payables data
+  const samplePayablesData = [
     {
-      id: 1,
       no: 1,
-      salesParty: 'AMIT FASHION',
-      billNo: 'SR0001',
-      billDate: '27-09-2025',
-      billAmount: '8,450.00'
+      accountName: "TECHNO BUILDERS LTD",
+      debit: "2,500.00",
+      credit: "0.00",
+      balance: "2,500.00",
+      drCr: "DR"
     },
     {
-      id: 2,
       no: 2,
-      salesParty: 'CASH A/C',
-      billNo: 'SR0002',
-      billDate: '10-12-2025',
-      billAmount: '2,250.00'
+      accountName: "GLOBAL SUPPLIERS INC",
+      debit: "0.00",
+      credit: "1,800.00",
+      balance: "1,800.00",
+      drCr: "CR"
     },
     {
-      id: 3,
       no: 3,
-      salesParty: 'JOHN TRADERS',
-      billNo: 'SR0003',
-      billDate: '15-12-2025',
-      billAmount: '15,800.00'
+      accountName: "METAL WORKS CORPORATION",
+      debit: "3,200.00",
+      credit: "500.00",
+      balance: "2,700.00",
+      drCr: "DR"
     },
     {
-      id: 4,
       no: 4,
-      salesParty: 'GLOBAL FASHION',
-      billNo: 'SR0004',
-      billDate: '18-12-2025',
-      billAmount: '6,500.00'
+      accountName: "ELECTRO POWER SOLUTIONS",
+      debit: "0.00",
+      credit: "4,200.00",
+      balance: "4,200.00",
+      drCr: "CR"
     },
     {
-      id: 5,
       no: 5,
-      salesParty: 'PREMIUM TEXTILES',
-      billNo: 'SR0005',
-      billDate: '20-12-2025',
-      billAmount: '12,750.00'
+      accountName: "PRECISION TOOLS MFG",
+      debit: "1,500.00",
+      credit: "0.00",
+      balance: "1,500.00",
+      drCr: "DR"
     },
     {
       isTotal: true,
-      salesParty: 'Total',
-      billAmount: '45,750.00'
+      accountName: "Total",
+      debit: "7,200.00",
+      credit: "6,500.00",
+      balance: "12,700.00",
+      drCr: ""
     }
+  ];
+
+  // Sample data for vendors
+  const allVendors = [
+    'ALL',
+    'TECHNO BUILDERS LTD',
+    'GLOBAL SUPPLIERS INC',
+    'METAL WORKS CORPORATION',
+    'ELECTRO POWER SOLUTIONS',
+    'PRECISION TOOLS MFG',
+    'QUALITY MATERIALS CO',
+    'INDUSTRIAL PARTS LTD',
+    'CONSTRUCTION SUPPLIES INC'
   ];
 
   // --- HANDLERS ---
@@ -94,24 +118,76 @@ const SalesReturnRegister = () => {
     setToDate(e.target.value);
   };
 
+  const handleVendorClick = () => {
+    setTempSelectedVendors([...selectedVendors]);
+    setShowVendorPopup(true);
+  };
+
+  const handleVendorSelect = (vendor) => {
+    if (vendor === 'ALL') {
+      if (tempSelectedVendors.includes('ALL')) {
+        setTempSelectedVendors([]);
+        setSelectAll(false);
+      } else {
+        setTempSelectedVendors(allVendors);
+        setSelectAll(true);
+      }
+    } else {
+      let updatedVendors;
+      if (tempSelectedVendors.includes(vendor)) {
+        updatedVendors = tempSelectedVendors.filter(v => v !== vendor);
+        if (updatedVendors.includes('ALL')) {
+          updatedVendors = updatedVendors.filter(v => v !== 'ALL');
+        }
+      } else {
+        updatedVendors = [...tempSelectedVendors, vendor];
+        const otherVendors = allVendors.filter(v => v !== 'ALL');
+        if (otherVendors.every(v => updatedVendors.includes(v))) {
+          updatedVendors = allVendors;
+        }
+      }
+      setTempSelectedVendors(updatedVendors);
+      setSelectAll(updatedVendors.length === allVendors.length);
+    }
+  };
+
+  const handlePopupOk = () => {
+    setSelectedVendors([...tempSelectedVendors]);
+    const displayText = tempSelectedVendors.length === allVendors.length || tempSelectedVendors.includes('ALL') 
+      ? 'ALL' 
+      : tempSelectedVendors.join(', ');
+    setVendorDisplay(displayText);
+    setShowVendorPopup(false);
+  };
+
+  const handleClearSelection = () => {
+    setTempSelectedVendors([]);
+    setSelectAll(false);
+  };
+
+  const handlePopupClose = () => {
+    setShowVendorPopup(false);
+  };
+
   const handleSearch = () => {
-    if (!fromDate || !toDate) {
-      toast.warning('Please fill all fields: From Date and To Date', {
+    if (!fromDate || !toDate || selectedVendors.length === 0) {
+      toast.warning('Please fill all fields: From Date, To Date, and select at least one vendor', {
         autoClose: 2000,
       });
       return;
     }
     
-    console.log('Searching Sales Return Register with:', {
+    console.log('Searching Account Payables with:', {
       fromDate,
-      toDate
+      toDate,
+      selectedVendors
     });
     
     setIsLoading(true);
     
     // Simulate API call
     setTimeout(() => {
-      setSalesReturnData(sampleSalesReturnData);
+      setPayablesData(samplePayablesData);
       setTableLoaded(true);
       setIsLoading(false);
     }, 500);
@@ -121,7 +197,9 @@ const SalesReturnRegister = () => {
     setTableLoaded(false);
     setFromDate('2024-06-14');
     setToDate('2025-11-26');
-    setSalesReturnData([]);
+    setSelectedVendors(['ALL']);
+    setVendorDisplay('ALL');
+    setPayablesData([]);
   };
 
   // Handle key navigation
@@ -134,6 +212,9 @@ const SalesReturnRegister = () => {
           toDateRef.current?.focus();
           break;
         case 'toDate':
+          vendorRef.current?.focus();
+          break;
+        case 'vendor':
           searchButtonRef.current?.focus();
           break;
         default:
@@ -172,19 +253,6 @@ const SalesReturnRegister = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Calculate total bill amount
-  const totalBillAmount = salesReturnData
-    .filter(row => !row.isTotal && row.billAmount)
-    .reduce((sum, row) => sum + parseFloat(row.billAmount?.replace(/,/g, '') || 0), 0);
-
-  // Format number with commas
-  const formatNumber = (num) => {
-    return num.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  };
 
   // --- STYLES ---
   const TYPOGRAPHY = {
@@ -269,7 +337,7 @@ const SalesReturnRegister = () => {
       paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
@@ -288,7 +356,7 @@ const SalesReturnRegister = () => {
       paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
@@ -412,12 +480,61 @@ const SalesReturnRegister = () => {
       color: '#1976d2',
       fontWeight: 'bold',
     },
+    vendorInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingBottom: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      border: '1px solid #ddd',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '140px' : screenSize.isTablet ? '160px' : '180px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    vendorInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingBottom: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '140px' : screenSize.isTablet ? '160px' : '180px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
+    },
     searchButton: {
       padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '9px 18px' : '10px 20px',
       background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
       color: 'white',
       border: 'none',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
@@ -444,7 +561,7 @@ const SalesReturnRegister = () => {
       background: 'white',
       color: '#333',
       border: '1.5px solid #ddd',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
@@ -496,7 +613,173 @@ const SalesReturnRegister = () => {
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
     },
+    popupOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+      backdropFilter: 'blur(4px)',
+    },
+    popupContent: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      width: '90%',
+      maxWidth: '500px',
+      maxHeight: '80vh',
+      overflow: 'hidden',
+      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+      border: '1px solid #ddd',
+    },
+    popupHeader: {
+      background: '#1B91DA',
+      color: 'white',
+      padding: '16px 20px',
+      margin: 0,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      borderBottom: '1px solid #1479c0',
+    },
+    closeButton: {
+      position: 'absolute',
+      right: '15px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'rgba(255,255,255,0.2)',
+      border: 'none',
+      color: 'white',
+      fontSize: '20px',
+      cursor: 'pointer',
+      width: '30px',
+      height: '30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '4px',
+      transition: 'all 0.3s ease',
+      ':hover': {
+        background: 'rgba(255,255,255,0.3)',
+      }
+    },
+    vendorList: {
+      padding: '20px',
+      maxHeight: '300px',
+      overflowY: 'auto',
+    },
+    vendorItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: '10px 12px',
+      margin: '6px 0',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      border: '1px solid transparent',
+      ':hover': {
+        backgroundColor: '#f0f8ff',
+        borderColor: '#1B91DA',
+      }
+    },
+    selectedVendorItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: '10px 12px',
+      margin: '6px 0',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      backgroundColor: '#f0f8ff',
+      border: '1px solid #1B91DA',
+    },
+    vendorCheckbox: {
+      width: '18px',
+      height: '18px',
+      border: '2px solid #ddd',
+      borderRadius: '4px',
+      marginRight: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      backgroundColor: 'white',
+      transition: 'all 0.3s ease'
+    },
+    selectedVendorCheckbox: {
+      width: '18px',
+      height: '18px',
+      border: '2px solid #1B91DA',
+      borderRadius: '4px',
+      marginRight: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      backgroundColor: '#1B91DA',
+    },
+    checkmark: {
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: '12px'
+    },
+    vendorText: {
+      color: '#333',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium
+    },
+    popupActions: {
+      borderTop: '1px solid #ddd',
+      padding: '15px 20px',
+      backgroundColor: '#f5f7fa',
+    },
+    popupButtons: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: '10px'
+    },
+    popupButton: {
+      padding: '8px 16px',
+      border: 'none',
+      borderRadius: '4px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      minWidth: '80px',
+    },
+    okButton: {
+      background: '#1B91DA',
+      color: 'white',
+      ':hover': {
+        background: '#1479c0',
+      }
+    },
+    clearButton: {
+      background: 'white',
+      color: '#d32f2f',
+      border: '1px solid #ffcdd2',
+      ':hover': {
+        background: '#ffebee',
+      }
+    },
   };
+
+  // Calculate totals
+  const totalDebit = payablesData
+    .filter(row => !row.isTotal && row.debit)
+    .reduce((sum, row) => sum + parseFloat(row.debit.replace(/,/g, '') || 0), 0);
+  
+  const totalCredit = payablesData
+    .filter(row => !row.isTotal && row.credit)
+    .reduce((sum, row) => sum + parseFloat(row.credit.replace(/,/g, '') || 0), 0);
+  
+  const totalBalance = payablesData
+    .filter(row => !row.isTotal && row.balance)
+    .reduce((sum, row) => sum + parseFloat(row.balance.replace(/,/g, '') || 0), 0);
 
   return (
     <div style={styles.container}>
@@ -504,12 +787,12 @@ const SalesReturnRegister = () => {
       {isLoading && (
         <div style={styles.loadingOverlay}>
           <div style={styles.loadingBox}>
-            <div>Loading Sales Return Register Report...</div>
+            <div>Loading Account Payables Report...</div>
           </div>
         </div>
       )}
 
-      {/* Header Section - Same as DayBook */}
+      {/* Header Section - Left side: Dates + Vendor, Right side: Buttons */}
       <div style={styles.headerSection}>
         <div style={{
           display: 'flex',
@@ -518,7 +801,7 @@ const SalesReturnRegister = () => {
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* LEFT SIDE: Dates Only */}
+          {/* LEFT SIDE: Dates and Vendor */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -575,9 +858,55 @@ const SalesReturnRegister = () => {
                 onBlur={() => setFocusedField('')}
               />
             </div>
+
+            {/* Vendor */}
+            <div style={{
+              ...styles.formField,
+              flex: 1,
+              minWidth: screenSize.isMobile ? '100%' : '200px',
+            }}>
+              <label style={styles.inlineLabel}>Vendor:</label>
+              <div
+                style={
+                  focusedField === 'vendor'
+                    ? styles.vendorInputFocused
+                    : styles.vendorInput
+                }
+                onClick={() => {
+                  handleVendorClick();
+                  setFocusedField('vendor');
+                }}
+                ref={vendorRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'vendor');
+                  if (e.key === 'Enter') {
+                    handleVendorClick();
+                  }
+                }}
+                onFocus={() => setFocusedField('vendor')}
+                onBlur={() => setFocusedField('')}
+                tabIndex={0}
+              >
+                <span style={{
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  color: '#333',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}>
+                  {vendorDisplay}
+                </span>
+                <span style={{ 
+                  color: '#1B91DA', 
+                  fontSize: '10px', 
+                  marginLeft: '8px' 
+                }}>▼</span>
+              </div>
+            </div>
           </div>
 
-          {/* SPACER BETWEEN LEFT AND RIGHT SIDES - LARGE GAP */}
+          {/* SPACER BETWEEN LEFT AND RIGHT SIDES */}
           <div style={{
             width: screenSize.isMobile ? '0' : screenSize.isTablet ? '40px' : '60px',
             flexShrink: 0,
@@ -624,17 +953,18 @@ const SalesReturnRegister = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th, minWidth: '70px', width: '70px', maxWidth: '70px' }}>No.</th>
-                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Sales Party</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill No.</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill Date</th>
-                <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px' }}>Bill Amount</th>
+                <th style={{ ...styles.th, minWidth: '60px', width: '60px', maxWidth: '60px' }}>No.</th>
+                <th style={{ ...styles.th, minWidth: '250px', width: '250px', maxWidth: '250px' }}>A/c Name</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Debit</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Credit</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Balance</th>
+                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>DR/CR</th>
               </tr>
             </thead>
             <tbody>
               {tableLoaded ? (
-                salesReturnData.length > 0 ? (
-                  salesReturnData.map((row, index) => (
+                payablesData.length > 0 ? (
+                  payablesData.map((row, index) => (
                     <tr key={index} style={{ 
                       backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                       ...(row.isTotal ? { 
@@ -645,9 +975,9 @@ const SalesReturnRegister = () => {
                     }}>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '70px', 
-                        width: '70px', 
-                        maxWidth: '70px',
+                        minWidth: '60px', 
+                        width: '60px', 
+                        maxWidth: '60px',
                         textAlign: 'center',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
@@ -656,61 +986,74 @@ const SalesReturnRegister = () => {
                       </td>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '200px', 
-                        width: '200px', 
-                        maxWidth: '200px',
+                        minWidth: '250px', 
+                        width: '250px', 
+                        maxWidth: '250px',
                         textAlign: 'left',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.salesParty}
+                        {row.accountName}
                       </td>
                       <td style={{ 
                         ...styles.td, 
                         minWidth: '120px', 
                         width: '120px', 
                         maxWidth: '120px',
-                        textAlign: 'center',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.billNo || ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '120px', 
-                        width: '120px', 
-                        maxWidth: '120px',
-                        textAlign: 'center',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.billDate || ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '140px', 
-                        width: '140px', 
-                        maxWidth: '140px',
                         textAlign: 'right',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.billAmount ? `₹${row.billAmount}` : ''}
+                        {row.debit ? `₹${row.debit}` : ''}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '120px', 
+                        width: '120px', 
+                        maxWidth: '120px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.credit ? `₹${row.credit}` : ''}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '120px', 
+                        width: '120px', 
+                        maxWidth: '120px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.balance ? `₹${row.balance}` : ''}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '80px', 
+                        width: '80px', 
+                        maxWidth: '80px',
+                        textAlign: 'center',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.drCr === 'DR' ? '#d32f2f' : 
+                               row.drCr === 'CR' ? '#2e7d32' : 
+                               row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.drCr || ''}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      No sales return records found
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      No records found
                     </td>
                   </tr>
                 )
               ) : (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view sales return register
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    Enter search criteria and click "Search" to view account payables
                   </td>
                 </tr>
               )}
@@ -727,31 +1070,82 @@ const SalesReturnRegister = () => {
           width: '100%',
         }}>
           <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Bill Amount</span>
+            <span style={styles.balanceLabel}>Total Debit</span>
             <span style={styles.balanceValue}>
-              ₹{formatNumber(totalBillAmount)}
+              ₹{totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-          {tableLoaded && salesReturnData.length > 0 && (
-            <>
-              <div style={styles.balanceItem}>
-                <span style={styles.balanceLabel}>Total Returns</span>
-                <span style={styles.balanceValue}>
-                  {salesReturnData.filter(row => !row.isTotal).length}
-                </span>
-              </div>
-              <div style={styles.balanceItem}>
-                <span style={styles.balanceLabel}>Average Return</span>
-                <span style={styles.balanceValue}>
-                  ₹{formatNumber(totalBillAmount / Math.max(1, salesReturnData.filter(row => !row.isTotal).length))}
-                </span>
-              </div>
-            </>
-          )}
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Credit</span>
+            <span style={styles.balanceValue}>
+              ₹{totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Balance</span>
+            <span style={styles.balanceValue}>
+              ₹{totalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
         </div>
       </div>
+
+      {/* Vendor Selection Popup */}
+      {showVendorPopup && (
+        <div style={styles.popupOverlay} onClick={handlePopupClose}>
+          <div 
+            style={styles.popupContent} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.popupHeader}>
+              Select Vendors
+              <button 
+                style={styles.closeButton}
+                onClick={handlePopupClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.vendorList}>
+              {allVendors.map((vendor) => {
+                const isSelected = tempSelectedVendors.includes(vendor);
+                return (
+                  <div 
+                    key={vendor} 
+                    style={isSelected ? styles.selectedVendorItem : styles.vendorItem}
+                    onClick={() => handleVendorSelect(vendor)}
+                  >
+                    <div style={isSelected ? styles.selectedVendorCheckbox : styles.vendorCheckbox}>
+                      {isSelected && <div style={styles.checkmark}>✓</div>}
+                    </div>
+                    <span style={styles.vendorText}>{vendor}</span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div style={styles.popupActions}>
+              <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.clearButton}}
+                  onClick={handleClearSelection}
+                >
+                  Clear
+                </button>
+                <button 
+                  style={{...styles.popupButton, ...styles.okButton}}
+                  onClick={handlePopupOk}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default SalesReturnRegister;
+export default AccountPayables;
