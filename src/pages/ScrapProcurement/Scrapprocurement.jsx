@@ -292,7 +292,7 @@ const Scrapprocurement = () => {
     fetchAllCustomer();
   }, []);
 
-  // Fetch all scrap items when component mounts
+  // Fetch all tax rates when component mounts
       const fetchTax = async () => {
         try {
           const url = API_ENDPOINTS.Scrap_Procurement.GET_TAX_LIST;
@@ -321,30 +321,30 @@ useEffect(() => {
 
 
 
-  // Fix the initial fetch in useEffect
-useEffect(() => {
-  const fetchAllItems = async () => {
-    try {
-      const url = API_ENDPOINTS.Scrap_Procurement.GET_SALESiNVOICE_ITEMS;
-      const queryParams = new URLSearchParams({
-        page: '1',
-        pageSize: '10' // Fetch more items initially
-      });
+//   // Fix the initial fetch in useEffect
+// useEffect(() => {
+//   const fetchAllItems = async () => {
+//     try {
+//       const url = API_ENDPOINTS.Scrap_Procurement.GET_SALESiNVOICE_ITEMS;
+//       const queryParams = new URLSearchParams({
+//         page: '1',
+//         pageSize: '10' // Fetch more items initially
+//       });
       
-      const fullUrl = `${url}?${queryParams.toString()}`;
-      const res = await axiosInstance.get(fullUrl);
+//       const fullUrl = `${url}?${queryParams.toString()}`;
+//       const res = await axiosInstance.get(fullUrl);
       
-      // Extract data from paginated response
-      const dataArray = res?.data?.data || [];
+//       // Extract data from paginated response
+//       const dataArray = res?.data?.data || [];
       
-      setAllItems(Array.isArray(dataArray) ? dataArray : []);
-    } catch (error) {
-      console.error('Error fetching items:', error);
-      setAllItems([]);
-    }
-  };
+//       setAllItems(Array.isArray(dataArray) ? dataArray : []);
+//     } catch (error) {
+//       console.error('Error fetching items:', error);
+//       setAllItems([]);
+//     }
+//   };
   
-}, []);
+// }, []);
 
   // Handle salesman popup auto-open
   useEffect(() => {
@@ -379,20 +379,20 @@ useEffect(() => {
   }, [billDetails.custName, showCustomerPopup, closedByUser, showSalesmanPopup, showScrapPopup, isEditMode]);
 
   // Handle scrap popup auto-open
-  useEffect(() => {
-    if (billDetails.scrapProductInput.length > 0 && !showScrapPopup && !closedByUser) {
-      if (showSalesmanPopup || showCustomerPopup) return;
+  // useEffect(() => {
+  //   if (billDetails.scrapProductInput.length > 0 && !showScrapPopup && !closedByUser) {
+  //     if (showSalesmanPopup || showCustomerPopup) return;
       
-      setScrapSearchTerm(billDetails.scrapProductInput);
-      setActiveSearchField('scrap');
+  //     setScrapSearchTerm(billDetails.scrapProductInput);
+  //     setActiveSearchField('scrap');
       
-      const timer = setTimeout(() => {
-        setShowScrapPopup(true);
-      }, 500);
+  //     const timer = setTimeout(() => {
+  //       setShowScrapPopup(true);
+  //     }, 500);
       
-      return () => clearTimeout(timer);
-    }
-  }, [billDetails.scrapProductInput, showScrapPopup, closedByUser, showSalesmanPopup, showCustomerPopup]);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [billDetails.scrapProductInput, showScrapPopup, closedByUser, showSalesmanPopup, showCustomerPopup]);
 
   // Global arrow key navigation
   useEffect(() => {
@@ -449,16 +449,6 @@ useEffect(() => {
       setItemSearchTerm('');
     };
   }, []);
-
-  const onCompanyChange = (e) => {
-    const v = e.target.value || "";
-    // update local form value
-    setItems(s => ({ ...s, itemName: v }));
-    // set query used by the popup
-    setCompanyQuery(v);
-    // open selector so user sees filtered results while typing
-    setShowItemPopup(true);
-  };
 
   // Helper function to show confirmation popup
   const showConfirmation = (config) => {
@@ -1054,48 +1044,48 @@ const fetchItemList = async (pageNum = 1, search = '') => {
     }
   };
 
-  // Fetch scrap items list for popup
-  const fetchScrapItemList = async (pageNum = 1, search = '') => {
-    try {
-      const searchTerm = search || scrapSearchTerm || '';
+  // // Fetch scrap items list for popup
+  // const fetchScrapItemList = async (pageNum = 1, search = '') => {
+  //   try {
+  //     const searchTerm = search || scrapSearchTerm || '';
       
-      if (allScrapItems.length > 0 && searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const filtered = allScrapItems.filter(scrap => {
-          const name = (scrap.scrapName || '').toLowerCase();
-          const code = (scrap.scrapCode || '').toLowerCase();
-          return name.includes(searchLower) || code.includes(searchLower);
-        });
+  //     if (allScrapItems.length > 0 && searchTerm) {
+  //       const searchLower = searchTerm.toLowerCase();
+  //       const filtered = allScrapItems.filter(scrap => {
+  //         const name = (scrap.scrapName || '').toLowerCase();
+  //         const code = (scrap.scrapCode || '').toLowerCase();
+  //         return name.includes(searchLower) || code.includes(searchLower);
+  //       });
         
-        return filtered.map((scrap, index) => ({
-          id: scrap.scrapCode || `scrap-${index}`,
-          scrapCode: scrap.scrapCode || '',
-          scrapName: scrap.scrapName || '',
-          // scrapProductName: scrap.scrapName || '',
-        }));
-      }
+  //       return filtered.map((scrap, index) => ({
+  //         id: scrap.scrapCode || `scrap-${index}`,
+  //         scrapCode: scrap.scrapCode || '',
+  //         scrapName: scrap.scrapName || '',
+  //         // scrapProductName: scrap.scrapName || '',
+  //       }));
+  //     }
       
-      const url = API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_ITEMS +
-                (searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '');
-      const response = await axiosInstance.get(url);
-      let data = response?.data?.data || response?.data || [];
+  //     const url = API_ENDPOINTS.SCRAPCREATION.GET_SCRAP_ITEMS +
+  //               (searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '');
+  //     const response = await axiosInstance.get(url);
+  //     let data = response?.data?.data || response?.data || [];
       
-      if (!Array.isArray(data)) {
-        return [];
-      }
+  //     if (!Array.isArray(data)) {
+  //       return [];
+  //     }
       
-      return data.map((scrap, index) => ({
-        id: scrap.scrapCode || `scrap-${index}`,
-        scrapCode: scrap.scrapCode || '',
-        scrapName: scrap.scrapName || '',
-        scrapProductName: scrap.scrapName || '',
-      }));
+  //     return data.map((scrap, index) => ({
+  //       id: scrap.scrapCode || `scrap-${index}`,
+  //       scrapCode: scrap.scrapCode || '',
+  //       scrapName: scrap.scrapName || '',
+  //       scrapProductName: scrap.scrapName || '',
+  //     }));
       
-    } catch (error) {
-      console.error('Error fetching scrap items:', error);
-      return [];
-    }
-  };
+  //   } catch (error) {
+  //     console.error('Error fetching scrap items:', error);
+  //     return [];
+  //   }
+  // };
   
   // Calculate amount when qty or sRate changes
   const calculateAmount = (qty, sRate) => {
@@ -1228,7 +1218,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     }
     
     // Fields in the visual order (excluding UOM since it's not editable)
-    const fields = ['itemName', 'tax', 'sRate', 'qty'];
+    const fields = ['itemName', 'tax', 'qty'];
     const currentFieldIndex = fields.indexOf(currentField);
 
     // Check if itemName is empty in the current row
@@ -1349,71 +1339,79 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   };
 
   // Separate clear function for reuse
-  const clearFormData = () => {
-    ignoreNextEnterRef.current = false;
-    
-    fetchNextBillNo().then(() => {
-      setBillDetails(prev => ({
-        billNo: prev.billNo,
-        billDate: new Date().toISOString().substring(0, 10),
-        mobileNo: '',
-        empName: '',
-        salesman: '',
-        salesmanCode: '', 
-        custName: '',
-        custCode: '', 
-        scrapProductInput: '',
-        scrapCode: '',
-      }));
-    });
+const clearFormData = async () => {
+  ignoreNextEnterRef.current = false;
+  
+  // First, clear the states
+  setBillDetails(prev => ({
+    billNo: '',
+    billDate: new Date().toISOString().substring(0, 10),
+    mobileNo: '',
+    empName: '',
+    salesman: '',
+    salesmanCode: '', 
+    custName: '',
+    custCode: '', 
+    scrapProductInput: '',
+    scrapCode: '',
+  }));
 
-    setItems([
-      {
-        id: 1,
-        sNo: 1,
-        // scrapProductName: '',
-        scrapCode: '',
-        itemName: '',
-        itemCode: '',
-        uom: '',
-        tax: '',
-        sRate: '',
-        qty: '',
-        amount: '0.00'
-      }
-    ]);
-    
-    setActiveTopAction('add');
-    setIsEditMode(false);
-    setOriginalBillDetails(null);
-    setOriginalItems(null);
-    // setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 0 });
-    setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 1 });
-  };
-
-  const handleClear = () => {
-    ignoreNextEnterRef.current = false;
-    
-    if (isEditMode) {
-      showConfirmation({
-        title: 'Clear Data',
-        message: 'Do you want to clear?',
-        type: 'warning',
-        confirmText: 'Yes',
-        cancelText: 'No',
-        onConfirm: () => {
-          revertToOriginalData();
-          setShowConfirmPopup(false);
-          clearFormData();
-        },
-        onCancel: () => {
-          setShowConfirmPopup(false);
-        }
-      });
-    } else {
-      clearFormData();
+  setItems([
+    {
+      id: 1,
+      sNo: 1,
+      scrapCode: '',
+      itemName: '',
+      itemCode: '',
+      uom: '',
+      tax: '',
+      sRate: '',
+      qty: '',
+      amount: '0.00'
     }
-  };
+  ]);
+  
+  setActiveTopAction('add');
+  setIsEditMode(false);
+  setOriginalBillDetails(null);
+  setOriginalItems(null);
+  setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 1 });
+
+  // Wait for state updates, then fetch new bill number
+  await fetchNextBillNo();
+  
+  // Focus on date field after everything is ready
+  setTimeout(() => {
+    if (billDateRef.current) {
+      billDateRef.current.focus();
+      setFocusedField('billDate');
+    }
+  }, 100);
+};
+
+  const handleClear = async () => {
+  ignoreNextEnterRef.current = false;
+  
+  if (isEditMode) {
+    showConfirmation({
+      title: 'Clear Data',
+      message: 'Do you want to clear?',
+      type: 'warning',
+      confirmText: 'Yes',
+      cancelText: 'No',
+      onConfirm: () => {
+        revertToOriginalData();
+        setShowConfirmPopup(false);
+        clearFormData();
+      },
+      onCancel: () => {
+        setShowConfirmPopup(false);
+      }
+    });
+  } else {
+    await clearFormData(); // Make it async
+  }
+};
 
   // Separate save function for actual API call
   const performSave = async () => {
@@ -1526,7 +1524,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           type: 'warning',
           confirmText: 'OK',
           showIcon: true,
-          onConfirm: () => setShowConfirmPopup(false)
+          onConfirm: () => {
+            setShowConfirmPopup(false);
+            setFocusedField(!billDetails.custName ? 'custName' : 'salesman');
+          }
         });
         return; // Just return, don't clear anything
       }
@@ -2196,8 +2197,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                       return;
                     }
                     e.preventDefault();
-                    setFocusedField('mobileNo');
-                    mobileRef.current.focus();
+                    setFocusedField('salesman');
+                    salesmanRef.current.focus();
                     setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 3 });
                   } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -2769,53 +2770,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         //     setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 4 });
         //   }
          }}
-      />
-
-      {/* Scrap Product Popup */}
-      <PopupListSelector
-        open={showScrapPopup}
-        onClose={() => {
-          setShowScrapPopup(false);
-          setClosedByUser(true);
-          setScrapSearchTerm('');
-          setActiveSearchField(null);
-        }}
-        title="Select Scrap Product"
-        fetchItems={fetchScrapItemList}
-        displayFieldKeys={['scrapCode', 'scrapName']}
-        headerNames={['Code', 'Scrap Name']}
-        searchFields={['scrapName', 'scrapCode']}
-        columnWidths={['30%', '70%']}
-        searchPlaceholder="Search scrap by name or code..."
-        initialSearch={scrapSearchTerm}
-        onSearchChange={(searchValue) => {
-          setScrapSearchTerm(searchValue);
-          setBillDetails(prev => ({
-            ...prev,
-            scrapProductInput: searchValue
-          }));
-        }}
-        onSelect={(selectedScrap) => {
-          const scrapName = selectedScrap.scrapName || '';
-          
-          setBillDetails(prev => ({
-            ...prev,
-            scrapProductInput: scrapName,
-            scrapCode: selectedScrap.scrapCode || selectedScrap.code || '',
-          }));
-          setShowScrapPopup(false);
-          setClosedByUser(false);
-          setScrapSearchTerm('');
-          setActiveSearchField(null);
-          
-          setTimeout(() => {
-            if (scrapProductRef.current) {
-              scrapProductRef.current.focus();
-              setFocusedField('scrapProductInput');
-              setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 5 });
-            }
-          }, 100);
-        }}
       />
 
       {/* Item Popup */}

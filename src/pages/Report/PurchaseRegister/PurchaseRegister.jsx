@@ -23,7 +23,7 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 
 const PurchaseRegister = () => {
   // --- STATE MANAGEMENT ---
-  const [data, setData] = useState([
+  const [originalData, setOriginalData] = useState([
     {
       id: 1,
       no: 1,
@@ -47,25 +47,106 @@ const PurchaseRegister = () => {
       time: '01-01-1900 12:49:20',
       noOfBale: '0',
       transport: ''
+    },
+    {
+      id: 3,
+      no: 3,
+      salesParty: 'TEXTILE MART',
+      billNo: 'P00003AA',
+      billDate: '15-01-2025',
+      billAmount: '15,500.00',
+      qty: '25.00',
+      time: '01-01-1900 14:30:00',
+      noOfBale: '2',
+      transport: 'TRUCK-101'
+    },
+    {
+      id: 4,
+      no: 4,
+      salesParty: 'FABRIC WORLD',
+      billNo: 'P00004AA',
+      billDate: '20-03-2025',
+      billAmount: '42,800.00',
+      qty: '35.00',
+      time: '01-01-1900 11:15:45',
+      noOfBale: '3',
+      transport: 'TRUCK-202'
+    },
+    {
+      id: 5,
+      no: 5,
+      salesParty: 'STYLE CORNER',
+      billNo: 'P00005AA',
+      billDate: '05-06-2025',
+      billAmount: '8,900.00',
+      qty: '12.00',
+      time: '01-01-1900 16:20:30',
+      noOfBale: '1',
+      transport: 'VAN-303'
+    },
+    {
+      id: 6,
+      no: 6,
+      salesParty: 'CLASSIC TEXTILES',
+      billNo: 'P00006AA',
+      billDate: '18-07-2025',
+      billAmount: '22,150.00',
+      qty: '18.00',
+      time: '01-01-1900 10:45:00',
+      noOfBale: '2',
+      transport: 'TRUCK-404'
+    },
+    {
+      id: 7,
+      no: 7,
+      salesParty: 'MODERN FABRICS',
+      billNo: 'P00007AA',
+      billDate: '30-11-2025',
+      billAmount: '33,750.00',
+      qty: '28.00',
+      time: '01-01-1900 15:10:20',
+      noOfBale: '3',
+      transport: 'TRUCK-505'
+    },
+    {
+      id: 8,
+      no: 8,
+      salesParty: 'TRENDY WEARS',
+      billNo: 'P00008AA',
+      billDate: '12-02-2025',
+      billAmount: '5,600.00',
+      qty: '8.00',
+      time: '01-01-1900 13:25:45',
+      noOfBale: '1',
+      transport: 'VAN-606'
+    },
+    {
+      id: 9,
+      no: 9,
+      salesParty: 'CURRENT DAY SALE',
+      billNo: 'P00009AA',
+      billDate: new Date().toLocaleDateString('en-GB').replace(/\//g, '-'),
+      billAmount: '12,450.00',
+      qty: '20.00',
+      time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+      noOfBale: '2',
+      transport: 'TRUCK-707'
     }
   ]);
 
-  // State for date range
-  const [dateRange, setDateRange] = useState({
-    from: '2025-01-01',
-    to: Date.now()
-  });
+  // State for displayed data (filtered)
+  const [data, setData] = useState([]);
 
   // State for editing
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
   const [focusedField, setFocusedField] = useState('');
-  const [tableLoaded, setTableLoaded] = useState(true);
+  const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
-  const [fromDate, setFromDate] = useState('2025-01-01');
-  const [toDate, setToDate] = useState(Date.now());
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [purchaseRegisterData, setPurchaseRegisterData] = useState([]);
 
   // --- SCREEN SIZE DETECTION ---
@@ -83,16 +164,30 @@ const PurchaseRegister = () => {
   const searchButtonRef = useRef(null);
   const clearButtonRef = useRef(null);
 
-  // Calculate totals
-  const totals = {
-    billAmount: data.reduce((sum, row) => {
-      const amount = parseFloat(row.billAmount.replace(/,/g, '')) || 0;
-      return sum + amount;
-    }, 0),
-    qty: data.reduce((sum, row) => {
-      const qty = parseFloat(row.qty) || 0;
-      return sum + qty;
-    }, 0)
+  // Function to parse DD-MM-YYYY date string to Date object
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    
+    // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+    const parts = dateStr.split(/[-/]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        // YYYY-MM-DD format
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+      } else {
+        // DD-MM-YYYY format
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+    }
+    return null;
+  };
+
+  // Format date as YYYY-MM-DD for input
+  const formatDateForInput = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   // Format number with commas
@@ -106,18 +201,61 @@ const PurchaseRegister = () => {
   // Handle date change
   const handleFromDateChange = (e) => {
     setFromDate(e.target.value);
-    setDateRange({
-      ...dateRange,
-      from: e.target.value
-    });
   };
 
   const handleToDateChange = (e) => {
     setToDate(e.target.value);
-    setDateRange({
-      ...dateRange,
-      to: e.target.value
+  };
+
+  // Function to filter data by date range
+  const filterDataByDateRange = (from, to) => {
+    if (!from || !to) {
+      toast.warning('Please select both From Date and To Date');
+      return;
+    }
+
+    const fromDateObj = new Date(from);
+    const toDateObj = new Date(to);
+    
+    // Set to end of day for toDate
+    toDateObj.setHours(23, 59, 59, 999);
+    
+    // Validate date range
+    if (fromDateObj > toDateObj) {
+      toast.error('From Date cannot be after To Date');
+      return;
+    }
+
+    const filteredData = originalData.filter(item => {
+      const itemDate = parseDate(item.billDate);
+      if (!itemDate) return false;
+      
+      return itemDate >= fromDateObj && itemDate <= toDateObj;
     });
+
+    // Sort filtered data by date
+    const sortedData = filteredData.sort((a, b) => {
+      const dateA = parseDate(a.billDate);
+      const dateB = parseDate(b.billDate);
+      return dateA - dateB;
+    });
+
+    // Update row numbers
+    const updatedData = sortedData.map((item, index) => ({
+      ...item,
+      no: index + 1
+    }));
+
+    setData(updatedData);
+    setTableLoaded(true);
+    
+    if (updatedData.length === 0) {
+      // toast.info('No records found for the selected date range');
+    } else {
+      toast.success(`Found ${updatedData.length} record(s) for the selected date range`);
+    }
+    
+    return updatedData;
   };
 
   // Filter data by date range
@@ -127,41 +265,39 @@ const PurchaseRegister = () => {
       return;
     }
     
-    // setIsLoading(true);
-    console.log('Filtering data from:', fromDate, 'to:', toDate);
+    // Validate dates
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    
+    if (from > to) {
+      toast.error('From Date cannot be after To Date');
+      return;
+    }
+    
+    setIsLoading(true);
     
     // Simulate API call
     setTimeout(() => {
-      // Transform the data to match table structure
-      const transformedData = data.map(item => ({
-        date: item.billDate,
-        name: item.salesParty,
-        voucherNo: item.billNo,
-        type: 'Purchase', // You might want to adjust this based on your data
-        crDr: 'Dr', // You might want to adjust this based on your data
-        billNo: item.billNo,
-        billet: item.noOfBale,
-        amount: item.billAmount.replace(/,/g, '')
-      }));
-      
-      setPurchaseRegisterData(transformedData);
-      // setTableLoaded(true);
+      filterDataByDateRange(fromDate, toDate);
       setIsLoading(false);
-      // toast.success('Data loaded successfully!');
-    }, 1000);
+    }, 500);
   };
 
   // Clear date filters
   const handleRefresh = () => {
-    setFromDate('2025-01-01');
-    setToDate('2025-12-31');
-    setDateRange({
-      from: '2025-01-01',
-      to: '2025-12-31'
-    });
-    setPurchaseRegisterData([]);
+    // Reset From Date to empty
+    setFromDate('');
+    
+    // Reset To Date to current date
+    const today = new Date();
+    const currentDate = formatDateForInput(today);
+    setToDate(currentDate);
+    
+    // Clear table data
+    setData([]);
     setTableLoaded(false);
-    toast.info('Filters cleared!');
+    
+    // toast.info('Filters cleared! Select dates and click Search to view data');
   };
 
   // Start editing a cell
@@ -312,7 +448,7 @@ const PurchaseRegister = () => {
   // Add new row
   const addNewRow = () => {
     const newRow = {
-      id: data.length + 1,
+      id: originalData.length + 1,
       no: data.length + 1,
       salesParty: '',
       billNo: '',
@@ -323,7 +459,8 @@ const PurchaseRegister = () => {
       noOfBale: '0',
       transport: ''
     };
-    setData([...data, newRow]);
+    const updatedData = [...data, newRow];
+    setData(updatedData);
     setSelectedCell({ row: data.length, col: 0 });
   };
 
@@ -357,6 +494,53 @@ const PurchaseRegister = () => {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Initialize data on component mount
+  useEffect(() => {
+    // Set From Date to empty initially
+    setFromDate('');
+    
+    // Set To Date to current date
+    const today = new Date();
+    const currentDate = formatDateForInput(today);
+    setToDate(currentDate);
+    
+    // Initially show empty table with message
+    setTableLoaded(false);
+    setData([]);
+    
+    // Show instruction message
+    // toast.info('Please select From Date and click Search to view data');
+  }, []);
+
+  // Calculate totals
+  const totals = {
+    billAmount: data.reduce((sum, row) => {
+      const amount = parseFloat(row.billAmount.replace(/,/g, '')) || 0;
+      return sum + amount;
+    }, 0),
+    qty: data.reduce((sum, row) => {
+      const qty = parseFloat(row.qty) || 0;
+      return sum + qty;
+    }, 0)
+  };
+
+  // Calculate opening and closing balances
+  const openingBalance = 0.00;
+  const closingBalance = totals.billAmount;
+
+  // Add CSS animation for spinner
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
   }, []);
 
   // --- STYLES ---
@@ -541,7 +725,6 @@ const PurchaseRegister = () => {
       left: 0,
       right: 0,
       flex: '0 0 auto',
-      // display: 'flex',
       flexDirection: screenSize.isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -673,30 +856,6 @@ const PurchaseRegister = () => {
     },
   };
 
-  // Calculate opening and closing balances
-  const openingBalance = 0.00;
-  const closingBalance = totals.billAmount;
-
-  // Initialize purchase register data
-  useEffect(() => {
-    if (tableLoaded && purchaseRegisterData.length === 0) {
-      handleSearch();
-    }
-  }, []);
-
-  // Add CSS animation for spinner
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
-
   return (
     <div style={styles.container}>
       {/* Loading Overlay */}
@@ -721,7 +880,6 @@ const PurchaseRegister = () => {
           {/* From Date */}
           <div style={{
             ...styles.formField,
-            // flex: screenSize.isMobile ? '1 0 40%' : '1',
             minWidth: screenSize.isMobile ? '100%' : '120px',
           }}>
             <label style={styles.inlineLabel}>From Date:</label>
@@ -739,13 +897,13 @@ const PurchaseRegister = () => {
               onKeyDown={(e) => handleKeyDown(e, 'fromDate')}
               onFocus={() => setFocusedField('fromDate')}
               onBlur={() => setFocusedField('')}
+              required
             />
           </div>
 
           {/* To Date */}
           <div style={{
             ...styles.formField,
-            // flex: screenSize.isMobile ? '1 0 40%' : '1',
             minWidth: screenSize.isMobile ? '100%' : '120px',
           }}>
             <label style={styles.inlineLabel}>To Date:</label>
@@ -763,8 +921,10 @@ const PurchaseRegister = () => {
               onKeyDown={(e) => handleKeyDown(e, 'toDate')}
               onFocus={() => setFocusedField('toDate')}
               onBlur={() => setFocusedField('')}
+              required
             />
           </div>
+          
 
           {/* Search Button */}
           <div style={{
@@ -778,17 +938,20 @@ const PurchaseRegister = () => {
                 ...styles.searchButton,
                 width: screenSize.isMobile ? '100%' : 'auto',
                 marginBottom: screenSize.isMobile ? '8px' : '0',
+                opacity: (!fromDate || !toDate) ? 0.6 : 1,
+                cursor: (!fromDate || !toDate) ? 'not-allowed' : 'pointer',
               }}
               onClick={handleSearch}
-              onMouseEnter={() => setHoveredButton(true)}
+              onMouseEnter={() => setHoveredButton(fromDate && toDate)}
               onMouseLeave={() => setHoveredButton(false)}
               ref={searchButtonRef}
               onKeyDown={(e) => handleKeyDown(e, 'search')}
               onFocus={() => setFocusedField('search')}
               onBlur={() => setFocusedField('')}
+              disabled={!fromDate || !toDate}
             >
               Search
-              {hoveredButton && <div style={styles.buttonGlow}></div>}
+              {hoveredButton && fromDate && toDate && <div style={styles.buttonGlow}></div>}
             </button>
           </div>
 
@@ -833,10 +996,10 @@ const PurchaseRegister = () => {
             </thead>
             <tbody>
               {tableLoaded ? (
-                purchaseRegisterData.length > 0 ? (
-                  purchaseRegisterData.map((row, index) => (
+                data.length > 0 ? (
+                  data.map((row, index) => (
                     <tr 
-                      key={index} 
+                      key={row.id} 
                       style={{ 
                         backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                         cursor: 'pointer',
@@ -845,19 +1008,16 @@ const PurchaseRegister = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff'}
                     >
-                      <td style={styles.td}>{index + 1}</td>
-                      <td style={styles.td}>{row.name}</td>
-                      <td style={styles.td}>{row.voucherNo}</td>
-                      <td style={styles.td}>{row.date}</td>
+                      <td style={styles.td}>{row.no}</td>
+                      <td style={styles.td}>{row.salesParty}</td>
+                      <td style={styles.td}>{row.billNo}</td>
+                      <td style={styles.td}>{row.billDate}</td>
                       <td style={{...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1565c0'}}>
-                        ₹{parseFloat(row.amount || 0).toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}
+                        ₹{row.billAmount}
                       </td>
-                      <td style={styles.td}>{row.qty || '0.00'}</td>
-                      <td style={styles.td}>{row.time || 'N/A'}</td>
-                      <td style={styles.td}>{row.billet || '0'}</td>
+                      <td style={styles.td}>{row.qty}</td>
+                      <td style={styles.td}>{row.time}</td>
+                      <td style={styles.td}>{row.noOfBale}</td>
                     </tr>
                   ))
                 ) : (
@@ -870,7 +1030,7 @@ const PurchaseRegister = () => {
               ) : (
                 <tr>
                   <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view purchase register entries
+                    Please select From Date and click "Search" to view purchase register entries
                   </td>
                 </tr>
               )}
