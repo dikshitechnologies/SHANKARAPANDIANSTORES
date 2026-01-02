@@ -3723,7 +3723,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               groupNameRef.current.focus();
               groupNameRef.current.select(); // optional: selects text
             }
-          }, 500);
+          }, 1000);
   }}
 />
       
