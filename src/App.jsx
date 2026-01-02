@@ -47,8 +47,9 @@ import Ledger from './pages/Report/Ledger/Ledger';
 import SalesReturnregister from './pages/Report/SalesReturnregister/SalesReturnregister';
 import PurchaseReturnregister from './pages/Report/PurchaseReturnregister/PurchaseReturnregister';
 import PurchaseRegister from './pages/Report/PurchaseRegister/PurchaseRegister';
-
-
+import AccountReceivables from './pages/Report/AccountReceivables/AccountReceivables';
+import AccountPayables from './pages/Report/AccountPayables/AccountPayables';
+import DaySales from './pages/Report/DaySales/DaySales'
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { userData } = useAuth();
@@ -139,6 +140,9 @@ function App() {
           <Route path="/reports/SalesReturnregister" element={<ProtectedRoute><LayoutWithNavbar><SalesReturnregister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/PurchaseReturnregister" element={<ProtectedRoute><LayoutWithNavbar><PurchaseReturnregister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/Purchase-register" element={<ProtectedRoute><LayoutWithNavbar><PurchaseRegister /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/reports/account-receivable" element={<ProtectedRoute><LayoutWithNavbar><AccountReceivables /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/reports/account-payable" element={<ProtectedRoute><LayoutWithNavbar><AccountPayables /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/reports/day-sales" element={<ProtectedRoute><LayoutWithNavbar><DaySales /></LayoutWithNavbar></ProtectedRoute>} />
 
 
 
