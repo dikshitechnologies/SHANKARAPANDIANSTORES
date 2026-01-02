@@ -632,11 +632,11 @@ const ItemCreation = ({ onCreated }) => {
     }
 
     // NEW: Validate HSN Code field
-    if (!formData.hsnCode) {
-      setMessage({ type: "error", text: 'HSN Code is required.' });
-      hsnCodeRef.current?.focus();
-      return false;
-    }
+    // if (!formData.hsnCode) {
+    //   setMessage({ type: "error", text: 'HSN Code is required.' });
+    //   hsnCodeRef.current?.focus();
+    //   return false;
+    // }
 
     // Validate GST% - always required
     if (!formData.gstin) {
@@ -2910,7 +2910,7 @@ const ItemCreation = ({ onCreated }) => {
               <div className="field">
                 <label className="field-label">
                   HSN Code
-                  <span className="asterisk">*</span>
+                  {/* <span className="asterisk">*</span> */}
                 </label>
                 <input
                   ref={hsnCodeRef}
