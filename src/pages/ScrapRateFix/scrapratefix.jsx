@@ -90,11 +90,12 @@ useEffect(() => {
 
 
   // Fetch scrap rates from API using apiService
-  const fetchScrapRates = async () => {
+  const fetchScrapRates = async (pageNumber = 1,search = '') => {
     try {
       setIsFetching(true);
-      
-      const response = await apiService.get(API_ENDPOINTS.SCRAP_RATE_FIXING.GET_FULL_SCRAP_RATES);
+      const pageSize = 20;
+      const searchTerm = search || '';
+      const response = await apiService.get(API_ENDPOINTS.SCRAP_RATE_FIXING.GET_FULL_SCRAP_RATES(pageNumber, pageSize, searchTerm));
       
       // The API returns the data directly (array), not wrapped in a data property
       let dataArray = response;
