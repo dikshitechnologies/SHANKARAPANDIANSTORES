@@ -447,9 +447,9 @@ const handleBlur = () => {
       await fetchNextInvNo();
       
       // Force a state update
-      setTimeout(() => {
-        if (billNoRef.current) {
-          billNoRef.current.focus();
+     setTimeout(() => {
+        if (dateRef.current) {
+          dateRef.current.focus();
         }
       }, 100);
       
@@ -460,6 +460,103 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
+  const clearForm = async () => {
+    try {
+      setIsLoading(true);
+      
+      // First, clear all states
+      setIsEditMode(false);
+      setEditingBillNo('');
+      setActiveTopAction('add');
+      setActiveFooterAction('null');
+      setItemSearchTerm('');
+      setFocusedField('');
+      setShowSupplierPopup(false);
+      setShowBillListPopup(false);
+      setShowItemCodePopup(false);
+      setPopupMode('');
+      setSelectedRowId(null);
+      setAddLessAmount('');
+      fetchAutoBarcode();
+      // Clear table items first
+      setItems([{
+        id: 1, 
+        barcode: '', 
+        name: '', 
+        sub: '', 
+        stock: '', 
+        mrp: '', 
+        uom: '', 
+        hsn: '', 
+        tax: '', 
+        rate: '', 
+        qty: '',
+        ovrwt: '',
+        avgwt: '',
+        prate: '',
+        intax: '',
+        outtax: '',
+        acost: '',
+        sudo: '',
+        profitPercent: '',
+        preRT: '',
+        sRate: '',
+        asRate: '',
+        letProfPer: '',
+        ntCost: '',
+        wsPercent: '',
+        wsRate: '',
+        amt: '',
+        min: '',
+        max: ''
+      }]);
+      
+      // Clear header fields
+      const currentDate = new Date().toISOString().substring(0, 10);
+      setBillDetails({
+        invNo: '',
+        billDate: currentDate,
+        mobileNo: '',
+        customerName: '',
+        type: 'Retail',
+        barcodeInput: '',
+        entryDate: '',
+        amount: '',
+        partyCode: '',
+        gstno: '',
+        gstType: 'G',
+        purNo: '',
+        invoiceNo: '',
+        purDate: currentDate,
+        invoiceAmount: '',
+        transType: 'PURCHASE',
+        city: '',
+        isLedger: false,
+      });
+      
+      // Reset ignore Enter flag
+      ignoreNextEnterRef.current = false;
+      
+      // Then fetch next invoice number
+      await fetchNextInvNo();
+      
+      // Force a state update
+      setTimeout(() => {
+        if (dateRef.current) {
+          dateRef.current.focus();
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error creating new form:', error);
+      showAlertConfirmation('Error refreshing form. Please try again.', null, 'danger');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  
   // Fetch purchase bill list for popup with batch-wise pagination
   const fetchBillList = async (page = 1, searchTerm = '') => {
     try {
@@ -1393,6 +1490,25 @@ if (e.key === 'Enter') {
     });
   };
 
+
+
+  const validateCustomer = () => {
+  if (!billDetails.customerName || billDetails.customerName.trim() === "") {
+
+    // ⛔ Stop everything immediately
+    setTimeout(() => {
+      showAlertConfirmation("Please select Customer first", () => {
+        setTimeout(() => {
+          nameRef.current?.focus();
+          nameRef.current?.select?.();
+        }, 50);
+      });
+    }, 0);
+
+    return false;
+  }
+  return true;
+};
   const handleSave = () => {
     try {
       const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
@@ -2449,6 +2565,9 @@ if (e.key === 'Enter') {
                   } else if (e.key === 'Enter') {
                     e.preventDefault();
                     // Navigate to first row's name field in the table
+                      if (!billDetails.customerName?.trim()) {
+                      validateCustomer();
+                    }
                     const firstRowNameInput = document.querySelector(
                       `input[data-row="0"][data-field="name"]`
                     );
@@ -2460,6 +2579,8 @@ if (e.key === 'Enter') {
                 onFocus={() => setFocusedField('customerName')}
                 onBlur={() => {
                   setFocusedField('');
+
+                 
                   setTimeout(() => {
                     if (!showSupplierPopup) {
                       setItemSearchTerm('');
@@ -3283,7 +3404,7 @@ if (e.key === 'Enter') {
             onButtonClick={(type) => {
               console.log("Top action clicked:", type);
               setActiveTopAction(type);
-              if (type === 'add') handleClear();
+              if (type === 'add') clearForm();
               else if (type === 'edit') handleEdit();
               else if (type === 'delete') handleDelete();
             }}         
