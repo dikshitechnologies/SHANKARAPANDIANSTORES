@@ -240,18 +240,18 @@ const Navbar = () => {
     },
   ];
 
-  const reportItems = [
+  const reportItems = [   
     {
-      name: "Sales Register",
-      path: "/reports/sales-register",
-      icon: <FileTextOutlined />,
-      permission: "SALES_REGISTER",
+      name: "Account Payable",
+      path: "/reports/account-payable",
+      icon: <DatabaseOutlined />,
+      permission: "ACCOUNT_PAYABLE",
     },
-    {
-      name: "Sales Return Register",
-      path: "/reports/SalesReturnregister",
-      icon: <FileTextOutlined />,
-      permission: "SALES_RETURN_REGISTER",
+     {
+      name: "Account Receivable",
+      path: "/reports/account-receivable",
+      icon: <DatabaseOutlined />,
+      permission: "ACCOUNT_RECEIVABLE",
     },
     {
       name: "Purchase Register",
@@ -266,16 +266,47 @@ const Navbar = () => {
       permission: "PURCHASE_RETURN_REGISTER",
     },
     {
-      name: "Day Book",
-      path: "/reports/day-book",
+      name: "Sales Register",
+      path: "/reports/sales-register",
+      icon: <FileTextOutlined />,
+      permission: "SALES_REGISTER",
+    },
+    {
+      name: "Sales Return Register",
+      path: "/reports/SalesReturnregister",
+      icon: <FileTextOutlined />,
+      permission: "SALES_RETURN_REGISTER",
+    },
+     {
+      name: "Scrap Purchase",
+      path: "/reports/scrap-purchase",
       icon: <DatabaseOutlined />,
-      permission: "DAY_BOOK",
+      permission: "SCRAP_PURCHASE",
+    },
+     {
+      name: "Group-wise Stock",
+      path: "/reports/group-wise-stock",
+      icon: <DatabaseOutlined />,
+      permission: "GROUP_WISE_STOCK",
     },
     {
       name: "Ledger",
       path: "/reports/ledger",
       icon: <DatabaseOutlined />,
       permission: "LEDGER_REPORT",
+    },
+    {
+      name: "Day Book",
+      path: "/reports/day-book",
+      icon: <DatabaseOutlined />,
+      permission: "DAY_BOOK",
+    },
+    
+    {
+      name: "Day Sales",
+      path: "/reports/day-sales",
+      icon: <DatabaseOutlined />,
+      permission: "DAY_SALES",
     },
   ];
 
