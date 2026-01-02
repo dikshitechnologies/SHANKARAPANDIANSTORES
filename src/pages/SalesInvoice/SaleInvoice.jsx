@@ -77,7 +77,7 @@ const lastBarcodeRowRef = useRef(null);
   
   // Print confirmation popup
   const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
- 
+  
   // Edit confirmation popup
   const [editConfirmationOpen, setEditConfirmationOpen] = useState(false);
   const [editConfirmationData, setEditConfirmationData] = useState(null);
@@ -170,6 +170,7 @@ const [taxList, setTaxList] = useState([]);
   // 3. Totals State
   const [totalQty, setTotalQty] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
+  const DEFAULT_QTY = 1;
 
   // Row delete confirmation popup
   const [rowDeleteConfirmationOpen, setRowDeleteConfirmationOpen] = useState(false);
@@ -182,7 +183,9 @@ const [taxList, setTaxList] = useState([]);
   const [editInvoicePopupOpen, setEditInvoicePopupOpen] = useState(false);
   const [deleteInvoicePopupOpen, setDeleteInvoicePopupOpen] = useState(false);
   const [currentItemRowIndex, setCurrentItemRowIndex] = useState(0);
-  
+  const roundedTotalAmount = Math.round(totalAmount);
+const roundOffValue = (roundedTotalAmount - totalAmount).toFixed(2);
+
   // 5. Data state
   const [salesmanList, setSalesmanList] = useState([]);
   const [itemList, setItemList] = useState([]);
@@ -863,7 +866,7 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
       inTax: item.inTax || item.tax || 0,
       wRate: item.wRate || 0,
       rRate: item.rRate || 0,
-      qty: item.qty || 0,
+      
       amount:  0,
       success: true
     };
@@ -1749,9 +1752,13 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
 
     // ✅ VALID BARCODE
     const updatedItems = [...items];
-    const selectedRate = getRateByType(barcodeData);
-    const qty = Number(barcodeData.qty || 1);
-    const amount = calculateAmount(qty, selectedRate);
+   const selectedRate = getRateByType(barcodeData);
+
+// ✅ ALWAYS DEFAULT QTY = 1 (ignore API)
+const qty = DEFAULT_QTY;
+
+const amount = calculateAmount(qty, selectedRate);
+
 
     updatedItems[currentRowIndex] = {
       ...updatedItems[currentRowIndex],
@@ -1769,16 +1776,40 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
       amount
     };
 
-    setItems(updatedItems);
+   setItems(prevItems => {
+  const nextItems = [...updatedItems];
 
-    // 👉 MOVE TO QTY
-    setTimeout(() => {
-      const qtyInput = document.querySelector(
-        `input[data-row="${currentRowIndex}"][data-field="qty"]`
-      );
-      qtyInput?.focus();
-      qtyInput?.select();
-    }, 120);
+  // ✅ CHECK: if this is LAST ROW, auto add new row
+  if (currentRowIndex === prevItems.length - 1) {
+    nextItems.push({
+      id: prevItems.length + 1,
+      sNo: prevItems.length + 1,
+      barcode: '',
+      itemCode: '',
+      itemName: '',
+      stock: '',
+      mrp: '',
+      uom: '',
+      hsn: '',
+      tax: '',
+      sRate: '',
+      qty: '',
+      amount: '0.00'
+    });
+  }
+
+  return nextItems;
+});
+
+// ✅ MOVE CURSOR TO NEXT ROW BARCODE
+setTimeout(() => {
+  const nextRowIndex = currentRowIndex + 1;
+  const nextBarcodeInput = document.querySelector(
+    `input[data-row="${nextRowIndex}"][data-field="barcode"]`
+  );
+  nextBarcodeInput?.focus();
+}, 120);
+
 
   } catch (err) {
     console.error("Barcode fetch error:", err);
@@ -2332,7 +2363,7 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
         customerName: billDetails.custName || "",
         customercode: billDetails.custCode || "",
         compCode: "001",
-        billAmount: Number(totalAmount) || 0,
+          billAmount: Number(roundedTotalAmount),
         balanceAmount: 0,
         userCode: "001",
         barcode:"",
@@ -3951,8 +3982,12 @@ const itemsData = validItems.map(item => ({
           <div style={styles.totalItem}>
             <span style={styles.totalLabel}>Total Amount</span>
             <span style={styles.totalValue}>
-              ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+  ₹{roundedTotalAmount.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}
+</span>
+
           </div>
         </div>
        
@@ -4142,7 +4177,7 @@ const itemsData = validItems.map(item => ({
  <ConfirmationPopup
   isOpen={barcodeErrorOpen}
   title="Invalid Barcode"
-  message="Barcode is wrong"
+  message="Prefix Not Found"
   confirmText="OK"
   cancelText={null}
   type="warning"

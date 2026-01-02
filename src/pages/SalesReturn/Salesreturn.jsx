@@ -96,6 +96,10 @@ const SalesReturn = () => {
   // 3. Totals State
   const [totalQty, setTotalQty] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
+  
+ 
+  const [roundedTotalAmount, setRoundedTotalAmount] = useState(0);
+const [roundOffValue, setRoundOffValue] = useState(0);
 
   // 4. Popup State
   const [popupOpen, setPopupOpen] = useState(false);
@@ -109,6 +113,7 @@ const SalesReturn = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [showConfirmApply, setShowConfirmApply] = useState(false);
  const blockGlobalEnterRef = useRef(false);
+  const [discount, setDiscount] = useState("");
 
   // 5. Confirmation Popup States
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
@@ -124,7 +129,7 @@ const SalesReturn = () => {
   // 6. State for pending actions
   const [pendingVoucherNo, setPendingVoucherNo] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
-
+  
   // NEW STATE: For custom bill number popups
   const [billDetailsPopupOpen, setBillDetailsPopupOpen] = useState(false);
   const [checkedBills, setCheckedBills] = useState({});
@@ -174,7 +179,7 @@ const SalesReturn = () => {
   const [focusedField, setFocusedField] = useState('');
   const [activeFooterAction, setActiveFooterAction] = useState('null');
   const [isBarcodeEnter, setIsBarcodeEnter] = useState(false); // ✅ Correct
-
+  
   // Track focused element position for arrow navigation
   const [focusedElement, setFocusedElement] = useState({
     type: 'header', // 'header', 'table', 'footer'
@@ -190,6 +195,31 @@ const SalesReturn = () => {
     isTablet: false,
     isDesktop: true
   });
+
+  // Find this useEffect (around line 950)
+// Calculate Totals whenever items change
+useEffect(() => {
+  const qtyTotal = items.reduce((acc, item) => acc + (parseFloat(item.qty) || 0), 0);
+  const amountTotal = items.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
+
+  setTotalQty(qtyTotal);
+  setTotalAmount(amountTotal);
+}, [items]);
+
+// Replace with this:
+useEffect(() => {
+  const qtyTotal = items.reduce((acc, item) => acc + (parseFloat(item.qty) || 0), 0);
+  const amountTotal = items.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
+  
+  // Calculate round-off
+  const roundedAmount = Math.round(amountTotal);
+  const roundOff = (roundedAmount - amountTotal).toFixed(2);
+  
+  setTotalQty(qtyTotal);
+  setTotalAmount(amountTotal);
+  setRoundedTotalAmount(roundedAmount);
+  setRoundOffValue(roundOff);
+}, [items]);
 
 // Add this useEffect for arrow navigation in bill details popup
 useEffect(() => {
@@ -1398,6 +1428,8 @@ const createSalesReturn = async () => {
     setLoading(false);
   }
 };
+
+
 
   // ==================== UPDATE SALES RETURN ====================
 // ==================== UPDATE SALES RETURN ====================
@@ -4847,18 +4879,65 @@ const renderBillDetailsContent = () => {
             <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
+
+
+        {/* DISCOUNT INPUT */}
+<div style={{
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  backgroundColor: "#f0f8ff",
+  padding: "6px 10px",
+  borderRadius: "6px",
+}}>
+  <span style={{
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "#555",
+    whiteSpace: "nowrap"
+  }}>
+    Discount
+  </span>
+
+  <input
+    type="number"
+    value={discount}
+    onChange={(e) => setDiscount(e.target.value)}
+    placeholder="0.00"
+    style={{
+      width: "90px",
+      textAlign: "right",
+      border: "1px solid #1B91DA",
+      borderRadius: "4px",
+      padding: "6px",
+      fontWeight: "bold",
+      outline: "none"
+    }}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSave(); // optional: jump to save
+      }
+    }}
+  />
+</div>
+
         <div style={styles.totalsContainer}>
-          <div style={styles.totalItem}>
-            <span style={styles.totalLabel}>Total Quantity</span>
-            <span style={styles.totalValue}>{totalQty.toFixed(2)}</span>
-          </div>
-          <div style={styles.totalItem}>
-            <span style={styles.totalLabel}>Total Amount</span>
-            <span style={styles.totalValue}>
-              ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
+  <div style={styles.totalItem}>
+    <span style={styles.totalLabel}>Total Quantity</span>
+    <span style={styles.totalValue}>{totalQty.toFixed(2)}</span>
+  </div>
+  <div style={styles.totalItem}>
+    <span style={styles.totalLabel}>Total Amount</span>
+    <span style={styles.totalValue}>
+      ₹{roundedTotalAmount.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}
+    </span>
+  </div>
+
+</div>
         <div style={styles.footerButtons}>
           <ActionButtons1
             onClear={handleClear}
