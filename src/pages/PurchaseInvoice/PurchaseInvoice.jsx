@@ -2825,7 +2825,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                   } else if (e.key === 'Enter') {
                     e.preventDefault();
                     // Navigate to group field
-                    
+                     if (!billDetails.customerName?.trim()) {
+                      validateCustomer();
+                    }
                     if(groupNameRef.current){
                       groupNameRef.current.focus();
                     } 
