@@ -39,7 +39,7 @@ const ENTER_FIELDS = [
   'hsn',
   'tax',
   'sRate',
-  'qty',
+  'qty'
 ];
 
 
@@ -5062,7 +5062,7 @@ const renderBillDetailsContent = () => {
       }, 100);
     }}
     onSelect={handlePopupSelect}
-    fetchItems={handleLoadMoreBills}
+    fetchItems={fetchItemsForPopup}
     title={popupTitle}
     initialSearch={popupSearchText}
     displayFieldKeys={getPopupConfig().displayFieldKeys}
