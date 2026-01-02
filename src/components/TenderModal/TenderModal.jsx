@@ -1492,7 +1492,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                           value={formData.serviceChargeAmount === '0.00' || formData.serviceChargeAmount === '0' ? '' : formData.serviceChargeAmount}
                           readOnly
                           className={`${styles.serviceChargeInput} ${styles.readonlyPayment}`}
-                          placeholder="Amount"
+                          placeholder=""
                         />
                       </div>
                     )}
