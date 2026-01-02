@@ -1403,14 +1403,19 @@ const PaymentVoucher = () => {
   };
 
   const handlePaymentItemChange = (id, field, value) => {
-    console.log(`🟠 handlePaymentItemChange called: id=${id}, field=${field}, value=${value}`);
-    setPaymentItems(prev => {
-      const updated = prev.map(item =>
-        item.id === id ? { ...item, [field]: value } : item
-      );
-      console.log(`🟠 After update, item ${id}:`, updated.find(i => i.id === id));
-      return updated;
-    });
+    setPaymentItems(prev =>
+      prev.map(item => {
+        if (item.id === id) {
+          const updatedItem = { ...item, [field]: value };
+          // Automatically set current date when type changes to CHQ
+          if (field === 'type' && value === 'CHQ' && !item.chqDt) {
+            updatedItem.chqDt = new Date().toISOString().substring(0, 10);
+          }
+          return updatedItem;
+        }
+        return item;
+      })
+    );
     if (field === 'cashBank') {
       setCashBankSearchTerm(value);
     }
@@ -2495,7 +2500,7 @@ const PaymentVoucher = () => {
                     <input
                       ref={el => paymentAmountRefs.current[index] = el}
                       id={`payment_${item.id}_amount`}
-                      value={item.amount}
+                      value={item.amount === '' || item.amount === '0.00' || parseFloat(item.amount) === 0 ? '' : item.amount}
                       onChange={(e) => handlePaymentItemChange(item.id, 'amount', e.target.value)}
                       onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'amount')}
                       onFocus={(e) => {
