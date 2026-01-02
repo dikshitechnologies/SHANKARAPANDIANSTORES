@@ -708,7 +708,7 @@ const ReceiptVoucher = () => {
     if (fieldType === 'cashBank' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
       if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
         setTimeout(() => {
-          setCashBankSearchTerm('');
+          setCashBankSearchTerm(e.key);
           setAccountPopupContext({ itemId: receiptItems[rowIndex].id, field: 'cashBank', rowIndex });
           setAccountPopupOpen(true);
         }, 100);
