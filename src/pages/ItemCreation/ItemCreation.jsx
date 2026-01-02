@@ -196,6 +196,7 @@ const ItemCreation = ({ onCreated }) => {
   // Form data state
   const [formData, setFormData] = useState({
     fitemCode: '',
+    fGroupId: 0,
     itemName: '',
     groupName: '',
     shortName: '',
@@ -790,29 +791,33 @@ const ItemCreation = ({ onCreated }) => {
           fUnits: formData.unit || '',
         };
       } else {
+        // For EDIT/DELETE: Use array format for sizes (matching new PUT payload)
+        const sizeCodesArray = fieldCodes.sizeCode
+          ? fieldCodes.sizeCode.split(',').filter(code => code.trim() !== '')
+          : [];
+        
         requestData = {
-          fitemCode: formData.fitemCode || '',
+          fGroupId: formData.fGroupId || 0,
           fitemName: formData.itemName || '',
           groupName: mainGroup || '',
+          sizes: sizeCodesArray,
+          shortName: formData.shortName || '',
           gstNumber: formData.gstin || '',
           prefix: formData.prefix || '',
-          shortName: formData.shortName || '',
-          hsnCode: formData.hsnCode || '',
           pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
+          hsnCode: formData.hsnCode || '',
           gst: formData.gst === 'Y' ? 'Y' : 'N',
           manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
-          fproduct: fieldCodes.productCode || '',
           fbrand: fieldCodes.brandCode || '',
           fcategory: fieldCodes.categoryCode || '',
           fmodel: fieldCodes.modelCode || '',
-          // For EDIT/DELETE: Send as comma-separated string
-          fsize: fieldCodes.sizeCode || '',
           fmin: formData.min || '',
           fmax: formData.max || '',
           ftype: formData.type || '',
-          fSellPrice: formData.sellingPrice || '',
+          fUnits: formData.unit || '',
+          fproduct: fieldCodes.productCode || '',
           fCostPrice: formData.costPrice || '',
-          fUnits: formData.unit || ''
+          fSellPrice: formData.sellingPrice || ''
         };
       }
       console.log('Submitting data:', JSON.stringify(requestData));
@@ -907,6 +912,7 @@ const ItemCreation = ({ onCreated }) => {
         if (!Array.isArray(data)) return [];
 
         return data.map((it) => ({
+          fGroupId: it.fGroupId || 0,
           fItemcode: it.fItemcode || '',
           fItemName: it.fItemName || '' ,
           fParent: it.fParent || '',
@@ -918,22 +924,26 @@ const ItemCreation = ({ onCreated }) => {
           fUnits: it.fUnits || '',
           fCostPrice: it.fCostPrice || '',
           fSellPrice: it.fSellPrice || '',
+          // Display names
+          brand: it.brand || '',
+          category: it.category || '',
+          model: it.model || '',
+          product: it.product || '',
+          // Codes for backend submission
           fbrand: it.fbrand || '',
           fcategory: it.fcategory || '',
           fmodel: it.fmodel || '',
+          fproduct: it.fproduct || '',
           fsize: it.fsize || '',
           fmin: it.fmin || '',
           fmax: it.fmax || '',
           ftype: it.ftype || '',
-          fproduct: it.fproduct || '',
           pieceRate: it.pieceRate || it.fPieceRate || 'N',
           fPieceRate: it.fPieceRate || it.pieceRate || 'N',
-          brand: it.brand || '',
-          category: it.category || '',
-          model: it.model || '',
-          size: it.size || '',
-          product: it.product || '',
-          gstcheckbox: it.gstcheckbox || (it.ftax ? 'Y' : 'N')
+          gstcheckbox: it.gstcheckbox || (it.ftax ? 'Y' : 'N'),
+          // Include itemCodes and sizes arrays (associated with each other by index)
+          itemCodes: Array.isArray(it.itemCodes) ? it.itemCodes : [],
+          sizes: Array.isArray(it.sizes) ? it.sizes : []
         }));
       } catch (err) {
         console.error('fetchPopupItems error', err);
@@ -1181,6 +1191,7 @@ const ItemCreation = ({ onCreated }) => {
     setSelectedNode(null);
     setFormData({
       fitemCode: '',
+      fGroupId: 0,
       itemName: '',
       groupName: '',
       shortName: '',
@@ -3444,10 +3455,10 @@ const ItemCreation = ({ onCreated }) => {
         responsiveBreakpoint={640}
         initialSearch={initialPopupSearch.model}
       />
-      {/* PopupListSelector for Size Selection */}
+      {/* CheckboxPopup for Size Selection */}
       <CheckboxPopup
         open={isSizePopupOpen}
-        initialSelectedCodes={selectedSizes.map(s => s.fcode)}
+        initialSelectedCodes={selectedSizes.map(s => s.fcode || s.code)}
         onClose={() => {
           setIsSizePopupOpen(false);
           setInitialPopupSearch(prev => ({ ...prev, size: '' }));
@@ -3457,8 +3468,9 @@ const ItemCreation = ({ onCreated }) => {
           const sel = Array.isArray(items) ? items : (items ? [items] : []);
           // persist selection so reopening the popup shows previous choices
           setSelectedSizes(sel);
-          const names = sel.map(it => it.fname || it.fsize || it.name || '').filter(Boolean).join(', ');
-          const codes = sel.map(it => it.fcode || '').filter(Boolean).join(',');
+          // Map to display names and codes (handle both fname/fcode and name/code formats)
+          const names = sel.map(it => it.fname || it.name || it.fsize || '').filter(Boolean).join(', ');
+          const codes = sel.map(it => it.fcode || it.code || '').filter(Boolean).join(',');
           setFormData(prev => ({ ...prev, size: names }));
           setFieldCodes(prev => ({ ...prev, sizeCode: codes }));
           setIsSizePopupOpen(false);
@@ -3507,7 +3519,31 @@ const ItemCreation = ({ onCreated }) => {
 
           // Map backend fields to form fields
           console.log("✔️ RAW SELECTED ITEM:", item);
+          
+          // Handle sizes array from payload
+          let sizeNames = '';
+          let sizeCodes = '';
+          let selectedSizesArray = [];
+          
+          if (Array.isArray(item.sizes) && item.sizes.length > 0) {
+            // Convert sizes array to display format
+            sizeNames = item.sizes.map(s => s.name).join(', ');
+            sizeCodes = item.sizes.map(s => s.code).join(',');
+            selectedSizesArray = item.sizes.map(s => ({
+              fname: s.name,
+              fcode: s.code
+            }));
+          } else if (item.size) {
+            // Fallback to old format if sizes array not present
+            sizeNames = item.size;
+            sizeCodes = item.fsize || '';
+          }
+          
+          // Update selectedSizes for CheckboxPopup
+          setSelectedSizes(selectedSizesArray);
+          
           setFormData({
+            fGroupId: item.fGroupId || 0,
             fitemCode: item.fItemcode || '',
             itemName: item.fItemName || '',
             groupName: item.fParent || '',
@@ -3516,7 +3552,7 @@ const ItemCreation = ({ onCreated }) => {
             category: item.category || '',
             product: item.product || '',
             model: item.model || '',
-            size: item.size || '',
+            size: sizeNames,
             max: item.fmax || item.fMax || '',
             min: item.fmin || item.fMin || '',
             prefix: item.fPrefix || '',
@@ -3539,7 +3575,7 @@ const ItemCreation = ({ onCreated }) => {
             categoryCode: item.fcategory || '',
             productCode: item.fproduct || '',
             modelCode: item.fmodel || '',
-            sizeCode: item.fsize || '',
+            sizeCode: sizeCodes,
             unitCode: item.funitcode || '',
           });
 
