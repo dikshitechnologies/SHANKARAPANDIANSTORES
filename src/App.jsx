@@ -47,6 +47,7 @@ import Ledger from './pages/Report/Ledger/Ledger';
 import SalesReturnregister from './pages/Report/SalesReturnregister/SalesReturnregister';
 import PurchaseReturnregister from './pages/Report/PurchaseReturnregister/PurchaseReturnregister';
 import PurchaseRegister from './pages/Report/PurchaseRegister/PurchaseRegister';
+import Groupwisestock from './pages/Report/Groupwisestock/Groupwisestock';
 
 
 // Protected Route Component
@@ -139,7 +140,7 @@ function App() {
           <Route path="/reports/SalesReturnregister" element={<ProtectedRoute><LayoutWithNavbar><SalesReturnregister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/PurchaseReturnregister" element={<ProtectedRoute><LayoutWithNavbar><PurchaseReturnregister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/Purchase-register" element={<ProtectedRoute><LayoutWithNavbar><PurchaseRegister /></LayoutWithNavbar></ProtectedRoute>} />
-
+          <Route path="/reports/Groupwisestock" element={<ProtectedRoute><LayoutWithNavbar><Groupwisestock /></LayoutWithNavbar></ProtectedRoute>} />
 
 
     </Routes>
