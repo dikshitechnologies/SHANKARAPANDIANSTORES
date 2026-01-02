@@ -215,6 +215,11 @@ const PaymentVoucher = () => {
     billAmountRefs.current = billAmountRefs.current.slice(0, billDetails.length);
   }, [paymentItems.length, billDetails.length]);
 
+  // DEBUG: Log paymentItems array whenever it changes
+  useEffect(() => {
+    console.log(`🔴 DEBUG - PaymentItems State Changed (Length: ${paymentItems.length}):`, paymentItems);
+  }, [paymentItems]);
+
   // Focus on Date field when component mounts
   useEffect(() => {
     if (dateRef.current) {
@@ -266,7 +271,8 @@ const PaymentVoucher = () => {
 
   // Navigate to next field with arrow keys
   const navigateWithArrow = (direction, currentField, currentRow = 0, currentFieldType = '') => {
-    console.log(`Navigating ${direction} from ${currentField}, row ${currentRow}, fieldType ${currentFieldType}`);
+    console.log(`⬅️➡️ Navigating ${direction} from ${currentField}, row ${currentRow}, fieldType ${currentFieldType}`);
+    console.log(`📊 Current paymentItems.length: ${paymentItems.length}`, paymentItems.map(item => ({ id: item.id, type: item.type, cashBank: item.cashBank })));
 
     // Handle navigation from header fields
     if (headerFields.includes(currentField)) {
@@ -630,7 +636,7 @@ const PaymentVoucher = () => {
                 cashBank: '',
                 cashBankCode: '',
                 crDr: 'CR',
-                type: '',
+                type: 'CASH',
                 chqNo: '',
                 chqDt: '',
                 narration: '',
@@ -868,7 +874,7 @@ const PaymentVoucher = () => {
           accountCode: item.faccode || '',
           accountName: item.accountName || '',
           crDr: item.fCrDb || 'CR',
-          type: item.type || '',
+          type: item.type || 'CASH',
           chqNo: item.fchqno || '',
           chqDt: safeFormatDate(item.fchqdt),
           narration: item.narration || '',
@@ -1403,19 +1409,23 @@ const PaymentVoucher = () => {
   };
 
   const handlePaymentItemChange = (id, field, value) => {
-    setPaymentItems(prev =>
-      prev.map(item => {
+    console.log(`🔵 DEBUG - handlePaymentItemChange: id=${id}, field="${field}", value="${value}"`);
+    setPaymentItems(prev => {
+      const updated = prev.map(item => {
         if (item.id === id) {
           const updatedItem = { ...item, [field]: value };
           // Automatically set current date when type changes to CHQ
           if (field === 'type' && value === 'CHQ' && !item.chqDt) {
             updatedItem.chqDt = new Date().toISOString().substring(0, 10);
           }
+          console.log(`🟢 DEBUG - Item ${id} updated:`, updatedItem);
           return updatedItem;
         }
         return item;
-      })
-    );
+      });
+      console.log(`🟡 DEBUG - FULL Payment Items Array (Length: ${updated.length}):`, updated);
+      return updated;
+    });
     if (field === 'cashBank') {
       setCashBankSearchTerm(value);
     }
@@ -1456,21 +1466,26 @@ const PaymentVoucher = () => {
   const handleAddPaymentRow = () => {
     const newId = Math.max(...paymentItems.map(item => item.id), 0) + 1;
     const newSNo = paymentItems.length + 1;
-    setPaymentItems(prev => [
-      ...prev,
-      {
-        id: newId,
-        sNo: newSNo,
-        cashBank: '',
-        cashBankCode: '',
-        crDr: 'CR',
-        type: 'CASH',
-        chqNo: '',
-        chqDt: '',
-        narration: '',
-        amount: '0.00'
-      }
-    ]);
+    console.log(`🔴 DEBUG - Adding new payment row: newId=${newId}, newSNo=${newSNo}`);
+    setPaymentItems(prev => {
+      const updated = [
+        ...prev,
+        {
+          id: newId,
+          sNo: newSNo,
+          cashBank: '',
+          cashBankCode: '',
+          crDr: 'CR',
+          type: 'CASH',
+          chqNo: '',
+          chqDt: '',
+          narration: '',
+          amount: '0.00'
+        }
+      ];
+      console.log(`🟡 DEBUG - FULL Payment Items Array after ADD (Length: ${updated.length}):`, updated);
+      return updated;
+    });
   };
 
   const handleAddBillRow = () => {
@@ -2331,7 +2346,10 @@ const PaymentVoucher = () => {
               </tr>
             </thead>
             <tbody>
-              {paymentItems.map((item, index) => (
+              {console.log(`🔵 DEBUG - Rendering ${paymentItems.length} payment items:`, paymentItems)}
+              {paymentItems.map((item, index) => {
+                console.log(`🟢 DEBUG - Rendering row ${index}: id=${item.id}, type="${item.type}", cashBank="${item.cashBank}"`);
+                return (
                 <tr key={item.id}>
                   <td style={styles.td}>{item.sNo}</td>
                   <td style={styles.td}>
@@ -2403,7 +2421,7 @@ const PaymentVoucher = () => {
                     <select
                       ref={el => paymentTypeRefs.current[index] = el}
                       id={`payment_${item.id}_type`}
-                      value={item.type}
+                      value={item.type || 'CASH'}
                       onChange={(e) => {
                         console.log(`🟠 SELECT onChange fired: item.id=${item.id}, e.target.value="${e.target.value}"`);
                         handlePaymentItemChange(item.id, 'type', e.target.value);
@@ -2539,7 +2557,8 @@ const PaymentVoucher = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
               {/* Spacing Row */}
               <tr style={{ height: '316px', backgroundColor: 'transparent' }}>
                 
