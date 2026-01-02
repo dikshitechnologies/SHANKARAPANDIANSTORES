@@ -56,8 +56,8 @@ const ReceiptVoucher = () => {
     title: '',
     message: '',
     type: 'default',
-    confirmText: 'Confirm',
-    cancelText: 'Cancel',
+    confirmText: 'Yes',
+    cancelText: 'No',
     action: null,
     isLoading: false
   });
@@ -1335,8 +1335,8 @@ const ReceiptVoucher = () => {
         title: 'Delete Voucher',
         message: `Do you  want to delete?`,
         type: 'danger',
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
+        confirmText: 'Yes',
+        cancelText: 'No',
         action: 'confirmDelete',
         isLoading: false,
         voucherNo: voucherNo
@@ -1699,10 +1699,10 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Clear All Data',
-      message: 'Are you sure you want to clear all data? This action cannot be undone.',
+      message: 'Are you sure you want to clear all data?',
       type: 'warning',
-      confirmText: 'Clear',
-      cancelText: 'Cancel',
+      confirmText: 'Yes',
+      cancelText: 'No',
       action: 'clear',
       isLoading: false
     });
@@ -1717,8 +1717,8 @@ const ReceiptVoucher = () => {
       title: 'Print Voucher',
       message: 'Are you sure you want to print this voucher?',
       type: 'info',
-      confirmText: 'Print',
-      cancelText: 'Cancel',
+      confirmText: 'Yes',
+      cancelText: 'No',
       action: 'print',
       isLoading: false
     });
@@ -3349,6 +3349,8 @@ const ReceiptVoucher = () => {
         onConfirm={()=>{savePaymentVoucher(); setSaveConfirmation(false);}}
         title={"Save Receipt Voucher"}
         message={"Do you  want to save? "}
+        confirmText={"Yes"}
+        cancelText={"No"}
         type={"success"}
       
       />
