@@ -4,7 +4,9 @@ const GroupwiseStock = () => {
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('2024-06-14');
   const [toDate, setToDate] = useState('2025-11-26');
-  const [selectedGroup, setSelectedGroup] = useState(['ALL']);
+  const [selectedGroup, setSelectedGroup] = useState([]);
+  const [searchedGroup, setSearchedGroup] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Dummy groups data
   const groups = [
@@ -84,13 +86,13 @@ const GroupwiseStock = () => {
     }), { purPcs: 0, purGms: 0, salPcs: 0, salGms: 0, balPcs: 0, balGms: 0 });
   };
 
-  const currentData = Array.isArray(selectedGroup)
-    ? (selectedGroup.includes('ALL')
+  const currentData = hasSearched && Array.isArray(searchedGroup)
+    ? (searchedGroup.includes('ALL')
         ? Object.values(stockData).flat()
-        : selectedGroup.flatMap(g => stockData[g] || []))
-    : (selectedGroup && stockData[selectedGroup] ? stockData[selectedGroup] : []);
+        : searchedGroup.flatMap(g => stockData[g] || []))
+    : [];
   const totals = calculateTotals(currentData);
-  const financialData = selectedGroup && cashSalesPayments[selectedGroup] ? cashSalesPayments[selectedGroup] : null;
+  const financialData = hasSearched && searchedGroup && cashSalesPayments[searchedGroup] ? cashSalesPayments[searchedGroup] : null;
 
   // --- STYLES ---
   const styles = {
@@ -327,31 +329,51 @@ const GroupwiseStock = () => {
   // Handlers
   const handleSearch = (e) => {
     e.preventDefault();
-    // No-op for now (dummy data)
+    setSearchedGroup([...selectedGroup]);
+    setHasSearched(true);
   };
   const [showGroupModal, setShowGroupModal] = useState(false);
   const handleRefresh = () => {
     setFromDate('2024-06-14');
     setToDate('2025-11-26');
-    setSelectedGroup(['ALL']);
+    setSelectedGroup([]);
+    setSearchedGroup([]);
+    setHasSearched(false);
   };
   const handleGroupModalOpen = () => setShowGroupModal(true);
   const handleGroupModalClose = () => setShowGroupModal(false);
   const handleGroupCheck = (group) => {
     if (group === 'ALL') {
-      setSelectedGroup(['ALL']);
-    } else {
-      let updated = selectedGroup.includes('ALL') ? [] : [...selectedGroup];
-      if (updated.includes(group)) {
-        updated = updated.filter(g => g !== group);
+      // When ALL is checked, select all groups
+      if (selectedGroup.includes('ALL')) {
+        // If ALL is already selected, deselect all
+        setSelectedGroup([]);
       } else {
+        // Select all groups including ALL
+        setSelectedGroup([...groups]);
+      }
+    } else {
+      let updated = [...selectedGroup];
+      if (updated.includes(group)) {
+        // Deselect the group
+        updated = updated.filter(g => g !== group);
+        // Also remove ALL if it was selected
+        updated = updated.filter(g => g !== 'ALL');
+      } else {
+        // Add the group
         updated.push(group);
+        // Check if all groups (except ALL) are now selected
+        const allGroupsExceptAll = groups.filter(g => g !== 'ALL');
+        const allSelected = allGroupsExceptAll.every(g => updated.includes(g));
+        if (allSelected && !updated.includes('ALL')) {
+          updated.push('ALL');
+        }
       }
       if (updated.length === 0) updated = ['ALL'];
       setSelectedGroup(updated);
     }
   };
-  const handleGroupClear = () => setSelectedGroup(['ALL']);
+  const handleGroupClear = () => setSelectedGroup([]);
   const handleGroupOk = () => setShowGroupModal(false);
 
   return (
@@ -393,9 +415,9 @@ const GroupwiseStock = () => {
                     whiteSpace: 'nowrap',
                     flex: 1 
                   }}>
-                    {selectedGroup.length === 1 && selectedGroup[0] === 'ALL'
+                    {selectedGroup.includes('ALL')
                       ? 'ALL'
-                      : selectedGroup.join(', ')}
+                      : selectedGroup.filter(g => g).join(', ') || 'Select...'}
                   </span>
                   <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
                 </button>
@@ -421,9 +443,8 @@ const GroupwiseStock = () => {
                     <input
                       type="checkbox"
                       style={styles.modalCheckbox}
-                      checked={selectedGroup.includes(group)}
+                      checked={selectedGroup.includes(group) || (group !== 'ALL' && selectedGroup.includes('ALL'))}
                       onChange={() => handleGroupCheck(group)}
-                      disabled={group === 'ALL' && selectedGroup.length > 1}
                     />
                     <span>{group}</span>
                   </div>
