@@ -29,8 +29,8 @@ const GroupwiseStock = () => {
   
   // Company popup states
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
-  const [tempSelectedCompany, setTempSelectedCompany] = useState('');
-  const [tempSelectedCompanyCode, setTempSelectedCompanyCode] = useState('');
+  const [tempSelectedCompany, setTempSelectedCompany] = useState([]);
+  const [tempSelectedCompanyCode, setTempSelectedCompanyCode] = useState([]);
   const [allCompanies, setAllCompanies] = useState([]);
   const [companySearchText, setCompanySearchText] = useState('');
   
@@ -545,8 +545,8 @@ const GroupwiseStock = () => {
   const handleRefresh = () => {
     setFromDate(new Date().toISOString().split('T')[0]);
     setToDate(new Date().toISOString().split('T')[0]);
-    setCompany('');
-    setCompanyCode('');
+    setCompany([]);
+    setCompanyCode([]);
     setCompanyDisplay('Select Company');
     setSearchText('');
     setHasSearched(false);
@@ -641,21 +641,49 @@ const GroupwiseStock = () => {
   };
   
   const handleCompanyClick = () => {
-    setTempSelectedCompany(company);
-    setTempSelectedCompanyCode(companyCode);
+    setTempSelectedCompany(Array.isArray(company) ? company : (company ? [company] : []));
+    setTempSelectedCompanyCode(Array.isArray(companyCode) ? companyCode : (companyCode ? [companyCode] : []));
     setCompanySearchText('');
     setShowCompanyPopup(true);
   };
 
   const handleCompanySelect = (selectedCompany) => {
-    setTempSelectedCompany(selectedCompany.compName);
-    setTempSelectedCompanyCode(selectedCompany.compCode);
+    if (selectedCompany === 'ALL') {
+      // Toggle ALL selection
+      if (tempSelectedCompanyCode.length === allCompanies.length) {
+        // Deselect all
+        setTempSelectedCompany([]);
+        setTempSelectedCompanyCode([]);
+      } else {
+        // Select all
+        setTempSelectedCompany(allCompanies.map(c => c.compName));
+        setTempSelectedCompanyCode(allCompanies.map(c => c.compCode));
+      }
+    } else {
+      // Toggle individual company selection
+      const isSelected = tempSelectedCompanyCode.includes(selectedCompany.compCode);
+      if (isSelected) {
+        setTempSelectedCompany(tempSelectedCompany.filter(name => name !== selectedCompany.compName));
+        setTempSelectedCompanyCode(tempSelectedCompanyCode.filter(code => code !== selectedCompany.compCode));
+      } else {
+        setTempSelectedCompany([...tempSelectedCompany, selectedCompany.compName]);
+        setTempSelectedCompanyCode([...tempSelectedCompanyCode, selectedCompany.compCode]);
+      }
+    }
   };
 
   const handleCompanyPopupOk = () => {
     setCompany(tempSelectedCompany);
     setCompanyCode(tempSelectedCompanyCode);
-    setCompanyDisplay(tempSelectedCompany || 'Select Company');
+    if (tempSelectedCompany.length === 0) {
+      setCompanyDisplay('Select Company');
+    } else if (tempSelectedCompany.length === allCompanies.length) {
+      setCompanyDisplay('ALL');
+    } else if (tempSelectedCompany.length === 1) {
+      setCompanyDisplay(tempSelectedCompany[0]);
+    } else {
+      setCompanyDisplay(`${tempSelectedCompany.length} Companies Selected`);
+    }
     setShowCompanyPopup(false);
     setTimeout(() => {
       searchTextRef.current?.focus();
@@ -667,8 +695,8 @@ const GroupwiseStock = () => {
   };
 
   const handleCompanyClearSelection = () => {
-    setTempSelectedCompany('');
-    setTempSelectedCompanyCode('');
+    setTempSelectedCompany([]);
+    setTempSelectedCompanyCode([]);
   };
 
   // Keyboard navigation handlers
@@ -1054,7 +1082,7 @@ const GroupwiseStock = () => {
       {showCompanyPopup && (
         <div style={styles.modalOverlay} onClick={handleCompanyPopupClose}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
-            <div style={styles.modalHeader}>Select Company</div>
+            <div style={styles.modalHeader}>Select Companies</div>
             <div style={styles.modalBody}>
               {/* Search Input */}
               <div style={{ marginBottom: '15px' }}>
@@ -1076,6 +1104,24 @@ const GroupwiseStock = () => {
                 />
               </div>
               
+              {/* ALL Option */}
+              {!companySearchText && (
+                <div 
+                  style={styles.modalCheckboxRow}
+                  onClick={() => handleCompanySelect('ALL')}
+                >
+                  <input
+                    type="checkbox"
+                    style={styles.modalCheckbox}
+                    checked={tempSelectedCompanyCode.length === allCompanies.length && allCompanies.length > 0}
+                    onChange={() => handleCompanySelect('ALL')}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <span>ALL</span>
+                  </div>
+                </div>
+              )}
+              
               {allCompanies.filter(comp => 
                 comp.compName.toLowerCase().includes(companySearchText.toLowerCase()) ||
                 comp.compCode.toLowerCase().includes(companySearchText.toLowerCase())
@@ -1088,7 +1134,7 @@ const GroupwiseStock = () => {
                     comp.compCode.toLowerCase().includes(companySearchText.toLowerCase())
                   )
                   .map((companyItem) => {
-                    const isSelected = tempSelectedCompanyCode === companyItem.compCode;
+                    const isSelected = tempSelectedCompanyCode.includes(companyItem.compCode);
                     return (
                       <div 
                         key={companyItem.compCode} 
