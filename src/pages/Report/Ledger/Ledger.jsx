@@ -35,6 +35,9 @@ const Ledger = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
+  const [openingBalance, setOpeningBalance] = useState(0);
+  const [closingBalance, setClosingBalance] = useState({ debit: 0, credit: 0 });
+  const [totals, setTotals] = useState({ debit: 0, credit: 0 });
   
   // Popup states for Party
   const [showPartyPopup, setShowPartyPopup] = useState(false);
@@ -60,6 +63,7 @@ const Ledger = () => {
   const companyRef = useRef(null);
   const searchButtonRef = useRef(null);
   const searchDebounceRef = useRef(null);
+  const partySearchInputRef = useRef(null);
 
   // --- DATA ---
   const [ledgerData, setLedgerData] = useState([]);
@@ -77,6 +81,22 @@ const Ledger = () => {
     setFromDate(formattedToday);
     setToDate(formattedToday);
   }, []);
+
+  // Set initial focus on fromDate
+  useEffect(() => {
+    if (fromDateRef.current) {
+      fromDateRef.current.focus();
+    }
+  }, []);
+
+  // Focus on party search input when popup opens
+  useEffect(() => {
+    if (showPartyPopup && partySearchInputRef.current) {
+      setTimeout(() => {
+        partySearchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [showPartyPopup]);
 
   // Fetch companies on mount
   useEffect(() => {
@@ -163,10 +183,42 @@ const Ledger = () => {
     setShowPartyPopup(true);
   };
 
+  const handlePartyKeyDown = (e) => {
+    // Check if it's a printable character (letter, number, space, etc.)
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      setTempSelectedParty(party);
+      setTempSelectedPartyCode(partyCode);
+      setPartySearchText(e.key);
+      setPartyPage(1);
+      setShowPartyPopup(true);
+    } else if (e.key === 'Enter') {
+      handleKeyDown(e, 'party');
+      if (!showPartyPopup) {
+        handlePartyClick();
+      }
+    }
+  };
+
   const handleCompanyClick = () => {
     setTempSelectedCompany(company);
     setTempSelectedCompanyCode(companyCode);
     setShowCompanyPopup(true);
+  };
+
+  const handleCompanyKeyDown = (e) => {
+    // Check if it's a printable character (letter, number, space, etc.)
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      setTempSelectedCompany(company);
+      setTempSelectedCompanyCode(companyCode);
+      setShowCompanyPopup(true);
+    } else if (e.key === 'Enter') {
+      handleKeyDown(e, 'company');
+      if (!showCompanyPopup) {
+        handleCompanyClick();
+      }
+    }
   };
 
   const handlePartySelect = (selectedParty) => {
@@ -184,6 +236,10 @@ const Ledger = () => {
     setPartyCode(tempSelectedPartyCode);
     setPartyDisplay(tempSelectedParty || 'Select Party');
     setShowPartyPopup(false);
+    // Move focus to company field after selecting party
+    setTimeout(() => {
+      companyRef.current?.focus();
+    }, 100);
   };
 
   const handleCompanyPopupOk = () => {
@@ -191,6 +247,10 @@ const Ledger = () => {
     setCompanyCode(tempSelectedCompanyCode);
     setCompanyDisplay(tempSelectedCompany || 'Select Company');
     setShowCompanyPopup(false);
+    // Move focus to search button after selecting company
+    setTimeout(() => {
+      searchButtonRef.current?.focus();
+    }, 100);
   };
 
   const handlePartyPopupClose = () => {
@@ -227,7 +287,7 @@ const Ledger = () => {
     }
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!party || !company) {
       toast.warning('Please select both Party and Company', {
         autoClose: 2000,
@@ -235,24 +295,46 @@ const Ledger = () => {
       return;
     }
     
-    console.log('Searching Ledger with:', {
-      fromDate,
-      toDate,
-      party,
-      partyCode,
-      company,
-      companyCode
-    });
-    
-    setIsLoading(true);
-    
-    // TODO: Replace with actual API call
-    setTimeout(() => {
+    try {
+      setIsLoading(true);
+      
+      const response = await get(API_ENDPOINTS.LEDGER.GET_LEDGER(
+        partyCode,
+        companyCode,
+        fromDate,
+        toDate
+      ));
+      
+      if (response.status === 'success') {
+        // Map API response to ledger data
+        const mappedData = response.transactions.map((txn) => ({
+          date: txn.date,
+          name: txn.party,
+          voucherNo: txn.vrNo,
+          type: txn.type,
+          crDr: txn.debit > 0 ? 'Dr' : txn.credit > 0 ? 'Cr' : '-',
+          billNo: txn.billNo,
+          billet: txn.billDate,
+          amount: txn.debit > 0 ? txn.debit : txn.credit
+        }));
+        
+        setLedgerData(mappedData);
+        setOpeningBalance(response.openingBalance || 0);
+        setClosingBalance(response.closingBalance || { debit: 0, credit: 0 });
+        setTotals(response.totals || { debit: 0, credit: 0 });
+        setTableLoaded(true);
+        toast.success('Ledger data loaded successfully');
+      } else {
+        toast.error('Failed to load ledger data');
+        setLedgerData([]);
+      }
+    } catch (error) {
+      toast.error('Error loading ledger data');
+      console.error('Error fetching ledger:', error);
       setLedgerData([]);
-      setTableLoaded(true);
+    } finally {
       setIsLoading(false);
-      toast.info('Ledger API integration pending');
-    }, 500);
+    }
   };
 
   const handleRefresh = () => {
@@ -272,6 +354,9 @@ const Ledger = () => {
     setCompanyCode('');
     setCompanyDisplay('Select Company');
     setLedgerData([]);
+    setOpeningBalance(0);
+    setClosingBalance({ debit: 0, credit: 0 });
+    setTotals({ debit: 0, credit: 0 });
   };
 
   // Handle key navigation
@@ -946,10 +1031,6 @@ const Ledger = () => {
     },
   };
 
-  // Calculate opening and closing balances
-  const openingBalance = 0.00;
-  const closingBalance = 0.00;
-
   return (
     <div style={styles.container}>
       {/* Loading Overlay */}
@@ -1040,12 +1121,7 @@ const Ledger = () => {
                 setFocusedField('party');
               }}
               ref={partyRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'party');
-                if (e.key === 'Enter') {
-                  handlePartyClick();
-                }
-              }}
+              onKeyDown={handlePartyKeyDown}
               onFocus={() => setFocusedField('party')}
               onBlur={() => setFocusedField('')}
               tabIndex={0}
@@ -1082,12 +1158,7 @@ const Ledger = () => {
                 setFocusedField('company');
               }}
               ref={companyRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'company');
-                if (e.key === 'Enter') {
-                  handleCompanyClick();
-                }
-              }}
+              onKeyDown={handleCompanyKeyDown}
               onFocus={() => setFocusedField('company')}
               onBlur={() => setFocusedField('')}
               tabIndex={0}
@@ -1218,13 +1289,13 @@ const Ledger = () => {
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Opening Balance</span>
             <span style={styles.balanceValue}>
-              ₹{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{parseFloat(openingBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Closing Balance</span>
             <span style={styles.balanceValue}>
-              ₹{closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{parseFloat((closingBalance.debit || 0) - (closingBalance.credit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         </div>
@@ -1255,6 +1326,7 @@ const Ledger = () => {
                 value={partySearchText}
                 onChange={handlePartySearch}
                 style={styles.searchInput}
+                ref={partySearchInputRef}
               />
             </div>
             
