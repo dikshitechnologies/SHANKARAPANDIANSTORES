@@ -331,7 +331,14 @@ PAYMENTVOUCHER: {
     GETPARTYLIST: (search = '', pageNumber = 1, pageSize = 200) => `PaymentVoucher/PartyList?search=${encodeURIComponent(search)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
     GET_PARTY_BALANCE: (partyCode) => `ReceiptVoucher/GetPartyBalance?partyCode=${partyCode}`,
     GET_OPENING_BALANCE: `ReceiptVoucher/GetOpeningBalance`
+  },
+
+  PURCHASE_RETURN_REGISTER: {
+    GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `purchaseretunRegister/GetPurchaseReturnRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
   }
 
 };
+//GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `PurchaseRegister/GetPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+
+
 
