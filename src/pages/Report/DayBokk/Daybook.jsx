@@ -82,6 +82,13 @@ const DayBook = () => {
     }
   }, [showBranchPopup, selectedBranches]);
 
+  // Focus on fromDate field when component mounts
+  useEffect(() => {
+    if (fromDateRef.current) {
+      fromDateRef.current.focus();
+    }
+  }, []);
+
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
     setFromDate(e.target.value);

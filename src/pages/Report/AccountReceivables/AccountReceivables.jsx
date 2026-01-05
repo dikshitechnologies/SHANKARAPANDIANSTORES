@@ -87,6 +87,13 @@ const AccountReceivables = () => {
     }
   }, [companies, selectedCompanies]);
 
+  // Focus on fromDate field when component mounts
+  useEffect(() => {
+    if (fromDateRef.current) {
+      fromDateRef.current.focus();
+    }
+  }, []);
+
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
     setFromDate(e.target.value);
@@ -1111,9 +1118,9 @@ const AccountReceivables = () => {
                 )
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  {/* <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                     Use the Search button to load data
-                  </td>
+                  </td> */}
                 </tr>
               )}
             </tbody>
