@@ -1082,8 +1082,8 @@ const Ledger = () => {
           {/* From Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '0.7',
+            minWidth: screenSize.isMobile ? '100%' : '90px',
           }}>
             <label style={styles.inlineLabel}>From Date:</label>
             <input
@@ -1108,8 +1108,8 @@ const Ledger = () => {
           {/* To Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '0.7',
+            minWidth: screenSize.isMobile ? '100%' : '90px',
           }}>
             <label style={styles.inlineLabel}>To Date:</label>
             <input
@@ -1134,8 +1134,8 @@ const Ledger = () => {
           {/* Party with Popup */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '1.4',
+            minWidth: screenSize.isMobile ? '100%' : '140px',
           }}>
             <label style={styles.inlineLabel}>Party:</label>
             <div
@@ -1171,8 +1171,8 @@ const Ledger = () => {
           {/* Company with Popup */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '1.6',
+            minWidth: screenSize.isMobile ? '100%' : '150px',
           }}>
             <label style={styles.inlineLabel}>Company:</label>
             <div
@@ -1258,13 +1258,14 @@ const Ledger = () => {
           <table style={styles.table}>
             <thead>
               <tr>
+                <th style={{ ...styles.th, minWidth: '50px', width: '50px', maxWidth: '50px' }}>S.No</th>
                 <th style={styles.th}>Date</th>
                 <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Name</th>
                 <th style={styles.th}>Voucher No</th>
                 <th style={styles.th}>Type</th>
                 <th style={styles.th}>Cr/Dr</th>
                 <th style={styles.th}>Bill No</th>
-                <th style={styles.th}>Billet</th>
+                <th style={styles.th}>Bill Date</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Amount</th>
               </tr>
             </thead>
@@ -1273,6 +1274,7 @@ const Ledger = () => {
                 ledgerData.length > 0 ? (
                   ledgerData.map((row, index) => (
                     <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                      <td style={{ ...styles.td, minWidth: '50px', width: '50px', maxWidth: '50px' }}>{index + 1}</td>
                       <td style={styles.td}>{row.date}</td>
                       <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px' }}>{row.name}</td>
                       <td style={styles.td}>{row.voucherNo}</td>
@@ -1290,14 +1292,14 @@ const Ledger = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                       No records found
                     </td>
                   </tr>
                 )
               ) : (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                     {/* Enter search criteria and click "Search" to view ledger entries */}
                   </td>
                 </tr>
