@@ -82,7 +82,7 @@ const AccountPayables = () => {
         console.log('Companies loaded:', data);
       } catch (error) {
         console.error('Error fetching companies:', error);
-        toast.error('Failed to load companies list');
+        // toast.error('Failed to load companies list');
       } finally {
         setIsLoading(false);
       }
@@ -271,7 +271,7 @@ const AccountPayables = () => {
       
       setPayablesData(mappedData);
       setTableLoaded(true);
-      toast.success(`Loaded ${data.length} records`);
+      // toast.success(`Loaded ${data.length} records`);
       
     } catch (error) {
       console.error('Error fetching payables:', error);
@@ -1147,7 +1147,7 @@ const AccountPayables = () => {
               ) : (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Select companies and click "Search" to view account payables
+                    Use the Search button to load data
                   </td>
                 </tr>
               )}

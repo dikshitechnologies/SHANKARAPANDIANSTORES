@@ -72,7 +72,7 @@ const AccountReceivables = () => {
         const data = await get(API_ENDPOINTS.ACC_REC.COMPANIES);
         setCompanies(data);
       } catch (error) {
-        toast.error('Failed to load companies');
+        // toast.error('Failed to load companies');
         console.error('Error fetching companies:', error);
       }
     };
