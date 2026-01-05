@@ -298,7 +298,7 @@ const GroupwiseStock = () => {
     th: {
       background: '#1B91DA',
       color: '#fff',
-      fontWeight: 600,
+      fontWeight: 800,
       fontSize: '13px',
       padding: '10px 8px',
       border: 'none',
@@ -462,7 +462,7 @@ const GroupwiseStock = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Sl No.</th>
+                <th style={styles.th}>S.No</th>
                 <th style={styles.th}>Item Name</th>
                 <th style={styles.th}>Opg Pcs</th>
                 <th style={styles.th}>Opg Gms</th>
