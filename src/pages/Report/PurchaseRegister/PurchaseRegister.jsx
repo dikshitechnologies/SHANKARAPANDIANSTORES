@@ -59,12 +59,28 @@ const parseNumber = (str) => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+// Add these helper functions for safe display
+const safeFormatNumber = (value) => {
+  if (value === undefined || value === null) return '0.00';
+  return formatNumber(value);
+};
+
+const safeDisplay = (value, defaultValue = '') => {
+  if (value === undefined || value === null) return defaultValue;
+  return value;
+};
+
+const safeDisplayNumber = (value, defaultValue = '0') => {
+  if (value === undefined || value === null) return defaultValue;
+  return value.toString();
+};
+
 const PurchaseRegister = () => {
   // State for data
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({
     totalRecords: 0,
-    totals: { amount: 0 }
+    totals: { amount: 0 , subTotal: 0, less: 0, qty: 0}
   });
   
   // UI state
@@ -122,7 +138,7 @@ const PurchaseRegister = () => {
       const formattedToDate = formatDateForAPI(toDate);
       
       // Get the endpoint URL using the API_ENDPOINTS constant
-      const endpoint = API_ENDPOINTS.PURCHASE_RETURN_REGISTER.GET_LIST(
+      const endpoint = API_ENDPOINTS.PURCHASE_REGISTER.GET_LIST(
         formattedFromDate, 
         formattedToDate, 
         '001', // compCode - adjust if needed
@@ -130,11 +146,11 @@ const PurchaseRegister = () => {
         20     // pageSize
       );
       
-      console.log('Fetching from endpoint:', endpoint);
+      // console.log('Fetching from endpoint:', endpoint);
       
       // Make API call using axiosInstance
       const response = await axiosInstance.get(endpoint);
-      console.log('API Response:', response.data);
+      // console.log('API Response:', response.data);
       
       // Handle API response
       if (response.data) {
@@ -145,32 +161,51 @@ const PurchaseRegister = () => {
         
         // Calculate total amount for all loaded data
         let totalAmount = 0;
+        let subTotal = 0;
+        let lessTotal = 0;
+        let totalQty = 0;
+        
+        // Map API data to ensure we have the right field names
+        const mappedData = apiData.map(item => {
+          // Use netAmount for the amount column as it seems to be the main amount
+          const amountValue = item.netAmount || item.amount || 0;
+          totalAmount += parseFloat(amountValue) || 0;
+          subTotal += parseFloat(item.subTotal) || 0;
+          lessTotal += parseFloat(item.less) || 0;
+          totalQty += parseFloat(item.qty) || 0;
+          
+          return {
+            subTotal: item.subTotal,
+            less: item.less,
+            netAmount: item.netAmount,
+            name: item.name,
+            voucherDate: item.voucherDate,
+            invoice: item.invoice,
+            bill: item.bill,
+            amount: amountValue, // Use netAmount or amount from API
+            qty: item.qty
+          };
+        });
         
         if (isLoadMore) {
           // For load more, append to existing data
-          const newData = [...data, ...apiData];
+          const newData = [...data, ...mappedData];
           setData(newData);
-          totalAmount = newData.reduce((sum, item) => {
-            return sum + (parseFloat(item.amount) || 0);
-          }, 0);
         } else {
           // For initial load, replace data
-          setData(apiData);
-          totalAmount = apiData.reduce((sum, item) => {
-            return sum + (parseFloat(item.amount) || 0);
-          }, 0);
+          setData(mappedData);
           setCurrentPage(1);
         }
         
         setSummary({
           totalRecords: totalRecords,
-          totals: { amount: totalAmount }
+          totals: { amount: totalAmount, subTotal, less: lessTotal, qty: totalQty } // You can calculate subTotal similarly if needed
         });
         
         setTotalPages(totalPages);
         setHasMore(page < totalPages);
         
-        return apiData;
+        return mappedData;
       } else {
         if (!isLoadMore) {
           toast.error('No data received from API');
@@ -257,9 +292,7 @@ const PurchaseRegister = () => {
     
     if (result.length === 0) {
       toast.info('No records found for the selected date range');
-    } else {
-      toast.success(`Found ${result.length} record(s) for the selected date range`);
-    }
+    } 
   };
 
   const handleRefresh = async () => {
@@ -270,7 +303,7 @@ const PurchaseRegister = () => {
     setData([]);
     setSummary({
       totalRecords: 0,
-      totals: { amount: 0 },
+      totals: { amount: 0, subTotal: 0, less: 0, qty: 0 },
     });
     setCurrentPage(1);
     setHasMore(true);
@@ -784,7 +817,7 @@ const PurchaseRegister = () => {
 
           <div style={{
             ...styles.formField,
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            minWidth: screenSize.isMobile ? '100%': '120px',
           }}>
             <label style={styles.inlineLabel}>To Date:</label>
             <input
@@ -861,40 +894,41 @@ const PurchaseRegister = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>No</th>
-                <th style={styles.th}>Party Name</th>
+                <th style={{...styles.th, minWidth: '40px'}}>No</th>
+                <th style={{...styles.th, minWidth: '120px'}}>Party Name</th>
+                <th style={styles.th}>Voucher Date</th>
                 <th style={styles.th}>Ref No</th>
                 <th style={styles.th}>Bill No</th>
                 <th style={styles.th}>Sub Total</th>
-                <th style={styles.th}>Amount</th>
+                <th style={styles.th}>Less</th>
+                <th style={styles.th}>Nett</th>
+                <th style={styles.th}>Qty</th>
               </tr>
             </thead>
             <tbody>
-              {/* {data.length > 0 ? ( */}
-                <>
-                  {data.map((row, index) => (
-                    <tr 
-                      key={`${row.invoice || ''}_${index}`}
-                      ref={index === data.length - 1 ? lastRowRef : null}
-                      style={{ 
-                        backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff'}
-                    >
-                      <td style={styles.td}>{index + 1}</td>
-                      <td style={styles.td}>{row.name || 'N/A'}</td>
-                      <td style={styles.td}>{row.invoice || 'N/A'}</td>
-                      <td style={styles.td}>{row.voucherDate || 'N/A'}</td>
-                      <td style={styles.td}>{row.bill || 'N/A'}</td>
-                      <td style={styles.td}>{row.amount ? formatNumber(row.amount) : '0.00'}</td>
-                    </tr>
-                  ))}
-                  
-                </>
-
+              {data.map((row, index) => (
+                <tr 
+                  key={`${row.invoice || ''}_${index}`}
+                  ref={index === data.length - 1 ? lastRowRef : null}
+                  style={{ 
+                    backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff'}
+                >
+                  <td style={{...styles.td, minWidth: '40px'}}>{index + 1}</td>
+                  <td style={{...styles.td, minWidth: '120px'}}>{safeDisplay(row.name)}</td>
+                  <td style={styles.td}>{safeDisplay(row.voucherDate)}</td>
+                  <td style={styles.td}>{safeDisplay(row.invoice)}</td>                      
+                  <td style={styles.td}>{safeDisplay(row.bill)}</td>
+                  <td style={styles.td}>{safeFormatNumber(row.subTotal)}</td>
+                  <td style={styles.td}>{safeFormatNumber(row.less)}</td>
+                  <td style={styles.td}>{safeFormatNumber(row.netAmount)}</td>
+                  <td style={styles.td}>{safeDisplayNumber(row.qty)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -903,9 +937,27 @@ const PurchaseRegister = () => {
       <div style={styles.footerSection}>
         <div style={styles.balanceContainer}>
           <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Sub Total</span>
+            <span style={styles.balanceValue}>
+              ₹{formatNumber(summary.totals.subTotal)}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Less</span>
+            <span style={styles.balanceValue}>
+              ₹{formatNumber(summary.totals.less)}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Net Total</span>
             <span style={styles.balanceValue}>
               ₹{formatNumber(summary.totals.amount)}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Quantity</span>
+            <span style={styles.balanceValue}>
+              {formatNumber(summary.totals.qty)}
             </span>
           </div>
         </div>
