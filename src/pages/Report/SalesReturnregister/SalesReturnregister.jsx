@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { API_ENDPOINTS } from '../../../api/endpoints';
+import { API_BASE } from '../../../api/apiService';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -23,8 +25,8 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 
 const SalesReturnRegister = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2024-06-14');
-  const [toDate, setToDate] = useState('2025-11-26');
+  const [fromDate, setFromDate] = useState('2026-01-05');
+  const [toDate, setToDate] = useState('2026-01-05');
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
@@ -94,33 +96,89 @@ const SalesReturnRegister = () => {
     setToDate(e.target.value);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!fromDate || !toDate) {
       toast.warning('Please fill all fields: From Date and To Date', {
         autoClose: 2000,
       });
       return;
     }
-    
+
     console.log('Searching Sales Return Register with:', {
       fromDate,
       toDate
     });
-    
+
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setSalesReturnData(sampleSalesReturnData);
+
+    try {
+      // Convert dates to DD/MM/YYYY format as expected by API
+      const formatDateForAPI = (dateStr) => {
+        const date = new Date(dateStr);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
+      const apiFromDate = formatDateForAPI(fromDate);
+      const apiToDate = formatDateForAPI(toDate);
+
+      const response = await fetch(`${API_BASE}${API_ENDPOINTS.SALES_RETURN_REGISTER.GET_SALES_RETURN_REGISTER(apiFromDate, apiToDate, '001', 1, 200)}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Transform API response to match component's expected format
+      const transformedData = [];
+
+      if (data.data && data.data.length > 0) {
+        data.data.forEach((item, index) => {
+          transformedData.push({
+            id: index + 1,
+            no: index + 1,
+            salesParty: item.name || '',
+            billNo: item.invoice || '',
+            billDate: item.voucherDate || '',
+            billAmount: item.amount ? item.amount.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }) : '0.00'
+          });
+        });
+
+        // Add total row
+        const totalAmount = data.data.reduce((sum, item) => sum + (item.amount || 0), 0);
+        transformedData.push({
+          isTotal: true,
+          salesParty: 'Total',
+          billAmount: totalAmount.toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })
+        });
+      }
+
+      setSalesReturnData(transformedData);
       setTableLoaded(true);
+
+    } catch (error) {
+      console.error('Error fetching sales return register data:', error);
+      toast.error('Failed to load sales return register data. Please try again.');
+      setSalesReturnData([]);
+      setTableLoaded(false);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    setFromDate('2024-06-14');
-    setToDate('2025-11-26');
+    setFromDate('2026-01-05');
+    setToDate('2026-01-05');
     setSalesReturnData([]);
   };
 
