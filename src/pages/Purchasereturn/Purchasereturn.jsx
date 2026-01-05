@@ -558,10 +558,23 @@ const handleBlur = () => {
 
   
   // Fetch purchase bill list for popup with batch-wise pagination
+  // Track already fetched data to prevent duplicate loading
+  const fetchedBillsRef = useRef({ data: [], lastPage: 0, searchTerm: '' });
+  
   const fetchBillList = async (page = 1, searchTerm = '') => {
     try {
       const compCode = userData?.companyCode || '001';
       const pageSize = 20;
+      
+      // If search term changed, reset the cache
+      if (searchTerm !== fetchedBillsRef.current.searchTerm) {
+        fetchedBillsRef.current = { data: [], lastPage: 0, searchTerm };
+      }
+      
+      // If we already fetched this page or beyond and got less than pageSize, return empty to stop infinite scroll
+      if (page > 1 && fetchedBillsRef.current.lastPage >= page) {
+        return []; // Already fetched this page, return empty to stop loading
+      }
       
       // Call API with pagination parameters
       const response = await axiosInstance.get(
@@ -598,9 +611,13 @@ const handleBlur = () => {
         amount: bill.amount || bill.billAmount || ''
       }));
       
+      // Update cache
+      fetchedBillsRef.current.lastPage = page;
+      
       console.log(`Fetched page ${page}: ${formattedBills.length} bills`, formattedBills);
       
       // Return bills array (PopupListSelector expects an array)
+      // If fewer items than pageSize returned, this will signal end of data to PopupListSelector
       return formattedBills;
     } catch (err) {
       console.error('Error fetching bill list:', err);

@@ -285,7 +285,7 @@ const Navbar = () => {
     },
      {
       name: "Group-wise Stock",
-      path: "/reports/group-wise-stock",
+      path: "/reports/Groupwisestock",
       icon: <DatabaseOutlined />,
       permission: "GROUP_WISE_STOCK",
     },
