@@ -349,6 +349,12 @@ PAYMENTVOUCHER: {
       `AccPay/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
   
+  LEDGER: {
+    COMPANIES: 'ledger/companies',
+    PARTY_LIST: (pageNumber = 1, pageSize = 20, search = '') => 
+      `ledger/partyList?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
+  },
+  
 
 };
 
