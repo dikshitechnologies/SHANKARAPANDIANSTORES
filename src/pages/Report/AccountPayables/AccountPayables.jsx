@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { API_ENDPOINTS } from '../../../api/endpoints';
+import { API_BASE } from '../../../api/apiService';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -22,18 +24,6 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 );
 
 // API BASE URL
-const API_BASE_URL = 'http://dikshiserver/spstorewebapi/api/AccPayable';
-
-// API ENDPOINTS
-const API_ENDPOINTS = {
-  // Get companies list
-  GET_COMPANIES: `${API_BASE_URL}/companies`,
-  
-  // Get account payables list
-  GET_PAYABLES: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
-    `${API_BASE_URL}/list?selectedCompanies=${selectedCompanies}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
-};
-
 // Helper function to format date as YYYY-MM-DD
 const formatDate = (date) => {
   const d = new Date(date);
@@ -73,7 +63,7 @@ const AccountPayables = () => {
     const fetchCompanies = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(API_ENDPOINTS.GET_COMPANIES);
+        const response = await fetch(`${API_BASE}/${API_ENDPOINTS.ACC_PAY.COMPANIES}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -230,7 +220,7 @@ const AccountPayables = () => {
       }
       
       // Build the API URL
-      const apiUrl = API_ENDPOINTS.GET_PAYABLES(selectedCompanyCodes, 1, 20);
+      const apiUrl = `${API_BASE}/${API_ENDPOINTS.ACC_PAY.LIST(selectedCompanyCodes, 1, 20)}`;
       console.log('API URL:', apiUrl);
       
       // Fetch data from API

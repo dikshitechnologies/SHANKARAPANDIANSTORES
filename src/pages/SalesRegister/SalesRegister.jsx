@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { API_ENDPOINTS } from '../../api/endpoints';
+import { API_BASE } from '../../api/apiService';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -21,10 +23,20 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// Helper function to format date as YYYY-MM-DD
+const formatDate = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const SalesRegister = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2024-06-14');
-  const [toDate, setToDate] = useState('2025-11-26');
+  const currentDate = formatDate(new Date());
+  const [fromDate, setFromDate] = useState(currentDate);
+  const [toDate, setToDate] = useState(currentDate);
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
@@ -170,7 +182,7 @@ const SalesRegister = () => {
     setToDate(e.target.value);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!fromDate || !toDate) {
       toast.warning('Please select From Date and To Date', {
         autoClose: 2000,
@@ -185,18 +197,77 @@ const SalesRegister = () => {
     
     setIsLoading(true);
     
-    // Simulate API call with mock data
-    setTimeout(() => {
-      setSalesData(mockSalesData);
+    try {
+      // Format dates as DD/MM/YYYY for API
+      const formatDateForAPI = (dateString) => {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+      
+      const formattedFromDate = formatDateForAPI(fromDate);
+      const formattedToDate = formatDateForAPI(toDate);
+      const compCode = '001'; // Default company code
+      
+      // Build the API URL
+      const apiUrl = `${API_BASE}/${API_ENDPOINTS.SALES_REGISTER.SALES_REPORT(
+        formattedFromDate, 
+        formattedToDate, 
+        compCode, 
+        1, 
+        20
+      )}`;
+      console.log('API URL:', apiUrl);
+      
+      // Fetch data from API
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('API Response:', data);
+      
+      // Map the API data to match your table structure
+      const mappedData = data.data.map((item, index) => ({
+        no: index + 1,
+        salesParty: item.refName || item.name || 'N/A',
+        billNo: item.voucherNo || item.no || 'N/A',
+        billDate: item.voucherDate || 'N/A',
+        billAmount: item.billAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        qty: item.qty?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        time: item.time ? new Date(item.time).toLocaleTimeString('en-IN', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit',
+          hour12: true 
+        }) : 'N/A',
+        noOfBale: '', // Not available in API response
+        transport: '' // Not available in API response
+      }));
+      
+      setSalesData(mappedData);
       setTableLoaded(true);
+      // toast.success(`Loaded ${data.data.length} records`);
+      
+    } catch (error) {
+      console.error('Error fetching sales register:', error);
+      toast.error('Failed to load sales register data. Please try again.');
+      setSalesData([]);
+      setTableLoaded(false);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    setFromDate('2024-06-14');
-    setToDate('2025-11-26');
+    // Reset to current date on refresh
+    const today = formatDate(new Date());
+    setFromDate(today);
+    setToDate(today);
     setSalesData([]);
   };
 
