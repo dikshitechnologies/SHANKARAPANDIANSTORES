@@ -64,7 +64,7 @@ const ScrapPurchase  = () => {
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({
     totalRecords: 0,
-    totals: { amount: 0 }
+    totals: { amount: 0, qty: 0 }
   });
   
   // UI state
@@ -145,6 +145,7 @@ const ScrapPurchase  = () => {
         
         // Calculate total amount for all loaded data
         let totalAmount = 0;
+        let totalQty = 0;
         
         if (isLoadMore) {
           // For load more, append to existing data
@@ -153,18 +154,24 @@ const ScrapPurchase  = () => {
           totalAmount = newData.reduce((sum, item) => {
             return sum + (parseFloat(item.amount) || 0);
           }, 0);
+          totalQty = newData.reduce((sum, item) => {
+            return sum + (parseFloat(item.qty) || 0);
+          }, 0);
         } else {
           // For initial load, replace data
           setData(apiData);
           totalAmount = apiData.reduce((sum, item) => {
             return sum + (parseFloat(item.amount) || 0);
           }, 0);
+          totalQty = apiData.reduce((sum, item) => {
+            return sum + (parseFloat(item.qty) || 0);
+          }, 0);
           setCurrentPage(1);
         }
         
         setSummary({
           totalRecords: totalRecords,
-          totals: { amount: totalAmount }
+          totals: { amount: totalAmount, qty: totalQty }
         });
         
         setTotalPages(totalPages);
@@ -269,7 +276,7 @@ const ScrapPurchase  = () => {
     setData([]);
     setSummary({
       totalRecords: 0,
-      totals: { amount: 0 },
+      totals: { amount: 0, qty: 0 },
     });
     setCurrentPage(1);
     setHasMore(true);
@@ -904,12 +911,18 @@ const ScrapPurchase  = () => {
 
       <div style={styles.footerSection}>
         <div style={styles.balanceContainer}>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Net Total</span>
-            <span style={styles.balanceValue}>
-              ₹{formatNumber(summary.totals.amount)}
-            </span>
-          </div>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Net Total</span>
+              <span style={styles.balanceValue}>
+                ₹{formatNumber(summary.totals.amount)}
+              </span>
+            </div>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Total Qty</span>
+              <span style={styles.balanceValue}>
+                {formatNumber(summary.totals.qty)}
+              </span>
+            </div>
         </div>
       </div>
     </div>
