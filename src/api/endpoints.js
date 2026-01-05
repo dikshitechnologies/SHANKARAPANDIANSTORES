@@ -338,12 +338,21 @@ PAYMENTVOUCHER: {
     GET_OPENING_BALANCE: `ReceiptVoucher/GetOpeningBalance`
   },
 
+  PURCHASE_RETURN_REGISTER: {
+    GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `purchaseretunRegister/GetPurchaseReturnRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+  },
   ACC_REC: {
     COMPANIES: 'AccRec/companies',
     LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
       `AccRec/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
  
+  
+  LEDGER: {
+    COMPANIES: 'ledger/companies',
+    PARTY_LIST: (pageNumber = 1, pageSize = 20, search = '') => 
+      `ledger/partyList?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
+  },
   
   SALES_REGISTER: {
     SALES_REPORT: (fromDate, toDate, compCode, page = 1, pageSize = 20) =>
@@ -357,4 +366,7 @@ PAYMENTVOUCHER: {
   },
 
 };
+//GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `PurchaseRegister/GetPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+
+
 
