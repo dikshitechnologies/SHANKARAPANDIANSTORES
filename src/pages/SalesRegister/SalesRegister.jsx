@@ -212,7 +212,7 @@ const SalesRegister = () => {
       const compCode = '001'; // Default company code
       
       // Build the API URL
-      const apiUrl = `${API_BASE}/${API_ENDPOINTS.SALES_REGISTER.SALES_REPORT(
+      const apiUrl = `${API_BASE}${API_ENDPOINTS.SALES_REGISTER.SALES_REPORT(
         formattedFromDate, 
         formattedToDate, 
         compCode, 
