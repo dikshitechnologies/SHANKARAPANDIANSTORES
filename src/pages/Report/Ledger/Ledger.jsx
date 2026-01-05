@@ -74,7 +74,7 @@ const Ledger = () => {
     const day = String(today.getDate()).padStart(2, '0');
     const formattedToday = `${year}-${month}-${day}`;
     
-    setFromDate('');
+    setFromDate(formattedToday);
     setToDate(formattedToday);
   }, []);
 
@@ -263,7 +263,7 @@ const Ledger = () => {
     const formattedToday = `${year}-${month}-${day}`;
     
     setTableLoaded(false);
-    setFromDate('');
+    setFromDate(formattedToday);
     setToDate(formattedToday);
     setParty('');
     setPartyCode('');
