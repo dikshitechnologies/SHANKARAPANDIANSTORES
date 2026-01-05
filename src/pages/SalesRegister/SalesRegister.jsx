@@ -289,6 +289,13 @@ const SalesRegister = () => {
     }
   };
 
+  // Focus on fromDate field when component mounts
+  useEffect(() => {
+    if (fromDateRef.current) {
+      fromDateRef.current.focus();
+    }
+  }, []);
+
   // --- SCREEN SIZE DETECTION ---
   const [screenSize, setScreenSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
@@ -713,109 +720,132 @@ const SalesRegister = () => {
         </div>
       )}
 
-      {/* Header Section - ALL ON ONE LINE */}
+      {/* Header Section - Left side: Dates, Right side: Buttons */}
       <div style={styles.headerSection}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
+          gap: screenSize.isMobile ? '12px' : screenSize.isTablet ? '16px' : '20px',
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* From Date - Smaller width only */}
-          <div style={{
-            ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
-            minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
-          }}>
-            <label style={styles.inlineLabel}>From Date:</label>
-            <input
-              type="date"
-              data-header="fromDate"
-              style={
-                focusedField === 'fromDate'
-                  ? styles.inlineInputFocused
-                  : styles.inlineInput
-              }
-              value={fromDate}
-              onChange={handleFromDateChange}
-              ref={fromDateRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'fromDate');
-              }}
-              onFocus={() => setFocusedField('fromDate')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
-
-          {/* To Date - Smaller width only */}
-          <div style={{
-            ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
-            minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
-          }}>
-            <label style={styles.inlineLabel}>To Date:</label>
-            <input
-              type="date"
-              data-header="toDate"
-              style={
-                focusedField === 'toDate'
-                  ? styles.inlineInputFocused
-                  : styles.inlineInput
-              }
-              value={toDate}
-              onChange={handleToDateChange}
-              ref={toDateRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'toDate');
-              }}
-              onFocus={() => setFocusedField('toDate')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
-
-          {/* Search Button */}
+          {/* LEFT SIDE: Dates */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            flexShrink: 0,
+            flex: 1,
+            gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
+            flexWrap: 'wrap',
           }}>
-            <button
-              style={{
-                ...styles.searchButton,
-                width: screenSize.isMobile ? '100%' : 'auto',
-                marginBottom: screenSize.isMobile ? '8px' : '0',
-              }}
-              onClick={handleSearch}
-              onMouseEnter={() => setHoveredButton(true)}
-              onMouseLeave={() => setHoveredButton(false)}
-              ref={searchButtonRef}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearch();
+            {/* From Date - Smaller width only */}
+            <div style={{
+              ...styles.formField,
+              flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
+              minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
+            }}>
+              <label style={styles.inlineLabel}>From Date:</label>
+              <input
+                type="date"
+                data-header="fromDate"
+                style={
+                  focusedField === 'fromDate'
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
                 }
-              }}
-            >
-              Search
-              {hoveredButton && <div style={styles.buttonGlow}></div>}
-            </button>
+                value={fromDate}
+                onChange={handleFromDateChange}
+                ref={fromDateRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'fromDate');
+                }}
+                onFocus={() => setFocusedField('fromDate')}
+                onBlur={() => setFocusedField('')}
+              />
+            </div>
+
+            {/* To Date - Smaller width only */}
+            <div style={{
+              ...styles.formField,
+              flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
+              minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
+            }}>
+              <label style={styles.inlineLabel}>To Date:</label>
+              <input
+                type="date"
+                data-header="toDate"
+                style={
+                  focusedField === 'toDate'
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
+                }
+                value={toDate}
+                onChange={handleToDateChange}
+                ref={toDateRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'toDate');
+                }}
+                onFocus={() => setFocusedField('toDate')}
+                onBlur={() => setFocusedField('')}
+              />
+            </div>
           </div>
 
-          {/* Refresh Button */}
+          {/* SPACER BETWEEN LEFT AND RIGHT SIDES - LARGE GAP */}
+          <div style={{
+            width: screenSize.isMobile ? '0' : screenSize.isTablet ? '40px' : '60px',
+            flexShrink: 0,
+          }} />
+
+          {/* RIGHT SIDE: Buttons */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
+            gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
             flexShrink: 0,
           }}>
-            <button
-              style={{
-                ...styles.refreshButton,
-                width: screenSize.isMobile ? '100%' : 'auto',
-              }}
-              onClick={handleRefresh}
-            >
-              Refresh
-            </button>
+            {/* Search Button */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <button
+                style={{
+                  ...styles.searchButton,
+                  width: screenSize.isMobile ? '100%' : 'auto',
+                  marginBottom: screenSize.isMobile ? '8px' : '0',
+                }}
+                onClick={handleSearch}
+                onMouseEnter={() => setHoveredButton(true)}
+                onMouseLeave={() => setHoveredButton(false)}
+                ref={searchButtonRef}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}
+              >
+                Search
+                {hoveredButton && <div style={styles.buttonGlow}></div>}
+              </button>
+            </div>
+
+            {/* Refresh Button */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <button
+                style={{
+                  ...styles.refreshButton,
+                  width: screenSize.isMobile ? '100%' : 'auto',
+                }}
+                onClick={handleRefresh}
+              >
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -890,9 +920,9 @@ const SalesRegister = () => {
                 )
               ) : (
                 <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    {/* <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                       Enter search criteria and click "Search" to view sales register entries
-                    </td>
+                    </td> */}
                   </tr>
               )}
             </tbody>

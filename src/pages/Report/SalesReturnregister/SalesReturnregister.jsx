@@ -142,6 +142,13 @@ const SalesReturnRegister = () => {
     }
   };
 
+  // Focus on fromDate field when component mounts
+  useEffect(() => {
+    if (fromDateRef.current) {
+      fromDateRef.current.focus();
+    }
+  }, []);
+
   // --- SCREEN SIZE DETECTION ---
   const [screenSize, setScreenSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
@@ -709,9 +716,9 @@ const SalesReturnRegister = () => {
                 )
               ) : (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  {/* <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                     Enter search criteria and click "Search" to view sales return register
-                  </td>
+                  </td> */}
                 </tr>
               )}
             </tbody>

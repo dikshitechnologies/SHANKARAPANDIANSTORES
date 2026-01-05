@@ -338,6 +338,9 @@ PAYMENTVOUCHER: {
     GET_OPENING_BALANCE: `ReceiptVoucher/GetOpeningBalance`
   },
 
+  PURCHASE_RETURN_REGISTER: {
+    GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `purchaseretunRegister/GetPurchaseReturnRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+  },
   ACC_REC: {
     COMPANIES: 'AccRec/companies',
     LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
@@ -363,4 +366,7 @@ PAYMENTVOUCHER: {
   },
 
 };
+//GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `PurchaseRegister/GetPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+
+
 
