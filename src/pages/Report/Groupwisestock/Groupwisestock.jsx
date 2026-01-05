@@ -1,141 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { get } from '../../../api/apiService';
+import { API_ENDPOINTS } from '../../../api/endpoints';
 
 const GroupwiseStock = () => {
+  // --- REFS ---
+  const fromDateRef = useRef(null);
+  const toDateRef = useRef(null);
+  const companyRef = useRef(null);
+  const searchTextRef = useRef(null);
+  const searchButtonRef = useRef(null);
+  const companySearchInputRef = useRef(null);
+
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedGroup, setSelectedGroup] = useState([]);
-  const [searchedGroup, setSearchedGroup] = useState([]);
+  const [company, setCompany] = useState('');
+  const [companyCode, setCompanyCode] = useState('');
+  const [companyDisplay, setCompanyDisplay] = useState('Select Company');
   const [hasSearched, setHasSearched] = useState(false);
+  const [focusedField, setFocusedField] = useState('');
   
   // Drill-down states
   const [viewLevel, setViewLevel] = useState('groups'); // 'groups' | 'items' | 'bills'
   const [selectedGroupName, setSelectedGroupName] = useState('');
   const [selectedItemName, setSelectedItemName] = useState('');
+  
+  // Company popup states
+  const [showCompanyPopup, setShowCompanyPopup] = useState(false);
+  const [tempSelectedCompany, setTempSelectedCompany] = useState('');
+  const [tempSelectedCompanyCode, setTempSelectedCompanyCode] = useState('');
+  const [allCompanies, setAllCompanies] = useState([]);
+  const [companySearchText, setCompanySearchText] = useState('');
+  
+  // API data states
+  const [stockData, setStockData] = useState([]);
+  const [totalData, setTotalData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  
+  // Second screen (group details) states
+  const [groupDetailsData, setGroupDetailsData] = useState([]);
+  const [groupDetailsTotal, setGroupDetailsTotal] = useState(null);
+  
+  // Third screen (item details) states
+  const [itemDetailsData, setItemDetailsData] = useState([]);
+  const [itemTotalInQty, setItemTotalInQty] = useState(0);
+  const [itemTotalOutQty, setItemTotalOutQty] = useState(0);
 
-  // Dummy groups data
-  const groups = [
-    'ALL',
-    'ASSORTED GOLD',
-    'ASSORTED SILVER',
-    'GOLD',
-    'GOLD BARCODE',
-    'GOLD MANAUAL',
-    'GOLD PCS',
-    'METAL',
-    'OLD GOLD.',
-    'OLD SILVER.',
-    'SILVER',
-    'SILVER BARCODE',
-    'SILVER MANAUAL',
-    'SILVER PCS'
-  ];
+  // Fetch companies on mount
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await get(API_ENDPOINTS.LEDGER.COMPANIES);
+        if (response.status === 'success' && response.data) {
+          setAllCompanies(response.data);
+        }
+      } catch (error) {
+        toast.error('Failed to load companies');
+        console.error('Error fetching companies:', error);
+      }
+    };
+    fetchCompanies();
+  }, []);
 
-  // Dummy stock data for different groups
-  const stockData = {
-    'GOLD': [
-      { id: 1, itemName: 'BANGEL', opgPcs: 4, opgGms: -939.000, purPcs: 62, purGms: 5511.000, salPcs: 58, salGms: 6450.000, balPcs: 4, balGms: -939.000 },
-      { id: 2, itemName: 'BRACELETS', opgPcs: 7, opgGms: 143.000, purPcs: 7, purGms: 143.000, salPcs: '', salGms: '', balPcs: 7, balGms: 143.000 },
-      { id: 3, itemName: 'CHAIN', opgPcs: 4, opgGms: 2333.000, purPcs: 6, purGms: 3133.000, salPcs: 2, salGms: 800.000, balPcs: 4, balGms: 2333.000 },
-      { id: 4, itemName: 'CHAINGOLD', opgPcs: 78, opgGms: 1038.000, purPcs: 82, purGms: 1081.000, salPcs: 4, salGms: 43.000, balPcs: 78, balGms: 1038.000 },
-      { id: 5, itemName: 'EARRINGS', opgPcs: -3, opgGms: -324.000, purPcs: '', purGms: '', salPcs: 3, salGms: 324.000, balPcs: -3, balGms: -324.000 },
-      { id: 6, itemName: 'GOLD RING', opgPcs: 38, opgGms: 1872.000, purPcs: 67, purGms: 1945.000, salPcs: 29, salGms: 73.000, balPcs: 38, balGms: 1872.000 },
-      { id: 7, itemName: 'HARAM', opgPcs: 2, opgGms: 200.000, purPcs: 3, purGms: 300.000, salPcs: 1, salGms: 100.000, balPcs: 2, balGms: 200.000 },
-      { id: 8, itemName: 'NECKLACE', opgPcs: -1, opgGms: -18.000, purPcs: '', purGms: '', salPcs: 1, salGms: 18.000, balPcs: -1, balGms: -18.000 },
-      { id: 9, itemName: 'NOSE RING', opgPcs: -1, opgGms: -8.000, purPcs: '', purGms: '', salPcs: 1, salGms: 8.000, balPcs: -1, balGms: -8.000 },
-      { id: 10, itemName: 'PENDANTS', opgPcs: -5, opgGms: -700.000, purPcs: '', purGms: '', salPcs: 5, salGms: 700.000, balPcs: -5, balGms: -700.000 },
-      { id: 11, itemName: 'RING(GOLD)', opgPcs: -48, opgGms: -420.000, purPcs: 3, purGms: 210.000, salPcs: 51, salGms: 630.000, balPcs: -48, balGms: -420.000 },
-      { id: 12, itemName: 'RINGS', opgPcs: 10, opgGms: 100.000, purPcs: 10, purGms: 100.000, salPcs: '', salGms: '', balPcs: 10, balGms: 100.000 },
-      { id: 13, itemName: 'THALI', opgPcs: -5, opgGms: -2.000, purPcs: 3, purGms: 220.000, salPcs: 8, salGms: 222.000, balPcs: -5, balGms: -2.000 }
-    ],
-    'SILVER': [
-      { id: 1, itemName: 'SILVER BANGEL', opgPcs: 5, opgGms: 400.000, purPcs: 45, purGms: 3200.000, salPcs: 40, salGms: 2800.000, balPcs: 5, balGms: 400.000 },
-      { id: 2, itemName: 'SILVER CHAIN', opgPcs: 5, opgGms: 300.000, purPcs: 30, purGms: 1500.000, salPcs: 25, salGms: 1200.000, balPcs: 5, balGms: 300.000 },
-      { id: 3, itemName: 'SILVER RING', opgPcs: 15, opgGms: 75.000, purPcs: 100, purGms: 500.000, salPcs: 85, salGms: 425.000, balPcs: 15, balGms: 75.000 }
-    ],
-    'ASSORTED GOLD': [
-      { id: 1, itemName: 'ASSORTED BANGEL', opgPcs: 5, opgGms: 400.000, purPcs: 25, purGms: 2200.000, salPcs: 20, salGms: 1800.000, balPcs: 5, balGms: 400.000 },
-      { id: 2, itemName: 'ASSORTED RING', opgPcs: 3, opgGms: 150.000, purPcs: 15, purGms: 750.000, salPcs: 12, salGms: 600.000, balPcs: 3, balGms: 150.000 }
-    ],
-    'ASSORTED SILVER': [
-      { id: 1, itemName: 'ASSORTED SILVER BANGEL', opgPcs: 5, opgGms: 400.000, purPcs: 35, purGms: 2500.000, salPcs: 30, salGms: 2100.000, balPcs: 5, balGms: 400.000 }
-    ],
-    'GOLD BARCODE': [
-      { id: 1, itemName: 'BC BANGEL', opgPcs: 5, opgGms: 500.000, purPcs: 50, purGms: 4500.000, salPcs: 45, salGms: 4000.000, balPcs: 5, balGms: 500.000 }
-    ],
-    'SILVER BARCODE': [
-      { id: 1, itemName: 'BC SILVER CHAIN', opgPcs: 5, opgGms: 250.000, purPcs: 40, purGms: 2000.000, salPcs: 35, salGms: 1750.000, balPcs: 5, balGms: 250.000 }
-    ]
-  };
+  // Auto-focus on fromDate when component mounts
+  useEffect(() => {
+    if (fromDateRef.current) {
+      setTimeout(() => {
+        fromDateRef.current.focus();
+      }, 100);
+    }
+  }, []);
 
-  const cashSalesPayments = {
-    'GOLD': { cashSales: 32429496.00, payments: 11417342.67, closingCash: 1012153.33 },
-    'SILVER': { cashSales: 5500000.00, payments: 4800000.00, closingCash: 250000.00 },
-    'ASSORTED GOLD': { cashSales: 8900000.00, payments: 7500000.00, closingCash: 450000.00 },
-    'ASSORTED SILVER': { cashSales: 4500000.00, payments: 3800000.00, closingCash: 350000.00 },
-    'GOLD BARCODE': { cashSales: 15000000.00, payments: 13000000.00, closingCash: 800000.00 },
-    'SILVER BARCODE': { cashSales: 7500000.00, payments: 6500000.00, closingCash: 400000.00 }
-  };
-
-  // Dummy bill data for items
-  const billData = {
-    'BANGEL': [
-      { id: 1, billNo: 'PO0006AA', date: '05/01/2026', inQty: 1000.000, inRate: 150.00, outQty: '', outRate: '' },
-      { id: 2, billNo: 'SI0015BB', date: '05/01/2026', inQty: '', inRate: '', outQty: 500.000, outRate: 180.00 }
-    ],
-    'CHILDRENS CHURIDAR': [
-      { id: 1, billNo: 'PO0006AA', date: '05/01/2026', inQty: 1000.000, inRate: 150.00, outQty: '', outRate: '' },
-      { id: 2, billNo: 'PO0007BB', date: '04/01/2026', inQty: 500.000, inRate: 145.00, outQty: '', outRate: '' }
-    ],
-    'TEST NEW': [
-      { id: 1, billNo: 'PO0006AA', date: '05/01/2026', inQty: 1000.000, inRate: 150.00, outQty: '', outRate: '' }
-    ]
-  };
-
-  // Group summary data
-  const groupSummaryData = [
-    { groupName: 'CAPRI', opgQty: '', inQty: '', outQty: '', balQty: '', stockValue: 0.00 },
-    { groupName: 'BOYS WEAR', opgQty: '', inQty: '', outQty: '', balQty: '', stockValue: 0.00 },
-    { groupName: 'CHILDRENS CHURIDAR', opgQty: '', inQty: 1000.000, outQty: '', balQty: 1000.000, stockValue: 150000.00 },
-    { groupName: 'GIRLS WEAR', opgQty: '', inQty: '', outQty: '', balQty: '', stockValue: 0.00 },
-    { groupName: 'COTTON FROCK', opgQty: '', inQty: '', outQty: '', balQty: '', stockValue: 0.00 },
-    { groupName: 'GOLD', opgQty: 50, inQty: 200, outQty: 150, balQty: 100, stockValue: 5000000.00 }
-  ];
-
-  // Item details for a specific group
-  const itemDetailsData = {
-    'CHILDRENS CHURIDAR': [
-      { id: 1, itemName: 'TEST NEW', opgQty: 0.000, inQty: 1000.000, outQty: 0.000, balQty: 1000.000, salAmt: 0.00, cost: 0.00, profit: 0.00 }
-    ],
-    'GOLD': [
-      { id: 1, itemName: 'BANGEL', opgQty: 4.000, inQty: 62.000, outQty: 58.000, balQty: 4.000, salAmt: 450000.00, cost: 400000.00, profit: 50000.00 },
-      { id: 2, itemName: 'RING', opgQty: 10.000, inQty: 50.000, outQty: 45.000, balQty: 15.000, salAmt: 350000.00, cost: 320000.00, profit: 30000.00 }
-    ]
-  };
-
-
-  // Calculate totals
-  const calculateTotals = (data) => {
-    if (!data || data.length === 0) return { opgPcs: 0, opgGms: 0, purPcs: 0, purGms: 0, salPcs: 0, salGms: 0, balPcs: 0, balGms: 0 };
-    return data.reduce((acc, item) => ({
-      opgPcs: acc.opgPcs + (parseFloat(item.opgPcs) || 0),
-      opgGms: acc.opgGms + (parseFloat(item.opgGms) || 0),
-      purPcs: acc.purPcs + (parseFloat(item.purPcs) || 0),
-      purGms: acc.purGms + (parseFloat(item.purGms) || 0),
-      salPcs: acc.salPcs + (parseFloat(item.salPcs) || 0),
-      salGms: acc.salGms + (parseFloat(item.salGms) || 0),
-      balPcs: acc.balPcs + (parseFloat(item.balPcs) || 0),
-      balGms: acc.balGms + (parseFloat(item.balGms) || 0)
-    }), { opgPcs: 0, opgGms: 0, purPcs: 0, purGms: 0, salPcs: 0, salGms: 0, balPcs: 0, balGms: 0 });
-  };
-
-  const currentData = hasSearched && Array.isArray(searchedGroup)
-    ? (searchedGroup.includes('ALL')
-        ? Object.values(stockData).flat()
-        : searchedGroup.flatMap(g => stockData[g] || []))
-    : [];
-  const totals = calculateTotals(currentData);
-  const financialData = hasSearched && searchedGroup && cashSalesPayments[searchedGroup] ? cashSalesPayments[searchedGroup] : null;
+  // Focus on company search input when popup opens
+  useEffect(() => {
+    if (showCompanyPopup && companySearchInputRef.current) {
+      setTimeout(() => {
+        companySearchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [showCompanyPopup]);
 
   // --- SCREEN SIZE DETECTION ---
   const [screenSize, setScreenSize] = useState({
@@ -269,6 +215,25 @@ const GroupwiseStock = () => {
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
     },
+    inputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: '2px solid #1B91DA',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: 1,
+      minWidth: screenSize.isMobile ? '80px' : '100px',
+    },
     selectGroupBtn: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
@@ -276,6 +241,27 @@ const GroupwiseStock = () => {
       background: '#fff',
       color: '#333',
       border: '1px solid #ddd',
+      borderRadius: '6px',
+      padding: '8px 10px',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      width: '100%',
+      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      textAlign: 'left',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flex: 1,
+      minWidth: '200px',
+      outline: 'none',
+    },
+    selectGroupBtnFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      background: '#fff',
+      color: '#333',
+      border: '2px solid #1B91DA',
       borderRadius: '6px',
       padding: '8px 10px',
       cursor: 'pointer',
@@ -503,13 +489,11 @@ const GroupwiseStock = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       transition: 'all 0.3s ease',
-      marginBottom: '10px',
     },
     headerTitle: {
       fontSize: TYPOGRAPHY.fontSize.lg,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       color: '#1B91DA',
-      marginBottom: '5px',
       display: 'flex',
       alignItems: 'center',
       gap: '10px',
@@ -517,21 +501,132 @@ const GroupwiseStock = () => {
   };
 
   // Handlers
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    setSearchedGroup([...selectedGroup]);
-    setHasSearched(true);
+    if (!company) {
+      toast.warning('Please select a Company');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const response = await get(
+        API_ENDPOINTS.GROUP_WISE_STOCK.BRANCH_WISE_STOCK(
+          fromDate,
+          toDate,
+          companyCode,
+          searchText,
+          1,
+          100
+        )
+      );
+      
+      if (response.success && response.details) {
+        setStockData(response.details);
+        setTotalData(response.total);
+        setHasSearched(true);
+        setViewLevel('groups');
+        toast.success(response.message || 'Data loaded successfully');
+      } else {
+        toast.error('No data found');
+        setStockData([]);
+        setTotalData(null);
+      }
+    } catch (error) {
+      toast.error('Failed to load stock data');
+      console.error('Error fetching stock data:', error);
+      setStockData([]);
+      setTotalData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleRefresh = () => {
+    setFromDate(new Date().toISOString().split('T')[0]);
+    setToDate(new Date().toISOString().split('T')[0]);
+    setCompany('');
+    setCompanyCode('');
+    setCompanyDisplay('Select Company');
+    setSearchText('');
+    setHasSearched(false);
+    setStockData([]);
+    setTotalData(null);
+    setGroupDetailsData([]);
+    setGroupDetailsTotal(null);
+    setItemDetailsData([]);
+    setItemTotalInQty(0);
+    setItemTotalOutQty(0);
     setViewLevel('groups');
+    setSelectedGroupName('');
+    setSelectedItemName('');
   };
   
-  const handleGroupRowClick = (groupName) => {
+  const handleGroupRowClick = async (groupName) => {
     setSelectedGroupName(groupName);
-    setViewLevel('items');
+    setIsLoading(true);
+    try {
+      const response = await get(
+        API_ENDPOINTS.GROUP_WISE_STOCK.GROUP_DETAIL(
+          groupName,
+          fromDate,
+          toDate,
+          companyCode
+        )
+      );
+      
+      if (response.success && response.details) {
+        setGroupDetailsData(response.details);
+        setGroupDetailsTotal(response.total);
+        setViewLevel('items');
+      } else {
+        toast.error('No data found for this group');
+        setGroupDetailsData([]);
+        setGroupDetailsTotal(null);
+      }
+    } catch (error) {
+      toast.error('Failed to load group details');
+      console.error('Error fetching group details:', error);
+      setGroupDetailsData([]);
+      setGroupDetailsTotal(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const handleItemRowClick = (itemName) => {
+  const handleItemRowClick = async (itemName) => {
     setSelectedItemName(itemName);
-    setViewLevel('bills');
+    setIsLoading(true);
+    try {
+      const response = await get(
+        API_ENDPOINTS.GROUP_WISE_STOCK.ITEM_DETAIL(
+          itemName,
+          fromDate,
+          toDate,
+          companyCode
+        )
+      );
+      
+      if (response.success && response.details) {
+        setItemDetailsData(response.details);
+        setItemTotalInQty(response.totalInQty || 0);
+        setItemTotalOutQty(response.totalOutQty || 0);
+        setViewLevel('bills');
+      } else {
+        toast.error('No data found for this item');
+        setItemDetailsData([]);
+        setItemTotalInQty(0);
+        setItemTotalOutQty(0);
+      }
+    } catch (error) {
+      toast.error('Failed to load item details');
+      console.error('Error fetching item details:', error);
+      setItemDetailsData([]);
+      setItemTotalInQty(0);
+      setItemTotalOutQty(0);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleBackToGroups = () => {
@@ -545,46 +640,74 @@ const GroupwiseStock = () => {
     setSelectedItemName('');
   };
   
-  const [showGroupModal, setShowGroupModal] = useState(false);
-  const handleRefresh = () => {
-    setFromDate(new Date().toISOString().split('T')[0]);
-    setToDate(new Date().toISOString().split('T')[0]);
-    setSelectedGroup([]);
-    setSearchedGroup([]);
-    setHasSearched(false);
-    setViewLevel('groups');
-    setSelectedGroupName('');
-    setSelectedItemName('');
+  const handleCompanyClick = () => {
+    setTempSelectedCompany(company);
+    setTempSelectedCompanyCode(companyCode);
+    setCompanySearchText('');
+    setShowCompanyPopup(true);
   };
-  const handleGroupModalOpen = () => setShowGroupModal(true);
-  const handleGroupModalClose = () => setShowGroupModal(false);
-  const handleGroupCheck = (group) => {
-    if (group === 'ALL') {
-      // When ALL is checked, select all groups
-      if (selectedGroup.includes('ALL')) {
-        // If ALL is already selected, deselect all
-        setSelectedGroup([]);
-      } else {
-        // Select all groups including ALL
-        setSelectedGroup([...groups]);
-      }
-    } else {
-      let updated = [...selectedGroup];
-      if (updated.includes(group)) {
-        // Deselect the group
-        updated = updated.filter(g => g !== group);
-        // Also remove ALL if it was selected
-        updated = updated.filter(g => g !== 'ALL');
-      } else {
-        // Add the group (but remove ALL first if it was selected)
-        updated = updated.filter(g => g !== 'ALL');
-        updated.push(group);
-      }
-      setSelectedGroup(updated);
+
+  const handleCompanySelect = (selectedCompany) => {
+    setTempSelectedCompany(selectedCompany.compName);
+    setTempSelectedCompanyCode(selectedCompany.compCode);
+  };
+
+  const handleCompanyPopupOk = () => {
+    setCompany(tempSelectedCompany);
+    setCompanyCode(tempSelectedCompanyCode);
+    setCompanyDisplay(tempSelectedCompany || 'Select Company');
+    setShowCompanyPopup(false);
+    setTimeout(() => {
+      searchTextRef.current?.focus();
+    }, 100);
+  };
+
+  const handleCompanyPopupClose = () => {
+    setShowCompanyPopup(false);
+  };
+
+  const handleCompanyClearSelection = () => {
+    setTempSelectedCompany('');
+    setTempSelectedCompanyCode('');
+  };
+
+  // Keyboard navigation handlers
+  const handleFromDateKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      toDateRef.current?.focus();
     }
   };
-  const handleGroupClear = () => setSelectedGroup([]);
-  const handleGroupOk = () => setShowGroupModal(false);
+
+  const handleToDateKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      companyRef.current?.focus();
+    }
+  };
+
+  const handleCompanyKeyDown = (e) => {
+    // Check if it's a printable character (letter, number, space, etc.)
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      setTempSelectedCompany(company);
+      setTempSelectedCompanyCode(companyCode);
+      setCompanySearchText(e.key);
+      setShowCompanyPopup(true);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!showCompanyPopup) {
+        searchTextRef.current?.focus();
+      }
+    }
+  };
+
+  const handleSearchTextKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      searchButtonRef.current?.focus();
+    }
+  };
 
   return (
     <div style={styles.container}>
@@ -598,10 +721,14 @@ const GroupwiseStock = () => {
               <div style={styles.formField}>
                 <label style={styles.label}>From Date:</label>
                 <input
+                  ref={fromDateRef}
                   type="date"
-                  style={styles.input}
+                  style={focusedField === 'fromDate' ? styles.inputFocused : styles.input}
                   value={fromDate}
                   onChange={e => setFromDate(e.target.value)}
+                  onKeyDown={handleFromDateKeyDown}
+                  onFocus={() => setFocusedField('fromDate')}
+                  onBlur={() => setFocusedField('')}
                 />
               </div>
 
@@ -609,35 +736,66 @@ const GroupwiseStock = () => {
               <div style={styles.formField}>
                 <label style={styles.label}>To Date:</label>
                 <input
+                  ref={toDateRef}
                   type="date"
-                  style={styles.input}
+                  style={focusedField === 'toDate' ? styles.inputFocused : styles.input}
                   value={toDate}
                   onChange={e => setToDate(e.target.value)}
+                  onKeyDown={handleToDateKeyDown}
+                  onFocus={() => setFocusedField('toDate')}
+                  onBlur={() => setFocusedField('')}
                 />
               </div>
 
-              {/* Select Group */}
+              {/* Company */}
               <div style={{...styles.formField, flex: 1, minWidth: '200px'}}>
-                <label style={styles.label}>Select Group:</label>
-                <button type="button" style={styles.selectGroupBtn} onClick={handleGroupModalOpen}>
+                <label style={styles.label}>Company:</label>
+                <button 
+                  ref={companyRef}
+                  type="button" 
+                  style={focusedField === 'company' ? styles.selectGroupBtnFocused : styles.selectGroupBtn}
+                  onClick={() => {
+                    handleCompanyClick();
+                    setFocusedField('company');
+                  }}
+                  onKeyDown={handleCompanyKeyDown}
+                  onFocus={() => setFocusedField('company')}
+                  onBlur={() => setFocusedField('')}
+                  tabIndex={0}
+                >
                   <span style={{ 
                     overflow: 'hidden', 
                     textOverflow: 'ellipsis', 
                     whiteSpace: 'nowrap',
-                    flex: 1 
+                    flex: 1,
+                    color: company ? '#333' : '#999'
                   }}>
-                    {selectedGroup.includes('ALL')
-                      ? 'ALL'
-                      : selectedGroup.filter(g => g).join(', ') || 'Select...'}
+                    {companyDisplay}
                   </span>
                   <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
                 </button>
+              </div>
+
+              {/* Search */}
+              <div style={styles.formField}>
+                <label style={styles.label}>Search:</label>
+                <input
+                  ref={searchTextRef}
+                  type="text"
+                  style={focusedField === 'search' ? styles.inputFocused : styles.input}
+                  value={searchText}
+                  onChange={e => setSearchText(e.target.value)}
+                  onKeyDown={handleSearchTextKeyDown}
+                  onFocus={() => setFocusedField('search')}
+                  onBlur={() => setFocusedField('')}
+                  placeholder="Search items..."
+                />
               </div>
             </div>
 
             {/* RIGHT SIDE: Buttons */}
             <div style={styles.rightSide}>
-              <button type="submit" style={styles.button}>Search</button>
+              <button ref={searchButtonRef} type="submit" style={styles.button}>Search</button>
               <button type="button" style={styles.buttonSecondary} onClick={handleRefresh}>Refresh</button>
             </div>
           </div>
@@ -648,7 +806,7 @@ const GroupwiseStock = () => {
       <div style={styles.tableSection}>
         {/* Back Button and Title */}
         {viewLevel !== 'groups' && (
-          <div style={{ padding: '10px 20px 0px 20px' }}>
+          <div style={{ padding: '10px 20px 0px 20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
             <button 
               style={styles.backButton} 
               onClick={viewLevel === 'items' ? handleBackToGroups : handleBackToItems}
@@ -669,12 +827,12 @@ const GroupwiseStock = () => {
               <thead>
                 <tr>
                   <th style={styles.th}>No.</th>
-                  <th style={styles.th}>Group Name</th>
-                  <th style={styles.th}>Opg Qty</th>
-                  <th style={styles.th}>In Qty</th>
-                  <th style={styles.th}>Out Qty</th>
-                  <th style={styles.th}>Bal Qty</th>
-                  <th style={styles.th}>Stock Value</th>
+                  <th style={styles.th}>Item Name</th>
+                  <th style={styles.th}>Opening Qty</th>
+                  <th style={styles.th}>Purchase Qty</th>
+                  <th style={styles.th}>Sale Qty</th>
+                  <th style={styles.th}>Balance Qty</th>
+                  <th style={styles.th}>Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -684,35 +842,51 @@ const GroupwiseStock = () => {
                       Enter search criteria and click "Search" to view group wise stock
                     </td>
                   </tr>
+                ) : isLoading ? (
+                  <tr>
+                    <td colSpan="7" style={styles.emptyMsg}>
+                      Loading...
+                    </td>
+                  </tr>
+                ) : stockData.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={styles.emptyMsg}>
+                      No data found
+                    </td>
+                  </tr>
                 ) : (
                   <>
-                    {groupSummaryData.map((item, idx) => (
+                    {stockData.map((item, idx) => (
                       <tr 
                         key={idx} 
                         style={styles.clickableRow}
-                        onClick={() => handleGroupRowClick(item.groupName)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
+                        onClick={() => handleGroupRowClick(item.itemName)}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#cce7ff'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = idx % 2 === 0 ? '#f9f9f9' : '#ffffff'}
                       >
-                        <td style={styles.td}>{idx + 1}</td>
-                        <td style={{...styles.td, textAlign: 'left', paddingLeft: '15px'}}>{item.groupName}</td>
-                        <td style={styles.td}>{item.opgQty}</td>
-                        <td style={styles.td}>{item.inQty}</td>
-                        <td style={styles.td}>{item.outQty}</td>
-                        <td style={styles.td}>{item.balQty}</td>
+                        <td style={styles.td}>{item.slNo}</td>
+                        <td style={{...styles.td, textAlign: 'left', paddingLeft: '15px'}}>{item.itemName}</td>
+                        <td style={styles.td}>{item.openingQty || ''}</td>
+                        <td style={styles.td}>{item.purchaseQty || ''}</td>
+                        <td style={styles.td}>{item.saleQty || ''}</td>
+                        <td style={styles.td}>{item.balanceQty || ''}</td>
                         <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
-                          {item.stockValue.toFixed(2)}
+                          {item.amount ? item.amount.toFixed(2) : '0.00'}
                         </td>
                       </tr>
                     ))}
-                    <tr style={styles.totalRow}>
-                      <td colSpan="2" style={styles.td}>Total</td>
-                      <td style={styles.td}>-15.00</td>
-                      <td style={styles.td}>1000.00</td>
-                      <td style={styles.td}>37.00</td>
-                      <td style={styles.td}>948.00</td>
-                      <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>121500.00</td>
-                    </tr>
+                    {totalData && (
+                      <tr style={styles.totalRow}>
+                        <td colSpan="2" style={styles.td}>Total</td>
+                        <td style={styles.td}>{totalData.openingQty || ''}</td>
+                        <td style={styles.td}>{totalData.purchaseQty || ''}</td>
+                        <td style={styles.td}>{totalData.saleQty || ''}</td>
+                        <td style={styles.td}>{totalData.balanceQty || ''}</td>
+                        <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                          {totalData.amount ? totalData.amount.toFixed(2) : '0.00'}
+                        </td>
+                      </tr>
+                    )}
                   </>
                 )}
               </tbody>
@@ -738,45 +912,71 @@ const GroupwiseStock = () => {
                   <tr>
                     <th style={styles.th}>No.</th>
                     <th style={styles.th}>Item Name</th>
-                    <th style={styles.th}>Opg Qty</th>
-                    <th style={styles.th}>In Qty</th>
-                    <th style={styles.th}>Out Qty</th>
-                    <th style={styles.th}>Bal Qty</th>
-                    <th style={styles.th}>Sal Amt</th>
-                    <th style={styles.th}>Cost</th>
+                    <th style={styles.th}>Opening Qty</th>
+                    <th style={styles.th}>Purchase Qty</th>
+                    <th style={styles.th}>Sale Qty</th>
+                    <th style={styles.th}>Balance Qty</th>
+                    <th style={styles.th}>Sale Amount</th>
+                    <th style={styles.th}>Cost Amount</th>
                     <th style={styles.th}>Profit</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(itemDetailsData[selectedGroupName] || []).map((item, idx) => (
-                  <tr 
-                    key={item.id}
-                    style={styles.clickableRow}
-                    onClick={() => handleItemRowClick(item.itemName)}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#cce7ff'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
-                  >
-                    <td style={styles.td}>{idx + 1}</td>
-                    <td style={{...styles.td, textAlign: 'left', paddingLeft: '15px'}}>{item.itemName}</td>
-                    <td style={styles.td}>{item.opgQty.toFixed(3)}</td>
-                    <td style={styles.td}>{item.inQty.toFixed(3)}</td>
-                    <td style={styles.td}>{item.outQty.toFixed(3)}</td>
-                    <td style={styles.td}>{item.balQty.toFixed(3)}</td>
-                    <td style={styles.td}>{item.salAmt.toFixed(2)}</td>
-                    <td style={styles.td}>{item.cost.toFixed(2)}</td>
-                    <td style={styles.td}>{item.profit.toFixed(2)}</td>
-                  </tr>
-                ))}
-                <tr style={styles.totalRow}>
-                  <td colSpan="2" style={styles.td}>Total</td>
-                  <td style={styles.td}>0.000</td>
-                  <td style={styles.td}>1000.000</td>
-                  <td style={styles.td}>0.000</td>
-                  <td style={styles.td}>1000.000</td>
-                  <td style={styles.td}>0.00</td>
-                  <td style={styles.td}>0.00</td>
-                  <td style={styles.td}>0.00</td>
-                </tr>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan="9" style={styles.emptyMsg}>Loading...</td>
+                    </tr>
+                  ) : groupDetailsData.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" style={styles.emptyMsg}>No data found</td>
+                    </tr>
+                  ) : (
+                    <>
+                      {groupDetailsData.map((item, idx) => (
+                        <tr 
+                          key={idx}
+                          style={styles.clickableRow}
+                          onClick={() => handleItemRowClick(item.itemName)}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#cce7ff'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                        >
+                          <td style={styles.td}>{item.slNo}</td>
+                          <td style={{...styles.td, textAlign: 'left', paddingLeft: '15px'}}>{item.itemName}</td>
+                          <td style={styles.td}>{item.openingQty || ''}</td>
+                          <td style={styles.td}>{item.purchaseQty || ''}</td>
+                          <td style={styles.td}>{item.saleQty || ''}</td>
+                          <td style={styles.td}>{item.balanceQty || ''}</td>
+                          <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                            {item.saleAmount ? item.saleAmount.toFixed(2) : '0.00'}
+                          </td>
+                          <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                            {item.costAmount ? item.costAmount.toFixed(2) : '0.00'}
+                          </td>
+                          <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                            {item.profit ? item.profit.toFixed(2) : '0.00'}
+                          </td>
+                        </tr>
+                      ))}
+                      {groupDetailsTotal && (
+                        <tr style={styles.totalRow}>
+                          <td colSpan="2" style={styles.td}>Total</td>
+                          <td style={styles.td}>{groupDetailsTotal.openingQty || ''}</td>
+                          <td style={styles.td}>{groupDetailsTotal.purchaseQty || ''}</td>
+                          <td style={styles.td}>{groupDetailsTotal.saleQty || ''}</td>
+                          <td style={styles.td}>{groupDetailsTotal.balanceQty || ''}</td>
+                          <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                            {groupDetailsTotal.saleAmount ? groupDetailsTotal.saleAmount.toFixed(2) : '0.00'}
+                          </td>
+                          <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                            {groupDetailsTotal.costAmount ? groupDetailsTotal.costAmount.toFixed(2) : '0.00'}
+                          </td>
+                          <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                            {groupDetailsTotal.profit ? groupDetailsTotal.profit.toFixed(2) : '0.00'}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )}
               </tbody>
             </table>
             </>
@@ -800,7 +1000,7 @@ const GroupwiseStock = () => {
                 <thead>
                   <tr>
                     <th style={styles.th}>No.</th>
-                    <th style={styles.th}>Bill No</th>
+                    <th style={styles.th}>Voucher</th>
                     <th style={styles.th}>Date</th>
                     <th style={styles.th}>In Qty</th>
                     <th style={styles.th}>In Rate</th>
@@ -809,24 +1009,40 @@ const GroupwiseStock = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {(billData[selectedItemName] || []).map((bill, idx) => (
-                  <tr key={bill.id}>
-                    <td style={styles.td}>{idx + 1}</td>
-                    <td style={styles.td}>{bill.billNo}</td>
-                    <td style={styles.td}>{bill.date}</td>
-                    <td style={styles.td}>{bill.inQty}</td>
-                    <td style={styles.td}>{bill.inRate}</td>
-                    <td style={styles.td}>{bill.outQty}</td>
-                    <td style={styles.td}>{bill.outRate}</td>
-                  </tr>
-                ))}
-                <tr style={styles.totalRow}>
-                  <td colSpan="3" style={styles.td}>Total</td>
-                  <td style={styles.td}>1000.000</td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}>0.000</td>
-                  <td style={styles.td}></td>
-                </tr>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan="7" style={styles.emptyMsg}>Loading...</td>
+                    </tr>
+                  ) : itemDetailsData.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={styles.emptyMsg}>No data found</td>
+                    </tr>
+                  ) : (
+                    <>
+                      {itemDetailsData.map((bill, idx) => (
+                        <tr key={idx}>
+                          <td style={styles.td}>{bill.slNo}</td>
+                          <td style={styles.td}>{bill.voucher}</td>
+                          <td style={styles.td}>{new Date(bill.date).toLocaleDateString('en-GB')}</td>
+                          <td style={styles.td}>{bill.inQty || ''}</td>
+                          <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                            {bill.inRate ? bill.inRate.toFixed(2) : ''}
+                          </td>
+                          <td style={styles.td}>{bill.outQty || ''}</td>
+                          <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                            {bill.outRate ? bill.outRate.toFixed(2) : ''}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr style={styles.totalRow}>
+                        <td colSpan="3" style={styles.td}>Total</td>
+                        <td style={styles.td}>{itemTotalInQty || ''}</td>
+                        <td style={styles.td}></td>
+                        <td style={styles.td}>{itemTotalOutQty || ''}</td>
+                        <td style={styles.td}></td>
+                      </tr>
+                    </>
+                  )}
               </tbody>
             </table>
             </>
@@ -834,27 +1050,69 @@ const GroupwiseStock = () => {
         </div>
       </div>
         
-      {/* Select Group Modal */}
-      {showGroupModal && (
-        <div style={styles.modalOverlay} onClick={handleGroupModalClose}>
+      {/* Company Selection Popup */}
+      {showCompanyPopup && (
+        <div style={styles.modalOverlay} onClick={handleCompanyPopupClose}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
-            <div style={styles.modalHeader}>Select Groups</div>
+            <div style={styles.modalHeader}>Select Company</div>
             <div style={styles.modalBody}>
-              {groups.map((group, idx) => (
-                <div key={group} style={styles.modalCheckboxRow}>
-                  <input
-                    type="checkbox"
-                    style={styles.modalCheckbox}
-                    checked={selectedGroup.includes(group) || (group !== 'ALL' && selectedGroup.includes('ALL'))}
-                    onChange={() => handleGroupCheck(group)}
-                  />
-                  <span>{group}</span>
-                </div>
-              ))}
+              {/* Search Input */}
+              <div style={{ marginBottom: '15px' }}>
+                <input
+                  ref={companySearchInputRef}
+                  type="text"
+                  placeholder="Search companies..."
+                  value={companySearchText}
+                  onChange={(e) => setCompanySearchText(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+              
+              {allCompanies.filter(comp => 
+                comp.compName.toLowerCase().includes(companySearchText.toLowerCase()) ||
+                comp.compCode.toLowerCase().includes(companySearchText.toLowerCase())
+              ).length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No companies found</div>
+              ) : (
+                allCompanies
+                  .filter(comp => 
+                    comp.compName.toLowerCase().includes(companySearchText.toLowerCase()) ||
+                    comp.compCode.toLowerCase().includes(companySearchText.toLowerCase())
+                  )
+                  .map((companyItem) => {
+                    const isSelected = tempSelectedCompanyCode === companyItem.compCode;
+                    return (
+                      <div 
+                        key={companyItem.compCode} 
+                        style={styles.modalCheckboxRow}
+                        onClick={() => handleCompanySelect(companyItem)}
+                      >
+                        <input
+                          type="checkbox"
+                          style={styles.modalCheckbox}
+                          checked={isSelected}
+                          onChange={() => handleCompanySelect(companyItem)}
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                          <span>{companyItem.compName}</span>
+                          <span style={{ fontSize: '12px', color: '#666' }}>Code: {companyItem.compCode}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
             </div>
             <div style={styles.modalFooter}>
-              <button type="button" style={styles.modalBtnClear} onClick={handleGroupClear}>Clear</button>
-              <button type="button" style={styles.modalBtn} onClick={handleGroupOk}>OK</button>
+              <button type="button" style={styles.modalBtnClear} onClick={handleCompanyClearSelection}>Clear</button>
+              <button type="button" style={styles.modalBtn} onClick={handleCompanyPopupOk}>OK</button>
             </div>
           </div>
         </div>

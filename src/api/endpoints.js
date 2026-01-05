@@ -373,6 +373,14 @@ PAYMENTVOUCHER: {
       `AccPayable/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
 
+  GROUP_WISE_STOCK: {
+    BRANCH_WISE_STOCK: (fromDate, toDate, compCode, search = '', page = 1, pageSize = 100) =>
+      `GroupWiseStock/branch-wise-stock?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
+    GROUP_DETAIL: (groupName, fromDate, toDate, compCode) =>
+      `GroupWiseStock/group-detail?groupName=${encodeURIComponent(groupName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}`,
+    ITEM_DETAIL: (itemName, fromDate, toDate, compCode) =>
+      `GroupWiseStock/item-detail?itemName=${encodeURIComponent(itemName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}`,
+  }, // <-- Add this closing brace for GROUP_WISE_STOCK
   DAYBOOK: {
     GET_DAY_BOOK: (compCode, fromDate, toDate) =>
       `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
@@ -384,7 +392,3 @@ PAYMENTVOUCHER: {
   },
 
 };
-
-
-
-
