@@ -59,9 +59,7 @@ const SalesRegister = () => {
       billDate: '27-09-2025',
       billAmount: '29,400.00',
       qty: '15.00',
-      time: '095212 AM',
-      noOfBale: '5',
-      transport: 'Truck No. TN-01-AB-1234'
+      time: '095212 AM'
     },
     {
       id: 2,
@@ -71,9 +69,7 @@ const SalesRegister = () => {
       billDate: '10-12-2025',
       billAmount: '380.00',
       qty: '10.00',
-      time: '124920 PM',
-      noOfBale: '2',
-      transport: 'Van No. TN-02-CD-5678'
+      time: '124920 PM'
     },
     {
       id: 3,
@@ -83,9 +79,7 @@ const SalesRegister = () => {
       billDate: '15-01-2025',
       billAmount: '12,460.00',
       qty: '25.50',
-      time: '021545 PM',
-      noOfBale: '8',
-      transport: 'Truck No. TN-03-EF-9012'
+      time: '021545 PM'
     },
     {
       id: 4,
@@ -95,9 +89,7 @@ const SalesRegister = () => {
       billDate: '22-03-2025',
       billAmount: '8,760.00',
       qty: '18.75',
-      time: '103010 AM',
-      noOfBale: '6',
-      transport: 'Truck No. TN-04-GH-3456'
+      time: '103010 AM'
     },
     {
       id: 5,
@@ -107,9 +99,7 @@ const SalesRegister = () => {
       billDate: '05-05-2025',
       billAmount: '45,200.00',
       qty: '32.00',
-      time: '044530 PM',
-      noOfBale: '12',
-      transport: 'Truck No. TN-05-IJ-7890'
+      time: '044530 PM'
     },
     {
       id: 6,
@@ -119,9 +109,7 @@ const SalesRegister = () => {
       billDate: '18-07-2025',
       billAmount: '23,120.00',
       qty: '28.50',
-      time: '112015 AM',
-      noOfBale: '9',
-      transport: 'Van No. TN-06-KL-2345'
+      time: '112015 AM'
     },
     {
       id: 7,
@@ -131,9 +119,7 @@ const SalesRegister = () => {
       billDate: '30-08-2025',
       billAmount: '17,650.00',
       qty: '22.25',
-      time: '081040 PM',
-      noOfBale: '7',
-      transport: 'Truck No. TN-07-MN-6789'
+      time: '081040 PM'
     },
     {
       id: 8,
@@ -143,9 +129,7 @@ const SalesRegister = () => {
       billDate: '12-10-2025',
       billAmount: '8,630.00',
       qty: '12.50',
-      time: '014555 PM',
-      noOfBale: '4',
-      transport: 'Van No. TN-08-OP-0123'
+      time: '014555 PM'
     },
     {
       id: 9,
@@ -155,9 +139,7 @@ const SalesRegister = () => {
       billDate: '25-11-2025',
       billAmount: '31,750.00',
       qty: '35.00',
-      time: '081525 AM',
-      noOfBale: '11',
-      transport: 'Truck No. TN-09-QR-4567'
+      time: '081525 AM'
     },
     {
       id: 10,
@@ -167,9 +149,7 @@ const SalesRegister = () => {
       billDate: '08-12-2025',
       billAmount: '14,400.00',
       qty: '13.50',
-      time: '053020 PM',
-      noOfBale: '6',
-      transport: 'Truck No. TN-10-ST-6901'
+      time: '053020 PM'
     }
   ];
 
@@ -243,9 +223,7 @@ const SalesRegister = () => {
           minute: '2-digit', 
           second: '2-digit',
           hour12: true 
-        }) : 'N/A',
-        noOfBale: '', // Not available in API response
-        transport: '' // Not available in API response
+        }) : 'N/A'
       }));
       
       setSalesData(mappedData);
@@ -336,10 +314,6 @@ const SalesRegister = () => {
     qty: salesData.reduce((sum, row) => {
       const qty = parseFloat(row.qty) || 0;
       return sum + qty;
-    }, 0),
-    noOfBale: salesData.reduce((sum, row) => {
-      const bales = parseInt(row.noOfBale) || 0;
-      return sum + bales;
     }, 0)
   };
 
@@ -668,7 +642,7 @@ const SalesRegister = () => {
 
   // Get cell style based on state
   const getCellStyle = (rowIndex, colName) => {
-    const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
+    const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time'];
     const isSelected = selectedCell.row === rowIndex && colNames.indexOf(colName) === selectedCell.col;
 
     const baseStyle = {
@@ -678,19 +652,16 @@ const SalesRegister = () => {
                colName === 'billNo' ? '100px' :
                colName === 'billDate' ? '100px' :
                colName === 'billAmount' ? '100px' :
-               colName === 'transport' ? '150px' : 
                colName === 'time' ? '100px' : '80px',
       width: colName === 'salesParty' ? '120px' : 
              colName === 'billNo' ? '100px' :
              colName === 'billDate' ? '100px' :
              colName === 'billAmount' ? '100px' :
-             colName === 'transport' ? '150px' : 
              colName === 'time' ? '100px' : '80px',
       maxWidth: colName === 'salesParty' ? '120px' : 
                 colName === 'billNo' ? '100px' :
                 colName === 'billDate' ? '100px' :
                 colName === 'billAmount' ? '100px' :
-                colName === 'transport' ? '150px' : 
                 colName === 'time' ? '100px' : '80px',
       fontFamily: ['billAmount', 'qty'].includes(colName) ? '"Courier New", monospace' : 'inherit',
       fontWeight: ['billAmount', 'qty'].includes(colName) ? '600' : '400',
@@ -863,8 +834,6 @@ const SalesRegister = () => {
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Amount</th>
                 <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>Qty</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Time</th>
-                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>No of Bale</th>
-                <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Transport</th>
               </tr>
             </thead>
             <tbody>
@@ -877,7 +846,7 @@ const SalesRegister = () => {
                         backgroundColor: rowIndex % 2 === 0 ? '#f9f9f9' : '#ffffff',
                       }}
                       onClick={() => {
-                        const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
+                        const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time'];
                         const colIndex = colNames.indexOf('no');
                         setSelectedCell({ row: rowIndex, col: colIndex });
                       }}
@@ -903,17 +872,11 @@ const SalesRegister = () => {
                       <td style={getCellStyle(rowIndex, 'time')}>
                         {row.time}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'noOfBale')}>
-                        {row.noOfBale}
-                      </td>
-                      <td style={getCellStyle(rowIndex, 'transport')}>
-                        {row.transport}
-                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                       No records found
                     </td>
                   </tr>
@@ -937,12 +900,6 @@ const SalesRegister = () => {
                   </td>
                   <td style={{ ...styles.td, textAlign: 'center', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
                     {totals.qty.toFixed(2)}
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center' }}>
-                    -
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
-                    {totals.noOfBale}
                   </td>
                   <td style={{ ...styles.td, textAlign: 'center' }}>
                     -

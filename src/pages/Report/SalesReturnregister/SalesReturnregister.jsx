@@ -799,18 +799,18 @@ const SalesReturnRegister = () => {
           </div>
           {tableLoaded && salesReturnData.length > 0 && (
             <>
-              <div style={styles.balanceItem}>
+              {/* <div style={styles.balanceItem}>
                 <span style={styles.balanceLabel}>Total Returns</span>
                 <span style={styles.balanceValue}>
                   {salesReturnData.filter(row => !row.isTotal).length}
                 </span>
-              </div>
-              <div style={styles.balanceItem}>
+              </div> */}
+              {/* <div style={styles.balanceItem}>
                 <span style={styles.balanceLabel}>Average Return</span>
                 <span style={styles.balanceValue}>
                   ₹{formatNumber(totalBillAmount / Math.max(1, salesReturnData.filter(row => !row.isTotal).length))}
                 </span>
-              </div>
+              </div> */}
             </>
           )}
         </div>
