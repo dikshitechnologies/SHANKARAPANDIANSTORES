@@ -106,7 +106,7 @@ const Ledger = () => {
     'DIKSHIWEBSITE',
     'SAKTHI',
     'JUST AK THINGS',
-    'PRIVANKA',
+    'PRIYANKA',
     'Global Corp',
     'Tech Innovators',
     'Business Solutions'
