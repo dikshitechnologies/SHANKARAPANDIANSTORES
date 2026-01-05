@@ -352,6 +352,8 @@ PAYMENTVOUCHER: {
     COMPANIES: 'ledger/companies',
     PARTY_LIST: (pageNumber = 1, pageSize = 20, search = '') => 
       `ledger/partyList?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
+    GET_LEDGER: (accountCode, compCode, fromDate, toDate) =>
+      `ledger/GetLedger?accountCode=${encodeURIComponent(accountCode)}&compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
   },
   
   SALES_REGISTER: {
