@@ -583,7 +583,12 @@ const handleBlur = () => {
     }
   };
   // Fetch purchase bill list for popup
-  const fetchBillList = async () => {
+  const fetchBillList = async (pageNum = 1, search = '') => {
+    // Only fetch data on first page - API returns all data at once (no server-side pagination)
+    if (pageNum > 1) {
+      return []; // Return empty array for subsequent pages to stop infinite scroll
+    }
+    
     try {
       const compCode = userData?.companyCode || '001';
       const response = await axiosInstance.get(
@@ -592,12 +597,23 @@ const handleBlur = () => {
       
       const data = response?.data || [];
       
-      return Array.isArray(data) ? data.map((bill, index) => ({
+      let items = Array.isArray(data) ? data.map((bill, index) => ({
         id: bill.code || bill.voucherNo || `bill-${index}`,
         voucherNo: bill.code || bill.voucherNo || '',
         customerName: bill.customerName || bill.refName || '',
         date: bill.date || bill.voucherDate || ''
       })) : [];
+      
+      // Client-side search filtering if search term provided
+      if (search && search.trim()) {
+        const searchLower = search.toLowerCase().trim();
+        items = items.filter(item => 
+          item.voucherNo?.toLowerCase().includes(searchLower) ||
+          item.customerName?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return items;
     } catch (err) {
       console.error('Error fetching bill list:', err);
       return [];
