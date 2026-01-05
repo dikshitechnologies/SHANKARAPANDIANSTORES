@@ -1,3 +1,5 @@
+import AccountReceivables from "../pages/Report/AccountReceivables/AccountReceivables";
+
 export const API_ENDPOINTS = {
   // Login Endpoint
   LOGIN: {
@@ -303,6 +305,9 @@ CATEGORY: {
 },
 
 
+
+
+
 PAYMENTVOUCHER: {
   GETNEXTVNUMBER: (compCode) => `PaymentVoucher/GetNextVoucher?compCode=${compCode}`,
   GETPENDINGBILLS: (partyCode,compCode) => `PaymentVoucher/GetPendingBills?fcode=${partyCode}&fCompCode=${compCode}`,
@@ -331,7 +336,19 @@ PAYMENTVOUCHER: {
     GETPARTYLIST: (search = '', pageNumber = 1, pageSize = 200) => `PaymentVoucher/PartyList?search=${encodeURIComponent(search)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
     GET_PARTY_BALANCE: (partyCode) => `ReceiptVoucher/GetPartyBalance?partyCode=${partyCode}`,
     GET_OPENING_BALANCE: `ReceiptVoucher/GetOpeningBalance`
-  }
+  },
+
+  ACC_REC: {
+    COMPANIES: 'AccRec/companies',
+    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
+      `AccRec/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  },
+  ACC_PAY: {
+    COMPANIES: 'AccPay/companies',
+    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
+      `AccPay/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  },
+  
 
 };
 

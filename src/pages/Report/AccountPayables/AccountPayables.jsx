@@ -21,93 +21,90 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// API BASE URL
+const API_BASE_URL = 'http://dikshiserver/spstorewebapi/api/AccPayable';
+
+// API ENDPOINTS
+const API_ENDPOINTS = {
+  // Get companies list
+  GET_COMPANIES: `${API_BASE_URL}/companies`,
+  
+  // Get account payables list
+  GET_PAYABLES: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
+    `${API_BASE_URL}/list?selectedCompanies=${selectedCompanies}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+};
+
+// Helper function to format date as YYYY-MM-DD
+const formatDate = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const AccountPayables = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2024-06-14');
-  const [toDate, setToDate] = useState('2025-11-26');
-  const [selectedVendors, setSelectedVendors] = useState(['ALL']);
-  const [showVendorPopup, setShowVendorPopup] = useState(false);
-  const [tempSelectedVendors, setTempSelectedVendors] = useState(['ALL']);
-  const [selectAll, setSelectAll] = useState(true);
+  const currentDate = formatDate(new Date());
+  const [fromDate, setFromDate] = useState(currentDate);
+  const [toDate, setToDate] = useState(currentDate);
+  const [selectedCompanies, setSelectedCompanies] = useState(['ALL']); // Initial value is ALL
+  const [showCompanyPopup, setShowCompanyPopup] = useState(false);
+  const [tempSelectedCompanies, setTempSelectedCompanies] = useState([]); // Initially empty
+  const [selectAll, setSelectAll] = useState(false); // Initially false
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
-  const [vendorDisplay, setVendorDisplay] = useState('ALL');
+  const [companyDisplay, setCompanyDisplay] = useState('ALL');
 
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
-  const vendorRef = useRef(null);
+  const companyRef = useRef(null);
   const searchButtonRef = useRef(null);
 
   // --- DATA ---
   const [payablesData, setPayablesData] = useState([]);
+  const [companies, setCompanies] = useState([]);
 
-  // Sample Account Payables data
-  const samplePayablesData = [
-    {
-      no: 1,
-      accountName: "TECHNO BUILDERS LTD",
-      debit: "2,500.00",
-      credit: "0.00",
-      balance: "2,500.00",
-      drCr: "DR"
-    },
-    {
-      no: 2,
-      accountName: "GLOBAL SUPPLIERS INC",
-      debit: "0.00",
-      credit: "1,800.00",
-      balance: "1,800.00",
-      drCr: "CR"
-    },
-    {
-      no: 3,
-      accountName: "METAL WORKS CORPORATION",
-      debit: "3,200.00",
-      credit: "500.00",
-      balance: "2,700.00",
-      drCr: "DR"
-    },
-    {
-      no: 4,
-      accountName: "ELECTRO POWER SOLUTIONS",
-      debit: "0.00",
-      credit: "4,200.00",
-      balance: "4,200.00",
-      drCr: "CR"
-    },
-    {
-      no: 5,
-      accountName: "PRECISION TOOLS MFG",
-      debit: "1,500.00",
-      credit: "0.00",
-      balance: "1,500.00",
-      drCr: "DR"
-    },
-    {
-      isTotal: true,
-      accountName: "Total",
-      debit: "7,200.00",
-      credit: "6,500.00",
-      balance: "12,700.00",
-      drCr: ""
+  // --- FETCH COMPANIES ON MOUNT ---
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(API_ENDPOINTS.GET_COMPANIES);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setCompanies(data);
+        console.log('Companies loaded:', data);
+      } catch (error) {
+        console.error('Error fetching companies:', error);
+        toast.error('Failed to load companies list');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
+
+  // Update tempSelectedCompanies when popup opens based on current selection
+  useEffect(() => {
+    if (showCompanyPopup) {
+      if (selectedCompanies.includes('ALL')) {
+        // If ALL is selected in main state, show empty selection in popup
+        setTempSelectedCompanies([]);
+        setSelectAll(false);
+      } else {
+        // If specific companies are selected, show them in popup
+        setTempSelectedCompanies([...selectedCompanies]);
+        setSelectAll(false);
+      }
     }
-  ];
-
-  // Sample data for vendors
-  const allVendors = [
-    'ALL',
-    'TECHNO BUILDERS LTD',
-    'GLOBAL SUPPLIERS INC',
-    'METAL WORKS CORPORATION',
-    'ELECTRO POWER SOLUTIONS',
-    'PRECISION TOOLS MFG',
-    'QUALITY MATERIALS CO',
-    'INDUSTRIAL PARTS LTD',
-    'CONSTRUCTION SUPPLIES INC'
-  ];
+  }, [showCompanyPopup, selectedCompanies]);
 
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
@@ -118,60 +115,98 @@ const AccountPayables = () => {
     setToDate(e.target.value);
   };
 
-  const handleVendorClick = () => {
-    setTempSelectedVendors([...selectedVendors]);
-    setShowVendorPopup(true);
+  const handleCompanyClick = () => {
+    // The useEffect above will handle setting tempSelectedCompanies
+    setShowCompanyPopup(true);
   };
 
-  const handleVendorSelect = (vendor) => {
-    if (vendor === 'ALL') {
-      if (tempSelectedVendors.includes('ALL')) {
-        setTempSelectedVendors([]);
+  const handleCompanySelect = (company) => {
+    if (company === 'ALL') {
+      // If ALL is being toggled
+      if (tempSelectedCompanies.includes('ALL')) {
+        // Untick ALL - remove ALL and all companies
+        const allCompanyCodes = companies.map(c => c.fCompcode);
+        const updated = tempSelectedCompanies.filter(
+          c => c !== 'ALL' && !allCompanyCodes.includes(c)
+        );
+        setTempSelectedCompanies(updated);
         setSelectAll(false);
       } else {
-        setTempSelectedVendors(allVendors);
+        // Tick ALL - add ALL and all company codes
+        const allCompanyCodes = companies.map(c => c.fCompcode);
+        setTempSelectedCompanies(['ALL', ...allCompanyCodes]);
         setSelectAll(true);
       }
     } else {
-      let updatedVendors;
-      if (tempSelectedVendors.includes(vendor)) {
-        updatedVendors = tempSelectedVendors.filter(v => v !== vendor);
-        if (updatedVendors.includes('ALL')) {
-          updatedVendors = updatedVendors.filter(v => v !== 'ALL');
+      // Handling individual company selection
+      let updatedCompanies;
+      
+      if (tempSelectedCompanies.includes(company.fCompcode)) {
+        // Remove company from selection
+        updatedCompanies = tempSelectedCompanies.filter(c => c !== company.fCompcode);
+        
+        // Also remove ALL if it was selected
+        if (updatedCompanies.includes('ALL')) {
+          updatedCompanies = updatedCompanies.filter(c => c !== 'ALL');
         }
       } else {
-        updatedVendors = [...tempSelectedVendors, vendor];
-        const otherVendors = allVendors.filter(v => v !== 'ALL');
-        if (otherVendors.every(v => updatedVendors.includes(v))) {
-          updatedVendors = allVendors;
+        // Add company to selection
+        updatedCompanies = [...tempSelectedCompanies, company.fCompcode];
+        
+        // Check if all companies are now selected
+        const allCompanyCodes = companies.map(c => c.fCompcode);
+        const allSelected = allCompanyCodes.every(code => updatedCompanies.includes(code));
+        
+        if (allSelected) {
+          // If all companies are selected, add ALL as well
+          updatedCompanies = ['ALL', ...allCompanyCodes];
+          setSelectAll(true);
+        } else {
+          setSelectAll(false);
         }
       }
-      setTempSelectedVendors(updatedVendors);
-      setSelectAll(updatedVendors.length === allVendors.length);
+      
+      setTempSelectedCompanies(updatedCompanies);
     }
   };
 
   const handlePopupOk = () => {
-    setSelectedVendors([...tempSelectedVendors]);
-    const displayText = tempSelectedVendors.length === allVendors.length || tempSelectedVendors.includes('ALL') 
-      ? 'ALL' 
-      : tempSelectedVendors.join(', ');
-    setVendorDisplay(displayText);
-    setShowVendorPopup(false);
+    // Extract just the company codes (excluding ALL for the actual selection)
+    const companyCodes = tempSelectedCompanies.filter(code => code !== 'ALL');
+    
+    // If ALL was selected in temp state, store just ['ALL'] in main state
+    if (tempSelectedCompanies.includes('ALL')) {
+      setSelectedCompanies(['ALL']);
+      setCompanyDisplay('ALL');
+    } else if (companyCodes.length > 0) {
+      // If specific companies are selected
+      setSelectedCompanies(companyCodes);
+      // Update display text
+      const displayText = companyCodes.map(code => 
+        companies.find(c => c.fCompcode === code)?.fCompName
+      ).filter(Boolean).join(', ');
+      setCompanyDisplay(displayText);
+    } else {
+      // If nothing is selected, default to ALL
+      setSelectedCompanies(['ALL']);
+      setCompanyDisplay('ALL');
+    }
+    
+    setShowCompanyPopup(false);
   };
 
   const handleClearSelection = () => {
-    setTempSelectedVendors([]);
+    setTempSelectedCompanies([]);
     setSelectAll(false);
   };
 
   const handlePopupClose = () => {
-    setShowVendorPopup(false);
+    setShowCompanyPopup(false);
   };
 
-  const handleSearch = () => {
-    if (!fromDate || !toDate || selectedVendors.length === 0) {
-      toast.warning('Please fill all fields: From Date, To Date, and select at least one vendor', {
+  const handleSearch = async () => {
+    if (!fromDate || !toDate || selectedCompanies.length === 0) {
+      toast.warning('Please fill all fields: From Date, To Date, and select at least one company', {
         autoClose: 2000,
       });
       return;
@@ -180,25 +215,84 @@ const AccountPayables = () => {
     console.log('Searching Account Payables with:', {
       fromDate,
       toDate,
-      selectedVendors
+      selectedCompanies
     });
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setPayablesData(samplePayablesData);
+    try {
+      // Prepare selected companies string
+      let selectedCompanyCodes;
+      if (selectedCompanies.includes('ALL')) {
+        selectedCompanyCodes = companies.map(c => c.fCompcode).join(',');
+      } else {
+        selectedCompanyCodes = selectedCompanies.join(',');
+      }
+      
+      // Build the API URL
+      const apiUrl = API_ENDPOINTS.GET_PAYABLES(selectedCompanyCodes, 1, 20);
+      console.log('API URL:', apiUrl);
+      
+      // Fetch data from API
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('API Response:', data);
+      
+      // Map the API data to match your table structure
+      const mappedData = data.map((item, index) => ({
+        no: item.no || index + 1,
+        accountName: item.accountName || 'N/A',
+        debit: item.debit?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        credit: item.credit?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        balance: Math.abs(item.netBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        drCr: item.balanceType || (item.netBalance > 0 ? 'DR' : 'CR')
+      }));
+      
+      // Calculate totals for summary row
+      const totalDebit = data.reduce((sum, item) => sum + (item.debit || 0), 0);
+      const totalCredit = data.reduce((sum, item) => sum + (item.credit || 0), 0);
+      const totalBalance = data.reduce((sum, item) => sum + Math.abs(item.netBalance || 0), 0);
+      
+      // Add total row if we have data
+      if (mappedData.length > 0) {
+        mappedData.push({
+          isTotal: true,
+          accountName: "Total",
+          debit: totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          credit: totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          balance: totalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          drCr: ""
+        });
+      }
+      
+      setPayablesData(mappedData);
       setTableLoaded(true);
+      toast.success(`Loaded ${data.length} records`);
+      
+    } catch (error) {
+      console.error('Error fetching payables:', error);
+      toast.error('Failed to load account payables data. Please try again.');
+      setPayablesData([]);
+      setTableLoaded(false);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    setFromDate('2024-06-14');
-    setToDate('2025-11-26');
-    setSelectedVendors(['ALL']);
-    setVendorDisplay('ALL');
+    // Reset to current date on refresh
+    const today = formatDate(new Date());
+    setFromDate(today);
+    setToDate(today);
+    setSelectedCompanies(['ALL']);
+    setCompanyDisplay('ALL');
+    setTempSelectedCompanies([]);
+    setSelectAll(false);
     setPayablesData([]);
   };
 
@@ -212,9 +306,9 @@ const AccountPayables = () => {
           toDateRef.current?.focus();
           break;
         case 'toDate':
-          vendorRef.current?.focus();
+          companyRef.current?.focus();
           break;
-        case 'vendor':
+        case 'company':
           searchButtonRef.current?.focus();
           break;
         default:
@@ -480,7 +574,7 @@ const AccountPayables = () => {
       color: '#1976d2',
       fontWeight: 'bold',
     },
-    vendorInput: {
+    companyInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
@@ -504,7 +598,7 @@ const AccountPayables = () => {
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    vendorInputFocused: {
+    companyInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
@@ -666,12 +760,12 @@ const AccountPayables = () => {
         background: 'rgba(255,255,255,0.3)',
       }
     },
-    vendorList: {
+    companyList: {
       padding: '20px',
       maxHeight: '300px',
       overflowY: 'auto',
     },
-    vendorItem: {
+    companyItem: {
       display: 'flex',
       alignItems: 'center',
       padding: '10px 12px',
@@ -685,7 +779,7 @@ const AccountPayables = () => {
         borderColor: '#1B91DA',
       }
     },
-    selectedVendorItem: {
+    selectedCompanyItem: {
       display: 'flex',
       alignItems: 'center',
       padding: '10px 12px',
@@ -696,7 +790,7 @@ const AccountPayables = () => {
       backgroundColor: '#f0f8ff',
       border: '1px solid #1B91DA',
     },
-    vendorCheckbox: {
+    companyCheckbox: {
       width: '18px',
       height: '18px',
       border: '2px solid #ddd',
@@ -709,7 +803,7 @@ const AccountPayables = () => {
       backgroundColor: 'white',
       transition: 'all 0.3s ease'
     },
-    selectedVendorCheckbox: {
+    selectedCompanyCheckbox: {
       width: '18px',
       height: '18px',
       border: '2px solid #1B91DA',
@@ -726,7 +820,7 @@ const AccountPayables = () => {
       fontWeight: 'bold',
       fontSize: '12px'
     },
-    vendorText: {
+    companyText: {
       color: '#333',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.medium
@@ -792,7 +886,7 @@ const AccountPayables = () => {
         </div>
       )}
 
-      {/* Header Section - Left side: Dates + Vendor, Right side: Buttons */}
+      {/* Header Section - Left side: Dates + Company, Right side: Buttons */}
       <div style={styles.headerSection}>
         <div style={{
           display: 'flex',
@@ -801,7 +895,7 @@ const AccountPayables = () => {
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* LEFT SIDE: Dates and Vendor */}
+          {/* LEFT SIDE: Dates and Company */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -859,31 +953,31 @@ const AccountPayables = () => {
               />
             </div>
 
-            {/* Vendor */}
+            {/* Company */}
             <div style={{
               ...styles.formField,
               flex: 1,
               minWidth: screenSize.isMobile ? '100%' : '200px',
             }}>
-              <label style={styles.inlineLabel}>Vendor:</label>
+              <label style={styles.inlineLabel}>Company:</label>
               <div
                 style={
-                  focusedField === 'vendor'
-                    ? styles.vendorInputFocused
-                    : styles.vendorInput
+                  focusedField === 'company'
+                    ? styles.companyInputFocused
+                    : styles.companyInput
                 }
                 onClick={() => {
-                  handleVendorClick();
-                  setFocusedField('vendor');
+                  handleCompanyClick();
+                  setFocusedField('company');
                 }}
-                ref={vendorRef}
+                ref={companyRef}
                 onKeyDown={(e) => {
-                  handleKeyDown(e, 'vendor');
+                  handleKeyDown(e, 'company');
                   if (e.key === 'Enter') {
-                    handleVendorClick();
+                    handleCompanyClick();
                   }
                 }}
-                onFocus={() => setFocusedField('vendor')}
+                onFocus={() => setFocusedField('company')}
                 onBlur={() => setFocusedField('')}
                 tabIndex={0}
               >
@@ -895,7 +989,7 @@ const AccountPayables = () => {
                   whiteSpace: 'nowrap',
                   flex: 1
                 }}>
-                  {vendorDisplay}
+                  {companyDisplay}
                 </span>
                 <span style={{ 
                   color: '#1B91DA', 
@@ -1053,7 +1147,7 @@ const AccountPayables = () => {
               ) : (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view account payables
+                    Select companies and click "Search" to view account payables
                   </td>
                 </tr>
               )}
@@ -1090,15 +1184,15 @@ const AccountPayables = () => {
         </div>
       </div>
 
-      {/* Vendor Selection Popup */}
-      {showVendorPopup && (
+      {/* Company Selection Popup */}
+      {showCompanyPopup && (
         <div style={styles.popupOverlay} onClick={handlePopupClose}>
           <div 
             style={styles.popupContent} 
             onClick={(e) => e.stopPropagation()}
           >
             <div style={styles.popupHeader}>
-              Select Vendors
+              Select Companies
               <button 
                 style={styles.closeButton}
                 onClick={handlePopupClose}
@@ -1107,22 +1201,41 @@ const AccountPayables = () => {
               </button>
             </div>
             
-            <div style={styles.vendorList}>
-              {allVendors.map((vendor) => {
-                const isSelected = tempSelectedVendors.includes(vendor);
-                return (
+            <div style={styles.companyList}>
+              {companies.length > 0 ? (
+                <>
+                  {/* ALL option - Initially UNCHECKED */}
                   <div 
-                    key={vendor} 
-                    style={isSelected ? styles.selectedVendorItem : styles.vendorItem}
-                    onClick={() => handleVendorSelect(vendor)}
+                    style={tempSelectedCompanies.includes('ALL') ? styles.selectedCompanyItem : styles.companyItem}
+                    onClick={() => handleCompanySelect('ALL')}
                   >
-                    <div style={isSelected ? styles.selectedVendorCheckbox : styles.vendorCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
+                    <div style={tempSelectedCompanies.includes('ALL') ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                      {tempSelectedCompanies.includes('ALL') && <div style={styles.checkmark}>✓</div>}
                     </div>
-                    <span style={styles.vendorText}>{vendor}</span>
+                    <span style={styles.companyText}>ALL</span>
                   </div>
-                );
-              })}
+                  {/* Individual companies - Initially UNCHECKED */}
+                  {companies.map((company) => {
+                    const isSelected = tempSelectedCompanies.includes(company.fCompcode);
+                    return (
+                      <div 
+                        key={company.fCompcode} 
+                        style={isSelected ? styles.selectedCompanyItem : styles.companyItem}
+                        onClick={() => handleCompanySelect(company)}
+                      >
+                        <div style={isSelected ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                          {isSelected && <div style={styles.checkmark}>✓</div>}
+                        </div>
+                        <span style={styles.companyText}>{company.fCompName}</span>
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  Loading companies...
+                </div>
+              )}
             </div>
             
             <div style={styles.popupActions}>

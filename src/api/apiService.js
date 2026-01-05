@@ -93,3 +93,4 @@ export default {
 
 // Named export
 export const axiosInstance = apiService;
+export { get, post };
