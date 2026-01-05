@@ -299,6 +299,7 @@ const PurchaseRegister = () => {
     setFromDate('');
     const today = new Date();
     const currentDate = formatDateForInput(today);
+    setFromDate(currentDate);
     setToDate(currentDate);
     setData([]);
     setSummary({
@@ -400,6 +401,7 @@ const PurchaseRegister = () => {
     setFromDate('');
     const today = new Date();
     const currentDate = formatDateForInput(today);
+    setFromDate(currentDate);
     setToDate(currentDate);
   }, []);
 
