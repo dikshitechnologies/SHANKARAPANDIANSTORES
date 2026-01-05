@@ -302,12 +302,12 @@ const Navbar = () => {
       permission: "DAY_BOOK",
     },
     
-    {
-      name: "Day Sales",
-      path: "/reports/day-sales",
-      icon: <DatabaseOutlined />,
-      permission: "DAY_SALES",
-    },
+    // {
+    //   name: "Day Sales",
+    //   path: "/reports/day-sales",
+    //   icon: <DatabaseOutlined />,
+    //   permission: "DAY_SALES",
+    // },
   ];
 
   // Filter items based on permissions

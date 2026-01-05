@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { get } from '../../../api/apiService';
+import { API_ENDPOINTS } from '../../../api/endpoints';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -23,10 +25,12 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 
 const Ledger = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2024-06-14');
-  const [toDate, setToDate] = useState('2025-11-26');
-  const [party, setParty] = useState('ANBU 123');
-  const [company, setCompany] = useState('Select Company');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [party, setParty] = useState('');
+  const [partyCode, setPartyCode] = useState('');
+  const [company, setCompany] = useState('');
+  const [companyCode, setCompanyCode] = useState('');
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
@@ -34,12 +38,19 @@ const Ledger = () => {
   
   // Popup states for Party
   const [showPartyPopup, setShowPartyPopup] = useState(false);
-  const [tempSelectedParty, setTempSelectedParty] = useState('ANBU 123');
-  const [partyDisplay, setPartyDisplay] = useState('ANBU 123');
+  const [tempSelectedParty, setTempSelectedParty] = useState('');
+  const [tempSelectedPartyCode, setTempSelectedPartyCode] = useState('');
+  const [partyDisplay, setPartyDisplay] = useState('Select Party');
+  const [partySearchText, setPartySearchText] = useState('');
+  const [partyPage, setPartyPage] = useState(1);
+  const [partyPageSize] = useState(100);
+  const [hasMoreParties, setHasMoreParties] = useState(true);
+  const partyListRef = useRef(null);
   
   // Popup states for Company
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
-  const [tempSelectedCompany, setTempSelectedCompany] = useState('Select Company');
+  const [tempSelectedCompany, setTempSelectedCompany] = useState('');
+  const [tempSelectedCompanyCode, setTempSelectedCompanyCode] = useState('');
   const [companyDisplay, setCompanyDisplay] = useState('Select Company');
 
   // --- REFS ---
@@ -48,69 +59,92 @@ const Ledger = () => {
   const partyRef = useRef(null);
   const companyRef = useRef(null);
   const searchButtonRef = useRef(null);
+  const searchDebounceRef = useRef(null);
 
   // --- DATA ---
   const [ledgerData, setLedgerData] = useState([]);
+  const [allParties, setAllParties] = useState([]);
+  const [allCompanies, setAllCompanies] = useState([]);
 
-  // Sample ledger data
-  const sampleLedgerData = [
-    {
-      date: '14/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH001',
-      type: 'Sales',
-      crDr: 'Cr',
-      billNo: 'BL001',
-      billet: 'BT001',
-      amount: '5000.00'
-    },
-    {
-      date: '15/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH002',
-      type: 'Purchase',
-      crDr: 'Dr',
-      billNo: 'BL002',
-      billet: 'BT002',
-      amount: '2500.00'
-    },
-    {
-      date: '20/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH003',
-      type: 'Receipt',
-      crDr: 'Cr',
-      billNo: 'BL003',
-      billet: 'BT003',
-      amount: '3000.00'
+  // Set current date on initial load
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formattedToday = `${year}-${month}-${day}`;
+    
+    setFromDate('');
+    setToDate(formattedToday);
+  }, []);
+
+  // Fetch companies on mount
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await get(API_ENDPOINTS.LEDGER.COMPANIES);
+        if (response.status === 'success' && response.data) {
+          setAllCompanies(response.data);
+        }
+      } catch (error) {
+        toast.error('Failed to load companies');
+        console.error('Error fetching companies:', error);
+      }
+    };
+    fetchCompanies();
+  }, []);
+
+  // Fetch parties when popup opens or search changes (with debounce for search)
+  useEffect(() => {
+    if (showPartyPopup) {
+      // Clear existing timeout
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+      
+      // If search text is being typed, debounce it
+      if (partySearchText) {
+        searchDebounceRef.current = setTimeout(() => {
+          fetchParties(true);
+        }, 300); // 300ms debounce
+      } else {
+        // No search text, fetch immediately
+        fetchParties(true);
+      }
     }
-  ];
+    
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [showPartyPopup, partySearchText]);
 
-  // Sample data for popups
-  const allParties = [
-    'ANBU 123',
-    'John Doe',
-    'Jane Smith',
-    'ABC Corporation',
-    'XYZ Enterprises',
-    'Global Traders',
-    'Tech Solutions Ltd',
-    'Manufacturing Inc',
-    'Retail World',
-    'Service Providers'
-  ];
-
-  const allCompanies = [
-    'DIKSHI DEMO',
-    'DIKSHI TECH',
-    'DIKSHIWEBSITE',
-    'SAKTHI',
-    'JUST AK THINGS',
-    'PRIVANKA',
-    'Global Corp',
-    'Tech Innovators',
-    'Business Solutions'
-  ];
+  const fetchParties = async (resetData = false) => {
+    try {
+      setIsLoading(true);
+      const currentPage = resetData ? 1 : partyPage;
+      const response = await get(API_ENDPOINTS.LEDGER.PARTY_LIST(currentPage, partyPageSize, partySearchText));
+      if (response.status === 'success' && response.data) {
+        if (resetData) {
+          setAllParties(response.data);
+          setPartyPage(1);
+        } else {
+          setAllParties(prev => [...prev, ...response.data]);
+        }
+        if (response.pagination) {
+          setHasMoreParties(currentPage < response.pagination.totalPages);
+        } else {
+          setHasMoreParties(false);
+        }
+      }
+    } catch (error) {
+      toast.error('Failed to load parties');
+      console.error('Error fetching parties:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
@@ -123,31 +157,39 @@ const Ledger = () => {
 
   const handlePartyClick = () => {
     setTempSelectedParty(party);
+    setTempSelectedPartyCode(partyCode);
+    setPartySearchText('');
+    setPartyPage(1);
     setShowPartyPopup(true);
   };
 
   const handleCompanyClick = () => {
     setTempSelectedCompany(company);
+    setTempSelectedCompanyCode(companyCode);
     setShowCompanyPopup(true);
   };
 
   const handlePartySelect = (selectedParty) => {
-    setTempSelectedParty(selectedParty);
+    setTempSelectedParty(selectedParty.fAcname);
+    setTempSelectedPartyCode(selectedParty.fCode);
   };
 
   const handleCompanySelect = (selectedCompany) => {
-    setTempSelectedCompany(selectedCompany);
+    setTempSelectedCompany(selectedCompany.compName);
+    setTempSelectedCompanyCode(selectedCompany.compCode);
   };
 
   const handlePartyPopupOk = () => {
     setParty(tempSelectedParty);
-    setPartyDisplay(tempSelectedParty);
+    setPartyCode(tempSelectedPartyCode);
+    setPartyDisplay(tempSelectedParty || 'Select Party');
     setShowPartyPopup(false);
   };
 
   const handleCompanyPopupOk = () => {
     setCompany(tempSelectedCompany);
-    setCompanyDisplay(tempSelectedCompany);
+    setCompanyCode(tempSelectedCompanyCode);
+    setCompanyDisplay(tempSelectedCompany || 'Select Company');
     setShowCompanyPopup(false);
   };
 
@@ -161,15 +203,33 @@ const Ledger = () => {
 
   const handlePartyClearSelection = () => {
     setTempSelectedParty('');
+    setTempSelectedPartyCode('');
   };
 
   const handleCompanyClearSelection = () => {
     setTempSelectedCompany('');
+    setTempSelectedCompanyCode('');
+  };
+
+  const handlePartySearch = (e) => {
+    setPartySearchText(e.target.value);
+    setPartyPage(1);
+  };
+
+  const handlePartyScroll = (e) => {
+    const bottom = e.target.scrollHeight - e.target.scrollTop <= e.target.clientHeight + 50;
+    if (bottom && !isLoading && hasMoreParties) {
+      setPartyPage(prev => {
+        const nextPage = prev + 1;
+        fetchParties(false);
+        return nextPage;
+      });
+    }
   };
 
   const handleSearch = () => {
-    if (!fromDate || !toDate || !party || company === 'Select Company') {
-      toast.warning('Please fill all fields: From Date, To Date, Party, and Company', {
+    if (!party || !company) {
+      toast.warning('Please select both Party and Company', {
         autoClose: 2000,
       });
       return;
@@ -179,28 +239,37 @@ const Ledger = () => {
       fromDate,
       toDate,
       party,
-      company
+      partyCode,
+      company,
+      companyCode
     });
     
     setIsLoading(true);
     
-    // Simulate API call
+    // TODO: Replace with actual API call
     setTimeout(() => {
-      setLedgerData(sampleLedgerData);
+      setLedgerData([]);
       setTableLoaded(true);
       setIsLoading(false);
+      toast.info('Ledger API integration pending');
     }, 500);
   };
 
   const handleRefresh = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formattedToday = `${year}-${month}-${day}`;
+    
     setTableLoaded(false);
-    setFromDate('2024-06-14');
-    setToDate('2025-11-26');
-    setParty('ANBU 123');
-    setTempSelectedParty('ANBU 123');
-    setPartyDisplay('ANBU 123');
-    setCompany('Select Company');
-    setTempSelectedCompany('Select Company');
+    setFromDate('');
+    setToDate(formattedToday);
+    setParty('');
+    setPartyCode('');
+    setPartyDisplay('Select Party');
+    setCompany('');
+    setCompanyCode('');
     setCompanyDisplay('Select Company');
     setLedgerData([]);
   };
@@ -782,10 +851,63 @@ const Ledger = () => {
       fontWeight: 'bold',
       fontSize: '12px'
     },
+    listTextContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px',
+      flex: 1
+    },
     listText: {
       color: '#333',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.medium
+    },
+    listSubtext: {
+      color: '#666',
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal
+    },
+    searchInput: {
+      width: '100%',
+      padding: '8px 12px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      outline: 'none',
+      transition: 'border-color 0.2s',
+      ':focus': {
+        borderColor: '#1B91DA'
+      }
+    },
+    pagination: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '10px 15px',
+      borderTop: '1px solid #e0e0e0',
+      borderBottom: '1px solid #e0e0e0',
+      backgroundColor: '#fafafa'
+    },
+    paginationButton: {
+      padding: '6px 12px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      background: 'white',
+      color: '#333',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      ':hover': {
+        background: '#f0f0f0',
+        borderColor: '#1B91DA'
+      },
+      ':disabled': {
+        cursor: 'not-allowed'
+      }
+    },
+    paginationText: {
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      color: '#666'
     },
     popupActions: {
       borderTop: '1px solid #ddd',
@@ -1125,22 +1247,55 @@ const Ledger = () => {
               </button>
             </div>
             
-            <div style={styles.listContainer}>
-              {allParties.map((partyItem) => {
-                const isSelected = tempSelectedParty === partyItem;
-                return (
-                  <div 
-                    key={partyItem} 
-                    style={isSelected ? styles.selectedListItem : styles.listItem}
-                    onClick={() => handlePartySelect(partyItem)}
-                  >
-                    <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
-                    </div>
-                    <span style={styles.listText}>{partyItem}</span>
-                  </div>
-                );
-              })}
+            {/* Search Input */}
+            <div style={{ padding: '10px 15px', borderBottom: '1px solid #e0e0e0' }}>
+              <input
+                type="text"
+                placeholder="Search party..."
+                value={partySearchText}
+                onChange={handlePartySearch}
+                style={styles.searchInput}
+              />
+            </div>
+            
+            <div 
+              style={styles.listContainer}
+              onScroll={handlePartyScroll}
+              ref={partyListRef}
+            >
+              {isLoading && allParties.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>
+              ) : allParties.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No parties found</div>
+              ) : (
+                <>
+                  {allParties.map((partyItem) => {
+                    const isSelected = tempSelectedPartyCode === partyItem.fCode;
+                    return (
+                      <div 
+                        key={partyItem.fCode} 
+                        style={isSelected ? styles.selectedListItem : styles.listItem}
+                        onClick={() => handlePartySelect(partyItem)}
+                      >
+                        <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
+                          {isSelected && <div style={styles.checkmark}>✓</div>}
+                        </div>
+                        <div style={styles.listTextContainer}>
+                          <span style={styles.listText}>{partyItem.fAcname}</span>
+                          <span style={styles.listSubtext}>
+                            Code: {partyItem.fCode}
+                            {partyItem.fCity && ` • ${partyItem.fCity}`}
+                            {partyItem.fPhone && ` • ${partyItem.fPhone}`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {isLoading && hasMoreParties && (
+                    <div style={{ textAlign: 'center', padding: '10px', color: '#666' }}>Loading more...</div>
+                  )}
+                </>
+              )}
             </div>
             
             <div style={styles.popupActions}>
@@ -1181,21 +1336,28 @@ const Ledger = () => {
             </div>
             
             <div style={styles.listContainer}>
-              {allCompanies.map((companyItem) => {
-                const isSelected = tempSelectedCompany === companyItem;
-                return (
-                  <div 
-                    key={companyItem} 
-                    style={isSelected ? styles.selectedListItem : styles.listItem}
-                    onClick={() => handleCompanySelect(companyItem)}
-                  >
-                    <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
+              {allCompanies.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No companies found</div>
+              ) : (
+                allCompanies.map((companyItem) => {
+                  const isSelected = tempSelectedCompanyCode === companyItem.compCode;
+                  return (
+                    <div 
+                      key={companyItem.compCode} 
+                      style={isSelected ? styles.selectedListItem : styles.listItem}
+                      onClick={() => handleCompanySelect(companyItem)}
+                    >
+                      <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
+                        {isSelected && <div style={styles.checkmark}>✓</div>}
+                      </div>
+                      <div style={styles.listTextContainer}>
+                        <span style={styles.listText}>{companyItem.compName}</span>
+                        <span style={styles.listSubtext}>Code: {companyItem.compCode}</span>
+                      </div>
                     </div>
-                    <span style={styles.listText}>{companyItem}</span>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
             
             <div style={styles.popupActions}>

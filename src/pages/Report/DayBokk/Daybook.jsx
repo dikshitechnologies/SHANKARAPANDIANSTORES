@@ -21,14 +21,24 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// Helper function to format date as YYYY-MM-DD
+const formatDate = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const DayBook = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2024-06-14');
-  const [toDate, setToDate] = useState('2025-11-26');
-  const [selectedBranches, setSelectedBranches] = useState(['ALL']);
+  const currentDate = formatDate(new Date());
+  const [fromDate, setFromDate] = useState(currentDate);
+  const [toDate, setToDate] = useState(currentDate);
+  const [selectedBranches, setSelectedBranches] = useState(['ALL']); // Initial value is ALL
   const [showBranchPopup, setShowBranchPopup] = useState(false);
-  const [tempSelectedBranches, setTempSelectedBranches] = useState(['ALL']);
-  const [selectAll, setSelectAll] = useState(true);
+  const [tempSelectedBranches, setTempSelectedBranches] = useState([]); // Initially empty
+  const [selectAll, setSelectAll] = useState(false); // Initially false
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
@@ -44,58 +54,6 @@ const DayBook = () => {
   // --- DATA ---
   const [dayBookData, setDayBookData] = useState([]);
 
-  // Sample daybook data
-  const sampleDayBookData = [
-    {
-      accName: "OPG ON :29-02-12",
-      receipts: "0.00",
-      payments: ""
-    },
-    {
-      accName: "Total",
-      receipts: "0.00",
-      payments: "0.00",
-      isTotal: true
-    },
-    {
-      accName: "Clg ON :29-02-12",
-      receipts: "0.00",
-      payments: ""
-    },
-    {
-      accName: "OPG ON :01-03-12",
-      receipts: "0.00",
-      payments: ""
-    },
-    {
-      accName: "Total",
-      receipts: "0.00",
-      payments: "0.00",
-      isTotal: true
-    },
-    {
-      accName: "Clg ON :01-03-12",
-      receipts: "0.00",
-      payments: ""
-    },
-    {
-      accName: "OPG ON :02-03-12",
-      receipts: "0.00",
-      payments: ""
-    },
-    {
-      accName: "Total",
-      receipts: "0.00",
-      payments: "0.00",
-      isTotal: true
-    },
-    {
-      accName: "Clg ON :02-03-12",
-      receipts: "0.00",
-      payments: ""
-    }
-  ];
-
   // Sample data for branches
   const allBranches = [
     'ALL',
@@ -109,6 +67,28 @@ const DayBook = () => {
     'PRIVANKA'
   ];
 
+  // Update tempSelectedBranches when popup opens based on current selection
+  useEffect(() => {
+    if (showBranchPopup) {
+      if (selectedBranches.includes('ALL')) {
+        // If ALL is selected in main state, show empty selection in popup
+        setTempSelectedBranches([]);
+        setSelectAll(false);
+      } else {
+        // If specific branches are selected, show them in popup
+        setTempSelectedBranches([...selectedBranches]);
+        setSelectAll(false);
+      }
+    }
+  }, [showBranchPopup, selectedBranches]);
+
+  // Focus on fromDate field when component mounts
+  useEffect(() => {
+    if (fromDateRef.current) {
+      fromDateRef.current.focus();
+    }
+  }, []);
+
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
     setFromDate(e.target.value);
@@ -119,44 +99,80 @@ const DayBook = () => {
   };
 
   const handleBranchClick = () => {
-    setTempSelectedBranches([...selectedBranches]);
+    // The useEffect above will handle setting tempSelectedBranches
     setShowBranchPopup(true);
   };
 
   const handleBranchSelect = (branch) => {
     if (branch === 'ALL') {
+      // If ALL is being toggled
       if (tempSelectedBranches.includes('ALL')) {
-        setTempSelectedBranches([]);
+        // Untick ALL - remove ALL and all branches
+        const allOtherBranches = allBranches.filter(b => b !== 'ALL');
+        const updated = tempSelectedBranches.filter(
+          b => b !== 'ALL' && !allOtherBranches.includes(b)
+        );
+        setTempSelectedBranches(updated);
         setSelectAll(false);
       } else {
+        // Tick ALL - add ALL and all branch names
         setTempSelectedBranches(allBranches);
         setSelectAll(true);
+        
       }
     } else {
+      // Handling individual branch selection
       let updatedBranches;
+      
       if (tempSelectedBranches.includes(branch)) {
+        // Remove branch from selection
         updatedBranches = tempSelectedBranches.filter(b => b !== branch);
+        
+        // Also remove ALL if it was selected
         if (updatedBranches.includes('ALL')) {
           updatedBranches = updatedBranches.filter(b => b !== 'ALL');
         }
       } else {
+        // Add branch to selection
         updatedBranches = [...tempSelectedBranches, branch];
-        const otherBranches = allBranches.filter(b => b !== 'ALL');
-        if (otherBranches.every(b => updatedBranches.includes(b))) {
+        
+        // Check if all branches are now selected
+        const allOtherBranches = allBranches.filter(b => b !== 'ALL');
+        const allSelected = allOtherBranches.every(b => updatedBranches.includes(b));
+        
+        if (allSelected) {
+          // If all branches are selected, add ALL as well
           updatedBranches = allBranches;
+          setSelectAll(true);
+        } else {
+          setSelectAll(false);
         }
       }
+      
       setTempSelectedBranches(updatedBranches);
-      setSelectAll(updatedBranches.length === allBranches.length);
     }
   };
 
   const handlePopupOk = () => {
-    setSelectedBranches([...tempSelectedBranches]);
-    const displayText = tempSelectedBranches.length === allBranches.length || tempSelectedBranches.includes('ALL') 
-      ? 'ALL' 
-      : tempSelectedBranches.join(', ');
-    setBranchDisplay(displayText);
+    // Extract just the branches (excluding ALL for the actual selection)
+    const branchList = tempSelectedBranches.filter(branch => branch !== 'ALL');
+    
+    // If ALL was selected in temp state, store just ['ALL'] in main state
+    if (tempSelectedBranches.includes('ALL')) {
+      setSelectedBranches(['ALL']);
+      setBranchDisplay('ALL');
+    } else if (branchList.length > 0) {
+      // If specific branches are selected
+      setSelectedBranches(branchList);
+      // Update display text
+      const displayText = branchList.join(', ');
+      setBranchDisplay(displayText);
+    } else {
+      // If nothing is selected, default to ALL
+      setSelectedBranches(['ALL']);
+      setBranchDisplay('ALL');
+    }
+    
     setShowBranchPopup(false);
   };
 
@@ -187,6 +203,58 @@ const DayBook = () => {
     
     // Simulate API call
     setTimeout(() => {
+      // Sample daybook data
+      const sampleDayBookData = [
+        {
+          accName: "OPG ON :29-02-12",
+          receipts: "0.00",
+          payments: ""
+        },
+        {
+          accName: "Total",
+          receipts: "0.00",
+          payments: "0.00",
+          isTotal: true
+        },
+        {
+          accName: "Clg ON :29-02-12",
+          receipts: "0.00",
+          payments: ""
+        },
+        {
+          accName: "OPG ON :01-03-12",
+          receipts: "0.00",
+          payments: ""
+        },
+        {
+          accName: "Total",
+          receipts: "0.00",
+          payments: "0.00",
+          isTotal: true
+        },
+        {
+          accName: "Clg ON :01-03-12",
+          receipts: "0.00",
+          payments: ""
+        },
+        {
+          accName: "OPG ON :02-03-12",
+          receipts: "0.00",
+          payments: ""
+        },
+        {
+          accName: "Total",
+          receipts: "0.00",
+          payments: "0.00",
+          isTotal: true
+        },
+        {
+          accName: "Clg ON :02-03-12",
+          receipts: "0.00",
+          payments: ""
+        }
+      ];
+      
       setDayBookData(sampleDayBookData);
       setTableLoaded(true);
       setIsLoading(false);
@@ -195,10 +263,14 @@ const DayBook = () => {
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    setFromDate('2024-06-14');
-    setToDate('2025-11-26');
+    // Reset to current date on refresh
+    const today = formatDate(new Date());
+    setFromDate(today);
+    setToDate(today);
     setSelectedBranches(['ALL']);
     setBranchDisplay('ALL');
+    setTempSelectedBranches([]);
+    setSelectAll(false);
     setDayBookData([]);
   };
 
@@ -1068,7 +1140,18 @@ const DayBook = () => {
             </div>
             
             <div style={styles.branchList}>
-              {allBranches.map((branch) => {
+              {/* ALL option - Initially UNCHECKED */}
+              <div 
+                style={tempSelectedBranches.includes('ALL') ? styles.selectedBranchItem : styles.branchItem}
+                onClick={() => handleBranchSelect('ALL')}
+              >
+                <div style={tempSelectedBranches.includes('ALL') ? styles.selectedBranchCheckbox : styles.branchCheckbox}>
+                  {tempSelectedBranches.includes('ALL') && <div style={styles.checkmark}>✓</div>}
+                </div>
+                <span style={styles.branchText}>ALL</span>
+              </div>
+              {/* Individual branches - Initially UNCHECKED */}
+              {allBranches.filter(b => b !== 'ALL').map((branch) => {
                 const isSelected = tempSelectedBranches.includes(branch);
                 return (
                   <div 
@@ -1109,3 +1192,9 @@ const DayBook = () => {
 };
 
 export default DayBook;
+      
+
+
+
+
+

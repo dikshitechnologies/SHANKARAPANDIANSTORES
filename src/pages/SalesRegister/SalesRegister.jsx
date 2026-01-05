@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { API_ENDPOINTS } from '../../api/endpoints';
+import { API_BASE } from '../../api/apiService';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -21,10 +23,20 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// Helper function to format date as YYYY-MM-DD
+const formatDate = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const SalesRegister = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2024-06-14');
-  const [toDate, setToDate] = useState('2025-11-26');
+  const currentDate = formatDate(new Date());
+  const [fromDate, setFromDate] = useState(currentDate);
+  const [toDate, setToDate] = useState(currentDate);
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
@@ -170,7 +182,7 @@ const SalesRegister = () => {
     setToDate(e.target.value);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!fromDate || !toDate) {
       toast.warning('Please select From Date and To Date', {
         autoClose: 2000,
@@ -185,18 +197,77 @@ const SalesRegister = () => {
     
     setIsLoading(true);
     
-    // Simulate API call with mock data
-    setTimeout(() => {
-      setSalesData(mockSalesData);
+    try {
+      // Format dates as DD/MM/YYYY for API
+      const formatDateForAPI = (dateString) => {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+      
+      const formattedFromDate = formatDateForAPI(fromDate);
+      const formattedToDate = formatDateForAPI(toDate);
+      const compCode = '001'; // Default company code
+      
+      // Build the API URL
+      const apiUrl = `${API_BASE}/${API_ENDPOINTS.SALES_REGISTER.SALES_REPORT(
+        formattedFromDate, 
+        formattedToDate, 
+        compCode, 
+        1, 
+        20
+      )}`;
+      console.log('API URL:', apiUrl);
+      
+      // Fetch data from API
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('API Response:', data);
+      
+      // Map the API data to match your table structure
+      const mappedData = data.data.map((item, index) => ({
+        no: index + 1,
+        salesParty: item.refName || item.name || 'N/A',
+        billNo: item.voucherNo || item.no || 'N/A',
+        billDate: item.voucherDate || 'N/A',
+        billAmount: item.billAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        qty: item.qty?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        time: item.time ? new Date(item.time).toLocaleTimeString('en-IN', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit',
+          hour12: true 
+        }) : 'N/A',
+        noOfBale: '', // Not available in API response
+        transport: '' // Not available in API response
+      }));
+      
+      setSalesData(mappedData);
       setTableLoaded(true);
+      // toast.success(`Loaded ${data.data.length} records`);
+      
+    } catch (error) {
+      console.error('Error fetching sales register:', error);
+      toast.error('Failed to load sales register data. Please try again.');
+      setSalesData([]);
+      setTableLoaded(false);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    setFromDate('2024-06-14');
-    setToDate('2025-11-26');
+    // Reset to current date on refresh
+    const today = formatDate(new Date());
+    setFromDate(today);
+    setToDate(today);
     setSalesData([]);
   };
 
@@ -217,6 +288,13 @@ const SalesRegister = () => {
       }
     }
   };
+
+  // Focus on fromDate field when component mounts
+  useEffect(() => {
+    if (fromDateRef.current) {
+      fromDateRef.current.focus();
+    }
+  }, []);
 
   // --- SCREEN SIZE DETECTION ---
   const [screenSize, setScreenSize] = useState({
@@ -642,109 +720,132 @@ const SalesRegister = () => {
         </div>
       )}
 
-      {/* Header Section - ALL ON ONE LINE */}
+      {/* Header Section - Left side: Dates, Right side: Buttons */}
       <div style={styles.headerSection}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
+          gap: screenSize.isMobile ? '12px' : screenSize.isTablet ? '16px' : '20px',
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* From Date - Smaller width only */}
-          <div style={{
-            ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
-            minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
-          }}>
-            <label style={styles.inlineLabel}>From Date:</label>
-            <input
-              type="date"
-              data-header="fromDate"
-              style={
-                focusedField === 'fromDate'
-                  ? styles.inlineInputFocused
-                  : styles.inlineInput
-              }
-              value={fromDate}
-              onChange={handleFromDateChange}
-              ref={fromDateRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'fromDate');
-              }}
-              onFocus={() => setFocusedField('fromDate')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
-
-          {/* To Date - Smaller width only */}
-          <div style={{
-            ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
-            minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
-          }}>
-            <label style={styles.inlineLabel}>To Date:</label>
-            <input
-              type="date"
-              data-header="toDate"
-              style={
-                focusedField === 'toDate'
-                  ? styles.inlineInputFocused
-                  : styles.inlineInput
-              }
-              value={toDate}
-              onChange={handleToDateChange}
-              ref={toDateRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'toDate');
-              }}
-              onFocus={() => setFocusedField('toDate')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div>
-
-          {/* Search Button */}
+          {/* LEFT SIDE: Dates */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            flexShrink: 0,
+            flex: 1,
+            gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
+            flexWrap: 'wrap',
           }}>
-            <button
-              style={{
-                ...styles.searchButton,
-                width: screenSize.isMobile ? '100%' : 'auto',
-                marginBottom: screenSize.isMobile ? '8px' : '0',
-              }}
-              onClick={handleSearch}
-              onMouseEnter={() => setHoveredButton(true)}
-              onMouseLeave={() => setHoveredButton(false)}
-              ref={searchButtonRef}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearch();
+            {/* From Date - Smaller width only */}
+            <div style={{
+              ...styles.formField,
+              flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
+              minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
+            }}>
+              <label style={styles.inlineLabel}>From Date:</label>
+              <input
+                type="date"
+                data-header="fromDate"
+                style={
+                  focusedField === 'fromDate'
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
                 }
-              }}
-            >
-              Search
-              {hoveredButton && <div style={styles.buttonGlow}></div>}
-            </button>
+                value={fromDate}
+                onChange={handleFromDateChange}
+                ref={fromDateRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'fromDate');
+                }}
+                onFocus={() => setFocusedField('fromDate')}
+                onBlur={() => setFocusedField('')}
+              />
+            </div>
+
+            {/* To Date - Smaller width only */}
+            <div style={{
+              ...styles.formField,
+              flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
+              minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
+            }}>
+              <label style={styles.inlineLabel}>To Date:</label>
+              <input
+                type="date"
+                data-header="toDate"
+                style={
+                  focusedField === 'toDate'
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
+                }
+                value={toDate}
+                onChange={handleToDateChange}
+                ref={toDateRef}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'toDate');
+                }}
+                onFocus={() => setFocusedField('toDate')}
+                onBlur={() => setFocusedField('')}
+              />
+            </div>
           </div>
 
-          {/* Refresh Button */}
+          {/* SPACER BETWEEN LEFT AND RIGHT SIDES - LARGE GAP */}
+          <div style={{
+            width: screenSize.isMobile ? '0' : screenSize.isTablet ? '40px' : '60px',
+            flexShrink: 0,
+          }} />
+
+          {/* RIGHT SIDE: Buttons */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
+            gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
             flexShrink: 0,
           }}>
-            <button
-              style={{
-                ...styles.refreshButton,
-                width: screenSize.isMobile ? '100%' : 'auto',
-              }}
-              onClick={handleRefresh}
-            >
-              Refresh
-            </button>
+            {/* Search Button */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <button
+                style={{
+                  ...styles.searchButton,
+                  width: screenSize.isMobile ? '100%' : 'auto',
+                  marginBottom: screenSize.isMobile ? '8px' : '0',
+                }}
+                onClick={handleSearch}
+                onMouseEnter={() => setHoveredButton(true)}
+                onMouseLeave={() => setHoveredButton(false)}
+                ref={searchButtonRef}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}
+              >
+                Search
+                {hoveredButton && <div style={styles.buttonGlow}></div>}
+              </button>
+            </div>
+
+            {/* Refresh Button */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <button
+                style={{
+                  ...styles.refreshButton,
+                  width: screenSize.isMobile ? '100%' : 'auto',
+                }}
+                onClick={handleRefresh}
+              >
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -819,9 +920,9 @@ const SalesRegister = () => {
                 )
               ) : (
                 <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    {/* <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                       Enter search criteria and click "Search" to view sales register entries
-                    </td>
+                    </td> */}
                   </tr>
               )}
             </tbody>
