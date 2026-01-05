@@ -343,11 +343,7 @@ PAYMENTVOUCHER: {
     LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
       `AccRec/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
-  ACC_PAY: {
-    COMPANIES: 'AccPay/companies',
-    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
-      `AccPay/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
-  },
+ 
   
   LEDGER: {
     COMPANIES: 'ledger/companies',
@@ -355,6 +351,16 @@ PAYMENTVOUCHER: {
       `ledger/partyList?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
   },
   
+  SALES_REGISTER: {
+    SALES_REPORT: (fromDate, toDate, compCode, page = 1, pageSize = 20) =>
+      `SalesRegister/SalesReport?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&page=${page}&pageSize=${pageSize}`,
+  },
+
+  ACC_PAY: {
+    COMPANIES: 'AccPayable/companies',
+    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
+      `AccPayable/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  },
 
 };
 
