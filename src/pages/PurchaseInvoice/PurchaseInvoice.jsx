@@ -1907,7 +1907,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           gstType: billDetails.gstType || 'G',
         },
         iledger: {
-          vrNo: voucherNo,
+          vrNo: billDetails.purNo,
           less: parseFloat(addLessAmount) || 0,
           subTotal: totals.subTotal,
           total: totals.total,

@@ -341,6 +341,12 @@ PAYMENTVOUCHER: {
   PURCHASE_RETURN_REGISTER: {
     GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `purchaseretunRegister/GetPurchaseReturnRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
   },
+  PURCHASE_REGISTER: {
+    GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `PurchaseRegister/GetPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+  },
+  SCRAP_PURCHASE: {
+    GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `ScrapPur/GetScrapPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+  },
   ACC_REC: {
     COMPANIES: 'AccRec/companies',
     LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
@@ -374,10 +380,15 @@ PAYMENTVOUCHER: {
       `GroupWiseStock/group-detail?groupName=${encodeURIComponent(groupName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}`,
     ITEM_DETAIL: (itemName, fromDate, toDate, compCode) =>
       `GroupWiseStock/item-detail?itemName=${encodeURIComponent(itemName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}`,
+  }, // <-- Add this closing brace for GROUP_WISE_STOCK
+  DAYBOOK: {
+    GET_DAY_BOOK: (compCode, fromDate, toDate) =>
+      `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+  },
+
+  SALES_RETURN_REGISTER: {
+    GET_SALES_RETURN_REGISTER: (fromDate, toDate, compCode, pageNumber = 1, pageSize = 200) =>
+      `SalesReturnRegister/GetSalesReturnRegister?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
 
 };
-//GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `PurchaseRegister/GetPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
-
-
-

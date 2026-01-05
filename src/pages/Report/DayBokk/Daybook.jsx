@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { API_ENDPOINTS } from '../../../api/endpoints';
+import { API_BASE } from '../../../api/apiService';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -53,6 +55,14 @@ const DayBook = () => {
 
   // --- DATA ---
   const [dayBookData, setDayBookData] = useState([]);
+  const [apiTotals, setApiTotals] = useState({
+    totalDebit: 0,
+    totalCredit: 0,
+    openingDebit: 0,
+    openingCredit: 0,
+    closingDebit: 0,
+    closingCredit: 0
+  });
 
   // Sample data for branches
   const allBranches = [
@@ -185,7 +195,7 @@ const DayBook = () => {
     setShowBranchPopup(false);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!fromDate || !toDate || selectedBranches.length === 0) {
       toast.warning('Please fill all fields: From Date, To Date, and select at least one branch', {
         autoClose: 2000,
@@ -201,64 +211,77 @@ const DayBook = () => {
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // Sample daybook data
-      const sampleDayBookData = [
-        {
-          accName: "OPG ON :29-02-12",
-          receipts: "0.00",
-          payments: ""
-        },
-        {
-          accName: "Total",
-          receipts: "0.00",
-          payments: "0.00",
-          isTotal: true
-        },
-        {
-          accName: "Clg ON :29-02-12",
-          receipts: "0.00",
-          payments: ""
-        },
-        {
-          accName: "OPG ON :01-03-12",
-          receipts: "0.00",
-          payments: ""
-        },
-        {
-          accName: "Total",
-          receipts: "0.00",
-          payments: "0.00",
-          isTotal: true
-        },
-        {
-          accName: "Clg ON :01-03-12",
-          receipts: "0.00",
-          payments: ""
-        },
-        {
-          accName: "OPG ON :02-03-12",
-          receipts: "0.00",
-          payments: ""
-        },
-        {
-          accName: "Total",
-          receipts: "0.00",
-          payments: "0.00",
-          isTotal: true
-        },
-        {
-          accName: "Clg ON :02-03-12",
-          receipts: "0.00",
-          payments: ""
-        }
-      ];
+    try {
+      // Use compCode from selected branches or default to '001'
+      const compCode = selectedBranches.includes('ALL') ? '001' : selectedBranches[0];
       
-      setDayBookData(sampleDayBookData);
+      const response = await fetch(`${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(compCode, fromDate, toDate)}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Transform API response to match component's expected format
+      const transformedData = [];
+      
+      // Add opening balance if exists
+      if (data.openingDebit > 0 || data.openingCredit > 0) {
+        transformedData.push({
+          accName: "Opening Balance",
+          receipts: data.openingDebit > 0 ? data.openingDebit.toFixed(2) : "",
+          payments: data.openingCredit > 0 ? data.openingCredit.toFixed(2) : "",
+        });
+      }
+      
+      // Add entries
+      if (data.entries && data.entries.length > 0) {
+        data.entries.forEach(entry => {
+          transformedData.push({
+            accName: entry.accName || entry.description || "",
+            receipts: entry.debit > 0 ? entry.debit.toFixed(2) : "",
+            payments: entry.credit > 0 ? entry.credit.toFixed(2) : "",
+          });
+        });
+      }
+      
+      // Add total row
+      transformedData.push({
+        accName: "Total",
+        receipts: data.totalDebit.toFixed(2),
+        payments: data.totalCredit.toFixed(2),
+        isTotal: true
+      });
+      
+      // Add closing balance if exists
+      if (data.closingDebit > 0 || data.closingCredit > 0) {
+        transformedData.push({
+          accName: "Closing Balance",
+          receipts: data.closingDebit > 0 ? data.closingDebit.toFixed(2) : "",
+          payments: data.closingCredit > 0 ? data.closingCredit.toFixed(2) : "",
+        });
+      }
+      
+      setDayBookData(transformedData);
+      setApiTotals({
+        totalDebit: data.totalDebit || 0,
+        totalCredit: data.totalCredit || 0,
+        openingDebit: data.openingDebit || 0,
+        openingCredit: data.openingCredit || 0,
+        closingDebit: data.closingDebit || 0,
+        closingCredit: data.closingCredit || 0
+      });
       setTableLoaded(true);
+      
+    } catch (error) {
+      console.error('Error fetching daybook data:', error);
+      toast.error('Failed to load daybook data. Please try again.');
+      setDayBookData([]);
+      setTableLoaded(false);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleRefresh = () => {
@@ -272,6 +295,14 @@ const DayBook = () => {
     setTempSelectedBranches([]);
     setSelectAll(false);
     setDayBookData([]);
+    setApiTotals({
+      totalDebit: 0,
+      totalCredit: 0,
+      openingDebit: 0,
+      openingCredit: 0,
+      closingDebit: 0,
+      closingCredit: 0
+    });
   };
 
   // Handle key navigation
@@ -846,14 +877,9 @@ const DayBook = () => {
     },
   };
 
-  // Calculate totals
-  const totalReceipts = dayBookData
-    .filter(row => !row.isTotal && row.receipts)
-    .reduce((sum, row) => sum + parseFloat(row.receipts || 0), 0);
-  
-  const totalPayments = dayBookData
-    .filter(row => !row.isTotal && row.payments)
-    .reduce((sum, row) => sum + parseFloat(row.payments || 0), 0);
+  // Calculate totals from API response
+  const totalReceipts = apiTotals.totalDebit;
+  const totalPayments = apiTotals.totalCredit;
 
   return (
     <div style={styles.container}>
