@@ -1417,7 +1417,7 @@ const createSalesReturn = async () => {
         customerCode: (billDetails.customerCode || "").toString(),
         customerName: (billDetails.custName || "").toString(),
         salesMansName: (billDetails.salesman || "").toString(),
-        salesMansCode: (billDetails.salesmanCode || "002").toString(),
+        salesMansCode: (billDetails.salesmanCode || "").toString(),
         compCode: "001",
         userCode: "001",
         billAMT: totalAmount.toFixed(2).toString(),
@@ -1576,7 +1576,7 @@ const updateSalesReturn = async () => {
       setDiscountAmount(0);
       setDiscount("");
       
-      toast.success(`Sales Return ${voucherNo} updated successfully with discount!`);
+      // toast.success(`Sales Return ${voucherNo} updated successfully with discount!`);
       
       return response;
     } else {
@@ -1950,11 +1950,11 @@ const loadVoucherForEditing = async (voucherNo) => {
     
     // Show discount info
     if (discountPercentValue > 0 || discountAmountValue > 0) {
-      toast.success(`Voucher loaded with ${discountPercentValue}% discount (₹${discountAmountValue.toFixed(2)}) - Net: ₹${netAmountValue.toFixed(2)}`, {
-        autoClose: 3000,
-      });
+      // toast.success(`Voucher loaded with ${discountPercentValue}% discount (₹${discountAmountValue.toFixed(2)}) - Net: ₹${netAmountValue.toFixed(2)}`, {
+      //   autoClose: 3000,
+      // });
     } else {
-      toast.success(`Voucher ${voucherNo} loaded successfully!`);
+      // toast.success(`Voucher ${voucherNo} loaded successfully!`);
     }
     
   } catch (err) {
@@ -4150,7 +4150,7 @@ const renderBillDetailsContent = () => {
   }
 
   const itemsArray = details.items || details.details || [];
-
+console.log("Rendering bill details for billNo:", billNo, "with items:", itemsArray);
   const handleSelectAll = (checked) => {
     setSelectAllItems(checked);
     const updated = {};
