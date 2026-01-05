@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { get } from '../../../api/apiService';
+import { API_ENDPOINTS } from '../../../api/endpoints';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -21,14 +23,22 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// Helper function to format date as YYYY-MM-DD
+const formatDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const AccountReceivables = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2024-06-14');
-  const [toDate, setToDate] = useState('2025-11-26');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [selectedCompanies, setSelectedCompanies] = useState(['ALL']);
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
-  const [tempSelectedCompanies, setTempSelectedCompanies] = useState(['ALL']);
-  const [selectAll, setSelectAll] = useState(true);
+  const [tempSelectedCompanies, setTempSelectedCompanies] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
@@ -43,46 +53,39 @@ const AccountReceivables = () => {
 
   // --- DATA ---
   const [receivablesData, setReceivablesData] = useState([]);
+  const [companies, setCompanies] = useState([]);
 
-  // Sample Account Receivables data based on your image
-  const sampleReceivablesData = [
-    {
-      no: 1,
-      accountName: "AK",
-      debit: "3,500.00",
-      credit: "0.00",
-      balance: "3,500.00",
-      drCr: "DR"
-    },
-    {
-      no: 2,
-      accountName: "MADHARSHA AND SONS",
-      debit: "0.00",
-      credit: "1,000.00",
-      balance: "1,000.00",
-      drCr: "CR"
-    },
-    {
-      isTotal: true,
-      accountName: "Total",
-      debit: "3,500.00",
-      credit: "1,000.00",
-      balance: "4,500.00",
-      drCr: ""
+  // Set current dates on initial load
+  useEffect(() => {
+    const today = new Date();
+    const formattedToday = formatDate(today);
+    
+    // Set both From Date and To Date to current date
+    setFromDate(formattedToday);
+    setToDate(formattedToday);
+  }, []);
+
+  // Fetch companies on mount
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const data = await get(API_ENDPOINTS.ACC_REC.COMPANIES);
+        setCompanies(data);
+      } catch (error) {
+        toast.error('Failed to load companies');
+        console.error('Error fetching companies:', error);
+      }
+    };
+    fetchCompanies();
+  }, []);
+
+  // Initialize tempSelectedCompanies when companies are loaded
+  useEffect(() => {
+    if (companies.length > 0 && selectedCompanies.includes('ALL')) {
+      setTempSelectedCompanies([]);
+      setSelectAll(false);
     }
-  ];
-
-  // Sample data for companies
-  const allCompanies = [
-    'ALL',
-    'Company A',
-    'Company B',
-    'Company C',
-    'Company D',
-    'Company E',
-    'Company F',
-    'Company G'
-  ];
+  }, [companies, selectedCompanies]);
 
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
@@ -94,44 +97,91 @@ const AccountReceivables = () => {
   };
 
   const handleCompanyClick = () => {
-    setTempSelectedCompanies([...selectedCompanies]);
+    // When opening popup, set tempSelectedCompanies based on current selection
+    if (selectedCompanies.includes('ALL')) {
+      // If ALL is selected, show empty selection in popup (ALL unchecked)
+      setTempSelectedCompanies([]);
+      setSelectAll(false);
+    } else {
+      // If specific companies are selected, show only those
+      setTempSelectedCompanies([...selectedCompanies]);
+      setSelectAll(false);
+    }
     setShowCompanyPopup(true);
   };
 
   const handleCompanySelect = (company) => {
     if (company === 'ALL') {
+      // If ALL is being toggled
       if (tempSelectedCompanies.includes('ALL')) {
-        setTempSelectedCompanies([]);
+        // Untick ALL - remove ALL and all companies
+        const allCompanyCodes = companies.map(c => c.fCompcode);
+        const updated = tempSelectedCompanies.filter(
+          c => c !== 'ALL' && !allCompanyCodes.includes(c)
+        );
+        setTempSelectedCompanies(updated);
         setSelectAll(false);
       } else {
-        setTempSelectedCompanies(allCompanies);
+        // Tick ALL - add ALL and all company codes
+        const allCompanyCodes = companies.map(c => c.fCompcode);
+        setTempSelectedCompanies(['ALL', ...allCompanyCodes]);
         setSelectAll(true);
       }
     } else {
+      // Handling individual company selection
       let updatedCompanies;
-      if (tempSelectedCompanies.includes(company)) {
-        updatedCompanies = tempSelectedCompanies.filter(c => c !== company);
+      
+      if (tempSelectedCompanies.includes(company.fCompcode)) {
+        // Remove company from selection
+        updatedCompanies = tempSelectedCompanies.filter(c => c !== company.fCompcode);
+        
+        // Also remove ALL if it was selected
         if (updatedCompanies.includes('ALL')) {
           updatedCompanies = updatedCompanies.filter(c => c !== 'ALL');
         }
       } else {
-        updatedCompanies = [...tempSelectedCompanies, company];
-        const otherCompanies = allCompanies.filter(c => c !== 'ALL');
-        if (otherCompanies.every(c => updatedCompanies.includes(c))) {
-          updatedCompanies = allCompanies;
+        // Add company to selection
+        updatedCompanies = [...tempSelectedCompanies, company.fCompcode];
+        
+        // Check if all companies are now selected
+        const allCompanyCodes = companies.map(c => c.fCompcode);
+        const allSelected = allCompanyCodes.every(code => updatedCompanies.includes(code));
+        
+        if (allSelected) {
+          // If all companies are selected, add ALL as well
+          updatedCompanies = ['ALL', ...allCompanyCodes];
+          setSelectAll(true);
+        } else {
+          setSelectAll(false);
         }
       }
+      
       setTempSelectedCompanies(updatedCompanies);
-      setSelectAll(updatedCompanies.length === allCompanies.length);
     }
   };
 
   const handlePopupOk = () => {
-    setSelectedCompanies([...tempSelectedCompanies]);
-    const displayText = tempSelectedCompanies.length === allCompanies.length || tempSelectedCompanies.includes('ALL') 
-      ? 'ALL' 
-      : tempSelectedCompanies.join(', ');
-    setCompanyDisplay(displayText);
+    // Extract just the company codes (excluding ALL for the actual selection)
+    const companyCodes = tempSelectedCompanies.filter(code => code !== 'ALL');
+    
+    // If ALL was selected, store just ['ALL']
+    if (tempSelectedCompanies.includes('ALL')) {
+      setSelectedCompanies(['ALL']);
+      setCompanyDisplay('ALL');
+    } else if (companyCodes.length > 0) {
+      // If specific companies are selected
+      setSelectedCompanies(companyCodes);
+      // Update display text
+      const displayText = companyCodes.map(code => 
+        companies.find(c => c.fCompcode === code)?.fCompName
+      ).filter(Boolean).join(', ');
+      setCompanyDisplay(displayText);
+    } else {
+      // If nothing is selected, keep it as ALL
+      setSelectedCompanies(['ALL']);
+      setCompanyDisplay('ALL');
+    }
+    
     setShowCompanyPopup(false);
   };
 
@@ -144,7 +194,7 @@ const AccountReceivables = () => {
     setShowCompanyPopup(false);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!fromDate || !toDate || selectedCompanies.length === 0) {
       toast.warning('Please fill all fields: From Date, To Date, and select at least one company', {
         autoClose: 2000,
@@ -152,26 +202,60 @@ const AccountReceivables = () => {
       return;
     }
     
-    console.log('Searching Account Receivables with:', {
-      fromDate,
-      toDate,
-      selectedCompanies
-    });
-    
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setReceivablesData(sampleReceivablesData);
+    try {
+      let selectedCodes = selectedCompanies.includes('ALL') 
+        ? companies.map(c => c.fCompcode) 
+        : selectedCompanies;
+      const selectedCompaniesStr = selectedCodes.join(',');
+      
+      const data = await get(API_ENDPOINTS.ACC_REC.LIST(selectedCompaniesStr));
+      
+      // Map the data
+      const mappedData = data.map((item, index) => ({
+        no: item.no,
+        accountName: item.accountName,
+        debit: item.debit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        credit: item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        balance: Math.abs(item.netBalance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        drCr: item.balanceType
+      }));
+      
+      // Calculate totals
+      const totalDebit = data.reduce((sum, item) => sum + item.debit, 0);
+      const totalCredit = data.reduce((sum, item) => sum + item.credit, 0);
+      const totalBalance = data.reduce((sum, item) => sum + item.netBalance, 0);
+      
+      // Add total row
+      mappedData.push({
+        isTotal: true,
+        accountName: "Total",
+        debit: totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        credit: totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        balance: Math.abs(totalBalance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        drCr: ""
+      });
+      
+      setReceivablesData(mappedData);
       setTableLoaded(true);
+    } catch (error) {
+      toast.error('Failed to load account receivables data');
+      console.error('Error fetching data:', error);
+      setReceivablesData([]);
+      setTableLoaded(false);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    setFromDate('2024-06-14');
-    setToDate('2025-11-26');
+    // Reset to current date on refresh
+    const today = new Date();
+    const formattedToday = formatDate(today);
+    setFromDate(formattedToday);
+    setToDate(formattedToday);
     setSelectedCompanies(['ALL']);
     setCompanyDisplay('ALL');
     setReceivablesData([]);
@@ -312,7 +396,7 @@ const AccountReceivables = () => {
       paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
@@ -1028,7 +1112,7 @@ const AccountReceivables = () => {
               ) : (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view account receivables
+                    Use the Search button to load data
                   </td>
                 </tr>
               )}
@@ -1083,18 +1167,29 @@ const AccountReceivables = () => {
             </div>
             
             <div style={styles.companyList}>
-              {allCompanies.map((company) => {
-                const isSelected = tempSelectedCompanies.includes(company);
+              {/* ALL option - Initially UNCHECKED */}
+              <div 
+                style={tempSelectedCompanies.includes('ALL') ? styles.selectedCompanyItem : styles.companyItem}
+                onClick={() => handleCompanySelect('ALL')}
+              >
+                <div style={tempSelectedCompanies.includes('ALL') ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                  {tempSelectedCompanies.includes('ALL') && <div style={styles.checkmark}>✓</div>}
+                </div>
+                <span style={styles.companyText}>ALL</span>
+              </div>
+              {/* Individual companies - Initially UNCHECKED */}
+              {companies.map((company) => {
+                const isSelected = tempSelectedCompanies.includes(company.fCompcode);
                 return (
                   <div 
-                    key={company} 
+                    key={company.fCompcode} 
                     style={isSelected ? styles.selectedCompanyItem : styles.companyItem}
                     onClick={() => handleCompanySelect(company)}
                   >
                     <div style={isSelected ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
                       {isSelected && <div style={styles.checkmark}>✓</div>}
                     </div>
-                    <span style={styles.companyText}>{company}</span>
+                    <span style={styles.companyText}>{company.fCompName}</span>
                   </div>
                 );
               })}
