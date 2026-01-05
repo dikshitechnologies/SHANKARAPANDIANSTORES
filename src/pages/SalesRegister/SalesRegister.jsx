@@ -487,7 +487,7 @@ const SalesRegister = () => {
     td: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
+       fontWeight: TYPOGRAPHY.fontWeight.bold, // ✅ BOLD
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       padding: '8px 6px',
       textAlign: 'center',
@@ -664,7 +664,7 @@ const SalesRegister = () => {
                 colName === 'billAmount' ? '100px' :
                 colName === 'time' ? '100px' : '80px',
       fontFamily: ['billAmount', 'qty'].includes(colName) ? '"Courier New", monospace' : 'inherit',
-      fontWeight: ['billAmount', 'qty'].includes(colName) ? '600' : '400',
+      fontWeight: ['billAmount', 'qty'].includes(colName) ? '700' : '600',
       cursor: 'default',
     };
 
