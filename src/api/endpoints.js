@@ -358,6 +358,8 @@ PAYMENTVOUCHER: {
     COMPANIES: 'ledger/companies',
     PARTY_LIST: (pageNumber = 1, pageSize = 20, search = '') => 
       `ledger/partyList?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
+    GET_LEDGER: (accountCode, compCode, fromDate, toDate) =>
+      `ledger/GetLedger?accountCode=${encodeURIComponent(accountCode)}&compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
   },
   
   SALES_REGISTER: {
@@ -369,6 +371,16 @@ PAYMENTVOUCHER: {
     COMPANIES: 'AccPayable/companies',
     LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
       `AccPayable/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  },
+
+  DAYBOOK: {
+    GET_DAY_BOOK: (compCode, fromDate, toDate) =>
+      `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+  },
+
+  SALES_RETURN_REGISTER: {
+    GET_SALES_RETURN_REGISTER: (fromDate, toDate, compCode, pageNumber = 1, pageSize = 200) =>
+      `SalesReturnRegister/GetSalesReturnRegister?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
 
 };

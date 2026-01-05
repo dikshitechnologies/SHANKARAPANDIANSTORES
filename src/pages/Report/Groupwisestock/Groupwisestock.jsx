@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 
 const GroupwiseStock = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('');
+  const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedGroup, setSelectedGroup] = useState([]);
   const [searchedGroup, setSearchedGroup] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  
+  // Drill-down states
+  const [viewLevel, setViewLevel] = useState('groups'); // 'groups' | 'items' | 'bills'
+  const [selectedGroupName, setSelectedGroupName] = useState('');
+  const [selectedItemName, setSelectedItemName] = useState('');
 
   // Dummy groups data
   const groups = [
@@ -70,6 +75,42 @@ const GroupwiseStock = () => {
     'ASSORTED SILVER': { cashSales: 4500000.00, payments: 3800000.00, closingCash: 350000.00 },
     'GOLD BARCODE': { cashSales: 15000000.00, payments: 13000000.00, closingCash: 800000.00 },
     'SILVER BARCODE': { cashSales: 7500000.00, payments: 6500000.00, closingCash: 400000.00 }
+  };
+
+  // Dummy bill data for items
+  const billData = {
+    'BANGEL': [
+      { id: 1, billNo: 'PO0006AA', date: '05/01/2026', inQty: 1000.000, inRate: 150.00, outQty: '', outRate: '' },
+      { id: 2, billNo: 'SI0015BB', date: '05/01/2026', inQty: '', inRate: '', outQty: 500.000, outRate: 180.00 }
+    ],
+    'CHILDRENS CHURIDAR': [
+      { id: 1, billNo: 'PO0006AA', date: '05/01/2026', inQty: 1000.000, inRate: 150.00, outQty: '', outRate: '' },
+      { id: 2, billNo: 'PO0007BB', date: '04/01/2026', inQty: 500.000, inRate: 145.00, outQty: '', outRate: '' }
+    ],
+    'TEST NEW': [
+      { id: 1, billNo: 'PO0006AA', date: '05/01/2026', inQty: 1000.000, inRate: 150.00, outQty: '', outRate: '' }
+    ]
+  };
+
+  // Group summary data
+  const groupSummaryData = [
+    { groupName: 'CAPRI', opgQty: '', inQty: '', outQty: '', balQty: '', stockValue: 0.00 },
+    { groupName: 'BOYS WEAR', opgQty: '', inQty: '', outQty: '', balQty: '', stockValue: 0.00 },
+    { groupName: 'CHILDRENS CHURIDAR', opgQty: '', inQty: 1000.000, outQty: '', balQty: 1000.000, stockValue: 150000.00 },
+    { groupName: 'GIRLS WEAR', opgQty: '', inQty: '', outQty: '', balQty: '', stockValue: 0.00 },
+    { groupName: 'COTTON FROCK', opgQty: '', inQty: '', outQty: '', balQty: '', stockValue: 0.00 },
+    { groupName: 'GOLD', opgQty: 50, inQty: 200, outQty: 150, balQty: 100, stockValue: 5000000.00 }
+  ];
+
+  // Item details for a specific group
+  const itemDetailsData = {
+    'CHILDRENS CHURIDAR': [
+      { id: 1, itemName: 'TEST NEW', opgQty: 0.000, inQty: 1000.000, outQty: 0.000, balQty: 1000.000, salAmt: 0.00, cost: 0.00, profit: 0.00 }
+    ],
+    'GOLD': [
+      { id: 1, itemName: 'BANGEL', opgQty: 4.000, inQty: 62.000, outQty: 58.000, balQty: 4.000, salAmt: 450000.00, cost: 400000.00, profit: 50000.00 },
+      { id: 2, itemName: 'RING', opgQty: 10.000, inQty: 50.000, outQty: 45.000, balQty: 15.000, salAmt: 350000.00, cost: 320000.00, profit: 30000.00 }
+    ]
   };
 
 
@@ -448,6 +489,31 @@ const GroupwiseStock = () => {
       fontSize: '16px',
       padding: '32px 0',
     },
+    clickableRow: {
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease',
+    },
+    backButton: {
+      backgroundColor: '#f0f0f0',
+      border: '1px solid #1B91DA',
+      color: '#1B91DA',
+      padding: '8px 16px',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      transition: 'all 0.3s ease',
+      marginBottom: '10px',
+    },
+    headerTitle: {
+      fontSize: TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      color: '#1B91DA',
+      marginBottom: '5px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+    },
   };
 
   // Handlers
@@ -455,14 +521,40 @@ const GroupwiseStock = () => {
     e.preventDefault();
     setSearchedGroup([...selectedGroup]);
     setHasSearched(true);
+    setViewLevel('groups');
   };
+  
+  const handleGroupRowClick = (groupName) => {
+    setSelectedGroupName(groupName);
+    setViewLevel('items');
+  };
+  
+  const handleItemRowClick = (itemName) => {
+    setSelectedItemName(itemName);
+    setViewLevel('bills');
+  };
+  
+  const handleBackToGroups = () => {
+    setViewLevel('groups');
+    setSelectedGroupName('');
+    setSelectedItemName('');
+  };
+  
+  const handleBackToItems = () => {
+    setViewLevel('items');
+    setSelectedItemName('');
+  };
+  
   const [showGroupModal, setShowGroupModal] = useState(false);
   const handleRefresh = () => {
-    setFromDate('');
+    setFromDate(new Date().toISOString().split('T')[0]);
     setToDate(new Date().toISOString().split('T')[0]);
     setSelectedGroup([]);
     setSearchedGroup([]);
     setHasSearched(false);
+    setViewLevel('groups');
+    setSelectedGroupName('');
+    setSelectedItemName('');
   };
   const handleGroupModalOpen = () => setShowGroupModal(true);
   const handleGroupModalClose = () => setShowGroupModal(false);
@@ -554,78 +646,191 @@ const GroupwiseStock = () => {
 
       {/* Table Section */}
       <div style={styles.tableSection}>
+        {/* Back Button and Title */}
+        {viewLevel !== 'groups' && (
+          <div style={{ padding: '10px 20px 0px 20px' }}>
+            <button 
+              style={styles.backButton} 
+              onClick={viewLevel === 'items' ? handleBackToGroups : handleBackToItems}
+            >
+              ← Back
+            </button>
+            <div style={styles.headerTitle}>
+              {viewLevel === 'items' && `Branch Wise Stock for DIKSHI DEMO(${fromDate} - ${toDate})`}
+              {viewLevel === 'bills' && `Branch Wise Stock for DIKSHI DEMO(${fromDate} - ${toDate})`}
+            </div>
+          </div>
+        )}
+        
         <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Sl No.</th>
-                <th style={styles.th}>Item Name</th>
-                <th style={styles.th}>Opg Pcs</th>
-                <th style={styles.th}>Opg Gms</th>
-                <th style={styles.th}>Pur Pcs</th>
-                <th style={styles.th}>Pur Gms</th>
-                <th style={styles.th}>Sal Pcs</th>
-                <th style={styles.th}>Sal Gms</th>
-                <th style={styles.th}>Bal Pcs</th>
-                <th style={styles.th}>Bal Gms</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentData.length === 0 ? (
+          {/* GROUP SUMMARY VIEW */}
+          {viewLevel === 'groups' && (
+            <table style={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan="10" style={styles.emptyMsg}>
-                    Enter search criteria and click "Search" to view group wise stock
-                  </td>
+                  <th style={styles.th}>No.</th>
+                  <th style={styles.th}>Group Name</th>
+                  <th style={styles.th}>Opg Qty</th>
+                  <th style={styles.th}>In Qty</th>
+                  <th style={styles.th}>Out Qty</th>
+                  <th style={styles.th}>Bal Qty</th>
+                  <th style={styles.th}>Stock Value</th>
                 </tr>
-              ) : (
-                <>
-                  {currentData.map((item, idx) => (
-                    <tr key={item.id}>
-                      <td style={styles.td}>{idx + 1}</td>
-                      <td style={{...styles.td, textAlign: 'left', paddingLeft: '15px'}}>{item.itemName}</td>
-                      <td style={styles.td}>{item.opgPcs}</td>
-                      <td style={styles.td}>{item.opgGms}</td>
-                      <td style={styles.td}>{item.purPcs}</td>
-                      <td style={styles.td}>{item.purGms ? item.purGms.toFixed(3) : ''}</td>
-                      <td style={styles.td}>{item.salPcs}</td>
-                      <td style={styles.td}>{item.salGms ? item.salGms.toFixed(3) : ''}</td>
-                      <td style={styles.td}>{item.balPcs}</td>
-                      <td style={styles.td}>{item.balGms ? item.balGms.toFixed(3) : ''}</td>
+              </thead>
+              <tbody>
+                {!hasSearched ? (
+                  <tr>
+                    <td colSpan="7" style={styles.emptyMsg}>
+                      Enter search criteria and click "Search" to view group wise stock
+                    </td>
+                  </tr>
+                ) : (
+                  <>
+                    {groupSummaryData.map((item, idx) => (
+                      <tr 
+                        key={idx} 
+                        style={styles.clickableRow}
+                        onClick={() => handleGroupRowClick(item.groupName)}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = idx % 2 === 0 ? '#f9f9f9' : '#ffffff'}
+                      >
+                        <td style={styles.td}>{idx + 1}</td>
+                        <td style={{...styles.td, textAlign: 'left', paddingLeft: '15px'}}>{item.groupName}</td>
+                        <td style={styles.td}>{item.opgQty}</td>
+                        <td style={styles.td}>{item.inQty}</td>
+                        <td style={styles.td}>{item.outQty}</td>
+                        <td style={styles.td}>{item.balQty}</td>
+                        <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>
+                          {item.stockValue.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr style={styles.totalRow}>
+                      <td colSpan="2" style={styles.td}>Total</td>
+                      <td style={styles.td}>-15.00</td>
+                      <td style={styles.td}>1000.00</td>
+                      <td style={styles.td}>37.00</td>
+                      <td style={styles.td}>948.00</td>
+                      <td style={{...styles.td, textAlign: 'right', paddingRight: '15px'}}>121500.00</td>
                     </tr>
-                  ))}
-                  <tr style={styles.totalRow}>
-                    <td colSpan="2" style={styles.td}>Total</td>
-                    <td style={styles.td}>{totals.opgPcs.toFixed(1)}</td>
-                    <td style={styles.td}>{totals.opgGms.toFixed(3)}</td>
-                    <td style={styles.td}>{totals.purPcs.toFixed(1)}</td>
-                    <td style={styles.td}>{totals.purGms.toFixed(3)}</td>
-                    <td style={styles.td}>{totals.salPcs.toFixed(0)}</td>
-                    <td style={styles.td}>{totals.salGms.toFixed(3)}</td>
-                    <td style={styles.td}>{totals.balPcs.toFixed(1)}</td>
-                    <td style={styles.td}>{totals.balGms.toFixed(3)}</td>
-                  </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+          )}
+
+          {/* ITEM DETAILS VIEW */}
+          {viewLevel === 'items' && (
+            <>
+              {/* Group Name Header - Outside table */}
+              <div style={{
+                fontSize: TYPOGRAPHY.fontSize.lg,
+                fontWeight: TYPOGRAPHY.fontWeight.bold,
+                color: '#333',
+                padding: '15px 20px',
+                backgroundColor: 'white',
+                borderBottom: '2px solid #e0e0e0'
+              }}>
+                {selectedGroupName}
+              </div>
+              <table style={styles.table}>
+                <thead>
                   <tr>
-                    <td style={styles.td}></td>
-                    <td style={styles.td}>Cash Sales</td>
-                    <td style={styles.td}>{financialData ? financialData.cashSales.toFixed(2) : '0.00'}</td>
-                    <td colSpan="7" style={styles.td}></td>
+                    <th style={styles.th}>No.</th>
+                    <th style={styles.th}>Item Name</th>
+                    <th style={styles.th}>Opg Qty</th>
+                    <th style={styles.th}>In Qty</th>
+                    <th style={styles.th}>Out Qty</th>
+                    <th style={styles.th}>Bal Qty</th>
+                    <th style={styles.th}>Sal Amt</th>
+                    <th style={styles.th}>Cost</th>
+                    <th style={styles.th}>Profit</th>
                   </tr>
+                </thead>
+                <tbody>
+                  {(itemDetailsData[selectedGroupName] || []).map((item, idx) => (
+                  <tr 
+                    key={item.id}
+                    style={styles.clickableRow}
+                    onClick={() => handleItemRowClick(item.itemName)}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#cce7ff'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                  >
+                    <td style={styles.td}>{idx + 1}</td>
+                    <td style={{...styles.td, textAlign: 'left', paddingLeft: '15px'}}>{item.itemName}</td>
+                    <td style={styles.td}>{item.opgQty.toFixed(3)}</td>
+                    <td style={styles.td}>{item.inQty.toFixed(3)}</td>
+                    <td style={styles.td}>{item.outQty.toFixed(3)}</td>
+                    <td style={styles.td}>{item.balQty.toFixed(3)}</td>
+                    <td style={styles.td}>{item.salAmt.toFixed(2)}</td>
+                    <td style={styles.td}>{item.cost.toFixed(2)}</td>
+                    <td style={styles.td}>{item.profit.toFixed(2)}</td>
+                  </tr>
+                ))}
+                <tr style={styles.totalRow}>
+                  <td colSpan="2" style={styles.td}>Total</td>
+                  <td style={styles.td}>0.000</td>
+                  <td style={styles.td}>1000.000</td>
+                  <td style={styles.td}>0.000</td>
+                  <td style={styles.td}>1000.000</td>
+                  <td style={styles.td}>0.00</td>
+                  <td style={styles.td}>0.00</td>
+                  <td style={styles.td}>0.00</td>
+                </tr>
+              </tbody>
+            </table>
+            </>
+          )}
+
+          {/* BILL DETAILS VIEW */}
+          {viewLevel === 'bills' && (
+            <>
+              {/* Item Name Header - Outside table */}
+              <div style={{
+                fontSize: TYPOGRAPHY.fontSize.lg,
+                fontWeight: TYPOGRAPHY.fontWeight.bold,
+                color: '#333',
+                padding: '15px 20px',
+                backgroundColor: 'white',
+                borderBottom: '2px solid #e0e0e0'
+              }}>
+                {selectedItemName}
+              </div>
+              <table style={styles.table}>
+                <thead>
                   <tr>
-                    <td style={styles.td}></td>
-                    <td style={styles.td}>Payments</td>
-                    <td style={styles.td}>{financialData ? financialData.payments.toFixed(2) : '0.00'}</td>
-                    <td colSpan="7" style={styles.td}></td>
+                    <th style={styles.th}>No.</th>
+                    <th style={styles.th}>Bill No</th>
+                    <th style={styles.th}>Date</th>
+                    <th style={styles.th}>In Qty</th>
+                    <th style={styles.th}>In Rate</th>
+                    <th style={styles.th}>Out Qty</th>
+                    <th style={styles.th}>Out Rate</th>
                   </tr>
-                  <tr>
-                    <td style={styles.td}></td>
-                    <td style={{...styles.td, color: '#1B91DA', fontWeight: 'bold'}}>Closing Cash</td>
-                    <td style={{...styles.td, color: '#1B91DA', fontWeight: 'bold'}}>{financialData ? financialData.closingCash.toFixed(2) : '0.00'}</td>
-                    <td colSpan="7" style={styles.td}></td>
+                </thead>
+                <tbody>
+                  {(billData[selectedItemName] || []).map((bill, idx) => (
+                  <tr key={bill.id}>
+                    <td style={styles.td}>{idx + 1}</td>
+                    <td style={styles.td}>{bill.billNo}</td>
+                    <td style={styles.td}>{bill.date}</td>
+                    <td style={styles.td}>{bill.inQty}</td>
+                    <td style={styles.td}>{bill.inRate}</td>
+                    <td style={styles.td}>{bill.outQty}</td>
+                    <td style={styles.td}>{bill.outRate}</td>
                   </tr>
-                </>
-              )}
-            </tbody>
-          </table>
+                ))}
+                <tr style={styles.totalRow}>
+                  <td colSpan="3" style={styles.td}>Total</td>
+                  <td style={styles.td}>1000.000</td>
+                  <td style={styles.td}></td>
+                  <td style={styles.td}>0.000</td>
+                  <td style={styles.td}></td>
+                </tr>
+              </tbody>
+            </table>
+            </>
+          )}
         </div>
       </div>
         
