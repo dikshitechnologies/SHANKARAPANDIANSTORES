@@ -365,6 +365,11 @@ PAYMENTVOUCHER: {
       `AccPayable/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
 
+  DAYBOOK: {
+    GET_DAY_BOOK: (compCode, fromDate, toDate) =>
+      `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+  },
+
 };
 //GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `PurchaseRegister/GetPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
 
