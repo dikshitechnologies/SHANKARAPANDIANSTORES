@@ -1,154 +1,86 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import "react-toastify/dist/ReactToastify.css"; 
+import { API_ENDPOINTS } from '../../../api/endpoints';
+import axiosInstance from '../../../api/axiosInstance';
 
-const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: "block" }}
-  >
-    <circle cx="11" cy="11" r="8"></circle>
-    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-  </svg>
-);
-
-const ScrapPurchase = () => {
-  // --- STATE MANAGEMENT ---
-  const [originalData, setOriginalData] = useState([
-    {
-      id: 1,
-      no: 1,
-      salesParty: 'AMIT FASHION',
-      billNo: 'P00001AA',
-      billDate: '27-09-2025',
-      billAmount: '29,303.00',
-      qty: '15.00',
-      time: '01-01-1900 09:52:12',
-      noOfBale: '0',
-      transport: ''
-    },
-    {
-      id: 2,
-      no: 2,
-      salesParty: 'CASH A/C',
-      billNo: 'P00002AA',
-      billDate: '10-12-2025',
-      billAmount: '380.00',
-      qty: '10.00',
-      time: '01-01-1900 12:49:20',
-      noOfBale: '0',
-      transport: ''
-    },
-    {
-      id: 3,
-      no: 3,
-      salesParty: 'TEXTILE MART',
-      billNo: 'P00003AA',
-      billDate: '15-01-2025',
-      billAmount: '15,500.00',
-      qty: '25.00',
-      time: '01-01-1900 14:30:00',
-      noOfBale: '2',
-      transport: 'TRUCK-101'
-    },
-    {
-      id: 4,
-      no: 4,
-      salesParty: 'FABRIC WORLD',
-      billNo: 'P00004AA',
-      billDate: '20-03-2025',
-      billAmount: '42,800.00',
-      qty: '35.00',
-      time: '01-01-1900 11:15:45',
-      noOfBale: '3',
-      transport: 'TRUCK-202'
-    },
-    {
-      id: 5,
-      no: 5,
-      salesParty: 'STYLE CORNER',
-      billNo: 'P00005AA',
-      billDate: '05-06-2025',
-      billAmount: '8,900.00',
-      qty: '12.00',
-      time: '01-01-1900 16:20:30',
-      noOfBale: '1',
-      transport: 'VAN-303'
-    },
-    {
-      id: 6,
-      no: 6,
-      salesParty: 'CLASSIC TEXTILES',
-      billNo: 'P00006AA',
-      billDate: '18-07-2025',
-      billAmount: '22,150.00',
-      qty: '18.00',
-      time: '01-01-1900 10:45:00',
-      noOfBale: '2',
-      transport: 'TRUCK-404'
-    },
-    {
-      id: 7,
-      no: 7,
-      salesParty: 'MODERN FABRICS',
-      billNo: 'P00007AA',
-      billDate: '30-11-2025',
-      billAmount: '33,750.00',
-      qty: '28.00',
-      time: '01-01-1900 15:10:20',
-      noOfBale: '3',
-      transport: 'TRUCK-505'
-    },
-    {
-      id: 8,
-      no: 8,
-      salesParty: 'TRENDY WEARS',
-      billNo: 'P00008AA',
-      billDate: '12-02-2025',
-      billAmount: '5,600.00',
-      qty: '8.00',
-      time: '01-01-1900 13:25:45',
-      noOfBale: '1',
-      transport: 'VAN-606'
-    },
-    {
-      id: 9,
-      no: 9,
-      salesParty: 'CURRENT DAY SALE',
-      billNo: 'P00009AA',
-      billDate: new Date().toLocaleDateString('en-GB').replace(/\//g, '-'),
-      billAmount: '12,450.00',
-      qty: '20.00',
-      time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
-      noOfBale: '2',
-      transport: 'TRUCK-707'
+// Helper functions (keep these outside the component)
+const parseDate = (dateStr) => {
+  if (!dateStr) return null;
+  
+  const parts = dateStr.split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    } else {
+      return new Date(parts[2], parts[1] - 1, parts[0]);
     }
-  ]);
+  }
+  return null;
+};
 
-  // State for displayed data (filtered)
+const formatDateForInput = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatDateForAPI = (dateStr) => {
+  // Convert from YYYY-MM-DD to DD/MM/YYYY for API
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+const formatNumber = (num) => {
+  if (typeof num === 'string') {
+    const cleaned = num.replace(/,/g, '');
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? '0.00' : parsed.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+  return num.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
+const parseNumber = (str) => {
+  if (!str) return 0;
+  const cleaned = str.toString().replace(/,/g, '');
+  const parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+const ScrapPurchase  = () => {
+  // State for data
   const [data, setData] = useState([]);
-
-  // State for editing
-  const [editingCell, setEditingCell] = useState(null);
-  const [editValue, setEditValue] = useState('');
-  const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
-  const [focusedField, setFocusedField] = useState('');
-  const [tableLoaded, setTableLoaded] = useState(false);
+  const [summary, setSummary] = useState({
+    totalRecords: 0,
+    totals: { amount: 0 }
+  });
+  
+  // UI state
+  const [focusedField, setFocusedField] = useState('fromDate');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
-  // --- SCREEN SIZE DETECTION ---
+  // Infinite scroll state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Screen size state
   const [screenSize, setScreenSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
     height: typeof window !== 'undefined' ? window.innerHeight : 768,
@@ -157,47 +89,15 @@ const ScrapPurchase = () => {
     isDesktop: true
   });
 
-  // Refs for keyboard navigation
+  // Refs
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
   const searchButtonRef = useRef(null);
   const clearButtonRef = useRef(null);
+  const tableContainerRef = useRef(null);
+  const observerRef = useRef(null);
 
-  // Function to parse DD-MM-YYYY date string to Date object
-  const parseDate = (dateStr) => {
-    if (!dateStr) return null;
-    
-    // Handle both DD-MM-YYYY and YYYY-MM-DD formats
-    const parts = dateStr.split(/[-/]/);
-    if (parts.length === 3) {
-      if (parts[0].length === 4) {
-        // YYYY-MM-DD format
-        return new Date(parts[0], parts[1] - 1, parts[2]);
-      } else {
-        // DD-MM-YYYY format
-        return new Date(parts[2], parts[1] - 1, parts[0]);
-      }
-    }
-    return null;
-  };
-
-  // Format date as YYYY-MM-DD for input
-  const formatDateForInput = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  // Format number with commas
-  const formatNumber = (num) => {
-    return num.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  };
-
-  // Handle date change
+  // Event handlers
   const handleFromDateChange = (e) => {
     setFromDate(e.target.value);
   };
@@ -206,65 +106,141 @@ const ScrapPurchase = () => {
     setToDate(e.target.value);
   };
 
-  // Function to filter data by date range
-  const filterDataByDateRange = (from, to) => {
-    if (!from || !to) {
-      toast.warning('Please select both From Date and To Date');
-      return;
-    }
-
-    const fromDateObj = new Date(from);
-    const toDateObj = new Date(to);
+  // API call function
+  const fetchData = useCallback(async (page = 1, isLoadMore = false) => {
+    if (!fromDate || !toDate) return;
     
-    // Set to end of day for toDate
-    toDateObj.setHours(23, 59, 59, 999);
-    
-    // Validate date range
-    if (fromDateObj > toDateObj) {
-      toast.error('From Date cannot be after To Date');
-      return;
-    }
-
-    const filteredData = originalData.filter(item => {
-      const itemDate = parseDate(item.billDate);
-      if (!itemDate) return false;
+    try {
+      if (isLoadMore) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+      }
       
-      return itemDate >= fromDateObj && itemDate <= toDateObj;
-    });
-
-    // Sort filtered data by date
-    const sortedData = filteredData.sort((a, b) => {
-      const dateA = parseDate(a.billDate);
-      const dateB = parseDate(b.billDate);
-      return dateA - dateB;
-    });
-
-    // Update row numbers
-    const updatedData = sortedData.map((item, index) => ({
-      ...item,
-      no: index + 1
-    }));
-
-    setData(updatedData);
-    setTableLoaded(true);
-    
-    if (updatedData.length === 0) {
-      // toast.info('No records found for the selected date range');
-    } else {
-      toast.success(`Found ${updatedData.length} record(s) for the selected date range`);
+      // Format dates for API (DD/MM/YYYY format)
+      const formattedFromDate = formatDateForAPI(fromDate);
+      const formattedToDate = formatDateForAPI(toDate);
+      
+      // Get the endpoint URL using the API_ENDPOINTS constant
+      const endpoint = API_ENDPOINTS.SCRAP_PURCHASE.GET_LIST(
+        formattedFromDate, 
+        formattedToDate, 
+        '001', // compCode - adjust if needed
+        page,     // current page
+        20     // pageSize
+      );
+      
+      // console.log('Fetching from endpoint:', endpoint);
+      
+      // Make API call using axiosInstance
+      const response = await axiosInstance.get(endpoint);
+      // console.log('API Response:', response.data);
+      
+      // Handle API response
+      if (response.data) {
+        const apiData = response.data.data || [];
+        const totalRecords = response.data.totalRecords || 0;
+        const pageSize = 20;
+        const totalPages = Math.ceil(totalRecords / pageSize);
+        
+        // Calculate total amount for all loaded data
+        let totalAmount = 0;
+        
+        if (isLoadMore) {
+          // For load more, append to existing data
+          const newData = [...data, ...apiData];
+          setData(newData);
+          totalAmount = newData.reduce((sum, item) => {
+            return sum + (parseFloat(item.amount) || 0);
+          }, 0);
+        } else {
+          // For initial load, replace data
+          setData(apiData);
+          totalAmount = apiData.reduce((sum, item) => {
+            return sum + (parseFloat(item.amount) || 0);
+          }, 0);
+          setCurrentPage(1);
+        }
+        
+        setSummary({
+          totalRecords: totalRecords,
+          totals: { amount: totalAmount }
+        });
+        
+        setTotalPages(totalPages);
+        setHasMore(page < totalPages);
+        
+        return apiData;
+      } else {
+        if (!isLoadMore) {
+          toast.error('No data received from API');
+        }
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching purchase return data:', error);
+      
+      // Handle specific error cases
+      if (error.response) {
+        // Server responded with error status
+        toast.error(`Error ${error.response.status}: ${error.response.data?.message || 'Server error'}`);
+      } else if (error.request) {
+        // Request made but no response
+        toast.error('Network error. Please check your connection.');
+      } else {
+        // Other errors
+        toast.error(error.message || 'Failed to fetch data. Please try again.');
+      }
+      
+      return [];
+    } finally {
+      if (isLoadMore) {
+        setIsLoadingMore(false);
+      } else {
+        setIsLoading(false);
+      }
     }
-    
-    return updatedData;
-  };
+  }, [fromDate, toDate, data]);
 
-  // Filter data by date range
-  const handleSearch = () => {
+  // Load more data function
+  const loadMoreData = useCallback(() => {
+    if (isLoadingMore || !hasMore) return;
+    
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    fetchData(nextPage, true);
+  }, [currentPage, hasMore, isLoadingMore, fetchData]);
+
+  // Intersection Observer for infinite scroll
+  const lastRowRef = useCallback(
+    (node) => {
+      if (isLoadingMore) return;
+      if (observerRef.current) observerRef.current.disconnect();
+      
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore) {
+            loadMoreData();
+          }
+        },
+        {
+          root: tableContainerRef.current,
+          rootMargin: '100px',
+          threshold: 0.1,
+        }
+      );
+      
+      if (node) observerRef.current.observe(node);
+    },
+    [isLoadingMore, hasMore, loadMoreData]
+  );
+
+  const handleSearch = async () => {
     if (!fromDate || !toDate) {
       toast.warning('Please select both From Date and To Date');
       return;
     }
     
-    // Validate dates
     const from = new Date(fromDate);
     const to = new Date(toDate);
     
@@ -273,58 +249,34 @@ const ScrapPurchase = () => {
       return;
     }
     
-    setIsLoading(true);
+    // Reset scroll state
+    setCurrentPage(1);
+    setHasMore(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      filterDataByDateRange(fromDate, toDate);
-      setIsLoading(false);
-    }, 500);
-  };
-
-  // Clear date filters
-  const handleRefresh = () => {
-    // Reset From Date to empty
-    setFromDate('');
+    const result = await fetchData(1, false);
     
-    // Reset To Date to current date
-    const today = new Date();
-    const currentDate = formatDateForInput(today);
-    setToDate(currentDate);
-    
-    // Clear table data
-    setData([]);
-    setTableLoaded(false);
-    
-    // toast.info('Filters cleared! Select dates and click Search to view data');
-  };
-
-  // Start editing a cell
-  const startEditing = (rowIndex, colName, value) => {
-    setEditingCell({ row: rowIndex, col: colName });
-    setEditValue(value);
-  };
-
-  // Save the edited value
-  const saveEdit = () => {
-    if (editingCell) {
-      const { row, col } = editingCell;
-      const newData = [...data];
-      newData[row] = {
-        ...newData[row],
-        [col]: editValue
-      };
-      setData(newData);
-      setEditingCell(null);
+    if (result.length === 0) {
+      toast.info('No records found for the selected date range');
     }
   };
 
-  // Cancel editing
-  const cancelEdit = () => {
-    setEditingCell(null);
+  const handleRefresh = async () => {
+    setFromDate('');
+    const today = new Date();
+    const currentDate = formatDateForInput(today);
+    setToDate(currentDate);
+    setData([]);
+    setSummary({
+      totalRecords: 0,
+      totals: { amount: 0 },
+    });
+    setCurrentPage(1);
+    setHasMore(true);
+    setFocusedField('fromDate');
+    toast.info('Filters cleared! Select dates and click Search to view data');
   };
 
-  // Focusable elements in order
+  // Keyboard navigation
   const focusableElements = [
     { ref: fromDateRef, name: 'fromDate', type: 'input' },
     { ref: toDateRef, name: 'toDate', type: 'input' },
@@ -332,7 +284,6 @@ const ScrapPurchase = () => {
     { ref: clearButtonRef, name: 'clear', type: 'button' }
   ];
 
-  // Handle keyboard navigation for main controls
   const handleKeyDown = (e, fieldName) => {
     const currentIndex = focusableElements.findIndex(el => el.name === fieldName);
     
@@ -344,7 +295,6 @@ const ScrapPurchase = () => {
         } else if (fieldName === 'clear') {
           handleRefresh();
         } else {
-          // Move to next element
           const nextIndex = (currentIndex + 1) % focusableElements.length;
           focusableElements[nextIndex].ref.current.focus();
         }
@@ -379,105 +329,20 @@ const ScrapPurchase = () => {
     }
   };
 
-  // Handle keyboard navigation in table
-  useEffect(() => {
-    const handleTableKeyDown = (e) => {
-      const { row, col } = selectedCell;
-      const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time', 'noOfBale', 'transport'];
-      
-      if (editingCell) {
-        if (e.key === 'Enter') {
-          saveEdit();
-          e.preventDefault();
-        } else if (e.key === 'Escape') {
-          cancelEdit();
-          e.preventDefault();
-        }
-        return;
-      }
-
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          if (row < data.length - 1) {
-            setSelectedCell({ row: row + 1, col });
-          }
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          if (row > 0) {
-            setSelectedCell({ row: row - 1, col });
-          }
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          if (col > 0) {
-            setSelectedCell({ row, col: col - 1 });
-          }
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          if (col < colNames.length - 1) {
-            setSelectedCell({ row, col: col + 1 });
-          }
-          break;
-        case 'Enter':
-        case 'F2':
-          e.preventDefault();
-          startEditing(row, colNames[col], data[row][colNames[col]]);
-          break;
-        case 'Delete':
-          e.preventDefault();
-          if (window.confirm('Clear this cell?')) {
-            const newData = [...data];
-            newData[row] = {
-              ...newData[row],
-              [colNames[col]]: ''
-            };
-            setData(newData);
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleTableKeyDown);
-    return () => window.removeEventListener('keydown', handleTableKeyDown);
-  }, [selectedCell, editingCell, data]);
-
-  // Add new row
-  const addNewRow = () => {
-    const newRow = {
-      id: originalData.length + 1,
-      no: data.length + 1,
-      salesParty: '',
-      billNo: '',
-      billDate: '',
-      billAmount: '0.00',
-      qty: '0.00',
-      time: '',
-      noOfBale: '0',
-      transport: ''
-    };
-    const updatedData = [...data, newRow];
-    setData(updatedData);
-    setSelectedCell({ row: data.length, col: 0 });
-  };
-
-  // Delete selected row
-  const deleteSelectedRow = () => {
-    if (selectedCell.row >= 0 && selectedCell.row < data.length) {
-      const newData = data.filter((_, index) => index !== selectedCell.row);
-      // Update row numbers
-      const updatedData = newData.map((row, index) => ({
-        ...row,
-        no: index + 1
-      }));
-      setData(updatedData);
-      setSelectedCell({ row: Math.min(selectedCell.row, updatedData.length - 1), col: selectedCell.col });
+  // Handle manual scroll detection (fallback)
+  const handleScroll = useCallback(() => {
+    if (!tableContainerRef.current || isLoadingMore || !hasMore) return;
+    
+    const container = tableContainerRef.current;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    
+    // Load more when user is within 200px of the bottom
+    if (scrollHeight - scrollTop - clientHeight < 200) {
+      loadMoreData();
     }
-  };
+  }, [isLoadingMore, hasMore, loadMoreData]);
 
-  // Handle screen resize
+  // Effects
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -495,41 +360,14 @@ const ScrapPurchase = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Initialize data on component mount
   useEffect(() => {
-    // Set From Date to empty initially
+    // Initialize dates
     setFromDate('');
-    
-    // Set To Date to current date
     const today = new Date();
     const currentDate = formatDateForInput(today);
     setToDate(currentDate);
-    
-    // Initially show empty table with message
-    setTableLoaded(false);
-    setData([]);
-    
-    // Show instruction message
-    // toast.info('Please select From Date and click Search to view data');
   }, []);
 
-  // Calculate totals
-  const totals = {
-    billAmount: data.reduce((sum, row) => {
-      const amount = parseFloat(row.billAmount.replace(/,/g, '')) || 0;
-      return sum + amount;
-    }, 0),
-    qty: data.reduce((sum, row) => {
-      const qty = parseFloat(row.qty) || 0;
-      return sum + qty;
-    }, 0)
-  };
-
-  // Calculate opening and closing balances
-  const openingBalance = 0.00;
-  const closingBalance = totals.billAmount;
-
-  // Add CSS animation for spinner
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -537,12 +375,31 @@ const ScrapPurchase = () => {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
+      
+      @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+      }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
 
-  // --- STYLES ---
+  // Add scroll listener to table container
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [handleScroll]);
+
+  // Typography and styles
   const TYPOGRAPHY = {
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: {
@@ -601,11 +458,6 @@ const ScrapPurchase = () => {
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
     },
-    formRow: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-    },
     formField: {
       display: 'flex',
       alignItems: 'center',
@@ -658,11 +510,6 @@ const ScrapPurchase = () => {
       flex: 1,
       minWidth: screenSize.isMobile ? '80px' : '100px',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
-    },
-    gridRow: {
-      display: 'grid',
-      gap: '8px',
-      marginBottom: 10,
     },
     tableContainer: {
       backgroundColor: 'white',
@@ -853,21 +700,55 @@ const ScrapPurchase = () => {
       height: '40px',
       animation: 'spin 1s linear infinite',
     },
+    loadMoreRow: {
+      backgroundColor: '#f8f9fa',
+      textAlign: 'center',
+      padding: '16px',
+      borderBottom: '1px solid #e0e0e0',
+    },
+    loadMoreSpinner: {
+      display: 'inline-block',
+      width: '20px',
+      height: '20px',
+      border: '2px solid #f3f3f3',
+      borderTop: '2px solid #1B91DA',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite',
+      marginRight: '8px',
+    },
+    loadMoreText: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      color: '#666',
+      fontSize: '14px',
+      fontWeight: '500',
+    },
+    noMoreData: {
+      textAlign: 'center',
+      padding: '16px',
+      color: '#666',
+      fontStyle: 'italic',
+      backgroundColor: '#f8f9fa',
+      borderBottom: '1px solid #e0e0e0',
+    },
+    loadingPulse: {
+      animation: 'pulse 1.5s ease-in-out infinite',
+    },
   };
 
   return (
     <div style={styles.container}>
-      {/* Loading Overlay */}
       {isLoading && (
         <div style={styles.loadingOverlay}>
           <div style={styles.loadingBox}>
             <div style={styles.loadingSpinner}></div>
-            <div>Loading Purchase Register Report...</div>
+            <div>Loading Purchase Return Register...</div>
           </div>
         </div>
       )}
 
-      {/* Header Section */}
       <div style={styles.headerSection}>
         <div style={{
           display: 'flex',
@@ -876,7 +757,6 @@ const ScrapPurchase = () => {
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* From Date */}
           <div style={{
             ...styles.formField,
             minWidth: screenSize.isMobile ? '100%' : '120px',
@@ -900,7 +780,6 @@ const ScrapPurchase = () => {
             />
           </div>
 
-          {/* To Date */}
           <div style={{
             ...styles.formField,
             minWidth: screenSize.isMobile ? '100%' : '120px',
@@ -925,7 +804,6 @@ const ScrapPurchase = () => {
           </div>
           
 
-          {/* Search Button */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -954,7 +832,6 @@ const ScrapPurchase = () => {
             </button>
           </div>
 
-          {/* Refresh Button */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -977,28 +854,27 @@ const ScrapPurchase = () => {
         </div>
       </div>
 
-      {/* Table Section */}
       <div style={styles.tableSection}>
-        <div style={styles.tableContainer}>
+        <div style={styles.tableContainer} ref={tableContainerRef}>
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>No</th>
-                <th style={styles.th}>Purchase Party</th>
-                <th style={styles.th}>Bill No</th>
-                <th style={styles.th}>Bill Date</th>
-                <th style={styles.th}>Amount</th>
+                <th style={{...styles.th, minWidth: '40px'}}>No</th>
+                <th style={{...styles.th, minWidth: '120px'}}>Party Name</th>
+                <th style={styles.th}>Invoice</th>
+                <th style={styles.th}>Voucher Date</th>
+                <th style={styles.th}>Salesman</th>
                 <th style={styles.th}>Qty</th>
-                <th style={styles.th}>Time</th>
-                <th style={styles.th}>No of Bale</th>
+                <th style={styles.th}>Amount</th>
               </tr>
             </thead>
             <tbody>
-              {tableLoaded ? (
-                data.length > 0 ? (
-                  data.map((row, index) => (
+              {/* {data.length > 0 ? ( */}
+                <>
+                  {data.map((row, index) => (
                     <tr 
-                      key={row.id} 
+                      key={`${row.invoice || ''}_${index}`}
+                      ref={index === data.length - 1 ? lastRowRef : null}
                       style={{ 
                         backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                         cursor: 'pointer',
@@ -1007,62 +883,29 @@ const ScrapPurchase = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff'}
                     >
-                      <td style={styles.td}>{row.no}</td>
-                      <td style={styles.td}>{row.salesParty}</td>
-                      <td style={styles.td}>{row.billNo}</td>
-                      <td style={styles.td}>{row.billDate}</td>
-                      <td style={{...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1565c0'}}>
-                        ₹{row.billAmount}
-                      </td>
-                      <td style={styles.td}>{row.qty}</td>
-                      <td style={styles.td}>{row.time}</td>
-                      <td style={styles.td}>{row.noOfBale}</td>
+                      <td style={{...styles.td, minWidth: '40px'}}>{index + 1}</td>
+                      <td style={{...styles.td, minWidth: '120px'}}>{row.name || ''}</td>
+                      <td style={styles.td}>{row.invoice || ''}</td>
+                      <td style={styles.td}>{row.voucherDate || ''}</td>
+                      <td style={styles.td}>{row.salesman || ''}</td>
+                      <td style={styles.td}>{row.qty || ''}</td>
+                      <td style={styles.td}>{row.amount ? formatNumber(row.amount) : '0.00'}</td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#666', fontStyle: 'italic' }}>
-                      No purchase records found for the selected date range
-                    </td>
-                  </tr>
-                )
-              ) : (
-                <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                    Please select From Date and click "Search" to view purchase register entries
-                  </td>
-                </tr>
-              )}
+                  ))}
+                  
+                </>
+
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Footer Section with Balances */}
       <div style={styles.footerSection}>
         <div style={styles.balanceContainer}>
           <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Opening Balance</span>
+            <span style={styles.balanceLabel}>Net Total</span>
             <span style={styles.balanceValue}>
-              ₹{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Amount</span>
-            <span style={styles.balanceValue}>
-              ₹{totals.billAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Quantity</span>
-            <span style={styles.balanceValue}>
-              {totals.qty.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Closing Balance</span>
-            <span style={styles.balanceValue}>
-              ₹{closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{formatNumber(summary.totals.amount)}
             </span>
           </div>
         </div>

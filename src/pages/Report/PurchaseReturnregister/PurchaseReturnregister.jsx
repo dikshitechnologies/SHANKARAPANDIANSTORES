@@ -130,11 +130,11 @@ const PurchaseReturnRegister = () => {
         20     // pageSize
       );
       
-      console.log('Fetching from endpoint:', endpoint);
+      // console.log('Fetching from endpoint:', endpoint);
       
       // Make API call using axiosInstance
       const response = await axiosInstance.get(endpoint);
-      console.log('API Response:', response.data);
+      // console.log('API Response:', response.data);
       
       // Handle API response
       if (response.data) {
@@ -257,8 +257,6 @@ const PurchaseReturnRegister = () => {
     
     if (result.length === 0) {
       toast.info('No records found for the selected date range');
-    } else {
-      toast.success(`Found ${result.length} record(s) for the selected date range`);
     }
   };
 
@@ -861,8 +859,8 @@ const PurchaseReturnRegister = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>No</th>
-                <th style={styles.th}>Party Name</th>
+                <th style={{...styles.th, minWidth: '40px'}}>No</th>
+                <th style={{...styles.th, minWidth: '120px'}}>Party Name</th>
                 <th style={styles.th}>Invoice</th>
                 <th style={styles.th}>Voucher Date</th>
                 <th style={styles.th}>Bill</th>
@@ -884,11 +882,11 @@ const PurchaseReturnRegister = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff'}
                     >
-                      <td style={styles.td}>{index + 1}</td>
-                      <td style={styles.td}>{row.name || 'N/A'}</td>
-                      <td style={styles.td}>{row.invoice || 'N/A'}</td>
-                      <td style={styles.td}>{row.voucherDate || 'N/A'}</td>
-                      <td style={styles.td}>{row.bill || 'N/A'}</td>
+                      <td style={{...styles.td, minWidth: '40px'}}>{index + 1}</td>
+                      <td style={styles.td}>{row.name || ''}</td>
+                      <td style={styles.td}>{row.invoice || ''}</td>
+                      <td style={styles.td}>{row.voucherDate || ''}</td>
+                      <td style={styles.td}>{row.bill || ''}</td>
                       <td style={styles.td}>{row.amount ? formatNumber(row.amount) : '0.00'}</td>
                     </tr>
                   ))}
