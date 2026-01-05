@@ -63,7 +63,7 @@ const AccountPayables = () => {
     const fetchCompanies = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${API_BASE}/${API_ENDPOINTS.ACC_PAY.COMPANIES}`);
+        const response = await fetch(`${API_BASE}${API_ENDPOINTS.ACC_PAY.COMPANIES}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -227,7 +227,7 @@ const AccountPayables = () => {
       }
       
       // Build the API URL
-      const apiUrl = `${API_BASE}/${API_ENDPOINTS.ACC_PAY.LIST(selectedCompanyCodes, 1, 20)}`;
+      const apiUrl = `${API_BASE}${API_ENDPOINTS.ACC_PAY.LIST(selectedCompanyCodes, 1, 20)}`;
       console.log('API URL:', apiUrl);
       
       // Fetch data from API
