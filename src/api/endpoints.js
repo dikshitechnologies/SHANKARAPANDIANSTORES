@@ -372,6 +372,11 @@ PAYMENTVOUCHER: {
       `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
   },
 
+  SALES_RETURN_REGISTER: {
+    GET_SALES_RETURN_REGISTER: (fromDate, toDate, compCode, pageNumber = 1, pageSize = 200) =>
+      `SalesReturnRegister/GetSalesReturnRegister?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  },
+
 };
 //GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `PurchaseRegister/GetPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
 
