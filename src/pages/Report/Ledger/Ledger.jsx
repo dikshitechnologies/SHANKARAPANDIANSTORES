@@ -1222,11 +1222,6 @@ const Ledger = () => {
               onMouseEnter={() => setHoveredButton(true)}
               onMouseLeave={() => setHoveredButton(false)}
               ref={searchButtonRef}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearch();
-                }
-              }}
             >
               Search
               {hoveredButton && <div style={styles.buttonGlow}></div>}
