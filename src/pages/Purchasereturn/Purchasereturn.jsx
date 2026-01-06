@@ -744,6 +744,7 @@ const handleBlur = () => {
 
     /* ================= HEADER ================= */
     const header = data.header || {};
+    const summary = data.summary || {};
 
     setBillDetails(prev => ({
       ...prev,
@@ -753,11 +754,13 @@ const handleBlur = () => {
         : "",
       partyCode: header.customerCode || "",
       customerName: header.refName || "",
-      gstType: header.gstType || "G",
+      gstType: header.gstType || " ",
       amount: header.billAmount || "",
       transType: "PURCHASE",
       city: "",
-      mobileNo: "",
+      mobileNo: summary.add4 || "",
+      gstno: summary.cstsNo || "",
+      purNo: summary.vrNo || "",
     }));
 
     /* ================= SUMMARY ================= */

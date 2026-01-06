@@ -753,6 +753,7 @@ const handleBlur = () => {
           city: iledger.add3 || '',
           mobileNo: iledger.add4 || '',
           transType: bledger.transType || 'PURCHASE',
+          purNo: iledger.vrNo || '',
         };
         
         console.log('Setting header details:', headerDetails);
