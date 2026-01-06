@@ -9,6 +9,7 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import { axiosInstance } from '../../api/apiService';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
+import { getCompCode, getUCode } from '../../utils/userUtils';
 
 
 
@@ -56,6 +57,9 @@ const SaleInvoice = () => {
     edit: hasModifyPermission(PERMISSION_CODES.SALES_INVOICE),
     delete: hasDeletePermission(PERMISSION_CODES.SALES_INVOICE)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+
+  const compCode = getCompCode();
+  const userCode = getUCode();
 
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
@@ -333,7 +337,7 @@ const selectAllOnFocus = useCallback((e, fieldKey) => {
       setIsLoading(true);
       setError("");
       
-      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getNextBillNo("001");
+      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getNextBillNo(compCode);
       
       const response = await axiosInstance.get(endpoint);
       
@@ -357,7 +361,7 @@ const selectAllOnFocus = useCallback((e, fieldKey) => {
         }
       }
     } catch (err) {
-      setBillDetails(prev => ({ ...prev, billNo: 'SI000001' }));
+      setBillDetails(prev => ({ ...prev, billNo: 'SE000001' }));
     } finally {
       setIsLoading(false);
     }
@@ -552,7 +556,7 @@ const fetchItems = useCallback(async (type = 'FG') => {
     try {
       setLoadingInvoices(true);
       
-      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getBillList("001", page, 20);
+      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getBillList(compCode || "001", page, 20);
       
       const response = await axiosInstance.get(endpoint);
       
@@ -752,7 +756,7 @@ const formattedItems = itemsArray.map((item, index) => {
       setIsLoading(true);
       setError("");
       
-      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.deleteBillNumber(voucherNo, "001");
+      const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.deleteBillNumber(voucherNo, compCode || "001");
       
       const response = await axiosInstance.delete(endpoint);
       
@@ -1130,7 +1134,7 @@ useEffect(() => {
 
       // 🔹 Fetch from backend page-wise
       const endpoint =
-        API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getBillList("001", pageNum, 20);
+        API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getBillList(compCode || "001", pageNum, 20);
 
       const response = await axiosInstance.get(endpoint);
 
@@ -2362,10 +2366,10 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
         selesType: billDetails.type === 'Wholesale' ? 'W' : 'R',
         customerName: billDetails.custName || "",
         customercode: billDetails.custCode || "",
-        compCode: "001",
+        compCode: compCode,
           billAmount: Number(roundedTotalAmount),
         balanceAmount: 0,
-        userCode: "001",
+        userCode: userCode,
         barcode:"",
       };
 

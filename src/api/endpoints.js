@@ -250,7 +250,6 @@ CATEGORY: {
     `Salesinvoices/GetItemsByType?type=${type}&page=${page}&pageSize=${pageSize}`,
   getStockByItemName1: (itemcode) =>`Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
   getSalesman: () =>`SalesmanCreation/GetSalesman`,
- 
    getCustomers: (pageNumber = 1, pageSize = 10) =>
     `Salesinvoices/GetPartyByParent?pageNumber=${pageNumber}&pageSize=${pageSize}`,
   getPurchaseStockDetailsByBarcode: (barcode) =>
@@ -262,16 +261,16 @@ CATEGORY: {
 },
 
   Scrap_Procurement: {
-    GET_VOUCHER_NO : "ScrapProcurement/GetMaxVoucherNo?compCode=001",
-    SAVE_SCRAP_PROCUREMENT: (saveType) => 
-    `ScrapProcurement/SCRAPCREATE?selecttype=${saveType === 'create' ? 'true' : 'false'}`,
+    GET_VOUCHER_NO: (compCode) => `ScrapProcurement/GetMaxVoucherNo?compCode=${compCode}`,
+    SAVE_SCRAP_PROCUREMENT: (saveType) =>
+      `ScrapProcurement/SCRAPCREATE?selecttype=${saveType === 'create' ? 'true' : 'false'}`,
     GET_SALESiNVOICE_ITEMS: "Salesinvoices/GetItemsByType?type=SC",
     // GET_BILL_LIST:"ScrapProcurement/GetVouchersBillNoList?compCode=001&pageNumber=1&pageSize=100",
-    GET_BILL_LIST:(fCompCode,page,pageSize)=>`ScrapProcurement/GetVouchersBillNoList?compCode=${fCompCode}&pageNumber=${page}&pageSize=${pageSize}`,
-    GET_VOUCHER_BY_NO: (voucherNo) => `ScrapProcurement/GetSCRAPDETAILS/${voucherNo}/001`,
-    DELETE_SCRAP_PROCUREMENT: (voucherNo) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/001`,
-    GET_CUSTOMER_LIST: (page,pageSize) => `Salesinvoices/GetPartyByParent?pageNumber=${page}&pageSize=${pageSize}`,
-    GET_ITEM_LIST :(page,pageSize) => `Salesinvoices/GetItemsByType?type=SC&page=${page}&pageSize=${pageSize}`,
+    GET_BILL_LIST: (fCompCode, page, pageSize) => `ScrapProcurement/GetVouchersBillNoList?compCode=${fCompCode}&pageNumber=${page}&pageSize=${pageSize}`,
+    GET_VOUCHER_BY_NO: (voucherNo, compCode) => `ScrapProcurement/GetSCRAPDETAILS/${voucherNo}/${compCode}`,
+    DELETE_SCRAP_PROCUREMENT: (voucherNo, compCode) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/${compCode}`,
+    GET_CUSTOMER_LIST: (page, pageSize) => `Salesinvoices/GetPartyByParent?pageNumber=${page}&pageSize=${pageSize}`,
+    GET_ITEM_LIST: (page, pageSize) => `Salesinvoices/GetItemsByType?type=SC&page=${page}&pageSize=${pageSize}`,
     GET_TAX_LIST: "TaxCreation/gettaxlist",
   },
     TENDER: {
@@ -374,8 +373,8 @@ PAYMENTVOUCHER: {
   },
 
   GROUP_WISE_STOCK: {
-    BRANCH_WISE_STOCK: (fromDate, toDate, compCode, search = '', page = 1, pageSize = 100) =>
-      `GroupWiseStock/branch-wise-stock?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
+    BRANCH_WISE_STOCK: (fromDate, toDate, compCodes, search = '', page = 1, pageSize = 100) =>
+      `GroupWiseStock/branch-wise-stock?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCodes=${encodeURIComponent(compCodes)}&search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
     GROUP_DETAIL: (groupName, fromDate, toDate, compCode) =>
       `GroupWiseStock/group-detail?groupName=${encodeURIComponent(groupName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}`,
     ITEM_DETAIL: (itemName, fromDate, toDate, compCode) =>
