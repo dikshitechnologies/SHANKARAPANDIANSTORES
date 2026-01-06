@@ -269,10 +269,8 @@ const Ledger = () => {
       setCompanyDisplay('Select Company');
     } else if (tempSelectedCompany.length === allCompanies.length) {
       setCompanyDisplay('ALL');
-    } else if (tempSelectedCompany.length === 1) {
-      setCompanyDisplay(tempSelectedCompany[0]);
     } else {
-      setCompanyDisplay(`${tempSelectedCompany.length} Companies Selected`);
+      setCompanyDisplay(tempSelectedCompany.join(', '));
     }
     setShowCompanyPopup(false);
     // Move focus to search button after selecting company
@@ -326,9 +324,14 @@ const Ledger = () => {
     try {
       setIsLoading(true);
       
+      // Convert companyCode array to string (take first company if multiple selected)
+      const compCodeParam = Array.isArray(companyCode) 
+        ? (companyCode.length > 0 ? companyCode[0] : '') 
+        : companyCode;
+      
       const response = await get(API_ENDPOINTS.LEDGER.GET_LEDGER(
         partyCode,
-        companyCode,
+        compCodeParam,
         fromDate,
         toDate
       ));
@@ -514,6 +517,7 @@ const Ledger = () => {
       minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
+      
     },
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1070,20 +1074,23 @@ const Ledger = () => {
         </div>
       )}
 
-      {/* Header Section - ALL ON ONE LINE */}
+      {/* Header Section - Responsive Layout */}
       <div style={styles.headerSection}>
+        {/* Row 1: Date Fields */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
-          flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
+          marginBottom: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '0',
           width: '100%',
+          flexWrap: screenSize.isMobile ? 'wrap' : screenSize.isTablet ? 'wrap' : 'nowrap',
         }}>
           {/* From Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '0.7',
-            minWidth: screenSize.isMobile ? '100%' : '90px',
+            flex: screenSize.isMobile ? '1 1 100%' : screenSize.isTablet ? '1 1 calc(50% - 6px)' : '0 1 auto',
+            minWidth: screenSize.isMobile ? '100%' : screenSize.isTablet ? 'calc(50% - 6px)' : 'auto',
+            maxWidth: screenSize.isTablet && !screenSize.isDesktop ? 'calc(50% - 6px)' : 'none',
           }}>
             <label style={styles.inlineLabel}>From Date:</label>
             <input
@@ -1108,8 +1115,9 @@ const Ledger = () => {
           {/* To Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '0.7',
-            minWidth: screenSize.isMobile ? '100%' : '90px',
+            flex: screenSize.isMobile ? '1 1 100%' : screenSize.isTablet ? '1 1 calc(50% - 6px)' : '0 1 auto',
+            minWidth: screenSize.isMobile ? '100%' : screenSize.isTablet ? 'calc(50% - 6px)' : 'auto',
+            maxWidth: screenSize.isTablet && !screenSize.isDesktop ? 'calc(50% - 6px)' : 'none',
           }}>
             <label style={styles.inlineLabel}>To Date:</label>
             <input
@@ -1131,120 +1139,232 @@ const Ledger = () => {
             />
           </div>
 
-          {/* Party with Popup */}
-          <div style={{
-            ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1.4',
-            minWidth: screenSize.isMobile ? '100%' : '140px',
-          }}>
-            <label style={styles.inlineLabel}>Party:</label>
-            <div
-              style={
-                focusedField === 'party'
-                  ? styles.partyInputFocused
-                  : styles.partyInput
-              }
-              onClick={() => {
-                handlePartyClick();
-                setFocusedField('party');
-              }}
-              ref={partyRef}
-              onKeyDown={handlePartyKeyDown}
-              onFocus={() => setFocusedField('party')}
-              onBlur={() => setFocusedField('')}
-              tabIndex={0}
-            >
-              <span style={{
-                fontSize: TYPOGRAPHY.fontSize.sm,
-                color: '#333',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1
-              }}>
-                {partyDisplay}
-              </span>
-              <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+          {/* Party with Popup - Desktop Only in Row 1 */}
+          {screenSize.isDesktop && (
+            <div style={{
+              ...styles.formField,
+              flex: '1 1 auto',
+              minWidth: '250px',
+            }}>
+              <label style={styles.inlineLabel}>Party:</label>
+              <div
+                style={
+                  focusedField === 'party'
+                    ? styles.partyInputFocused
+                    : styles.partyInput
+                }
+                onClick={() => {
+                  handlePartyClick();
+                  setFocusedField('party');
+                }}
+                ref={partyRef}
+                onKeyDown={handlePartyKeyDown}
+                onFocus={() => setFocusedField('party')}
+                onBlur={() => setFocusedField('')}
+                tabIndex={0}
+              >
+                <span style={{
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  color: '#333',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}>
+                  {partyDisplay}
+                </span>
+                <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Company with Popup */}
-          <div style={{
-            ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1.6',
-            minWidth: screenSize.isMobile ? '100%' : '150px',
-          }}>
-            <label style={styles.inlineLabel}>Company:</label>
-            <div
-              style={
-                focusedField === 'company'
-                  ? styles.companyInputFocused
-                  : styles.companyInput
-              }
-              onClick={() => {
-                handleCompanyClick();
-                setFocusedField('company');
-              }}
-              ref={companyRef}
-              onKeyDown={handleCompanyKeyDown}
-              onFocus={() => setFocusedField('company')}
-              onBlur={() => setFocusedField('')}
-              tabIndex={0}
-            >
-              <span style={{
-                fontSize: TYPOGRAPHY.fontSize.sm,
-                color: company === 'Select Company' ? '#999' : '#333',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1
-              }}>
-                {companyDisplay}
-              </span>
-              <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+          {/* Company with Popup - Desktop Only in Row 1 */}
+          {screenSize.isDesktop && (
+            <div style={{
+              ...styles.formField,
+              flex: '1 1 auto',
+              minWidth: '280px',
+            }}>
+              <label style={styles.inlineLabel}>Company:</label>
+              <div
+                style={
+                  focusedField === 'company'
+                    ? styles.companyInputFocused
+                    : styles.companyInput
+                }
+                onClick={() => {
+                  handleCompanyClick();
+                  setFocusedField('company');
+                }}
+                ref={companyRef}
+                onKeyDown={handleCompanyKeyDown}
+                onFocus={() => setFocusedField('company')}
+                onBlur={() => setFocusedField('')}
+                tabIndex={0}
+              >
+                <span style={{
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  color: company === 'Select Company' ? '#999' : '#333',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}>
+                  {companyDisplay}
+                </span>
+                <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Search Button */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            flexShrink: 0,
-            marginLeft: screenSize.isMobile ? '0' : 'auto',
-          }}>
-            <button
-              style={{
-                ...styles.searchButton,
-                width: screenSize.isMobile ? '100%' : 'auto',
-                marginBottom: screenSize.isMobile ? '8px' : '0',
-              }}
-              onClick={handleSearch}
-              onMouseEnter={() => setHoveredButton(true)}
-              onMouseLeave={() => setHoveredButton(false)}
-              ref={searchButtonRef}
-            >
-              Search
-              {hoveredButton && <div style={styles.buttonGlow}></div>}
-            </button>
-          </div>
-
-          {/* Refresh Button */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            flexShrink: 0,
-          }}>
-            <button
-              style={{
-                ...styles.refreshButton,
-                width: screenSize.isMobile ? '100%' : 'auto',
-              }}
-              onClick={handleRefresh}
-            >
-              Refresh
-            </button>
-          </div>
+          {/* Buttons - Desktop Only in Row 1 */}
+          {screenSize.isDesktop && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              flexShrink: 0,
+              marginLeft: 'auto',
+            }}>
+              <button
+                style={styles.searchButton}
+                onClick={handleSearch}
+                onMouseEnter={() => setHoveredButton(true)}
+                onMouseLeave={() => setHoveredButton(false)}
+                ref={searchButtonRef}
+              >
+                Search
+                {hoveredButton && <div style={styles.buttonGlow}></div>}
+              </button>
+              <button
+                style={styles.refreshButton}
+                onClick={handleRefresh}
+              >
+                Refresh
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Row 2: Party, Company, and Buttons for Mobile and Tablet */}
+        {!screenSize.isDesktop && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: screenSize.isMobile ? '8px' : '12px',
+            width: '100%',
+            flexWrap: 'wrap',
+          }}>
+            {/* Party with Popup */}
+            <div style={{
+              ...styles.formField,
+              flex: screenSize.isMobile ? '1 1 100%' : '1 1 calc(50% - 6px)',
+              minWidth: screenSize.isMobile ? '100%' : 'calc(50% - 6px)',
+              maxWidth: screenSize.isTablet ? 'calc(50% - 6px)' : 'none',
+            }}>
+              <label style={styles.inlineLabel}>Party:</label>
+              <div
+                style={
+                  focusedField === 'party'
+                    ? styles.partyInputFocused
+                    : styles.partyInput
+                }
+                onClick={() => {
+                  handlePartyClick();
+                  setFocusedField('party');
+                }}
+                ref={partyRef}
+                onKeyDown={handlePartyKeyDown}
+                onFocus={() => setFocusedField('party')}
+                onBlur={() => setFocusedField('')}
+                tabIndex={0}
+              >
+                <span style={{
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  color: '#333',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}>
+                  {partyDisplay}
+                </span>
+                <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+              </div>
+            </div>
+
+            {/* Company with Popup */}
+            <div style={{
+              ...styles.formField,
+              flex: screenSize.isMobile ? '1 1 100%' : '1 1 calc(50% - 6px)',
+              minWidth: screenSize.isMobile ? '100%' : 'calc(50% - 6px)',
+              maxWidth: screenSize.isTablet ? 'calc(50% - 6px)' : 'none',
+            }}>
+              <label style={styles.inlineLabel}>Company:</label>
+              <div
+                style={
+                  focusedField === 'company'
+                    ? styles.companyInputFocused
+                    : styles.companyInput
+                }
+                onClick={() => {
+                  handleCompanyClick();
+                  setFocusedField('company');
+                }}
+                ref={companyRef}
+                onKeyDown={handleCompanyKeyDown}
+                onFocus={() => setFocusedField('company')}
+                onBlur={() => setFocusedField('')}
+                tabIndex={0}
+              >
+                <span style={{
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  color: company === 'Select Company' ? '#999' : '#333',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}>
+                  {companyDisplay}
+                </span>
+                <span style={{ color: '#1B91DA', fontSize: '10px', marginLeft: '8px' }}>▼</span>
+              </div>
+            </div>
+
+            {/* Buttons for Mobile and Tablet */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              width: '100%',
+              justifyContent: screenSize.isMobile ? 'stretch' : 'flex-end',
+              marginTop: '4px',
+            }}>
+              <button
+                style={{
+                  ...styles.searchButton,
+                  flex: screenSize.isMobile ? '1' : '0 0 auto',
+                }}
+                onClick={handleSearch}
+                onMouseEnter={() => setHoveredButton(true)}
+                onMouseLeave={() => setHoveredButton(false)}
+                ref={searchButtonRef}
+              >
+                Search
+                {hoveredButton && <div style={styles.buttonGlow}></div>}
+              </button>
+              <button
+                style={{
+                  ...styles.refreshButton,
+                  flex: screenSize.isMobile ? '1' : '0 0 auto',
+                }}
+                onClick={handleRefresh}
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Table Section */}
@@ -1320,7 +1440,7 @@ const Ledger = () => {
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Closing Balance</span>
             <span style={styles.balanceValue}>
-              ₹{parseFloat((closingBalance.debit || 0) - (closingBalance.credit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{parseFloat((closingBalance.credit || 0) - (closingBalance.debit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         </div>

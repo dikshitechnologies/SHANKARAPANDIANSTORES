@@ -801,7 +801,7 @@ const ItemCreation = ({ onCreated }) => {
           ftype: formData.type || '',
           fSellPrice: formData.sellingPrice || '',
           fCostPrice: formData.costPrice || '',
-          fUnits: fieldCodes.unitCode || '',
+          fUnits: formData.unit || '',
           sizes: sizesArray
         };
       } else {
@@ -844,7 +844,8 @@ const ItemCreation = ({ onCreated }) => {
           ftype: formData.type || '',
           fSellPrice: formData.sellingPrice || '',
           fCostPrice: formData.costPrice || '',
-          fUnits: fieldCodes.unitCode || ''
+          // fUnits: fieldCodes.unitCode || ''
+          fUnits: formData.unit || '',
         };
       }
       console.log('Submitting data:', JSON.stringify(requestData));
@@ -864,6 +865,7 @@ const ItemCreation = ({ onCreated }) => {
           }
 
           response = await apiService.post(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.postCreate, requestData);
+          console.log('Create response:', response);
           successMessage = `Item "${formData.itemName}" created successfully.`; // ADDED
           break;
 
@@ -2835,7 +2837,7 @@ const ItemCreation = ({ onCreated }) => {
 
               {/* Size */}
               <div className="field">
-                <label className="field-label">Size</label>
+                <label className="field-label">Size<span className="asterisk">*</span></label>
                 <div className="input-with-search">
                   <input
                     ref={sizeRef}
