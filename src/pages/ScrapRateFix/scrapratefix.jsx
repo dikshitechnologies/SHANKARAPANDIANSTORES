@@ -295,6 +295,9 @@ const handleKeyDown = (e, index) => {
       // Refresh data from server to ensure consistency
       await fetchScrapRates();
       
+      // Automatically refresh the page after successful update
+      window.location.reload();
+      
     } catch (error) {
       console.error("Error updating scrap rates:", error);
       let errorMessage = "Failed to update scrap rates";
@@ -385,6 +388,9 @@ const handleConfirmClearAll = () => {
   setScrapRates(prev =>
     prev.map(scrap => ({ ...scrap, rate: "" }))
   );
+
+  // Clear the search term as well
+  setSearchTerm("");
 
   // toast.success("All rate values have been cleared.", {
   //   position: "top-right",

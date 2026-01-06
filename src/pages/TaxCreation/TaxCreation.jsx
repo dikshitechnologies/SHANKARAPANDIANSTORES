@@ -455,7 +455,7 @@ const getGSTByCode = async (code) => {
   };
 
   const confirmSave = async () => {
-        alert();
+
     setIsLoading(true);
     try {
       const gstData = { 
