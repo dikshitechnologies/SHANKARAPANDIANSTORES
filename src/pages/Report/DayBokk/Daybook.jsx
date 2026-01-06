@@ -561,19 +561,19 @@ const DayBook = () => {
       width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
       maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
     },
-    td: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: '8px 6px',
-      textAlign: 'center',
-      border: '1px solid #ccc',
-      color: '#333',
-      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-    },
+   td: {
+  fontFamily: TYPOGRAPHY.fontFamily,
+  fontSize: TYPOGRAPHY.fontSize.xs, // Match th font size (xs = 11-13px)
+  fontWeight: TYPOGRAPHY.fontWeight.bold, // Match th bold (700)
+  lineHeight: TYPOGRAPHY.lineHeight.tight, // Match th line height (1.2)
+  padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px', // Match th padding
+  textAlign: 'center',
+  border: '1px solid #ccc',
+  color: '#333',
+  minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+  width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+  maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+},
     footerSection: {
       position: 'fixed',
       bottom: 0,
@@ -1102,70 +1102,70 @@ const DayBook = () => {
                 <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Payments</th>
               </tr>
             </thead>
-            <tbody>
-              {tableLoaded ? (
-                dayBookData.length > 0 ? (
-                  dayBookData.map((row, index) => (
-                    <tr key={index} style={{ 
-                      backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
-                      ...(row.isTotal ? { backgroundColor: '#f0f8ff', fontWeight: 'bold' } : {})
-                    }}>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '200px', 
-                        width: '200px', 
-                        maxWidth: '200px',
-                        textAlign: 'left',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.accName}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '150px', 
-                        width: '150px', 
-                        maxWidth: '150px',
-                        textAlign: 'right',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.receipts ? `₹${parseFloat(row.receipts || 0).toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}` : ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '150px', 
-                        width: '150px', 
-                        maxWidth: '150px',
-                        textAlign: 'right',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.payments ? `₹${parseFloat(row.payments || 0).toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}` : ''}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      No records found
-                    </td>
-                  </tr>
-                )
-              ) : (
-                <tr>
-                  <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    {/* Enter search criteria and click "Search" to view day book entries */}
-                  </td>
-                </tr>
-              )}
-            </tbody>
+          <tbody>
+  {tableLoaded ? (
+    dayBookData.length > 0 ? (
+      dayBookData.map((row, index) => (
+        <tr key={index} style={{ 
+          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
+          ...(row.isTotal ? { backgroundColor: '#f0f8ff' } : {}) // fontWeight removed
+        }}>
+          <td style={{ 
+            ...styles.td, 
+            minWidth: '200px', 
+            width: '200px', 
+            maxWidth: '200px',
+            textAlign: 'left',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.accName}
+          </td>
+          <td style={{ 
+            ...styles.td, 
+            minWidth: '150px', 
+            width: '150px', 
+            maxWidth: '150px',
+            textAlign: 'right',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.receipts ? `₹${parseFloat(row.receipts || 0).toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}` : ''}
+          </td>
+          <td style={{ 
+            ...styles.td, 
+            minWidth: '150px', 
+            width: '150px', 
+            maxWidth: '150px',
+            textAlign: 'right',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.payments ? `₹${parseFloat(row.payments || 0).toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}` : ''}
+          </td>
+        </tr>
+      ))
+    ) : (
+      <tr>
+        <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+          No records found
+        </td>
+      </tr>
+    )
+  ) : (
+    <tr>
+      <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+        {/* Enter search criteria and click "Search" to view day book entries */}
+      </td>
+    </tr>
+  )}
+</tbody>
           </table>
         </div>
       </div>
