@@ -368,7 +368,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
       if (field === 'billDiscAmt') {
         const billAmount = Number(prev.billAmount) || 0;
         const discountAmount = Number(value) || 0;
-        const grandTotal = billAmount - discountAmount;
+        const grandTotal = Math.round(billAmount - discountAmount);
         updated.granTotal = grandTotal.toFixed(2);
       }
 
@@ -377,7 +377,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
         const billAmount = Number(prev.billAmount) || 0;
         const discountPercent = Number(value) || 0;
         const discountAmount = (billAmount * discountPercent) / 100;
-        const grandTotal = billAmount - discountAmount;
+        const grandTotal = Math.round(billAmount - discountAmount);
         updated.granTotal = grandTotal.toFixed(2);
         
         const roundOff = Number(prev.roudOff) || 0;
@@ -626,7 +626,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
       const billAmount = Number(formData.billAmount) || 0;
       const discountPercent = Number(formData.billDiscountPercent) || 0;
       const discountAmount = (billAmount * discountPercent) / 100;
-      const grandTotal = billAmount - discountAmount;
+      const grandTotal = Math.round(billAmount - discountAmount);
       
       const roundOff = Number(formData.roudOff) || 0;
       const scrapAmount = Number(formData.scrapAmount) || 0;

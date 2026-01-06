@@ -176,25 +176,31 @@ const GroupwiseStock = () => {
     },
     filterRow: {
       display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      marginBottom: '18px',
-      flexWrap: 'nowrap',
+      alignItems: screenSize.isMobile || screenSize.isTablet ? 'stretch' : 'center',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
+      marginBottom: screenSize.isMobile ? '12px' : screenSize.isTablet ? '14px' : '18px',
+      flexWrap: 'wrap',
       justifyContent: 'space-between',
+      flexDirection: screenSize.isMobile || screenSize.isTablet ? 'column' : 'row',
     },
     formField: {
       display: 'flex',
-      alignItems: 'center',
-      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '8px' : '10px',
+      alignItems: screenSize.isMobile || screenSize.isTablet ? 'stretch' : 'center',
+      gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      flexDirection: screenSize.isMobile || screenSize.isTablet ? 'column' : 'row',
+      width: screenSize.isMobile || screenSize.isTablet ? '100%' : 'auto',
+      flex: screenSize.isMobile || screenSize.isTablet ? '1 1 100%' : '0 1 auto',
     },
     label: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       color: '#333',
-      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      minWidth: screenSize.isMobile || screenSize.isTablet ? 'auto' : '80px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
+      width: screenSize.isMobile || screenSize.isTablet ? '100%' : 'auto',
+      textAlign: 'left',
     },
     input: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -211,9 +217,9 @@ const GroupwiseStock = () => {
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: screenSize.isMobile ? '100%' : '100px',
     },
     inputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -230,9 +236,9 @@ const GroupwiseStock = () => {
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: screenSize.isMobile ? '100%' : '100px',
     },
     selectGroupBtn: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -246,13 +252,13 @@ const GroupwiseStock = () => {
       cursor: 'pointer',
       transition: 'all 0.2s ease',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       textAlign: 'left',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       flex: 1,
-      minWidth: '200px',
+      minWidth: screenSize.isMobile ? '100%' : '200px',
       outline: 'none',
     },
     selectGroupBtnFocused: {
@@ -267,27 +273,32 @@ const GroupwiseStock = () => {
       cursor: 'pointer',
       transition: 'all 0.2s ease',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       textAlign: 'left',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       flex: 1,
-      minWidth: '200px',
+      minWidth: screenSize.isMobile ? '100%' : '200px',
       outline: 'none',
     },
     leftSide: {
       display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      flex: 1,
-      flexWrap: 'nowrap',
+      alignItems: screenSize.isMobile || screenSize.isTablet ? 'stretch' : 'center',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
+      flex: screenSize.isMobile || screenSize.isTablet ? '1 1 100%' : 1,
+      flexWrap: screenSize.isMobile || screenSize.isTablet ? 'wrap' : 'nowrap',
+      flexDirection: screenSize.isMobile || screenSize.isTablet ? 'column' : 'row',
+      width: screenSize.isMobile || screenSize.isTablet ? '100%' : 'auto',
     },
     rightSide: {
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
+      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
       flexShrink: 0,
+      width: screenSize.isMobile || screenSize.isTablet ? '100%' : 'auto',
+      flexDirection: screenSize.isMobile || screenSize.isTablet ? 'row' : 'row',
+      justifyContent: screenSize.isMobile || screenSize.isTablet ? 'space-between' : 'flex-end',
     },
     modalOverlay: {
       position: 'fixed',
@@ -303,11 +314,11 @@ const GroupwiseStock = () => {
     },
     modal: {
       background: '#fff',
-      borderRadius: '10px',
+      borderRadius: screenSize.isMobile ? '8px' : '10px',
       boxShadow: '0 2px 16px rgba(0,0,0,0.18)',
-      minWidth: '550px',
-      maxWidth: '95vw',
-      maxHeight: '80vh',
+      minWidth: screenSize.isMobile ? '90vw' : screenSize.isTablet ? '450px' : '550px',
+      maxWidth: screenSize.isMobile ? '95vw' : '90vw',
+      maxHeight: screenSize.isMobile ? '90vh' : '80vh',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
@@ -316,23 +327,24 @@ const GroupwiseStock = () => {
       background: '#1B91DA',
       color: '#fff',
       fontWeight: 600,
-      fontSize: '18px',
-      padding: '16px 20px',
-      borderTopLeftRadius: '10px',
-      borderTopRightRadius: '10px',
+      fontSize: screenSize.isMobile ? '16px' : '18px',
+      padding: screenSize.isMobile ? '12px 16px' : '16px 20px',
+      borderTopLeftRadius: screenSize.isMobile ? '8px' : '10px',
+      borderTopRightRadius: screenSize.isMobile ? '8px' : '10px',
     },
     modalBody: {
-      padding: '18px 20px',
+      padding: screenSize.isMobile ? '12px 16px' : '18px 20px',
       overflowY: 'auto',
       flex: 1,
     },
     modalFooter: {
       display: 'flex',
       justifyContent: 'flex-end',
-      gap: '12px',
-      padding: '16px 20px',
+      gap: screenSize.isMobile ? '8px' : '12px',
+      padding: screenSize.isMobile ? '12px 16px' : '16px 20px',
       borderTop: '1px solid #f0f0f0',
       background: '#fafcff',
+      flexDirection: screenSize.isMobile ? 'column-reverse' : 'row',
     },
     modalCheckboxRow: {
       display: 'flex',
@@ -353,22 +365,24 @@ const GroupwiseStock = () => {
       color: '#fff',
       border: 'none',
       borderRadius: '6px',
-      padding: '8px 28px',
+      padding: screenSize.isMobile ? '10px 20px' : '8px 28px',
       fontWeight: 600,
-      fontSize: '15px',
+      fontSize: screenSize.isMobile ? '14px' : '15px',
       cursor: 'pointer',
       transition: 'background 0.2s',
+      width: screenSize.isMobile ? '100%' : 'auto',
     },
     modalBtnClear: {
       background: '#fff',
       color: '#ff4d4f',
       border: '1.5px solid #ff4d4f',
       borderRadius: '6px',
-      padding: '8px 22px',
+      padding: screenSize.isMobile ? '10px 20px' : '8px 22px',
       fontWeight: 600,
-      fontSize: '15px',
+      fontSize: screenSize.isMobile ? '14px' : '15px',
       cursor: 'pointer',
       transition: 'background 0.2s',
+      width: screenSize.isMobile ? '100%' : 'auto',
     },
     button: {
       padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
@@ -382,8 +396,9 @@ const GroupwiseStock = () => {
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)',
       letterSpacing: '0.3px',
-      minWidth: screenSize.isMobile ? '80px' : '100px',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: screenSize.isMobile || screenSize.isTablet ? 1 : '0 0 auto',
+      minWidth: screenSize.isMobile || screenSize.isTablet ? '0' : '100px',
+      height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -400,8 +415,9 @@ const GroupwiseStock = () => {
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
       letterSpacing: '0.3px',
-      minWidth: screenSize.isMobile ? '80px' : '100px',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      flex: screenSize.isMobile || screenSize.isTablet ? 1 : '0 0 auto',
+      minWidth: screenSize.isMobile || screenSize.isTablet ? '0' : '100px',
+      height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -483,12 +499,13 @@ const GroupwiseStock = () => {
       backgroundColor: '#f0f0f0',
       border: '1px solid #1B91DA',
       color: '#1B91DA',
-      padding: '8px 16px',
+      padding: screenSize.isMobile ? '6px 12px' : '8px 16px',
       borderRadius: '4px',
       cursor: 'pointer',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       transition: 'all 0.3s ease',
+      whiteSpace: 'nowrap',
     },
     headerTitle: {
       fontSize: TYPOGRAPHY.fontSize.lg,
@@ -682,7 +699,7 @@ const GroupwiseStock = () => {
     } else if (tempSelectedCompany.length === 1) {
       setCompanyDisplay(tempSelectedCompany[0]);
     } else {
-      setCompanyDisplay(`${tempSelectedCompany.length} Companies Selected`);
+      setCompanyDisplay(tempSelectedCompany.join(', '));
     }
     setShowCompanyPopup(false);
     setTimeout(() => {
@@ -776,7 +793,7 @@ const GroupwiseStock = () => {
               </div>
 
               {/* Company */}
-              <div style={{...styles.formField, flex: 1, minWidth: '200px'}}>
+              <div style={{...styles.formField, flex: 1, minWidth: screenSize.isMobile ? '100%' : '200px', width: screenSize.isMobile ? '100%' : 'auto'}}>
                 <label style={styles.label}>Company:</label>
                 <button 
                   ref={companyRef}
@@ -834,7 +851,13 @@ const GroupwiseStock = () => {
       <div style={styles.tableSection}>
         {/* Back Button and Title */}
         {viewLevel !== 'groups' && (
-          <div style={{ padding: '10px 20px 0px 20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ 
+            padding: screenSize.isMobile ? '8px 12px 0px 12px' : '10px 20px 0px 20px', 
+            display: 'flex', 
+            alignItems: screenSize.isMobile ? 'flex-start' : 'center', 
+            gap: screenSize.isMobile ? '8px' : '15px',
+            flexDirection: screenSize.isMobile ? 'column' : 'row'
+          }}>
             <button 
               style={styles.backButton} 
               onClick={viewLevel === 'items' ? handleBackToGroups : handleBackToItems}
