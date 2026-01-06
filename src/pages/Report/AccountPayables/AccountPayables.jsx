@@ -385,6 +385,8 @@ const AccountPayables = () => {
       overflowY: 'hidden',
       position: 'fixed',
     },
+
+    
     headerSection: {
       flex: '0 0 auto',
       backgroundColor: 'white',
@@ -504,8 +506,8 @@ const AccountPayables = () => {
     },
     td: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       padding: '8px 6px',
       textAlign: 'center',
@@ -675,6 +677,7 @@ const AccountPayables = () => {
         transform: 'translateY(-1px)',
       }
     },
+    
     buttonGlow: {
       position: 'absolute',
       top: '0',
@@ -728,35 +731,35 @@ const AccountPayables = () => {
       border: '1px solid #ddd',
     },
     popupHeader: {
-      background: '#1B91DA',
-      color: 'white',
-      padding: '16px 20px',
-      margin: 0,
-      fontSize: TYPOGRAPHY.fontSize.base,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-      borderBottom: '1px solid #1479c0',
-    },
-    closeButton: {
-      position: 'absolute',
-      right: '15px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      background: 'rgba(255,255,255,0.2)',
-      border: 'none',
-      color: 'white',
-      fontSize: '20px',
-      cursor: 'pointer',
-      width: '30px',
-      height: '30px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '4px',
-      transition: 'all 0.3s ease',
-      ':hover': {
-        background: 'rgba(255,255,255,0.3)',
-      }
-    },
+  background: '#1B91DA',
+  color: 'white',
+  padding: '16px 20px',
+  margin: 0,
+  fontSize: TYPOGRAPHY.fontSize.base,
+  fontWeight: TYPOGRAPHY.fontWeight.bold,
+  borderBottom: '1px solid #1479c0',
+  position: 'relative', // ✅ REQUIRED
+},
+
+   closeButton: {
+  position: 'absolute',
+  right: '15px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  background: 'rgba(255,255,255,0.2)',
+  border: 'none',
+  color: 'white',
+  fontSize: '20px',
+  cursor: 'pointer',
+  width: '30px',
+  height: '30px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '4px',
+  transition: 'all 0.3s ease',
+},
+
     companyList: {
       padding: '20px',
       maxHeight: '300px',
@@ -1052,103 +1055,114 @@ const AccountPayables = () => {
                 <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '60px' : '80px', width: screenSize.isMobile ? '60px' : '80px', maxWidth: screenSize.isMobile ? '60px' : '80px' }}>DR/CR</th>
               </tr>
             </thead>
-            <tbody>
-              {tableLoaded ? (
-                payablesData.length > 0 ? (
-                  payablesData.map((row, index) => (
-                    <tr key={index} style={{ 
-                      backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
-                      ...(row.isTotal ? { 
-                        backgroundColor: '#f0f8ff', 
-                        fontWeight: 'bold',
-                        borderTop: '2px solid #1B91DA'
-                      } : {})
-                    }}>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '60px', 
-                        width: '60px', 
-                        maxWidth: '60px',
-                        textAlign: 'center',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.no || ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px',
-                        width: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px',
-                        maxWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px',
-                        textAlign: 'left',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.accountName}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: screenSize.isMobile ? '100px' : '120px',
-                        width: screenSize.isMobile ? '100px' : '120px',
-                        maxWidth: screenSize.isMobile ? '100px' : '120px',
-                        textAlign: 'right',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.debit ? `₹${row.debit}` : ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: screenSize.isMobile ? '100px' : '120px',
-                        width: screenSize.isMobile ? '100px' : '120px',
-                        maxWidth: screenSize.isMobile ? '100px' : '120px',
-                        textAlign: 'right',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.credit ? `₹${row.credit}` : ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: screenSize.isMobile ? '100px' : '120px',
-                        width: screenSize.isMobile ? '100px' : '120px',
-                        maxWidth: screenSize.isMobile ? '100px' : '120px',
-                        textAlign: 'right',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.balance ? `₹${row.balance}` : ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: screenSize.isMobile ? '60px' : '80px',
-                        width: screenSize.isMobile ? '60px' : '80px',
-                        maxWidth: screenSize.isMobile ? '60px' : '80px',
-                        textAlign: 'center',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.drCr === 'DR' ? '#d32f2f' : 
-                               row.drCr === 'CR' ? '#2e7d32' : 
-                               row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.drCr || ''}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      No records found
-                    </td>
-                  </tr>
-                )
-              ) : (
-                <tr>
-                  {/* <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Use the Search button to load data
-                  </td> */}
-                </tr>
-              )}
-            </tbody>
+          <tbody>
+  {tableLoaded ? (
+    payablesData.length > 0 ? (
+      payablesData.map((row, index) => (
+        <tr key={index} style={{ 
+          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
+          ...(row.isTotal ? { 
+            backgroundColor: '#f0f8ff', 
+            // fontWeight: 'bold', // REMOVE if you want same font weight for all
+            borderTop: '2px solid #1B91DA'
+          } : {})
+        }}>
+          {/* No. column */}
+          <td style={{ 
+            ...styles.td, 
+            minWidth: '60px', 
+            width: '60px', 
+            maxWidth: '60px',
+            textAlign: 'center',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVE
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.no || ''}
+          </td>
+          
+          {/* A/c Name column */}
+          <td style={{ 
+            ...styles.td, 
+            minWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px',
+            width: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px',
+            maxWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px',
+            textAlign: 'left',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVE
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.accountName}
+          </td>
+          
+          {/* Debit column */}
+          <td style={{ 
+            ...styles.td, 
+            minWidth: screenSize.isMobile ? '100px' : '120px',
+            width: screenSize.isMobile ? '100px' : '120px',
+            maxWidth: screenSize.isMobile ? '100px' : '120px',
+            textAlign: 'right',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVE
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.debit ? `₹${row.debit}` : ''}
+          </td>
+          
+          {/* Credit column */}
+          <td style={{ 
+            ...styles.td, 
+            minWidth: screenSize.isMobile ? '100px' : '120px',
+            width: screenSize.isMobile ? '100px' : '120px',
+            maxWidth: screenSize.isMobile ? '100px' : '120px',
+            textAlign: 'right',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVE
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.credit ? `₹${row.credit}` : ''}
+          </td>
+          
+          {/* Balance column */}
+          <td style={{ 
+            ...styles.td, 
+            minWidth: screenSize.isMobile ? '100px' : '120px',
+            width: screenSize.isMobile ? '100px' : '120px',
+            maxWidth: screenSize.isMobile ? '100px' : '120px',
+            textAlign: 'right',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVE
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.balance ? `₹${row.balance}` : ''}
+          </td>
+          
+          {/* DR/CR column */}
+          <td style={{ 
+            ...styles.td, 
+            minWidth: screenSize.isMobile ? '60px' : '80px',
+            width: screenSize.isMobile ? '60px' : '80px',
+            maxWidth: screenSize.isMobile ? '60px' : '80px',
+            textAlign: 'center',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVE
+            color: row.drCr === 'DR' ? '#d32f2f' : 
+                   row.drCr === 'CR' ? '#2e7d32' : 
+                   row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.drCr || ''}
+          </td>
+        </tr>
+      ))
+    ) : (
+      <tr>
+        <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+          No records found
+        </td>
+      </tr>
+    )
+  ) : (
+    <tr>
+      {/* <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+        Use the Search button to load data
+      </td> */}
+    </tr>
+  )}
+</tbody>
           </table>
         </div>
       </div>

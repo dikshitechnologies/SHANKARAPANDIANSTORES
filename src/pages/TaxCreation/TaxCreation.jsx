@@ -409,6 +409,8 @@ const getGSTByCode = async (code) => {
   };
 
   const handleAdd = () => {
+
+ 
     if (!formPermissions.Add) {
       setMessage({ 
         type: "error", 
@@ -438,7 +440,7 @@ const getGSTByCode = async (code) => {
 
     // Check for duplicate GST value (case-insensitive)
     const valueExists = gstList.some(b => 
-      parseFloat(b.gstName.trim()) === gstValue
+      parseFloat(b.gstName.trim()) === taxValue
     );
 
     if (valueExists) {
@@ -453,6 +455,7 @@ const getGSTByCode = async (code) => {
   };
 
   const confirmSave = async () => {
+        alert();
     setIsLoading(true);
     try {
       const gstData = { 
@@ -473,7 +476,8 @@ const getGSTByCode = async (code) => {
   };
 
   const handleSubmit = () => {
-    if (actionType === "Add") {
+
+    if (actionType === "Add") {    
       handleAdd();
     } else if (actionType === "Edit") {
       handleEdit();
