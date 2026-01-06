@@ -3370,19 +3370,19 @@ const handleTableKeyDown = (e, rowIndex, field) => {
     
     // Validate the new quantity
     if (!validateQuantity(item, value, originalQty)) {
-      // Show error message
+      // Show error message and reset to the original (allowed) quantity
       toast.error(`Cannot return more than original quantity (${originalQty})`);
-      
-      // Reset to original quantity if available, otherwise to 0
-      const resetValue = originalQty ? Math.min(parseFloat(item.qty || 0), originalQty).toString() : item.qty;
-      
-      setItems(items.map(item => {
-        if (item.id === id) {
-          const updatedItem = { ...item, [field]: resetValue };
+
+      // Prefer resetting to the originalQty (so it doesn't become 0 unexpectedly).
+      const resetValue = originalQty ? String(originalQty) : item.qty;
+
+      setItems(items.map(it => {
+        if (it.id === id) {
+          const updatedItem = { ...it, [field]: resetValue };
           updatedItem.amount = calculateAmount(resetValue, updatedItem.sRate);
           return updatedItem;
         }
-        return item;
+        return it;
       }));
       return;
     }
