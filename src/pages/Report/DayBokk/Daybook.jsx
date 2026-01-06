@@ -32,6 +32,15 @@ const formatDate = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+// Helper function to format date as DD/MM/YYYY for API
+const formatDateForAPI = (date) => {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 const DayBook = () => {
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
@@ -64,18 +73,41 @@ const DayBook = () => {
     closingCredit: 0
   });
 
-  // Sample data for branches
-  const allBranches = [
-    'ALL',
-    'DIKSHI DEMO',
-    'DIKSH',
-    'DIKSHI TECH',
-    'DIKSHIWEBSITE',
-    'DIKSHIWBCOMDOT',
-    'SAKTHI',
-    'JUST AK THINGS',
-    'PRIVANKA'
-  ];
+  const [allBranches, setAllBranches] = useState([]);
+  const [defaultCompCode, setDefaultCompCode] = useState('001');
+
+  // Fetch branches (companies) on mount
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const response = await fetch(`${API_BASE}${API_ENDPOINTS.LEDGER.COMPANIES}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.status === 'success') {
+          setAllBranches([{compCode: 'ALL', compName: 'ALL'}, ...data.data.map(c => ({compCode: c.compCode, compName: c.compName}))]);
+          setDefaultCompCode(data.data[0]?.compCode || '001');
+        }
+      } catch (error) {
+        console.error('Error fetching branches:', error);
+        // Fallback to sample data if API fails
+        setAllBranches([
+          {compCode: 'ALL', compName: 'ALL'},
+          {compCode: '001', compName: 'DIKSHI DEMO'},
+          {compCode: '002', compName: 'DIKSH'},
+          {compCode: '003', compName: 'DIKSHI TECH'},
+          {compCode: '004', compName: 'DIKSHIWEBSITE'},
+          {compCode: '005', compName: 'DIKSHIWBCOMDOT'},
+          {compCode: '006', compName: 'SAKTHI'},
+          {compCode: '007', compName: 'JUST AK THINGS'},
+          {compCode: '008', compName: 'PRIVANKA'}
+        ]);
+        setDefaultCompCode('001');
+      }
+    };
+    fetchBranches();
+  }, []);
 
   // Update tempSelectedBranches when popup opens based on current selection
   useEffect(() => {
@@ -113,20 +145,20 @@ const DayBook = () => {
     setShowBranchPopup(true);
   };
 
-  const handleBranchSelect = (branch) => {
-    if (branch === 'ALL') {
+  const handleBranchSelect = (compCode) => {
+    if (compCode === 'ALL') {
       // If ALL is being toggled
       if (tempSelectedBranches.includes('ALL')) {
         // Untick ALL - remove ALL and all branches
-        const allOtherBranches = allBranches.filter(b => b !== 'ALL');
+        const allOtherCodes = allBranches.filter(b => b.compCode !== 'ALL').map(b => b.compCode);
         const updated = tempSelectedBranches.filter(
-          b => b !== 'ALL' && !allOtherBranches.includes(b)
+          b => b !== 'ALL' && !allOtherCodes.includes(b)
         );
         setTempSelectedBranches(updated);
         setSelectAll(false);
       } else {
-        // Tick ALL - add ALL and all branch names
-        setTempSelectedBranches(allBranches);
+        // Tick ALL - add ALL and all compCodes
+        setTempSelectedBranches(allBranches.map(b => b.compCode));
         setSelectAll(true);
         
       }
@@ -134,9 +166,9 @@ const DayBook = () => {
       // Handling individual branch selection
       let updatedBranches;
       
-      if (tempSelectedBranches.includes(branch)) {
+      if (tempSelectedBranches.includes(compCode)) {
         // Remove branch from selection
-        updatedBranches = tempSelectedBranches.filter(b => b !== branch);
+        updatedBranches = tempSelectedBranches.filter(b => b !== compCode);
         
         // Also remove ALL if it was selected
         if (updatedBranches.includes('ALL')) {
@@ -144,15 +176,15 @@ const DayBook = () => {
         }
       } else {
         // Add branch to selection
-        updatedBranches = [...tempSelectedBranches, branch];
+        updatedBranches = [...tempSelectedBranches, compCode];
         
         // Check if all branches are now selected
-        const allOtherBranches = allBranches.filter(b => b !== 'ALL');
-        const allSelected = allOtherBranches.every(b => updatedBranches.includes(b));
+        const allOtherCodes = allBranches.filter(b => b.compCode !== 'ALL').map(b => b.compCode);
+        const allSelected = allOtherCodes.every(c => updatedBranches.includes(c));
         
         if (allSelected) {
           // If all branches are selected, add ALL as well
-          updatedBranches = allBranches;
+          updatedBranches = allBranches.map(b => b.compCode);
           setSelectAll(true);
         } else {
           setSelectAll(false);
@@ -164,8 +196,8 @@ const DayBook = () => {
   };
 
   const handlePopupOk = () => {
-    // Extract just the branches (excluding ALL for the actual selection)
-    const branchList = tempSelectedBranches.filter(branch => branch !== 'ALL');
+    // Extract just the compCodes (excluding ALL for the actual selection)
+    const branchList = tempSelectedBranches.filter(code => code !== 'ALL');
     
     // If ALL was selected in temp state, store just ['ALL'] in main state
     if (tempSelectedBranches.includes('ALL')) {
@@ -175,7 +207,7 @@ const DayBook = () => {
       // If specific branches are selected
       setSelectedBranches(branchList);
       // Update display text
-      const displayText = branchList.join(', ');
+      const displayText = branchList.map(code => allBranches.find(b => b.compCode === code)?.compName).join(', ');
       setBranchDisplay(displayText);
     } else {
       // If nothing is selected, default to ALL
@@ -212,10 +244,13 @@ const DayBook = () => {
     setIsLoading(true);
     
     try {
-      // Use compCode from selected branches or default to '001'
-      const compCode = selectedBranches.includes('ALL') ? '001' : selectedBranches[0];
+      // Use compCode from selected branches or default to defaultCompCode
+      const compCode = selectedBranches.includes('ALL') ? defaultCompCode : selectedBranches[0];
       
-      const response = await fetch(`${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(compCode, fromDate, toDate)}`);
+      const apiFromDate = formatDateForAPI(fromDate);
+      const apiToDate = formatDateForAPI(toDate);
+      
+      const response = await fetch(`${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(compCode, apiFromDate, apiToDate)}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -254,8 +289,8 @@ const DayBook = () => {
         isTotal: true
       });
       
-      // Add closing balance if exists
-      if (data.closingDebit > 0 || data.closingCredit > 0) {
+      // Add closing balance if exists and not selecting ALL
+      if (!selectedBranches.includes('ALL') && (data.closingDebit > 0 || data.closingCredit > 0)) {
         transformedData.push({
           accName: "Closing Balance",
           receipts: data.closingDebit > 0 ? data.closingDebit.toFixed(2) : "",
@@ -1177,18 +1212,18 @@ const DayBook = () => {
                 <span style={styles.branchText}>ALL</span>
               </div>
               {/* Individual branches - Initially UNCHECKED */}
-              {allBranches.filter(b => b !== 'ALL').map((branch) => {
-                const isSelected = tempSelectedBranches.includes(branch);
+              {allBranches.filter(b => b.compCode !== 'ALL').map((branch) => {
+                const isSelected = tempSelectedBranches.includes(branch.compCode);
                 return (
                   <div 
-                    key={branch} 
+                    key={branch.compCode} 
                     style={isSelected ? styles.selectedBranchItem : styles.branchItem}
-                    onClick={() => handleBranchSelect(branch)}
+                    onClick={() => handleBranchSelect(branch.compCode)}
                   >
                     <div style={isSelected ? styles.selectedBranchCheckbox : styles.branchCheckbox}>
                       {isSelected && <div style={styles.checkmark}>✓</div>}
                     </div>
-                    <span style={styles.branchText}>{branch}</span>
+                    <span style={styles.branchText}>{branch.compName}</span>
                   </div>
                 );
               })}
