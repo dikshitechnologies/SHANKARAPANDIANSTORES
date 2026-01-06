@@ -1020,11 +1020,11 @@ const AccountReceivables = () => {
             <thead>
               <tr>
                 <th style={{ ...styles.th, minWidth: '60px', width: '60px', maxWidth: '60px' }}>No.</th>
-                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>A/c Name</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Debit</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Credit</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Balance</th>
-                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>DR/CR</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '200px', width: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '200px', maxWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '200px' }}>A/c Name</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '100px' : '120px', width: screenSize.isMobile ? '100px' : '120px', maxWidth: screenSize.isMobile ? '100px' : '120px' }}>Debit</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '100px' : '120px', width: screenSize.isMobile ? '100px' : '120px', maxWidth: screenSize.isMobile ? '100px' : '120px' }}>Credit</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '100px' : '120px', width: screenSize.isMobile ? '100px' : '120px', maxWidth: screenSize.isMobile ? '100px' : '120px' }}>Balance</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '60px' : '80px', width: screenSize.isMobile ? '60px' : '80px', maxWidth: screenSize.isMobile ? '60px' : '80px' }}>DR/CR</th>
               </tr>
             </thead>
             <tbody>
@@ -1052,9 +1052,9 @@ const AccountReceivables = () => {
                       </td>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '200px', 
-                        width: '200px', 
-                        maxWidth: '200px',
+                        minWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '200px',
+                        width: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '200px',
+                        maxWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '200px',
                         textAlign: 'left',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
@@ -1063,9 +1063,9 @@ const AccountReceivables = () => {
                       </td>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '120px', 
-                        width: '120px', 
-                        maxWidth: '120px',
+                        minWidth: screenSize.isMobile ? '100px' : '120px',
+                        width: screenSize.isMobile ? '100px' : '120px',
+                        maxWidth: screenSize.isMobile ? '100px' : '120px',
                         textAlign: 'right',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
@@ -1074,9 +1074,9 @@ const AccountReceivables = () => {
                       </td>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '120px', 
-                        width: '120px', 
-                        maxWidth: '120px',
+                        minWidth: screenSize.isMobile ? '100px' : '120px',
+                        width: screenSize.isMobile ? '100px' : '120px',
+                        maxWidth: screenSize.isMobile ? '100px' : '120px',
                         textAlign: 'right',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
@@ -1085,9 +1085,9 @@ const AccountReceivables = () => {
                       </td>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '120px', 
-                        width: '120px', 
-                        maxWidth: '120px',
+                        minWidth: screenSize.isMobile ? '100px' : '120px',
+                        width: screenSize.isMobile ? '100px' : '120px',
+                        maxWidth: screenSize.isMobile ? '100px' : '120px',
                         textAlign: 'right',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
@@ -1096,9 +1096,9 @@ const AccountReceivables = () => {
                       </td>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '80px', 
-                        width: '80px', 
-                        maxWidth: '80px',
+                        minWidth: screenSize.isMobile ? '60px' : '80px',
+                        width: screenSize.isMobile ? '60px' : '80px',
+                        maxWidth: screenSize.isMobile ? '60px' : '80px',
                         textAlign: 'center',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.drCr === 'DR' ? '#d32f2f' : 
