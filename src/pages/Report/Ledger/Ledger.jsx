@@ -269,10 +269,8 @@ const Ledger = () => {
       setCompanyDisplay('Select Company');
     } else if (tempSelectedCompany.length === allCompanies.length) {
       setCompanyDisplay('ALL');
-    } else if (tempSelectedCompany.length === 1) {
-      setCompanyDisplay(tempSelectedCompany[0]);
     } else {
-      setCompanyDisplay(`${tempSelectedCompany.length} Companies Selected`);
+      setCompanyDisplay(tempSelectedCompany.join(', '));
     }
     setShowCompanyPopup(false);
     // Move focus to search button after selecting company
@@ -326,9 +324,14 @@ const Ledger = () => {
     try {
       setIsLoading(true);
       
+      // Convert companyCode array to string (take first company if multiple selected)
+      const compCodeParam = Array.isArray(companyCode) 
+        ? (companyCode.length > 0 ? companyCode[0] : '') 
+        : companyCode;
+      
       const response = await get(API_ENDPOINTS.LEDGER.GET_LEDGER(
         partyCode,
-        companyCode,
+        compCodeParam,
         fromDate,
         toDate
       ));
@@ -514,6 +517,7 @@ const Ledger = () => {
       minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
+      
     },
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1084,8 +1088,8 @@ const Ledger = () => {
           {/* From Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 1 100%' : screenSize.isTablet ? '1 1 calc(50% - 6px)' : '1 1 auto',
-            minWidth: screenSize.isMobile ? '100%' : screenSize.isTablet ? 'calc(50% - 6px)' : '180px',
+            flex: screenSize.isMobile ? '1 1 100%' : screenSize.isTablet ? '1 1 calc(50% - 6px)' : '0 1 auto',
+            minWidth: screenSize.isMobile ? '100%' : screenSize.isTablet ? 'calc(50% - 6px)' : 'auto',
             maxWidth: screenSize.isTablet && !screenSize.isDesktop ? 'calc(50% - 6px)' : 'none',
           }}>
             <label style={styles.inlineLabel}>From Date:</label>
@@ -1111,8 +1115,8 @@ const Ledger = () => {
           {/* To Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 1 100%' : screenSize.isTablet ? '1 1 calc(50% - 6px)' : '1 1 auto',
-            minWidth: screenSize.isMobile ? '100%' : screenSize.isTablet ? 'calc(50% - 6px)' : '180px',
+            flex: screenSize.isMobile ? '1 1 100%' : screenSize.isTablet ? '1 1 calc(50% - 6px)' : '0 1 auto',
+            minWidth: screenSize.isMobile ? '100%' : screenSize.isTablet ? 'calc(50% - 6px)' : 'auto',
             maxWidth: screenSize.isTablet && !screenSize.isDesktop ? 'calc(50% - 6px)' : 'none',
           }}>
             <label style={styles.inlineLabel}>To Date:</label>
@@ -1140,7 +1144,7 @@ const Ledger = () => {
             <div style={{
               ...styles.formField,
               flex: '1 1 auto',
-              minWidth: '200px',
+              minWidth: '250px',
             }}>
               <label style={styles.inlineLabel}>Party:</label>
               <div
@@ -1179,7 +1183,7 @@ const Ledger = () => {
             <div style={{
               ...styles.formField,
               flex: '1 1 auto',
-              minWidth: '220px',
+              minWidth: '280px',
             }}>
               <label style={styles.inlineLabel}>Company:</label>
               <div
@@ -1436,7 +1440,7 @@ const Ledger = () => {
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Closing Balance</span>
             <span style={styles.balanceValue}>
-              ₹{parseFloat((closingBalance.debit || 0) - (closingBalance.credit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{parseFloat((closingBalance.credit || 0) - (closingBalance.debit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         </div>
