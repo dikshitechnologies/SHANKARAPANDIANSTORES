@@ -25,8 +25,9 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 
 const SalesReturnRegister = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2026-01-05');
-  const [toDate, setToDate] = useState('2026-01-05');
+  const getTodayISO = () => new Date().toISOString().substring(0, 10);
+  const [fromDate, setFromDate] = useState(getTodayISO());
+  const [toDate, setToDate] = useState(getTodayISO());
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
@@ -177,8 +178,9 @@ const SalesReturnRegister = () => {
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    setFromDate('2026-01-05');
-    setToDate('2026-01-05');
+    const today = getTodayISO();
+    setFromDate(today);
+    setToDate(today);
     setSalesReturnData([]);
   };
 
