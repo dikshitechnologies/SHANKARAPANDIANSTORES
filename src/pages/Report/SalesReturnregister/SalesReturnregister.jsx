@@ -25,9 +25,8 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 
 const SalesReturnRegister = () => {
   // --- STATE MANAGEMENT ---
-  const getTodayISO = () => new Date().toISOString().substring(0, 10);
-  const [fromDate, setFromDate] = useState(getTodayISO());
-  const [toDate, setToDate] = useState(getTodayISO());
+  const [fromDate, setFromDate] = useState('2026-01-05');
+  const [toDate, setToDate] = useState('2026-01-05');
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
@@ -178,9 +177,8 @@ const SalesReturnRegister = () => {
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    const today = getTodayISO();
-    setFromDate(today);
-    setToDate(today);
+    setFromDate('2026-01-05');
+    setToDate('2026-01-05');
     setSalesReturnData([]);
   };
 
@@ -410,19 +408,18 @@ const SalesReturnRegister = () => {
       width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
       maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
     },
-    td: {
+  td: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.medium,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: '8px 6px',
+      padding: screenSize.isMobile ? '8px 4px' : screenSize.isTablet ? '10px 6px' : '12px 8px',
       textAlign: 'center',
-      border: '1px solid #ccc',
+      border: '1px solid #e0e0e0',
       color: '#333',
-      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      minWidth: '80px',
     },
+
     footerSection: {
       position: 'fixed',
       bottom: 0,
