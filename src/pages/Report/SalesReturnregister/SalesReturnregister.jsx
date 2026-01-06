@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import { API_BASE } from '../../../api/apiService';
-
+import { useAuth } from '../../../context/AuthContext';
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -33,6 +33,8 @@ const formatDate = (date) => {
 };
 
 const SalesReturnRegister = () => {
+  
+    const { userData } = useAuth() || {};
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
   const [fromDate, setFromDate] = useState(currentDate);
@@ -134,7 +136,7 @@ const SalesReturnRegister = () => {
       const apiFromDate = formatDateForAPI(fromDate);
       const apiToDate = formatDateForAPI(toDate);
 
-      const response = await fetch(`${API_BASE}${API_ENDPOINTS.SALES_RETURN_REGISTER.GET_SALES_RETURN_REGISTER(apiFromDate, apiToDate, '001', 1, 200)}`);
+      const response = await fetch(`${API_BASE}${API_ENDPOINTS.SALES_RETURN_REGISTER.GET_SALES_RETURN_REGISTER(apiFromDate, apiToDate,  userData.companyCode, 1, 200)}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
