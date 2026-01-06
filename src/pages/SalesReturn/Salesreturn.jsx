@@ -3243,6 +3243,21 @@ const handleTableKeyDown = (e, rowIndex, field) => {
   // 🚨 RULE 2: QTY FIELD LOGIC
   // =====================================================
   if (field === 'qty') {
+    // If qty is empty or zero, do not move to next row — require user to enter a qty first
+    const currentQtyRaw = (currentItem.qty || '').toString().trim();
+    const currentQtyNum = parseFloat(currentQtyRaw) || 0;
+    if (!currentQtyRaw || currentQtyNum === 0) {
+      // Keep focus on the qty input and prompt the user
+      toast.warning('Please enter quantity before moving to next row');
+      setTimeout(() => {
+        const qtyInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="qty"]`);
+        if (qtyInput) {
+          qtyInput.focus();
+          qtyInput.select();
+        }
+      }, 10);
+      return;
+    }
     // If NOT last row → move to next row barcode
     if (!isLastRow) {
       setTimeout(() => {
