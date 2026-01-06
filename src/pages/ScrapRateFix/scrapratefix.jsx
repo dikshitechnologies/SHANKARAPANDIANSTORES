@@ -386,6 +386,9 @@ const handleConfirmClearAll = () => {
     prev.map(scrap => ({ ...scrap, rate: "" }))
   );
 
+  // Clear the search term as well
+  setSearchTerm("");
+
   // toast.success("All rate values have been cleared.", {
   //   position: "top-right",
   //   autoClose: 3000,
