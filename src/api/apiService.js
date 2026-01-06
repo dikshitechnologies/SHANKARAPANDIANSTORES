@@ -4,7 +4,7 @@ import axios from "axios";
 // Axios Instance
 // ---------------------
 const apiService = axios.create({
-  baseURL: "http://dikshiserver/spstorewebapi/api/",
+  baseURL: "https://dikshi.ddns.net/spstorewebapi/api/",
   headers: { "Content-Type": "application/json" },
 });
 
@@ -19,7 +19,7 @@ apiService.interceptors.response.use(
 // ---------------------
 // API BASE
 // ---------------------
-export const API_BASE = "http://dikshiserver/spstorewebapi/api/";
+export const API_BASE = "https://dikshi.ddns.net/spstorewebapi/api/";
 
 // ---------------------
 // Request Wrapper (NO ALERTS)

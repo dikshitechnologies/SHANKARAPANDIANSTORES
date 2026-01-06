@@ -52,8 +52,8 @@ const Ledger = () => {
   
   // Popup states for Company
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
-  const [tempSelectedCompany, setTempSelectedCompany] = useState('');
-  const [tempSelectedCompanyCode, setTempSelectedCompanyCode] = useState('');
+  const [tempSelectedCompany, setTempSelectedCompany] = useState([]);
+  const [tempSelectedCompanyCode, setTempSelectedCompanyCode] = useState([]);
   const [companyDisplay, setCompanyDisplay] = useState('Select Company');
 
   // --- REFS ---
@@ -201,8 +201,8 @@ const Ledger = () => {
   };
 
   const handleCompanyClick = () => {
-    setTempSelectedCompany(company);
-    setTempSelectedCompanyCode(companyCode);
+    setTempSelectedCompany(Array.isArray(company) ? company : (company ? [company] : []));
+    setTempSelectedCompanyCode(Array.isArray(companyCode) ? companyCode : (companyCode ? [companyCode] : []));
     setShowCompanyPopup(true);
   };
 
@@ -227,8 +227,28 @@ const Ledger = () => {
   };
 
   const handleCompanySelect = (selectedCompany) => {
-    setTempSelectedCompany(selectedCompany.compName);
-    setTempSelectedCompanyCode(selectedCompany.compCode);
+    if (selectedCompany === 'ALL') {
+      // Toggle ALL selection
+      if (tempSelectedCompanyCode.length === allCompanies.length) {
+        // Deselect all
+        setTempSelectedCompany([]);
+        setTempSelectedCompanyCode([]);
+      } else {
+        // Select all
+        setTempSelectedCompany(allCompanies.map(c => c.compName));
+        setTempSelectedCompanyCode(allCompanies.map(c => c.compCode));
+      }
+    } else {
+      // Toggle individual company selection
+      const isSelected = tempSelectedCompanyCode.includes(selectedCompany.compCode);
+      if (isSelected) {
+        setTempSelectedCompany(tempSelectedCompany.filter(name => name !== selectedCompany.compName));
+        setTempSelectedCompanyCode(tempSelectedCompanyCode.filter(code => code !== selectedCompany.compCode));
+      } else {
+        setTempSelectedCompany([...tempSelectedCompany, selectedCompany.compName]);
+        setTempSelectedCompanyCode([...tempSelectedCompanyCode, selectedCompany.compCode]);
+      }
+    }
   };
 
   const handlePartyPopupOk = () => {
@@ -245,7 +265,15 @@ const Ledger = () => {
   const handleCompanyPopupOk = () => {
     setCompany(tempSelectedCompany);
     setCompanyCode(tempSelectedCompanyCode);
-    setCompanyDisplay(tempSelectedCompany || 'Select Company');
+    if (tempSelectedCompany.length === 0) {
+      setCompanyDisplay('Select Company');
+    } else if (tempSelectedCompany.length === allCompanies.length) {
+      setCompanyDisplay('ALL');
+    } else if (tempSelectedCompany.length === 1) {
+      setCompanyDisplay(tempSelectedCompany[0]);
+    } else {
+      setCompanyDisplay(`${tempSelectedCompany.length} Companies Selected`);
+    }
     setShowCompanyPopup(false);
     // Move focus to search button after selecting company
     setTimeout(() => {
@@ -267,8 +295,8 @@ const Ledger = () => {
   };
 
   const handleCompanyClearSelection = () => {
-    setTempSelectedCompany('');
-    setTempSelectedCompanyCode('');
+    setTempSelectedCompany([]);
+    setTempSelectedCompanyCode([]);
   };
 
   const handlePartySearch = (e) => {
@@ -350,8 +378,8 @@ const Ledger = () => {
     setParty('');
     setPartyCode('');
     setPartyDisplay('Select Party');
-    setCompany('');
-    setCompanyCode('');
+    setCompany([]);
+    setCompanyCode([]);
     setCompanyDisplay('Select Company');
     setLedgerData([]);
     setOpeningBalance(0);
@@ -1054,8 +1082,8 @@ const Ledger = () => {
           {/* From Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '0.7',
+            minWidth: screenSize.isMobile ? '100%' : '90px',
           }}>
             <label style={styles.inlineLabel}>From Date:</label>
             <input
@@ -1080,8 +1108,8 @@ const Ledger = () => {
           {/* To Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '0.7',
+            minWidth: screenSize.isMobile ? '100%' : '90px',
           }}>
             <label style={styles.inlineLabel}>To Date:</label>
             <input
@@ -1106,8 +1134,8 @@ const Ledger = () => {
           {/* Party with Popup */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '1.4',
+            minWidth: screenSize.isMobile ? '100%' : '140px',
           }}>
             <label style={styles.inlineLabel}>Party:</label>
             <div
@@ -1143,8 +1171,8 @@ const Ledger = () => {
           {/* Company with Popup */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '1.6',
+            minWidth: screenSize.isMobile ? '100%' : '150px',
           }}>
             <label style={styles.inlineLabel}>Company:</label>
             <div
@@ -1230,13 +1258,14 @@ const Ledger = () => {
           <table style={styles.table}>
             <thead>
               <tr>
+                <th style={{ ...styles.th, minWidth: '50px', width: '50px', maxWidth: '50px' }}>S.No</th>
                 <th style={styles.th}>Date</th>
                 <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Name</th>
                 <th style={styles.th}>Voucher No</th>
                 <th style={styles.th}>Type</th>
                 <th style={styles.th}>Cr/Dr</th>
                 <th style={styles.th}>Bill No</th>
-                <th style={styles.th}>Billet</th>
+                <th style={styles.th}>Bill Date</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Amount</th>
               </tr>
             </thead>
@@ -1245,6 +1274,7 @@ const Ledger = () => {
                 ledgerData.length > 0 ? (
                   ledgerData.map((row, index) => (
                     <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                      <td style={{ ...styles.td, minWidth: '50px', width: '50px', maxWidth: '50px' }}>{index + 1}</td>
                       <td style={styles.td}>{row.date}</td>
                       <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px' }}>{row.name}</td>
                       <td style={styles.td}>{row.voucherNo}</td>
@@ -1262,14 +1292,14 @@ const Ledger = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                       No records found
                     </td>
                   </tr>
                 )
               ) : (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                     {/* Enter search criteria and click "Search" to view ledger entries */}
                   </td>
                 </tr>
@@ -1398,7 +1428,7 @@ const Ledger = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={styles.popupHeader}>
-              Select Company
+              Select Companies
               <button 
                 style={styles.closeButton}
                 onClick={handleCompanyPopupClose}
@@ -1408,11 +1438,24 @@ const Ledger = () => {
             </div>
             
             <div style={styles.listContainer}>
+              {/* ALL Option */}
+              <div 
+                style={tempSelectedCompanyCode.length === allCompanies.length && allCompanies.length > 0 ? styles.selectedListItem : styles.listItem}
+                onClick={() => handleCompanySelect('ALL')}
+              >
+                <div style={tempSelectedCompanyCode.length === allCompanies.length && allCompanies.length > 0 ? styles.selectedListCheckbox : styles.listCheckbox}>
+                  {tempSelectedCompanyCode.length === allCompanies.length && allCompanies.length > 0 && <div style={styles.checkmark}>✓</div>}
+                </div>
+                <div style={styles.listTextContainer}>
+                  <span style={styles.listText}>ALL</span>
+                </div>
+              </div>
+              
               {allCompanies.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No companies found</div>
               ) : (
                 allCompanies.map((companyItem) => {
-                  const isSelected = tempSelectedCompanyCode === companyItem.compCode;
+                  const isSelected = tempSelectedCompanyCode.includes(companyItem.compCode);
                   return (
                     <div 
                       key={companyItem.compCode} 

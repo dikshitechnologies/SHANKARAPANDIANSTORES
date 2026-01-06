@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from "../../hooks/usePermissions";
+import { getCompCode } from '../../utils/userUtils';
 import { PERMISSION_CODES } from "../../constants/permissions";
 
 const Icon = {
@@ -32,7 +33,7 @@ const Scrapprocurement = () => {
   // --- STATE MANAGEMENT ---
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [pageSize, setPageSize] = useState(20);
-  const fCompCode = "001";
+  const fCompCode = getCompCode();
   const selectAllOnFocus = (e) => {
   const el = e.target;
   if (el && el.value) {
@@ -179,7 +180,7 @@ const Scrapprocurement = () => {
   // Fetch next bill number
   const fetchNextBillNo = async () => {
     try {
-      const response = await axiosInstance.get(API_ENDPOINTS.Scrap_Procurement.GET_VOUCHER_NO);
+      const response = await axiosInstance.get(API_ENDPOINTS.Scrap_Procurement.GET_VOUCHER_NO(fCompCode));
       
       const voucherNo = response?.data?.voucherNo;
       
@@ -723,7 +724,7 @@ useEffect(() => {
   // NEW: Function to load a voucher for editing
   const loadVoucherForEditing = async (voucherNo) => {
     try {
-      const url = API_ENDPOINTS.Scrap_Procurement.GET_VOUCHER_BY_NO(voucherNo);
+      const url = API_ENDPOINTS.Scrap_Procurement.GET_VOUCHER_BY_NO(voucherNo, fCompCode);
       const response = await axiosInstance.get(url);
       
       const voucherData = response?.data?.data || response?.data;
@@ -820,7 +821,7 @@ useEffect(() => {
       onConfirm: async () => {
         try {
           const response = await axiosInstance.delete(
-            API_ENDPOINTS.Scrap_Procurement.DELETE_SCRAP_PROCUREMENT(voucherNo)
+            API_ENDPOINTS.Scrap_Procurement.DELETE_SCRAP_PROCUREMENT(voucherNo, fCompCode)
           );
           
           

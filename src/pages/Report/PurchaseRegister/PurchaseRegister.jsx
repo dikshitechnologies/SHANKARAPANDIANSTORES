@@ -903,7 +903,7 @@ const PurchaseRegister = () => {
                 <th style={styles.th}>Bill No</th>
                 <th style={styles.th}>Sub Total</th>
                 <th style={styles.th}>Less</th>
-                <th style={styles.th}>Nett</th>
+                <th style={styles.th}>Amount</th>
                 <th style={styles.th}>Qty</th>
               </tr>
             </thead>

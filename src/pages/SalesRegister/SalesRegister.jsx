@@ -327,7 +327,7 @@ const SalesRegister = () => {
 
   // --- STYLES ---
   const TYPOGRAPHY = {
-    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    // fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: {
       xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
       sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
@@ -487,7 +487,7 @@ const SalesRegister = () => {
     td: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
+       fontWeight: TYPOGRAPHY.fontWeight.bold, // ✅ BOLD
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       padding: '8px 6px',
       textAlign: 'center',
@@ -664,7 +664,7 @@ const SalesRegister = () => {
                 colName === 'billAmount' ? '100px' :
                 colName === 'time' ? '100px' : '80px',
       fontFamily: ['billAmount', 'qty'].includes(colName) ? '"Courier New", monospace' : 'inherit',
-      fontWeight: ['billAmount', 'qty'].includes(colName) ? '600' : '400',
+      fontWeight: ['billAmount', 'qty'].includes(colName) ? '700' : '600',
       cursor: 'default',
     };
 
@@ -833,7 +833,7 @@ const SalesRegister = () => {
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Date</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Amount</th>
                 <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>Qty</th>
-                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Time</th>
+                {/* <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Time</th> */}
               </tr>
             </thead>
             <tbody>
@@ -869,14 +869,14 @@ const SalesRegister = () => {
                       <td style={getCellStyle(rowIndex, 'qty')}>
                         {row.qty}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'time')}>
+                      {/* <td style={getCellStyle(rowIndex, 'time')}>
                         {row.time}
-                      </td>
+                      </td> */}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                       No records found
                     </td>
                   </tr>
@@ -892,7 +892,7 @@ const SalesRegister = () => {
             {tableLoaded && salesData.length > 0 && (
               <tfoot>
                 <tr style={{ backgroundColor: '#f0f8ff', borderTop: '2px solid #1B91DA' }}>
-                  <td colSpan="4" style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold' }}>
+                  <td colSpan="3" style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold' }}>
                     Total
                   </td>
                   <td style={{ ...styles.td, textAlign: 'center', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
