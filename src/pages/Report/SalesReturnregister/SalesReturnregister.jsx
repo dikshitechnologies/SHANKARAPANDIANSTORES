@@ -23,10 +23,20 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// Helper function to format date as YYYY-MM-DD
+const formatDate = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const SalesReturnRegister = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2026-01-05');
-  const [toDate, setToDate] = useState('2026-01-05');
+  const currentDate = formatDate(new Date());
+  const [fromDate, setFromDate] = useState(currentDate);
+  const [toDate, setToDate] = useState(currentDate);
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
