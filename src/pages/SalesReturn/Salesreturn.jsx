@@ -6,6 +6,7 @@ import apiService from "../../api/apiService";
 import axiosInstance from "../../api/axiosInstance";
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
@@ -43,9 +44,21 @@ const ENTER_FIELDS = [
 ];
 
 
+const customRound = (amount) => {
+  const integerPart = Math.floor(amount);
+  const decimalPart = amount - integerPart;
+
+  if (decimalPart > 0.5) {
+    return integerPart + 1; // round UP
+  }
+  return integerPart; // round DOWN
+};
+
+
 const SalesReturn = () => {
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  const { userData } = useAuth();
   
   const formPermissions = useMemo(() => ({
     add: hasAddPermission(PERMISSION_CODES.SALES_RETURN),
@@ -192,8 +205,9 @@ const [roundOffValue, setRoundOffValue] = useState(0);
     fieldName: 'billDate'
   });
 
+// Use rounded total amount instead of calculated net amount
 const netAmount = Math.max(
-  totalAmount - (discountAmount || 0),
+  roundedTotalAmount || Math.max(totalAmount - (discountAmount || 0), 0),
   0
 );
 
@@ -677,13 +691,18 @@ const resetForm = async () => {
   }, [billDetails, items, checkFormValidity]);
 
   // ---------- API FUNCTIONS ----------
- const fetchSalesInvoiceBillList = async (page = 1, pageSize = 20) => {
+ const fetchSalesInvoiceBillList = async (page = 1, pageSize = 20, companyCode) => {
   try {
     setIsLoadingBills(true);
-    const companyCode = '001';
-    
+    const comp = companyCode || userData?.companyCode;
+    if (!comp) {
+      console.error('Company code is not available for fetching sales invoice bill list');
+      setSalesInvoiceBills([]);
+      return [];
+    }
+
     // Use the new endpoint directly
-    const endpoint = API_ENDPOINTS.sales_return.getSalesInvoiceBillList(page, pageSize, companyCode);
+    const endpoint = API_ENDPOINTS.sales_return.getSalesInvoiceBillList(page, pageSize, comp);
     
     const response = await apiService.get(endpoint);
     
@@ -1067,7 +1086,11 @@ const handleApplyBillNumber = async () => {
     try {
       setLoading(true);
       setError("");
-      const companyCode = '001';
+      const companyCode = userData?.companyCode;
+      if (!companyCode) {
+        console.error('Company code is not available in auth context');
+        return;
+      }
       const response = await apiService.get(API_ENDPOINTS.sales_return.getMaxVoucherNo(companyCode));
       
       if (response && response.maxVoucherNo) {
@@ -1207,14 +1230,19 @@ const handleApplyBillNumber = async () => {
     }
   };
 
-  const fetchVoucherList = async (companyCode = '001') => {
+  const fetchVoucherList = async (companyCode) => {
     try {
       setLoading(true);
       setError("");
-      
-      const endpoint = API_ENDPOINTS.sales_return?.getVoucherList ? 
-        API_ENDPOINTS.sales_return.getVoucherList(companyCode) : 
-        `SalesReturn/VoucherList/${companyCode}`;
+      const comp = companyCode || userData?.companyCode;
+      if (!comp) {
+        console.error('Company code is not available for fetching voucher list');
+        setVoucherList([]);
+        return [];
+      }
+      const endpoint = API_ENDPOINTS.sales_return?.getVoucherList ?
+        API_ENDPOINTS.sales_return.getVoucherList(comp) :
+        `SalesReturn/VoucherList/${comp}`;
       
       const response = await apiService.get(endpoint);
       
@@ -1386,7 +1414,7 @@ setTimeout(() => {
 
 
 
-const createSalesReturn = async () => {
+  const createSalesReturn = async () => {
   try {
     setLoading(true);
     setError("");
@@ -1418,8 +1446,8 @@ const createSalesReturn = async () => {
         customerName: (billDetails.custName || "").toString(),
         salesMansName: (billDetails.salesman || "").toString(),
         salesMansCode: (billDetails.salesmanCode || "").toString(),
-        compCode: "001",
-        userCode: "001",
+        compCode: userData?.companyCode || "",
+        userCode: userData?.userCode || "",
         billAMT: totalAmount.toFixed(2).toString(),
         RefNo: (billDetails.newBillNo || "").toString(),
         discount: discountPercent.toString(), // Add discount percentage
@@ -1493,7 +1521,7 @@ const createSalesReturn = async () => {
 
 
 
-const updateSalesReturn = async () => {
+  const updateSalesReturn = async () => {
   try {
     setLoading(true);
     setError("");
@@ -1519,8 +1547,8 @@ const updateSalesReturn = async () => {
         customerName: (billDetails.custName || "").toString(),
         salesMansName: (billDetails.salesman || "").toString(),
         salesMansCode: (billDetails.salesmanCode || "002").toString(),
-        compCode: "001",
-        userCode: "001",
+        compCode: userData?.companyCode || "",
+        userCode: userData?.userCode || "",
         billAMT: totalAmount.toFixed(2).toString(),
         refNo: (billDetails.newBillNo || "").toString(),
         discount: discountPercent.toString(), // Add discount percentage
@@ -1606,7 +1634,8 @@ const updateSalesReturn = async () => {
         throw new Error("Voucher number is required");
       }
       
-      const companyCode = '001';
+      const companyCode = userData?.companyCode;
+      if (!companyCode) throw new Error('Company code is not available');
       const endpoint = `SalesReturn/DeleteSalesReturn/${voucherNo}?compCode=${companyCode}`;
       
       let response;
@@ -1662,7 +1691,7 @@ const updateSalesReturn = async () => {
   };
 
 // ==================== GET SALES RETURN DETAILS ====================
-const fetchSalesReturnDetails = async (voucherNo, companyCode = '001') => {
+const fetchSalesReturnDetails = async (voucherNo, companyCode) => {
   try {
     setLoading(true);
     setError("");
@@ -1670,8 +1699,9 @@ const fetchSalesReturnDetails = async (voucherNo, companyCode = '001') => {
     if (!voucherNo) {
       throw new Error("Voucher number is required");
     }
-    
-    let endpoint = `SalesReturn/GetSalesReturn/${voucherNo}/${companyCode}`;
+    const comp = companyCode || userData?.companyCode;
+    if (!comp) throw new Error('Company code is not available');
+    let endpoint = `SalesReturn/GetSalesReturn/${voucherNo}/${comp}`;
     
     console.log("🔍 DEBUG - Fetching from endpoint:", endpoint);
     
@@ -1965,13 +1995,22 @@ const loadVoucherForEditing = async (voucherNo) => {
   }
 };
 
-  useEffect(() => {
+useEffect(() => {
   const total = parseFloat(totalAmount || 0);
   const percent = parseFloat(discountPercent || 0);
 
   const calculatedDiscount = (total * percent) / 100;
-
+  
+  // Calculate net amount before rounding
+  const netAmountBeforeRound = total - calculatedDiscount;
+  
+  // Apply round-off logic
+  const roundedAmount = Math.round(netAmountBeforeRound);
+  const roundOffValue = (roundedAmount - netAmountBeforeRound).toFixed(2);
+  
   setDiscountAmount(calculatedDiscount.toFixed(2));
+  setRoundedTotalAmount(roundedAmount);
+  setRoundOffValue(roundOffValue);
 }, [totalAmount, discountPercent]);
 
 
@@ -5156,10 +5195,8 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
     </td>
 
     <td style={{ textAlign: 'right', padding: '10px', color: '#0d47a1' }}>
-      ₹{totalAmount.toLocaleString('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })}
+      ₹{customRound(totalAmount).toLocaleString('en-IN')}
+
     </td>
 
     <td />

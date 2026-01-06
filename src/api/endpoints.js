@@ -143,8 +143,8 @@ export const API_ENDPOINTS = {
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
       
-      getSalesInvoiceBillList: (page = 1, pageSize = 20, compCode = "001") =>
-    `SalesReturn/Salesinvoicebilllist?page=${page}&pageSize=${pageSize}&compCode=${compCode}`,
+      getSalesInvoiceBillList: (page = 1, pageSize = 20, compCode) =>
+      `SalesReturn/Salesinvoicebilllist?page=${page}&pageSize=${pageSize}${compCode ? `&compCode=${compCode}` : ''}`,
 
         // NEW: ADD THIS VOUCHER DETAILS ENDPOINT
     getVoucherDetails: (voucherNo) => `SalesReturn/GetVoucherDetails?voucherNo=${voucherNo}`,

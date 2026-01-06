@@ -1660,10 +1660,8 @@ const clearFormData = async () => {
       backgroundColor: 'white',
       borderRadius: 0,
       padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
-      margin: 0,
-      marginBottom: 0,
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      overflowY: 'visible',
+      overflowY: 'auto',
       maxHeight: 'none',
     },
     tableSection: {
@@ -1721,7 +1719,7 @@ const clearFormData = async () => {
     gridRow: {
       display: 'grid',
       gap: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '15px',
-      marginBottom: screenSize.isMobile ? '12px' : screenSize.isTablet ? '15px' : '18px',
+      // marginBottom: screenSize.isMobile ? '12px' : screenSize.isTablet ? '15px' : '18px',
     },
     tableContainer: {
       backgroundColor: 'white',
@@ -2147,14 +2145,14 @@ const clearFormData = async () => {
           {/* Customer Name - WIDER FIELD */}
           <div style={{
       ...styles.formField,
-      gridColumn: screenSize.isMobile ? 'span 2' : 'auto',
-      width: screenSize.isMobile ? '100%' : 'auto'
+      gridColumn: screenSize.isMobile ? 'span 1' : 'auto',
+      width: screenSize.isMobile ? '100%' : '100%'
     }}>
             <label style={styles.inlineLabel}>Customer:</label>
             <div style={{ 
         position: 'relative', 
-        flex: screenSize.isMobile ? '1 1 auto' : '2 1 auto', 
-        minWidth: screenSize.isMobile ? '150px' : '200px',
+        flex: '1 1 auto',
+        minWidth: screenSize.isMobile ? '150px' : '180px',
         width: '50%'
       }}>
               <input
@@ -2162,8 +2160,8 @@ const clearFormData = async () => {
                 style={{
                   ...styles.inlineInput,
                   ...(focusedField === 'custName' && styles.focusedInput),
-                  paddingRight: '40px',
-            width: '100%'
+                  // paddingRight: '40px',
+                  // width: '50%'
                 }}
                 value={billDetails.custName}
                 name="custName"
@@ -2287,8 +2285,8 @@ const clearFormData = async () => {
           {/* Salesman */}
           <div style={{
       ...styles.formField,
-      gridColumn: screenSize.isMobile ? 'span 2' : 'auto',
-      width: screenSize.isMobile ? '100%' : 'auto'
+      gridColumn: screenSize.isMobile ? 'span 1' : 'auto',
+      width: screenSize.isMobile ? '100%' : '100%'
     }}>
             <label style={styles.inlineLabel}>Salesman:</label>
             <div style={{ 
