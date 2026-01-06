@@ -23,11 +23,20 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// Helper function to format date as YYYY-MM-DD
+const formatDate = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const SalesReturnRegister = () => {
   // --- STATE MANAGEMENT ---
-  const getTodayISO = () => new Date().toISOString().substring(0, 10);
-  const [fromDate, setFromDate] = useState(getTodayISO());
-  const [toDate, setToDate] = useState(getTodayISO());
+  const currentDate = formatDate(new Date());
+  const [fromDate, setFromDate] = useState(currentDate);
+  const [toDate, setToDate] = useState(currentDate);
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
@@ -178,9 +187,8 @@ const SalesReturnRegister = () => {
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    const today = getTodayISO();
-    setFromDate(today);
-    setToDate(today);
+    setFromDate('2026-01-05');
+    setToDate('2026-01-05');
     setSalesReturnData([]);
   };
 
@@ -410,19 +418,20 @@ const SalesReturnRegister = () => {
       width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
       maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
     },
-    td: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: '8px 6px',
-      textAlign: 'center',
-      border: '1px solid #ccc',
-      color: '#333',
-      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-    },
+ td: {
+  fontFamily: TYPOGRAPHY.fontFamily,
+  fontSize: TYPOGRAPHY.fontSize.xs, // Match th font size (xs = 11-13px)
+  fontWeight: TYPOGRAPHY.fontWeight.bold, // Match th bold (700)
+  lineHeight: TYPOGRAPHY.lineHeight.tight, // Match th line height (1.2)
+  padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px', // Match th padding
+  textAlign: 'center',
+  border: '1px solid #e0e0e0',
+  color: '#333',
+  minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+  width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+  maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+},
+
     footerSection: {
       position: 'fixed',
       bottom: 0,
@@ -698,90 +707,90 @@ const SalesReturnRegister = () => {
                 <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px' }}>Bill Amount</th>
               </tr>
             </thead>
-            <tbody>
-              {tableLoaded ? (
-                salesReturnData.length > 0 ? (
-                  salesReturnData.map((row, index) => (
-                    <tr key={index} style={{ 
-                      backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
-                      ...(row.isTotal ? { 
-                        backgroundColor: '#f0f8ff', 
-                        fontWeight: 'bold',
-                        borderTop: '2px solid #1B91DA'
-                      } : {})
-                    }}>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '70px', 
-                        width: '70px', 
-                        maxWidth: '70px',
-                        textAlign: 'center',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.no || ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '200px', 
-                        width: '200px', 
-                        maxWidth: '200px',
-                        textAlign: 'left',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.salesParty}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '120px', 
-                        width: '120px', 
-                        maxWidth: '120px',
-                        textAlign: 'center',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.billNo || ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '120px', 
-                        width: '120px', 
-                        maxWidth: '120px',
-                        textAlign: 'center',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.billDate || ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '140px', 
-                        width: '140px', 
-                        maxWidth: '140px',
-                        textAlign: 'right',
-                        fontWeight: row.isTotal ? 'bold' : 'normal',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.billAmount ? `₹${row.billAmount}` : ''}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      No sales return records found
-                    </td>
-                  </tr>
-                )
-              ) : (
-                <tr>
-                  {/* <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Enter search criteria and click "Search" to view sales return register
-                  </td> */}
-                </tr>
-              )}
-            </tbody>
+          <tbody>
+  {tableLoaded ? (
+    salesReturnData.length > 0 ? (
+      salesReturnData.map((row, index) => (
+        <tr key={index} style={{ 
+          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
+          ...(row.isTotal ? { 
+            backgroundColor: '#f0f8ff', 
+            // fontWeight: 'bold', // REMOVED
+            borderTop: '2px solid #1B91DA'
+          } : {})
+        }}>
+          <td style={{ 
+            ...styles.td, 
+            minWidth: '70px', 
+            width: '70px', 
+            maxWidth: '70px',
+            textAlign: 'center',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.no || ''}
+          </td>
+          <td style={{ 
+            ...styles.td, 
+            minWidth: '200px', 
+            width: '200px', 
+            maxWidth: '200px',
+            textAlign: 'left',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.salesParty}
+          </td>
+          <td style={{ 
+            ...styles.td, 
+            minWidth: '120px', 
+            width: '120px', 
+            maxWidth: '120px',
+            textAlign: 'center',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.billNo || ''}
+          </td>
+          <td style={{ 
+            ...styles.td, 
+            minWidth: '120px', 
+            width: '120px', 
+            maxWidth: '120px',
+            textAlign: 'center',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.billDate || ''}
+          </td>
+          <td style={{ 
+            ...styles.td, 
+            minWidth: '140px', 
+            width: '140px', 
+            maxWidth: '140px',
+            textAlign: 'right',
+            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
+            color: row.isTotal ? '#1565c0' : '#333'
+          }}>
+            {row.billAmount ? `₹${row.billAmount}` : ''}
+          </td>
+        </tr>
+      ))
+    ) : (
+      <tr>
+        <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+          No sales return records found
+        </td>
+      </tr>
+    )
+  ) : (
+    <tr>
+      {/* <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+        Enter search criteria and click "Search" to view sales return register
+      </td> */}
+    </tr>
+  )}
+</tbody>
           </table>
         </div>
       </div>

@@ -337,6 +337,29 @@ const GroupwiseStock = () => {
       padding: screenSize.isMobile ? '12px 16px' : '16px 20px',
       borderTopLeftRadius: screenSize.isMobile ? '8px' : '10px',
       borderTopRightRadius: screenSize.isMobile ? '8px' : '10px',
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    closeButton: {
+      position: 'absolute',
+      right: '15px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'rgba(255,255,255,0.2)',
+      border: 'none',
+      color: 'white',
+      fontSize: '24px',
+      cursor: 'pointer',
+      width: '30px',
+      height: '30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '4px',
+      transition: 'all 0.3s ease',
+      lineHeight: '1',
     },
     modalBody: {
       padding: screenSize.isMobile ? '12px 16px' : '18px 20px',
@@ -892,8 +915,8 @@ const GroupwiseStock = () => {
               ← Back
             </button>
             <div style={styles.headerTitle}>
-              {viewLevel === 'items' && `Branch Wise Stock for DIKSHI DEMO(${fromDate} - ${toDate})`}
-              {viewLevel === 'bills' && `Branch Wise Stock for DIKSHI DEMO(${fromDate} - ${toDate})`}
+              {viewLevel === 'items' && `Branch Wise Stock for ${companyDisplay} (${fromDate} - ${toDate})`}
+              {viewLevel === 'bills' && `Branch Wise Stock for ${companyDisplay} (${fromDate} - ${toDate})`}
             </div>
           </div>
         )}
@@ -1132,7 +1155,17 @@ const GroupwiseStock = () => {
       {showCompanyPopup && (
         <div style={styles.modalOverlay} onClick={handleCompanyPopupClose}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
-            <div style={styles.modalHeader}>Select Companies</div>
+            <div style={styles.modalHeader}>
+              Select Companies
+              <button 
+                style={styles.closeButton}
+                onClick={handleCompanyPopupClose}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+              >
+                ×
+              </button>
+            </div>
             <div style={styles.modalBody}>
               {/* Search Input */}
               <div style={{ marginBottom: '15px' }}>

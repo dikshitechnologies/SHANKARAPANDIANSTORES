@@ -486,7 +486,7 @@ const AccountPayables = () => {
     },
     th: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: TYPOGRAPHY.fontSize.xs,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       backgroundColor: '#1B91DA',
@@ -506,7 +506,7 @@ const AccountPayables = () => {
     },
     td: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontSize: TYPOGRAPHY.fontSize.xs,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       padding: '8px 6px',
