@@ -892,8 +892,8 @@ const GroupwiseStock = () => {
               ← Back
             </button>
             <div style={styles.headerTitle}>
-              {viewLevel === 'items' && `Branch Wise Stock for DIKSHI DEMO(${fromDate} - ${toDate})`}
-              {viewLevel === 'bills' && `Branch Wise Stock for DIKSHI DEMO(${fromDate} - ${toDate})`}
+              {viewLevel === 'items' && `Branch Wise Stock for ${companyDisplay} (${fromDate} - ${toDate})`}
+              {viewLevel === 'bills' && `Branch Wise Stock for ${companyDisplay} (${fromDate} - ${toDate})`}
             </div>
           </div>
         )}
