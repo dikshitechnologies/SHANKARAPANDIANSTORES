@@ -1661,7 +1661,7 @@ const clearFormData = async () => {
       borderRadius: 0,
       padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      overflowY: 'visible',
+      overflowY: 'auto',
       maxHeight: 'none',
     },
     tableSection: {
@@ -2151,8 +2151,8 @@ const clearFormData = async () => {
             <label style={styles.inlineLabel}>Customer:</label>
             <div style={{ 
         position: 'relative', 
-        flex: screenSize.isMobile ? '1 1 auto' : '2 1 auto', 
-        minWidth: screenSize.isMobile ? '150px' : '200px',
+        flex: '1 1 auto',
+        minWidth: screenSize.isMobile ? '150px' : '180px',
         width: '50%'
       }}>
               <input
@@ -2160,8 +2160,8 @@ const clearFormData = async () => {
                 style={{
                   ...styles.inlineInput,
                   ...(focusedField === 'custName' && styles.focusedInput),
-                  paddingRight: '40px',
-            width: '100%'
+                  // paddingRight: '40px',
+                  // width: '70%'
                 }}
                 value={billDetails.custName}
                 name="custName"
