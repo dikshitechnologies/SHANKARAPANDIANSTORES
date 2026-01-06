@@ -71,7 +71,7 @@ const Scrapprocurement = () => {
       tax: '',
       sRate: '',
       qty: '',
-      amount: '0.00'
+      amount: ''
     }
   ]);
 
@@ -1550,15 +1550,19 @@ const clearFormData = async () => {
         return; // Just return, don't clear anything
       }
 
-      // Validate amount and qty only for rows with itemName filled
-      const invalidRows = items.filter(item => {
-        if (!item.itemName || item.itemName.trim() === '') return false;
-        return !item.amount || item.amount.trim() === '' || !item.qty || item.qty.trim() === '';
-      });
+      // Validate sRate and qty only for rows with itemName filled
+     const invalidRows = items.filter(item => {
+  if (!item.itemName || item.itemName.trim() === '') return false;
+  
+  const sRateNum = parseFloat(item.sRate || 0);
+  const qtyNum = parseFloat(item.qty || 0);
+  
+  return sRateNum <= 0 || qtyNum <= 0;
+});
       if (invalidRows.length > 0) {
         showConfirmation({
           title: 'Missing Information',
-          message: 'Please fill in required fields: amount and quantity for all items with item name selected',
+          message: 'Please fill in required fields: sRate and quantity',
           type: 'warning',
           confirmText: 'OK',
           showIcon: true,
