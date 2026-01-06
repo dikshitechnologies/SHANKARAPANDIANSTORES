@@ -47,6 +47,7 @@ const AccountPayables = () => {
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
   const [companyDisplay, setCompanyDisplay] = useState('ALL');
+  const [companySearchTerm, setCompanySearchTerm] = useState('');
 
   // --- REFS ---
   const fromDateRef = useRef(null);
@@ -199,6 +200,7 @@ const AccountPayables = () => {
 
   const handlePopupClose = () => {
     setShowCompanyPopup(false);
+    setCompanySearchTerm(''); // Clear search term when popup closes
   };
 
   const handleSearch = async () => {
@@ -760,6 +762,23 @@ const AccountPayables = () => {
   transition: 'all 0.3s ease',
 },
 
+    searchContainer: {
+      padding: '15px 20px',
+      borderBottom: '1px solid #e0e0e0',
+      backgroundColor: '#f8f9fa',
+    },
+    searchInput: {
+      width: '100%',
+      padding: '10px 12px',
+      border: '1px solid #ddd',
+      borderRadius: '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontFamily: TYPOGRAPHY.fontFamily,
+      outline: 'none',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      boxSizing: 'border-box',
+    },
+
     companyList: {
       padding: '20px',
       maxHeight: '300px',
@@ -1212,6 +1231,17 @@ const AccountPayables = () => {
               </button>
             </div>
             
+            {/* Search Bar */}
+            <div style={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="Search companies..."
+                value={companySearchTerm}
+                onChange={(e) => setCompanySearchTerm(e.target.value)}
+                style={styles.searchInput}
+              />
+            </div>
+            
             <div style={styles.companyList}>
               {companies.length > 0 ? (
                 <>
@@ -1226,7 +1256,11 @@ const AccountPayables = () => {
                     <span style={styles.companyText}>ALL</span>
                   </div>
                   {/* Individual companies - Initially UNCHECKED */}
-                  {companies.map((company) => {
+                  {companies
+                    .filter(company => 
+                      company.fCompName.toLowerCase().includes(companySearchTerm.toLowerCase())
+                    )
+                    .map((company) => {
                     const isSelected = tempSelectedCompanies.includes(company.fCompcode);
                     return (
                       <div 

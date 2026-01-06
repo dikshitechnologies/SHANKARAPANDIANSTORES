@@ -112,7 +112,8 @@ const SalesReturn = () => {
   const PAGE_SIZE = 20;
   const [discountPercent, setDiscountPercent] = useState(0);
 const [discountAmount, setDiscountAmount] = useState(0);
-  
+  // Add this state near other state declarations
+const [originalQuantities, setOriginalQuantities] = useState({});
   const [roundedTotalAmount, setRoundedTotalAmount] = useState(0);
 const [roundOffValue, setRoundOffValue] = useState(0);
 
@@ -867,8 +868,42 @@ const openBillDetailsPopup = async (billNo) => {
   }
 };
 
-  const applyBillNumberCore = async () => {
+ const applyBillNumberCore = async () => {
   await handleApplyBillNumber();
+  
+  // Also update originalQuantities here
+  const voucherNo = selectedBillForDetails;
+  const voucherDetails = billDetailsData[voucherNo];
+  
+  if (voucherDetails) {
+    const itemsArray = voucherDetails.items || voucherDetails.details || [];
+    const originalQtyMap = {};
+    
+    itemsArray.forEach((item, index) => {
+      const key = `${item.barcode || ""}-${index}`;
+      if (checkedBills[key]) {
+        const originalQty = Math.abs(parseFloat(item.fTotQty || item.qty || item.quantity || 0));
+        originalQtyMap[item.barcode || item.itemCode || index] = originalQty;
+      }
+    });
+    
+    setOriginalQuantities(originalQtyMap);
+  }
+};
+
+const validateQuantity = (item, newQty, originalQty) => {
+  // Convert to numbers
+  const newQtyNum = parseFloat(newQty) || 0;
+  
+  // If no original quantity (not from bill selection), allow any
+  if (!originalQty) return true;
+  
+  // Check if new quantity exceeds original
+  if (newQtyNum > originalQty) {
+    return false;
+  }
+  
+  return true;
 };
 
 const handleApplyBillNumber = async () => {
@@ -3208,6 +3243,21 @@ const handleTableKeyDown = (e, rowIndex, field) => {
   // 🚨 RULE 2: QTY FIELD LOGIC
   // =====================================================
   if (field === 'qty') {
+    // If qty is empty or zero, do not move to next row — require user to enter a qty first
+    const currentQtyRaw = (currentItem.qty || '').toString().trim();
+    const currentQtyNum = parseFloat(currentQtyRaw) || 0;
+    if (!currentQtyRaw || currentQtyNum === 0) {
+      // Keep focus on the qty input and prompt the user
+      toast.warning('Please enter quantity before moving to next row');
+      setTimeout(() => {
+        const qtyInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="qty"]`);
+        if (qtyInput) {
+          qtyInput.focus();
+          qtyInput.select();
+        }
+      }, 10);
+      return;
+    }
     // If NOT last row → move to next row barcode
     if (!isLastRow) {
       setTimeout(() => {
@@ -3322,27 +3372,58 @@ const handleTableKeyDown = (e, rowIndex, field) => {
     setItems([...items, newRow]);
   };
 
-  const handleItemChange = (id, field, value) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-
-        if (field === 'qty' || field === 'sRate') {
-          const qty = field === 'qty' ? value : updatedItem.qty;
-          const rate = field === 'sRate' ? value : updatedItem.sRate;
-          updatedItem.amount = calculateAmount(qty, rate);
-        }
-
-        return updatedItem;
-      }
-      return item;
-    }));
+ const handleItemChange = (id, field, value) => {
+  if (field === 'qty') {
+    // Find the item
+    const itemIndex = items.findIndex(item => item.id === id);
+    const item = items[itemIndex];
     
-    // Track item search term for popup pre-fill
-    if (field === 'barcode' || field === 'itemName') {
-      setItemSearchTerm(value);
+    // Get original quantity if exists
+    const originalQty = originalQuantities[item.barcode] || 
+                       originalQuantities[item.itemCode] || 
+                       originalQuantities[itemIndex];
+    
+    // Validate the new quantity
+    if (!validateQuantity(item, value, originalQty)) {
+      // Show error message and reset to the original (allowed) quantity
+      toast.error(`Cannot return more than original quantity (${originalQty})`);
+
+      // Prefer resetting to the originalQty (so it doesn't become 0 unexpectedly).
+      const resetValue = originalQty ? String(originalQty) : item.qty;
+
+      setItems(items.map(it => {
+        if (it.id === id) {
+          const updatedItem = { ...it, [field]: resetValue };
+          updatedItem.amount = calculateAmount(resetValue, updatedItem.sRate);
+          return updatedItem;
+        }
+        return it;
+      }));
+      return;
     }
-  };
+  }
+  
+  // Proceed with normal update
+  setItems(items.map(item => {
+    if (item.id === id) {
+      const updatedItem = { ...item, [field]: value };
+
+      if (field === 'qty' || field === 'sRate') {
+        const qty = field === 'qty' ? value : updatedItem.qty;
+        const rate = field === 'sRate' ? value : updatedItem.sRate;
+        updatedItem.amount = calculateAmount(qty, rate);
+      }
+
+      return updatedItem;
+    }
+    return item;
+  }));
+  
+  // Track item search term for popup pre-fill
+  if (field === 'barcode' || field === 'itemName') {
+    setItemSearchTerm(value);
+  }
+};
 
   const handleDeleteRow = (id) => {
     const itemToDelete = items.find(item => item.id === id);
@@ -3390,6 +3471,25 @@ const handleApplyBillDirect = async () => {
 
   // 🔹 Apply selected items immediately
   await applyBillNumberCore();
+
+  // 🔹 Save original quantities for validation
+  const voucherNo = selectedBillForDetails;
+  const voucherDetails = billDetailsData[voucherNo];
+  
+  if (voucherDetails) {
+    const itemsArray = voucherDetails.items || voucherDetails.details || [];
+    const originalQtyMap = {};
+    
+    itemsArray.forEach((item, index) => {
+      const key = `${item.barcode || ""}-${index}`;
+      if (checkedBills[key]) {
+        const originalQty = Math.abs(parseFloat(item.fTotQty || item.qty || item.quantity || 0));
+        originalQtyMap[item.barcode || item.itemCode || index] = originalQty;
+      }
+    });
+    
+    setOriginalQuantities(originalQtyMap);
+  }
 
   // 🔹 Cleanup
   setSelectedBillForDetails(null);
@@ -5069,26 +5169,44 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
                     />
                   </td>
                   <td style={styles.td}>
-                    <input
-                      style={focusedField === `qty-${item.id}` ? { ...styles.editableInputFocused, fontWeight: 'bold' } : { ...styles.editableInput, fontWeight: 'bold' }}
-                      value={item.qty}
-                      data-row={index}
-                      data-field="qty"
-                      onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
-                      onFocus={() => {
-                        setFocusedField(`qty-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 8,
-                          fieldName: 'qty'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      step="0.01"
-                    />
-                  </td>
+  <input
+    style={focusedField === `qty-${item.id}` ? { ...styles.editableInputFocused, fontWeight: 'bold' } : { ...styles.editableInput, fontWeight: 'bold' }}
+    value={item.qty}
+    data-row={index}
+    data-field="qty"
+    onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
+    onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
+    onFocus={() => {
+      setFocusedField(`qty-${item.id}`);
+      setFocusedElement({
+        type: 'table',
+        rowIndex: index,
+        fieldIndex: 8,
+        fieldName: 'qty'
+      });
+      
+      // Show max quantity in placeholder when focused
+      const originalQty = originalQuantities[item.barcode] || 
+                         originalQuantities[item.itemCode] || 
+                         originalQuantities[index];
+      if (originalQty) {
+        e.target.placeholder = `Max: ${originalQty}`;
+      }
+    }}
+    onBlur={(e) => {
+      setFocusedField('');
+      e.target.placeholder = '';
+    }}
+    step="0.01"
+    // Add title/tooltip for max quantity
+    title={(() => {
+      const originalQty = originalQuantities[item.barcode] || 
+                         originalQuantities[item.itemCode] || 
+                         originalQuantities[index];
+      return originalQty ? `Maximum return quantity: ${originalQty}` : '';
+    })()}
+  />
+</td>
                   <td style={{ ...styles.td, ...styles.amountContainer }}>
                     <input
                       style={{ ...styles.editableInput, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff' }}

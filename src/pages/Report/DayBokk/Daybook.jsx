@@ -49,6 +49,7 @@ const DayBook = () => {
   const [selectedBranches, setSelectedBranches] = useState(['ALL']); // Initial value is ALL
   const [showBranchPopup, setShowBranchPopup] = useState(false);
   const [tempSelectedBranches, setTempSelectedBranches] = useState([]); // Initially empty
+  const [branchSearchTerm, setBranchSearchTerm] = useState('');
   const [selectAll, setSelectAll] = useState(false); // Initially false
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -225,6 +226,7 @@ const DayBook = () => {
 
   const handlePopupClose = () => {
     setShowBranchPopup(false);
+    setBranchSearchTerm(''); // Clear search term when popup closes
   };
 
   const handleSearch = async () => {
@@ -819,6 +821,23 @@ const DayBook = () => {
   transition: 'all 0.3s ease',
 },
 
+    searchContainer: {
+      padding: '15px 20px',
+      borderBottom: '1px solid #e0e0e0',
+      backgroundColor: '#f8f9fa',
+    },
+    searchInput: {
+      width: '100%',
+      padding: '10px 12px',
+      border: '1px solid #ddd',
+      borderRadius: '6px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontFamily: TYPOGRAPHY.fontFamily,
+      outline: 'none',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      boxSizing: 'border-box',
+    },
+
     branchList: {
       padding: '20px',
       maxHeight: '300px',
@@ -1209,6 +1228,17 @@ const DayBook = () => {
               </button>
             </div>
             
+            {/* Search Bar */}
+            <div style={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="Search branches..."
+                value={branchSearchTerm}
+                onChange={(e) => setBranchSearchTerm(e.target.value)}
+                style={styles.searchInput}
+              />
+            </div>
+            
             <div style={styles.branchList}>
               {/* ALL option - Initially UNCHECKED */}
               <div 
@@ -1221,7 +1251,12 @@ const DayBook = () => {
                 <span style={styles.branchText}>ALL</span>
               </div>
               {/* Individual branches - Initially UNCHECKED */}
-              {allBranches.filter(b => b.compCode !== 'ALL').map((branch) => {
+              {allBranches
+                .filter(b => b.compCode !== 'ALL')
+                .filter(branch => 
+                  branch.compName.toLowerCase().includes(branchSearchTerm.toLowerCase())
+                )
+                .map((branch) => {
                 const isSelected = tempSelectedBranches.includes(branch.compCode);
                 return (
                   <div 
