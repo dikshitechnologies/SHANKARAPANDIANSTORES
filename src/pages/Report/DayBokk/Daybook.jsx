@@ -298,6 +298,15 @@ const DayBook = () => {
         });
       }
       
+      // Check if no records found
+      const hasOpeningBalance = data.openingDebit > 0 || data.openingCredit > 0;
+      const hasEntries = data.entries && data.entries.length > 0;
+      const hasClosingBalance = !selectedBranches.includes('ALL') && (data.closingDebit > 0 || data.closingCredit > 0);
+      
+      if (!hasOpeningBalance && !hasEntries && !hasClosingBalance) {
+        toast.info('No records found for the selected date range');
+      }
+      
       setDayBookData(transformedData);
       setApiTotals({
         totalDebit: data.totalDebit || 0,
