@@ -702,36 +702,38 @@ const AccountReceivables = () => {
       boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
       border: '1px solid #ddd',
     },
-    popupHeader: {
-      background: '#1B91DA',
-      color: 'white',
-      padding: '16px 20px',
-      margin: 0,
-      fontSize: TYPOGRAPHY.fontSize.base,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-      borderBottom: '1px solid #1479c0',
-    },
-    closeButton: {
-      position: 'absolute',
-      right: '15px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      background: 'rgba(255,255,255,0.2)',
-      border: 'none',
-      color: 'white',
-      fontSize: '20px',
-      cursor: 'pointer',
-      width: '30px',
-      height: '30px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '4px',
-      transition: 'all 0.3s ease',
-      ':hover': {
-        background: 'rgba(255,255,255,0.3)',
-      }
-    },
+  popupHeader: {
+  background: '#1B91DA',
+  color: 'white',
+  padding: '16px 20px',
+  margin: 0,
+  fontSize: TYPOGRAPHY.fontSize.base,
+  fontWeight: TYPOGRAPHY.fontWeight.bold,
+  borderBottom: '1px solid #1479c0',
+  position: 'relative', // ✅ REQUIRED for close button
+},
+
+
+closeButton: {
+  position: 'absolute',
+  right: '15px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  background: 'rgba(255,255,255,0.2)',
+  border: 'none',
+  color: 'white',
+  fontSize: '20px',
+  cursor: 'pointer',
+  width: '30px',
+  height: '30px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '4px',
+  transition: 'all 0.3s ease',
+},
+
+
     companyList: {
       padding: '20px',
       maxHeight: '300px',

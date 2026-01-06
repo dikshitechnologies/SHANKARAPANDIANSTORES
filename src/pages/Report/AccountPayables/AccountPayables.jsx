@@ -385,6 +385,8 @@ const AccountPayables = () => {
       overflowY: 'hidden',
       position: 'fixed',
     },
+
+    
     headerSection: {
       flex: '0 0 auto',
       backgroundColor: 'white',
@@ -675,6 +677,7 @@ const AccountPayables = () => {
         transform: 'translateY(-1px)',
       }
     },
+    
     buttonGlow: {
       position: 'absolute',
       top: '0',
@@ -728,35 +731,35 @@ const AccountPayables = () => {
       border: '1px solid #ddd',
     },
     popupHeader: {
-      background: '#1B91DA',
-      color: 'white',
-      padding: '16px 20px',
-      margin: 0,
-      fontSize: TYPOGRAPHY.fontSize.base,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-      borderBottom: '1px solid #1479c0',
-    },
-    closeButton: {
-      position: 'absolute',
-      right: '15px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      background: 'rgba(255,255,255,0.2)',
-      border: 'none',
-      color: 'white',
-      fontSize: '20px',
-      cursor: 'pointer',
-      width: '30px',
-      height: '30px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '4px',
-      transition: 'all 0.3s ease',
-      ':hover': {
-        background: 'rgba(255,255,255,0.3)',
-      }
-    },
+  background: '#1B91DA',
+  color: 'white',
+  padding: '16px 20px',
+  margin: 0,
+  fontSize: TYPOGRAPHY.fontSize.base,
+  fontWeight: TYPOGRAPHY.fontWeight.bold,
+  borderBottom: '1px solid #1479c0',
+  position: 'relative', // ✅ REQUIRED
+},
+
+   closeButton: {
+  position: 'absolute',
+  right: '15px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  background: 'rgba(255,255,255,0.2)',
+  border: 'none',
+  color: 'white',
+  fontSize: '20px',
+  cursor: 'pointer',
+  width: '30px',
+  height: '30px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '4px',
+  transition: 'all 0.3s ease',
+},
+
     companyList: {
       padding: '20px',
       maxHeight: '300px',
