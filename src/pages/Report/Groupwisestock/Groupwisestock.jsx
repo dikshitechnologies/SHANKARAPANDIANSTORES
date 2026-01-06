@@ -4,6 +4,12 @@ import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
 
+// Helper function to convert YYYY-MM-DD to DD/MM/YYYY for API
+const formatDateForAPI = (dateString) => {
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 const GroupwiseStock = () => {
   // --- REFS ---
   const fromDateRef = useRef(null);
@@ -527,11 +533,18 @@ const GroupwiseStock = () => {
     
     setIsLoading(true);
     try {
+      // Convert company codes array to comma-separated string
+      const compCodesString = Array.isArray(companyCode) ? companyCode.join(',') : companyCode;
+      
+      // Convert dates to DD/MM/YYYY format
+      const apiFromDate = formatDateForAPI(fromDate);
+      const apiToDate = formatDateForAPI(toDate);
+      
       const response = await get(
         API_ENDPOINTS.GROUP_WISE_STOCK.BRANCH_WISE_STOCK(
-          fromDate,
-          toDate,
-          companyCode,
+          apiFromDate,
+          apiToDate,
+          compCodesString,
           searchText,
           1,
           100
@@ -583,12 +596,19 @@ const GroupwiseStock = () => {
     setSelectedGroupName(groupName);
     setIsLoading(true);
     try {
+      // Convert company codes array to comma-separated string
+      const compCodesString = Array.isArray(companyCode) ? companyCode.join(',') : companyCode;
+      
+      // Convert dates to DD/MM/YYYY format
+      const apiFromDate = formatDateForAPI(fromDate);
+      const apiToDate = formatDateForAPI(toDate);
+      
       const response = await get(
         API_ENDPOINTS.GROUP_WISE_STOCK.GROUP_DETAIL(
           groupName,
-          fromDate,
-          toDate,
-          companyCode
+          apiFromDate,
+          apiToDate,
+          compCodesString
         )
       );
       
@@ -615,12 +635,19 @@ const GroupwiseStock = () => {
     setSelectedItemName(itemName);
     setIsLoading(true);
     try {
+      // Convert company codes array to comma-separated string
+      const compCodesString = Array.isArray(companyCode) ? companyCode.join(',') : companyCode;
+      
+      // Convert dates to DD/MM/YYYY format
+      const apiFromDate = formatDateForAPI(fromDate);
+      const apiToDate = formatDateForAPI(toDate);
+      
       const response = await get(
         API_ENDPOINTS.GROUP_WISE_STOCK.ITEM_DETAIL(
           itemName,
-          fromDate,
-          toDate,
-          companyCode
+          apiFromDate,
+          apiToDate,
+          compCodesString
         )
       );
       

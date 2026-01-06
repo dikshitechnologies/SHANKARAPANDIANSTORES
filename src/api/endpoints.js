@@ -375,10 +375,10 @@ PAYMENTVOUCHER: {
   GROUP_WISE_STOCK: {
     BRANCH_WISE_STOCK: (fromDate, toDate, compCodes, search = '', page = 1, pageSize = 100) =>
       `GroupWiseStock/branch-wise-stock?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCodes=${encodeURIComponent(compCodes)}&search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
-    GROUP_DETAIL: (groupName, fromDate, toDate, compCode) =>
-      `GroupWiseStock/group-detail?groupName=${encodeURIComponent(groupName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}`,
-    ITEM_DETAIL: (itemName, fromDate, toDate, compCode) =>
-      `GroupWiseStock/item-detail?itemName=${encodeURIComponent(itemName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}`,
+    GROUP_DETAIL: (groupName, fromDate, toDate, compCodes) =>
+      `GroupWiseStock/group-detail?groupName=${encodeURIComponent(groupName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCodes=${encodeURIComponent(compCodes)}`,
+    ITEM_DETAIL: (itemName, fromDate, toDate, compCodes) =>
+      `GroupWiseStock/item-detail?itemName=${encodeURIComponent(itemName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCodes=${encodeURIComponent(compCodes)}`,
   }, // <-- Add this closing brace for GROUP_WISE_STOCK
   DAYBOOK: {
     GET_DAY_BOOK: (compCode, fromDate, toDate) =>
