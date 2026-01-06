@@ -484,20 +484,20 @@ const SalesRegister = () => {
       width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
       maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
     },
-    td: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
-       fontWeight: TYPOGRAPHY.fontWeight.bold, // ✅ BOLD
-      lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: '8px 6px',
-      textAlign: 'center',
-      border: '1px solid #ccc',
-      color: '#333',
-      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      cursor: 'default',
-    },
+   td: {
+  fontFamily: TYPOGRAPHY.fontFamily,
+  fontSize: TYPOGRAPHY.fontSize.xs, // Match th font size (xs = 11-13px)
+  fontWeight: TYPOGRAPHY.fontWeight.bold, // Match th bold (700) - already bold
+  lineHeight: TYPOGRAPHY.lineHeight.tight, // Match th line height (1.2)
+  padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px', // Match th padding
+  textAlign: 'center',
+  border: '1px solid #ccc',
+  color: '#333',
+  minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+  width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+  maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+  cursor: 'default',
+},
     footerSection: {
       position: 'fixed',
       bottom: 0,
@@ -641,45 +641,42 @@ const SalesRegister = () => {
   };
 
   // Get cell style based on state
-  const getCellStyle = (rowIndex, colName) => {
-    const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time'];
-    const isSelected = selectedCell.row === rowIndex && colNames.indexOf(colName) === selectedCell.col;
+ const getCellStyle = (rowIndex, colName) => {
+  const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time'];
+  const isSelected = selectedCell.row === rowIndex && colNames.indexOf(colName) === selectedCell.col;
 
-    const baseStyle = {
-      ...styles.td,
-      textAlign: 'center',
-      minWidth: colName === 'salesParty' ? '120px' : 
-               colName === 'billNo' ? '100px' :
-               colName === 'billDate' ? '100px' :
-               colName === 'billAmount' ? '100px' :
-               colName === 'time' ? '100px' : '80px',
-      width: colName === 'salesParty' ? '120px' : 
+  const baseStyle = {
+    ...styles.td,
+    textAlign: 'center',
+    minWidth: colName === 'salesParty' ? '120px' : 
              colName === 'billNo' ? '100px' :
              colName === 'billDate' ? '100px' :
              colName === 'billAmount' ? '100px' :
              colName === 'time' ? '100px' : '80px',
-      maxWidth: colName === 'salesParty' ? '120px' : 
-                colName === 'billNo' ? '100px' :
-                colName === 'billDate' ? '100px' :
-                colName === 'billAmount' ? '100px' :
-                colName === 'time' ? '100px' : '80px',
-      fontFamily: ['billAmount', 'qty'].includes(colName) ? '"Courier New", monospace' : 'inherit',
-      fontWeight: ['billAmount', 'qty'].includes(colName) ? '700' : '600',
-      cursor: 'default',
-    };
-
-    if (isSelected) {
-      return { 
-        ...baseStyle, 
-        backgroundColor: '#f0f8ff',
-        outline: '1px solid #1B91DA',
-        outlineOffset: '-1px',
-      };
-    }
-
-    return baseStyle;
+    width: colName === 'salesParty' ? '120px' : 
+           colName === 'billNo' ? '100px' :
+           colName === 'billDate' ? '100px' :
+           colName === 'billAmount' ? '100px' :
+           colName === 'time' ? '100px' : '80px',
+    maxWidth: colName === 'salesParty' ? '120px' : 
+              colName === 'billNo' ? '100px' :
+              colName === 'billDate' ? '100px' :
+              colName === 'billAmount' ? '100px' :
+              colName === 'time' ? '100px' : '80px',
+    cursor: 'default',
   };
 
+  if (isSelected) {
+    return { 
+      ...baseStyle, 
+      backgroundColor: '#f0f8ff',
+      outline: '1px solid #1B91DA',
+      outlineOffset: '-1px',
+    };
+  }
+
+  return baseStyle;
+};
   return (
     <div style={styles.container}>
       {/* Loading Overlay */}
@@ -892,17 +889,23 @@ const SalesRegister = () => {
             {tableLoaded && salesData.length > 0 && (
               <tfoot>
                 <tr style={{ backgroundColor: '#f0f8ff', borderTop: '2px solid #1B91DA' }}>
-                  <td colSpan="3" style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold' }}>
-                    Total
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
-                    ₹{formatNumber(totals.billAmount)}
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
-                    {totals.qty.toFixed(2)}
+                  <td style={{ ...styles.td, textAlign: 'center' }}>
+                    {/* Empty for No column */}
                   </td>
                   <td style={{ ...styles.td, textAlign: 'center' }}>
-                    -
+                    {/* Empty for Sales Party column */}
+                  </td>
+                  <td style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold', color: '#1565c0' }}>
+                    Total
+                  </td>
+                  <td style={{ ...styles.td, textAlign: 'center' }}>
+                    {/* Empty for Bill Date column */}
+                  </td>
+                  <td style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold', color: '#1565c0' }}>
+                    ₹{formatNumber(totals.billAmount)}
+                  </td>
+                  <td style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold', color: '#1565c0' }}>
+                    {totals.qty.toFixed(2)}
                   </td>
                 </tr>
               </tfoot>
