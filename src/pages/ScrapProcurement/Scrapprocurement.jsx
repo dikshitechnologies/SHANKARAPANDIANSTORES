@@ -2146,7 +2146,7 @@ const clearFormData = async () => {
           <div style={{
       ...styles.formField,
       gridColumn: screenSize.isMobile ? 'span 1' : 'auto',
-      width: screenSize.isMobile ? '100%' : 'auto'
+      width: screenSize.isMobile ? '100%' : '100%'
     }}>
             <label style={styles.inlineLabel}>Customer:</label>
             <div style={{ 
@@ -2161,7 +2161,7 @@ const clearFormData = async () => {
                   ...styles.inlineInput,
                   ...(focusedField === 'custName' && styles.focusedInput),
                   // paddingRight: '40px',
-                  // width: '70%'
+                  // width: '50%'
                 }}
                 value={billDetails.custName}
                 name="custName"
@@ -2286,7 +2286,7 @@ const clearFormData = async () => {
           <div style={{
       ...styles.formField,
       gridColumn: screenSize.isMobile ? 'span 1' : 'auto',
-      width: screenSize.isMobile ? '100%' : 'auto'
+      width: screenSize.isMobile ? '100%' : '100%'
     }}>
             <label style={styles.inlineLabel}>Salesman:</label>
             <div style={{ 
