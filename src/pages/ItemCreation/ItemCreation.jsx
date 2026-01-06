@@ -196,7 +196,6 @@ const ItemCreation = ({ onCreated }) => {
   // Form data state
   const [formData, setFormData] = useState({
     fitemCode: '',
-    fGroupId: 0,
     itemName: '',
     groupName: '',
     shortName: '',
@@ -755,69 +754,97 @@ const ItemCreation = ({ onCreated }) => {
     const sizeCodesArray = fieldCodes.sizeCode
       ? fieldCodes.sizeCode.split(',').filter(code => code.trim() !== '')
       : [];
+    // Define baseItemName so it's available in both create and edit/delete
+    const baseItemName = formData.itemName || '';
     try {
       // Prepare request data matching API expected field names
-
 
       let requestData;
 
       // Prepare different request data for CREATE vs EDIT/DELETE
       if (actionType === 'create') {
-        // For CREATE: Use array format for sizes
-        const sizeCodesArray = fieldCodes.sizeCode
-          ? fieldCodes.sizeCode.split(',').filter(code => code.trim() !== '')
-          : [];
+        // For CREATE: Build fitemName from components and create sizes array
+        const brand = formData.brand || '';
+        const category = formData.category || '';
+        const product = formData.product || '';
+        const model = formData.model || '';
+        // Build sizes array with itemName including size name
+        const sizesArray = selectedSizes.map(sizeItem => {
+          const sizeName = sizeItem.fname || sizeItem.fsize || sizeItem.name || '';
+          const itemNameConcat = [baseItemName, brand, category, product, model, sizeName]
+            .filter(part => part.trim() !== '')
+            .join(' ');
+          return {
+            size: sizeItem.fcode || sizeItem.fsize || '',
+            itemName: itemNameConcat
+          };
+        });
+
         requestData = {
-          fitemCode: formData.fitemCode || '',
-          fitemName: formData.itemName || '',
+          fitemName: baseItemName,
+          fSubItemName: baseItemName,
           groupName: mainGroup || '',
-          shortName: formData.shortName || '',
-          fbrand: fieldCodes.brandCode || '',
-          fcategory: fieldCodes.categoryCode || '',
-          fproduct: fieldCodes.productCode || '',
-          fmodel: fieldCodes.modelCode || '',
-          sizes: sizeCodesArray || '',
-          fmax: formData.max || '',
-          fmin: formData.min || '',
-          prefix: formData.prefix || '',
           gstNumber: formData.gstin || '',
-          gst: formData.gst === 'Y' ? 'Y' : 'N',
-          manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
+          prefix: formData.prefix || '',
+          shortName: formData.shortName || '',
           hsnCode: formData.hsnCode || '',
           pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
+          gst: formData.gst === 'Y' ? 'Y' : 'N',
+          manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
+          fproduct: fieldCodes.productCode || '',
+          fbrand: fieldCodes.brandCode || '',
+          fcategory: fieldCodes.categoryCode || '',
+          fmodel: fieldCodes.modelCode || '',
+          fsize: fieldCodes.sizeCode || '',
+          fmin: formData.min || '',
+          fmax: formData.max || '',
           ftype: formData.type || '',
           fSellPrice: formData.sellingPrice || '',
           fCostPrice: formData.costPrice || '',
-          fUnits: formData.unit || '',
+          fUnits: fieldCodes.unitCode || '',
+          sizes: sizesArray
         };
       } else {
-        // For EDIT/DELETE: Use array format for sizes (matching new PUT payload)
-        const sizeCodesArray = fieldCodes.sizeCode
-          ? fieldCodes.sizeCode.split(',').filter(code => code.trim() !== '')
-          : [];
-        
+
+
+        const brand = formData.brand || '';
+            const category = formData.category || '';
+            const product = formData.product || '';
+            const model = formData.model || '';
+            // Use the first selected size if available, else formData.size
+            let sizeName = '';
+            if (selectedSizes && selectedSizes.length > 0) {
+              const sizeItem = selectedSizes[0];
+              sizeName = sizeItem.fname || sizeItem.fsize || sizeItem.name || '';
+            } else {
+              sizeName = formData.size || '';
+            }
+            const editItemNameConcat = [baseItemName, brand, category, product, model, sizeName]
+              .filter(part => part.trim() !== '')
+              .join(' ');
         requestData = {
-          fGroupId: formData.fGroupId || 0,
-          fitemName: formData.itemName || '',
+          fitemCode: formData.fitemCode || '',
+          fitemName: editItemNameConcat,
+          fSubItemName: baseItemName,
           groupName: mainGroup || '',
-          sizes: sizeCodesArray,
-          shortName: formData.shortName || '',
           gstNumber: formData.gstin || '',
           prefix: formData.prefix || '',
-          pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
+          shortName: formData.shortName || '',
           hsnCode: formData.hsnCode || '',
+          pieceRate: formData.pieceRate === 'Y' ? 'Y' : 'N',
           gst: formData.gst === 'Y' ? 'Y' : 'N',
           manualprefix: formData.manualprefix === 'Y' ? 'Y' : 'N',
+          fproduct: fieldCodes.productCode || '',
           fbrand: fieldCodes.brandCode || '',
           fcategory: fieldCodes.categoryCode || '',
           fmodel: fieldCodes.modelCode || '',
+          fsize: fieldCodes.sizeCode || '',
           fmin: formData.min || '',
           fmax: formData.max || '',
           ftype: formData.type || '',
-          fUnits: formData.unit || '',
-          fproduct: fieldCodes.productCode || '',
+          fSellPrice: formData.sellingPrice || '',
           fCostPrice: formData.costPrice || '',
-          fSellPrice: formData.sellingPrice || ''
+          fUnits: fieldCodes.unitCode || ''
         };
       }
       console.log('Submitting data:', JSON.stringify(requestData));
@@ -911,40 +938,40 @@ const ItemCreation = ({ onCreated }) => {
 
         if (!Array.isArray(data)) return [];
 
-        return data.map((it) => ({
-          fGroupId: it.fGroupId || 0,
-          fItemcode: it.fItemcode || '',
-          fItemName: it.fItemName || '' ,
-          fParent: it.fParent || '',
-          fShort: it.fShort || '',
-          fhsn: it.fhsn || '',
-          ftax: it.ftax || '',
-          fPrefix: it.fPrefix || '',
-          manualprefix: it.manualprefix || 'N',
-          fUnits: it.fUnits || '',
-          fCostPrice: it.fCostPrice || '',
-          fSellPrice: it.fSellPrice || '',
-          // Display names
-          brand: it.brand || '',
-          category: it.category || '',
-          model: it.model || '',
-          product: it.product || '',
-          // Codes for backend submission
-          fbrand: it.fbrand || '',
-          fcategory: it.fcategory || '',
-          fmodel: it.fmodel || '',
-          fproduct: it.fproduct || '',
-          fsize: it.fsize || '',
-          fmin: it.fmin || '',
-          fmax: it.fmax || '',
-          ftype: it.ftype || '',
-          pieceRate: it.pieceRate || it.fPieceRate || 'N',
-          fPieceRate: it.fPieceRate || it.pieceRate || 'N',
-          gstcheckbox: it.gstcheckbox || (it.ftax ? 'Y' : 'N'),
-          // Include itemCodes and sizes arrays (associated with each other by index)
-          itemCodes: Array.isArray(it.itemCodes) ? it.itemCodes : [],
-          sizes: Array.isArray(it.sizes) ? it.sizes : []
-        }));
+        return data.map((it) => {
+          const fItemName = it.fItemName || '';
+          const fSubItemName = it.fSubItemName || fItemName;
+          return {
+            fItemcode: it.fItemcode || '',
+            fItemName,
+            fSubItemName,
+            fParent: it.fParent || '',
+            fShort: it.fShort || '',
+            fhsn: it.fhsn || '',
+            ftax: it.ftax || '',
+            fPrefix: it.fPrefix || '',
+            manualprefix: it.manualprefix || 'N',
+            fUnits: it.fUnits || '',
+            fCostPrice: it.fCostPrice || '',
+            fSellPrice: it.fSellPrice || '',
+            fbrand: it.fbrand || '',
+            fcategory: it.fcategory || '',
+            fmodel: it.fmodel || '',
+            fsize: it.fsize || '',
+            fmin: it.fmin || '',
+            fmax: it.fmax || '',
+            ftype: it.ftype || '',
+            fproduct: it.fproduct || '',
+            pieceRate: it.pieceRate || it.fPieceRate || 'N',
+            fPieceRate: it.fPieceRate || it.pieceRate || 'N',
+            brand: it.brand || '',
+            category: it.category || '',
+            model: it.model || '',
+            size: it.size || '',
+            product: it.product || '',
+            gstcheckbox: it.gstcheckbox || (it.ftax ? 'Y' : 'N')
+          };
+        });
       } catch (err) {
         console.error('fetchPopupItems error', err);
         return [];
@@ -1191,7 +1218,6 @@ const ItemCreation = ({ onCreated }) => {
     setSelectedNode(null);
     setFormData({
       fitemCode: '',
-      fGroupId: 0,
       itemName: '',
       groupName: '',
       shortName: '',
@@ -3455,10 +3481,10 @@ const ItemCreation = ({ onCreated }) => {
         responsiveBreakpoint={640}
         initialSearch={initialPopupSearch.model}
       />
-      {/* CheckboxPopup for Size Selection */}
+      {/* PopupListSelector for Size Selection */}
       <CheckboxPopup
         open={isSizePopupOpen}
-        initialSelectedCodes={selectedSizes.map(s => s.fcode || s.code)}
+        initialSelectedCodes={selectedSizes.map(s => s.fcode)}
         onClose={() => {
           setIsSizePopupOpen(false);
           setInitialPopupSearch(prev => ({ ...prev, size: '' }));
@@ -3468,9 +3494,8 @@ const ItemCreation = ({ onCreated }) => {
           const sel = Array.isArray(items) ? items : (items ? [items] : []);
           // persist selection so reopening the popup shows previous choices
           setSelectedSizes(sel);
-          // Map to display names and codes (handle both fname/fcode and name/code formats)
-          const names = sel.map(it => it.fname || it.name || it.fsize || '').filter(Boolean).join(', ');
-          const codes = sel.map(it => it.fcode || it.code || '').filter(Boolean).join(',');
+          const names = sel.map(it => it.fname || it.fsize || it.name || '').filter(Boolean).join(', ');
+          const codes = sel.map(it => it.fcode || '').filter(Boolean).join(',');
           setFormData(prev => ({ ...prev, size: names }));
           setFieldCodes(prev => ({ ...prev, sizeCode: codes }));
           setIsSizePopupOpen(false);
@@ -3516,43 +3541,18 @@ const ItemCreation = ({ onCreated }) => {
         open={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
         onSelect={(item) => {
-
-          // Map backend fields to form fields
-          console.log("✔️ RAW SELECTED ITEM:", item);
-          
-          // Handle sizes array from payload
-          let sizeNames = '';
-          let sizeCodes = '';
-          let selectedSizesArray = [];
-          
-          if (Array.isArray(item.sizes) && item.sizes.length > 0) {
-            // Convert sizes array to display format
-            sizeNames = item.sizes.map(s => s.name).join(', ');
-            sizeCodes = item.sizes.map(s => s.code).join(',');
-            selectedSizesArray = item.sizes.map(s => ({
-              fname: s.name,
-              fcode: s.code
-            }));
-          } else if (item.size) {
-            // Fallback to old format if sizes array not present
-            sizeNames = item.size;
-            sizeCodes = item.fsize || '';
-          }
-          
-          // Update selectedSizes for CheckboxPopup
-          setSelectedSizes(selectedSizesArray);
-          
-          setFormData({
-            fGroupId: item.fGroupId || 0,
+          // Map backend fields to form fields, always use fSubItemName for Item Name
+          setFormData(prev => ({
+            ...prev,
             fitemCode: item.fItemcode || '',
-            itemName: item.fItemName || '',
+            itemName: item.fSubItemName || '',
             groupName: item.fParent || '',
             shortName: item.fShort || '',
             brand: item.brand || '',
             category: item.category || '',
             product: item.product || '',
             model: item.model || '',
-            size: sizeNames,
+            size: item.size || '',
             max: item.fmax || item.fMax || '',
             min: item.fmin || item.fMin || '',
             prefix: item.fPrefix || '',
@@ -3560,48 +3560,37 @@ const ItemCreation = ({ onCreated }) => {
             gst: (item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '')) ? 'Y' : 'N',
             manualprefix: item.manualprefix === 'Y' ? 'Y' : 'N',
             hsnCode: item.fhsn || '',
-            // CHANGED: Fetch pieceRate from backend if available
             pieceRate: item.pieceRate || item.fPieceRate || 'N',
             type: item.ftype || '',
             sellingPrice: item.fSellPrice || '',
             costPrice: item.fCostPrice || '',
             unit: item.fUnits || '',
             unitCode: item.funitcode || '',
-          });
-
-          // Also set the field codes for backend submission
-          setFieldCodes({
+          }));
+          setFieldCodes(prev => ({
+            ...prev,
             brandCode: item.fbrand || '',
             categoryCode: item.fcategory || '',
             productCode: item.fproduct || '',
             modelCode: item.fmodel || '',
-            sizeCode: sizeCodes,
+            sizeCode: item.fsize || '',
             unitCode: item.funitcode || '',
-          });
-
+          }));
           // Set checkbox states
           const hasGst = item.gstcheckbox === 'Y' || (item.ftax && item.ftax !== '');
           setGstChecked(hasGst);
           setManualPrefixChecked(item.manualprefix === 'Y');
-          // CHANGED: Set pieceRate checkbox based on backend data
           const hasPieceRate = item.pieceRate === 'Y' || item.fPieceRate === 'Y';
           setPieceRateChecked(hasPieceRate);
-
-          // Set main group
           setMainGroup(item.fParent || '');
-
           setIsPopupOpen(false);
-
-          // ✅ FIXED: Focus the Delete button when in delete mode
           if (actionType === 'delete') {
-            // Small delay to ensure component is updated
             setTimeout(() => {
               if (submitButtonRef.current) {
                 submitButtonRef.current.focus();
               }
             }, 100);
           } else {
-            // For edit mode, focus item name field
             setTimeout(() => {
               itemNameRef.current?.focus();
             }, 50);
