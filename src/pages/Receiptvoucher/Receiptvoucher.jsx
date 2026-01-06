@@ -552,6 +552,7 @@ const ReceiptVoucher = () => {
     if (currentField === 'accountName' && e.key !== 'Enter' && e.key !== 'Tab' && e.key !== 'Shift') {
       if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
         setTimeout(() => {
+          setAccountPopupContext('header');
           setAccountPopupOpen(true);
         }, 100);
       }
@@ -946,9 +947,11 @@ const ReceiptVoucher = () => {
       const url = API_ENDPOINTS.RECEIPTVOUCHER.GETPARTYLIST(
         encodeURIComponent(''),
         page,
-        20
+        100
       );
+      console.log('Fetching parties with URL:', url);
       const response = await apiService.get(url);
+      console.log('Party list response:', response);
       const data = response?.data?.data || response?.data || [];
       
       if (Array.isArray(data) && data.length > 0) {
@@ -969,8 +972,8 @@ const ReceiptVoucher = () => {
           setPartyCurrentPage(page);
         }
         
-        // If we got less than 20 items, we've reached the end
-        if (data.length < 20) {
+        // If we got less than 100 items, we've reached the end
+        if (data.length < 100) {
           setHasReachedEndOfParties(true);
         }
       } else if (page > 1) {
@@ -1162,8 +1165,9 @@ const ReceiptVoucher = () => {
   useEffect(() => {
     if (userData?.companyCode) {
       fetchNextVoucherNo();
+      fetchPartiesWithPagination(1);
     }
-  }, [userData?.companyCode, fetchNextVoucherNo]);
+  }, [userData?.companyCode, fetchNextVoucherNo, fetchPartiesWithPagination]);
 
   // Calculate Totals whenever items change
   useEffect(() => {
@@ -1477,8 +1481,8 @@ const ReceiptVoucher = () => {
         searchFields: ['name'],
         headerNames: [ 'Account Name'],
         columnWidths: {  name: 'auto' },
-        data: partyList,
-        fetchItems: async () => partyList,
+        data: allParties,
+        fetchItems: async () => allParties,
         loading: loadingParties
       }
     };
