@@ -59,12 +59,12 @@ const parseNumber = (str) => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-const PurchaseReturnRegister = () => {
+const ScrapPurchase  = () => {
   // State for data
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({
     totalRecords: 0,
-    totals: { amount: 0 }
+    totals: { amount: 0, qty: 0 }
   });
   
   // UI state
@@ -122,7 +122,7 @@ const PurchaseReturnRegister = () => {
       const formattedToDate = formatDateForAPI(toDate);
       
       // Get the endpoint URL using the API_ENDPOINTS constant
-      const endpoint = API_ENDPOINTS.PURCHASE_RETURN_REGISTER.GET_LIST(
+      const endpoint = API_ENDPOINTS.SCRAP_PURCHASE.GET_LIST(
         formattedFromDate, 
         formattedToDate, 
         '001', // compCode - adjust if needed
@@ -145,6 +145,7 @@ const PurchaseReturnRegister = () => {
         
         // Calculate total amount for all loaded data
         let totalAmount = 0;
+        let totalQty = 0;
         
         if (isLoadMore) {
           // For load more, append to existing data
@@ -153,18 +154,24 @@ const PurchaseReturnRegister = () => {
           totalAmount = newData.reduce((sum, item) => {
             return sum + (parseFloat(item.amount) || 0);
           }, 0);
+          totalQty = newData.reduce((sum, item) => {
+            return sum + (parseFloat(item.qty) || 0);
+          }, 0);
         } else {
           // For initial load, replace data
           setData(apiData);
           totalAmount = apiData.reduce((sum, item) => {
             return sum + (parseFloat(item.amount) || 0);
           }, 0);
+          totalQty = apiData.reduce((sum, item) => {
+            return sum + (parseFloat(item.qty) || 0);
+          }, 0);
           setCurrentPage(1);
         }
         
         setSummary({
           totalRecords: totalRecords,
-          totals: { amount: totalAmount }
+          totals: { amount: totalAmount, qty: totalQty }
         });
         
         setTotalPages(totalPages);
@@ -269,7 +276,7 @@ const PurchaseReturnRegister = () => {
     setData([]);
     setSummary({
       totalRecords: 0,
-      totals: { amount: 0 },
+      totals: { amount: 0, qty: 0 },
     });
     setCurrentPage(1);
     setHasMore(true);
@@ -366,7 +373,7 @@ const PurchaseReturnRegister = () => {
     setFromDate('');
     const today = new Date();
     const currentDate = formatDateForInput(today);
-    setFromDate(currentDate); 
+    setFromDate(currentDate);
     setToDate(currentDate);
   }, []);
 
@@ -865,7 +872,8 @@ const PurchaseReturnRegister = () => {
                 <th style={{...styles.th, minWidth: '120px'}}>Party Name</th>
                 <th style={styles.th}>Invoice</th>
                 <th style={styles.th}>Voucher Date</th>
-                <th style={styles.th}>Bill</th>
+                <th style={styles.th}>Salesman</th>
+                <th style={styles.th}>Qty</th>
                 <th style={styles.th}>Amount</th>
               </tr>
             </thead>
@@ -885,10 +893,11 @@ const PurchaseReturnRegister = () => {
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff'}
                     >
                       <td style={{...styles.td, minWidth: '40px'}}>{index + 1}</td>
-                      <td style={styles.td}>{row.name || ''}</td>
+                      <td style={{...styles.td, minWidth: '120px'}}>{row.name || ''}</td>
                       <td style={styles.td}>{row.invoice || ''}</td>
                       <td style={styles.td}>{row.voucherDate || ''}</td>
-                      <td style={styles.td}>{row.bill || ''}</td>
+                      <td style={styles.td}>{row.salesman || ''}</td>
+                      <td style={styles.td}>{row.qty || ''}</td>
                       <td style={styles.td}>{row.amount ? formatNumber(row.amount) : '0.00'}</td>
                     </tr>
                   ))}
@@ -902,16 +911,22 @@ const PurchaseReturnRegister = () => {
 
       <div style={styles.footerSection}>
         <div style={styles.balanceContainer}>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Net Total</span>
-            <span style={styles.balanceValue}>
-              ₹{formatNumber(summary.totals.amount)}
-            </span>
-          </div>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Net Total</span>
+              <span style={styles.balanceValue}>
+                ₹{formatNumber(summary.totals.amount)}
+              </span>
+            </div>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Total Qty</span>
+              <span style={styles.balanceValue}>
+                {formatNumber(summary.totals.qty)}
+              </span>
+            </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default PurchaseReturnRegister;
+export default ScrapPurchase;

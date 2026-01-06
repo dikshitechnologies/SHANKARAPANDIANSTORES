@@ -5,6 +5,7 @@ import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
+import { getCompCode } from '../../utils/userUtils';
 function BillCollector() {
   // ---------- Permissions ----------
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
@@ -35,7 +36,7 @@ function BillCollector() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
-  const fCompCode = "001";
+  const fCompCode = getCompCode();
 
   React.useEffect(() => {
     const handleResize = () => {

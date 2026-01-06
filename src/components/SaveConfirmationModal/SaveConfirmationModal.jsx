@@ -199,12 +199,10 @@ const pyCollectRefs = useRef({});
     }));
   };
 const handlePYFieldKeyDown = (e, denom, type) => {
+  const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+  const currentIndex = denomSequence.indexOf(denom);
   if (e.key === 'Enter') {
     e.preventDefault();
-
-    const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-    const currentIndex = denomSequence.indexOf(denom);
-
     if (type === 'issue') {
       if (currentIndex < denomSequence.length - 1) {
         // Move to next Issue field
@@ -229,6 +227,20 @@ const handlePYFieldKeyDown = (e, denom, type) => {
         if (confirmRef.current) confirmRef.current.focus();
       }
     }
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    if (currentIndex < denomSequence.length - 1) {
+      const nextDenom = denomSequence[currentIndex + 1];
+      if (type === 'issue' && pyIssueRefs.current[nextDenom]) pyIssueRefs.current[nextDenom].focus();
+      if (type === 'collect' && pyCollectRefs.current[nextDenom]) pyCollectRefs.current[nextDenom].focus();
+    }
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    if (currentIndex > 0) {
+      const prevDenom = denomSequence[currentIndex - 1];
+      if (type === 'issue' && pyIssueRefs.current[prevDenom]) pyIssueRefs.current[prevDenom].focus();
+      if (type === 'collect' && pyCollectRefs.current[prevDenom]) pyCollectRefs.current[prevDenom].focus();
+    }
   }
 };
 
@@ -236,12 +248,10 @@ const handlePYFieldKeyDown = (e, denom, type) => {
 
   // Handle keydown in collect fields for navigation
   const handleCollectFieldKeyDown = (e, currentDenom) => {
+    const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+    const currentIndex = denomSequence.indexOf(currentDenom);
     if (e.key === 'Enter') {
       e.preventDefault();
-      
-      const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-      const currentIndex = denomSequence.indexOf(currentDenom);
-      
       if (currentIndex < denomSequence.length - 1) {
         // Move to next denomination field
         const nextDenom = denomSequence[currentIndex + 1];
@@ -252,6 +262,22 @@ const handlePYFieldKeyDown = (e, denom, type) => {
         // Last field (1), move to Save button
         if (confirmRef.current) {
           confirmRef.current.focus();
+        }
+      }
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (currentIndex < denomSequence.length - 1) {
+        const nextDenom = denomSequence[currentIndex + 1];
+        if (collectFieldRefs.current[nextDenom]) {
+          collectFieldRefs.current[nextDenom].focus();
+        }
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (currentIndex > 0) {
+        const prevDenom = denomSequence[currentIndex - 1];
+        if (collectFieldRefs.current[prevDenom]) {
+          collectFieldRefs.current[prevDenom].focus();
         }
       }
     }

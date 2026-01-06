@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { API_ENDPOINTS } from '../../api/endpoints';
-import { API_BASE } from '../../api/apiService';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -23,133 +21,75 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
-// Helper function to format date as YYYY-MM-DD
-const formatDate = (date) => {
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const SalesRegister = () => {
+const DaySales = () => {
   // --- STATE MANAGEMENT ---
-  const currentDate = formatDate(new Date());
-  const [fromDate, setFromDate] = useState(currentDate);
-  const [toDate, setToDate] = useState(currentDate);
+  const [fromDate, setFromDate] = useState('2024-06-14');
+  const [toDate, setToDate] = useState('2025-11-26');
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
   const [salesData, setSalesData] = useState([]);
-  const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
 
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
   const searchButtonRef = useRef(null);
 
-  // Mock sales register data (matching your image)
-  const mockSalesData = [
+  // Sample day sales data
+  const sampleSalesData = [
     {
       id: 1,
-      no: 1,
-      salesParty: 'AMT FASHION',
-      billNo: 'COX01AA',
-      billDate: '27-09-2025',
-      billAmount: '29,400.00',
-      qty: '15.00',
-      time: '095212 AM'
+      billNo: 'INV001',
+      name: 'AMIT FASHION',
+      srate: '450.00',
+      qty: '25.50',
+      amount: '11,475.00'
     },
     {
       id: 2,
-      no: 2,
-      salesParty: 'CASH A/C',
-      billNo: 'COX02AA',
-      billDate: '10-12-2025',
-      billAmount: '380.00',
-      qty: '10.00',
-      time: '124920 PM'
+      billNo: 'INV002',
+      name: 'CASH A/C',
+      srate: '280.00',
+      qty: '15.75',
+      amount: '4,410.00'
     },
     {
       id: 3,
-      no: 3,
-      salesParty: 'JOHN TRADERS',
-      billNo: 'COX03AA',
-      billDate: '15-01-2025',
-      billAmount: '12,460.00',
-      qty: '25.50',
-      time: '021545 PM'
+      billNo: 'INV003',
+      name: 'JOHN TRADERS',
+      srate: '680.00',
+      qty: '32.00',
+      amount: '21,760.00'
     },
     {
       id: 4,
-      no: 4,
-      salesParty: 'SMITH ENTERPRISES',
-      billNo: 'COX04AA',
-      billDate: '22-03-2025',
-      billAmount: '8,760.00',
-      qty: '18.75',
-      time: '103010 AM'
+      billNo: 'INV004',
+      name: 'GLOBAL FASHION',
+      srate: '320.00',
+      qty: '18.25',
+      amount: '5,840.00'
     },
     {
       id: 5,
-      no: 5,
-      salesParty: 'GLOBAL FASHION',
-      billNo: 'COX05AA',
-      billDate: '05-05-2025',
-      billAmount: '45,200.00',
-      qty: '32.00',
-      time: '044530 PM'
+      billNo: 'INV005',
+      name: 'PREMIUM TEXTILES',
+      srate: '520.00',
+      qty: '22.50',
+      amount: '11,700.00'
     },
     {
       id: 6,
-      no: 6,
-      salesParty: 'PREMIUM TEXTILES',
-      billNo: 'COX06AA',
-      billDate: '18-07-2025',
-      billAmount: '23,120.00',
-      qty: '28.50',
-      time: '112015 AM'
+      billNo: 'INV006',
+      name: 'QUALITY FABRICS',
+      srate: '380.00',
+      qty: '12.75',
+      amount: '4,845.00'
     },
     {
-      id: 7,
-      no: 7,
-      salesParty: 'AMT FASHION',
-      billNo: 'COX07AA',
-      billDate: '30-08-2025',
-      billAmount: '17,650.00',
-      qty: '22.25',
-      time: '081040 PM'
-    },
-    {
-      id: 8,
-      no: 8,
-      salesParty: 'CASH A/C',
-      billNo: 'COX08AA',
-      billDate: '12-10-2025',
-      billAmount: '8,630.00',
-      qty: '12.50',
-      time: '014555 PM'
-    },
-    {
-      id: 9,
-      no: 9,
-      salesParty: 'JOHN TRADERS',
-      billNo: 'COX09AA',
-      billDate: '25-11-2025',
-      billAmount: '31,750.00',
-      qty: '35.00',
-      time: '081525 AM'
-    },
-    {
-      id: 10,
-      no: 10,
-      salesParty: 'SMITH ENTERPRISES',
-      billNo: 'COX10AA',
-      billDate: '08-12-2025',
-      billAmount: '14,400.00',
-      qty: '13.50',
-      time: '053020 PM'
+      isTotal: true,
+      name: 'Total',
+      amount: '60,030.00'
     }
   ];
 
@@ -162,90 +102,33 @@ const SalesRegister = () => {
     setToDate(e.target.value);
   };
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!fromDate || !toDate) {
-      toast.warning('Please select From Date and To Date', {
+      toast.warning('Please fill all fields: From Date and To Date', {
         autoClose: 2000,
       });
       return;
     }
     
-    console.log('Searching Sales Register with:', {
+    console.log('Searching Day Sales with:', {
       fromDate,
       toDate
     });
     
     setIsLoading(true);
     
-    try {
-      // Format dates as DD/MM/YYYY for API
-      const formatDateForAPI = (dateString) => {
-        const date = new Date(dateString);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-      };
-      
-      const formattedFromDate = formatDateForAPI(fromDate);
-      const formattedToDate = formatDateForAPI(toDate);
-      const compCode = '001'; // Default company code
-      
-      // Build the API URL
-      const apiUrl = `${API_BASE}${API_ENDPOINTS.SALES_REGISTER.SALES_REPORT(
-        formattedFromDate, 
-        formattedToDate, 
-        compCode, 
-        1, 
-        20
-      )}`;
-      console.log('API URL:', apiUrl);
-      
-      // Fetch data from API
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('API Response:', data);
-      
-      // Map the API data to match your table structure
-      const mappedData = data.data.map((item, index) => ({
-        no: index + 1,
-        salesParty: item.refName || item.name || 'N/A',
-        billNo: item.voucherNo || item.no || 'N/A',
-        billDate: item.voucherDate || 'N/A',
-        billAmount: item.billAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
-        qty: item.qty?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
-        time: item.time ? new Date(item.time).toLocaleTimeString('en-IN', { 
-          hour: '2-digit', 
-          minute: '2-digit', 
-          second: '2-digit',
-          hour12: true 
-        }) : 'N/A'
-      }));
-      
-      setSalesData(mappedData);
+    // Simulate API call
+    setTimeout(() => {
+      setSalesData(sampleSalesData);
       setTableLoaded(true);
-      // toast.success(`Loaded ${data.data.length} records`);
-      
-    } catch (error) {
-      console.error('Error fetching sales register:', error);
-      toast.error('Failed to load sales register data. Please try again.');
-      setSalesData([]);
-      setTableLoaded(false);
-    } finally {
       setIsLoading(false);
-    }
+    }, 500);
   };
 
   const handleRefresh = () => {
     setTableLoaded(false);
-    // Reset to current date on refresh
-    const today = formatDate(new Date());
-    setFromDate(today);
-    setToDate(today);
+    setFromDate('2024-06-14');
+    setToDate('2025-11-26');
     setSalesData([]);
   };
 
@@ -266,13 +149,6 @@ const SalesRegister = () => {
       }
     }
   };
-
-  // Focus on fromDate field when component mounts
-  useEffect(() => {
-    if (fromDateRef.current) {
-      fromDateRef.current.focus();
-    }
-  }, []);
 
   // --- SCREEN SIZE DETECTION ---
   const [screenSize, setScreenSize] = useState({
@@ -307,14 +183,15 @@ const SalesRegister = () => {
 
   // Calculate totals
   const totals = {
-    billAmount: salesData.reduce((sum, row) => {
-      const amount = parseFloat(row.billAmount?.replace(/,/g, '')) || 0;
-      return sum + amount;
-    }, 0),
-    qty: salesData.reduce((sum, row) => {
-      const qty = parseFloat(row.qty) || 0;
-      return sum + qty;
-    }, 0)
+    srate: salesData
+      .filter(row => !row.isTotal && row.srate)
+      .reduce((sum, row) => sum + parseFloat(row.srate?.replace(/,/g, '') || 0), 0),
+    qty: salesData
+      .filter(row => !row.isTotal && row.qty)
+      .reduce((sum, row) => sum + parseFloat(row.qty || 0), 0),
+    amount: salesData
+      .filter(row => !row.isTotal && row.amount)
+      .reduce((sum, row) => sum + parseFloat(row.amount?.replace(/,/g, '') || 0), 0)
   };
 
   // Format number with commas
@@ -327,7 +204,7 @@ const SalesRegister = () => {
 
   // --- STYLES ---
   const TYPOGRAPHY = {
-    // fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: {
       xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
       sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
@@ -369,7 +246,7 @@ const SalesRegister = () => {
       flex: '0 0 auto',
       backgroundColor: 'white',
       borderRadius: 0,
-      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
+      padding: screenSize.isMobile ? '8px 10px' : screenSize.isTablet ? '10px 12px' : '12px 16px',
       margin: 0,
       marginBottom: 0,
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
@@ -387,14 +264,14 @@ const SalesRegister = () => {
     formField: {
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '2px' : screenSize.isTablet ? '8px' : '10px',
+      gap: screenSize.isMobile ? '4px' : screenSize.isTablet ? '6px' : '8px',
     },
     inlineLabel: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       color: '#333',
-      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '85px',
+      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '75px' : '80px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
     },
@@ -403,40 +280,38 @@ const SalesRegister = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingBottom: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px', // Keep same height
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '90px', // SMALLER WIDTH
-      backgroundColor: 'white',
+      minWidth: screenSize.isMobile ? '90px' : screenSize.isTablet ? '100px' : '110px',
     },
     inlineInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingBottom: screenSize.isMobile ? '6px' : screenSize.isTablet ? '7px' : '8px',
+      paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
+      paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px', // Keep same height
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '90px', // SMALLER WIDTH
-      backgroundColor: 'white',
+      minWidth: screenSize.isMobile ? '90px' : screenSize.isTablet ? '100px' : '110px',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     tableContainer: {
@@ -487,7 +362,7 @@ const SalesRegister = () => {
     td: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
-       fontWeight: TYPOGRAPHY.fontWeight.bold, // ✅ BOLD
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       padding: '8px 6px',
       textAlign: 'center',
@@ -496,7 +371,6 @@ const SalesRegister = () => {
       minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
       width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
       maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      cursor: 'default',
     },
     footerSection: {
       position: 'fixed',
@@ -555,11 +429,11 @@ const SalesRegister = () => {
       fontWeight: 'bold',
     },
     searchButton: {
-      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '9px 18px' : '10px 20px',
       background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
       color: 'white',
       border: 'none',
-      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
@@ -568,8 +442,8 @@ const SalesRegister = () => {
       letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      minWidth: screenSize.isMobile ? '80px' : '100px',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      minWidth: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -582,11 +456,11 @@ const SalesRegister = () => {
       }
     },
     refreshButton: {
-      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
+      padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '9px 18px' : '10px 20px',
       background: 'white',
       color: '#333',
       border: '1.5px solid #ddd',
-      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      borderRadius: screenSize.isMobile ? '4px' : '5px',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
@@ -595,8 +469,8 @@ const SalesRegister = () => {
       letterSpacing: '0.3px',
       position: 'relative',
       overflow: 'hidden',
-      minWidth: screenSize.isMobile ? '80px' : '100px',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      minWidth: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
+      height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -640,58 +514,18 @@ const SalesRegister = () => {
     },
   };
 
-  // Get cell style based on state
-  const getCellStyle = (rowIndex, colName) => {
-    const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time'];
-    const isSelected = selectedCell.row === rowIndex && colNames.indexOf(colName) === selectedCell.col;
-
-    const baseStyle = {
-      ...styles.td,
-      textAlign: 'center',
-      minWidth: colName === 'salesParty' ? '120px' : 
-               colName === 'billNo' ? '100px' :
-               colName === 'billDate' ? '100px' :
-               colName === 'billAmount' ? '100px' :
-               colName === 'time' ? '100px' : '80px',
-      width: colName === 'salesParty' ? '120px' : 
-             colName === 'billNo' ? '100px' :
-             colName === 'billDate' ? '100px' :
-             colName === 'billAmount' ? '100px' :
-             colName === 'time' ? '100px' : '80px',
-      maxWidth: colName === 'salesParty' ? '120px' : 
-                colName === 'billNo' ? '100px' :
-                colName === 'billDate' ? '100px' :
-                colName === 'billAmount' ? '100px' :
-                colName === 'time' ? '100px' : '80px',
-      fontFamily: ['billAmount', 'qty'].includes(colName) ? '"Courier New", monospace' : 'inherit',
-      fontWeight: ['billAmount', 'qty'].includes(colName) ? '700' : '600',
-      cursor: 'default',
-    };
-
-    if (isSelected) {
-      return { 
-        ...baseStyle, 
-        backgroundColor: '#f0f8ff',
-        outline: '1px solid #1B91DA',
-        outlineOffset: '-1px',
-      };
-    }
-
-    return baseStyle;
-  };
-
   return (
     <div style={styles.container}>
       {/* Loading Overlay */}
       {isLoading && (
         <div style={styles.loadingOverlay}>
           <div style={styles.loadingBox}>
-            <div>Loading Sales Register Report...</div>
+            <div>Loading Day Sales Report...</div>
           </div>
         </div>
       )}
 
-      {/* Header Section - Left side: Dates, Right side: Buttons */}
+      {/* Header Section - Same as DayBook */}
       <div style={styles.headerSection}>
         <div style={{
           display: 'flex',
@@ -700,7 +534,7 @@ const SalesRegister = () => {
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* LEFT SIDE: Dates */}
+          {/* LEFT SIDE: Dates Only */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -708,11 +542,10 @@ const SalesRegister = () => {
             gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
             flexWrap: 'wrap',
           }}>
-            {/* From Date - Smaller width only */}
+            {/* From Date */}
             <div style={{
               ...styles.formField,
-              flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
-              minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
+              minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : 'auto',
             }}>
               <label style={styles.inlineLabel}>From Date:</label>
               <input
@@ -734,11 +567,10 @@ const SalesRegister = () => {
               />
             </div>
 
-            {/* To Date - Smaller width only */}
+            {/* To Date */}
             <div style={{
               ...styles.formField,
-              flex: screenSize.isMobile ? '1 0 100%' : '0 1 auto', // Changed to auto for smaller width
-              minWidth: screenSize.isMobile ? '100%' : '120px', // Smaller width
+              minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : 'auto',
             }}>
               <label style={styles.inlineLabel}>To Date:</label>
               <input
@@ -775,48 +607,29 @@ const SalesRegister = () => {
             flexShrink: 0,
           }}>
             {/* Search Button */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              flexShrink: 0,
-            }}>
-              <button
-                style={{
-                  ...styles.searchButton,
-                  width: screenSize.isMobile ? '100%' : 'auto',
-                  marginBottom: screenSize.isMobile ? '8px' : '0',
-                }}
-                onClick={handleSearch}
-                onMouseEnter={() => setHoveredButton(true)}
-                onMouseLeave={() => setHoveredButton(false)}
-                ref={searchButtonRef}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSearch();
-                  }
-                }}
-              >
-                Search
-                {hoveredButton && <div style={styles.buttonGlow}></div>}
-              </button>
-            </div>
+            <button
+              style={styles.searchButton}
+              onClick={handleSearch}
+              onMouseEnter={() => setHoveredButton(true)}
+              onMouseLeave={() => setHoveredButton(false)}
+              ref={searchButtonRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+            >
+              Search
+              {hoveredButton && <div style={styles.buttonGlow}></div>}
+            </button>
 
             {/* Refresh Button */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              flexShrink: 0,
-            }}>
-              <button
-                style={{
-                  ...styles.refreshButton,
-                  width: screenSize.isMobile ? '100%' : 'auto',
-                }}
-                onClick={handleRefresh}
-              >
-                Refresh
-              </button>
-            </div>
+            <button
+              style={styles.refreshButton}
+              onClick={handleRefresh}
+            >
+              Refresh
+            </button>
           </div>
         </div>
       </div>
@@ -827,91 +640,102 @@ const SalesRegister = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th, minWidth: '60px', width: '60px', maxWidth: '60px' }}>No</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Sales Party</th>
-                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill No</th>
-                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Date</th>
-                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Amount</th>
-                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>Qty</th>
-                {/* <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Time</th> */}
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill No.</th>
+                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Name</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>S.Rate</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Qty</th>
+                <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
               {tableLoaded ? (
                 salesData.length > 0 ? (
-                  salesData.map((row, rowIndex) => (
-                    <tr 
-                      key={row.id} 
-                      style={{ 
-                        backgroundColor: rowIndex % 2 === 0 ? '#f9f9f9' : '#ffffff',
-                      }}
-                      onClick={() => {
-                        const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time'];
-                        const colIndex = colNames.indexOf('no');
-                        setSelectedCell({ row: rowIndex, col: colIndex });
-                      }}
-                    >
-                      <td style={getCellStyle(rowIndex, 'no')}>
-                        {row.no}
+                  salesData.map((row, index) => (
+                    <tr key={index} style={{ 
+                      backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                      ...(row.isTotal ? { 
+                        backgroundColor: '#f0f8ff', 
+                        fontWeight: 'bold',
+                        borderTop: '2px solid #1B91DA'
+                      } : {})
+                    }}>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '100px', 
+                        width: '100px', 
+                        maxWidth: '100px',
+                        textAlign: 'center',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.billNo || ''}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'salesParty')}>
-                        {row.salesParty}
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '200px', 
+                        width: '200px', 
+                        maxWidth: '200px',
+                        textAlign: 'left',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.name}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'billNo')}>
-                        {row.billNo}
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '120px', 
+                        width: '120px', 
+                        maxWidth: '120px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.srate ? `₹${row.srate}` : ''}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'billDate')}>
-                        {row.billDate}
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '100px', 
+                        width: '100px', 
+                        maxWidth: '100px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.qty || ''}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'billAmount')}>
-                        {row.billAmount}
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '140px', 
+                        width: '140px', 
+                        maxWidth: '140px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.amount ? `₹${row.amount}` : ''}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'qty')}>
-                        {row.qty}
-                      </td>
-                      {/* <td style={getCellStyle(rowIndex, 'time')}>
-                        {row.time}
-                      </td> */}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      No records found
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      No sales records found
                     </td>
                   </tr>
                 )
               ) : (
                 <tr>
-                    {/* <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      Enter search criteria and click "Search" to view sales register entries
-                    </td> */}
-                  </tr>
-              )}
-            </tbody>
-            {tableLoaded && salesData.length > 0 && (
-              <tfoot>
-                <tr style={{ backgroundColor: '#f0f8ff', borderTop: '2px solid #1B91DA' }}>
-                  <td colSpan="3" style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold' }}>
-                    Total
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
-                    ₹{formatNumber(totals.billAmount)}
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center', fontFamily: '"Courier New", monospace', fontWeight: 'bold', color: '#1565c0' }}>
-                    {totals.qty.toFixed(2)}
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center' }}>
-                    -
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    Enter search criteria and click "Search" to view day sales
                   </td>
                 </tr>
-              </tfoot>
-            )}
+              )}
+            </tbody>
           </table>
         </div>
       </div>
 
-      {/* Footer Section with Totals - CENTERED - Only Total Bill Amount and Total Quantity */}
+      {/* Footer Section with Totals - CENTERED */}
       <div style={styles.footerSection}>
         <div style={{
           ...styles.balanceContainer,
@@ -919,23 +743,35 @@ const SalesRegister = () => {
           width: '100%',
         }}>
           <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Bill Amount</span>
+            <span style={styles.balanceLabel}>Total Sales</span>
             <span style={styles.balanceValue}>
-              ₹{formatNumber(totals.billAmount)}
+              ₹{formatNumber(totals.amount)}
             </span>
           </div>
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Total Quantity</span>
             <span style={styles.balanceValue}>
-              {totals.qty.toFixed(2)}
+              {formatNumber(totals.qty)}
             </span>
           </div>
-          {/* Removed: Total Bales */}
-          {/* Removed: Total Records */}
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Avg S.Rate</span>
+            <span style={styles.balanceValue}>
+              {totals.qty > 0 ? `₹${formatNumber(totals.amount / totals.qty)}` : '₹0.00'}
+            </span>
+          </div>
+          {tableLoaded && salesData.filter(row => !row.isTotal).length > 0 && (
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Total Invoices</span>
+              <span style={styles.balanceValue}>
+                {salesData.filter(row => !row.isTotal).length}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default SalesRegister;
+export default DaySales;

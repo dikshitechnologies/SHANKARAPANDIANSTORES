@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { get } from '../../../api/apiService';
+import { API_ENDPOINTS } from '../../../api/endpoints';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -23,23 +25,35 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 
 const Ledger = () => {
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState('2024-06-14');
-  const [toDate, setToDate] = useState('2025-11-26');
-  const [party, setParty] = useState('ANBU 123');
-  const [company, setCompany] = useState('Select Company');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [party, setParty] = useState('');
+  const [partyCode, setPartyCode] = useState('');
+  const [company, setCompany] = useState('');
+  const [companyCode, setCompanyCode] = useState('');
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
+  const [openingBalance, setOpeningBalance] = useState(0);
+  const [closingBalance, setClosingBalance] = useState({ debit: 0, credit: 0 });
+  const [totals, setTotals] = useState({ debit: 0, credit: 0 });
   
   // Popup states for Party
   const [showPartyPopup, setShowPartyPopup] = useState(false);
-  const [tempSelectedParty, setTempSelectedParty] = useState('ANBU 123');
-  const [partyDisplay, setPartyDisplay] = useState('ANBU 123');
+  const [tempSelectedParty, setTempSelectedParty] = useState('');
+  const [tempSelectedPartyCode, setTempSelectedPartyCode] = useState('');
+  const [partyDisplay, setPartyDisplay] = useState('Select Party');
+  const [partySearchText, setPartySearchText] = useState('');
+  const [partyPage, setPartyPage] = useState(1);
+  const [partyPageSize] = useState(100);
+  const [hasMoreParties, setHasMoreParties] = useState(true);
+  const partyListRef = useRef(null);
   
   // Popup states for Company
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
-  const [tempSelectedCompany, setTempSelectedCompany] = useState('Select Company');
+  const [tempSelectedCompany, setTempSelectedCompany] = useState([]);
+  const [tempSelectedCompanyCode, setTempSelectedCompanyCode] = useState([]);
   const [companyDisplay, setCompanyDisplay] = useState('Select Company');
 
   // --- REFS ---
@@ -48,69 +62,109 @@ const Ledger = () => {
   const partyRef = useRef(null);
   const companyRef = useRef(null);
   const searchButtonRef = useRef(null);
+  const searchDebounceRef = useRef(null);
+  const partySearchInputRef = useRef(null);
 
   // --- DATA ---
   const [ledgerData, setLedgerData] = useState([]);
+  const [allParties, setAllParties] = useState([]);
+  const [allCompanies, setAllCompanies] = useState([]);
 
-  // Sample ledger data
-  const sampleLedgerData = [
-    {
-      date: '14/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH001',
-      type: 'Sales',
-      crDr: 'Cr',
-      billNo: 'BL001',
-      billet: 'BT001',
-      amount: '5000.00'
-    },
-    {
-      date: '15/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH002',
-      type: 'Purchase',
-      crDr: 'Dr',
-      billNo: 'BL002',
-      billet: 'BT002',
-      amount: '2500.00'
-    },
-    {
-      date: '20/06/2024',
-      name: 'ANBU 123',
-      voucherNo: 'VCH003',
-      type: 'Receipt',
-      crDr: 'Cr',
-      billNo: 'BL003',
-      billet: 'BT003',
-      amount: '3000.00'
+  // Set current date on initial load
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formattedToday = `${year}-${month}-${day}`;
+    
+    setFromDate(formattedToday);
+    setToDate(formattedToday);
+  }, []);
+
+  // Set initial focus on fromDate
+  useEffect(() => {
+    if (fromDateRef.current) {
+      fromDateRef.current.focus();
     }
-  ];
+  }, []);
 
-  // Sample data for popups
-  const allParties = [
-    'ANBU 123',
-    'John Doe',
-    'Jane Smith',
-    'ABC Corporation',
-    'XYZ Enterprises',
-    'Global Traders',
-    'Tech Solutions Ltd',
-    'Manufacturing Inc',
-    'Retail World',
-    'Service Providers'
-  ];
+  // Focus on party search input when popup opens
+  useEffect(() => {
+    if (showPartyPopup && partySearchInputRef.current) {
+      setTimeout(() => {
+        partySearchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [showPartyPopup]);
 
-  const allCompanies = [
-    'DIKSHI DEMO',
-    'DIKSHI TECH',
-    'DIKSHIWEBSITE',
-    'SAKTHI',
-    'JUST AK THINGS',
-    'PRIVANKA',
-    'Global Corp',
-    'Tech Innovators',
-    'Business Solutions'
-  ];
+  // Fetch companies on mount
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await get(API_ENDPOINTS.LEDGER.COMPANIES);
+        if (response.status === 'success' && response.data) {
+          setAllCompanies(response.data);
+        }
+      } catch (error) {
+        toast.error('Failed to load companies');
+        console.error('Error fetching companies:', error);
+      }
+    };
+    fetchCompanies();
+  }, []);
+
+  // Fetch parties when popup opens or search changes (with debounce for search)
+  useEffect(() => {
+    if (showPartyPopup) {
+      // Clear existing timeout
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+      
+      // If search text is being typed, debounce it
+      if (partySearchText) {
+        searchDebounceRef.current = setTimeout(() => {
+          fetchParties(true);
+        }, 300); // 300ms debounce
+      } else {
+        // No search text, fetch immediately
+        fetchParties(true);
+      }
+    }
+    
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [showPartyPopup, partySearchText]);
+
+  const fetchParties = async (resetData = false) => {
+    try {
+      setIsLoading(true);
+      const currentPage = resetData ? 1 : partyPage;
+      const response = await get(API_ENDPOINTS.LEDGER.PARTY_LIST(currentPage, partyPageSize, partySearchText));
+      if (response.status === 'success' && response.data) {
+        if (resetData) {
+          setAllParties(response.data);
+          setPartyPage(1);
+        } else {
+          setAllParties(prev => [...prev, ...response.data]);
+        }
+        if (response.pagination) {
+          setHasMoreParties(currentPage < response.pagination.totalPages);
+        } else {
+          setHasMoreParties(false);
+        }
+      }
+    } catch (error) {
+      toast.error('Failed to load parties');
+      console.error('Error fetching parties:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
@@ -123,32 +177,108 @@ const Ledger = () => {
 
   const handlePartyClick = () => {
     setTempSelectedParty(party);
+    setTempSelectedPartyCode(partyCode);
+    setPartySearchText('');
+    setPartyPage(1);
     setShowPartyPopup(true);
   };
 
+  const handlePartyKeyDown = (e) => {
+    // Check if it's a printable character (letter, number, space, etc.)
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      setTempSelectedParty(party);
+      setTempSelectedPartyCode(partyCode);
+      setPartySearchText(e.key);
+      setPartyPage(1);
+      setShowPartyPopup(true);
+    } else if (e.key === 'Enter') {
+      handleKeyDown(e, 'party');
+      if (!showPartyPopup) {
+        handlePartyClick();
+      }
+    }
+  };
+
   const handleCompanyClick = () => {
-    setTempSelectedCompany(company);
+    setTempSelectedCompany(Array.isArray(company) ? company : (company ? [company] : []));
+    setTempSelectedCompanyCode(Array.isArray(companyCode) ? companyCode : (companyCode ? [companyCode] : []));
     setShowCompanyPopup(true);
   };
 
+  const handleCompanyKeyDown = (e) => {
+    // Check if it's a printable character (letter, number, space, etc.)
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      setTempSelectedCompany(company);
+      setTempSelectedCompanyCode(companyCode);
+      setShowCompanyPopup(true);
+    } else if (e.key === 'Enter') {
+      handleKeyDown(e, 'company');
+      if (!showCompanyPopup) {
+        handleCompanyClick();
+      }
+    }
+  };
+
   const handlePartySelect = (selectedParty) => {
-    setTempSelectedParty(selectedParty);
+    setTempSelectedParty(selectedParty.fAcname);
+    setTempSelectedPartyCode(selectedParty.fCode);
   };
 
   const handleCompanySelect = (selectedCompany) => {
-    setTempSelectedCompany(selectedCompany);
+    if (selectedCompany === 'ALL') {
+      // Toggle ALL selection
+      if (tempSelectedCompanyCode.length === allCompanies.length) {
+        // Deselect all
+        setTempSelectedCompany([]);
+        setTempSelectedCompanyCode([]);
+      } else {
+        // Select all
+        setTempSelectedCompany(allCompanies.map(c => c.compName));
+        setTempSelectedCompanyCode(allCompanies.map(c => c.compCode));
+      }
+    } else {
+      // Toggle individual company selection
+      const isSelected = tempSelectedCompanyCode.includes(selectedCompany.compCode);
+      if (isSelected) {
+        setTempSelectedCompany(tempSelectedCompany.filter(name => name !== selectedCompany.compName));
+        setTempSelectedCompanyCode(tempSelectedCompanyCode.filter(code => code !== selectedCompany.compCode));
+      } else {
+        setTempSelectedCompany([...tempSelectedCompany, selectedCompany.compName]);
+        setTempSelectedCompanyCode([...tempSelectedCompanyCode, selectedCompany.compCode]);
+      }
+    }
   };
 
   const handlePartyPopupOk = () => {
     setParty(tempSelectedParty);
-    setPartyDisplay(tempSelectedParty);
+    setPartyCode(tempSelectedPartyCode);
+    setPartyDisplay(tempSelectedParty || 'Select Party');
     setShowPartyPopup(false);
+    // Move focus to company field after selecting party
+    setTimeout(() => {
+      companyRef.current?.focus();
+    }, 100);
   };
 
   const handleCompanyPopupOk = () => {
     setCompany(tempSelectedCompany);
-    setCompanyDisplay(tempSelectedCompany);
+    setCompanyCode(tempSelectedCompanyCode);
+    if (tempSelectedCompany.length === 0) {
+      setCompanyDisplay('Select Company');
+    } else if (tempSelectedCompany.length === allCompanies.length) {
+      setCompanyDisplay('ALL');
+    } else if (tempSelectedCompany.length === 1) {
+      setCompanyDisplay(tempSelectedCompany[0]);
+    } else {
+      setCompanyDisplay(`${tempSelectedCompany.length} Companies Selected`);
+    }
     setShowCompanyPopup(false);
+    // Move focus to search button after selecting company
+    setTimeout(() => {
+      searchButtonRef.current?.focus();
+    }, 100);
   };
 
   const handlePartyPopupClose = () => {
@@ -161,48 +291,100 @@ const Ledger = () => {
 
   const handlePartyClearSelection = () => {
     setTempSelectedParty('');
+    setTempSelectedPartyCode('');
   };
 
   const handleCompanyClearSelection = () => {
-    setTempSelectedCompany('');
+    setTempSelectedCompany([]);
+    setTempSelectedCompanyCode([]);
   };
 
-  const handleSearch = () => {
-    if (!fromDate || !toDate || !party || company === 'Select Company') {
-      toast.warning('Please fill all fields: From Date, To Date, Party, and Company', {
+  const handlePartySearch = (e) => {
+    setPartySearchText(e.target.value);
+    setPartyPage(1);
+  };
+
+  const handlePartyScroll = (e) => {
+    const bottom = e.target.scrollHeight - e.target.scrollTop <= e.target.clientHeight + 50;
+    if (bottom && !isLoading && hasMoreParties) {
+      setPartyPage(prev => {
+        const nextPage = prev + 1;
+        fetchParties(false);
+        return nextPage;
+      });
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!party || !company) {
+      toast.warning('Please select both Party and Company', {
         autoClose: 2000,
       });
       return;
     }
     
-    console.log('Searching Ledger with:', {
-      fromDate,
-      toDate,
-      party,
-      company
-    });
-    
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setLedgerData(sampleLedgerData);
-      setTableLoaded(true);
+    try {
+      setIsLoading(true);
+      
+      const response = await get(API_ENDPOINTS.LEDGER.GET_LEDGER(
+        partyCode,
+        companyCode,
+        fromDate,
+        toDate
+      ));
+      
+      if (response.status === 'success') {
+        // Map API response to ledger data
+        const mappedData = response.transactions.map((txn) => ({
+          date: txn.date,
+          name: txn.party,
+          voucherNo: txn.vrNo,
+          type: txn.type,
+          crDr: txn.debit > 0 ? 'Dr' : txn.credit > 0 ? 'Cr' : '-',
+          billNo: txn.billNo,
+          billet: txn.billDate,
+          amount: txn.debit > 0 ? txn.debit : txn.credit
+        }));
+        
+        setLedgerData(mappedData);
+        setOpeningBalance(response.openingBalance || 0);
+        setClosingBalance(response.closingBalance || { debit: 0, credit: 0 });
+        setTotals(response.totals || { debit: 0, credit: 0 });
+        setTableLoaded(true);
+        toast.success('Ledger data loaded successfully');
+      } else {
+        toast.error('Failed to load ledger data');
+        setLedgerData([]);
+      }
+    } catch (error) {
+      toast.error('Error loading ledger data');
+      console.error('Error fetching ledger:', error);
+      setLedgerData([]);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleRefresh = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formattedToday = `${year}-${month}-${day}`;
+    
     setTableLoaded(false);
-    setFromDate('2024-06-14');
-    setToDate('2025-11-26');
-    setParty('ANBU 123');
-    setTempSelectedParty('ANBU 123');
-    setPartyDisplay('ANBU 123');
-    setCompany('Select Company');
-    setTempSelectedCompany('Select Company');
+    setFromDate(formattedToday);
+    setToDate(formattedToday);
+    setParty('');
+    setPartyCode('');
+    setPartyDisplay('Select Party');
+    setCompany([]);
+    setCompanyCode([]);
     setCompanyDisplay('Select Company');
     setLedgerData([]);
+    setOpeningBalance(0);
+    setClosingBalance({ debit: 0, credit: 0 });
+    setTotals({ debit: 0, credit: 0 });
   };
 
   // Handle key navigation
@@ -782,10 +964,63 @@ const Ledger = () => {
       fontWeight: 'bold',
       fontSize: '12px'
     },
+    listTextContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px',
+      flex: 1
+    },
     listText: {
       color: '#333',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.medium
+    },
+    listSubtext: {
+      color: '#666',
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontWeight: TYPOGRAPHY.fontWeight.normal
+    },
+    searchInput: {
+      width: '100%',
+      padding: '8px 12px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      outline: 'none',
+      transition: 'border-color 0.2s',
+      ':focus': {
+        borderColor: '#1B91DA'
+      }
+    },
+    pagination: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '10px 15px',
+      borderTop: '1px solid #e0e0e0',
+      borderBottom: '1px solid #e0e0e0',
+      backgroundColor: '#fafafa'
+    },
+    paginationButton: {
+      padding: '6px 12px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      background: 'white',
+      color: '#333',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      ':hover': {
+        background: '#f0f0f0',
+        borderColor: '#1B91DA'
+      },
+      ':disabled': {
+        cursor: 'not-allowed'
+      }
+    },
+    paginationText: {
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      color: '#666'
     },
     popupActions: {
       borderTop: '1px solid #ddd',
@@ -824,10 +1059,6 @@ const Ledger = () => {
     },
   };
 
-  // Calculate opening and closing balances
-  const openingBalance = 0.00;
-  const closingBalance = 0.00;
-
   return (
     <div style={styles.container}>
       {/* Loading Overlay */}
@@ -851,8 +1082,8 @@ const Ledger = () => {
           {/* From Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '0.7',
+            minWidth: screenSize.isMobile ? '100%' : '90px',
           }}>
             <label style={styles.inlineLabel}>From Date:</label>
             <input
@@ -877,8 +1108,8 @@ const Ledger = () => {
           {/* To Date */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '0.7',
+            minWidth: screenSize.isMobile ? '100%' : '90px',
           }}>
             <label style={styles.inlineLabel}>To Date:</label>
             <input
@@ -903,8 +1134,8 @@ const Ledger = () => {
           {/* Party with Popup */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '1.4',
+            minWidth: screenSize.isMobile ? '100%' : '140px',
           }}>
             <label style={styles.inlineLabel}>Party:</label>
             <div
@@ -918,12 +1149,7 @@ const Ledger = () => {
                 setFocusedField('party');
               }}
               ref={partyRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'party');
-                if (e.key === 'Enter') {
-                  handlePartyClick();
-                }
-              }}
+              onKeyDown={handlePartyKeyDown}
               onFocus={() => setFocusedField('party')}
               onBlur={() => setFocusedField('')}
               tabIndex={0}
@@ -945,8 +1171,8 @@ const Ledger = () => {
           {/* Company with Popup */}
           <div style={{
             ...styles.formField,
-            flex: screenSize.isMobile ? '1 0 100%' : '1',
-            minWidth: screenSize.isMobile ? '100%' : '120px',
+            flex: screenSize.isMobile ? '1 0 100%' : '1.6',
+            minWidth: screenSize.isMobile ? '100%' : '150px',
           }}>
             <label style={styles.inlineLabel}>Company:</label>
             <div
@@ -960,12 +1186,7 @@ const Ledger = () => {
                 setFocusedField('company');
               }}
               ref={companyRef}
-              onKeyDown={(e) => {
-                handleKeyDown(e, 'company');
-                if (e.key === 'Enter') {
-                  handleCompanyClick();
-                }
-              }}
+              onKeyDown={handleCompanyKeyDown}
               onFocus={() => setFocusedField('company')}
               onBlur={() => setFocusedField('')}
               tabIndex={0}
@@ -1037,13 +1258,14 @@ const Ledger = () => {
           <table style={styles.table}>
             <thead>
               <tr>
+                <th style={{ ...styles.th, minWidth: '50px', width: '50px', maxWidth: '50px' }}>S.No</th>
                 <th style={styles.th}>Date</th>
                 <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Name</th>
                 <th style={styles.th}>Voucher No</th>
                 <th style={styles.th}>Type</th>
                 <th style={styles.th}>Cr/Dr</th>
                 <th style={styles.th}>Bill No</th>
-                <th style={styles.th}>Billet</th>
+                <th style={styles.th}>Bill Date</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Amount</th>
               </tr>
             </thead>
@@ -1052,6 +1274,7 @@ const Ledger = () => {
                 ledgerData.length > 0 ? (
                   ledgerData.map((row, index) => (
                     <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+                      <td style={{ ...styles.td, minWidth: '50px', width: '50px', maxWidth: '50px' }}>{index + 1}</td>
                       <td style={styles.td}>{row.date}</td>
                       <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px' }}>{row.name}</td>
                       <td style={styles.td}>{row.voucherNo}</td>
@@ -1069,14 +1292,14 @@ const Ledger = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                       No records found
                     </td>
                   </tr>
                 )
               ) : (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                     {/* Enter search criteria and click "Search" to view ledger entries */}
                   </td>
                 </tr>
@@ -1096,13 +1319,13 @@ const Ledger = () => {
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Opening Balance</span>
             <span style={styles.balanceValue}>
-              ₹{openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{parseFloat(openingBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Closing Balance</span>
             <span style={styles.balanceValue}>
-              ₹{closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{parseFloat((closingBalance.debit || 0) - (closingBalance.credit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         </div>
@@ -1125,22 +1348,56 @@ const Ledger = () => {
               </button>
             </div>
             
-            <div style={styles.listContainer}>
-              {allParties.map((partyItem) => {
-                const isSelected = tempSelectedParty === partyItem;
-                return (
-                  <div 
-                    key={partyItem} 
-                    style={isSelected ? styles.selectedListItem : styles.listItem}
-                    onClick={() => handlePartySelect(partyItem)}
-                  >
-                    <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
-                    </div>
-                    <span style={styles.listText}>{partyItem}</span>
-                  </div>
-                );
-              })}
+            {/* Search Input */}
+            <div style={{ padding: '10px 15px', borderBottom: '1px solid #e0e0e0' }}>
+              <input
+                type="text"
+                placeholder="Search party..."
+                value={partySearchText}
+                onChange={handlePartySearch}
+                style={styles.searchInput}
+                ref={partySearchInputRef}
+              />
+            </div>
+            
+            <div 
+              style={styles.listContainer}
+              onScroll={handlePartyScroll}
+              ref={partyListRef}
+            >
+              {isLoading && allParties.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>
+              ) : allParties.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No parties found</div>
+              ) : (
+                <>
+                  {allParties.map((partyItem) => {
+                    const isSelected = tempSelectedPartyCode === partyItem.fCode;
+                    return (
+                      <div 
+                        key={partyItem.fCode} 
+                        style={isSelected ? styles.selectedListItem : styles.listItem}
+                        onClick={() => handlePartySelect(partyItem)}
+                      >
+                        <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
+                          {isSelected && <div style={styles.checkmark}>✓</div>}
+                        </div>
+                        <div style={styles.listTextContainer}>
+                          <span style={styles.listText}>{partyItem.fAcname}</span>
+                          <span style={styles.listSubtext}>
+                            Code: {partyItem.fCode}
+                            {partyItem.fCity && ` • ${partyItem.fCity}`}
+                            {partyItem.fPhone && ` • ${partyItem.fPhone}`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {isLoading && hasMoreParties && (
+                    <div style={{ textAlign: 'center', padding: '10px', color: '#666' }}>Loading more...</div>
+                  )}
+                </>
+              )}
             </div>
             
             <div style={styles.popupActions}>
@@ -1171,7 +1428,7 @@ const Ledger = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={styles.popupHeader}>
-              Select Company
+              Select Companies
               <button 
                 style={styles.closeButton}
                 onClick={handleCompanyPopupClose}
@@ -1181,21 +1438,41 @@ const Ledger = () => {
             </div>
             
             <div style={styles.listContainer}>
-              {allCompanies.map((companyItem) => {
-                const isSelected = tempSelectedCompany === companyItem;
-                return (
-                  <div 
-                    key={companyItem} 
-                    style={isSelected ? styles.selectedListItem : styles.listItem}
-                    onClick={() => handleCompanySelect(companyItem)}
-                  >
-                    <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
+              {/* ALL Option */}
+              <div 
+                style={tempSelectedCompanyCode.length === allCompanies.length && allCompanies.length > 0 ? styles.selectedListItem : styles.listItem}
+                onClick={() => handleCompanySelect('ALL')}
+              >
+                <div style={tempSelectedCompanyCode.length === allCompanies.length && allCompanies.length > 0 ? styles.selectedListCheckbox : styles.listCheckbox}>
+                  {tempSelectedCompanyCode.length === allCompanies.length && allCompanies.length > 0 && <div style={styles.checkmark}>✓</div>}
+                </div>
+                <div style={styles.listTextContainer}>
+                  <span style={styles.listText}>ALL</span>
+                </div>
+              </div>
+              
+              {allCompanies.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No companies found</div>
+              ) : (
+                allCompanies.map((companyItem) => {
+                  const isSelected = tempSelectedCompanyCode.includes(companyItem.compCode);
+                  return (
+                    <div 
+                      key={companyItem.compCode} 
+                      style={isSelected ? styles.selectedListItem : styles.listItem}
+                      onClick={() => handleCompanySelect(companyItem)}
+                    >
+                      <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
+                        {isSelected && <div style={styles.checkmark}>✓</div>}
+                      </div>
+                      <div style={styles.listTextContainer}>
+                        <span style={styles.listText}>{companyItem.compName}</span>
+                        <span style={styles.listSubtext}>Code: {companyItem.compCode}</span>
+                      </div>
                     </div>
-                    <span style={styles.listText}>{companyItem}</span>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
             
             <div style={styles.popupActions}>

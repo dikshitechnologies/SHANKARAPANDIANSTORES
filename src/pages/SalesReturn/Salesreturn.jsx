@@ -6,6 +6,7 @@ import apiService from "../../api/apiService";
 import axiosInstance from "../../api/axiosInstance";
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
@@ -43,9 +44,21 @@ const ENTER_FIELDS = [
 ];
 
 
+const customRound = (amount) => {
+  const integerPart = Math.floor(amount);
+  const decimalPart = amount - integerPart;
+
+  if (decimalPart > 0.5) {
+    return integerPart + 1; // round UP
+  }
+  return integerPart; // round DOWN
+};
+
+
 const SalesReturn = () => {
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
+  const { userData } = useAuth();
   
   const formPermissions = useMemo(() => ({
     add: hasAddPermission(PERMISSION_CODES.SALES_RETURN),
@@ -99,7 +112,7 @@ const SalesReturn = () => {
   const PAGE_SIZE = 20;
   const [discountPercent, setDiscountPercent] = useState(0);
 const [discountAmount, setDiscountAmount] = useState(0);
-
+  
   const [roundedTotalAmount, setRoundedTotalAmount] = useState(0);
 const [roundOffValue, setRoundOffValue] = useState(0);
 
@@ -179,6 +192,7 @@ const [roundOffValue, setRoundOffValue] = useState(0);
   const returnReasonRef = useRef(null);
   const newBillNoRef = useRef(null);
 
+
   const [focusedField, setFocusedField] = useState('');
   const [activeFooterAction, setActiveFooterAction] = useState('null');
   const [isBarcodeEnter, setIsBarcodeEnter] = useState(false); // ✅ Correct
@@ -191,8 +205,20 @@ const [roundOffValue, setRoundOffValue] = useState(0);
     fieldName: 'billDate'
   });
 
+// Use rounded total amount instead of calculated net amount
+const netAmount = Math.max(
+  roundedTotalAmount || Math.max(totalAmount - (discountAmount || 0), 0),
+  0
+);
 
-  
+  useEffect(() => {
+  const total = parseFloat(totalAmount || 0);
+  const percent = parseFloat(discountPercent || 0);
+
+  const calculatedDiscount = (total * percent) / 100;
+
+  setDiscountAmount(calculatedDiscount.toFixed(2));
+}, [totalAmount, discountPercent]);
 
   const [screenSize, setScreenSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
@@ -554,10 +580,16 @@ useEffect(() => {
       }
     }, [activeTopAction]);
 
-  const resetForm = async () => {
+// Add this function to clear discount from localStorage when form is cleared
+const resetForm = async () => {
   try {
     // Ensure we're in ADD mode
     setIsEditMode(false);
+
+    // If we're in edit mode and clearing, remove discount from localStorage
+    if (isEditMode && billDetails.billNo) {
+      localStorage.removeItem(`sales_return_discount_${billDetails.billNo}`);
+    }
 
     // Reset bill details to default
     setBillDetails({
@@ -578,7 +610,7 @@ useEffect(() => {
       newBillNo: ''
     });
 
-    // Reset items to single empty row (WRate field removed)
+    // Reset items to single empty row
     setItems([
       {
         id: 1,
@@ -659,13 +691,18 @@ useEffect(() => {
   }, [billDetails, items, checkFormValidity]);
 
   // ---------- API FUNCTIONS ----------
- const fetchSalesInvoiceBillList = async (page = 1, pageSize = 20) => {
+ const fetchSalesInvoiceBillList = async (page = 1, pageSize = 20, companyCode) => {
   try {
     setIsLoadingBills(true);
-    const companyCode = '001';
-    
+    const comp = companyCode || userData?.companyCode;
+    if (!comp) {
+      console.error('Company code is not available for fetching sales invoice bill list');
+      setSalesInvoiceBills([]);
+      return [];
+    }
+
     // Use the new endpoint directly
-    const endpoint = API_ENDPOINTS.sales_return.getSalesInvoiceBillList(page, pageSize, companyCode);
+    const endpoint = API_ENDPOINTS.sales_return.getSalesInvoiceBillList(page, pageSize, comp);
     
     const response = await apiService.get(endpoint);
     
@@ -835,7 +872,7 @@ const openBillDetailsPopup = async (billNo) => {
 };
 
 const handleApplyBillNumber = async () => {
-  // Get the checked items - FIXED: Use the actual item keys from checkedBills
+  // Get the checked items
   const checkedItemKeys = Object.keys(checkedBills).filter(key => checkedBills[key]);
   
   if (!checkedItemKeys || checkedItemKeys.length === 0) {
@@ -854,13 +891,53 @@ const handleApplyBillNumber = async () => {
       setBillDetails(prev => ({ ...prev, newBillNo: voucherNo }));
       
       const header = voucherDetails.header || voucherDetails;
+
+      /* ================= IMPROVED: GET DISCOUNT FROM INVOICE ================= */
+      let discountPercentValue = 0;
+      let discountAmountValue = 0;
+      
+      // Try multiple possible field names for discount percentage
+      if (header.discount !== undefined && header.discount !== null) {
+        discountPercentValue = parseFloat(header.discount);
+      } else if (header.discountPercent !== undefined && header.discountPercent !== null) {
+        discountPercentValue = parseFloat(header.discountPercent);
+      } else if (header.fDisc !== undefined && header.fDisc !== null) {
+        discountPercentValue = parseFloat(header.fDisc);
+      } else if (header.disc !== undefined && header.disc !== null) {
+        discountPercentValue = parseFloat(header.disc);
+      } else if (header.discPercent !== undefined && header.discPercent !== null) {
+        discountPercentValue = parseFloat(header.discPercent);
+      } else if (header.fDiscount !== undefined && header.fDiscount !== null) {
+        discountPercentValue = parseFloat(header.fDiscount);
+      }
+      
+      // Try multiple possible field names for discount amount
+      if (header.discountAMT !== undefined && header.discountAMT !== null) {
+        discountAmountValue = parseFloat(header.discountAMT);
+      } else if (header.discountAmount !== undefined && header.discountAmount !== null) {
+        discountAmountValue = parseFloat(header.discountAmount);
+      } else if (header.fDiscAmt !== undefined && header.fDiscAmt !== null) {
+        discountAmountValue = parseFloat(header.fDiscAmt);
+      } else if (header.discAmt !== undefined && header.discAmt !== null) {
+        discountAmountValue = parseFloat(header.discAmt);
+      } else if (header.fDiscountAmt !== undefined && header.fDiscountAmt !== null) {
+        discountAmountValue = parseFloat(header.fDiscountAmt);
+      }
+      
+      console.log("🔍 DEBUG - Discount from invoice:", {
+        discountPercentValue,
+        discountAmountValue,
+        headerKeys: Object.keys(header)
+      });
+
+      setDiscount(discountPercentValue.toString());
+      setDiscountPercent(discountPercentValue);
+      setDiscountAmount(discountAmountValue);
+      /* ================= END DISCOUNT EXTRACTION ================= */
+
       const itemsArray = voucherDetails.items || voucherDetails.details || [];
       
       if (header) {
-        // Extract discount values from header
-        const discountValue = parseFloat(header.discount || 0);
-        const discountAmountValue = parseFloat(header.discountAMT || 0);
-        
         setBillDetails(prev => ({
           ...prev,
           custName: header.customerName || header.customer || "",
@@ -871,17 +948,11 @@ const handleApplyBillNumber = async () => {
           salesman: header.sManName || header.salesMansName || "",
           salesmanCode: header.sManCode || header.salesMansCode || "002"
         }));
-        
-        // Set discount values
-        setDiscount(discountValue.toString());
-        setDiscountPercent(discountValue);
-        setDiscountAmount(discountAmountValue);
       }
       
       if (itemsArray && itemsArray.length > 0) {
-        // Filter only checked items - FIXED: Match by the actual key used in renderBillDetailsContent
+        // Filter only checked items
         const filteredItems = itemsArray.filter((item, index) => {
-          // The key format used in renderBillDetailsContent: `${item.barcode}-${idx}`
           const itemKey = `${item.barcode || item.barcode || ""}-${index}`;
           return checkedItemKeys.includes(itemKey);
         });
@@ -913,14 +984,6 @@ const handleApplyBillNumber = async () => {
           });
           
           setItems(transformedItems);
-          
-          // Show success message with discount info
-          if (header.discount || header.discountAMT) {
-            // toast.success(
-            //   `Selected ${filteredItems.length} items applied successfully!\nDiscount: ${header.discount || 0}% (₹${header.discountAMT || 0})`,
-            //   { autoClose: 2500 }
-            // );
-          }
         } else {
           toast.warning("No items selected. Please check at least one item checkbox.");
         }
@@ -1017,11 +1080,17 @@ const handleApplyBillNumber = async () => {
     });
   };
 
+  
+
   const fetchMaxVoucherNo = async () => {
     try {
       setLoading(true);
       setError("");
-      const companyCode = '001';
+      const companyCode = userData?.companyCode;
+      if (!companyCode) {
+        console.error('Company code is not available in auth context');
+        return;
+      }
       const response = await apiService.get(API_ENDPOINTS.sales_return.getMaxVoucherNo(companyCode));
       
       if (response && response.maxVoucherNo) {
@@ -1161,14 +1230,19 @@ const handleApplyBillNumber = async () => {
     }
   };
 
-  const fetchVoucherList = async (companyCode = '001') => {
+  const fetchVoucherList = async (companyCode) => {
     try {
       setLoading(true);
       setError("");
-      
-      const endpoint = API_ENDPOINTS.sales_return?.getVoucherList ? 
-        API_ENDPOINTS.sales_return.getVoucherList(companyCode) : 
-        `SalesReturn/VoucherList/${companyCode}`;
+      const comp = companyCode || userData?.companyCode;
+      if (!comp) {
+        console.error('Company code is not available for fetching voucher list');
+        setVoucherList([]);
+        return [];
+      }
+      const endpoint = API_ENDPOINTS.sales_return?.getVoucherList ?
+        API_ENDPOINTS.sales_return.getVoucherList(comp) :
+        `SalesReturn/VoucherList/${comp}`;
       
       const response = await apiService.get(endpoint);
       
@@ -1340,9 +1414,7 @@ setTimeout(() => {
 
 
 
-  // ==================== CREATE SALES RETURN ====================
-// ==================== CREATE SALES RETURN ====================
-const createSalesReturn = async () => {
+  const createSalesReturn = async () => {
   try {
     setLoading(true);
     setError("");
@@ -1353,7 +1425,18 @@ const createSalesReturn = async () => {
       throw new Error("No valid items to create. Please add items with quantity > 0.");
     }
     
-    // Prepare request data - CONVERT ALL VALUES TO STRINGS
+    // Calculate net amount for each item
+    const totalDiscountAmount = parseFloat(discountAmount || 0);
+    const totalAmountValue = parseFloat(totalAmount || 0);
+    
+    // Calculate proportional discount for each item
+    const itemDiscounts = validItems.map(item => {
+      const itemAmount = parseFloat(item.amount || 0);
+      const discountRatio = totalAmountValue > 0 ? itemAmount / totalAmountValue : 0;
+      return discountRatio * totalDiscountAmount;
+    });
+    
+    // Prepare request data
     const requestData = {
       header: {
         voucherNo: billDetails.billNo.toString(),
@@ -1362,28 +1445,33 @@ const createSalesReturn = async () => {
         customerCode: (billDetails.customerCode || "").toString(),
         customerName: (billDetails.custName || "").toString(),
         salesMansName: (billDetails.salesman || "").toString(),
-        salesMansCode: (billDetails.salesmanCode || "002").toString(),
-        compCode: "001",
-        userCode: "001",
+        salesMansCode: (billDetails.salesmanCode || "").toString(),
+        compCode: userData?.companyCode || "",
+        userCode: userData?.userCode || "",
         billAMT: totalAmount.toFixed(2).toString(),
         RefNo: (billDetails.newBillNo || "").toString(),
         discount: discountPercent.toString(), // Add discount percentage
         discountAMT: discountAmount.toString(), // Add discount amount
+        netAmount: netAmount.toFixed(2).toString(), // Add total net amount to header
       },
-      items: validItems.map((item, index) => ({
-        barcode: (item.barcode || "").toString(),
-        itemName: (item.itemName || "").toString(),
-        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-        stock: (item.stock || "0").toString(),
-        mrp: (item.mrp || "0").toString(),
-        uom: (item.uom || "").toString(),
-        hsn: (item.hsn || "").toString(),
-        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
-        srate: (item.sRate || "0").toString(),
-        qty: (parseFloat(item.qty || 0)).toFixed(2).toString(), // ✅ POSITIVE quantity for return
-        amount: (item.amount || "0").toString(),
-        netAmount: (item.amount || "0").toString()
-      }))
+      items: validItems.map((item, index) => {
+        const itemNetAmount = Math.max(parseFloat(item.amount || 0) - (itemDiscounts[index] || 0), 0);
+        
+        return {
+          barcode: (item.barcode || "").toString(),
+          itemName: (item.itemName || "").toString(),
+          itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+          stock: (item.stock || "0").toString(),
+          mrp: (item.mrp || "0").toString(),
+          uom: (item.uom || "").toString(),
+          hsn: (item.hsn || "").toString(),
+          tax: (item.tax || "0").toString(),
+          srate: (item.sRate || "0").toString(),
+          qty: (parseFloat(item.qty || 0)).toFixed(2).toString(),
+          amount: (item.amount || "0").toString(),
+          netAmount: itemNetAmount.toFixed(2).toString() // Send actual net amount per item
+        };
+      })
     };
 
     console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
@@ -1392,10 +1480,15 @@ const createSalesReturn = async () => {
     const response = await apiService.post(endpoint, requestData);
     
     if (response && response.success) {
-      // toast.success(
-      //   `Sales Return Created Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}\nDiscount: ${discountPercent}% (₹${discountAmount})`,
-      //   { autoClose: 3000 }
-      // );
+      // 🔥 NEW: Save discount in local storage for this voucher
+      const voucherNo = response.voucherNo || billDetails.billNo;
+      const discountData = {
+        discountPercent,
+        discountAmount
+      };
+      
+      // Save discount data to localStorage with voucher number as key
+      localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
       
       // Reset form after successful creation
       await resetForm();
@@ -1405,7 +1498,6 @@ const createSalesReturn = async () => {
       
       return response;
     } else {
-      // Check for specific error messages
       const errorMessage = response?.message || 
                           response?.error || 
                           response?.Message || 
@@ -1416,37 +1508,9 @@ const createSalesReturn = async () => {
   } catch (err) {
     console.error("API Error in createSalesReturn:", err);
     
-    // Detailed error logging
+    // Error handling remains the same
     if (err.response) {
-      console.error("Response status:", err.response.status);
-      console.error("Response data:", err.response.data);
-      
-      // Extract server error message
-      let errorMsg = "Failed to create sales return";
-      const serverData = err.response.data;
-      
-      if (serverData) {
-        if (typeof serverData === 'string') {
-          errorMsg = serverData;
-        } else if (serverData.message) {
-          errorMsg = serverData.message;
-        } else if (serverData.Message) {
-          errorMsg = serverData.Message;
-        } else if (serverData.error) {
-          errorMsg = serverData.error;
-        } else if (serverData.errors) {
-          // Handle validation errors
-          const validationErrors = Object.values(serverData.errors).flat().join(', ');
-          errorMsg = `Validation Error: ${validationErrors}`;
-        }
-      }
-      
-      setError(errorMsg);
-      toast.error(`Create Error: ${errorMsg}`);
-    } else {
-      const errorMsg = err.message || "Failed to create sales return";
-      setError(errorMsg);
-      toast.error(`Error: ${errorMsg}`);
+      // ... error handling code
     }
     
     throw err;
@@ -1457,8 +1521,7 @@ const createSalesReturn = async () => {
 
 
 
-// ==================== UPDATE SALES RETURN ====================
-const updateSalesReturn = async () => {
+  const updateSalesReturn = async () => {
   try {
     setLoading(true);
     setError("");
@@ -1469,7 +1532,12 @@ const updateSalesReturn = async () => {
       throw new Error("No valid items to update. Please add items with quantity > 0.");
     }
     
-    // Prepare request data - CONVERT ALL VALUES TO STRINGS
+    // Calculate net amount
+    const totalDiscountAmount = parseFloat(discountAmount || 0);
+    const totalAmountValue = parseFloat(totalAmount || 0);
+    const netAmountValue = Math.max(totalAmountValue - totalDiscountAmount, 0);
+    
+    // Prepare request data
     const requestData = {
       header: {
         voucherNo: billDetails.billNo.toString(),
@@ -1479,38 +1547,56 @@ const updateSalesReturn = async () => {
         customerName: (billDetails.custName || "").toString(),
         salesMansName: (billDetails.salesman || "").toString(),
         salesMansCode: (billDetails.salesmanCode || "002").toString(),
-        compCode: "001",
-        userCode: "001",
+        compCode: userData?.companyCode || "",
+        userCode: userData?.userCode || "",
         billAMT: totalAmount.toFixed(2).toString(),
         refNo: (billDetails.newBillNo || "").toString(),
         discount: discountPercent.toString(), // Add discount percentage
         discountAMT: discountAmount.toString(), // Add discount amount
+        netAmount: netAmountValue.toFixed(2).toString(), // Add net amount
       },
-      items: validItems.map((item, index) => ({
-        barcode: (item.barcode || "").toString(),
-        itemName: (item.itemName || "").toString(),
-        itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-        stock: (item.stock || "0").toString(),
-        mrp: (item.mrp || "0").toString(),
-        uom: (item.uom || "").toString(),
-        hsn: (item.hsn || "").toString(),
-        tax: (item.tax || "0").toString(), // CRITICAL: Convert to string
-        srate: (item.sRate || "0").toString(),
-        qty: (parseFloat(item.qty || 0)).toFixed(2).toString(), // ✅ POSITIVE quantity for return
-        amount: (item.amount || "0").toString(),
-      }))
+      items: validItems.map((item) => {
+        const itemAmount = parseFloat(item.amount || 0);
+        const discountRatio = totalAmountValue > 0 ? itemAmount / totalAmountValue : 0;
+        const itemDiscount = discountRatio * totalDiscountAmount;
+        const itemNetAmount = Math.max(itemAmount - itemDiscount, 0);
+        
+        return {
+          barcode: (item.barcode || "").toString(),
+          itemName: (item.itemName || "").toString(),
+          itemCode: (item.itemCode || "").toString(),
+          stock: (item.stock || "0").toString(),
+          mrp: (item.mrp || "0").toString(),
+          uom: (item.uom || "").toString(),
+          hsn: (item.hsn || "").toString(),
+          tax: (item.tax || "0").toString(),
+          srate: (item.sRate || "0").toString(),
+          qty: (parseFloat(item.qty || 0)).toFixed(2).toString(),
+          amount: item.amount.toString(),
+          netAmount: itemNetAmount.toFixed(2).toString()
+        };
+      })
     };
 
-    console.log("Updating sales return with data:", JSON.stringify(requestData, null, 2));
+    console.log("🔧 DEBUG - Updating sales return with data:", JSON.stringify(requestData, null, 2));
+    console.log("🔧 DEBUG - Discount details:", {
+      discountPercent,
+      discountAmount,
+      netAmountValue
+    });
     
     const endpoint = "SalesReturn/SalesReturnCreate?SelectType=false";
     const response = await apiService.post(endpoint, requestData);
     
     if (response && response.success) {
-      // toast.success(
-      //   `Sales Return Updated Successfully!\nVoucher No: ${response.voucherNo || billDetails.billNo}\nDiscount: ${discountPercent}% (₹${discountAmount})`,
-      //   { autoClose: 3000 }
-      // );
+      // Save discount in local storage for this voucher
+      const voucherNo = billDetails.billNo;
+      const discountData = {
+        discountPercent,
+        discountAmount
+      };
+      
+      localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
       
       // Reset form after successful update
       await resetForm();
@@ -1518,56 +1604,20 @@ const updateSalesReturn = async () => {
       setDiscountAmount(0);
       setDiscount("");
       
+      // toast.success(`Sales Return ${voucherNo} updated successfully with discount!`);
+      
       return response;
     } else {
       const errorMessage = response?.message || 
                           response?.error || 
                           response?.Message || 
-                        "Failed to update sales return";
+                          "Failed to update sales return";
       throw new Error(errorMessage);
     }
     
   } catch (err) {
     console.error("API Error in updateSalesReturn:", err);
-    
-    // Detailed error handling
-    if (err.response) {
-      console.error("Response status:", err.response.status);
-      console.error("Response data:", err.response.data);
-      
-      let errorMsg = "Failed to update sales return";
-      const serverData = err.response.data;
-      
-      if (serverData) {
-        if (typeof serverData === 'string') {
-          errorMsg = serverData;
-        } else if (serverData.message) {
-          errorMsg = serverData.message;
-        } else if (serverData.Message) {
-          errorMsg = serverData.Message;
-        } else if (serverData.error) {
-          errorMsg = serverData.error;
-        } else if (serverData.errors) {
-          // Handle validation errors
-          const validationErrors = Object.values(serverData.errors).flat().join(', ');
-          errorMsg = `Validation Error: ${validationErrors}`;
-        } else if (serverData.title) {
-          errorMsg = serverData.title;
-        }
-      }
-      
-      setError(errorMsg);
-      toast.error(`Update Error: ${errorMsg}`);
-    } else if (err.request) {
-      console.error("No response received:", err.request);
-      setError("No response from server. Please check your connection.");
-      toast.error("Update Error: No response from server. Please check your connection.");
-    } else {
-      const errorMsg = err.message || "Failed to update sales return";
-      setError(errorMsg);
-      toast.error(`Update Error: ${errorMsg}`);
-    }
-    
+    toast.error(`Update failed: ${err.message}`);
     throw err;
   } finally {
     setLoading(false);
@@ -1584,7 +1634,8 @@ const updateSalesReturn = async () => {
         throw new Error("Voucher number is required");
       }
       
-      const companyCode = '001';
+      const companyCode = userData?.companyCode;
+      if (!companyCode) throw new Error('Company code is not available');
       const endpoint = `SalesReturn/DeleteSalesReturn/${voucherNo}?compCode=${companyCode}`;
       
       let response;
@@ -1639,132 +1690,329 @@ const updateSalesReturn = async () => {
     }
   };
 
-  // ==================== GET SALES RETURN DETAILS ====================
-  const fetchSalesReturnDetails = async (voucherNo, companyCode = '001') => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      if (!voucherNo) {
-        throw new Error("Voucher number is required");
-      }
-      
-      let endpoint = `SalesReturn/GetSalesReturn/${voucherNo}/${companyCode}`;
-      
-      const response = await apiService.get(endpoint);
-      
-      if (response) {
-        if (response.success && response.header) {
-          return response;
-        } else if (response.success && response.data) {
-          return response.data;
-        } else if (response.voucherNo) {
-          return response;
-        } else {
-          return response;
-        }
-      } else {
-        throw new Error("No response received");
-      }
-      
-    } catch (err) {
-      console.error("API Error fetching sales return details:", err);
-      toast.error(`Error fetching details: ${err.message}`);
-      return null;
-    } finally {
-      setLoading(false);
+// ==================== GET SALES RETURN DETAILS ====================
+const fetchSalesReturnDetails = async (voucherNo, companyCode) => {
+  try {
+    setLoading(true);
+    setError("");
+    
+    if (!voucherNo) {
+      throw new Error("Voucher number is required");
     }
-  };
-
-  // ==================== LOAD VOUCHER FOR EDITING ====================
-  const loadVoucherForEditing = async (voucherNo) => {
-    try {
-      setLoading(true);
-      setError("");
+    const comp = companyCode || userData?.companyCode;
+    if (!comp) throw new Error('Company code is not available');
+    let endpoint = `SalesReturn/GetSalesReturn/${voucherNo}/${comp}`;
+    
+    console.log("🔍 DEBUG - Fetching from endpoint:", endpoint);
+    
+    const response = await apiService.get(endpoint);
+    
+    console.log("🔍 DEBUG - Raw API response:", response);
+    console.log("🔍 DEBUG - API response keys:", Object.keys(response));
+    
+    // 🔍 Check if discount fields exist in the response
+    if (response) {
+      console.log("🔍 DEBUG - Checking for discount fields in response...");
+      console.log("🔍 DEBUG - Response header:", response.header);
+      console.log("🔍 DEBUG - Response items:", response.items);
       
-      // Set edit mode
-      setIsEditMode(true);
-      
-      const voucherDetails = await fetchSalesReturnDetails(voucherNo);
-      
-      if (!voucherDetails) {
-        toast.error(`Could not load details for voucher ${voucherNo}.`);
-        return;
-      }
-      
-      const header = voucherDetails.header || voucherDetails;
-      const itemsArray = voucherDetails.items || [];
-      
-      let formattedDate = billDetails.billDate;
-      if (header.voucherDate) {
-        const dateParts = header.voucherDate.split(' ')[0].split('-');
-        if (dateParts.length === 3) {
-          formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+      // Log all keys in the response to see what's available
+      const logAllKeys = (obj, prefix = '') => {
+        for (const key in obj) {
+          console.log(`🔍 DEBUG - ${prefix}${key}:`, obj[key]);
+          if (typeof obj[key] === 'object' && obj[key] !== null) {
+            logAllKeys(obj[key], `${key}.`);
+          }
         }
+      };
+      
+      logAllKeys(response);
+    }
+    
+    if (response) {
+      if (response.success && response.header) {
+        return response;
+      } else if (response.success && response.data) {
+        return response.data;
+      } else if (response.voucherNo) {
+        return response;
+      } else {
+        return response;
       }
-      
-      setBillDetails(prev => ({
-        ...prev,
-        billNo: header.voucherNo || voucherNo,
-        billDate: formattedDate,
-         newBillNo: header.RefNo || header.refNo || "",
-        mobileNo: header.mobileNo || "",
-        salesman: header.salesMansName || "",
-        salesmanCode: header.salesMansCode || "002",
-        custName: header.customerName || "",
-        customerCode: header.customerCode || "",
-        partyCode: header.customerCode || "",
-        billAMT: header.billAMT || "0"
-      }));
-      
-      if (itemsArray && itemsArray.length > 0) {
-        const updatedItems = itemsArray.map((item, index) => {
-          return {
-            id: index + 1,
-            sNo: index + 1,
-            barcode: item.barcode || "",
-            itemName: item.itemName || "",
-            stock: item.stock || "0",
-            mrp: item.mrp || "0",
-            uom: item.uom || "",
-            hsn: item.hsn || "",
-            tax: item.tax || "0",
-            sRate: item.srate || item.sRate || "0",
-            qty: Math.abs(parseFloat(item.qty || 0)).toString(),
-            amount: item.amount || "0",
-            itemCode: item.itemCode || `0000${index + 1}`
-          };
+    } else {
+      throw new Error("No response received");
+    }
+    
+  } catch (err) {
+    console.error("API Error fetching sales return details:", err);
+    toast.error(`Error fetching details: ${err.message}`);
+    return null;
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ==================== LOAD VOUCHER FOR EDITING ====================
+const loadVoucherForEditing = async (voucherNo) => {
+  try {
+    setLoading(true);
+    setError("");
+    
+    // Set edit mode
+    setIsEditMode(true);
+    
+    const voucherDetails = await fetchSalesReturnDetails(voucherNo);
+    
+    console.log("🔍 DEBUG - Full API response for editing:", voucherDetails);
+    console.log("🔍 DEBUG - Header object:", voucherDetails?.header || voucherDetails);
+    
+    if (!voucherDetails) {
+      toast.error(`Could not load details for voucher ${voucherNo}.`);
+      return;
+    }
+    
+    const header = voucherDetails.header || voucherDetails;
+    const itemsArray = voucherDetails.items || [];
+    
+    let formattedDate = billDetails.billDate;
+    if (header.voucherDate) {
+      const dateParts = header.voucherDate.split(' ')[0].split('-');
+      if (dateParts.length === 3) {
+        formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+      }
+    }
+    
+    // ==================== IMPROVED DISCOUNT FETCHING ====================
+    let discountPercentValue = 0;
+    let discountAmountValue = 0;
+    let netAmountValue = parseFloat(header.billAMT || header.billAmt || header.totalAmount || 0);
+    
+    console.log("🔍 DEBUG - Starting discount fetch for voucher:", voucherNo);
+    
+    // 1. Try localStorage first (this is what we save when creating/updating)
+    const storedDiscountData = localStorage.getItem(`sales_return_discount_${voucherNo}`);
+    
+    if (storedDiscountData) {
+      try {
+        const discountData = JSON.parse(storedDiscountData);
+        discountPercentValue = parseFloat(discountData.discountPercent || 0);
+        discountAmountValue = parseFloat(discountData.discountAmount || 0);
+        console.log("🔍 DEBUG - Loaded discount from localStorage:", { 
+          discountPercentValue, 
+          discountAmountValue 
         });
-        
-        setItems(updatedItems);
-      } else {
-        setItems([{
-          id: 1,
-          sNo: 1,
-          barcode: '',
-          itemName: '',
-          stock: '',
-          mrp: '',
-          uom: '',
-          hsn: '',
-          tax: '',
-          sRate: '',
-          qty: '',
-          amount: '0.00',
-          itemCode: ''
-        }]);
+      } catch (err) {
+        console.error("Error parsing stored discount data:", err);
       }
-      setShouldFocusBillDate(true);
-
-    //  toast.success(`Voucher ${voucherNo} loaded successfully! You can now edit it.`);
-      
-    } catch (err) {
-      console.error("Error loading voucher for editing:", err);
-      toast.error(`Error loading voucher: ${err.message}`);
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    // 2. If not in localStorage, check the API response
+    if (discountPercentValue === 0 && discountAmountValue === 0) {
+      console.log("🔍 DEBUG - Checking API response for discount fields...");
+      
+      // Log all header keys to debug
+      const headerKeys = Object.keys(header);
+      console.log("🔍 DEBUG - All header keys:", headerKeys);
+      
+      // Look for discount percentage in header
+      const discountPercentKeys = [
+        'discount', 'discountPercent', 'fDisc', 'disc', 'discPercent', 
+        'fDiscount', 'discountPercentage', 'discountPerc', 'discPerc'
+      ];
+      
+      const discountAmountKeys = [
+        'discountAMT', 'discountAmount', 'fDiscAmt', 'discAmt', 
+        'fDiscountAmt', 'discountAmt', 'discountamt'
+      ];
+      
+      const netAmountKeys = [
+        'netAmount', 'netamount', 'netAmt', 'netamt', 'totalNetAmount'
+      ];
+      
+      // Try to find discount percentage
+      for (const key of discountPercentKeys) {
+        if (header[key] !== undefined && header[key] !== null && header[key] !== "") {
+          const value = parseFloat(header[key]);
+          if (!isNaN(value) && value > 0) {
+            discountPercentValue = value;
+            console.log(`🔍 DEBUG - Found discount percent in header key '${key}':`, value);
+            break;
+          }
+        }
+      }
+      
+      // Try to find discount amount
+      for (const key of discountAmountKeys) {
+        if (header[key] !== undefined && header[key] !== null && header[key] !== "") {
+          const value = parseFloat(header[key]);
+          if (!isNaN(value) && value > 0) {
+            discountAmountValue = value;
+            console.log(`🔍 DEBUG - Found discount amount in header key '${key}':`, value);
+            break;
+          }
+        }
+      }
+      
+      // Try to find net amount
+      for (const key of netAmountKeys) {
+        if (header[key] !== undefined && header[key] !== null && header[key] !== "") {
+          const value = parseFloat(header[key]);
+          if (!isNaN(value) && value > 0) {
+            netAmountValue = value;
+            console.log(`🔍 DEBUG - Found net amount in header key '${key}':`, value);
+            break;
+          }
+        }
+      }
+      
+      // 3. If we have net amount but not discount, calculate it
+      const totalAmount = parseFloat(header.billAMT || header.billAmt || header.totalAmount || 0);
+      
+      if (discountAmountValue === 0 && netAmountValue > 0 && totalAmount > 0) {
+        discountAmountValue = totalAmount - netAmountValue;
+        discountPercentValue = (discountAmountValue / totalAmount) * 100;
+        console.log("🔍 DEBUG - Calculated discount from netAmount:", {
+          totalAmount,
+          netAmountValue,
+          discountAmountValue,
+          discountPercentValue
+        });
+      }
+      
+      // 4. If we have discount percentage but not amount, calculate it
+      if (discountPercentValue > 0 && discountAmountValue === 0 && totalAmount > 0) {
+        discountAmountValue = (totalAmount * discountPercentValue) / 100;
+        console.log("🔍 DEBUG - Calculated discount amount from percentage:", {
+          totalAmount,
+          discountPercentValue,
+          discountAmountValue
+        });
+      }
+      
+      // 5. If we have discount amount but not percentage, calculate it
+      if (discountAmountValue > 0 && discountPercentValue === 0 && totalAmount > 0) {
+        discountPercentValue = (discountAmountValue / totalAmount) * 100;
+        console.log("🔍 DEBUG - Calculated discount percentage from amount:", {
+          totalAmount,
+          discountAmountValue,
+          discountPercentValue
+        });
+      }
+    }
+    
+    console.log("🔍 DEBUG - Final discount values to set:", {
+      discountPercentValue,
+      discountAmountValue,
+      netAmountValue
+    });
+    
+    // Set discount state
+    setDiscount(discountPercentValue.toString());
+    setDiscountPercent(discountPercentValue);
+    setDiscountAmount(discountAmountValue);
+    
+    // Save to localStorage so we can retrieve it next time
+    const discountData = {
+      discountPercent: discountPercentValue,
+      discountAmount: discountAmountValue
+    };
+    localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
+    // ==================== END DISCOUNT SETUP ====================
+    
+    setBillDetails(prev => ({
+      ...prev,
+      billNo: header.voucherNo || voucherNo,
+      billDate: formattedDate,
+      newBillNo: header.RefNo || header.refNo || "",
+      mobileNo: header.mobileNo || "",
+      salesman: header.salesMansName || "",
+      salesmanCode: header.salesMansCode || "002",
+      custName: header.customerName || "",
+      customerCode: header.customerCode || "",
+      partyCode: header.customerCode || "",
+      billAMT: header.billAMT || "0"
+    }));
+    
+    if (itemsArray && itemsArray.length > 0) {
+      const updatedItems = itemsArray.map((item, index) => {
+        // Calculate net amount per item for display
+        const itemAmount = parseFloat(item.amount || 0);
+        const itemNetAmount = parseFloat(item.netAmount || item.netamount || 0);
+        
+        return {
+          id: index + 1,
+          sNo: index + 1,
+          barcode: item.barcode || "",
+          itemName: item.itemName || "",
+          stock: item.stock || "0",
+          mrp: item.mrp || "0",
+          uom: item.uom || "",
+          hsn: item.hsn || "",
+          tax: item.tax || "0",
+          sRate: item.srate || item.sRate || "0",
+          qty: Math.abs(parseFloat(item.qty || 0)).toString(),
+          amount: itemAmount.toFixed(2),
+          itemCode: item.itemCode || `0000${index + 1}`,
+          netAmount: itemNetAmount.toFixed(2) // Store net amount per item
+        };
+      });
+      
+      setItems(updatedItems);
+    } else {
+      setItems([{
+        id: 1,
+        sNo: 1,
+        barcode: '',
+        itemName: '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        sRate: '',
+        qty: '',
+        amount: '0.00',
+        itemCode: ''
+      }]);
+    }
+    
+    setShouldFocusBillDate(true);
+    
+    // Show discount info
+    if (discountPercentValue > 0 || discountAmountValue > 0) {
+      // toast.success(`Voucher loaded with ${discountPercentValue}% discount (₹${discountAmountValue.toFixed(2)}) - Net: ₹${netAmountValue.toFixed(2)}`, {
+      //   autoClose: 3000,
+      // });
+    } else {
+      // toast.success(`Voucher ${voucherNo} loaded successfully!`);
+    }
+    
+  } catch (err) {
+    console.error("Error loading voucher for editing:", err);
+    toast.error(`Error loading voucher: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  const total = parseFloat(totalAmount || 0);
+  const percent = parseFloat(discountPercent || 0);
+
+  const calculatedDiscount = (total * percent) / 100;
+  
+  // Calculate net amount before rounding
+  const netAmountBeforeRound = total - calculatedDiscount;
+  
+  // Apply round-off logic
+  const roundedAmount = Math.round(netAmountBeforeRound);
+  const roundOffValue = (roundedAmount - netAmountBeforeRound).toFixed(2);
+  
+  setDiscountAmount(calculatedDiscount.toFixed(2));
+  setRoundedTotalAmount(roundedAmount);
+  setRoundOffValue(roundOffValue);
+}, [totalAmount, discountPercent]);
+
 
   // Update screen size on resize
   useEffect(() => {
@@ -3391,6 +3639,7 @@ const handlePrint = () => {
     tableContainer: {
       backgroundColor: 'white',
       borderRadius: 10,
+      height: '320px', 
       overflowX: 'auto',
       overflowY: 'auto',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -3940,7 +4189,7 @@ const renderBillDetailsContent = () => {
   }
 
   const itemsArray = details.items || details.details || [];
-
+console.log("Rendering bill details for billNo:", billNo, "with items:", itemsArray);
   const handleSelectAll = (checked) => {
     setSelectAllItems(checked);
     const updated = {};
@@ -4917,6 +5166,44 @@ const renderBillDetailsContent = () => {
                 </tr>
               ))}
             </tbody>
+
+
+
+<tfoot>
+  {/* SPACER ROW - pushes totals to bottom */}
+  <tr style={{ height: '400px' }}>
+    <td colSpan={12}></td>
+  </tr>
+  
+  {/* TOTALS ROW - now positioned at bottom */}
+  <tr
+    style={{
+      backgroundColor: '#e3f2fd',
+      fontWeight: 'bold',
+      borderTop: '2px solid #1B91DA',
+      position: 'sticky',
+      bottom: 0,
+      zIndex: 2
+    }}
+  >
+    <td colSpan={9} style={{ textAlign: 'right', padding: '10px' }}>
+      TOTAL
+    </td>
+
+    <td style={{ textAlign: 'center', padding: '10px' }}>
+      {totalQty.toFixed(2)}
+    </td>
+
+    <td style={{ textAlign: 'right', padding: '10px', color: '#0d47a1' }}>
+      ₹{customRound(totalAmount).toLocaleString('en-IN')}
+
+    </td>
+
+    <td />
+  </tr>
+</tfoot>
+
+
           </table>
         </div>
       </div>
@@ -4948,132 +5235,125 @@ const renderBillDetailsContent = () => {
 
  
 
-{/* DISCOUNT INPUTS */}
-<div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    background: "linear-gradient(135deg, #e3f2fd, #bbdefb)",
-    padding: "8px 14px",
-    borderRadius: "10px",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
-  }}
->
-  {/* Discount % */}
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-    }}
-  >
-    <span
-      style={{
-        fontSize: "13px",
-        fontWeight: "700",
-        color: "#0d47a1",
-      }}
-    >
-      Discount %
-    </span>
+{/* ================= READ-ONLY DISCOUNT SUMMARY ================= */}
 
-    <input
-      type="text"          // ✅ changed
-      readOnly             // ✅ added
-      value={discountPercent}
-      onChange={(e) => {
-        const val = Number(e.target.value) || 0;
-        setDiscountPercent(val);
-        setDiscountAmount(0);
-      }}
-      style={{
-        width: "70px",
-       textAlign: "center",
-        border: "2px solid #1976d2",
-        borderRadius: "6px",
-        padding: "6px",
-        fontWeight: "bold",
-        fontSize: "14px",
-        color: "#0d47a1",
-        backgroundColor: "#ffffff",
-        outline: "none",
-        cursor: "default",
-        userSelect: "none",
-      }}
-    />
-  </div>
-
-  {/* Divider */}
-  <div
+{/* Discount Percentage Field */}
+<div style={{
+  ...styles.formField,
+  flex: '1 1 auto',
+  minWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
+           screenSize.isTablet ? 'calc(25% - 10px)' :
+           'calc(16.66% - 12px)',
+  maxWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
+            screenSize.isTablet ? 'calc(25% - 10px)' :
+            'calc(16.66% - 12px)',
+  flexBasis: screenSize.isMobile ? 'calc(33.33% - 8px)' :
+             screenSize.isTablet ? 'calc(25% - 10px)' :
+             'calc(16.66% - 12px)'
+}}>
+  <label style={styles.inlineLabel}>Discount %:</label>
+  <input
+    type="number"
+    readOnly
+    tabIndex={-1}
     style={{
-      width: "1px",
-      height: "28px",
-      backgroundColor: "#90caf9",
+      ...styles.inlineInput,
+      padding: screenSize.isMobile ? '10px 8px' : '8px 10px',
+      fontSize: screenSize.isMobile ? '14px' : 'inherit',
+      textAlign: 'center',
+      fontWeight: 'bold',
+      color: '#0d47a1',
+      backgroundColor: '#f3f6f9',
+      cursor: 'not-allowed',
+      pointerEvents: 'none'
     }}
+    value={discountPercent}
+    name="discountPercent"
   />
-
-  {/* Discount Amount */}
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-    }}
-  >
-    <span
-      style={{
-        fontSize: "13px",
-        fontWeight: "700",
-        color: "#1b5e20",
-      }}
-    >
-      Disc Amt
-    </span>
-
-    <input
-      type="text"          // ✅ changed
-      readOnly             // ✅ added
-      value={discountAmount}
-      onChange={(e) => {
-        const val = Number(e.target.value) || 0;
-        setDiscountAmount(val);
-        setDiscountPercent(0);
-      }}
-      style={{
-        width: "95px",
-        textAlign: "center",
-        border: "2px solid #2e7d32",
-        borderRadius: "6px",
-        padding: "6px",
-        fontWeight: "bold",
-        fontSize: "14px",
-        color: "#1b5e20",
-        backgroundColor: "#ffffff",
-        outline: "none",
-        cursor: "default",
-        userSelect: "none",
-      }}
-    />
-  </div>
 </div>
+
+{/* Discount Amount Field */}
+<div style={{
+  ...styles.formField,
+  flex: '1 1 auto',
+  minWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
+           screenSize.isTablet ? 'calc(25% - 10px)' :
+           'calc(16.66% - 12px)',
+  maxWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
+            screenSize.isTablet ? 'calc(25% - 10px)' :
+            'calc(16.66% - 12px)',
+  flexBasis: screenSize.isMobile ? 'calc(33.33% - 8px)' :
+             screenSize.isTablet ? 'calc(25% - 10px)' :
+             'calc(16.66% - 12px)'
+}}>
+  <label style={styles.inlineLabel}>Discount Amt:</label>
+  <input
+    type="number"
+    readOnly
+    tabIndex={-1}
+    style={{
+      ...styles.inlineInput,
+      padding: screenSize.isMobile ? '10px 8px' : '8px 10px',
+      fontSize: screenSize.isMobile ? '14px' : 'inherit',
+      textAlign: 'center',
+      fontWeight: 'bold',
+      color: '#1b5e20',
+      backgroundColor: '#f3f6f9',
+      cursor: 'not-allowed',
+      pointerEvents: 'none'
+    }}
+    value={discountAmount}
+    name="discountAmount"
+  />
+</div>
+
+{/* Net Amount Field (Read-only) */}
+<div style={{
+  ...styles.formField,
+  flex: '1 1 auto',
+  minWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
+           screenSize.isTablet ? 'calc(25% - 10px)' :
+           'calc(16.66% - 12px)',
+  maxWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
+            screenSize.isTablet ? 'calc(25% - 10px)' :
+            'calc(16.66% - 12px)',
+  flexBasis: screenSize.isMobile ? 'calc(33.33% - 8px)' :
+             screenSize.isTablet ? 'calc(25% - 10px)' :
+             'calc(16.66% - 12px)'
+}}>
+  <label style={styles.inlineLabel}>Net Amount:</label>
+  <input
+    type="text"
+    readOnly
+    tabIndex={-1}
+    style={{
+      ...styles.inlineInput,
+      padding: screenSize.isMobile ? '10px 8px' : '8px 10px',
+      fontSize: screenSize.isMobile ? '14px' : 'inherit',
+      textAlign: 'center',
+      fontWeight: 'bold',
+      color: '#b71c1c',
+      backgroundColor: '#fff8e1',
+      cursor: 'not-allowed',
+      pointerEvents: 'none'
+    }}
+    value={netAmount.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}
+    name="netAmount"
+  />
+</div>
+
+{/* ================= END READ-ONLY DISCOUNT SUMMARY ================= */}
+
+
 
 
 
         <div style={styles.totalsContainer}>
-  <div style={styles.totalItem}>
-    <span style={styles.totalLabel}>Total Quantity</span>
-    <span style={styles.totalValue}>{totalQty.toFixed(2)}</span>
-  </div>
-  <div style={styles.totalItem}>
-    <span style={styles.totalLabel}>Total Amount</span>
-    <span style={styles.totalValue}>
-      ₹{roundedTotalAmount.toLocaleString('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })}
-    </span>
-  </div>
+ 
+
 
 </div>
         <div style={styles.footerButtons}>

@@ -23,6 +23,7 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// API BASE URL
 // Helper function to format date as YYYY-MM-DD
 const formatDate = (date) => {
   const d = new Date(date);
@@ -32,65 +33,68 @@ const formatDate = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DayBook = () => {
+const AccountPayables = () => {
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
   const [fromDate, setFromDate] = useState(currentDate);
   const [toDate, setToDate] = useState(currentDate);
-  const [selectedBranches, setSelectedBranches] = useState(['ALL']); // Initial value is ALL
-  const [showBranchPopup, setShowBranchPopup] = useState(false);
-  const [tempSelectedBranches, setTempSelectedBranches] = useState([]); // Initially empty
+  const [selectedCompanies, setSelectedCompanies] = useState(['ALL']); // Initial value is ALL
+  const [showCompanyPopup, setShowCompanyPopup] = useState(false);
+  const [tempSelectedCompanies, setTempSelectedCompanies] = useState([]); // Initially empty
   const [selectAll, setSelectAll] = useState(false); // Initially false
   const [tableLoaded, setTableLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
-  const [branchDisplay, setBranchDisplay] = useState('ALL');
+  const [companyDisplay, setCompanyDisplay] = useState('ALL');
 
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
-  const branchRef = useRef(null);
+  const companyRef = useRef(null);
   const searchButtonRef = useRef(null);
 
   // --- DATA ---
-  const [dayBookData, setDayBookData] = useState([]);
-  const [apiTotals, setApiTotals] = useState({
-    totalDebit: 0,
-    totalCredit: 0,
-    openingDebit: 0,
-    openingCredit: 0,
-    closingDebit: 0,
-    closingCredit: 0
-  });
+  const [payablesData, setPayablesData] = useState([]);
+  const [companies, setCompanies] = useState([]);
 
-  // Sample data for branches
-  const allBranches = [
-    'ALL',
-    'DIKSHI DEMO',
-    'DIKSH',
-    'DIKSHI TECH',
-    'DIKSHIWEBSITE',
-    'DIKSHIWBCOMDOT',
-    'SAKTHI',
-    'JUST AK THINGS',
-    'PRIVANKA'
-  ];
-
-  // Update tempSelectedBranches when popup opens based on current selection
+  // --- FETCH COMPANIES ON MOUNT ---
   useEffect(() => {
-    if (showBranchPopup) {
-      if (selectedBranches.includes('ALL')) {
+    const fetchCompanies = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${API_BASE}${API_ENDPOINTS.ACC_PAY.COMPANIES}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setCompanies(data);
+        console.log('Companies loaded:', data);
+      } catch (error) {
+        console.error('Error fetching companies:', error);
+        // toast.error('Failed to load companies list');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
+
+  // Update tempSelectedCompanies when popup opens based on current selection
+  useEffect(() => {
+    if (showCompanyPopup) {
+      if (selectedCompanies.includes('ALL')) {
         // If ALL is selected in main state, show empty selection in popup
-        setTempSelectedBranches([]);
+        setTempSelectedCompanies([]);
         setSelectAll(false);
       } else {
-        // If specific branches are selected, show them in popup
-        setTempSelectedBranches([...selectedBranches]);
+        // If specific companies are selected, show them in popup
+        setTempSelectedCompanies([...selectedCompanies]);
         setSelectAll(false);
       }
     }
-  }, [showBranchPopup, selectedBranches]);
+  }, [showCompanyPopup, selectedCompanies]);
 
   // Focus on fromDate field when component mounts
   useEffect(() => {
@@ -108,176 +112,168 @@ const DayBook = () => {
     setToDate(e.target.value);
   };
 
-  const handleBranchClick = () => {
-    // The useEffect above will handle setting tempSelectedBranches
-    setShowBranchPopup(true);
+  const handleCompanyClick = () => {
+    // The useEffect above will handle setting tempSelectedCompanies
+    setShowCompanyPopup(true);
   };
 
-  const handleBranchSelect = (branch) => {
-    if (branch === 'ALL') {
+  const handleCompanySelect = (company) => {
+    if (company === 'ALL') {
       // If ALL is being toggled
-      if (tempSelectedBranches.includes('ALL')) {
-        // Untick ALL - remove ALL and all branches
-        const allOtherBranches = allBranches.filter(b => b !== 'ALL');
-        const updated = tempSelectedBranches.filter(
-          b => b !== 'ALL' && !allOtherBranches.includes(b)
+      if (tempSelectedCompanies.includes('ALL')) {
+        // Untick ALL - remove ALL and all companies
+        const allCompanyCodes = companies.map(c => c.fCompcode);
+        const updated = tempSelectedCompanies.filter(
+          c => c !== 'ALL' && !allCompanyCodes.includes(c)
         );
-        setTempSelectedBranches(updated);
+        setTempSelectedCompanies(updated);
         setSelectAll(false);
       } else {
-        // Tick ALL - add ALL and all branch names
-        setTempSelectedBranches(allBranches);
+        // Tick ALL - add ALL and all company codes
+        const allCompanyCodes = companies.map(c => c.fCompcode);
+        setTempSelectedCompanies(['ALL', ...allCompanyCodes]);
         setSelectAll(true);
-        
       }
     } else {
-      // Handling individual branch selection
-      let updatedBranches;
+      // Handling individual company selection
+      let updatedCompanies;
       
-      if (tempSelectedBranches.includes(branch)) {
-        // Remove branch from selection
-        updatedBranches = tempSelectedBranches.filter(b => b !== branch);
+      if (tempSelectedCompanies.includes(company.fCompcode)) {
+        // Remove company from selection
+        updatedCompanies = tempSelectedCompanies.filter(c => c !== company.fCompcode);
         
         // Also remove ALL if it was selected
-        if (updatedBranches.includes('ALL')) {
-          updatedBranches = updatedBranches.filter(b => b !== 'ALL');
+        if (updatedCompanies.includes('ALL')) {
+          updatedCompanies = updatedCompanies.filter(c => c !== 'ALL');
         }
       } else {
-        // Add branch to selection
-        updatedBranches = [...tempSelectedBranches, branch];
+        // Add company to selection
+        updatedCompanies = [...tempSelectedCompanies, company.fCompcode];
         
-        // Check if all branches are now selected
-        const allOtherBranches = allBranches.filter(b => b !== 'ALL');
-        const allSelected = allOtherBranches.every(b => updatedBranches.includes(b));
+        // Check if all companies are now selected
+        const allCompanyCodes = companies.map(c => c.fCompcode);
+        const allSelected = allCompanyCodes.every(code => updatedCompanies.includes(code));
         
         if (allSelected) {
-          // If all branches are selected, add ALL as well
-          updatedBranches = allBranches;
+          // If all companies are selected, add ALL as well
+          updatedCompanies = ['ALL', ...allCompanyCodes];
           setSelectAll(true);
         } else {
           setSelectAll(false);
         }
       }
       
-      setTempSelectedBranches(updatedBranches);
+      setTempSelectedCompanies(updatedCompanies);
     }
   };
 
   const handlePopupOk = () => {
-    // Extract just the branches (excluding ALL for the actual selection)
-    const branchList = tempSelectedBranches.filter(branch => branch !== 'ALL');
+    // Extract just the company codes (excluding ALL for the actual selection)
+    const companyCodes = tempSelectedCompanies.filter(code => code !== 'ALL');
     
     // If ALL was selected in temp state, store just ['ALL'] in main state
-    if (tempSelectedBranches.includes('ALL')) {
-      setSelectedBranches(['ALL']);
-      setBranchDisplay('ALL');
-    } else if (branchList.length > 0) {
-      // If specific branches are selected
-      setSelectedBranches(branchList);
+    if (tempSelectedCompanies.includes('ALL')) {
+      setSelectedCompanies(['ALL']);
+      setCompanyDisplay('ALL');
+    } else if (companyCodes.length > 0) {
+      // If specific companies are selected
+      setSelectedCompanies(companyCodes);
       // Update display text
-      const displayText = branchList.join(', ');
-      setBranchDisplay(displayText);
+      const displayText = companyCodes.map(code => 
+        companies.find(c => c.fCompcode === code)?.fCompName
+      ).filter(Boolean).join(', ');
+      setCompanyDisplay(displayText);
     } else {
       // If nothing is selected, default to ALL
-      setSelectedBranches(['ALL']);
-      setBranchDisplay('ALL');
+      setSelectedCompanies(['ALL']);
+      setCompanyDisplay('ALL');
     }
     
-    setShowBranchPopup(false);
+    setShowCompanyPopup(false);
   };
 
   const handleClearSelection = () => {
-    setTempSelectedBranches([]);
+    setTempSelectedCompanies([]);
     setSelectAll(false);
   };
 
   const handlePopupClose = () => {
-    setShowBranchPopup(false);
+    setShowCompanyPopup(false);
   };
 
   const handleSearch = async () => {
-    if (!fromDate || !toDate || selectedBranches.length === 0) {
-      toast.warning('Please fill all fields: From Date, To Date, and select at least one branch', {
+    if (!fromDate || !toDate || selectedCompanies.length === 0) {
+      toast.warning('Please fill all fields: From Date, To Date, and select at least one company', {
         autoClose: 2000,
       });
       return;
     }
     
-    console.log('Searching DayBook with:', {
+    console.log('Searching Account Payables with:', {
       fromDate,
       toDate,
-      selectedBranches
+      selectedCompanies
     });
     
     setIsLoading(true);
     
     try {
-      // Use compCode from selected branches or default to '001'
-      const compCode = selectedBranches.includes('ALL') ? '001' : selectedBranches[0];
+      // Prepare selected companies string
+      let selectedCompanyCodes;
+      if (selectedCompanies.includes('ALL')) {
+        selectedCompanyCodes = companies.map(c => c.fCompcode).join(',');
+      } else {
+        selectedCompanyCodes = selectedCompanies.join(',');
+      }
       
-      const response = await fetch(`${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(compCode, fromDate, toDate)}`);
+      // Build the API URL
+      const apiUrl = `${API_BASE}${API_ENDPOINTS.ACC_PAY.LIST(selectedCompanyCodes, 1, 20)}`;
+      console.log('API URL:', apiUrl);
       
+      // Fetch data from API
+      const response = await fetch(apiUrl);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('API Response:', data);
       
-      // Transform API response to match component's expected format
-      const transformedData = [];
+      // Map the API data to match your table structure
+      const mappedData = data.map((item, index) => ({
+        no: item.no || index + 1,
+        accountName: item.accountName || 'N/A',
+        debit: item.debit?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        credit: item.credit?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        balance: Math.abs(item.netBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        drCr: item.balanceType || (item.netBalance > 0 ? 'DR' : 'CR')
+      }));
       
-      // Add opening balance if exists
-      if (data.openingDebit > 0 || data.openingCredit > 0) {
-        transformedData.push({
-          accName: "Opening Balance",
-          receipts: data.openingDebit > 0 ? data.openingDebit.toFixed(2) : "",
-          payments: data.openingCredit > 0 ? data.openingCredit.toFixed(2) : "",
+      // Calculate totals for summary row
+      const totalDebit = data.reduce((sum, item) => sum + (item.debit || 0), 0);
+      const totalCredit = data.reduce((sum, item) => sum + (item.credit || 0), 0);
+      const totalBalance = data.reduce((sum, item) => sum + Math.abs(item.netBalance || 0), 0);
+      
+      // Add total row if we have data
+      if (mappedData.length > 0) {
+        mappedData.push({
+          isTotal: true,
+          accountName: "Total",
+          debit: totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          credit: totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          balance: totalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          drCr: ""
         });
       }
       
-      // Add entries
-      if (data.entries && data.entries.length > 0) {
-        data.entries.forEach(entry => {
-          transformedData.push({
-            accName: entry.accName || entry.description || "",
-            receipts: entry.debit > 0 ? entry.debit.toFixed(2) : "",
-            payments: entry.credit > 0 ? entry.credit.toFixed(2) : "",
-          });
-        });
-      }
-      
-      // Add total row
-      transformedData.push({
-        accName: "Total",
-        receipts: data.totalDebit.toFixed(2),
-        payments: data.totalCredit.toFixed(2),
-        isTotal: true
-      });
-      
-      // Add closing balance if exists
-      if (data.closingDebit > 0 || data.closingCredit > 0) {
-        transformedData.push({
-          accName: "Closing Balance",
-          receipts: data.closingDebit > 0 ? data.closingDebit.toFixed(2) : "",
-          payments: data.closingCredit > 0 ? data.closingCredit.toFixed(2) : "",
-        });
-      }
-      
-      setDayBookData(transformedData);
-      setApiTotals({
-        totalDebit: data.totalDebit || 0,
-        totalCredit: data.totalCredit || 0,
-        openingDebit: data.openingDebit || 0,
-        openingCredit: data.openingCredit || 0,
-        closingDebit: data.closingDebit || 0,
-        closingCredit: data.closingCredit || 0
-      });
+      setPayablesData(mappedData);
       setTableLoaded(true);
+      // toast.success(`Loaded ${data.length} records`);
       
     } catch (error) {
-      console.error('Error fetching daybook data:', error);
-      toast.error('Failed to load daybook data. Please try again.');
-      setDayBookData([]);
+      console.error('Error fetching payables:', error);
+      toast.error('Failed to load account payables data. Please try again.');
+      setPayablesData([]);
       setTableLoaded(false);
     } finally {
       setIsLoading(false);
@@ -290,19 +286,11 @@ const DayBook = () => {
     const today = formatDate(new Date());
     setFromDate(today);
     setToDate(today);
-    setSelectedBranches(['ALL']);
-    setBranchDisplay('ALL');
-    setTempSelectedBranches([]);
+    setSelectedCompanies(['ALL']);
+    setCompanyDisplay('ALL');
+    setTempSelectedCompanies([]);
     setSelectAll(false);
-    setDayBookData([]);
-    setApiTotals({
-      totalDebit: 0,
-      totalCredit: 0,
-      openingDebit: 0,
-      openingCredit: 0,
-      closingDebit: 0,
-      closingCredit: 0
-    });
+    setPayablesData([]);
   };
 
   // Handle key navigation
@@ -315,9 +303,9 @@ const DayBook = () => {
           toDateRef.current?.focus();
           break;
         case 'toDate':
-          branchRef.current?.focus();
+          companyRef.current?.focus();
           break;
-        case 'branch':
+        case 'company':
           searchButtonRef.current?.focus();
           break;
         default:
@@ -421,7 +409,6 @@ const DayBook = () => {
       alignItems: 'center',
       gap: screenSize.isMobile ? '4px' : screenSize.isTablet ? '6px' : '8px',
     },
-    // NARROW DATE INPUT STYLES - ONLY WIDTH REDUCED
     inlineLabel: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
@@ -441,15 +428,14 @@ const DayBook = () => {
       paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       flex: 1,
-      // ONLY WIDTH REDUCED - KEEP SAME HEIGHT
-      minWidth: screenSize.isMobile ? '90px' : screenSize.isTablet ? '100px' : '110px', // Reduced from 120px
+      minWidth: screenSize.isMobile ? '90px' : screenSize.isTablet ? '100px' : '110px',
     },
     inlineInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -461,15 +447,14 @@ const DayBook = () => {
       paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       flex: 1,
-      // ONLY WIDTH REDUCED - KEEP SAME HEIGHT
-      minWidth: screenSize.isMobile ? '90px' : screenSize.isTablet ? '100px' : '110px', // Reduced from 120px
+      minWidth: screenSize.isMobile ? '90px' : screenSize.isTablet ? '100px' : '110px',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     tableContainer: {
@@ -586,8 +571,7 @@ const DayBook = () => {
       color: '#1976d2',
       fontWeight: 'bold',
     },
-    // REGULAR BRANCH INPUT - MEDIUM/LARGE WIDTH
-    branchInput: {
+    companyInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
@@ -597,22 +581,21 @@ const DayBook = () => {
       paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       flex: 1,
-      // MEDIUM/LARGE WIDTH FOR BRANCH
-      minWidth: screenSize.isMobile ? '140px' : screenSize.isTablet ? '160px' : '180px', // Wider than date inputs
+      minWidth: screenSize.isMobile ? '140px' : screenSize.isTablet ? '160px' : '180px',
       backgroundColor: 'white',
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    branchInputFocused: {
+    companyInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
@@ -622,15 +605,14 @@ const DayBook = () => {
       paddingLeft: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       paddingRight: screenSize.isMobile ? '8px' : screenSize.isTablet ? '9px' : '10px',
       border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
       height: screenSize.isMobile ? '36px' : screenSize.isTablet ? '38px' : '40px',
       flex: 1,
-      // MEDIUM/LARGE WIDTH FOR BRANCH
-      minWidth: screenSize.isMobile ? '140px' : screenSize.isTablet ? '160px' : '180px', // Wider than date inputs
+      minWidth: screenSize.isMobile ? '140px' : screenSize.isTablet ? '160px' : '180px',
       backgroundColor: 'white',
       cursor: 'pointer',
       display: 'flex',
@@ -643,7 +625,7 @@ const DayBook = () => {
       background: `linear-gradient(135deg, #1B91DA 0%, #1479c0 100%)`,
       color: 'white',
       border: 'none',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
@@ -670,7 +652,7 @@ const DayBook = () => {
       background: 'white',
       color: '#333',
       border: '1.5px solid #ddd',
-      borderRadius: screenSize.isMobile ? '4px' : '5px',
+      borderRadius: screenSize.isMobile ? '4px' : screenSize.isTablet ? '5px' : '6px',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       cursor: 'pointer',
@@ -775,12 +757,12 @@ const DayBook = () => {
         background: 'rgba(255,255,255,0.3)',
       }
     },
-    branchList: {
+    companyList: {
       padding: '20px',
       maxHeight: '300px',
       overflowY: 'auto',
     },
-    branchItem: {
+    companyItem: {
       display: 'flex',
       alignItems: 'center',
       padding: '10px 12px',
@@ -794,7 +776,7 @@ const DayBook = () => {
         borderColor: '#1B91DA',
       }
     },
-    selectedBranchItem: {
+    selectedCompanyItem: {
       display: 'flex',
       alignItems: 'center',
       padding: '10px 12px',
@@ -805,7 +787,7 @@ const DayBook = () => {
       backgroundColor: '#f0f8ff',
       border: '1px solid #1B91DA',
     },
-    branchCheckbox: {
+    companyCheckbox: {
       width: '18px',
       height: '18px',
       border: '2px solid #ddd',
@@ -818,7 +800,7 @@ const DayBook = () => {
       backgroundColor: 'white',
       transition: 'all 0.3s ease'
     },
-    selectedBranchCheckbox: {
+    selectedCompanyCheckbox: {
       width: '18px',
       height: '18px',
       border: '2px solid #1B91DA',
@@ -835,7 +817,7 @@ const DayBook = () => {
       fontWeight: 'bold',
       fontSize: '12px'
     },
-    branchText: {
+    companyText: {
       color: '#333',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.medium
@@ -877,9 +859,18 @@ const DayBook = () => {
     },
   };
 
-  // Calculate totals from API response
-  const totalReceipts = apiTotals.totalDebit;
-  const totalPayments = apiTotals.totalCredit;
+  // Calculate totals
+  const totalDebit = payablesData
+    .filter(row => !row.isTotal && row.debit)
+    .reduce((sum, row) => sum + parseFloat(row.debit.replace(/,/g, '') || 0), 0);
+  
+  const totalCredit = payablesData
+    .filter(row => !row.isTotal && row.credit)
+    .reduce((sum, row) => sum + parseFloat(row.credit.replace(/,/g, '') || 0), 0);
+  
+  const totalBalance = payablesData
+    .filter(row => !row.isTotal && row.balance)
+    .reduce((sum, row) => sum + parseFloat(row.balance.replace(/,/g, '') || 0), 0);
 
   return (
     <div style={styles.container}>
@@ -887,12 +878,12 @@ const DayBook = () => {
       {isLoading && (
         <div style={styles.loadingOverlay}>
           <div style={styles.loadingBox}>
-            <div>Loading Day Book Report...</div>
+            <div>Loading Account Payables Report...</div>
           </div>
         </div>
       )}
 
-      {/* Header Section - Left side: Dates + Branch, Right side: Buttons */}
+      {/* Header Section - Left side: Dates + Company, Right side: Buttons */}
       <div style={styles.headerSection}>
         <div style={{
           display: 'flex',
@@ -901,7 +892,7 @@ const DayBook = () => {
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* LEFT SIDE: Dates and Branch */}
+          {/* LEFT SIDE: Dates and Company */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -909,7 +900,7 @@ const DayBook = () => {
             gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
             flexWrap: 'wrap',
           }}>
-            {/* From Date - NARROW WIDTH */}
+            {/* From Date */}
             <div style={{
               ...styles.formField,
               minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : 'auto',
@@ -934,7 +925,7 @@ const DayBook = () => {
               />
             </div>
 
-            {/* To Date - NARROW WIDTH */}
+            {/* To Date */}
             <div style={{
               ...styles.formField,
               minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : 'auto',
@@ -959,31 +950,31 @@ const DayBook = () => {
               />
             </div>
 
-            {/* Branch - WIDER WIDTH */}
+            {/* Company */}
             <div style={{
               ...styles.formField,
               flex: 1,
               minWidth: screenSize.isMobile ? '100%' : '200px',
             }}>
-              <label style={styles.inlineLabel}>Branch:</label>
+              <label style={styles.inlineLabel}>Company:</label>
               <div
                 style={
-                  focusedField === 'branch'
-                    ? styles.branchInputFocused
-                    : styles.branchInput
+                  focusedField === 'company'
+                    ? styles.companyInputFocused
+                    : styles.companyInput
                 }
                 onClick={() => {
-                  handleBranchClick();
-                  setFocusedField('branch');
+                  handleCompanyClick();
+                  setFocusedField('company');
                 }}
-                ref={branchRef}
+                ref={companyRef}
                 onKeyDown={(e) => {
-                  handleKeyDown(e, 'branch');
+                  handleKeyDown(e, 'company');
                   if (e.key === 'Enter') {
-                    handleBranchClick();
+                    handleCompanyClick();
                   }
                 }}
-                onFocus={() => setFocusedField('branch')}
+                onFocus={() => setFocusedField('company')}
                 onBlur={() => setFocusedField('')}
                 tabIndex={0}
               >
@@ -995,7 +986,7 @@ const DayBook = () => {
                   whiteSpace: 'nowrap',
                   flex: 1
                 }}>
-                  {branchDisplay}
+                  {companyDisplay}
                 </span>
                 <span style={{ 
                   color: '#1B91DA', 
@@ -1006,7 +997,7 @@ const DayBook = () => {
             </div>
           </div>
 
-          {/* SPACER BETWEEN LEFT AND RIGHT SIDES - LARGE GAP */}
+          {/* SPACER BETWEEN LEFT AND RIGHT SIDES */}
           <div style={{
             width: screenSize.isMobile ? '0' : screenSize.isTablet ? '40px' : '60px',
             flexShrink: 0,
@@ -1053,72 +1044,108 @@ const DayBook = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Acc Name</th>
-                <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Receipts</th>
-                <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Payments</th>
+                <th style={{ ...styles.th, minWidth: '60px', width: '60px', maxWidth: '60px' }}>No.</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px', width: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px', maxWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px' }}>A/c Name</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '100px' : '120px', width: screenSize.isMobile ? '100px' : '120px', maxWidth: screenSize.isMobile ? '100px' : '120px' }}>Debit</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '100px' : '120px', width: screenSize.isMobile ? '100px' : '120px', maxWidth: screenSize.isMobile ? '100px' : '120px' }}>Credit</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '100px' : '120px', width: screenSize.isMobile ? '100px' : '120px', maxWidth: screenSize.isMobile ? '100px' : '120px' }}>Balance</th>
+                <th style={{ ...styles.th, minWidth: screenSize.isMobile ? '60px' : '80px', width: screenSize.isMobile ? '60px' : '80px', maxWidth: screenSize.isMobile ? '60px' : '80px' }}>DR/CR</th>
               </tr>
             </thead>
             <tbody>
               {tableLoaded ? (
-                dayBookData.length > 0 ? (
-                  dayBookData.map((row, index) => (
+                payablesData.length > 0 ? (
+                  payablesData.map((row, index) => (
                     <tr key={index} style={{ 
                       backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
-                      ...(row.isTotal ? { backgroundColor: '#f0f8ff', fontWeight: 'bold' } : {})
+                      ...(row.isTotal ? { 
+                        backgroundColor: '#f0f8ff', 
+                        fontWeight: 'bold',
+                        borderTop: '2px solid #1B91DA'
+                      } : {})
                     }}>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '200px', 
-                        width: '200px', 
-                        maxWidth: '200px',
+                        minWidth: '60px', 
+                        width: '60px', 
+                        maxWidth: '60px',
+                        textAlign: 'center',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.no || ''}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px',
+                        width: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px',
+                        maxWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '200px' : '250px',
                         textAlign: 'left',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.accName}
+                        {row.accountName}
                       </td>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '150px', 
-                        width: '150px', 
-                        maxWidth: '150px',
+                        minWidth: screenSize.isMobile ? '100px' : '120px',
+                        width: screenSize.isMobile ? '100px' : '120px',
+                        maxWidth: screenSize.isMobile ? '100px' : '120px',
                         textAlign: 'right',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.receipts ? `₹${parseFloat(row.receipts || 0).toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}` : ''}
+                        {row.debit ? `₹${row.debit}` : ''}
                       </td>
                       <td style={{ 
                         ...styles.td, 
-                        minWidth: '150px', 
-                        width: '150px', 
-                        maxWidth: '150px',
+                        minWidth: screenSize.isMobile ? '100px' : '120px',
+                        width: screenSize.isMobile ? '100px' : '120px',
+                        maxWidth: screenSize.isMobile ? '100px' : '120px',
                         textAlign: 'right',
                         fontWeight: row.isTotal ? 'bold' : 'normal',
                         color: row.isTotal ? '#1565c0' : '#333'
                       }}>
-                        {row.payments ? `₹${parseFloat(row.payments || 0).toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}` : ''}
+                        {row.credit ? `₹${row.credit}` : ''}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: screenSize.isMobile ? '100px' : '120px',
+                        width: screenSize.isMobile ? '100px' : '120px',
+                        maxWidth: screenSize.isMobile ? '100px' : '120px',
+                        textAlign: 'right',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.balance ? `₹${row.balance}` : ''}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: screenSize.isMobile ? '60px' : '80px',
+                        width: screenSize.isMobile ? '60px' : '80px',
+                        maxWidth: screenSize.isMobile ? '60px' : '80px',
+                        textAlign: 'center',
+                        fontWeight: row.isTotal ? 'bold' : 'normal',
+                        color: row.drCr === 'DR' ? '#d32f2f' : 
+                               row.drCr === 'CR' ? '#2e7d32' : 
+                               row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.drCr || ''}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                       No records found
                     </td>
                   </tr>
                 )
               ) : (
                 <tr>
-                  <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    {/* Enter search criteria and click "Search" to view day book entries */}
-                  </td>
+                  {/* <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    Use the Search button to load data
+                  </td> */}
                 </tr>
               )}
             </tbody>
@@ -1134,29 +1161,35 @@ const DayBook = () => {
           width: '100%',
         }}>
           <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Receipts</span>
+            <span style={styles.balanceLabel}>Total Debit</span>
             <span style={styles.balanceValue}>
-              ₹{totalReceipts.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Payments</span>
+            <span style={styles.balanceLabel}>Total Credit</span>
             <span style={styles.balanceValue}>
-              ₹{totalPayments.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={styles.balanceItem}>
+            <span style={styles.balanceLabel}>Total Balance</span>
+            <span style={styles.balanceValue}>
+              ₹{totalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Branch Selection Popup */}
-      {showBranchPopup && (
+      {/* Company Selection Popup */}
+      {showCompanyPopup && (
         <div style={styles.popupOverlay} onClick={handlePopupClose}>
           <div 
             style={styles.popupContent} 
             onClick={(e) => e.stopPropagation()}
           >
             <div style={styles.popupHeader}>
-              Select Branch
+              Select Companies
               <button 
                 style={styles.closeButton}
                 onClick={handlePopupClose}
@@ -1165,33 +1198,41 @@ const DayBook = () => {
               </button>
             </div>
             
-            <div style={styles.branchList}>
-              {/* ALL option - Initially UNCHECKED */}
-              <div 
-                style={tempSelectedBranches.includes('ALL') ? styles.selectedBranchItem : styles.branchItem}
-                onClick={() => handleBranchSelect('ALL')}
-              >
-                <div style={tempSelectedBranches.includes('ALL') ? styles.selectedBranchCheckbox : styles.branchCheckbox}>
-                  {tempSelectedBranches.includes('ALL') && <div style={styles.checkmark}>✓</div>}
-                </div>
-                <span style={styles.branchText}>ALL</span>
-              </div>
-              {/* Individual branches - Initially UNCHECKED */}
-              {allBranches.filter(b => b !== 'ALL').map((branch) => {
-                const isSelected = tempSelectedBranches.includes(branch);
-                return (
+            <div style={styles.companyList}>
+              {companies.length > 0 ? (
+                <>
+                  {/* ALL option - Initially UNCHECKED */}
                   <div 
-                    key={branch} 
-                    style={isSelected ? styles.selectedBranchItem : styles.branchItem}
-                    onClick={() => handleBranchSelect(branch)}
+                    style={tempSelectedCompanies.includes('ALL') ? styles.selectedCompanyItem : styles.companyItem}
+                    onClick={() => handleCompanySelect('ALL')}
                   >
-                    <div style={isSelected ? styles.selectedBranchCheckbox : styles.branchCheckbox}>
-                      {isSelected && <div style={styles.checkmark}>✓</div>}
+                    <div style={tempSelectedCompanies.includes('ALL') ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                      {tempSelectedCompanies.includes('ALL') && <div style={styles.checkmark}>✓</div>}
                     </div>
-                    <span style={styles.branchText}>{branch}</span>
+                    <span style={styles.companyText}>ALL</span>
                   </div>
-                );
-              })}
+                  {/* Individual companies - Initially UNCHECKED */}
+                  {companies.map((company) => {
+                    const isSelected = tempSelectedCompanies.includes(company.fCompcode);
+                    return (
+                      <div 
+                        key={company.fCompcode} 
+                        style={isSelected ? styles.selectedCompanyItem : styles.companyItem}
+                        onClick={() => handleCompanySelect(company)}
+                      >
+                        <div style={isSelected ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                          {isSelected && <div style={styles.checkmark}>✓</div>}
+                        </div>
+                        <span style={styles.companyText}>{company.fCompName}</span>
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  Loading companies...
+                </div>
+              )}
             </div>
             
             <div style={styles.popupActions}>
@@ -1217,10 +1258,4 @@ const DayBook = () => {
   );
 };
 
-export default DayBook;
-      
-
-
-
-
-
+export default AccountPayables;

@@ -1,3 +1,5 @@
+import AccountReceivables from "../pages/Report/AccountReceivables/AccountReceivables";
+
 export const API_ENDPOINTS = {
   // Login Endpoint
   LOGIN: {
@@ -141,8 +143,8 @@ export const API_ENDPOINTS = {
     deleteSalesReturn: (voucherNo) => `SalesReturn/DeleteSalesReturn/${voucherNo}`,
     getSalesReturnDetails: (voucherNo) => `SalesReturn/GetSalesReturnDetails/${voucherNo}`,
       
-      getSalesInvoiceBillList: (page = 1, pageSize = 20, compCode = "001") =>
-    `SalesReturn/Salesinvoicebilllist?page=${page}&pageSize=${pageSize}&compCode=${compCode}`,
+      getSalesInvoiceBillList: (page = 1, pageSize = 20, compCode) =>
+      `SalesReturn/Salesinvoicebilllist?page=${page}&pageSize=${pageSize}${compCode ? `&compCode=${compCode}` : ''}`,
 
         // NEW: ADD THIS VOUCHER DETAILS ENDPOINT
     getVoucherDetails: (voucherNo) => `SalesReturn/GetVoucherDetails?voucherNo=${voucherNo}`,
@@ -248,7 +250,6 @@ CATEGORY: {
     `Salesinvoices/GetItemsByType?type=${type}&page=${page}&pageSize=${pageSize}`,
   getStockByItemName1: (itemcode) =>`Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
   getSalesman: () =>`SalesmanCreation/GetSalesman`,
- 
    getCustomers: (pageNumber = 1, pageSize = 10) =>
     `Salesinvoices/GetPartyByParent?pageNumber=${pageNumber}&pageSize=${pageSize}`,
   getPurchaseStockDetailsByBarcode: (barcode) =>
@@ -260,16 +261,16 @@ CATEGORY: {
 },
 
   Scrap_Procurement: {
-    GET_VOUCHER_NO : "ScrapProcurement/GetMaxVoucherNo?compCode=001",
-    SAVE_SCRAP_PROCUREMENT: (saveType) => 
-    `ScrapProcurement/SCRAPCREATE?selecttype=${saveType === 'create' ? 'true' : 'false'}`,
+    GET_VOUCHER_NO: (compCode) => `ScrapProcurement/GetMaxVoucherNo?compCode=${compCode}`,
+    SAVE_SCRAP_PROCUREMENT: (saveType) =>
+      `ScrapProcurement/SCRAPCREATE?selecttype=${saveType === 'create' ? 'true' : 'false'}`,
     GET_SALESiNVOICE_ITEMS: "Salesinvoices/GetItemsByType?type=SC",
     // GET_BILL_LIST:"ScrapProcurement/GetVouchersBillNoList?compCode=001&pageNumber=1&pageSize=100",
-    GET_BILL_LIST:(fCompCode,page,pageSize)=>`ScrapProcurement/GetVouchersBillNoList?compCode=${fCompCode}&pageNumber=${page}&pageSize=${pageSize}`,
-    GET_VOUCHER_BY_NO: (voucherNo) => `ScrapProcurement/GetSCRAPDETAILS/${voucherNo}/001`,
-    DELETE_SCRAP_PROCUREMENT: (voucherNo) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/001`,
-    GET_CUSTOMER_LIST: (page,pageSize) => `Salesinvoices/GetPartyByParent?pageNumber=${page}&pageSize=${pageSize}`,
-    GET_ITEM_LIST :(page,pageSize) => `Salesinvoices/GetItemsByType?type=SC&page=${page}&pageSize=${pageSize}`,
+    GET_BILL_LIST: (fCompCode, page, pageSize) => `ScrapProcurement/GetVouchersBillNoList?compCode=${fCompCode}&pageNumber=${page}&pageSize=${pageSize}`,
+    GET_VOUCHER_BY_NO: (voucherNo, compCode) => `ScrapProcurement/GetSCRAPDETAILS/${voucherNo}/${compCode}`,
+    DELETE_SCRAP_PROCUREMENT: (voucherNo, compCode) => `ScrapProcurement/SCRAPDELETE/${voucherNo}/${compCode}`,
+    GET_CUSTOMER_LIST: (page, pageSize) => `Salesinvoices/GetPartyByParent?pageNumber=${page}&pageSize=${pageSize}`,
+    GET_ITEM_LIST: (page, pageSize) => `Salesinvoices/GetItemsByType?type=SC&page=${page}&pageSize=${pageSize}`,
     GET_TAX_LIST: "TaxCreation/gettaxlist",
   },
     TENDER: {
@@ -303,6 +304,9 @@ CATEGORY: {
 },
 
 
+
+
+
 PAYMENTVOUCHER: {
   GETNEXTVNUMBER: (compCode) => `PaymentVoucher/GetNextVoucher?compCode=${compCode}`,
   GETPENDINGBILLS: (partyCode,compCode) => `PaymentVoucher/GetPendingBills?fcode=${partyCode}&fCompCode=${compCode}`,
@@ -331,7 +335,59 @@ PAYMENTVOUCHER: {
     GETPARTYLIST: (search = '', pageNumber = 1, pageSize = 200) => `PaymentVoucher/PartyList?search=${encodeURIComponent(search)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
     GET_PARTY_BALANCE: (partyCode) => `ReceiptVoucher/GetPartyBalance?partyCode=${partyCode}`,
     GET_OPENING_BALANCE: `ReceiptVoucher/GetOpeningBalance`
-  }
+  },
+
+  PURCHASE_RETURN_REGISTER: {
+    GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `purchaseretunRegister/GetPurchaseReturnRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+  },
+  PURCHASE_REGISTER: {
+    GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `PurchaseRegister/GetPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+  },
+  SCRAP_PURCHASE: {
+    GET_LIST:(fromDate, toDate, compCode, page, pageSize) => `ScrapPur/GetScrapPurchaseRegister?fromDate=${fromDate}&toDate=${toDate}&compCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`
+  },
+  ACC_REC: {
+    COMPANIES: 'AccRec/companies',
+    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
+      `AccRec/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  },
+ 
+  
+  LEDGER: {
+    COMPANIES: 'ledger/companies',
+    PARTY_LIST: (pageNumber = 1, pageSize = 20, search = '') => 
+      `ledger/partyList?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
+    GET_LEDGER: (accountCode, compCode, fromDate, toDate) =>
+      `ledger/GetLedger?accountCode=${encodeURIComponent(accountCode)}&compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+  },
+  
+  SALES_REGISTER: {
+    SALES_REPORT: (fromDate, toDate, compCode, page = 1, pageSize = 20) =>
+      `SalesRegister/SalesReport?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&page=${page}&pageSize=${pageSize}`,
+  },
+
+  ACC_PAY: {
+    COMPANIES: 'AccPayable/companies',
+    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
+      `AccPayable/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  },
+
+  GROUP_WISE_STOCK: {
+    BRANCH_WISE_STOCK: (fromDate, toDate, compCodes, search = '', page = 1, pageSize = 100) =>
+      `GroupWiseStock/branch-wise-stock?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCodes=${encodeURIComponent(compCodes)}&search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
+    GROUP_DETAIL: (groupName, fromDate, toDate, compCode) =>
+      `GroupWiseStock/group-detail?groupName=${encodeURIComponent(groupName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}`,
+    ITEM_DETAIL: (itemName, fromDate, toDate, compCode) =>
+      `GroupWiseStock/item-detail?itemName=${encodeURIComponent(itemName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}`,
+  }, // <-- Add this closing brace for GROUP_WISE_STOCK
+  DAYBOOK: {
+    GET_DAY_BOOK: (compCode, fromDate, toDate) =>
+      `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+  },
+
+  SALES_RETURN_REGISTER: {
+    GET_SALES_RETURN_REGISTER: (fromDate, toDate, compCode, pageNumber = 1, pageSize = 200) =>
+      `SalesReturnRegister/GetSalesReturnRegister?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  },
 
 };
-

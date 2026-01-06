@@ -240,43 +240,68 @@ const Navbar = () => {
     },
   ];
 
-  const reportItems = [
-    {
-      name: "Sales Register",
-      path: "/reports/sales-register",
-      icon: <FileTextOutlined />,
-      permission: "SALES_REGISTER",
-    },
-    {
-      name: "Sales Return Register",
-      path: "/reports/SalesReturnregister",
-      icon: <FileTextOutlined />,
-      permission: "SALES_RETURN_REGISTER",
-    },
+  const reportItems = [ 
     {
       name: "Purchase Register",
       path: "/reports/purchase-register",
       icon: <FileTextOutlined />,
       permission: "PURCHASE_REGISTER",
-    },
+    }, 
+    {
+      name: "Sales Register",
+      path: "/reports/sales-register",
+      icon: <FileTextOutlined />,
+      permission: "SALES_REGISTER",
+    },     
     {
       name: "Purchase Return Register",
       path: "/reports/PurchaseReturnregister",
       icon: <FileTextOutlined />,
       permission: "PURCHASE_RETURN_REGISTER",
     },
+    
     {
+      name: "Sales Return Register",
+      path: "/reports/SalesReturnregister",
+      icon: <FileTextOutlined />,
+      permission: "SALES_RETURN_REGISTER",
+    },
+     {
+      name: "Scrap Purchase",
+      path: "/reports/scrap-purchase",
+      icon: <DatabaseOutlined />,
+      permission: "SCRAP_PURCHASE",
+    },
+     {
       name: "Day Book",
       path: "/reports/day-book",
       icon: <DatabaseOutlined />,
       permission: "DAY_BOOK",
     },
-    {
+     {
       name: "Ledger",
       path: "/reports/ledger",
       icon: <DatabaseOutlined />,
       permission: "LEDGER_REPORT",
     },
+    {
+      name: "Account Payable",
+      path: "/reports/account-payable",
+      icon: <DatabaseOutlined />,
+      permission: "ACCOUNT_PAYABLE",
+    },
+     {
+      name: "Account Receivable",
+      path: "/reports/account-receivable",
+      icon: <DatabaseOutlined />,
+      permission: "ACCOUNT_RECEIVABLE",
+    },
+     {
+      name: "Group-wise Stock",
+      path: "/reports/Groupwisestock",
+      icon: <DatabaseOutlined />,
+      permission: "GROUP_WISE_STOCK",
+    }, 
   ];
 
   // Filter items based on permissions

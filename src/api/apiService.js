@@ -19,7 +19,7 @@ apiService.interceptors.response.use(
 // ---------------------
 // API BASE
 // ---------------------
-export const API_BASE = "http://dikshiserver/spstorewebapi/api";
+export const API_BASE = "http://dikshiserver/spstorewebapi/api/";
 
 // ---------------------
 // Request Wrapper (NO ALERTS)
@@ -93,3 +93,4 @@ export default {
 
 // Named export
 export const axiosInstance = apiService;
+export { get, post };
