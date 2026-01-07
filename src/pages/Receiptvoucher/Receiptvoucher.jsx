@@ -994,7 +994,7 @@ const ReceiptVoucher = () => {
  const fetchVoucherDetails = async (voucherNo) => {
   try {
     setIsLoading(true);
-    const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_VOUCHER_DETAILS(voucherNo));
+    const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_VOUCHER_DETAILS(voucherNo, userData.companyCode));
     console.log('Fetched Voucher Details Response:', response);
     
     if (response?.bledger) {
