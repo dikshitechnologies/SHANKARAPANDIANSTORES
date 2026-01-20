@@ -293,10 +293,7 @@ const handleKeyDown = (e, index) => {
       // });
       
       // Refresh data from server to ensure consistency
-      await fetchScrapRates();
-      
-      // Automatically refresh the page after successful update
-      window.location.reload();
+      await fetchScrapRates();     
       
     } catch (error) {
       console.error("Error updating scrap rates:", error);

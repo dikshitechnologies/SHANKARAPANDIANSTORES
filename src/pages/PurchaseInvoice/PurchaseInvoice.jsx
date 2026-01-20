@@ -970,16 +970,16 @@ const handleBlur = () => {
       setItems(prevItems => {
         return prevItems.map(item => {
           if (item.id === selectedRowId) {
-            return {
-              ...item,
+            const updatedItem = {
+              id: item.id, // Preserve ID
               barcode: selectedItem.barcode || '',
               itemcode: selectedItem.itemcode || '',
               name: stockData.itemName || selectedItem.name || '',
               stock: stockData.finalStock || '0',
-              uom: selectedItem.uom || item.uom || '',
-              hsn: selectedItem.hsn || item.hsn || '',
-              preRT: selectedItem.preRT || item.preRT || '',
-              prate: selectedItem.preRT || item.prate || '',
+              uom: selectedItem.uom || '',
+              hsn: selectedItem.hsn || '',
+              preRT: (selectedItem.preRT || '0').toString(),
+              prate: (selectedItem.preRT || '0').toString(),
               brand: stockData.brand || '',
               category: stockData.category || '',
               model: stockData.model || '',
@@ -987,7 +987,28 @@ const handleBlur = () => {
               max: stockData.max || '',
               min: stockData.min || '',
               type: stockData.type || '',
+              // Reset all other fields to blank
+              sub: '',
+              mrp: '',
+              tax: stockData.tax || '',
+              rate: '',
+              qty: '1', // Default to 1 for new selection
+              ovrwt: '',
+              avgwt: '',
+              intax: stockData.tax || '',
+              outtax: '',
+              acost: '',
+              sudo: '',
+              profitPercent: '',
+              sRate: '',
+              asRate: '',
+              letProfPer: '',
+              ntCost: '',
+              wsPercent: '',
+              wsRate: '',
+              amt: ''
             };
+            return calculateItem(updatedItem);
           }
           return item;
         });
@@ -998,16 +1019,40 @@ const handleBlur = () => {
       setItems(prevItems => {
         return prevItems.map(item => {
           if (item.id === selectedRowId) {
-            return {
-              ...item,
+            const updatedItem = {
+              id: item.id,
               barcode: selectedItem.barcode || '',
               itemcode: selectedItem.itemcode || '',
               name: selectedItem.name || '',
-              uom: selectedItem.uom || item.uom || '',
-              hsn: selectedItem.hsn || item.hsn || '',
-              preRT: selectedItem.preRT || item.preRT || '',
-              prate: selectedItem.preRT || item.prate || '',
+              uom: selectedItem.uom || '',
+              hsn: selectedItem.hsn || '',
+              preRT: (selectedItem.preRT || '0').toString(),
+              prate: (selectedItem.preRT || '0').toString(),
+              // Reset all other fields
+              sub: '',
+              stock: '0',
+              mrp: '',
+              tax: '',
+              rate: '',
+              qty: '1',
+              ovrwt: '',
+              avgwt: '',
+              intax: '',
+              outtax: '',
+              acost: '',
+              sudo: '',
+              profitPercent: '',
+              sRate: '',
+              asRate: '',
+              letProfPer: '',
+              ntCost: '',
+              wsPercent: '',
+              wsRate: '',
+              amt: '',
+              min: '',
+              max: ''
             };
+            return calculateItem(updatedItem);
           }
           return item;
         });
@@ -3752,7 +3797,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           // setItemSearchTerm(''); // Clear search term when closing
           setSelectedRowId(null); // Clear selected row
         }}
-        title="Select Item Code"
+        title="Select Item"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search)}
         displayFieldKeys={['name','barcode']}
         headerNames={['Name','Barcode']}

@@ -2015,7 +2015,8 @@ const loadVoucherForEditing = async (voucherNo) => {
     
     // Show discount info
     if (discountPercentValue > 0 || discountAmountValue > 0) {
-      // toast.success(`Voucher loaded with ${discountPercentValue}% discount (₹${discountAmountValue.toFixed(2)}) - Net: ₹${netAmountValue.toFixed(2)}`, {
+      // toast.success(`Voucher loaded with ${discountPercentValue}% discount (₹${discountAmountValue.toFixed(2)}) - 
+      // : ₹${netAmountValue.toFixed(2)}`, {
       //   autoClose: 3000,
       // });
     } else {
@@ -5447,7 +5448,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
     style={{
       ...styles.inlineInput,
       padding: screenSize.isMobile ? '10px 8px' : '8px 10px',
-      fontSize: screenSize.isMobile ? '14px' : 'inherit',
+      fontSize: screenSize.isMobile ? '14px' : '25px',
       textAlign: 'center',
       fontWeight: 'bold',
       color: '#b71c1c',
