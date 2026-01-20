@@ -390,4 +390,9 @@ PAYMENTVOUCHER: {
       `SalesReturnRegister/GetSalesReturnRegister?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
 
+  BILL_COLLECTOR_REPORT: {
+    GET_BILL_COLLECTOR_REPORT: (fromDate, toDate, compCode, pageNumber, pageSize,searchInvoiceNo) =>
+      `TenderRecord/GetTenderRecords?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&fCompCode=${encodeURIComponent(compCode)}&searchInvoiceNo=${searchInvoiceNo}&pageNo=${pageNumber}&pageSize=${pageSize}`,
+  },
+
 };

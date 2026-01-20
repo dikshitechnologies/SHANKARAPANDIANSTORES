@@ -302,6 +302,13 @@ const Navbar = () => {
       icon: <DatabaseOutlined />,
       permission: "GROUP_WISE_STOCK",
     }, 
+    {
+      name: "Bill Collector Report",
+      path: "/reports/Billcollectorreport",
+      icon: <DatabaseOutlined />,
+      permission: "BILL_COLLECTOR_REPORT",
+    }, 
+
   ];
 
   // Filter items based on permissions
@@ -413,6 +420,7 @@ const Navbar = () => {
                   "/administration": "Administration",
                   "/transactions/Purchasereturn": "Purchase Return",
                   "/mastersScrapRateFix/": "Scrap Rate Fix",
+                  "/reports/Billcollectorreport": "Bill Collector Report",
                 };
 
                 // if path is predefined in map

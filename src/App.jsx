@@ -49,7 +49,7 @@ import PurchaseReturnregister from './pages/Report/PurchaseReturnregister/Purcha
 import PurchaseRegister from './pages/Report/PurchaseRegister/PurchaseRegister';
 import ScrapPurchase from './pages/Report/ScrapPurchase/ScrapPurchase';
 import Groupwisestock from './pages/Report/Groupwisestock/Groupwisestock';
-
+import TenderReport from './pages/Report/TenderReport/TenderReport';
 
 import AccountReceivables from './pages/Report/AccountReceivables/AccountReceivables';
 import AccountPayables from './pages/Report/AccountPayables/AccountPayables';
@@ -149,6 +149,7 @@ function App() {
           <Route path="/reports/account-receivable" element={<ProtectedRoute><LayoutWithNavbar><AccountReceivables /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/account-payable" element={<ProtectedRoute><LayoutWithNavbar><AccountPayables /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/day-sales" element={<ProtectedRoute><LayoutWithNavbar><DaySales /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/reports/Billcollectorreport" element={<ProtectedRoute><LayoutWithNavbar><TenderReport /></LayoutWithNavbar></ProtectedRoute>} />
 
 
 
