@@ -1532,6 +1532,27 @@ const clearFormData = async () => {
         });
         return; // Just return, don't clear anything
       }
+
+
+       const hasValidtax = items.some(item =>         
+        item.tax && item.tax.trim() !== '' 
+      );
+
+
+      if (!hasValidtax) {
+        showConfirmation({
+          title: 'Missing Information',
+          message: 'Please enter tax for all items before saving',
+          type: 'warning',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => {
+            setShowConfirmPopup(false);
+            setFocusedField('tax');
+          }
+        });
+        return;    
+      }
       
       const validItems = items.filter(item => 
         item.itemName && item.itemName.trim() !== '' && 
@@ -2281,8 +2302,7 @@ const clearFormData = async () => {
                 setFocusedField('mobileNo');
                 setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 3 });
               }}
-              onBlur={() => setFocusedField('')}
-              readOnly={true}
+              onBlur={() => setFocusedField('')}              
             />
           </div>
 

@@ -1451,15 +1451,28 @@ setTimeout(() => {
 
   const createSalesReturn = async () => {
   try {
-    setLoading(true);
-    setError("");
+   
     
     // Check if we have items to create
     const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
     if (validItems.length === 0) {
-      throw new Error("No valid items to create. Please add items with quantity > 0.");
+      toast.warning("No valid items to create. Please add items");
+    }
+
+    const hasValidtax = items.some(item =>         
+      item.tax && item.tax.trim() !== '' 
+    );
+
+
+    if (!hasValidtax) {
+      toast.warning("Please enter tax for all items before saving", {
+        autoClose: 2000,
+      });
+      return;    
     }
     
+    setLoading(true);
+    setError("");
     // Calculate net amount for each item
     const totalDiscountAmount = parseFloat(discountAmount || 0);
     const totalAmountValue = parseFloat(totalAmount || 0);
@@ -3535,6 +3548,25 @@ const handleApplyBillDirect = async () => {
 
   // ==================== SAVE FUNCTION ====================
 const handleSave = async () => {
+
+
+
+   // Check if we have items to create
+    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+    if (validItems.length === 0) {
+      toast.warning("No valid items to create. Please add items");
+    }
+   const hasValidtax = items.some(item =>         
+      item.tax && item.tax.trim() !== '' 
+    );
+
+
+    if (!hasValidtax) {
+      toast.warning("Please enter tax for all items before saving", {
+        autoClose: 2000,
+      });
+      return;    
+    }
   showConfirmation({
     title: isEditMode ? "Update Sales Return" : "Save Sales Return",
     message: isEditMode
