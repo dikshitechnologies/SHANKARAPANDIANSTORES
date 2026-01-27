@@ -6,7 +6,7 @@ import Category from '../pages/category/category';
 import Product from '../pages/Product/Product';
 import ItemCreation from '../pages/ItemCreation/ItemCreation';
 import LedgerCreation from '../pages/Ledgercreation/Ledgercreation';
-import { FaPencilRuler, FaRecycle, FaTags, FaThList, FaBoxOpen, FaCubes, FaTimes,FaUser  } from 'react-icons/fa';
+import { FaPencilRuler, FaRecycle, FaTags, FaThList, FaBoxOpen, FaCartPlus, FaTimes,FaUserPlus  } from 'react-icons/fa';
 
 // Array of popup screens with icons and components
 export const popupScreens = [
@@ -43,13 +43,13 @@ export const popupScreens = [
   {
     key: 'item',
     label: 'Item Creation',
-    icon: <FaCubes />,
+    icon: <FaCartPlus  />,
     component: ItemCreation,
   },
   {
     key: 'ledger',
     label: 'Ledger Creation',
-    icon: <FaUser />,
+    icon: <FaUserPlus />,
     component: LedgerCreation,
   }
 ];
@@ -61,9 +61,19 @@ export function PopupScreenModal({ screenIndex = 6, iconOnly = true, buttonStyle
   const IconComp = popupScreens[screenIndex].icon;
   const label = popupScreens[screenIndex].label;
 
+  // Close modal on ESC key
+  React.useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   return (
     <>
-      <button
+     <button
         type="button"
         title={label}
         style={{
@@ -78,6 +88,7 @@ export function PopupScreenModal({ screenIndex = 6, iconOnly = true, buttonStyle
       >
         {IconComp}
       </button>
+     
       {open && (
         <div
           style={{
@@ -102,35 +113,45 @@ export function PopupScreenModal({ screenIndex = 6, iconOnly = true, buttonStyle
               minHeight: 150,
               maxWidth: '90vw',
               maxHeight: '80vh',
-              overflow: 'auto',
               position: 'relative',
               boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
-              padding: 24,
+              padding: 0, // Remove padding here
+              overflow: 'visible', // Make sure the close button is not clipped
             }}
           >
+            {/* X icon always visible */}
             <button
               onClick={() => setOpen(false)}
               style={{
                 position: 'absolute',
-                top: 8,
-                right: 8,
+                top: 12,
+                right: 16,
                 background: 'none',
                 border: 'none',
-                fontSize: 20,
+                fontSize: 28,
                 color: '#888',
                 cursor: 'pointer',
+                zIndex: 2,
               }}
               aria-label="Close"
             >
               <FaTimes />
             </button>
-            {/* <h3 style={{ marginTop: 0, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              {IconComp} {label}
-            </h3> */}
-            <ScreenComponent />
+            {/* Scrollable content */}
+            <div
+              style={{
+                padding: 24,
+                maxHeight: '80vh',
+                overflow: 'auto',
+              }}
+            >
+              <ScreenComponent />
+            </div>
           </div>
         </div>
       )}
+
+            
     </>
   );
 }

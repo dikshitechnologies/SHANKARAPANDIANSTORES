@@ -10,7 +10,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
-
+import { PopupScreenModal } from '../../components/PopupScreens.jsx';
 
 const Icon = {
   Search: ({ size = 16 }) => (
@@ -2847,6 +2847,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               <option value="I">IGST</option>
             </select>
           </div>
+          <div><PopupScreenModal screenIndex={5} /></div>
         </div>
 
         {/* ROW 2 */}
@@ -2962,6 +2963,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 <Icon.Search size={16} />
               </button>
             </div>
+            <PopupScreenModal screenIndex={6} />
           </div>
 
           {/* City */}
