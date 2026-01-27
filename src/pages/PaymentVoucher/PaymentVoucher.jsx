@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
+import {PopupScreenModal} from '../../components/PopupScreens';
 
 const SearchIcon = ({ size = 16, color = "#1B91DA" }) => (
   <svg
@@ -2276,6 +2277,7 @@ const PaymentVoucher = () => {
                   <SearchIcon />
                 </div>
               </div>
+              <div> <PopupScreenModal screenIndex={6} /> </div>
             </div>
 
             {/* Balance */}

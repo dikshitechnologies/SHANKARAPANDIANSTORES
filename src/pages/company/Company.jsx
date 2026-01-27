@@ -1244,8 +1244,9 @@ const Company = () => {
               <div className="two-column-form">
                 {/* Left side form */}
                 <div className="form-column left-form">
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                    <h3 style={{margin: 0}}>Company Details</h3>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <div></div>
+                    {/* <h3 style={{margin: 0}}>Company Details</h3> */}
                     <div style={{display: 'flex', gap: '10px'}}>
                       <AddButton
                         isActive={selectedAction === "create"}
