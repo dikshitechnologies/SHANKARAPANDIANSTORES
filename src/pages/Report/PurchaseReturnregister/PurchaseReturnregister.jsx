@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css"; 
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import axiosInstance from '../../../api/axiosInstance';
-
+import { useAuth } from '../../../context/AuthContext';
 // Helper functions (keep these outside the component)
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
@@ -60,6 +60,10 @@ const parseNumber = (str) => {
 };
 
 const PurchaseReturnRegister = () => {
+
+
+  
+    const { userData } = useAuth() || {};
   // State for data
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({
@@ -125,7 +129,7 @@ const PurchaseReturnRegister = () => {
       const endpoint = API_ENDPOINTS.PURCHASE_RETURN_REGISTER.GET_LIST(
         formattedFromDate, 
         formattedToDate, 
-        '001', // compCode - adjust if needed
+        userData.companyCode, // compCode - adjust if needed
         page,     // current page
         20     // pageSize
       );

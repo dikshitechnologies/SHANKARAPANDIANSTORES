@@ -897,16 +897,16 @@ const handleBlur = () => {
       setItems(prevItems => {
         return prevItems.map(item => {
           if (item.id === selectedRowId) {
-            return {
-              ...item,
+            const updatedItem = {
+              id: item.id, // Preserve ID
               barcode: selectedItem.barcode || '',
               itemcode: selectedItem.itemcode || '',
               name: stockData.itemName || selectedItem.name || '',
               stock: stockData.finalStock || '0',
-              uom: selectedItem.uom || item.uom || '',
-              hsn: selectedItem.hsn || item.hsn || '',
-              preRT: selectedItem.preRT || item.preRT || '',
-              prate: selectedItem.preRT || item.prate || '',
+              uom: selectedItem.uom || '',
+              hsn: selectedItem.hsn || '',
+              preRT: (selectedItem.preRT || '0').toString(),
+              prate: (selectedItem.preRT || '0').toString(),
               brand: stockData.brand || '',
               category: stockData.category || '',
               model: stockData.model || '',
@@ -914,7 +914,28 @@ const handleBlur = () => {
               max: stockData.max || '',
               min: stockData.min || '',
               type: stockData.type || '',
+              // Reset all other fields to blank
+              sub: '',
+              mrp: '',
+              tax: stockData.tax || '',
+              rate: '',
+              qty: '1', // Default to 1 for new selection
+              ovrwt: '',
+              avgwt: '',
+              intax: stockData.tax || '',
+              outtax: '',
+              acost: '',
+              sudo: '',
+              profitPercent: '',
+              sRate: '',
+              asRate: '',
+              letProfPer: '',
+              ntCost: '',
+              wsPercent: '',
+              wsRate: '',
+              amt: ''
             };
+            return calculateItem(updatedItem);
           }
           return item;
         });
@@ -925,16 +946,40 @@ const handleBlur = () => {
       setItems(prevItems => {
         return prevItems.map(item => {
           if (item.id === selectedRowId) {
-            return {
-              ...item,
+            const updatedItem = {
+              id: item.id,
               barcode: selectedItem.barcode || '',
               itemcode: selectedItem.itemcode || '',
               name: selectedItem.name || '',
-              uom: selectedItem.uom || item.uom || '',
-              hsn: selectedItem.hsn || item.hsn || '',
-              preRT: selectedItem.preRT || item.preRT || '',
-              prate: selectedItem.preRT || item.prate || '',
+              uom: selectedItem.uom || '',
+              hsn: selectedItem.hsn || '',
+              preRT: (selectedItem.preRT || '0').toString(),
+              prate: (selectedItem.preRT || '0').toString(),
+              // Reset all other fields
+              sub: '',
+              stock: '0',
+              mrp: '',
+              tax: '',
+              rate: '',
+              qty: '1',
+              ovrwt: '',
+              avgwt: '',
+              intax: '',
+              outtax: '',
+              acost: '',
+              sudo: '',
+              profitPercent: '',
+              sRate: '',
+              asRate: '',
+              letProfPer: '',
+              ntCost: '',
+              wsPercent: '',
+              wsRate: '',
+              amt: '',
+              min: '',
+              max: ''
             };
+            return calculateItem(updatedItem);
           }
           return item;
         });
@@ -1360,8 +1405,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   // Fields in the visual order
   const fields = [
     'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
-    'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
-    'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
+    'prate', 'intax', 'outtax', 'acost', 'amt'
   ];
 
   const currentFieldIndex = fields.indexOf(currentField);
@@ -1608,6 +1652,26 @@ if (e.key === 'Enter') {
         return;
       }
 
+
+
+        const hasValidtax = items.some(item =>         
+        item.intax && item.intax.trim() !== '' && item.outtax && item.outtax.trim() !== ''
+      );
+
+
+      if (!hasValidtax) {
+        showAlertConfirmation('Please enter tax for all items before saving', () => {
+          // Focus the tax input for the first invalid row
+          setTimeout(() => {
+            const taxInput = document.querySelector(`input[data-row="${invalidTaxIndex}"][data-field="intax"]`);
+            if (taxInput) {
+              taxInput.focus();
+              taxInput.select && taxInput.select();
+            }
+          }, 100);
+        }, 'warning');
+        return;
+      }
       const voucherDateISO = toISODate(billDetails.billDate || billDetails.purDate);
 
       const totals = calculateTotals(items);
@@ -2787,7 +2851,7 @@ if (e.key === 'Enter') {
                 <th style={styles.th}>InTax</th>
                 <th style={styles.th}>OutTax</th>
                 <th style={styles.th}>ACost</th>
-                <th style={styles.th}>Sudo</th>
+                {/* <th style={styles.th}>Sudo</th>
                 <th style={styles.th}>Profit%</th>
                 <th style={styles.th}>PreRT</th>
                 <th style={styles.th}>SRate</th>
@@ -2796,8 +2860,8 @@ if (e.key === 'Enter') {
                 <th style={styles.th}>PPer</th>
                 <th style={styles.th}>NTCost</th>
                 <th style={styles.th}>WS%</th>
-                <th style={styles.th}>WRate</th>
-                <th style={{...styles.th, minWidth: screenSize.isMobile ? '100px' : '120px'}}>Total</th>
+                <th style={styles.th}>WRate</th> */}
+                <th style={{...styles.th, width: '150px', maxWidth: '150px', minWidth: '150px'}}>Total</th>
                 <th style={styles.th}>Action</th>
               </tr>
             </thead>
@@ -3116,7 +3180,7 @@ if (e.key === 'Enter') {
                       onBlur={() => setFocusedField('')}
                     />
                   </td>
-                  <td style={styles.td}>
+                  {/* <td style={styles.td}>
                     <input
                       style={focusedField === `sudo-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.sudo || ''}
@@ -3252,16 +3316,18 @@ if (e.key === 'Enter') {
                       onFocus={() => setFocusedField(`wsRate-${item.id}`)}
                       onBlur={() => setFocusedField('')}
                     />
-                  </td>
-                 <td style={{ ...styles.td, width: '120px', maxWidth: '120px' }}>
-                <input
-                  style={{
-                    ...(focusedField === `amt-${item.id}`
-                      ? styles.editableInputFocused
-                      : styles.editableInput),
-                    width: '120px',   // 🔥 2x width
-                    maxWidth: '120px'
-                  }}
+                  </td> */}
+                  <td style={{ ...styles.td, width: '150px', maxWidth: '150px', minWidth: '150px' }}>
+                    <input
+                      style={{
+                        ...(focusedField === `amt-${item.id}`
+                          ? styles.editableInputFocused
+                          : styles.editableInput),
+                        width: '100%',
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                        paddingRight: '8px'
+                      }}
                   value={item.amt || ''}
                   data-row={index}
                   data-field="amt"

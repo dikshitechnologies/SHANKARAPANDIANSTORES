@@ -2332,9 +2332,7 @@ const handleConfirmedRowDelete = () => {
     }
 
     try {
-      setIsSaving(true);
-      setIsLoading(true);
-      setError(null);
+     
 
     // 🔒 FINAL SAFETY VALIDATION
 if (!billDetails.custName || billDetails.custName.trim() === "") {
@@ -2353,6 +2351,21 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
         throw new Error("At least one item is required");
       }
 
+
+
+       const hasValidtax = items.some(item =>         
+        item.tax && item.tax.trim() !== '' 
+      );
+
+
+      if (!hasValidtax) {
+        throw new Error("Please enter tax for all items before saving");    
+      }
+
+
+      setIsSaving(true);
+      setIsLoading(true);
+      setError(null);
       // Format date to yyyy-MM-dd (without time)
       const voucherDate = formatDateToYYYYMMDD(billDetails.billDate);
 
@@ -2518,6 +2531,18 @@ const itemsData = validItems.map(item => ({
       });
       return;
     }
+
+       const hasValidtax = items.some(item =>         
+        item.tax && item.tax.trim() !== '' 
+      );
+
+
+      if (!hasValidtax) {
+        toast.warning("Please enter tax for all items before saving", {
+          autoClose: 2000,
+        });
+        return;    
+      }
 
     // ✅ ALL OK → Open save confirmation popup
     const finalAmount = totalAmount; // Removed addLessAmount
