@@ -6,8 +6,8 @@ import Category from '../pages/category/category';
 import Product from '../pages/Product/Product';
 import ItemCreation from '../pages/ItemCreation/ItemCreation';
 import LedgerCreation from '../pages/Ledgercreation/Ledgercreation';
-import { FaPencilRuler, FaRecycle, FaTags, FaThList, FaBoxOpen, FaCartPlus, FaTimes,FaUserPlus  } from 'react-icons/fa';
-
+import { FaPencilRuler, FaRecycle, FaTags, FaThList, FaBoxOpen, FaTimes,FaUserPlus  } from 'react-icons/fa';
+import { HiMiniSquaresPlus } from "react-icons/hi2";
 // Array of popup screens with icons and components
 export const popupScreens = [
   {
@@ -43,7 +43,7 @@ export const popupScreens = [
   {
     key: 'item',
     label: 'Item Creation',
-    icon: <FaCartPlus  />,
+    icon: <HiMiniSquaresPlus  />,
     component: ItemCreation,
   },
   {
