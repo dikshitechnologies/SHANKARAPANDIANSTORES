@@ -1459,17 +1459,7 @@ setTimeout(() => {
       toast.warning("No valid items to create. Please add items");
     }
 
-    const hasValidtax = items.some(item =>         
-      item.tax && item.tax.trim() !== '' 
-    );
-
-
-    if (!hasValidtax) {
-      toast.warning("Please enter tax for all items before saving", {
-        autoClose: 2000,
-      });
-      return;    
-    }
+   
     
     setLoading(true);
     setError("");
@@ -3556,17 +3546,9 @@ const handleSave = async () => {
     if (validItems.length === 0) {
       toast.warning("No valid items to create. Please add items");
     }
-   const hasValidtax = items.some(item =>         
-      item.tax && item.tax.trim() !== '' 
-    );
+  
 
-
-    if (!hasValidtax) {
-      toast.warning("Please enter tax for all items before saving", {
-        autoClose: 2000,
-      });
-      return;    
-    }
+   
   showConfirmation({
     title: isEditMode ? "Update Sales Return" : "Save Sales Return",
     message: isEditMode
