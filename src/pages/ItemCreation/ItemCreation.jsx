@@ -1503,7 +1503,7 @@ const ItemCreation = ({ onCreated }) => {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 700px;
+          max-width: 1400px;
           border-radius: 16px;
           padding: 20px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -1533,6 +1533,7 @@ const ItemCreation = ({ onCreated }) => {
           margin:0;
           font-family: "Poppins", "Inter", sans-serif;
           font-size: 20px;
+          font-weight: 600;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
@@ -1613,7 +1614,7 @@ const ItemCreation = ({ onCreated }) => {
           margin-top:5px ;
           font-weight:700;
           color:#0f172a;
-          font-size:13px;
+          font-size:18px;
           text-align: left;
           width: 100%;
         }
@@ -2383,307 +2384,260 @@ const ItemCreation = ({ onCreated }) => {
               disabled={isSubmitting || !formPermissions.delete}
               isActive={actionType === 'delete'}
             />
-
           </div>
-        </div>
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
-
-            {/* Item Name field */}
-            <div className="field">
-              <label className="field-label">Item Name <span className="asterisk">*</span></label>
-              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-                <div style={{
-                  display: "flex",
-                  flex: 1,
-                  border: "1px solid rgba(15,23,42,0.06)",
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  background: "linear-gradient(180deg, #fff, #fbfdff)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                }}>
-                  <input
-                    ref={itemNameRef}
-                    className="input"
-                    value={formData.itemName}
-                    onChange={(e) => handleChange('itemName', e.target.value)}
-
-                    disabled={isSubmitting || isDeleteMode}
-                    aria-label="Item Name"
-                    style={{
-                      flex: 1,
-                      border: "none",
-                      borderRadius: 0,
-                      padding: "10px 12px",
-                      minWidth: "120px",
-                      fontSize: "14px",
-                      outline: "none"
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-            {/* Group Name field */}
-            <div className="field">
-              <label className="field-label">Group Name <span className="asterisk">*</span></label>
-              <div className="row" style={{ display: "flex", alignItems: "center" }}>
-                <div style={{
-                  display: "flex",
-                  flex: 1,
-                  border: "1px solid rgba(15,23,42,0.06)",
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
-                }}>
-                  <input
-                    ref={groupNameRef}
-                    className="input"
-                    value={mainGroup}
-                    onChange={(e) => {
-                      setMainGroup(e.target.value);
-                      // Open tree when typing
-                      if (e.target.value.trim() && !isTreeOpen) {
-                        setIsTreeOpen(true);
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        setIsTreeOpen(true); // Tree opens ONLY on Enter
-                        // Focus first visible node
-                        setTimeout(() => {
-                          const firstNode = document.querySelector(".tree-row");
-                          firstNode?.focus();
-                        }, 50);
-                      }
-                      // Open tree when typing letters/numbers
-                      else if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
-                        setIsTreeOpen(true);
-                      }
-                    }}
-                    disabled={isSubmitting || isDeleteMode}
-                    readOnly={true}
-                    aria-label="Group Name"
-                    style={{
-                      flex: 1,
-                      border: "none",
-                      borderRadius: "0",
-                      padding: "10px 12px",
-                      minWidth: "0",
-                      fontSize: "14px",
-                      outline: "none",
-                      cursor: "pointer"
-                    }}
-                  />
-                  <button
-                    onClick={() => { if (!isDeleteMode && !isSubmitting) setIsTreeOpen(!isTreeOpen); }}
-                    disabled={isSubmitting || isDeleteMode}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "0 12px",
+            
+            {/* Two Column Layout: Left and Right */}
+            <div style={{ display: "grid", gridTemplateColumns: "35% 60% ", gap: "32px", alignItems: "start" }}>
+              
+              {/* LEFT COLUMN */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                
+                {/* Item Name field */}
+                <div className="field">
+                  <label className="field-label">Item Name <span className="asterisk">*</span></label>
+                  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                    <div style={{
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--accent)"
-                    }}
-                    aria-label={isTreeOpen ? "Close tree" : "Open tree"}
-                  >
-                    <Icon.Chevron down={!isTreeOpen} />
-                  </button>
+                      flex: 1,
+                      border: "1px solid rgba(15,23,42,0.06)",
+                      borderRadius: "10px",
+                      overflow: "hidden",
+                      background: "linear-gradient(180deg, #fff, #fbfdff)",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                    }}>
+                      <input
+                        ref={itemNameRef}
+                        className="input"
+                        value={formData.itemName}
+                        onChange={(e) => handleChange('itemName', e.target.value)}
+                        disabled={isSubmitting || isDeleteMode}
+                        aria-label="Item Name"
+                        style={{
+                          flex: 1,
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "10px 12px",
+                          minWidth: "120px",
+                          fontSize: "14px",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {isTreeOpen && (
-                isMobile ? (
-                  <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                        <h3 style={{ margin: 0, fontSize: 18 }}>Groups</h3>
-                        <button
-                          onClick={() => setIsTreeOpen(false)}
-                          style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-                          aria-label="Close"
-                        >
-                          <Icon.Close />
-                        </button>
-                      </div>
-
-                      {/* <div className="row" style={{ marginBottom: 8 }}>
-            <div className="search-container">
-              <input
-                className="search-with-clear"
-                placeholder="Search groups..."
-                value={searchTree}
-                onChange={(e) => setSearchTree(e.target.value)}
-                aria-label="Search groups"
-              />
-              {searchTree && (
-                <button
-                  className="clear-search-btn"
-                  onClick={() => setSearchTree("")}
-                  type="button"
-                  aria-label="Clear search"
-                >
-                  <Icon.Close size={16} />
-                </button>
-              )}
-            </div>
-          </div> */}
-
-                      <div
-                        className="tree-scroll"
-                        role="tree"
-                        aria-label="Group list"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") {
-                            setIsTreeOpen(false);
-                            groupNameRef.current?.focus(); // Return focus to input
+                {/* Group Name field */}
+                <div className="field">
+                  <label className="field-label">Group Name <span className="asterisk">*</span></label>
+                  <div className="row" style={{ display: "flex", alignItems: "center" }}>
+                    <div style={{
+                      display: "flex",
+                      flex: 1,
+                      border: "1px solid rgba(15,23,42,0.06)",
+                      borderRadius: "10px",
+                      overflow: "hidden",
+                      backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
+                    }}>
+                      <input
+                        ref={groupNameRef}
+                        className="input"
+                        value={mainGroup}
+                        onChange={(e) => {
+                          setMainGroup(e.target.value);
+                          // Open tree when typing
+                          if (e.target.value.trim() && !isTreeOpen) {
+                            setIsTreeOpen(true);
                           }
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            setIsTreeOpen(true); // Tree opens ONLY on Enter
+                            // Focus first visible node
+                            setTimeout(() => {
+                              const firstNode = document.querySelector(".tree-row");
+                              firstNode?.focus();
+                            }, 50);
+                          }
+                          // Open tree when typing letters/numbers
+                          else if (/^[a-zA-Z0-9]$/.test(e.key) && !isTreeOpen) {
+                            setIsTreeOpen(true);
+                          }
+                        }}
+                        disabled={isSubmitting || isDeleteMode}
+                        readOnly={true}
+                        aria-label="Group Name"
+                        style={{
+                          flex: 1,
+                          border: "none",
+                          borderRadius: "0",
+                          padding: "10px 12px",
+                          minWidth: "0",
+                          fontSize: "14px",
+                          outline: "none",
+                          cursor: "pointer"
+                        }}
+                      />
+                      <button
+                        onClick={() => { if (!isDeleteMode && !isSubmitting) setIsTreeOpen(!isTreeOpen); }}
+                        disabled={isSubmitting || isDeleteMode}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "0 12px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "var(--accent)"
+                        }}
+                        aria-label={isTreeOpen ? "Close tree" : "Open tree"}
                       >
-                        {loading ? (
-                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-                        ) : filteredTree.length === 0 ? (
-                          <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-                        ) : (
-                          filteredTree.map((node) => (
-                            <TreeNode
-                              key={node.key}
-                              node={node}
-                              onSelect={(n) => {
-                                handleSelectNode(n);
+                        <Icon.Chevron down={!isTreeOpen} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {isTreeOpen && (
+                    isMobile ? (
+                      <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
+                        <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                            <h3 style={{ margin: 0, fontSize: 18 }}>Groups</h3>
+                            <button
+                              onClick={() => setIsTreeOpen(false)}
+                              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
+                              aria-label="Close"
+                            >
+                              <Icon.Close />
+                            </button>
+                          </div>
+
+                          <div
+                            className="tree-scroll"
+                            role="tree"
+                            aria-label="Group list"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
                                 setIsTreeOpen(false);
-                                // Focus item name field after selection
-                                setTimeout(() => {
-                                  itemNameRef.current?.focus();
-                                }, 10);
-                              }}
-                              expandedKeys={expandedKeys}
-                              toggleExpand={toggleExpand}
-                              selectedKey={selectedNode?.key}
-                              onNavigate={handleTreeNavigation}
-                            />
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
-                    {/* Header with close button for desktop */}
-                    {/* <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <div className="search-container">
-            <input
-              className="search-with-clear"
-              placeholder="Search groups..."
-              value={searchTree}
-              onChange={(e) => setSearchTree(e.target.value)}
-              aria-label="Search groups"
-            />
-            {searchTree && (
-              <button
-                className="clear-search-btn"
-                onClick={() => setSearchTree("")}
-                type="button"
-                aria-label="Clear search"
-              >
-                <Icon.Close size={16} />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => setIsTreeOpen(false)}
-            style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, marginLeft: 8 }}
-            aria-label="Close tree"
-          >
-            <Icon.Close size={18} />
-          </button>
-        </div> */}
-
-                    <div
-                      className="tree-scroll"
-                      role="tree"
-                      aria-label="Group list"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          setIsTreeOpen(false);
-                          groupNameRef.current?.focus(); // Return focus to input
-                        }
-                      }}
-                    >
-                      {loading ? (
-                        <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
-                      ) : filteredTree.length === 0 ? (
-                        <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
-                      ) : (
-                        filteredTree.map((node) => (
-                          <TreeNode
-                            key={node.key}
-                            node={node}
-                            onSelect={(n) => {
-                              handleSelectNode(n);
-                              setIsTreeOpen(false);
-                              // Focus item name field after selection
-                              setTimeout(() => {
-                                shortNameRef.current?.focus();
-                              }, 10);
+                                groupNameRef.current?.focus(); // Return focus to input
+                              }
                             }}
-                            expandedKeys={expandedKeys}
-                            toggleExpand={toggleExpand}
-                            selectedKey={selectedNode?.key}
-                            onNavigate={handleTreeNavigation}
-                          />
-                        ))
-                      )}
+                          >
+                            {loading ? (
+                              <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
+                            ) : filteredTree.length === 0 ? (
+                              <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+                            ) : (
+                              filteredTree.map((node) => (
+                                <TreeNode
+                                  key={node.key}
+                                  node={node}
+                                  onSelect={(n) => {
+                                    handleSelectNode(n);
+                                    setIsTreeOpen(false);
+                                    // Focus short name field after selection
+                                    setTimeout(() => {
+                                      shortNameRef.current?.focus();
+                                    }, 10);
+                                  }}
+                                  expandedKeys={expandedKeys}
+                                  toggleExpand={toggleExpand}
+                                  selectedKey={selectedNode?.key}
+                                  onNavigate={handleTreeNavigation}
+                                />
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
+                        <div
+                          className="tree-scroll"
+                          role="tree"
+                          aria-label="Group list"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") {
+                              setIsTreeOpen(false);
+                              groupNameRef.current?.focus(); // Return focus to input
+                            }
+                          }}
+                        >
+                          {loading ? (
+                            <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
+                          ) : filteredTree.length === 0 ? (
+                            <div style={{ padding: 20, color: "var(--muted)", textAlign: "center" }}>No groups found</div>
+                          ) : (
+                            filteredTree.map((node) => (
+                              <TreeNode
+                                key={node.key}
+                                node={node}
+                                onSelect={(n) => {
+                                  handleSelectNode(n);
+                                  setIsTreeOpen(false);
+                                  // Focus short name field after selection
+                                  setTimeout(() => {
+                                    shortNameRef.current?.focus();
+                                  }, 10);
+                                }}
+                                expandedKeys={expandedKeys}
+                                toggleExpand={toggleExpand}
+                                selectedKey={selectedNode?.key}
+                                onNavigate={handleTreeNavigation}
+                              />
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+
+                {/* Short Name field */}
+                <div className="field">
+                  <label className="field-label">Short Name</label>
+                  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                    <div style={{
+                      display: "flex",
+                      flex: 1,
+                      border: "1px solid rgba(15,23,42,0.06)",
+                      borderRadius: "10px",
+                      overflow: "hidden",
+                      background: "linear-gradient(180deg, #fff, #fbfdff)",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                    }}>
+                      <input
+                        ref={shortNameRef}
+                        className="input"
+                        value={formData.shortName}
+                        onChange={(e) => handleChange('shortName', e.target.value)}
+                        disabled={isSubmitting || isDeleteMode}
+                        aria-label="Short Name"
+                        style={{
+                          flex: 1,
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "10px 12px",
+                          minWidth: "120px",
+                          fontSize: "14px",
+                          outline: "none"
+                        }}
+                      />
                     </div>
                   </div>
-                )
-              )}
-            </div>
-
-            {/* Short Name field */}
-            <div className="field">
-              <label className="field-label">Short Name</label>
-              <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
-                <div style={{
-                  display: "flex",
-                  flex: 1,
-                  border: "1px solid rgba(15,23,42,0.06)",
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  background: "linear-gradient(180deg, #fff, #fbfdff)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                }}>
-                  <input
-                    ref={shortNameRef}
-                    className="input"
-                    value={formData.shortName}
-                    onChange={(e) => handleChange('shortName', e.target.value)}
-
-                    disabled={isSubmitting || isDeleteMode}
-                    aria-label="Short Name"
-                    style={{
-                      flex: 1,
-                      border: "none",
-                      borderRadius: 0,
-                      padding: "10px 12px",
-                      minWidth: "120px",
-                      fontSize: "14px",
-                      outline: "none"
-                    }}
-                  />
                 </div>
               </div>
-            </div>
 
-            {/* Form Grid */}
-            <div className="form-grid">
-              {/* Brand */}
+              {/* RIGHT COLUMN */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div className="form-grid">
+                  {/* Brand */}
               <div className="field">
                 <label className="field-label">Brand</label>
                 <div className="input-with-search">
@@ -3245,6 +3199,8 @@ const ItemCreation = ({ onCreated }) => {
                 />
               </div>
               {/* Piece Rate Checkbox - REMOVED (replaced by Type dropdown above) */}
+                </div>
+              </div>
             </div>
 
             {/* Message display */}
@@ -3313,9 +3269,9 @@ const ItemCreation = ({ onCreated }) => {
             </div>
           </div>
 
-
         </div>
       </div>
+    </div>
 
       {/* Confirmation Popup for Create */}
       <ConfirmationPopup
