@@ -5189,9 +5189,9 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
       const originalQty = originalQuantities[item.barcode] || 
                          originalQuantities[item.itemCode] || 
                          originalQuantities[index];
-      if (originalQty) {
-        e.target.placeholder = `Max: ${originalQty}`;
-      }
+      // if (originalQty) {
+      //   e.target.placeholder = `Max: ${originalQty}`;
+      // }
     }}
     onBlur={(e) => {
       setFocusedField('');
