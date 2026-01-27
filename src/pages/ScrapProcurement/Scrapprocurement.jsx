@@ -11,7 +11,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from "../../hooks/usePermissions";
 import { getCompCode } from '../../utils/userUtils';
 import { PERMISSION_CODES } from "../../constants/permissions";
-
+import { PopupScreenModal } from '../../components/PopupScreens.jsx';
 const Icon = {
   Search: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -2281,6 +2281,7 @@ const clearFormData = async () => {
                 <Icon.Search size={16} />
               </button>
             </div>
+            <div><PopupScreenModal screenIndex={6} /></div>
           </div>
 
           {/* Mobile No */}
@@ -2416,6 +2417,7 @@ const clearFormData = async () => {
                 <Icon.Search size={16} />
               </button>
             </div>
+             <PopupScreenModal screenIndex={7} />
           </div>
         </div>
       </div>

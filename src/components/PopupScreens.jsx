@@ -8,6 +8,8 @@ import ItemCreation from '../pages/ItemCreation/ItemCreation';
 import LedgerCreation from '../pages/Ledgercreation/Ledgercreation';
 import { FaPencilRuler, FaRecycle, FaTags, FaThList, FaBoxOpen, FaTimes,FaUserPlus  } from 'react-icons/fa';
 import { HiMiniSquaresPlus } from "react-icons/hi2";
+import { FaPersonCirclePlus } from "react-icons/fa6";
+import SalesmanCreation from '../pages/SalesmanCreation/SalesmanCreation';
 // Array of popup screens with icons and components
 export const popupScreens = [
   {
@@ -51,11 +53,17 @@ export const popupScreens = [
     label: 'Ledger Creation',
     icon: <FaUserPlus />,
     component: LedgerCreation,
+  },
+  {
+    key: 'Sales',
+    label: 'Salesman Creation',
+    icon: <FaPersonCirclePlus />,
+    component: SalesmanCreation,
   }
 ];
 
 // Simple modal component
-export function PopupScreenModal({ screenIndex = 6, iconOnly = true, buttonStyle = {}, modalStyle = {} }) {
+export function PopupScreenModal({ screenIndex = 7, iconOnly = true, buttonStyle = {}, modalStyle = {} }) {
   const [open, setOpen] = useState(false);
   const ScreenComponent = popupScreens[screenIndex].component;
   const IconComp = popupScreens[screenIndex].icon;
