@@ -142,31 +142,31 @@ body {
     display: grid;
     grid-template-columns: 1fr ; 
     gap: 1rem;
-    margin-top: 1rem !important;
+    margin-top: 0.8rem !important;
  }
 .row1 {
     display: grid;
     grid-template-columns: 1fr 2fr; 
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: 0.8rem;
 }
 .row2 {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr; 
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: 0.8rem;
 }
 .row4{
     display: grid;
     grid-template-columns: 1fr 1fr; 
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: 0.8rem;
 }
 .rowpseudo{
     display: grid;
     /* grid-template-columns: 1fr ;  */
     gap: 1rem;
-    margin-top: 1rem !important;
+    margin-top: 0.8rem !important;
 }
 
 .form-column {
@@ -182,7 +182,7 @@ body {
 
 .input-group label {
     display: block;
-    margin-bottom: 0.4rem;
+    /* margin-bottom: 0.4rem; */
     font-weight: 600;
     font-size: 0.9rem;
     color: var(--text-primary);
@@ -232,7 +232,7 @@ body {
 .submit-row {
     display: flex;
     gap: 1rem;
-    margin-top: 2rem;
+    /* margin-top: 2rem; */
     justify-content: flex-end;
 }
 .message {
