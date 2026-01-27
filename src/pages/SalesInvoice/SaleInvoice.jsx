@@ -10,7 +10,7 @@ import { axiosInstance } from '../../api/apiService';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import { getCompCode, getUCode } from '../../utils/userUtils';
-
+import { PopupScreenModal } from '../../components/PopupScreens.jsx';
 
 
 const TABLE_FIELDS = [
@@ -2754,6 +2754,7 @@ const itemsData = validItems.map(item => ({
       minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '75px', // ✅ REDUCED
       whiteSpace: 'nowrap',
       flexShrink: 0,
+      marginLeft: screenSize.isMobile ? '4px' : screenSize.isTablet ? '6px' : '8px',
     },
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -3417,6 +3418,7 @@ const itemsData = validItems.map(item => ({
           <SearchIcon />
         </div>
       </div>
+       <PopupScreenModal screenIndex={7} />
     </div>
 
     {/* Type */}
@@ -3539,6 +3541,7 @@ const itemsData = validItems.map(item => ({
       <SearchIcon />
     </div>
   </div>
+  <div><PopupScreenModal screenIndex={6} /></div>
 </div>
 
 
@@ -3606,7 +3609,7 @@ const itemsData = validItems.map(item => ({
     </div>
     
     {/* Empty div to maintain grid structure */}
-    <div style={styles.formField}></div>
+    <div style={styles.formField}> <PopupScreenModal screenIndex={5} /></div>
     <div style={styles.formField}></div>
   </div>
 </div>
