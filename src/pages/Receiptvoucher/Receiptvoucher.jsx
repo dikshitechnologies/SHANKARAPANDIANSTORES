@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
-
+import {PopupScreenModal} from '../../components/PopupScreens';
 const SearchIcon = ({ size = 16, color = "#1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -994,7 +994,7 @@ const ReceiptVoucher = () => {
  const fetchVoucherDetails = async (voucherNo) => {
   try {
     setIsLoading(true);
-    const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_VOUCHER_DETAILS(voucherNo));
+    const response = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_VOUCHER_DETAILS(voucherNo, userData.companyCode));
     console.log('Fetched Voucher Details Response:', response);
     
     if (response?.bledger) {
@@ -2597,6 +2597,7 @@ const ReceiptVoucher = () => {
                   <SearchIcon />
                 </div>
               </div>
+              <div> <PopupScreenModal screenIndex={6} /> </div>
             </div>
 
             {/* Balance */}

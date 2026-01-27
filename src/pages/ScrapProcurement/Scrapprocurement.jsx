@@ -71,7 +71,7 @@ const Scrapprocurement = () => {
       tax: '',
       sRate: '',
       qty: '',
-      amount: '0.00'
+      amount: ''
     }
   ]);
 
@@ -1532,6 +1532,27 @@ const clearFormData = async () => {
         });
         return; // Just return, don't clear anything
       }
+
+
+       const hasValidtax = items.some(item =>         
+        item.tax && item.tax.trim() !== '' 
+      );
+
+
+      if (!hasValidtax) {
+        showConfirmation({
+          title: 'Missing Information',
+          message: 'Please enter tax for all items before saving',
+          type: 'warning',
+          confirmText: 'OK',
+          showIcon: true,
+          onConfirm: () => {
+            setShowConfirmPopup(false);
+            setFocusedField('tax');
+          }
+        });
+        return;    
+      }
       
       const validItems = items.filter(item => 
         item.itemName && item.itemName.trim() !== '' && 
@@ -1550,15 +1571,19 @@ const clearFormData = async () => {
         return; // Just return, don't clear anything
       }
 
-      // Validate amount and qty only for rows with itemName filled
-      const invalidRows = items.filter(item => {
-        if (!item.itemName || item.itemName.trim() === '') return false;
-        return !item.amount || item.amount.trim() === '' || !item.qty || item.qty.trim() === '';
-      });
+      // Validate sRate and qty only for rows with itemName filled
+     const invalidRows = items.filter(item => {
+  if (!item.itemName || item.itemName.trim() === '') return false;
+  
+  const sRateNum = parseFloat(item.sRate || 0);
+  const qtyNum = parseFloat(item.qty || 0);
+  
+  return sRateNum <= 0 || qtyNum <= 0;
+});
       if (invalidRows.length > 0) {
         showConfirmation({
           title: 'Missing Information',
-          message: 'Please fill in required fields: amount and quantity for all items with item name selected',
+          message: 'Please fill in required fields: sRate and quantity',
           type: 'warning',
           confirmText: 'OK',
           showIcon: true,
@@ -2277,8 +2302,7 @@ const clearFormData = async () => {
                 setFocusedField('mobileNo');
                 setCurrentFocus({ section: 'header', rowIndex: 0, fieldIndex: 3 });
               }}
-              onBlur={() => setFocusedField('')}
-              readOnly={true}
+              onBlur={() => setFocusedField('')}              
             />
           </div>
 

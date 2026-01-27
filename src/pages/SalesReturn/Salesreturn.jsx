@@ -1451,15 +1451,18 @@ setTimeout(() => {
 
   const createSalesReturn = async () => {
   try {
-    setLoading(true);
-    setError("");
+   
     
     // Check if we have items to create
     const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
     if (validItems.length === 0) {
-      throw new Error("No valid items to create. Please add items with quantity > 0.");
+      toast.warning("No valid items to create. Please add items");
     }
+
+   
     
+    setLoading(true);
+    setError("");
     // Calculate net amount for each item
     const totalDiscountAmount = parseFloat(discountAmount || 0);
     const totalAmountValue = parseFloat(totalAmount || 0);
@@ -2015,7 +2018,8 @@ const loadVoucherForEditing = async (voucherNo) => {
     
     // Show discount info
     if (discountPercentValue > 0 || discountAmountValue > 0) {
-      // toast.success(`Voucher loaded with ${discountPercentValue}% discount (₹${discountAmountValue.toFixed(2)}) - Net: ₹${netAmountValue.toFixed(2)}`, {
+      // toast.success(`Voucher loaded with ${discountPercentValue}% discount (₹${discountAmountValue.toFixed(2)}) - 
+      // : ₹${netAmountValue.toFixed(2)}`, {
       //   autoClose: 3000,
       // });
     } else {
@@ -3243,6 +3247,21 @@ const handleTableKeyDown = (e, rowIndex, field) => {
   // 🚨 RULE 2: QTY FIELD LOGIC
   // =====================================================
   if (field === 'qty') {
+    // If qty is empty or zero, do not move to next row — require user to enter a qty first
+    const currentQtyRaw = (currentItem.qty || '').toString().trim();
+    const currentQtyNum = parseFloat(currentQtyRaw) || 0;
+    if (!currentQtyRaw || currentQtyNum === 0) {
+      // Keep focus on the qty input and prompt the user
+      toast.warning('Please enter quantity before moving to next row');
+      setTimeout(() => {
+        const qtyInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="qty"]`);
+        if (qtyInput) {
+          qtyInput.focus();
+          qtyInput.select();
+        }
+      }, 10);
+      return;
+    }
     // If NOT last row → move to next row barcode
     if (!isLastRow) {
       setTimeout(() => {
@@ -3519,6 +3538,17 @@ const handleApplyBillDirect = async () => {
 
   // ==================== SAVE FUNCTION ====================
 const handleSave = async () => {
+
+
+
+   // Check if we have items to create
+    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+    if (validItems.length === 0) {
+      toast.warning("No valid items to create. Please add items");
+    }
+  
+
+   
   showConfirmation({
     title: isEditMode ? "Update Sales Return" : "Save Sales Return",
     message: isEditMode
@@ -5174,9 +5204,9 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
       const originalQty = originalQuantities[item.barcode] || 
                          originalQuantities[item.itemCode] || 
                          originalQuantities[index];
-      if (originalQty) {
-        e.target.placeholder = `Max: ${originalQty}`;
-      }
+      // if (originalQty) {
+      //   e.target.placeholder = `Max: ${originalQty}`;
+      // }
     }}
     onBlur={(e) => {
       setFocusedField('');
@@ -5432,7 +5462,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
     style={{
       ...styles.inlineInput,
       padding: screenSize.isMobile ? '10px 8px' : '8px 10px',
-      fontSize: screenSize.isMobile ? '14px' : 'inherit',
+      fontSize: screenSize.isMobile ? '14px' : '25px',
       textAlign: 'center',
       fontWeight: 'bold',
       color: '#b71c1c',

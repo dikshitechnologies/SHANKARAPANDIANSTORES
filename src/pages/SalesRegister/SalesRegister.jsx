@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { API_BASE } from '../../api/apiService';
-
+import { useAuth } from '../../context/AuthContext';
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -33,6 +33,9 @@ const formatDate = (date) => {
 };
 
 const SalesRegister = () => {
+
+  
+    const { userData } = useAuth() || {};
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
   const [fromDate, setFromDate] = useState(currentDate);
@@ -189,7 +192,7 @@ const SalesRegister = () => {
       
       const formattedFromDate = formatDateForAPI(fromDate);
       const formattedToDate = formatDateForAPI(toDate);
-      const compCode = '001'; // Default company code
+      const compCode = userData.companyCode; // Default company code
       
       // Build the API URL
       const apiUrl = `${API_BASE}${API_ENDPOINTS.SALES_REGISTER.SALES_REPORT(

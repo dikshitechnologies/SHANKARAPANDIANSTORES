@@ -220,13 +220,13 @@ const Navbar = () => {
       permission: "SALES_RETURN",
     },
     {
-      name: "ScrapRateFix",
+      name: "Scrap RateFix",
       path: "/mastersScrapRateFix/",
       icon: <BuildOutlined />,
       permission: "SCRAP_RATE_FIX",
     },
     {
-      name: "ScrapProcurement",
+      name: "Scrap Procurement",
       path: "/ScrapProcurement",
       icon: <BuildOutlined />,
       permission: "SCRAP_PROCUREMENT",
@@ -302,6 +302,13 @@ const Navbar = () => {
       icon: <DatabaseOutlined />,
       permission: "GROUP_WISE_STOCK",
     }, 
+    {
+      name: "Bill Collector Report",
+      path: "/reports/Billcollectorreport",
+      icon: <DatabaseOutlined />,
+      permission: "BILL_COLLECTOR_REPORT",
+    }, 
+
   ];
 
   // Filter items based on permissions
@@ -411,6 +418,9 @@ const Navbar = () => {
                   "/masters/model-creation": "Model Creation",
                   "/masters/user-creation": "User Creation",
                   "/administration": "Administration",
+                  "/transactions/Purchasereturn": "Purchase Return",
+                  "/mastersScrapRateFix/": "Scrap Rate Fix",
+                  "/reports/Billcollectorreport": "Bill Collector Report",
                 };
 
                 // if path is predefined in map

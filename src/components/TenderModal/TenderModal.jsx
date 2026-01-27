@@ -229,7 +229,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   // api/bankApi.js
 const fetchBankList = async (page, search) => {
   const res = await fetch(
-    `http://dikshiserver/spstoreWEBAPI/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ''}`
+    `https://dikshi.ddns.net/spstorewebapi/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ''}`
   );
   const json = await res.json();
   return json?.data || [];

@@ -102,7 +102,7 @@ const Login = () => {
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
         <div className={styles.loginHeader}>
-          <h1 className={styles.title}>Shankara Pandian Stores</h1>
+          <h1 className={styles.title}>Sankara Pandian Stores</h1>
           <p className={styles.subtitle}>Sign in to your account</p>
         </div>
 

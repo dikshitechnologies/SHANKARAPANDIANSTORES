@@ -10,7 +10,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
-
+import { PopupScreenModal } from '../../components/PopupScreens.jsx';
 
 const Icon = {
   Search: ({ size = 16 }) => (
@@ -970,16 +970,16 @@ const handleBlur = () => {
       setItems(prevItems => {
         return prevItems.map(item => {
           if (item.id === selectedRowId) {
-            return {
-              ...item,
+            const updatedItem = {
+              id: item.id, // Preserve ID
               barcode: selectedItem.barcode || '',
               itemcode: selectedItem.itemcode || '',
               name: stockData.itemName || selectedItem.name || '',
               stock: stockData.finalStock || '0',
-              uom: selectedItem.uom || item.uom || '',
-              hsn: selectedItem.hsn || item.hsn || '',
-              preRT: selectedItem.preRT || item.preRT || '',
-              prate: selectedItem.preRT || item.prate || '',
+              uom: selectedItem.uom || '',
+              hsn: selectedItem.hsn || '',
+              preRT: (selectedItem.preRT || '0').toString(),
+              prate: (selectedItem.preRT || '0').toString(),
               brand: stockData.brand || '',
               category: stockData.category || '',
               model: stockData.model || '',
@@ -987,7 +987,28 @@ const handleBlur = () => {
               max: stockData.max || '',
               min: stockData.min || '',
               type: stockData.type || '',
+              // Reset all other fields to blank
+              sub: '',
+              mrp: '',
+              tax: stockData.tax || '',
+              rate: '',
+              qty: '1', // Default to 1 for new selection
+              ovrwt: '',
+              avgwt: '',
+              intax: stockData.tax || '',
+              outtax: '',
+              acost: '',
+              sudo: '',
+              profitPercent: '',
+              sRate: '',
+              asRate: '',
+              letProfPer: '',
+              ntCost: '',
+              wsPercent: '',
+              wsRate: '',
+              amt: ''
             };
+            return calculateItem(updatedItem);
           }
           return item;
         });
@@ -998,16 +1019,40 @@ const handleBlur = () => {
       setItems(prevItems => {
         return prevItems.map(item => {
           if (item.id === selectedRowId) {
-            return {
-              ...item,
+            const updatedItem = {
+              id: item.id,
               barcode: selectedItem.barcode || '',
               itemcode: selectedItem.itemcode || '',
               name: selectedItem.name || '',
-              uom: selectedItem.uom || item.uom || '',
-              hsn: selectedItem.hsn || item.hsn || '',
-              preRT: selectedItem.preRT || item.preRT || '',
-              prate: selectedItem.preRT || item.prate || '',
+              uom: selectedItem.uom || '',
+              hsn: selectedItem.hsn || '',
+              preRT: (selectedItem.preRT || '0').toString(),
+              prate: (selectedItem.preRT || '0').toString(),
+              // Reset all other fields
+              sub: '',
+              stock: '0',
+              mrp: '',
+              tax: '',
+              rate: '',
+              qty: '1',
+              ovrwt: '',
+              avgwt: '',
+              intax: '',
+              outtax: '',
+              acost: '',
+              sudo: '',
+              profitPercent: '',
+              sRate: '',
+              asRate: '',
+              letProfPer: '',
+              ntCost: '',
+              wsPercent: '',
+              wsRate: '',
+              amt: '',
+              min: '',
+              max: ''
             };
+            return calculateItem(updatedItem);
           }
           return item;
         });
@@ -1867,6 +1912,24 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         return;
       }
 
+       const hasValidtax = items.some(item =>         
+        item.intax && item.intax.trim() !== '' && item.outtax && item.outtax.trim() !== ''
+      );
+
+
+      if (!hasValidtax) {
+        showAlertConfirmation('Please enter tax for all items before saving', () => {
+          // Focus the tax input for the first invalid row
+          setTimeout(() => {
+            const taxInput = document.querySelector(`input[data-row="${invalidTaxIndex}"][data-field="intax"]`);
+            if (taxInput) {
+              taxInput.focus();
+              taxInput.select && taxInput.select();
+            }
+          }, 100);
+        }, 'warning');
+        return;
+      }
       const voucherDateISO = toISODate(billDetails.billDate || billDetails.purDate);
 
       const totals = calculateTotals(items);
@@ -2784,6 +2847,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               <option value="I">IGST</option>
             </select>
           </div>
+          <div><PopupScreenModal screenIndex={5} /></div>
         </div>
 
         {/* ROW 2 */}
@@ -2899,6 +2963,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 <Icon.Search size={16} />
               </button>
             </div>
+            <PopupScreenModal screenIndex={6} />
           </div>
 
           {/* City */}
@@ -3752,7 +3817,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           // setItemSearchTerm(''); // Clear search term when closing
           setSelectedRowId(null); // Clear selected row
         }}
-        title="Select Item Code"
+        title="Select Item"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search)}
         displayFieldKeys={['name','barcode']}
         headerNames={['Name','Barcode']}

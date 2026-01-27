@@ -62,6 +62,19 @@ const SaleInvoice = () => {
   const userCode = getUCode();
 
   // --- STATE MANAGEMENT ---
+
+
+const [descHuidPopupOpen, setDescHuidPopupOpen] = useState(false);
+const [descValue, setDescValue] = useState('');
+const [huidValue, setHuidValue] = useState('');
+const [descHuidRowIndex, setDescHuidRowIndex] = useState(null);
+
+const descRef = useRef(null);
+const huidRef = useRef(null);
+
+
+
+
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -158,6 +171,7 @@ const [taxList, setTaxList] = useState([]);
       sNo: 1,
       barcode: '', 
       itemName: '', 
+      fromBarcode: false, 
       itemCode: '',
       stock: '', 
       mrp: '', 
@@ -167,6 +181,7 @@ const [taxList, setTaxList] = useState([]);
       sRate: '', 
       qty: '',
       amount: '0.00',
+       fdesc: '', 
       PrevBarcode:""
     }
   ]);
@@ -261,6 +276,15 @@ const roundOffValue = (roundedTotalAmount - totalAmount).toFixed(2);
     isTablet: false,
     isDesktop: true
   });
+
+  useEffect(() => {
+  if (descHuidPopupOpen) {
+    setTimeout(() => {
+      descRef.current?.focus();
+    }, 50);
+  }
+}, [descHuidPopupOpen]);
+
 
   // Update screen size on resize
   useEffect(() => {
@@ -705,7 +729,9 @@ const formattedItems = itemsArray.map((item, index) => {
     tax: (item.tax || item.fTax || 0).toString(),
     sRate: (item.rate || item.fRate || item.sRate || 0).toString(),
     qty: (item.qty || item.fTotQty || 0).toString(),
-    amount: (item.amount || item.fAmount || 0).toFixed(2)
+    amount: (item.amount || item.fAmount || 0).toFixed(2),
+    fdesc: item.fdesc || "",
+    fromBarcode: false
   };
 });
           
@@ -1290,6 +1316,7 @@ const handleItemSelect = async (item) => {
       itemCode,
       // ✅ Set barcode from finalPrefix
       barcode: barcode,
+      fromBarcode: false,
       stock: (item.stock || stockInfo.stock || 0).toString(),
       mrp: formatValue(item.preRate || item.mrp || stockInfo.mrp || 0), // ✅ Use preRate
       uom: units || stockInfo.uom || '',
@@ -1770,6 +1797,7 @@ const amount = calculateAmount(qty, selectedRate);
       PrevBarcode: barcode,
       itemCode: barcodeData.itemcode || barcode,
       itemName: barcodeData.fItemName || '',
+       fromBarcode: true,
       stock: String(barcodeData.fstock || 0),
       mrp: String(barcodeData.mrp || 0),
       uom: barcodeData.fUnit || '',
@@ -2332,9 +2360,7 @@ const handleConfirmedRowDelete = () => {
     }
 
     try {
-      setIsSaving(true);
-      setIsLoading(true);
-      setError(null);
+     
 
     // 🔒 FINAL SAFETY VALIDATION
 if (!billDetails.custName || billDetails.custName.trim() === "") {
@@ -2353,6 +2379,21 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
         throw new Error("At least one item is required");
       }
 
+
+
+       const hasValidtax = items.some(item =>         
+        item.tax && item.tax.trim() !== '' 
+      );
+
+
+      if (!hasValidtax) {
+        throw new Error("Please enter tax for all items before saving");    
+      }
+
+
+      setIsSaving(true);
+      setIsLoading(true);
+      setError(null);
       // Format date to yyyy-MM-dd (without time)
       const voucherDate = formatDateToYYYYMMDD(billDetails.billDate);
 
@@ -2385,7 +2426,8 @@ const itemsData = validItems.map(item => ({
   tax: Number(item.tax) || 0,
   rate: Number(item.sRate) || 0,
   qty: Number(item.qty) || 0,
-  amount: Number(item.amount) || 0
+  amount: Number(item.amount) || 0,
+  fdesc: item.fdesc || "" 
 }));
       
       const requestData = {
@@ -2518,6 +2560,18 @@ const itemsData = validItems.map(item => ({
       });
       return;
     }
+
+       const hasValidtax = items.some(item =>         
+        item.tax && item.tax.trim() !== '' 
+      );
+
+
+      if (!hasValidtax) {
+        toast.warning("Please enter tax for all items before saving", {
+          autoClose: 2000,
+        });
+        return;    
+      }
 
     // ✅ ALL OK → Open save confirmation popup
     const finalAmount = totalAmount; // Removed addLessAmount
@@ -3636,11 +3690,44 @@ const itemsData = validItems.map(item => ({
                           }
                           handleItemChange(item.id, 'itemName', e.target.value);
                         }}
-                        onKeyDown={(e) => {
-                          const handled = handleItemNameLetterKey(e, index);
-                          if (handled) return;
-                          handleTableKeyDown(e, index, 'itemName');
-                        }}
+onKeyDown={(e) => {
+  const handled = handleItemNameLetterKey(e, index);
+  if (handled) return;
+
+  
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+
+    // ✅ ITEM NAME EMPTY → ALLOW TABLE HANDLER TO MOVE TO SAVE
+    if (!item.itemName || !item.itemName.trim()) {
+      handleTableKeyDown(e, index, 'itemName');
+      return;
+    }
+
+    // ✅ ITEM FROM BARCODE → NORMAL FLOW
+    if (item.fromBarcode) {
+      handleTableKeyDown(e, index, 'itemName');
+      return;
+    }
+
+    // ✅ MANUAL ITEM → OPEN DESC/HUID POPUP
+    setDescHuidRowIndex(index);
+
+// ✅ PREFILL FROM ROW
+setDescValue(items[index]?.fdesc || '');
+
+setHuidValue('');
+setDescHuidPopupOpen(true);
+
+    return;
+  }
+
+  handleTableKeyDown(e, index, 'itemName');
+}}
+
+
+
                         onClick={() => openItemPopup(index)}
                         onFocus={() => setFocusedField(`itemName-${item.id}`)}
                         onBlur={() => setFocusedField('')}
@@ -3758,7 +3845,7 @@ const itemsData = validItems.map(item => ({
                   </td>
                   <td style={styles.td}>
                     <input
-                    readOnly
+                    
 
                       style={focusedField === `hsn-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                       value={item.hsn}
@@ -4067,6 +4154,125 @@ const itemsData = validItems.map(item => ({
         borderColor="#dc3545"
         confirmButtonStyle={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
       />
+
+
+{descHuidPopupOpen && (
+  <div
+    style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}
+  >
+    <div
+      style={{
+        width: '420px',
+        background: '#fff',
+        borderRadius: '10px',
+        boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
+        overflow: 'hidden',
+        fontFamily: 'Inter, sans-serif',
+        animation: 'popupFade 0.15s ease-out'
+      }}
+    >
+      {/* 🔵 HEADER */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #1B91DA, #1976d2)',
+          color: '#fff',
+          padding: '14px 18px',
+          fontSize: '16px',
+          fontWeight: 600,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        Item Description
+        <span
+          style={{
+            cursor: 'pointer',
+            fontSize: '20px',
+            lineHeight: 1
+          }}
+          onClick={() => setDescHuidPopupOpen(false)}
+        >
+          ×
+        </span>
+      </div>
+
+      {/* 🔹 BODY */}
+      <div style={{ padding: '20px' }}>
+        <label
+          style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#444',
+            marginBottom: '8px',
+            display: 'block'
+          }}
+        >
+          Description
+        </label>
+
+        <input
+          ref={descRef}
+          type="text"
+          value={descValue}
+          onChange={(e) => setDescValue(e.target.value)}
+          onKeyDown={(e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+
+    // ✅ SAVE DESCRIPTION INTO ROW
+    setItems(prev => {
+      const updated = [...prev];
+      if (descHuidRowIndex !== null) {
+        updated[descHuidRowIndex] = {
+          ...updated[descHuidRowIndex],
+          fdesc: descValue || ''   // 🔥 STORE HERE
+        };
+      }
+      return updated;
+    });
+
+    setDescHuidPopupOpen(false);
+
+    // ✅ MOVE TO HSN
+    setTimeout(() => {
+      if (descHuidRowIndex !== null) {
+        document
+          .querySelector(
+            `input[data-row="${descHuidRowIndex}"][data-field="hsn"]`
+          )
+          ?.focus();
+      }
+    }, 80);
+  }
+}}
+
+          style={{
+            width: '100%',
+            height: '42px',
+            borderRadius: '6px',
+            border: '1px solid #ccc',
+            padding: '0 12px',
+            fontSize: '14px',
+            outline: 'none',
+            transition: 'border 0.2s, box-shadow 0.2s'
+          }}
+          // placeholder="Enter item description and press Enter"
+        />
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       {/* Customer Popup */}
       <PopupListSelector
