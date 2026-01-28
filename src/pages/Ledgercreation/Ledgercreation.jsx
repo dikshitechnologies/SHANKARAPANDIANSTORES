@@ -1280,9 +1280,10 @@ export default function LedgerCreation({ onCreated }) {
           padding:10px;
           width: 100%;
           box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+         
         }
         .tree-scroll { 
-          max-height:260px; 
+          max-height:460px; 
           overflow:auto; 
           padding-right:6px;
           scrollbar-width: thin;
