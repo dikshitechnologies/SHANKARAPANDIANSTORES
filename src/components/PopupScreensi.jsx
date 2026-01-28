@@ -25,8 +25,14 @@ const PopupScreensi = ({ open, onClose, screen }) => {
       modalRef.current.focus();
     }
   }, [open]);
+  useEffect(() => {
+  if (open) document.body.style.overflow = 'hidden';
+  return () => document.body.style.overflow = '';
+}, [open]);
 
-  if (!open || !screens[screen]) return null;
+
+ if (!open) return null;
+
   const { url, icon, label } = screens[screen];
 
   return (
@@ -34,6 +40,7 @@ const PopupScreensi = ({ open, onClose, screen }) => {
     className="modal-overlay"
     tabIndex={-1}
     ref={modalRef}
+    onMouseDown={onClose}
     onKeyDown={e => {
       if (e.key === "Escape") {
         e.stopPropagation();
@@ -89,6 +96,10 @@ const PopupScreensi = ({ open, onClose, screen }) => {
           }}
           aria-label="Close"
           type="button"
+          onMouseDown={e => {
+                e.stopPropagation();
+                onClose();
+            }}
         >×</button>
       </div>
       <iframe
