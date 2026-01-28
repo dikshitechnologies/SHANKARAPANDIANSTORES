@@ -1912,24 +1912,9 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         return;
       }
 
-       const hasValidtax = items.some(item =>         
-        item.intax && item.intax.trim() !== '' && item.outtax && item.outtax.trim() !== ''
-      );
 
 
-      if (!hasValidtax) {
-        showAlertConfirmation('Please enter tax for all items before saving', () => {
-          // Focus the tax input for the first invalid row
-          setTimeout(() => {
-            const taxInput = document.querySelector(`input[data-row="${invalidTaxIndex}"][data-field="intax"]`);
-            if (taxInput) {
-              taxInput.focus();
-              taxInput.select && taxInput.select();
-            }
-          }, 100);
-        }, 'warning');
-        return;
-      }
+      
       const voucherDateISO = toISODate(billDetails.billDate || billDetails.purDate);
 
       const totals = calculateTotals(items);
