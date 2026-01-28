@@ -1,5 +1,5 @@
 import React, { useState,useRef, useEffect } from 'react';
-import { FaPencilRuler, FaRecycle, FaTags, FaThList, FaBoxOpen } from 'react-icons/fa';
+import { FaPencilRuler, FaRecycle, FaTags, FaThList, FaBoxOpen,FaCubes, FaRulerCombined, FaBalanceScale } from 'react-icons/fa';
 
 const BASE = '/SPSTORE/#/embed';
 
@@ -9,9 +9,9 @@ const screens = {
   brand: { url: `${BASE}/brand`, icon: <FaTags />, label: 'Brand' },
   category: { url: `${BASE}/category`, icon: <FaThList />, label: 'Category' },
   product: { url: `${BASE}/product`, icon: <FaBoxOpen />, label: 'Product' },
-  model: { url: `${BASE}/masters/model-creation`, icon: <FaBoxOpen />, label: 'Model' },
-  size: { url: `${BASE}/masters/size-creation`, icon: <FaBoxOpen />, label: 'Size' },
-  unit: { url: `${BASE}/masters/unit-creation`, icon: <FaBoxOpen />, label: 'Unit' }
+  model: { url: `${BASE}/masters/model-creation`, icon: <FaCubes />, label: 'Model' },         // FaCubes for Model
+    size: { url: `${BASE}/masters/size-creation`, icon: <FaRulerCombined />, label: 'Size' },     // FaRulerCombined for Size
+    unit: { url: `${BASE}/masters/unit-creation`, icon: <FaBalanceScale />, label: 'Unit' },      // FaBalanceScale for Unit
 }
 
 
@@ -108,7 +108,7 @@ const PopupScreensi = ({ open, onClose, screen }) => {
         style={{
           border: 'none',
           width: '100%',
-          
+          paddingTop:'0px',
           flex: 1,
           background: '#f9fafb',
           position: 'relative',   // ✅ REQUIRED
@@ -129,7 +129,7 @@ export const PopupScreensiIcon = ({ screen = "design", icon, ...props }) => {
       <button
         type="button"
         className="btn"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8,border:"none",minWidth:'0px' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8,border:"none",minWidth:'0px',fontSize:'26px' }}
         onClick={() => setOpen(true)}
         {...props}
         title={screenObj?.label || "Open"}
