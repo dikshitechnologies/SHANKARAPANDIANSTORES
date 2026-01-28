@@ -11,6 +11,7 @@ import { PERMISSION_CODES } from '../../constants/permissions';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {PopupScreenModal} from '../../components/PopupScreens';
 
 // SEARCH ICON COMPONENT (Same as SalesInvoice)
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
@@ -3745,6 +3746,7 @@ const handlePrint = () => {
       display: 'flex',
       alignItems: 'center',
       opacity: 0.7,
+      
     },
     gridRow: {
       display: 'grid',
@@ -4651,18 +4653,29 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         }}
         onBlur={() => setFocusedField('')}
         readOnly
+        right={true}
       />
-      <div 
-        style={{
-          ...styles.searchIconInside,
-          right: screenSize.isMobile ? '8px' : '10px',
-          fontSize: screenSize.isMobile ? '16px' : '18px'
-        }}
-        title="Click or press / to search"
-      >
-        <SearchIcon />
-      </div>
+     
+         <span
+    onClick={() => openSalesmanPopup(billDetails.salesman)}
+    style={{
+      position: 'absolute',
+      right: '30px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      cursor: 'pointer',
+      color: '#666',
+      
+    }}
+  >
+    <SearchIcon />
+  </span>
+      
+      
+       <div style={{marginLeft: '5px'}}> <PopupScreenModal screenIndex={7} /> </div> 
     </div>
+   
+    
 
     {/* NEW Bill No Field */}
     <div style={{
@@ -4795,6 +4808,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         <SearchIcon />
       </div>
     </div>
+     <div> <PopupScreenModal screenIndex={7} /> </div>
 
 {/* Mobile No */}
 <div
@@ -4869,7 +4883,9 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
     }}
     onBlur={() => setFocusedField('')}
   />
+ 
 </div>
+ <div> <PopupScreenModal screenIndex={5} /> </div>
 
 
     {/* EMPTY DIV 1 - to maintain 4-column grid structure like sales invoice */}

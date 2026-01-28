@@ -9,6 +9,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import CheckboxPopup from '../../components/CheckboxPopup/CheckboxPopup';
+import {PopupScreenModal} from '../../components/PopupScreens.jsx';
 
 const FCompCode = "001";
 
@@ -164,6 +165,7 @@ const TYPE_OPTIONS = [
 const GST_PERCENTAGES = ['3', '5', '12', '18', '28'];
 
 const ItemCreation = ({ onCreated }) => {
+  
   // State management
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1503,9 +1505,7 @@ const ItemCreation = ({ onCreated }) => {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1400px;
           border-radius: 16px;
-          padding: 20px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
@@ -1980,8 +1980,8 @@ const ItemCreation = ({ onCreated }) => {
         /* form grid */
         .form-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px 32px;
+          grid-template-columns: repeat(4, 3fr);
+          gap: 1rem ;
           margin-bottom: 16px;
           align-items: start;
         }
@@ -2390,10 +2390,10 @@ const ItemCreation = ({ onCreated }) => {
           <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
             
             {/* Two Column Layout: Left and Right */}
-            <div style={{ display: "grid", gridTemplateColumns: "35% 60% ", gap: "32px", alignItems: "start" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "30% 60% ", gap: "32px", alignItems: "start" }}>
               
               {/* LEFT COLUMN */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem", }}>
                 
                 {/* Item Name field */}
                 <div className="field">
@@ -2673,6 +2673,9 @@ const ItemCreation = ({ onCreated }) => {
                     <Icon.Search size={16} />
                   </div>
                 </div>
+                <div>
+                  <PopupScreenModal screenIndex={2}/>
+                  </div>
               </div>
 
               {/* Category */}
