@@ -9,7 +9,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import CheckboxPopup from '../../components/CheckboxPopup/CheckboxPopup';
-import {PopupScreenModal} from '../../components/PopupScreens.jsx';
+import {PopupScreensiIcon} from '../../components/PopupScreensi.jsx';
 
 const FCompCode = "001";
 
@@ -274,6 +274,8 @@ const ItemCreation = ({ onCreated }) => {
   const costPriceRef = useRef(null);
   const unitRef = useRef(null);
   const isInitialFocusRef = useRef(true);
+  const manualPrefixCheckboxRef = useRef(null);
+
 
   // Add this with your other refs - FIXED: Using a ref for the submit button
   const submitButtonRef = useRef(null);
@@ -1504,16 +1506,16 @@ const ItemCreation = ({ onCreated }) => {
 
         /* Main dashboard card (glass) */
         .dashboard {
-          width: 100%;
+          
           border-radius: 16px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
-          transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          
         }
-        .dashboard:hover { transform: translateY(-6px); }
+       
 
         /* header */
         .top-row {
@@ -1521,7 +1523,7 @@ const ItemCreation = ({ onCreated }) => {
           align-items:center;
           justify-content:space-between;
           gap:12px;
-          margin-bottom: 18px;
+          margin: 18px;
           flex-wrap: wrap;
         }
         .title-block {
@@ -1610,8 +1612,8 @@ const ItemCreation = ({ onCreated }) => {
 
         label.field-label {
           display:block;
-          margin-bottom:5px;
-          margin-top:5px ;
+         
+         
           font-weight:700;
           color:#0f172a;
           font-size:18px;
@@ -1980,7 +1982,7 @@ const ItemCreation = ({ onCreated }) => {
         /* form grid */
         .form-grid {
           display: grid;
-          grid-template-columns: repeat(4, 3fr);
+          grid-template-columns: 55% 55% 55%;
           gap: 1rem ;
           margin-bottom: 16px;
           align-items: start;
@@ -2390,7 +2392,7 @@ const ItemCreation = ({ onCreated }) => {
           <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
             
             {/* Two Column Layout: Left and Right */}
-            <div style={{ display: "grid", gridTemplateColumns: "30% 60% ", gap: "32px", alignItems: "start" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "30% 40% ", gap: "32px", alignItems: "start" }}>
               
               {/* LEFT COLUMN */}
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem", }}>
@@ -2398,7 +2400,7 @@ const ItemCreation = ({ onCreated }) => {
                 {/* Item Name field */}
                 <div className="field">
                   <label className="field-label">Item Name <span className="asterisk">*</span></label>
-                  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                  <div className='input-with-search'>
                     <div style={{
                       display: "flex",
                       flex: 1,
@@ -2432,7 +2434,7 @@ const ItemCreation = ({ onCreated }) => {
                 {/* Group Name field */}
                 <div className="field">
                   <label className="field-label">Group Name <span className="asterisk">*</span></label>
-                  <div className="row" style={{ display: "flex", alignItems: "center" }}>
+                 <div className='input-with-search'>
                     <div style={{
                       display: "flex",
                       flex: 1,
@@ -2602,7 +2604,7 @@ const ItemCreation = ({ onCreated }) => {
                 {/* Short Name field */}
                 <div className="field">
                   <label className="field-label">Short Name</label>
-                  <div className="row" style={{ display: "flex", alignItems: "stretch", gap: "0" }}>
+                  <div className='input-with-search'>
                     <div style={{
                       display: "flex",
                       flex: 1,
@@ -2639,7 +2641,11 @@ const ItemCreation = ({ onCreated }) => {
                 <div className="form-grid">
                   {/* Brand */}
               <div className="field">
-                <label className="field-label">Brand</label>
+               <label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>Brand</span>
+                <PopupScreensiIcon screen="brand"  open={open} onClose={() => setOpen(false)}  />
+              </label>
+                
                 <div className="input-with-search">
                   <input
                     ref={brandRef}
@@ -2671,11 +2677,11 @@ const ItemCreation = ({ onCreated }) => {
                   )}
                   <div className="input-search-icon">
                     <Icon.Search size={16} />
+                    
                   </div>
-                </div>
-                <div>
-                  <PopupScreenModal screenIndex={2}/>
-                  </div>
+                  
+                </div> 
+                           
               </div>
 
               {/* Category */}
@@ -2875,35 +2881,39 @@ const ItemCreation = ({ onCreated }) => {
               {/* LEFT SIDE: Min */}
               <div className="field">
                 <label className="field-label">Min</label>
+                <div className='input-with-search'>
                 <input
                   ref={minRef}
                   className="input"
                   value={formData.min}
                   onChange={(e) => handleChange('min', e.target.value)}
-
+                  style={{cursor: 'text'}}
                   disabled={isSubmitting || isDeleteMode}
                   aria-label="Min"
-                  style={{ textAlign: "center", width: 300 }}
+                 
                 />
               </div>
-
+              </div>
               {/* RIGHT SIDE: Max */}
               <div className="field">
                 <label className="field-label">Max</label>
-                <input
+                  <div className='input-with-search'>
+                <input  
                   ref={maxRef}
                   className="input"
                   value={formData.max}
                   onChange={(e) => handleChange('max', e.target.value)}
-
+                  style={{cursor: 'text'}}
                   disabled={isSubmitting || isDeleteMode}
                   aria-label="Max"
-                  style={{ textAlign: "center", width: 300 }}
+                 
                 />
+              </div>
               </div>
 
               {/* LEFT SIDE: HSN Code */}
               <div className="field">
+                <div className='input-with-search'>
                 <label className="field-label">
                   HSN Code
                   {/* <span className="asterisk">*</span> */}
@@ -2922,105 +2932,34 @@ const ItemCreation = ({ onCreated }) => {
                   disabled={isSubmitting || isDeleteMode}
                   aria-label="HSN Code"
                   title="Alphanumeric HSN Code (max 20 characters)"
-                  style={{ textAlign: "center", width: 300 }}
+                  style={{cursor: 'text'}}
                   required
                 />
+              </div>
               </div>
               {/* RIGHT SIDE: Type Dropdown - MOVED to replace Piece Rate */}
               <div className="field">
                 <label className="field-label">
                   Type <span className="asterisk">*</span>
                 </label>
+                <div className='input-with-search'>
                 <select
-                  ref={typeRef}
-                  className="select"
-                  value={formData.type}
-                  onChange={(e) => {
-                    handleChange('type', e.target.value);
-                    e.target.size = 0; // Close dropdown after selection
-                  }}
-                  onKeyDown={(e) => {
-                    const selectElement = e.target;
-                    const options = selectElement.options;
-                    const selectedIndex = selectElement.selectedIndex;
-
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      // Toggle dropdown on Enter
-                      if (selectElement.size === 0) {
-                        selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
-                      } else {
-                        selectElement.size = 0; // Close dropdown
-                        handleChange('type', selectElement.value);
-                      }
-                    }
-                    else if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-
-                      if (selectElement.size === 0) {
-                        // If dropdown is closed, open it first
-                        selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
-                        return;
-                      }
-
-                      // Move down through options
-                      let newIndex;
-                      if (selectedIndex === options.length - 1) {
-                        newIndex = 0; // Wrap to first option
-                      } else {
-                        newIndex = selectedIndex + 1;
-                      }
-
-                      // Update selection
-                      selectElement.selectedIndex = newIndex;
-                      handleChange('type', options[newIndex].value);
-                    }
-                    else if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-
-                      if (selectElement.size === 0) {
-                        // If dropdown is closed, open it first
-                        selectElement.size = 3; // 3 options: empty placeholder + scrap + finished
-                        return;
-                      }
-
-                      // Move up through options
-                      let newIndex;
-                      if (selectedIndex <= 0) {
-                        newIndex = options.length - 1; // Wrap to last option
-                      } else {
-                        newIndex = selectedIndex - 1;
-                      }
-
-                      // Update selection
-                      selectElement.selectedIndex = newIndex;
-                      handleChange('type', options[newIndex].value);
-                    }
-                  }}
-                  onBlur={(e) => {
-                    // Close dropdown when losing focus
-                    e.target.size = 0;
-                  }}
-                  onClick={(e) => {
-                    // Toggle dropdown on click
-                    if (e.target.size === 0) {
-                      e.target.size = 3; // 3 options: empty placeholder + scrap + finished
-                    } else {
-                      e.target.size = 0;
-                    }
-                  }}
-                  size={0}
-                  disabled={isSubmitting || isDeleteMode}
-                  aria-label="Type"
-                  style={{ textAlign: "center", width: 300 }}
-                  required // This makes it mandatory for HTML form validation
-                >
-                  <option value="" disabled selected>
-                    {/* Empty placeholder */}
-                  </option>
-                  <option value="SC">Scrap Product</option>
-                  <option value="FG">Finished Product</option>
-                </select>
+                ref={typeRef}
+                className="select"
+                value={formData.type}
+                onChange={e => handleChange('type', e.target.value)}
+                disabled={isSubmitting || isDeleteMode}
+                aria-label="Type"
+                required
+                style={{ textAlign: "center", width: 300 }}
+              >
+                <option value="" disabled>
+                  
+                </option>
+                <option value="SC">Scrap Product</option>
+                <option value="FG">Finished Product</option>
+              </select>
+              </div>
               </div>
               {/* LEFT SIDE: GST Checkbox */}
               <div className="field">
@@ -3051,10 +2990,12 @@ const ItemCreation = ({ onCreated }) => {
                   GST%
                   <span className="asterisk">*</span>
                 </label>
+                <div className='input-with-search'>
                 <input
                   ref={gstinRef}
                   className="input"
                   value={formData.gstin}
+       
                   onChange={(e) => {
                     const value = e.target.value;
                     // Allow empty or numbers only
@@ -3077,11 +3018,42 @@ const ItemCreation = ({ onCreated }) => {
                   }}
                   disabled={isSubmitting || isDeleteMode}
                   aria-label="GST Percentage"
-                  style={{ textAlign: "center", width: 300 }}
+                  style={{ textAlign: "center", width: 300,cursor:"text" }}
                   required
                 />
+
+              </div>
               </div>
 
+                <div className="field">
+                <label className="field-label">Cost Price</label>
+                <input
+                  ref={costPriceRef}
+                  className="input"
+                  value={formData.costPrice}
+                  onChange={(e) => {
+                    // Allow only numbers and decimal point
+                    const value = e.target.value;
+                    if (/^\d*\.?\d{0,2}$/.test(value)) {
+                      handleChange('costPrice', value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      manualPrefixCheckboxRef.current?.focus();
+                      
+                    }
+                  }}
+                  disabled={isSubmitting || isDeleteMode}
+                  aria-label="Cost Price"
+                  style={{ textAlign: "center", width: 300 }}
+                  // Use text type instead of number to remove spinners
+                  type="text"
+                  inputMode="decimal"
+                />
+              </div>
               {/* LEFT SIDE: Manual Prefix Checkbox */}
               <div className="field">
                 <div
@@ -3093,6 +3065,7 @@ const ItemCreation = ({ onCreated }) => {
                       handleManualPrefixToggle();
                     }
                   }}
+                  ref={manualPrefixCheckboxRef}
                   role="checkbox"
                   tabIndex={isDeleteMode ? -1 : 0}
                   aria-checked={manualPrefixChecked}
@@ -3125,36 +3098,7 @@ const ItemCreation = ({ onCreated }) => {
               </div>
 
               {/* LEFT SIDE: Cost Price - Changed to text input with validation */}
-              <div className="field">
-                <label className="field-label">Cost Price</label>
-                <input
-                  ref={costPriceRef}
-                  className="input"
-                  value={formData.costPrice}
-                  onChange={(e) => {
-                    // Allow only numbers and decimal point
-                    const value = e.target.value;
-                    if (/^\d*\.?\d{0,2}$/.test(value)) {
-                      handleChange('costPrice', value);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.stopPropagation();
-
-                      // Move to Selling Price field
-                      sellingPriceRef.current?.focus();
-                    }
-                  }}
-                  disabled={isSubmitting || isDeleteMode}
-                  aria-label="Cost Price"
-                  style={{ textAlign: "center", width: 300 }}
-                  // Use text type instead of number to remove spinners
-                  type="text"
-                  inputMode="decimal"
-                />
-              </div>
+              
 
               {/* RIGHT SIDE: Selling Price - Changed to text input with validation */}
               <div className="field">
