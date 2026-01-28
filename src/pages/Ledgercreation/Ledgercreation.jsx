@@ -478,25 +478,25 @@ export default function LedgerCreation({ onCreated }) {
 
   // Field navigation array for keyboard navigation
   const fieldNavigation = [
-    { ref: partyNameRef, name: 'partyName', label: 'Ledger Name' },
-    { ref: groupNameRef, name: 'mainGroup', label: 'Group Name' },
-    { ref: gstTypeRef, name: 'gstType', label: 'GST Type' },
-    { ref: fStreetRef, name: 'fStreet', label: 'Street' },
-    { ref: areaRef, name: 'area', label: 'Area' },
-    { ref: cityRef, name: 'city', label: 'City' },
-    { ref: pincodeRef, name: 'pincode', label: 'Pincode' },
-    { ref: phoneRef, name: 'phone', label: 'Phone' },
-    { ref: cellNoRef, name: 'cellNo', label: 'Cell No' },
-    { ref: routeRef, name: 'route', label: 'Route' },
-    { ref: gstinRef, name: 'gstin', label: 'GSTIN' },
-    { ref: cinNoRef, name: 'cinNo', label: 'CIN No' },
-    { ref: panNoRef, name: 'panNo', label: 'PAN No' },
-    { ref: stateRef, name: 'state', label: 'State' },
-    { ref: emailRef, name: 'email', label: 'Email' },
-    { ref: shortNameRef, name: 'shortName', label: 'Short Name' },
-    { ref: activeSwitchRef, name: 'active', label: 'Active Status' },
-    { ref: submitButtonRef, name: 'submit', label: 'Submit Button' },
-    { ref: clearButtonRef, name: 'clear', label: 'Clear Button' },
+    { ref: partyNameRef, name: 'partyName', label: 'Ledger Name' },     // 0
+    { ref: groupNameRef, name: 'mainGroup', label: 'Group Name' },     // 1
+    { ref: gstTypeRef, name: 'gstType', label: 'GST Type' },           // 2 - START OF ORDERED NAVIGATION
+    { ref: routeRef, name: 'route', label: 'Route' },                  // 3
+    { ref: fStreetRef, name: 'fStreet', label: 'Street' },             // 4
+    { ref: areaRef, name: 'area', label: 'Area' },                     // 5
+    { ref: cityRef, name: 'city', label: 'City' },                     // 6
+    { ref: pincodeRef, name: 'pincode', label: 'Pincode' },            // 7
+    { ref: phoneRef, name: 'phone', label: 'Phone' },                  // 8
+    { ref: cellNoRef, name: 'cellNo', label: 'Cell No' },              // 9
+    { ref: emailRef, name: 'email', label: 'Email' },                  // 10
+    { ref: shortNameRef, name: 'shortName', label: 'Short Name' },     // 11
+    { ref: gstinRef, name: 'gstin', label: 'GSTIN' },                  // 12
+    { ref: cinNoRef, name: 'cinNo', label: 'CIN No' },                 // 13
+    { ref: panNoRef, name: 'panNo', label: 'PAN No' },                 // 14
+    { ref: stateRef, name: 'state', label: 'State' },                  // 15
+    { ref: activeSwitchRef, name: 'active', label: 'Active Status' },  // 16
+    { ref: submitButtonRef, name: 'submit', label: 'Submit Button' },  // 17
+    { ref: clearButtonRef, name: 'clear', label: 'Clear Button' },     // 18
   ];
 
   // Handle keyboard navigation
@@ -1061,15 +1061,16 @@ export default function LedgerCreation({ onCreated }) {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 700px;
-          border-radius: 16px;
+          max-width: 1200px;
+          border-radius: 0px;
           padding: 24px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+          box-shadow: none;
           backdrop-filter: blur(8px) saturate(120%);
-          border: 1px solid rgba(255,255,255,0.6);
+          border: none;
           overflow: visible;
           transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          margin: 0 auto;
           
         }
         .dashboard:hover { transform: translateY(-2px); }
@@ -1093,6 +1094,7 @@ export default function LedgerCreation({ onCreated }) {
           margin:0;
           font-family: "Poppins", "Inter", sans-serif;
           font-size: 20px;
+          font-weight:600;
           color: #0f172a;
           letter-spacing: -0.2px;
         }
@@ -1153,13 +1155,35 @@ export default function LedgerCreation({ onCreated }) {
           width: 100%;
         }
 
-        /* left card (form) */
-        .card {
+        /* form container */
+        .form-container {
+          display: grid;
+          grid-template-columns: 450px 1fr;
+          gap: 32px;
+          margin-bottom: 16px;
           background: rgba(255,255,255,0.85);
           border-radius: 12px;
-          padding: 16px;
+          padding: 20px;
           border: 1px solid rgba(15,23,42,0.04);
           box-shadow: 0 6px 20px rgba(12,18,35,0.06);
+        }
+
+        /* left card (main fields) */
+        .left-card {
+          background: transparent;
+          border-radius: 0;
+          padding: 0;
+          border: none;
+          box-shadow: none;
+        }
+
+        /* right card (details fields) */
+        .right-card {
+          background: transparent;
+          border-radius: 0;
+          padding: 0;
+          border: none;
+          box-shadow: none;
         }
 
         label.field-label {
@@ -1167,7 +1191,7 @@ export default function LedgerCreation({ onCreated }) {
           margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
-          font-size:13px;
+          font-size:18px;
           text-align: left;
           width: 100%;
         }
@@ -1177,7 +1201,7 @@ export default function LedgerCreation({ onCreated }) {
         }
 
         .field {
-          margin-bottom:12px;
+          margin-bottom:16px;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
@@ -1192,7 +1216,7 @@ export default function LedgerCreation({ onCreated }) {
         }
         .input, .search, .select {
           flex:1;
-          min-width: 250px;
+          width: 100%;
           padding:10px 12px;
           border-radius:10px;
           border: 1px solid rgba(15,23,42,0.1);
@@ -1334,31 +1358,6 @@ export default function LedgerCreation({ onCreated }) {
           flex: 1;
         }
 
-        /* right card (preview / summary) */
-        .side {
-          display:flex;
-          flex-direction:column;
-          gap:12px;
-        }
-        .stat {
-          background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(250,251,255,0.7));
-          border-radius: 12px;
-          padding:12px;
-          border: 1px solid rgba(12,18,35,0.06);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .muted { 
-          color: var(--muted); 
-          font-size:13px; 
-          margin-bottom: 4px;
-        }
-        .stat-value {
-          font-weight: 700;
-          font-size: 16px;
-          color: #0f172a;
-          min-height: 24px;
-        }
-
         /* message */
         .message {
           margin-top:8px;
@@ -1386,6 +1385,7 @@ export default function LedgerCreation({ onCreated }) {
           align-items: center; 
           justify-content: flex-end;
           width: 100%;
+          grid-column: 1 / -1;
         }
         .submit-primary {
           padding:12px 16px;
@@ -1501,36 +1501,11 @@ export default function LedgerCreation({ onCreated }) {
           color: var(--accent-2);
         }
 
-        /* dropdown modal (glass) */
-        // .modal-overlay {
-          
-        // }
-        // .modal {
-        //   width:100%; 
-        //   max-width:720px; 
-        //   max-height:80vh; 
-        //   overflow:auto; 
-        //   background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
-        //   border-radius:12px; 
-        //   padding:14px;
-        //   border:1px solid rgba(255,255,255,0.5);
-        //   box-shadow: 0 18px 50px rgba(2,6,23,0.36);
-        //   backdrop-filter: blur(8px);
-        // }
-        // .dropdown-list { max-height:50vh; overflow:auto; border-top:1px solid rgba(12,18,35,0.03); border-bottom:1px solid rgba(12,18,35,0.03); padding:6px 0; }
-        // .dropdown-item { padding:12px; border-bottom:1px solid rgba(12,18,35,0.03); cursor:pointer; display:flex; flex-direction:column; gap:4px; }
-        // .dropdown-item:hover { background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); transform: translateX(6px); }
-
-        /* form grid */
-        .form-grid {
+        /* field grid inside right card */
+        .right-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px 32px;
-          margin-bottom: 16px;
-          align-items: start;
-        }
-        .full-width {
-          grid-column: 1 / -1;
+          grid-template-columns:1fr 1fr;
+          gap: 16px;
         }
 
         /* switch styles */
@@ -1591,38 +1566,12 @@ export default function LedgerCreation({ onCreated }) {
           transform: translateX(26px);
         }
 
-        .input-group-combined:focus-within {
-  box-shadow: 0 8px 26px rgba(48,122,200,0.08);
-  border-color: rgba(48,122,200,0.25);
-}
-
-        <div className="input-group-combined" style={{
-  display: "flex",
-  flex: 1,
-  border: "1px solid rgba(15,23,42,0.06)",
-  borderRadius: "10px",
-  overflow: "hidden",
-  background: "linear-gradient(180deg, #fff, #fbfdff)",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-}}>
-
-
-
-
-
-
         /* Responsive styles */
         /* Large tablets and small laptops */
         @media (max-width: 1024px) {
-          .grid {
+          .form-container {
             grid-template-columns: 1fr;
             gap: 16px;
-          }
-          .side {
-            order: 2;
-          }
-          .card {
-            order: 1;
           }
         }
 
@@ -1633,6 +1582,7 @@ export default function LedgerCreation({ onCreated }) {
           }
           .dashboard {
             padding: 16px;
+            max-width: 95%;
           }
           .top-row {
             flex-direction: column;
@@ -1648,7 +1598,7 @@ export default function LedgerCreation({ onCreated }) {
             justify-content: center;
             min-width: 0;
           }
-          .form-grid {
+          .right-grid {
             grid-template-columns: 1fr;
           }
         }
@@ -1669,7 +1619,7 @@ export default function LedgerCreation({ onCreated }) {
             padding: 8px 10px;
             font-size: 12px;
           }
-          .card {
+          .left-card, .right-card {
             padding: 12px;
           }
           .input, .search {
@@ -1687,9 +1637,6 @@ export default function LedgerCreation({ onCreated }) {
           }
           .tree-row {
             padding: 8px;
-          }
-          .stat {
-            padding: 10px;
           }
         }
 
@@ -1769,7 +1716,7 @@ export default function LedgerCreation({ onCreated }) {
             background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.8));
             color: #f1f5f9;
           }
-          .card {
+          .left-card, .right-card {
             background: rgba(30, 41, 59, 0.7);
             color: #f1f5f9;
           }
@@ -1785,10 +1732,6 @@ export default function LedgerCreation({ onCreated }) {
             color: #f1f5f9;
           }
           .node-text {
-            color: #f1f5f9;
-          }
-          .stat {
-            background: rgba(30, 41, 59, 0.7);
             color: #f1f5f9;
           }
         }
@@ -1835,8 +1778,9 @@ export default function LedgerCreation({ onCreated }) {
           </div>
         </div>
 
-        <div className="grid">
-          <div className="card">
+        <div className="form-container">
+          {/* LEFT CARD - Ledger Name and Group Name */}
+          <div className="left-card">
             <div className="field">
               <label className="field-label">Ledger Name <span className="asterisk">*</span></label>
               <input
@@ -1847,14 +1791,12 @@ export default function LedgerCreation({ onCreated }) {
                 value={formData.partyName}
                 onChange={(e) => handleChange('partyName', e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === 'Enter') {
                     e.preventDefault();
-                    // Open tree and focus first node
-                    setIsTreeOpen(true);
-                    setTimeout(() => {
-                      const firstNode = document.querySelector('[data-key]');
-                      firstNode?.focus();
-                    }, 0);
+                    // Move to Group Name field
+                    if (groupNameRef.current) {
+                      groupNameRef.current.focus();
+                    }
                   } else {
                     handleKeyboardNavigation(e, 0);
                   }
@@ -1866,54 +1808,63 @@ export default function LedgerCreation({ onCreated }) {
 
             <div className="field">
               <label className="field-label">Group Name <span className="asterisk">*</span></label>
-  <div className="row" style={{ display: "flex", alignItems: "center" }}>
-                 <div style={{ 
-                    display: "flex", 
-                    flex: 1, 
-                    border: "1px solid rgba(15,23,42,0.06)",
-                    borderRadius: "10px",
-                    overflow: "hidden",
-                    backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
-                  }}>
+              <div className="row" style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  display: "flex", 
+                  flex: 1, 
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  backgroundColor: "linear-gradient(180deg, #fff, #fbfdff)"
+                }}>
                   <input
                     ref={groupNameRef}
                     type="text"
                     className="input"
                     value={mainGroup}
                     onFocus={() => setIsTreeOpen(true)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 1)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        // Move to GST Type field
+                        if (gstTypeRef.current) {
+                          gstTypeRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 1);
+                      }
+                    }}
                     disabled={inputsDisabled}
                     aria-label="Group Name"
-
-                     style={{ 
-          flex: 1,
-          border: "none",
-          borderRadius: "0",
-          padding: "10px 12px",
-          minWidth: "0",
-          fontSize: "14px",
-          outline: "none",
-          cursor: "pointer"
-        }}
+                    style={{ 
+                      flex: 1,
+                      border: "none",
+                      borderRadius: "0",
+                      padding: "10px 12px",
+                      minWidth: "0",
+                      fontSize: "14px",
+                      outline: "none",
+                      cursor: "pointer"
+                    }}
                   />
   
-      <button
-        onClick={() => setIsTreeOpen(!isTreeOpen)}
-        style={{
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          padding: "0 12px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--accent)"
-        }}
-        aria-label={isTreeOpen ? "Close tree" : "Open tree"}
-        disabled={inputsDisabled}
-      >
-        <Icon.Chevron down={!isTreeOpen} />
-      </button>
+                  <button
+                    onClick={() => setIsTreeOpen(!isTreeOpen)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "0 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--accent)"
+                    }}
+                    aria-label={isTreeOpen ? "Close tree" : "Open tree"}
+                    disabled={inputsDisabled}
+                  >
+                    <Icon.Chevron down={!isTreeOpen} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -1921,13 +1872,6 @@ export default function LedgerCreation({ onCreated }) {
             {isTreeOpen && (
               <div className="panel">
                 <div className="search-container">
-                  {/* <input
-                    type="text"
-                    className="search-with-clear"
-                    placeholder="Search groups..."
-                    value={searchTree}
-                    onChange={(e) => setSearchTree(e.target.value)}
-                  /> */}
                   {searchTree && (
                     <button
                       className="clear-search-btn"
@@ -1964,10 +1908,12 @@ export default function LedgerCreation({ onCreated }) {
                 </div>
               </div>
             )}
+          </div>
 
-            {/* Two-column layout: Left and Right */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 32px', marginTop: '16px' }}>
-              {/* LEFT COLUMN */}
+          {/* RIGHT CARD - Other fields arranged like in the reference image */}
+          <div className="right-card">
+            <div className="right-grid">
+              {/* Column 1 */}
               <div>
                 <div className="field">
                   <label className="field-label">GST Type</label>
@@ -1977,7 +1923,7 @@ export default function LedgerCreation({ onCreated }) {
                     className="input"
                     placeholder="G or I"
                     maxLength={1}
-                    style={{ width: '100%' , textAlign: 'center',}}
+                    style={{ width: '100%', textAlign: 'center' }}
                     value={formData.gstType}
                     onChange={(e) => handleChange('gstType', e.target.value)}
                     onKeyDown={(e) => {
@@ -1985,12 +1931,76 @@ export default function LedgerCreation({ onCreated }) {
                         e.preventDefault();
                         const newValue = formData.gstType === 'G' ? 'I' : 'G';
                         handleChange('gstType', newValue);
+                      } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        // Move to Route field
+                        if (routeRef.current) {
+                          routeRef.current.focus();
+                        }
                       } else {
                         handleKeyboardNavigation(e, 2);
                       }
                     }}
                     disabled={inputsDisabled}
                   />
+                </div>
+
+                <div className="field">
+                  <label className="field-label">Route</label>
+                  <div className="input-with-search">
+                    <input
+                      ref={routeRef}
+                      type="text"
+                      className="input"
+                      style={{ width: '100%' }}
+                      value={formData.route}
+                      onChange={(e) => handleChange('route', e.target.value)}
+                      onClick={() => { if (actionType !== 'delete') setIsRoutePopupOpen(true); }}
+                      onKeyDown={(e) => {
+                        // First handle arrow keys for navigation
+                        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                          handleKeyboardNavigation(e, 3);
+                          return;
+                        }
+                        
+                        // Handle Escape
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setIsRoutePopupOpen(false);
+                          setRouteSearch('');
+                          return;
+                        }
+                        
+                        // Handle Backspace
+                        if (e.key === 'Backspace') {
+                          e.preventDefault();
+                          setFormData(prev => ({ ...prev, route: '' }));
+                          return;
+                        } 
+                        
+                        // Handle Enter - move to Street field
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          // Move to Street field
+                          if (fStreetRef.current) {
+                            fStreetRef.current.focus();
+                          }
+                          return;
+                        }
+                        
+                        // Handle typing characters to open popup
+                        if (!isRoutePopupOpen && e.key.length === 1 && /^[a-zA-Z0-9]$/.test(e.key)) {
+                          e.preventDefault();
+                          setRouteSearch(e.key);
+                          setIsRoutePopupOpen(true);
+                        }
+                      }}
+                      disabled={inputsDisabled}
+                    />
+                    <div className="input-search-icon">
+                      <Icon.Search size={16} />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="field">
@@ -2002,7 +2012,16 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.fStreet}
                     onChange={(e) => handleChange('fStreet', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 3)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (areaRef.current) {
+                          areaRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 4);
+                      }
+                    }}
                     disabled={inputsDisabled}
                   />
                 </div>
@@ -2016,7 +2035,16 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.area}
                     onChange={(e) => handleChange('area', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 4)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (cityRef.current) {
+                          cityRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 5);
+                      }
+                    }}
                     disabled={inputsDisabled}
                   />
                 </div>
@@ -2030,7 +2058,16 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.city}
                     onChange={(e) => handleChange('city', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 5)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (pincodeRef.current) {
+                          pincodeRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 6);
+                      }
+                    }}
                     disabled={inputsDisabled}
                   />
                 </div>
@@ -2044,12 +2081,24 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.pincode}
                     onChange={(e) => handleChange('pincode', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 6)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (phoneRef.current) {
+                          phoneRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 7);
+                      }
+                    }}
                     maxLength={6}
                     disabled={inputsDisabled}
                   />
                 </div>
+              </div>
 
+              {/* Column 2 */}
+              <div>
                 <div className="field">
                   <label className="field-label">Phone No <span className="asterisk">*</span></label>
                   <input
@@ -2059,7 +2108,16 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 7)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (cellNoRef.current) {
+                          cellNoRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 8);
+                      }
+                    }}
                     maxLength={10}
                     disabled={inputsDisabled}
                   />
@@ -2074,179 +2132,20 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.cellNo}
                     onChange={(e) => handleChange('cellNo', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 8)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (emailRef.current) {
+                          emailRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 9);
+                      }
+                    }}
                     maxLength={10}
                     disabled={inputsDisabled}
                   />
                 </div>
-              </div>
-
-              {/* RIGHT COLUMN */}
-              <div>
-                <div className="field">
-  <label className="field-label">Route</label>
-  <div className="input-with-search">
-    <input
-      ref={routeRef}
-      type="text"
-      className="input"
-      style={{ width: '100%' }}
-      value={formData.route}
-      onChange={(e) => handleChange('route', e.target.value)}
-      onClick={() => { if (actionType !== 'delete') setIsRoutePopupOpen(true); }}
-      onKeyDown={(e) => {
-        // First handle arrow keys for navigation
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-          // Let the keyboard navigation handler deal with these
-          handleKeyboardNavigation(e, 9);
-          return;
-        }
-        
-        // Then handle Backspace
-        if (e.key === 'Backspace') {
-          e.preventDefault();
-          setFormData(prev => ({ ...prev, route: '' }));
-        } 
-        // Then handle Enter
-        else if (e.key === 'Enter') {
-          e.preventDefault();
-          // Move to next field (GSTIN)
-          if (gstinRef.current) {
-            gstinRef.current.focus();
-          }
-        }
-        // Then handle other special keys
-        else if (['Escape'].includes(e.key)) {
-          if (e.key === 'Escape') {
-            setIsRoutePopupOpen(false);
-            setRouteSearch('');
-          }
-        }
-        // Finally handle typing characters
-        else if (!isRoutePopupOpen && e.key.length === 1 && /^[a-zA-Z0-9]$/.test(e.key)) {
-          e.preventDefault();
-          setRouteSearch(e.key);
-          setIsRoutePopupOpen(true);
-        }
-      }}
-      disabled={inputsDisabled}
-    />
-    <div className="input-search-icon">
-      <Icon.Search size={16} />
-    </div>
-  </div>
-</div>
-
-                <div className="field">
-                  <label className="field-label">GSTIN</label>
-                  <input
-                    ref={gstinRef}
-                    type="text"
-                    className="input"
-                    style={{ width: '100%' }}
-                    value={formData.gstin}
-                    onChange={(e) => handleChange('gstin', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 10)}
-                      disabled={inputsDisabled}
-                  />
-                </div>
-
-                <div className="field">
-                  <label className="field-label">CIN No</label>
-                  <input
-                    ref={cinNoRef}
-                    type="text"
-                    className="input"
-                    style={{ width: '100%' }}
-                    value={formData.cinNo}
-                    onChange={(e) => handleChange('cinNo', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 11)}
-                      disabled={inputsDisabled}
-                  />
-                </div>
-
-                <div className="field">
-                  <label className="field-label">PAN No</label>
-                  <input
-                    ref={panNoRef}
-                    type="text"
-                    className="input"
-                    style={{ width: '100%' }}
-                    value={formData.panNo}
-                    onChange={(e) => handleChange('panNo', e.target.value)}
-                    onKeyDown={(e) => {
-                      // Handle Enter key specifically
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        // Instead of automatically navigating to state field,
-                        // just focus on the state field without opening popup
-                        if (stateRef.current) {
-                          stateRef.current.focus();
-                        }
-                      } else {
-                        // For other keys, use normal navigation
-                        handleKeyboardNavigation(e, 12);
-                      }
-                    }}
-                    disabled={inputsDisabled}
-                  />
-                </div>
-
-           <div className="field">
-              <label className="field-label">State</label>
-              <div className="input-with-search">
-                <input
-                  ref={stateRef}
-                  type="text"
-                  className="input"
-                  style={{ width: '100%' }}
-                  value={formData.state}
-                  onChange={(e) => {
-                    handleChange('state', e.target.value);
-                  }}
-                  onClick={() => {
-                    if (actionType !== 'delete') setIsStatePopupOpen(true);
-                  }}
-                  onKeyDown={(e) => {
-                    // First handle arrow keys for navigation
-                    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                      handleKeyboardNavigation(e, 13);
-                      return;
-                    }
-                    
-                    if (e.key === 'Backspace') {
-                      e.preventDefault();
-                      setFormData(prev => ({ ...prev, state: '' }));
-                    } 
-                    // Handle Enter - navigate to next field
-                    else if (e.key === 'Enter') {
-                      e.preventDefault();
-                      // Move to next field (Email)
-                      if (emailRef.current) {
-                        emailRef.current.focus();
-                      }
-                    }
-                    else if (['Escape'].includes(e.key)) {
-                      if (e.key === 'Escape') {
-                        setIsStatePopupOpen(false);
-                        setStateSearch('');
-                      }
-                    }
-                    else if (!isStatePopupOpen && e.key.length === 1 && /^[a-zA-Z0-9]$/.test(e.key)) {
-                      e.preventDefault();
-                      setStateSearch(e.key);
-                      setIsStatePopupOpen(true);
-                    }
-                  }}
-                  disabled={inputsDisabled}
-                />
-                <div className="input-search-icon">
-                  <Icon.Search size={16} />
-                </div>
-              </div>
-            </div>
 
                 <div className="field">
                   <label className="field-label">Email</label>
@@ -2257,8 +2156,17 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 14)}
-                      disabled={inputsDisabled}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (shortNameRef.current) {
+                          shortNameRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 10);
+                      }
+                    }}
+                    disabled={inputsDisabled}
                   />
                 </div>
 
@@ -2271,9 +2179,155 @@ export default function LedgerCreation({ onCreated }) {
                     style={{ width: '100%' }}
                     value={formData.shortName}
                     onChange={(e) => handleChange('shortName', e.target.value)}
-                    onKeyDown={(e) => handleKeyboardNavigation(e, 15)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (gstinRef.current) {
+                          gstinRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 11);
+                      }
+                    }}
                     disabled={inputsDisabled}
                   />
+                </div>
+
+                <div className="field">
+                  <label className="field-label">GSTIN</label>
+                  <input
+                    ref={gstinRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.gstin}
+                    onChange={(e) => handleChange('gstin', e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (cinNoRef.current) {
+                          cinNoRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 12);
+                      }
+                    }}
+                    disabled={inputsDisabled}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-label">CIN No</label>
+                  <input
+                    ref={cinNoRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.cinNo}
+                    onChange={(e) => handleChange('cinNo', e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (panNoRef.current) {
+                          panNoRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 13);
+                      }
+                    }}
+                    disabled={inputsDisabled}
+                  />
+                </div>
+              </div>
+
+              {/* Column 3 */}
+              <div className="full-width" style={{ gridColumn: "1 / -1" }}>
+                <div className="field">
+                  <label className="field-label">PAN No</label>
+                  <input
+                    ref={panNoRef}
+                    type="text"
+                    className="input"
+                    style={{ width: '100%' }}
+                    value={formData.panNo}
+                    onChange={(e) => handleChange('panNo', e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Move to State field
+                        if (stateRef.current) {
+                          stateRef.current.focus();
+                        }
+                      } else {
+                        handleKeyboardNavigation(e, 14);
+                      }
+                    }}
+                    disabled={inputsDisabled}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-label">State</label>
+                  <div className="input-with-search">
+                    <input
+                      ref={stateRef}
+                      type="text"
+                      className="input"
+                      style={{ width: '100%' }}
+                      value={formData.state}
+                      onChange={(e) => {
+                        handleChange('state', e.target.value);
+                      }}
+                      onClick={() => {
+                        if (actionType !== 'delete') setIsStatePopupOpen(true);
+                      }}
+                      onKeyDown={(e) => {
+                        // First handle arrow keys for navigation
+                        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                          handleKeyboardNavigation(e, 15);
+                          return;
+                        }
+                        
+                        // Handle Escape
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setIsStatePopupOpen(false);
+                          setStateSearch('');
+                          return;
+                        }
+                        
+                        // Handle Backspace
+                        if (e.key === 'Backspace') {
+                          e.preventDefault();
+                          setFormData(prev => ({ ...prev, state: '' }));
+                          return;
+                        }
+                        
+                        // Handle Enter - navigate to Active Status
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          // Move to Active Status field
+                          if (activeSwitchRef.current) {
+                            activeSwitchRef.current.focus();
+                          }
+                          return;
+                        }
+                        
+                        // Handle typing characters to open popup
+                        if (!isStatePopupOpen && e.key.length === 1 && /^[a-zA-Z0-9]$/.test(e.key)) {
+                          e.preventDefault();
+                          setStateSearch(e.key);
+                          setIsStatePopupOpen(true);
+                        }
+                      }}
+                      disabled={inputsDisabled}
+                    />
+                    <div className="input-search-icon">
+                      <Icon.Search size={16} />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2293,57 +2347,64 @@ export default function LedgerCreation({ onCreated }) {
               </label>
               <span className="muted">{isActive ? 'Active' : 'Inactive'}</span>
             </div>
-
-            {message && (
-              <div className={`message ${message.type}`}>
-                {message.text}
-              </div>
-            )}
-
-            {lastNetworkError && (
-              <div style={{ marginTop: 10, padding: 12, borderRadius: 8, background: '#fff7f7', color: '#9f1239', fontSize: 13 }}>
-                <strong>Network Error Details</strong>
-                <pre style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{JSON.stringify(lastNetworkError, null, 2)}</pre>
-              </div>
-            )}
-
-            <div className="submit-row">
-              <button
-                ref={submitButtonRef}
-                className="submit-primary"
-                onClick={() => {
-                  if (actionType === 'create') showCreateConfirmation();
-                  else if (actionType === 'edit') showEditConfirmation();
-                  else if (actionType === 'delete') showDeleteConfirmation();
-                }}
-                // onKeyDown={(e) => handleKeyboardNavigation(e, 17)}
-                disabled={isLoading}
-                onKeyDown={(e)=>{
-                  if(e.key==='Enter'){
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (actionType === 'create') showCreateConfirmation();
-                    else if (actionType === 'edit') showEditConfirmation();
-                    else if (actionType === 'delete') showDeleteConfirmation(); 
-                }else{
-                  handleKeyboardNavigation(e,17);
-                }}}
-              >
-                {isLoading ? 'Processing...' : 
-                 actionType === 'create' ? 'Save' :
-                 actionType === 'edit' ? 'Update' : 'Delete'}
-              </button>
-              <button
-                ref={clearButtonRef}
-                className="submit-clear"
-                onClick={handleClear}
-                onKeyDown={(e) => handleKeyboardNavigation(e, 18)}
-                disabled={isLoading}
-              >
-                Clear
-              </button>
-            </div>
           </div>
+        </div>
+
+        {message && (
+          <div className={`message ${message.type}`} style={{ marginTop: '16px', gridColumn: '1 / -1' }}>
+            {message.text}
+          </div>
+        )}
+
+        {lastNetworkError && (
+          <div style={{ 
+            marginTop: 10, 
+            padding: 12, 
+            borderRadius: 8, 
+            background: '#fff7f7', 
+            color: '#9f1239', 
+            fontSize: 13,
+            gridColumn: '1 / -1'
+          }}>
+            <strong>Network Error Details</strong>
+            <pre style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{JSON.stringify(lastNetworkError, null, 2)}</pre>
+          </div>
+        )}
+
+        <div className="submit-row">
+          <button
+            ref={submitButtonRef}
+            className="submit-primary"
+            onClick={() => {
+              if (actionType === 'create') showCreateConfirmation();
+              else if (actionType === 'edit') showEditConfirmation();
+              else if (actionType === 'delete') showDeleteConfirmation();
+            }}
+            disabled={isLoading}
+            onKeyDown={(e)=>{
+              if(e.key==='Enter'){
+                e.preventDefault();
+                e.stopPropagation();
+                if (actionType === 'create') showCreateConfirmation();
+                else if (actionType === 'edit') showEditConfirmation();
+                else if (actionType === 'delete') showDeleteConfirmation(); 
+              }else{
+                handleKeyboardNavigation(e,17);
+              }}}
+          >
+            {isLoading ? 'Processing...' : 
+              actionType === 'create' ? 'Save' :
+              actionType === 'edit' ? 'Update' : 'Delete'}
+          </button>
+          <button
+            ref={clearButtonRef}
+            className="submit-clear"
+            onClick={handleClear}
+            onKeyDown={(e) => handleKeyboardNavigation(e, 18)}
+            disabled={isLoading}
+          >
+            Clear
+          </button>
         </div>
       </div>
 
@@ -2414,13 +2475,6 @@ export default function LedgerCreation({ onCreated }) {
                 partyNameRef.current.focus();
               }, 50);
             }
-
-          // Focus Ledger Name input after selection
-          // setTimeout(() => {
-          //   if (partyNameRef.current) {
-          //     partyNameRef.current.focus();
-          //   }
-          // }, 1000);
         }}
         fetchItems={fetchPopupItems}
         title={actionType === 'delete' ? 'Select Ledger  to Delete' : 'Select Ledger  to Edit'}
