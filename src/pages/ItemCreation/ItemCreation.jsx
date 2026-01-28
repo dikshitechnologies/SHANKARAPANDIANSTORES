@@ -2686,7 +2686,10 @@ const ItemCreation = ({ onCreated }) => {
 
               {/* Category */}
               <div className="field">
-                <label className="field-label">Category</label>
+                <label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>Category</span>
+                <PopupScreensiIcon screen="category"  open={open} onClose={() => setOpen(false)}  />
+              </label>
                 <div className="input-with-search">
                   <input
                     ref={categoryRef}
@@ -2724,7 +2727,11 @@ const ItemCreation = ({ onCreated }) => {
 
               {/* Product */}
               <div className="field">
-                <label className="field-label">Product</label>
+                <label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>Product</span>
+                <PopupScreensiIcon screen="product"  open={open} onClose={() => setOpen(false)}  />
+              </label>
+                
                 <div className="input-with-search">
                   <input
                     ref={productRef}
@@ -2762,8 +2769,11 @@ const ItemCreation = ({ onCreated }) => {
 
               {/* Model */}
               <div className="field">
-                <label className="field-label">Model</label>
-                <div className="input-with-search">
+           <label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>Model</span>
+                <PopupScreensiIcon screen="model"  open={open} onClose={() => setOpen(false)}  />
+              </label>
+                                <div className="input-with-search">
                   <input
                     ref={modelRef}
                     className="input"
@@ -2800,8 +2810,11 @@ const ItemCreation = ({ onCreated }) => {
 
               {/* Size */}
               <div className="field">
-                <label className="field-label">Size<span className="asterisk">*</span></label>
-                <div className="input-with-search">
+<label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>Size</span>
+                <PopupScreensiIcon screen="size"  open={open} onClose={() => setOpen(false)}  />
+              </label>
+                                <div className="input-with-search">
                   <input
                     ref={sizeRef}
                     className="input"
@@ -2838,10 +2851,14 @@ const ItemCreation = ({ onCreated }) => {
 
               {/* Units */}
               <div className="field">
-                <label className="field-label">
-                  Units
-                  <span className="asterisk">*</span>
-                </label>
+            
+                <label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>Unit
+                 <span className="asterisk">*</span></span>
+                
+                <PopupScreensiIcon screen="unit"  open={open} onClose={() => setOpen(false)}  />
+              </label>
+                
                 <div className="input-with-search">
                   <input
                     ref={unitRef}
