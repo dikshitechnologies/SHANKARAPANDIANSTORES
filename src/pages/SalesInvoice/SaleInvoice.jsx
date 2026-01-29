@@ -3703,7 +3703,7 @@ onKeyDown={(e) => {
     e.preventDefault();
 
     // ✅ ITEM NAME EMPTY → ALLOW TABLE HANDLER TO MOVE TO SAVE
-    if (!item.itemName || !item.itemName.trim()) {
+    if (!item.itemName || !item.itemName.trim() && item.fromBarcode ) {
       handleTableKeyDown(e, index, 'itemName');
       return;
     }
