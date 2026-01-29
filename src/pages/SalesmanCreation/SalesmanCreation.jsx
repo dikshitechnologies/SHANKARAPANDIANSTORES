@@ -1180,7 +1180,7 @@ export default function SalesmanCreation() {
                   <table className="salesmen-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Salesman Name</th>
                       </tr>
                     </thead>

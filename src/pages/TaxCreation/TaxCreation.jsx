@@ -1257,7 +1257,7 @@ const getGSTByCode = async (code) => {
                   <table className="gsts-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>TAX %</th>
                       </tr>
                     </thead>

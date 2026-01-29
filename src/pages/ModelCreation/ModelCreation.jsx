@@ -1199,7 +1199,7 @@ useEffect(() => {
                   <table className="models-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Model Name</th>
                       </tr>
                     </thead>

@@ -1159,7 +1159,7 @@ const submitRef = useRef(null);
                   <table className="sizes-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Size Name</th>
                       </tr>
                     </thead>
