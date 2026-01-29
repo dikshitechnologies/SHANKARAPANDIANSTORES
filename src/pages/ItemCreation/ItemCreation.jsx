@@ -169,6 +169,9 @@ const ItemCreation = ({ onCreated }) => {
   // State management
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [taxList, setTaxList] = useState([]);
+const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
+
   const [isTreeOpen, setIsTreeOpen] = useState(true);
   const [mainGroup, setMainGroup] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
@@ -329,6 +332,7 @@ const ItemCreation = ({ onCreated }) => {
       console.log('Starting loadInitial...');
       console.log('Using endpoint:', API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTree);
       await fetchTreeData();
+      await fetchTaxList();   // ✅ REQUIRED
     } catch (err) {
       console.error('Failed to load initial data:', err);
       setMessage({ type: "error", text: "Failed to load data. Please check your connection." });
@@ -336,6 +340,28 @@ const ItemCreation = ({ onCreated }) => {
       setLoading(false);
     }
   };
+
+
+  const fetchTaxList = async () => {
+  try {
+    const response = await apiService.get(
+      API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getTaxListGST(1, 100)
+    );
+
+    const data = response?.data || [];
+
+    setTaxList(
+      data.map(item => ({
+        label: `${item.ftaxName}%`,
+        value: item.ftaxName || ''
+      }))
+    );
+  } catch (error) {
+    console.error("Failed to load tax list", error);
+    setTaxList([]);
+  }
+};
+
 
   const fetchTreeData = async () => {
     try {
@@ -640,16 +666,13 @@ const ItemCreation = ({ onCreated }) => {
     //   return false;
     // }
 
-    // Validate GST% - always required
-    if (!formData.gstin) {
-      setMessage({ type: "error", text: 'GST% is required.' });
-      gstinRef.current?.focus();
-      return false;
-    }
-    // Validate allowed GST values
-    const allowedGSTValues = ['0', '3', '5', '12', '18', '28'];
-    if (!allowedGSTValues.includes(formData.gstin)) {
-      setMessage({ type: "error", text: 'Only 0, 3, 5, 12, 18, or 28 are allowed for GST%.' });
+    // Validate GST% - Optional (can be empty)
+    // If GST is provided, validate it against allowed values
+    if (formData.gstin && !isValidGSTFromAPI(formData.gstin)) {
+      setMessage({ 
+        type: "error", 
+        text: `Invalid GST%. Allowed values: ${taxList.map(t => t.value).join(', ')}` 
+      });
       gstinRef.current?.focus();
       return false;
     }
@@ -679,6 +702,7 @@ const ItemCreation = ({ onCreated }) => {
   // Handle Create confirmation (ADDED to match Unit Creation) - UPDATED with validation
   const confirmCreate = async () => {
     setConfirmSaveOpen(false);
+
 
     // Validate form before proceeding
     if (!validateForm()) {
@@ -743,6 +767,12 @@ const ItemCreation = ({ onCreated }) => {
     setConfirmData(data);
     setShowConfirmPopup(true);
   };
+
+  const isValidGSTFromAPI = (gstValue) => {
+  if (!gstValue) return false;
+  return taxList.some(t => String(t.value) === String(gstValue));
+};
+
 
   // Handle confirmation from popup - UPDATED with toast notifications and validation
   const handleConfirmAction = async (actionType) => {
@@ -922,6 +952,9 @@ const ItemCreation = ({ onCreated }) => {
       setIsLoading(false);
     }
   };
+
+
+  
 
   // Fetch function used by PopupListSelector for Edit/Delete - UPDATED
   const PAGE_SIZE = 20;
@@ -1388,6 +1421,9 @@ const ItemCreation = ({ onCreated }) => {
     console.log('Fetching sizes with search:', effectiveSearch);
     return fetchSizes(page, effectiveSearch);
   }, [fetchSizes, initialPopupSearch.size]);
+
+
+  
 
   const fetchUnitsWithSearch = useCallback(async (page = 1, search = '') => {
     const initialSearch = initialPopupSearch.unit;
@@ -3022,65 +3058,65 @@ const ItemCreation = ({ onCreated }) => {
                   <option value="FG">Finished Product</option>
                 </select>
               </div>
-              {/* LEFT SIDE: GST Checkbox */}
-              <div className="field">
-                <div
-                  className="checkbox-group"
-                  onClick={() => { if (!isDeleteMode) handleGstToggle(); }}
-                  onKeyDown={(e) => {
-                    if (!isDeleteMode && e.key === ' ') {
-                      e.preventDefault();
-                      handleGstToggle();
-                    }
-                  }}
-                  role="checkbox"
-                  tabIndex={isDeleteMode ? -1 : 0}
-                  aria-checked={gstChecked}
-                  aria-disabled={isDeleteMode}
-                >
-                  <div
-                    className={`checkbox ${gstChecked ? 'checked' : ''}`}
-                  />
-                  <span className="checkbox-label">GST</span>
-                </div>
-              </div>
+             
 
               {/* RIGHT SIDE: GST% */}
-              <div className="field">
-                <label className="field-label">
-                  GST%
-                  <span className="asterisk">*</span>
-                </label>
-                <input
-                  ref={gstinRef}
-                  className="input"
-                  value={formData.gstin}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Allow empty or numbers only
-                    if (/^\d{0,2}$/.test(value)) {
-                      handleChange('gstin', value);
-                    }
-                  }}
-                  onBlur={() => {
-                    // Validate GST value when user leaves the field
-                    const allowedGSTValues = ['0', '3', '5', '12', '18', '28'];
-                    const gstValue = formData.gstin;
-                    if (gstValue !== '' && !allowedGSTValues.includes(gstValue)) {
-                      // Show error message
-                      setMessage({ type: "error", text: 'Only 0, 3, 5, 12, 18,, or 28 are allowed for GST%.' });
-                      // Clear invalid value
-                      handleChange('gstin', '');
-                      // Focus back to show error
-                      setTimeout(() => gstinRef.current?.focus(), 10);
-                    }
-                  }}
-                  disabled={isSubmitting || isDeleteMode}
-                  aria-label="GST Percentage"
-                  style={{ textAlign: "center", width: 300 }}
-                  required
-                />
-              </div>
+<div className="field">
+  <label className="field-label">
+    GST% 
+  </label>
+
+  <input
+    ref={gstinRef}
+    className="input"
+    value={formData.gstin}
+    onChange={(e) => {
+      const value = e.target.value;
+
+      // allow only numbers
+      if (/^\d*$/.test(value)) {
+        setFormData(prev => ({ ...prev, gstin: value }));
+        setMessage(null); // clear old error while typing
+      }
+    }}
+    onBlur={() => {
+      // ❌ BLOCK if GST not in API
+      if (formData.gstin && !isValidGSTFromAPI(formData.gstin)) {
+        setMessage({
+          type: "error",
+          text: `Invalid GST%. Allowed values: ${taxList.map(t => t.value).join(', ')}`
+        });
+
+        // 🔥 FORCE FOCUS BACK TO GST INPUT
+        setTimeout(() => gstinRef.current?.focus(), 0);
+      }
+    }}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' || e.key === 'ArrowDown') {
+        // ❌ STOP moving to next field if GST is provided but invalid
+        // Allow empty GST (optional field)
+        if (formData.gstin && !isValidGSTFromAPI(formData.gstin)) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          setMessage({
+            type: "error",
+            text: `Invalid GST%. Allowed values: ${taxList.map(t => t.value).join(', ')}`
+          });
+
+          gstinRef.current?.focus();
+          return;
+        }
+      }
+    }}
+    disabled={isSubmitting || isDeleteMode}
+    aria-label="GST Percentage"
+    style={{ textAlign: "center", width: 300 }}
+    required
+  />
+</div>
+
+
 
               {/* LEFT SIDE: Manual Prefix Checkbox */}
               <div className="field">
@@ -3395,6 +3431,23 @@ const ItemCreation = ({ onCreated }) => {
         responsiveBreakpoint={640}
         initialSearch={initialPopupSearch.category}
       />
+
+      <PopupListSelector
+  open={isTaxPopupOpen}
+  onClose={() => setIsTaxPopupOpen(false)}
+  onSelect={(item) => {
+    setFormData(prev => ({ ...prev, gstin: item.value }));
+    setIsTaxPopupOpen(false);
+  }}
+  fetchItems={async () => taxList}
+  title="Select GST Percentage"
+  displayFieldKeys={['label']}
+  searchFields={['label']}
+  headerNames={['GST %']}
+  columnWidths={{ label: '100%' }}
+  maxHeight="50vh"
+/>
+
 
       {/* PopupListSelector for Product Selection */}
       <PopupListSelector
