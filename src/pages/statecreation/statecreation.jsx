@@ -1370,7 +1370,7 @@ const handleDeleteRowClick = (s) => {
                     <table className="states-table">
                       <thead>
                         <tr>
-                          <th>Code</th>
+                          <th>S.No</th>
                           <th>State Name</th>
                         </tr>
                       </thead>

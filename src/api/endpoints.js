@@ -25,14 +25,19 @@ export const API_ENDPOINTS = {
     delete: (fCode) => `LedgerCreation/LedgerCreationDelete/${fCode}`,
   },
 
-  ITEM_CREATION_ENDPOINTS: {
-    getTree: "ItemGroupCreation/ItemGroupCreationGet",
-    getDropdown: "ItemCreation/GetItemCreationdropdowslist",
-    getMaxPrefix: "ItemCreation/GetMaxPrefix",
-    postCreate: "ItemCreation/ItemCreationPost",
-    putEdit: "ItemCreation/ItemCreationUpdate",
-    delete: (fCode) => `ItemCreation/ItemCreationDelete/${fCode}`,
-  },
+ ITEM_CREATION_ENDPOINTS: {
+  getTree: "ItemGroupCreation/ItemGroupCreationGet",
+  getDropdown: "ItemCreation/GetItemCreationdropdowslist",
+  getMaxPrefix: "ItemCreation/GetMaxPrefix",
+  postCreate: "ItemCreation/ItemCreationPost",
+  putEdit: "ItemCreation/ItemCreationUpdate",
+  delete: (fCode) => `ItemCreation/ItemCreationDelete/${fCode}`,
+
+  // ✅ NEW: Tax List (Paged) - Returns GST tax numbers (0%, 3%, 5%, 12%, 18%, 28%, 40%)
+  getTaxListGST: (page = 1, pageSize = 10) =>
+    `TaxCreation/gettaxlist?page=${page}&pageSize=${pageSize}`,
+},
+
 
   GET_COUNTER_LIST: "CounterCreation/getCounterList",
 

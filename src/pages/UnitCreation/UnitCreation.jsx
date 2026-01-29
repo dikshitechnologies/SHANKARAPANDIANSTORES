@@ -1262,7 +1262,7 @@ const confirmSave = async () => {
                   <table className="units-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Unit Name</th>
                       </tr>
                     </thead>

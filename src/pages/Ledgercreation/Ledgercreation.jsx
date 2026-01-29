@@ -1185,6 +1185,14 @@ export default function LedgerCreation({ onCreated }) {
           border: none;
           box-shadow: none;
         }
+          .gst-bold {
+  font-weight: 700;
+}
+
+.gst-bold option {
+  font-weight: 700;
+}
+
 
         label.field-label {
           display:block;
@@ -1916,35 +1924,31 @@ export default function LedgerCreation({ onCreated }) {
             <div className="right-grid">
               {/* Column 1 */}
               <div>
-                <div className="field">
-                  <label className="field-label">GST Type</label>
-                  <input
-                    ref={gstTypeRef}
-                    type="text"
-                    className="input"
-                    placeholder="G or I"
-                    maxLength={1}
-                    style={{ width: '100%', textAlign: 'center' }}
-                    value={formData.gstType}
-                    onChange={(e) => handleChange('gstType', e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.code === 'Space') {
-                        e.preventDefault();
-                        const newValue = formData.gstType === 'G' ? 'I' : 'G';
-                        handleChange('gstType', newValue);
-                      } else if (e.key === 'Enter') {
-                        e.preventDefault();
-                        // Move to Route field
-                        if (routeRef.current) {
-                          routeRef.current.focus();
-                        }
-                      } else {
-                        handleKeyboardNavigation(e, 2);
-                      }
-                    }}
-                    disabled={inputsDisabled}
-                  />
-                </div>
+              <div className="field">
+  <label className="field-label">GST Type</label>
+  <select
+    ref={gstTypeRef}
+    className="select gst-bold"
+    style={{ width: '100%' }}
+    value={formData.gstType}
+    onChange={(e) => handleChange('gstType', e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (routeRef.current) {
+          routeRef.current.focus();
+        }
+      } else {
+        handleKeyboardNavigation(e, 2);
+      }
+    }}
+    disabled={inputsDisabled}
+  >
+    <option value="">Select</option>
+    <option value="CGST/SGST">CGST/SGST</option>
+    <option value="IGST">IGST</option>
+  </select>
+</div>
 
                 <div className="field">
                   <label className="field-label">Route</label>
@@ -2103,49 +2107,81 @@ export default function LedgerCreation({ onCreated }) {
                 <div className="field">
                   <label className="field-label">Phone No <span className="asterisk">*</span></label>
                   <input
-                    ref={phoneRef}
-                    type="text"
-                    className="input"
-                    style={{ width: '100%' }}
-                    value={formData.phone}
-                    onChange={(e) => handleChange('phone', e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (cellNoRef.current) {
-                          cellNoRef.current.focus();
-                        }
-                      } else {
-                        handleKeyboardNavigation(e, 8);
-                      }
-                    }}
-                    maxLength={10}
-                    disabled={inputsDisabled}
-                  />
+  ref={phoneRef}
+  type="text"
+  className="input"
+  style={{ width: '100%' }}
+  value={formData.phone}
+  maxLength={10}
+  onChange={(e) => {
+    const numericValue = e.target.value.replace(/[^0-9]/g, '');
+    handleChange('phone', numericValue);
+  }}
+  onKeyDown={(e) => {
+    // Allow control keys
+    if (
+      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)
+    ) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (cellNoRef.current) {
+          cellNoRef.current.focus();
+        }
+      }
+      return;
+    }
+
+    // Block non-numeric keys
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+      return;
+    }
+
+    handleKeyboardNavigation(e, 8);
+  }}
+  disabled={inputsDisabled}
+/>
+
                 </div>
 
                 <div className="field">
                   <label className="field-label">Cell No</label>
-                  <input
-                    ref={cellNoRef}
-                    type="text"
-                    className="input"
-                    style={{ width: '100%' }}
-                    value={formData.cellNo}
-                    onChange={(e) => handleChange('cellNo', e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (emailRef.current) {
-                          emailRef.current.focus();
-                        }
-                      } else {
-                        handleKeyboardNavigation(e, 9);
-                      }
-                    }}
-                    maxLength={10}
-                    disabled={inputsDisabled}
-                  />
+                 <input
+  ref={cellNoRef}
+  type="text"
+  className="input"
+  style={{ width: '100%' }}
+  value={formData.cellNo}
+  maxLength={10}
+  onChange={(e) => {
+    const numericValue = e.target.value.replace(/[^0-9]/g, '');
+    handleChange('cellNo', numericValue);
+  }}
+  onKeyDown={(e) => {
+    // Allow control keys
+    if (
+      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)
+    ) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (emailRef.current) {
+          emailRef.current.focus();
+        }
+      }
+      return;
+    }
+
+    // Block non-numeric keys
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+      return;
+    }
+
+    handleKeyboardNavigation(e, 9);
+  }}
+  disabled={inputsDisabled}
+/>
+
                 </div>
 
                 <div className="field">

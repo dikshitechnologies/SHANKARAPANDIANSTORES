@@ -1212,7 +1212,7 @@ const updateDesign = async (designData) => {
                   <table className="designs-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Design Name</th>
                       </tr>
                     </thead>

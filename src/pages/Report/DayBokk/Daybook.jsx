@@ -32,13 +32,13 @@ const formatDate = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-// Helper function to format date as DD/MM/YYYY for API
+// Helper function to format date as YYYY-MM-DD for API (no special characters to avoid encoding issues)
 const formatDateForAPI = (date) => {
   const d = new Date(date);
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const DayBook = () => {

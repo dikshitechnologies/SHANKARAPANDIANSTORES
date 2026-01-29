@@ -1185,7 +1185,7 @@ export default function BrandPage() {
                   <table className="brands-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>CodeS.No</th>
                         <th>Brand Name</th>
                       </tr>
                     </thead>

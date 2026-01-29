@@ -1212,7 +1212,7 @@ export default function CategoryPage() {
                   <table className="categories-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Category Name</th>
                       </tr>
                     </thead>
