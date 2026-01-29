@@ -1166,7 +1166,7 @@ export default function ColorCreation() {
                   <table className="colors-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Color Name</th>
                       </tr>
                     </thead>

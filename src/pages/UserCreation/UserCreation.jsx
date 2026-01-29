@@ -1409,7 +1409,7 @@ export default function UserCreation() {
                   <table className="users-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Username</th>
                         <th>Company</th>
                       </tr>

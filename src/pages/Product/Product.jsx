@@ -1199,7 +1199,7 @@ export default function ProductPage() {
                   <table className="products-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Product Name</th>
                       </tr>
                     </thead>

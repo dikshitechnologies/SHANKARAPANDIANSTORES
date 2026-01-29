@@ -1180,7 +1180,7 @@ export default function RouteCreationPage() {
                   <table className="brands-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
+                        <th>S.No</th>
                         <th>Route Name</th>
                       </tr>
                     </thead>

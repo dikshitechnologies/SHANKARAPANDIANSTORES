@@ -1736,7 +1736,7 @@ const Company = () => {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Code</th>
+                      <th>S.No</th>
                       <th>Company Name</th>
                     </tr>
                   </thead>
