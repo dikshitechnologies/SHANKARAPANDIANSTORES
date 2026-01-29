@@ -13,6 +13,9 @@ import CashManagement from '../pages/CashManagement/CashManagement';
 import AmountIssue from '../pages/AmountIssue/AmountIssue';
 import PaymentVoucher from '../pages/PaymentVoucher/PaymentVoucher';
 import RouteCreationPage from '../pages/Route/Routecreation';
+import SalesInvoice from '../pages/SalesInvoice/SaleInvoice';
+import PurchaseInvoice from '../pages/PurchaseInvoice/PurchaseInvoice';
+import ScrapRateFix from '../pages/ScrapRateFix/scrapratefix';
 import { useAuth } from '../context/AuthContext';
 
 const AppRoutes = () => {
@@ -35,6 +38,9 @@ const AppRoutes = () => {
         <Route path="/amount-issue" element={<ProtectedRoute><AmountIssue /></ProtectedRoute>} />
         <Route path="/payment-voucher" element={<ProtectedRoute><PaymentVoucher /></ProtectedRoute>} />
         <Route path="/route-creation" element={<ProtectedRoute><RouteCreationPage /></ProtectedRoute>} />
+        <Route path="/sales-invoice" element={<ProtectedRoute><SalesInvoice /></ProtectedRoute>} />
+        <Route path="/purchase-invoice" element={<ProtectedRoute><PurchaseInvoice /></ProtectedRoute>} />
+        <Route path="/scrap-rate-fix" element={<ProtectedRoute><ScrapRateFix /></ProtectedRoute>} />
         {/* Add more routes here */}
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         {/* <Route path="/products" element={<Products />} /> */}
