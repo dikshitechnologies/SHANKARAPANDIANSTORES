@@ -51,7 +51,6 @@ const PaymentVoucher = () => {
   const [saveConfirmationData, setSaveConfirmationData] = useState(null);
   const [saveConfirmation, setSaveConfirmation] = useState(false);
 
-
   // Validation confirmation popup
   const [confirmationPopup, setConfirmationPopup] = useState({
     isOpen: false,
@@ -204,6 +203,9 @@ const PaymentVoucher = () => {
     isDesktop: true
   });
 
+  // Mobile view state
+  const [isMobileView, setIsMobileView] = useState(false);
+
   // Initialize refs arrays
   useEffect(() => {
     paymentCashBankRefs.current = paymentCashBankRefs.current.slice(0, paymentItems.length);
@@ -231,21 +233,28 @@ const PaymentVoucher = () => {
     }
   }, []);
 
-  // Update screen size on resize
+  // Update screen size on resize and check for mobile
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
+      const mobile = width < 768;
+      const tablet = width >= 768 && width < 1024;
+      
       setScreenSize({
         width,
         height,
-        isMobile: width < 768,
-        isTablet: width >= 768 && width < 1024,
+        isMobile: mobile,
+        isTablet: tablet,
         isDesktop: width >= 1024
       });
+      
+      setIsMobileView(mobile);
     };
+    
     window.addEventListener('resize', handleResize);
     handleResize();
+    
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -272,6 +281,9 @@ const PaymentVoucher = () => {
 
   // Navigate to next field with arrow keys
   const navigateWithArrow = (direction, currentField, currentRow = 0, currentFieldType = '') => {
+    // Skip arrow navigation on mobile for better UX
+    if (isMobileView) return;
+    
     console.log(`⬅️➡️ Navigating ${direction} from ${currentField}, row ${currentRow}, fieldType ${currentFieldType}`);
     console.log(`📊 Current paymentItems.length: ${paymentItems.length}`, paymentItems.map(item => ({ id: item.id, type: item.type, cashBank: item.cashBank })));
 
@@ -975,7 +987,6 @@ const PaymentVoucher = () => {
       const url = API_ENDPOINTS.PAYMENTVOUCHER.DELETE_PAYMENT_VOUCHER(voucherNo);
       await apiService.del(url);
       setError(null);
-      // toast.success(`Voucher ${voucherNo} deleted successfully`, { autoClose: 3000 });
       resetForm();
       await fetchNextVoucherNo();
       await fetchSavedVouchers();
@@ -1206,6 +1217,7 @@ const PaymentVoucher = () => {
       setError('Failed to delete voucher');
     }
   };
+  
   // Handle confirmation popup actions (delete, etc.)
   const handleConfirmationAction = async () => {
     if (confirmationPopup.action === 'confirmDelete') {
@@ -1578,32 +1590,9 @@ const PaymentVoucher = () => {
         issuedTotal += issueCount * denom;
       });
 
-
-
-      
-      
-      
       // **VALIDATION: Net Amount = Collected Amount - Issued Amount (ONLY FOR CASH PAYMENTS)**
       if (hasCashPayments) {
         const netAmount = givenTotal - issuedTotal;
-        // Custom validation: Collected amount < total amount
-        // if (givenTotal < totalAmount) {
-        // if (Math.abs(netAmount) !== Math.abs(totalAmount)) {
-        //   setConfirmationPopup({
-        //     isOpen: true,
-        //     title: 'Validation Error',
-        //     message: 'Collected amount is less than total amount. Please check the denominations entered.',
-        //     type: 'warning',
-        //     confirmText: 'OK',
-        //     cancelText: null,
-        //     action: null,
-        //     isLoading: false
-        //   });
-        //   setIsSaving(false);
-        //   return;
-        // }
-        // if (Math.abs(netAmount - totalAmount) > 0.01) {
-        
         if (Math.abs(netAmount) !== Math.abs(totalAmount)) {
           const errorMessage = `Net amount not tallying`;
           setError(errorMessage);
@@ -1747,21 +1736,22 @@ const PaymentVoucher = () => {
   };
 
   const handleSave = async () => {
-        // Validate all CHQ rows before saving
-        const missingChq = paymentItems.find(item => (item.type || '').toString().trim().toUpperCase() === 'CHQ' && (!item.chqNo?.trim() || !item.chqDt));
-        if (missingChq) {
-          setConfirmationPopup({
-            isOpen: true,
-            title: 'Validation Error',
-            message: 'Chq No and Chq Dt are mandatory for cheque entries. Please fill them before saving.',
-            type: 'warning',
-            confirmText: 'OK',
-            cancelText: null,
-            action: null,
-            isLoading: false
-          });
-          return;
-        }
+    // Validate all CHQ rows before saving
+    const missingChq = paymentItems.find(item => (item.type || '').toString().trim().toUpperCase() === 'CHQ' && (!item.chqNo?.trim() || !item.chqDt));
+    if (missingChq) {
+      setConfirmationPopup({
+        isOpen: true,
+        title: 'Validation Error',
+        message: 'Chq No and Chq Dt are mandatory for cheque entries. Please fill them before saving.',
+        type: 'warning',
+        confirmText: 'OK',
+        cancelText: null,
+        action: null,
+        isLoading: false
+      });
+      return;
+    }
+    
     // === PERMISSION CHECK ===
     const action = isEditing ? 'edit' : 'add';
     const hasPermission = action === 'add' ? formPermissions.add : formPermissions.edit;
@@ -1811,11 +1801,11 @@ const PaymentVoucher = () => {
   const TYPOGRAPHY = {
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: {
-      xs: screenSize.isMobile ? '11px' : screenSize.isTablet ? '12px' : '13px',
-      sm: screenSize.isMobile ? '12px' : screenSize.isTablet ? '13px' : '14px',
-      base: screenSize.isMobile ? '13px' : screenSize.isTablet ? '14px' : '16px',
-      lg: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
-      xl: screenSize.isMobile ? '16px' : screenSize.isTablet ? '18px' : '20px'
+      xs: isMobileView ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      sm: isMobileView ? '11px' : screenSize.isTablet ? '12px' : '13px',
+      base: isMobileView ? '12px' : screenSize.isTablet ? '13px' : '14px',
+      lg: isMobileView ? '13px' : screenSize.isTablet ? '14px' : '16px',
+      xl: isMobileView ? '14px' : screenSize.isTablet ? '16px' : '18px'
     },
     fontWeight: {
       normal: 400,
@@ -1837,29 +1827,25 @@ const PaymentVoucher = () => {
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#f5f7fa',
-      height: '100vh',
+      minHeight: '100vh',
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
       margin: 0,
       padding: 0,
-      paddingBottom: screenSize.isMobile ? '120px' : screenSize.isTablet ? '80px' : '90px',
+      paddingBottom: isMobileView ? '140px' : screenSize.isTablet ? '100px' : '90px',
       overflowX: 'hidden',
-      overflowY: 'hidden',
+      overflowY: 'auto',
       position: 'relative',
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#1B91DA #f0f0f0',
     },
     headerSection: {
       flex: '0 0 auto',
       backgroundColor: 'white',
       borderRadius: 0,
-      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '10px',
+      padding: isMobileView ? '8px' : screenSize.isTablet ? '12px' : '10px',
       margin: 0,
       marginBottom: 0,
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      overflowY: 'visible',
-      maxHeight: 'none',
     },
     tableSection: {
       flex: '1',
@@ -1872,21 +1858,22 @@ const PaymentVoucher = () => {
     formRow: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '12px',
+      gap: isMobileView ? '8px' : '12px',
     },
     formField: {
       display: 'grid',
-      gridTemplateColumns: screenSize.isMobile ? '1fr 1fr' : screenSize.isTablet ? '1fr 1fr 1fr' : '1fr 1fr 1fr 1fr 1fr 1fr',
-      gap: screenSize.isMobile ? '12px' : screenSize.isTablet ? '14px' : '16px',
+      gridTemplateColumns: isMobileView ? '1fr' : screenSize.isTablet ? '1fr 1fr' : 'repeat(5, 1fr)',
+      gap: isMobileView ? '8px' : screenSize.isTablet ? '10px' : '12px',
       alignItems: 'end',
       width: '100%',
     },
     fieldGroup: {
       display: 'flex',
-      flexDirection: 'row',
+      flexDirection: isMobileView ? 'column' : 'row',
       justifyContent: 'center',
-      alignItems: 'center',
-      gap: '4px',
+      alignItems: isMobileView ? 'flex-start' : 'center',
+      gap: isMobileView ? '4px' : '8px',
+      width: '100%',
     },
     inlineLabel: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1894,42 +1881,43 @@ const PaymentVoucher = () => {
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#333',
-      minWidth: screenSize.isMobile ? '75px' : screenSize.isTablet ? '85px' : '95px',
+      minWidth: isMobileView ? 'auto' : '85px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
       paddingTop: '2px',
+      width: isMobileView ? '100%' : 'auto',
     },
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      padding: isMobileView ? '6px 8px' : '8px 10px',
       border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      borderRadius: '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: isMobileView ? '36px' : '32px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: '0',
     },
     inlineInputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      padding: isMobileView ? '6px 8px' : '8px 10px',
       border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      borderRadius: '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: isMobileView ? '36px' : '32px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: '0',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     inlineInputClickable: {
@@ -1937,16 +1925,16 @@ const PaymentVoucher = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      padding: isMobileView ? '6px 8px' : '8px 10px',
       border: '1px solid #ddd',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      borderRadius: '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: isMobileView ? '36px' : '32px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: '0',
       cursor: 'pointer',
       backgroundColor: 'white',
     },
@@ -1955,40 +1943,37 @@ const PaymentVoucher = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '5px 6px' : screenSize.isTablet ? '6px 8px' : '8px 10px',
+      padding: isMobileView ? '6px 8px' : '8px 10px',
       border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      borderRadius: '4px',
       boxSizing: 'border-box',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       width: '100%',
-      height: screenSize.isMobile ? '32px' : screenSize.isTablet ? '36px' : '40px',
+      height: isMobileView ? '36px' : '32px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '80px' : '100px',
+      minWidth: '0',
       cursor: 'pointer',
       backgroundColor: 'white',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     tableContainer: {
       backgroundColor: 'white',
-      borderRadius: 10,
+      borderRadius: 8,
       overflowX: 'auto',
       overflowY: 'auto',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       border: '1px solid #e0e0e0',
-      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
-      marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
-      marginBottom: screenSize.isMobile ? '250px' : screenSize.isTablet ? '150px' : '90px',
+      margin: isMobileView ? '4px' : '8px',
+      marginTop: isMobileView ? '4px' : '8px',
+      marginBottom: isMobileView ? '4px' : '8px',
       WebkitOverflowScrolling: 'touch',
-      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      width: isMobileView ? 'calc(100% - 8px)' : 'calc(100% - 16px)',
       boxSizing: 'border-box',
       flex: '1 1 auto',
       display: 'flex',
       flexDirection: 'column',
-      maxHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '280px' : '360px',
-      minHeight: screenSize.isMobile ? '180px' : screenSize.isTablet ? '260px' : '360px',
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#1B91DA #f0f0f0',
+      minHeight: isMobileView ? '200px' : screenSize.isTablet ? '280px' : '360px',
     },
     table: {
       width: screenSize.isMobile ? '100%' : screenSize.isTablet ? '100%' : 'max-content',
@@ -2003,7 +1988,7 @@ const PaymentVoucher = () => {
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       backgroundColor: '#1B91DA',
       color: 'white',
-      padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
+      padding: isMobileView ? '4px 2px' : screenSize.isTablet ? '6px 4px' : '8px 6px',
       textAlign: 'center',
       letterSpacing: '0.5px',
       position: 'sticky',
@@ -2011,8 +1996,8 @@ const PaymentVoucher = () => {
       zIndex: 10,
       border: '1px solid white',
       borderBottom: '2px solid white',
-      minWidth: screenSize.isMobile ? '50px' : screenSize.isTablet ? '60px' : '70px',
       whiteSpace: 'nowrap',
+      minWidth: isMobileView ? '40px' : screenSize.isTablet ? '50px' : '60px',
     },
     td: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -2023,7 +2008,7 @@ const PaymentVoucher = () => {
       textAlign: 'center',
       border: '1px solid #ccc',
       color: '#333',
-      minWidth: screenSize.isMobile ? '50px' : screenSize.isTablet ? '60px' : '70px',
+      minWidth: isMobileView ? '40px' : screenSize.isTablet ? '50px' : '60px',
     },
     editableInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -2033,11 +2018,11 @@ const PaymentVoucher = () => {
       display: 'block',
       width: '100%',
       height: '100%',
-      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
-      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      minHeight: isMobileView ? '28px' : '32px',
+      padding: isMobileView ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
       boxSizing: 'border-box',
       border: 'none',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      borderRadius: '4px',
       textAlign: 'center',
       backgroundColor: 'transparent',
       outline: 'none',
@@ -2051,13 +2036,13 @@ const PaymentVoucher = () => {
       display: 'block',
       width: '100%',
       height: '100%',
-      minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
-      padding: screenSize.isMobile ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
+      minHeight: isMobileView ? '28px' : '32px',
+      padding: isMobileView ? '2px 3px' : screenSize.isTablet ? '3px 5px' : '4px 6px',
       boxSizing: 'border-box',
       border: '2px solid #1B91DA',
-      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      borderRadius: '4px',
       textAlign: 'center',
-      backgroundColor: 'white',
+      backgroundColor: 'transparent',
       outline: 'none',
       transition: 'border-color 0.2s ease',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
@@ -2069,37 +2054,39 @@ const PaymentVoucher = () => {
       right: 0,
       flex: '0 0 auto',
       display: 'flex',
-      flexDirection: screenSize.isMobile ? 'column' : 'row',
+      flexDirection: isMobileView ? 'column' : 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
+      padding: isMobileView ? '6px 4px' : '8px 10px',
       backgroundColor: 'white',
       borderTop: '2px solid #e0e0e0',
       boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
-      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
-      flexWrap: screenSize.isMobile ? 'nowrap' : 'wrap',
+      gap: isMobileView ? '6px' : '10px',
+      flexWrap: 'wrap',
       flexShrink: 0,
-      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
+      minHeight: isMobileView ? 'auto' : '60px',
       width: '100%',
       boxSizing: 'border-box',
       zIndex: 100,
     },
     totalsContainer: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: screenSize.isMobile ? TYPOGRAPHY.fontSize.sm : screenSize.isTablet ? TYPOGRAPHY.fontSize.base : TYPOGRAPHY.fontSize.lg,
+      fontSize: isMobileView ? TYPOGRAPHY.fontSize.sm : TYPOGRAPHY.fontSize.base,
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#1B91DA',
-      padding: screenSize.isMobile ? '6px 8px' : screenSize.isTablet ? '8px 12px' : '10px 16px',
+      padding: isMobileView ? '4px 6px' : '6px 10px',
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '15px' : screenSize.isTablet ? '25px' : '35px',
+      gap: isMobileView ? '10px' : '20px',
       minWidth: 'max-content',
       justifyContent: 'center',
       flex: 1,
-      order: 0,
-      borderRadius: screenSize.isMobile ? '4px' : '6px',
+      order: isMobileView ? 2 : 0,
+      borderRadius: '4px',
       backgroundColor: '#f0f8ff',
+      width: isMobileView ? '100%' : 'auto',
+      boxSizing: 'border-box',
     },
     totalItem: {
       display: 'flex',
@@ -2108,56 +2095,60 @@ const PaymentVoucher = () => {
       gap: '2px',
     },
     totalLabel: {
-      fontSize: screenSize.isMobile ? '10px' : screenSize.isTablet ? '11px' : '12px',
+      fontSize: isMobileView ? '9px' : '11px',
       color: '#555',
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
     },
     totalValue: {
-      fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
+      fontSize: isMobileView ? '12px' : '14px',
       color: '#1976d2',
       fontWeight: 'bold',
     },
     leftColumn: {
       display: 'flex',
-      gap: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '12px',
+      gap: isMobileView ? '6px' : '10px',
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
       alignItems: 'center',
       width: 'auto',
       flex: '0 0 auto',
       order: 0,
+      width: isMobileView ? '100%' : 'auto',
+      justifyContent: isMobileView ? 'center' : 'flex-start',
     },
     rightColumn: {
       display: 'flex',
-      gap: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '12px',
+      gap: isMobileView ? '6px' : '10px',
       flexWrap: 'wrap',
       justifyContent: 'flex-end',
       alignItems: 'center',
       width: 'auto',
       flex: '0 0 auto',
       order: 0,
+      width: isMobileView ? '100%' : 'auto',
+      justifyContent: isMobileView ? 'center' : 'flex-end',
     },
     footerButtons: {
       display: 'flex',
-      gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '12px',
+      gap: isMobileView ? '4px' : '8px',
       flexWrap: 'wrap',
-      justifyContent: screenSize.isMobile ? 'center' : 'flex-end',
-      width: screenSize.isMobile ? '100%' : 'auto',
-      order: screenSize.isMobile ? 3 : 0,
+      justifyContent: 'center',
+      width: isMobileView ? '100%' : 'auto',
+      order: isMobileView ? 3 : 0,
     },
     errorContainer: {
       background: '#fff1f2',
       color: '#9f1239',
-      padding: screenSize.isMobile ? '10px' : '12px',
+      padding: '10px',
       borderRadius: '6px',
-      marginBottom: screenSize.isMobile ? '10px' : '12px',
+      marginBottom: '10px',
       textAlign: 'center',
       borderLeft: '4px solid #ef4444',
-      fontSize: screenSize.isMobile ? '13px' : '14px',
+      fontSize: '13px',
       fontFamily: TYPOGRAPHY.fontFamily,
-      margin: screenSize.isMobile ? '0 10px' : '0 16px',
-      marginTop: screenSize.isMobile ? '10px' : '12px',
+      margin: '0 10px',
+      marginTop: '10px',
     },
     loadingOverlay: {
       position: 'fixed',
@@ -2179,10 +2170,49 @@ const PaymentVoucher = () => {
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       textAlign: 'center',
     },
+    mobileTableHeader: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      color: '#1B91DA',
+      padding: isMobileView ? '8px 12px 0 12px' : '12px 16px 0 16px',
+      textAlign: 'center',
+    },
   };
 
   return (
     <div style={styles.container}>
+      <style>{`
+        /* Hide number spinners in amount fields */
+        input[type="number"] {
+          -webkit-appearance: none;
+          -moz-appearance: textfield;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        
+        /* Better mobile scrolling */
+        @media (max-width: 768px) {
+          table {
+            font-size: 11px;
+          }
+          input, select {
+            font-size: 14px !important;
+            padding: 8px !important;
+          }
+        }
+        
+        /* Prevent text zoom on mobile */
+        @media (max-width: 768px) {
+          input, select, textarea {
+            font-size: 16px !important;
+          }
+        }
+      `}</style>
+      
       {/* LOADING OVERLAY */}
       {isLoading && (
         <div style={styles.loadingOverlay}>
@@ -2238,7 +2268,7 @@ const PaymentVoucher = () => {
             {/* A/C Name */}
             <div style={styles.fieldGroup}>
               <label style={styles.inlineLabel}>A/C Name</label>
-              <div style={{ position: 'relative', width: '420px', flex: 1 }}>
+              <div style={{ position: 'relative', width: '100%', flex: 1 }}>
                 <input
                   ref={accountNameRef}
                   type="text"
@@ -2254,12 +2284,12 @@ const PaymentVoucher = () => {
                   onKeyDown={(e) => handleHeaderFieldKeyDown(e, 'accountName')}
                   onKeyUp={(e) => handleBackspace(e, 'accountName')}
                   style={{
-        ...(focusedField === 'accountName'
-          ? styles.inlineInputClickableFocused
-          : styles.inlineInputClickable),
-        width: '100%',
-        paddingRight: '34px'
-      }}
+                    ...(focusedField === 'accountName'
+                      ? styles.inlineInputClickableFocused
+                      : styles.inlineInputClickable),
+                    width: '100%',
+                    paddingRight: isMobileView ? '30px' : '34px'
+                  }}
                 />
                 {/* 🔍 Search Icon */}
                 <div
@@ -2274,7 +2304,7 @@ const PaymentVoucher = () => {
                     alignItems: 'center',
                   }}
                 >
-                  <SearchIcon />
+                  <SearchIcon size={isMobileView ? 14 : 16} />
                 </div>
               </div>
               <div> <PopupScreenModal screenIndex={6} /> </div>
@@ -2315,7 +2345,6 @@ const PaymentVoucher = () => {
                 style={focusedField === 'gstType' ? styles.inlineInputFocused : styles.inlineInput}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                    // Let browser handle arrow keys naturally for select dropdown
                     return;
                   }
                   handleHeaderFieldKeyDown(e, 'gstType');
@@ -2332,19 +2361,20 @@ const PaymentVoucher = () => {
       {/* TABLE SECTION */}
       <div style={styles.tableSection}>
         {/* PAYMENT DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginBottom: '10px', marginTop: '10px'}}>
+        <div style={{...styles.tableContainer, marginBottom: isMobileView ? '4px' : '10px', marginTop: isMobileView ? '4px' : '10px'}}>
+          <h2 style={styles.mobileTableHeader}></h2>
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{...styles.th, minWidth: '60px', width: '60px'}}>No</th>
-                <th style={{...styles.th, minWidth: '300px', width: '300px'}}>Cash/Bank</th>
-                <th style={{...styles.th, minWidth: '90px', width: '90px'}}>Cr/Dr</th>
-                <th style={{...styles.th, minWidth: '90px', width: '90px'}}>Type</th>
-                <th style={{...styles.th, minWidth: '90px', width: '90px'}}>Chq No</th>
-                <th style={{...styles.th, minWidth: '60px', width: '60px'}}>Chq Dt</th>
-                <th style={{...styles.th, minWidth: '200px', width: '200px'}}>Narration</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Amount</th>
-                <th style={{...styles.th, minWidth: '60px', width: '60px'}}>Remove</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '150px' : '200px'}}>Cash/Bank</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Cr/Dr</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Type</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '70px' : '90px'}}>Chq No</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '90px'}}>Chq Dt</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '120px' : '150px'}}>Narration</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Amount</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '50px' : '60px'}}>Remove</th>
               </tr>
             </thead>
             <tbody>
@@ -2372,7 +2402,7 @@ const PaymentVoucher = () => {
                         onBlur={(e) => (e.target.style.border = 'none')}
                         style={{
                           ...(navigationStep === 'paymentCashBank' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
-                          paddingRight: '28px',
+                          paddingRight: isMobileView ? '24px' : '28px',
                           width: '100%'
                         }}
                         title="Click to select or type to search"
@@ -2390,7 +2420,7 @@ const PaymentVoucher = () => {
                           alignItems: 'center',
                         }}
                       >
-                        <SearchIcon size={14} />
+                        <SearchIcon size={isMobileView ? 12 : 14} />
                       </div>
                     </div>
                   </td>
@@ -2402,7 +2432,6 @@ const PaymentVoucher = () => {
                       onChange={(e) => handlePaymentItemChange(item.id, 'crDr', e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                          // Let browser handle arrow keys naturally for select dropdown
                           return;
                         }
                         handlePaymentFieldKeyDown(e, index, 'crDr');
@@ -2430,7 +2459,6 @@ const PaymentVoucher = () => {
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                          // Let browser handle arrow keys naturally for select dropdown
                           return;
                         }
                         handlePaymentFieldKeyDown(e, index, 'type');
@@ -2455,11 +2483,10 @@ const PaymentVoucher = () => {
                       ref={el => paymentChqNoRefs.current[index] = el}
                       id={`payment_${item.id}_chqNo`}
                       onKeyPress={(e) => {
-  // Allow only numbers (0-9)
-  if (!/[0-9]/.test(e.key)) {
-    e.preventDefault();
-  }
-}}
+                        if (!/[0-9]/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
                       type="text"
                       value={item.chqNo}
                       onChange={(e) => handlePaymentItemChange(item.id, 'chqNo', e.target.value)}
@@ -2499,7 +2526,7 @@ const PaymentVoucher = () => {
                       }}
                     />
                   </td>
-                  <td style={{...styles.td, minWidth: '200px', width: '200px'}}>
+                  <td style={{...styles.td, minWidth: isMobileView ? '120px' : '150px'}}>
                     <input
                       ref={el => paymentNarrationRefs.current[index] = el}
                       id={`payment_${item.id}_narration`}
@@ -2516,7 +2543,7 @@ const PaymentVoucher = () => {
                       style={navigationStep === 'paymentNarration' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
                     />
                   </td>
-                  <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
+                  <td style={{...styles.td, minWidth: isMobileView ? '80px' : '100px'}}>
                     <input
                       ref={el => paymentAmountRefs.current[index] = el}
                       id={`payment_${item.id}_amount`}
@@ -2539,18 +2566,18 @@ const PaymentVoucher = () => {
                         background: 'none',
                         border: 'none',
                         cursor: 'pointer',
-                        padding: '4px',
+                        padding: '2px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: '#e53935',
-                        marginLeft:'30px'
+                        marginLeft: isMobileView ? '10px' : '30px'
                       }}
                       title="Delete row"
                       onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
                       onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                     >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width={isMobileView ? "16" : "20"} height={isMobileView ? "16" : "20"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                         <line x1="10" y1="11" x2="10" y2="17"></line>
@@ -2561,21 +2588,16 @@ const PaymentVoucher = () => {
                 </tr>
               );
               })}
-              {/* Spacing Row */}
-              <tr style={{ height: '316px', backgroundColor: 'transparent' }}>
-                
+              {/* Spacing Row - Responsive height */}
+              <tr style={{ height: isMobileView ? '10vh' : '20vh', backgroundColor: 'transparent' }}>
+                <td colSpan="9" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
               </tr>
               {/* Total Row for Payment Details */}
               <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
+                <td style={{...styles.td, backgroundColor: '#f0f8ff'}} colSpan={isMobileView ? 6 : 6}></td>
                 <td style={{...styles.td, backgroundColor: '#f0f8ff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff', color: '#1B91DA', fontWeight: 'bold', minWidth: '100px', width: '100px'}}>
-               {paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
+                <td style={{...styles.td, backgroundColor: '#f0f8ff', color: '#1B91DA', fontWeight: 'bold', minWidth: isMobileView ? '80px' : '100px'}}>
+                  {paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
                 </td>
                 <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
               </tr>
@@ -2585,24 +2607,18 @@ const PaymentVoucher = () => {
 
         {/* REFERENCE BILL DETAILS TABLE */}
         <div style={{...styles.tableContainer, marginTop: '0', marginBottom: '0'}}>
-          <h2 style={{
-            padding: '12px 16px 0 26px',
-            color: '#1B91DA',
-            fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
-            fontWeight: 'bold',
-            fontFamily: TYPOGRAPHY.fontFamily
-          }}>Reference Bill Details</h2>
+          <h2 style={styles.mobileTableHeader}></h2>
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>No</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Ref No</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Bill No</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Date</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Bill Amount</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Paid Amount</th>
-                <th style={{...styles.th, minWidth: '120px', width: '120px'}}>Balance Amount</th>
-                <th style={{...styles.th, minWidth: '100px', width: '100px'}}>Amount</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Ref No</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Bill No</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Date</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px'}}>Bill Amount</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px'}}>Paid Amount</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '100px' : '120px'}}>Balance Amount</th>
+                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -2637,7 +2653,7 @@ const PaymentVoucher = () => {
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
-                  <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
+                  <td style={{...styles.td, minWidth: isMobileView ? '90px' : '100px'}}>
                     <input
                       id={`bill_${bill.id}_billAmount`}
                       value={bill.billAmount || ''}
@@ -2645,7 +2661,7 @@ const PaymentVoucher = () => {
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
-                  <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
+                  <td style={{...styles.td, minWidth: isMobileView ? '90px' : '100px'}}>
                     <input
                       id={`bill_${bill.id}_paidAmount`}
                       value={bill.paidAmount || ''}
@@ -2653,7 +2669,7 @@ const PaymentVoucher = () => {
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
-                  <td style={{...styles.td, minWidth: '120px', width: '120px'}}>
+                  <td style={{...styles.td, minWidth: isMobileView ? '100px' : '120px'}}>
                     <input
                       id={`bill_${bill.id}_balanceAmount`}
                       value={bill.balanceAmount || ''}
@@ -2661,7 +2677,7 @@ const PaymentVoucher = () => {
                       style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
                     />
                   </td>
-                  <td style={{...styles.td, minWidth: '100px', width: '100px'}}>
+                  <td style={{...styles.td, minWidth: isMobileView ? '80px' : '100px'}}>
                     <input
                       ref={el => billAmountRefs.current[index] = el}
                       id={`bill_${bill.id}_amount`}
@@ -2679,20 +2695,15 @@ const PaymentVoucher = () => {
                   </td>
                 </tr>
               ))}
-              {/* Spacing Row */}
-              <tr style={{ height: '219px', backgroundColor: 'transparent' }}>
+              {/* Spacing Row - Responsive height */}
+              <tr style={{ height: isMobileView ? '5vh' : '10vh', backgroundColor: 'transparent' }}>
                 <td colSpan="8" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
               </tr>
               {/* Total Row for Bill Details */}
               <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
-                <td style={{...styles.td, backgroundColor: '#fff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#fff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#fff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#fff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#fff'}}></td>
-                <td style={{...styles.td, backgroundColor: '#fff'}}></td>
+                <td style={{...styles.td, backgroundColor: '#fff'}} colSpan={isMobileView ? 6 : 6}></td>
                 <td style={{...styles.td, backgroundColor: '#fff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
-                <td style={{...styles.td, backgroundColor: '#fff', color: '#1B91DA', fontWeight: 'bold', minWidth: '100px', width: '100px'}}>
+                <td style={{...styles.td, backgroundColor: '#fff', color: '#1B91DA', fontWeight: 'bold', minWidth: isMobileView ? '80px' : '100px'}}>
                   {billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0).toFixed(2)}
                 </td>
               </tr>
@@ -2853,15 +2864,14 @@ const PaymentVoucher = () => {
         />
       )}
 
-           <ConfirmationPopup
-            isOpen={saveConfirmation}
-            onClose={() => setSaveConfirmation(false)}
-            onConfirm={()=>{savePaymentVoucher(); setSaveConfirmation(false);}}
-            title={"Save Payment Voucher"}
-            message={"Do you want to save ?"}
-            type={"success"}
-          
-          />
+      <ConfirmationPopup
+        isOpen={saveConfirmation}
+        onClose={() => setSaveConfirmation(false)}
+        onConfirm={()=>{savePaymentVoucher(); setSaveConfirmation(false);}}
+        title={"Save Payment Voucher"}
+        message={"Do you want to save ?"}
+        type={"success"}
+      />
     </div>
   );
 };
