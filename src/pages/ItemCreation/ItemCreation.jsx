@@ -3013,6 +3013,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                 <option value="FG">Finished Product</option>
               </select>
               </div>
+              </div>
              
 
               {/* RIGHT SIDE: GST% */}
