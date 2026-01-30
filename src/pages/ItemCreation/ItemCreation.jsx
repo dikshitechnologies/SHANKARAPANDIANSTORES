@@ -1542,16 +1542,19 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
 
         /* Main dashboard card (glass) */
         .dashboard {
-          
+          width: 100%;
+          max-width: 1900px;
           border-radius: 16px;
+          padding: 24px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
           box-shadow: var(--card-shadow);
           backdrop-filter: blur(8px) saturate(120%);
           border: 1px solid rgba(255,255,255,0.6);
           overflow: visible;
-          
+          transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+          margin: 0 auto;
         }
-       
+        .dashboard:hover { transform: translateY(-2px); }
 
         /* header */
         .top-row {
@@ -1559,7 +1562,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
           align-items:center;
           justify-content:space-between;
           gap:12px;
-          margin: 18px;
+          margin-bottom: 24px;
           flex-wrap: wrap;
         }
         .title-block {
@@ -1648,8 +1651,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
 
         label.field-label {
           display:block;
-         
-         
+          margin-bottom:6px;
           font-weight:700;
           color:#0f172a;
           font-size:18px;
@@ -1659,7 +1661,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
           
 
         .field { 
-          // margin-bottom:5px; 
+          margin-bottom:16px; 
           display:flex; 
           flex-direction:column; 
           align-items:flex-start; 
@@ -1673,6 +1675,59 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
           width:100%;
           flex-wrap: wrap;
         }
+
+        /* ================= MOBILE SINGLE COLUMN FIX ================= */
+
+/* Desktop & tablet */
+.two-col-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* MOBILE: force single column */
+@media (max-width: 768px) {
+  .two-col-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+
+ /* Kill grid behavior on mobile */
+  .form-grid {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Every field behaves like Short Name */
+  .form-grid .field {
+    width: 100% !important;
+    margin-bottom: 12px;
+  }
+
+  /* Input wrapper same as Short Name */
+  .form-grid .input-with-search {
+    width: 100% !important;
+  }
+
+  /* Inputs/selects EXACT same width */
+  .form-grid input,
+  .form-grid select,
+  .form-grid .input,
+  .form-grid .select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  /* Remove any hidden column sizing */
+  .form-grid > * {
+    grid-column: auto !important;
+  }
+}
+
         .input, .search, .select {
           flex:1;
           min-width: 0;
@@ -1867,13 +1922,13 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
         }
 
        .submit-row { 
-  display: flex; 
-  gap: 12px; 
-  margin-top: 14px; 
-  align-items: center; 
-  justify-content: flex-end;   /* ✅ RIGHT ALIGN */
-  width: 100%;
-}
+          display: flex; 
+          gap: 12px; 
+          margin-top: 16px; 
+          align-items: center; 
+          justify-content: flex-end;
+          width: 100%;
+        }
 
         .submit-primary {
           padding:12px 16px;
@@ -2018,8 +2073,8 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
         /* form grid */
         .form-grid {
           display: grid;
-          grid-template-columns: 55% 55% 55%;
-          gap: 1rem ;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 16px;
           margin-bottom: 16px;
           align-items: start;
         }
@@ -2192,132 +2247,176 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
           -moz-appearance: textfield;
         }
 
-        /* Responsive styles */
-        /* Large tablets and small laptops */
-        @media (max-width: 1024px) {
-          .grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-          .side {
-            order: 2;
-          }
-          .card {
-            order: 1;
-          }
-        }
+        /* ==================== RESPONSIVE STYLES ==================== */
 
-        /* Tablets */
-        @media (max-width: 768px) {
+        /* Large tablets and small laptops (1024px and below) */
+        @media (max-width: 1024px) {
           .lg-root {
             padding: 16px 12px;
+            align-items: flex-start;
           }
+          
           .dashboard {
+            padding: 20px;
+            max-width: 100%;
+          }
+          
+          .card {
             padding: 16px;
           }
+          
+          /* Adjust form grid for tablets */
+          .form-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
+          
+          /* Make the main container single column */
+          .card > div > div[style*="grid-template-columns"] {
+            grid-template-columns: 1fr !important;
+            gap: 24px;
+          }
+          
+          /* Adjust field sizes */
+          .field {
+            margin-bottom: 14px;
+          }
+          
+          label.field-label {
+            font-size: 16px;
+          }
+        }
+        
+        /* Tablets (768px and below) */
+        @media (max-width: 768px) {
+          .lg-root {
+            padding: 12px 8px;
+            display: block;
+          }
+          
+          .dashboard {
+            padding: 16px;
+            margin: 0;
+            width: 100%;
+          }
+          
           .top-row {
             flex-direction: column;
             align-items: flex-start;
             gap: 16px;
+            margin-bottom: 20px;
           }
-          .actions {
+          
+          .title-block {
             width: 100%;
-            justify-content: space-between;
           }
-          .action-pill {
-            flex: 1;
-            justify-content: center;
-            min-width: 0;
-          }
-          .form-grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-          .field .row input[placeholder="Max"],
-          .field .row input[placeholder="Min"] {
-            min-width: 70px;
-            padding: 8px 6px;
-          }
-        }
-
-        /* Mobile phones */
-        @media (max-width: 480px) {
-          .lg-root {
-            padding: 12px 8px;
-          }
-          .dashboard {
-            padding: 12px;
-            border-radius: 12px;
-          }
+          
           .title-block h2 {
             font-size: 18px;
           }
-          .action-pill {
-            padding: 8px 10px;
+          
+          .subtitle {
             font-size: 12px;
           }
+          
+          .actions {
+            width: 100%;
+            justify-content: space-between;
+            gap: 8px;
+          }
+          
+          .action-pill {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 10px;
+            font-size: 12px;
+            justify-content: center;
+            text-align: center;
+          }
+          
+          .card {
+            padding: 16px;
+          }
+          
+          .form-grid {
+            grid-template-columns: 1fr;
+            gap: 14px;
+          }
+          
+          .field {
+            margin-bottom: 12px;
+          }
+          
+          label.field-label {
+            font-size: 14px;
+            margin-bottom: 4px;
+          }
+          
           .input, .search, .select {
             padding: 8px 10px;
             font-size: 13px;
           }
-          .btn, .browse-btn {
-            padding: 8px 10px;
-            min-width: 38px;
-            font-size: 13px;
-            height: 38px;
-          }
-          .submit-primary, .submit-clear {
-            flex: 1;
-            min-width: 0;
-          }
+          
           .tree-row {
             padding: 8px;
           }
-          .chev, .chev-placeholder {
-            width: 22px;
-            height: 22px;
+          
+          .tree-scroll {
+            max-height: 200px;
           }
-          .modal-overlay {
-            padding: 12px;
-          }
-          .modal {
-            padding: 12px;
-          }
-          .field .row input[placeholder="Max"],
-          .field .row input[placeholder="Min"] {
-            min-width: 60px;
-            padding: 8px 4px;
+          
+          .node-text {
             font-size: 13px;
           }
-        }
-
-        /* Very small screens */
-        @media (max-width: 360px) {
-          .lg-root {
-            padding: 8px 6px;
-          }
-          .dashboard {
-            padding: 10px;
-          }
-          .title-block {
+          
+          .submit-row {
             flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
+            gap: 10px;
+            align-items: stretch;
+            margin-top: 20px;
           }
-          .actions {
-            gap: 6px;
+          
+          .submit-primary, .submit-clear {
+            width: 100%;
+            text-align: center;
+            padding: 10px;
           }
-          .action-pill {
-            padding: 6px 8px;
-            font-size: 11px;
+          
+          .submit-primary {
+            min-width: auto;
           }
-          .card {
-            padding: 12px;
-          }
-          .stat {
+          
+          .message {
+            font-size: 13px;
             padding: 10px;
           }
         }
+        
+       
+        
+        
+        /* Landscape mode for mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .lg-root {
+            align-items: flex-start;
+            padding-top: 10px;
+          }
+          
+          .tree-scroll {
+            max-height: 150px;
+          }
+          
+          .card {
+            max-height: 85vh;
+            overflow-y: auto;
+          }
+          
+          .dashboard {
+            max-height: 95vh;
+            overflow-y: auto;
+          }
+        }
+        
         
         /* Better focus styles for keyboard navigation */
         input:focus, 
@@ -2423,15 +2522,17 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
               isActive={actionType === 'delete'}
             />
           </div>
+        </div>
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite" onKeyDown={handleKeyNavigation}>
             
             {/* Two Column Layout: Left and Right */}
-            <div style={{ display: "grid", gridTemplateColumns: "30% 40% ", gap: "32px", alignItems: "start" }}>
+           <div className="two-col-layout">
+
               
               {/* LEFT COLUMN */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem", }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 
                 {/* Item Name field */}
                 <div className="field">
@@ -2539,7 +2640,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                     </div>
                   </div>
 
-                  {isTreeOpen && (
+                  {/* {isTreeOpen && (
                     isMobile ? (
                       <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
                         <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
@@ -2593,7 +2694,9 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                           </div>
                         </div>
                       </div>
-                    ) : (
+                    ) : ( */}
+
+                    {isTreeOpen && (
                       <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
                         <div
                           className="tree-scroll"
@@ -2633,7 +2736,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                           )}
                         </div>
                       </div>
-                    )
+                  
                   )}
                 </div>
 
@@ -3004,10 +3107,10 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                 disabled={isSubmitting || isDeleteMode}
                 aria-label="Type"
                 required
-                style={{ textAlign: "center", width: 300 }}
+                style={{ width: "100%" }}
               >
                 <option value="" disabled>
-                  
+                  Select Type
                 </option>
                 <option value="SC">Scrap Product</option>
                 <option value="FG">Finished Product</option>
@@ -3067,7 +3170,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
     }}
     disabled={isSubmitting || isDeleteMode}
     aria-label="GST Percentage"
-    style={{ textAlign: "center", width: 300 }}
+    style={{ width: "100%" }}
     required
   />
 </div>
@@ -3097,7 +3200,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                   }}
                   disabled={isSubmitting || isDeleteMode}
                   aria-label="Cost Price"
-                  style={{ textAlign: "center", width: 300 }}
+                  style={{ width: "100%" }}
                   // Use text type instead of number to remove spinners
                   type="text"
                   inputMode="decimal"
@@ -3142,12 +3245,9 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
 
                   disabled={isSubmitting || !manualPrefixChecked || isDeleteMode}
                   aria-label="Prefix"
-                  style={{ textAlign: "center", width: 300 }}
+                  style={{ width: "100%" }}
                 />
               </div>
-
-              {/* LEFT SIDE: Cost Price - Changed to text input with validation */}
-              
 
               {/* RIGHT SIDE: Selling Price - Changed to text input with validation */}
               <div className="field">
@@ -3188,13 +3288,12 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                   }}
                   disabled={isSubmitting || isDeleteMode}
                   aria-label="Selling Price"
-                  style={{ textAlign: "center", width: 300 }}
+                  style={{ width: "100%" }}
                   // Use text type instead of number to remove spinners
                   type="text"
                   inputMode="decimal"
                 />
               </div>
-              {/* Piece Rate Checkbox - REMOVED (replaced by Type dropdown above) */}
                 </div>
               </div>
             </div>
@@ -3264,10 +3363,8 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
               </button>
             </div>
           </div>
-
         </div>
       </div>
-    </div>
 
       {/* Confirmation Popup for Create */}
       <ConfirmationPopup
