@@ -6,10 +6,8 @@ import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
-// --- Inline SVG icons (matching ItemGroupCreation style) ---
+// --- Inline SVG icons ---
 const Icon = {
   Plus: ({ size = 16 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
@@ -37,7 +35,7 @@ const Icon = {
     </svg>
   ),
   Refresh: ({ size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable=" false">
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
       <path fill="currentColor" d="M17.65 6.35A8 8 0 103.95 15.5H6a6 6 0 118.9-5.31l-1.9-1.9h6v6l-2.35-2.35z" />
     </svg>
   ),
@@ -70,25 +68,23 @@ export default function TransportCreation() {
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ 
-    code: "", 
-    transportName: "",
-    address: "",
-    address1: "",
-    address2: "",
-    gstIn: ""
+    fCode: "", 
+    fTransport: "",
+    fadD1: "",
+    fadD2: "",
+    fadD3: "",
+    fgstin: ""
   });
   
-  const [actionType, setActionType] = useState("Add"); // 'Add' | 'Edit' | 'Delete'
+  const [actionType, setActionType] = useState("Add");
   const [editingId, setEditingId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   // modals & queries
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editQuery, setEditQuery] = useState("");
-
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteQuery, setDeleteQuery] = useState("");
-
   const [existingQuery, setExistingQuery] = useState("");
 
   // refs for step-by-step Enter navigation
@@ -113,11 +109,11 @@ export default function TransportCreation() {
     try {
       setLoading(true);
       const data = await apiService.get(API_ENDPOINTS.TRANSPORTCREATION.NEXT_TRANSPORT_CODE);
-      // Support both string and object responses
-      if (typeof data === 'string' && data.trim()) {
-        setForm(prev => ({ ...prev, code: data.trim() }));
-      } else if (data && (data.nextCode || data.code || data.transportCode)) {
-        setForm(prev => ({ ...prev, code: data.nextCode || data.code || data.transportCode }));
+      // Response format: { "fCode": "001" }
+      if (data && data.fCode) {
+        setForm(prev => ({ ...prev, fCode: data.fCode }));
+      } else if (typeof data === 'string' && data.trim()) {
+        setForm(prev => ({ ...prev, fCode: data.trim() }));
       }
       return data;
     } catch (err) {
@@ -133,7 +129,12 @@ export default function TransportCreation() {
     try {
       setLoading(true);
       const data = await apiService.get(API_ENDPOINTS.TRANSPORTCREATION.GET_TRANSPORT_ITEMS);
-      setTransports(data || []);
+      // Response format: { data: [...] }
+      if (data && data.data) {
+        setTransports(data.data || []);
+      } else {
+        setTransports(data || []);
+      }
       setMessage(null);
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load transports" });
@@ -163,14 +164,11 @@ export default function TransportCreation() {
       const data = await apiService.post(API_ENDPOINTS.TRANSPORTCREATION.CREATE_TRANSPORT, transportData);
       return data;
     } catch (err) {
-      // Check if this is a validation error from the backend
       if (err.response?.status === 400 || err.response?.status === 422) {
-        // Extract the specific error message from the response
         const errorMessage = err.response?.data?.message || 
                             err.response?.data?.error || 
                             err.message;
         
-        // Check if it's a duplicate transport name error
         if (errorMessage.toLowerCase().includes("already exists") || 
             errorMessage.toLowerCase().includes("duplicate") ||
             errorMessage.toLowerCase().includes("exist")) {
@@ -185,10 +183,8 @@ export default function TransportCreation() {
           });
         }
         
-        // If you want to extract specific field errors
         if (err.response?.data?.errors) {
           const fieldErrors = err.response.data.errors;
-          // Handle field-specific errors if needed
           console.log("Field errors:", fieldErrors);
         }
       } else {
@@ -205,16 +201,15 @@ export default function TransportCreation() {
   const updateTransport = async (transportData) => {
     try {
       setLoading(true);
-      const data = await apiService.put(API_ENDPORTCREATION.UPDATE_TRANSPORT(transportData.code), transportData);
+      // Use fCode as the parameter for the endpoint
+      const data = await apiService.put(API_ENDPOINTS.TRANSPORTCREATION.UPDATE_TRANSPORT(transportData.fCode), transportData);
       return data;
     } catch (err) {
-      // Check if this is a validation error from the backend
       if (err.response?.status === 400 || err.response?.status === 422) {
         const errorMessage = err.response?.data?.message || 
                             err.response?.data?.error || 
                             err.message;
         
-        // Check if it's a duplicate transport name error
         if (errorMessage.toLowerCase().includes("already exists") || 
             errorMessage.toLowerCase().includes("duplicate") ||
             errorMessage.toLowerCase().includes("exist")) {
@@ -268,9 +263,9 @@ export default function TransportCreation() {
   const checkTransportNameExists = (transportName, currentTransportCode = null) => {
     const normalizedTransportName = transportName.trim().toLowerCase();
     const existingTransport = transports.find(t => 
-      t.transportName && 
-      t.transportName.trim().toLowerCase() === normalizedTransportName &&
-      t.code !== currentTransportCode // Exclude current transport when editing
+      t.fTransport && 
+      t.fTransport.trim().toLowerCase() === normalizedTransportName &&
+      t.fCode !== currentTransportCode
     );
     return existingTransport;
   };
@@ -289,17 +284,16 @@ export default function TransportCreation() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Focus on transport name field on initial load/reload
+  // Focus on transport name field
   useEffect(() => {
     const timer = setTimeout(() => {
       if (transportNameRef.current) {
         transportNameRef.current.focus();
       }
-    }, 100); // Small delay to ensure DOM is ready
+    }, 100);
     return () => clearTimeout(timer);
-  }, []); // Empty dependency array = runs once on mount
+  }, []);
 
-  // Additional focus for when actionType changes
   useEffect(() => {
     if (actionType === "Edit" || actionType === "Add") {
       const timer = setTimeout(() => {
@@ -315,7 +309,6 @@ export default function TransportCreation() {
   };
 
   const handleEdit = async () => {
-    // === PERMISSION CHECK ===
     if (!formPermissions.Edit) {
       setMessage({ 
         type: "error", 
@@ -323,27 +316,24 @@ export default function TransportCreation() {
       });
       return;
     }
-    // === END PERMISSION CHECK ===
 
-    if (!form.code || !form.transportName) {
+    if (!form.fCode || !form.fTransport) {
       setMessage({ type: "error", text: "Please fill Transport Code and Transport Name." });
       return;
     }
 
-    // === CHANGED: Added duplicate check for edit mode (excluding current transport) ===
     const isDuplicate = transports.some(transport => 
-      (transport.transportName || '').toLowerCase() === form.transportName.toLowerCase() && 
-      (transport.code || '') !== form.code // Different ID
+      (transport.fTransport || '').toLowerCase() === form.fTransport.toLowerCase() && 
+      (transport.fCode || '') !== form.fCode
     );
 
     if (isDuplicate) {
       setMessage({ 
         type: "error", 
-        text: `Transport name "${form.transportName}" already exists. Please use a different name.` 
+        text: `Transport name "${form.fTransport}" already exists. Please use a different name.` 
       });
       return;
     }
-    // === END CHANGE ===
 
     setConfirmEditOpen(true);
   };
@@ -353,12 +343,12 @@ export default function TransportCreation() {
       setIsLoading(true);
       
       const transportData = { 
-        code: form.code, 
-        transportName: form.transportName,
-        address: form.address,
-        address1: form.address1,
-        address2: form.address2,
-        gstIn: form.gstIn
+        fCode: form.fCode, 
+        fTransport: form.fTransport,
+        fadD1: form.fadD1,
+        fadD2: form.fadD2,
+        fadD3: form.fadD3,
+        fgstin: form.fgstin
       };
       await updateTransport(transportData);
       await loadInitial();
@@ -368,14 +358,12 @@ export default function TransportCreation() {
       resetForm();
     } catch (err) {
       setConfirmEditOpen(false);
-      // Error message already set in updateTransport
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    // === PERMISSION CHECK ===
     if (!formPermissions.Delete) {
       setMessage({ 
         type: "error", 
@@ -383,9 +371,8 @@ export default function TransportCreation() {
       });
       return;
     }
-    // === END PERMISSION CHECK ===
 
-    if (!form.code) {
+    if (!form.fCode) {
       setMessage({ type: "error", text: "Please select a transport to delete." });
       return;
     }
@@ -396,7 +383,7 @@ export default function TransportCreation() {
   const confirmDelete = async () => {
     try {
       setIsLoading(true);
-      await deleteTransport(form.code);
+      await deleteTransport(form.fCode);
       await loadInitial();
       
       setMessage({ type: "success", text: "Transport deleted successfully." });
@@ -404,11 +391,10 @@ export default function TransportCreation() {
       resetForm();
     } catch (err) {
       setConfirmDeleteOpen(false);
-      // Special handling for referenced transports
       if (err.message.includes("used in related tables") || err.message.includes("409")) {
         setMessage({ 
           type: "error", 
-          text: `Cannot delete transport "${form.transportName}". It is referenced in other tables and cannot be removed.` 
+          text: `Cannot delete transport "${form.fTransport}". It is referenced in other tables and cannot be removed.` 
         });
       }
     } finally {
@@ -417,7 +403,6 @@ export default function TransportCreation() {
   };
 
   const handleAdd = async () => {
-    // === PERMISSION CHECK ===
     if (!formPermissions.add) {
       setMessage({ 
         type: "error", 
@@ -425,27 +410,24 @@ export default function TransportCreation() {
       });
       return;
     }
-    // === END PERMISSION CHECK ===
 
-    if (!form.code || !form.transportName) {
+    if (!form.fCode || !form.fTransport) {
       setMessage({ type: "error", text: "Please fill Transport Code and Transport Name." });
       return;
     }
 
-    // === CHANGED: Added duplicate check for edit mode (excluding current transport) ===
     const isDuplicate = transports.some(transport => 
-      (transport.transportName || '').toLowerCase() === form.transportName.toLowerCase() && 
-      (transport.code || '') !== form.code // Different ID
+      (transport.fTransport || '').toLowerCase() === form.fTransport.toLowerCase() && 
+      (transport.fCode || '') !== form.fCode
     );
 
     if (isDuplicate) {
       setMessage({ 
         type: "error", 
-        text: `Transport name "${form.transportName}" already exists. Please use a different name.` 
+        text: `Transport name "${form.fTransport}" already exists. Please use a different name.` 
       });
       return;
     }
-    // === END CHANGE ===
 
     setConfirmSaveOpen(true);
   };
@@ -454,12 +436,12 @@ export default function TransportCreation() {
     try {
       setIsLoading(true);
       const transportData = { 
-        code: form.code, 
-        transportName: form.transportName,
-        address: form.address,
-        address1: form.address1,
-        address2: form.address2,
-        gstIn: form.gstIn
+        fCode: form.fCode, 
+        fTransport: form.fTransport,
+        fadD1: form.fadD1,
+        fadD2: form.fadD2,
+        fadD3: form.fadD3,
+        fgstin: form.fgstin
       };
       
       await createTransport(transportData);
@@ -470,7 +452,6 @@ export default function TransportCreation() {
       resetForm(true);
     } catch (err) {
       setConfirmSaveOpen(false);
-      // Error message already set in createTransport
     } finally {
       setIsLoading(false);
     }
@@ -486,11 +467,11 @@ export default function TransportCreation() {
     fetchNextTransportCode();
     setForm(prev => ({ 
       ...prev, 
-      transportName: "",
-      address: "",
-      address1: "",
-      address2: "",
-      gstIn: ""
+      fTransport: "",
+      fadD1: "",
+      fadD2: "",
+      fadD3: "",
+      fgstin: ""
     }));
     setEditingId(null);
     setDeleteTargetId(null);
@@ -500,9 +481,7 @@ export default function TransportCreation() {
     setMessage(null);
     if (!keepAction) setActionType("Add");
     
-    // This line already focuses on transportName field after reset - GOOD
     setTimeout(() => transportNameRef.current?.focus(), 60);
-    setActionType("Add")
   };
 
   const openEditModal = () => {
@@ -513,15 +492,15 @@ export default function TransportCreation() {
 
   const handleEditRowClick = (t) => {
     setForm({ 
-      code: t.code, 
-      transportName: t.transportName,
-      address: t.address || "",
-      address1: t.address1 || "",
-      address2: t.address2 || "",
-      gstIn: t.gstIn || ""
+      fCode: t.fCode, 
+      fTransport: t.fTransport,
+      fadD1: t.fadD1 || "",
+      fadD2: t.fadD2 || "",
+      fadD3: t.fadD3 || "",
+      fgstin: t.fgstin || ""
     });
     setActionType("Edit");
-    setEditingId(t.code);
+    setEditingId(t.fCode);
     setEditModalOpen(false);
     setTimeout(() => transportNameRef.current?.focus(), 60);
   };
@@ -532,15 +511,15 @@ export default function TransportCreation() {
     transportNameRef.current?.focus();
   };
 
-  // Fetch items for popup list selector (simple client-side paging/filtering)
+  // Fetch items for popup list selector
   const fetchItemsForModal = useCallback(async (page = 1, search = '') => {
     const pageSize = 20;
     const q = (search || '').trim().toLowerCase();
     const filtered = q
       ? transports.filter(t => 
-          (t.code || '').toLowerCase().includes(q) || 
-          (t.transportName || '').toLowerCase().includes(q) ||
-          (t.gstIn || '').toLowerCase().includes(q)
+          (t.fCode || '').toLowerCase().includes(q) || 
+          (t.fTransport || '').toLowerCase().includes(q) ||
+          (t.fgstin || '').toLowerCase().includes(q)
         )
       : transports;
     const start = (page - 1) * pageSize;
@@ -549,15 +528,15 @@ export default function TransportCreation() {
 
   const handleDeleteRowClick = (t) => {
     setForm({ 
-      code: t.code, 
-      transportName: t.transportName,
-      address: t.address || "",
-      address1: t.address1 || "",
-      address2: t.address2 || "",
-      gstIn: t.gstIn || ""
+      fCode: t.fCode, 
+      fTransport: t.fTransport,
+      fadD1: t.fadD1 || "",
+      fadD2: t.fadD2 || "",
+      fadD3: t.fadD3 || "",
+      fgstin: t.fgstin || ""
     });
     setActionType("Delete");
-    setDeleteTargetId(t.code);
+    setDeleteTargetId(t.fCode);
     setDeleteModalOpen(false);
     setTimeout(() => transportNameRef.current?.focus(), 60);
   };
@@ -604,22 +583,15 @@ export default function TransportCreation() {
     }
   };
 
-  const stopEnterPropagation = (e) => {
-    if (e.key === "Enter") {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  };
-
   // ---------- filters ----------
   const filteredEditTransports = useMemo(() => {
     const q = editQuery.trim().toLowerCase();
     if (!q) return transports;
     return transports.filter(
       (t) =>
-        (t.code || "").toLowerCase().includes(q) ||
-        (t.transportName || "").toLowerCase().includes(q) ||
-        (t.gstIn || "").toLowerCase().includes(q)
+        (t.fCode || "").toLowerCase().includes(q) ||
+        (t.fTransport || "").toLowerCase().includes(q) ||
+        (t.fgstin || "").toLowerCase().includes(q)
     );
   }, [editQuery, transports]);
 
@@ -628,9 +600,9 @@ export default function TransportCreation() {
     if (!q) return transports;
     return transports.filter(
       (t) =>
-        (t.code || "").toLowerCase().includes(q) ||
-        (t.transportName || "").toLowerCase().includes(q) ||
-        (t.gstIn || "").toLowerCase().includes(q)
+        (t.fCode || "").toLowerCase().includes(q) ||
+        (t.fTransport || "").toLowerCase().includes(q) ||
+        (t.fgstin || "").toLowerCase().includes(q)
     );
   }, [deleteQuery, transports]);
 
@@ -639,28 +611,26 @@ export default function TransportCreation() {
     if (!q) return transports;
     return transports.filter(
       (t) => 
-        (t.code || "").toLowerCase().includes(q) || 
-        (t.transportName || "").toLowerCase().includes(q) ||
-        (t.gstIn || "").toLowerCase().includes(q)
+        (t.fCode || "").toLowerCase().includes(q) || 
+        (t.fTransport || "").toLowerCase().includes(q) ||
+        (t.fgstin || "").toLowerCase().includes(q)
     );
   }, [existingQuery, transports]);
 
   // ---------- render ----------
   return (
     <div className="uc-root" role="region" aria-labelledby="transport-creation-title">
-      {/* Google/Local font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet" />
 
       <style>{`
         :root{
-          /* blue theme (matching ItemGroupCreation) */
           --bg-1: #f0f7fb;
           --bg-2: #f7fbff;
           --glass: rgba(255,255,255,0.55);
           --glass-2: rgba(255,255,255,0.35);
-          --accent: #307AC8; /* primary */
-          --accent-2: #1B91DA; /* secondary */
-          --accent-3: #06A7EA; /* tertiary */
+          --accent: #307AC8;
+          --accent-2: #1B91DA;
+          --accent-3: #06A7EA;
           --success: #06A7EA;
           --danger: #ef4444;
           --warning: #f59e0b;
@@ -669,7 +639,6 @@ export default function TransportCreation() {
           --glass-border: rgba(255,255,255,0.45);
         }
 
-        /* Page layout */
         .uc-root {
           min-height: 100vh;
           display: flex;
@@ -682,7 +651,6 @@ export default function TransportCreation() {
           box-sizing: border-box;
         }
 
-        /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
           max-width: 800px;
@@ -697,7 +665,6 @@ export default function TransportCreation() {
         }
         .dashboard:hover { transform: translateY(-6px); }
 
-        /* header */
         .top-row {
           display:flex;
           align-items:center;
@@ -723,7 +690,6 @@ export default function TransportCreation() {
           font-size: 14px;
         }
 
-        /* action pills */
         .actions {
           display:flex;
           gap:10px;
@@ -731,7 +697,6 @@ export default function TransportCreation() {
           flex-wrap:wrap;
         }
 
-        /* grid layout */
         .grid {
           display:grid;
           grid-template-columns: 1fr;
@@ -741,7 +706,6 @@ export default function TransportCreation() {
           margin: 0 auto;
         }
 
-        /* left card (form) */
         .card {
           background: rgba(255,255,255,0.85);
           border-radius: 12px;
@@ -771,7 +735,6 @@ export default function TransportCreation() {
           align-items:flex-start; 
         }
 
-        /* Two column layout for code and transport name */
         .two-column-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -780,13 +743,11 @@ export default function TransportCreation() {
           margin-bottom: 12px;
         }
 
-        /* Full width for address and GSTIN */
         .full-width-field {
           width: 100%;
           margin-bottom: 12px;
         }
 
-        /* Two column layout for address1 and address2 */
         .address-two-column {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -819,43 +780,6 @@ export default function TransportCreation() {
           cursor: not-allowed;
         }
 
-        .btn {
-          padding:10px 12px;
-          border-radius:10px;
-          border:1px solid rgba(12,18,35,0.06);
-          background: linear-gradient(180deg,#fff,#f8fafc);
-          cursor:pointer;
-          min-width:86px;
-          font-weight:600;
-          white-space: nowrap;
-          transition: all 0.2s;
-        }
-        .btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(12,18,35,0.1);
-        }
-        .btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
-
-        /* right side panel */
-        .side {
-          display: none;
-          flex-direction:column;
-          gap:12px;
-        }
-        .stat {
-          background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(250,251,255,0.7));
-          border-radius: 12px;
-          padding:12px;
-          border: 1px solid rgba(12,18,35,0.04);
-        }
-        .muted { color: var(--muted); font-size:13px; }
-
-        /* message */
         .message {
           margin-top:8px;
           padding:12px;
@@ -890,7 +814,6 @@ export default function TransportCreation() {
           font-size: 16px;
         }
 
-        /* submit row */
         .submit-row { 
           display:flex; 
           gap:12px; 
@@ -935,7 +858,6 @@ export default function TransportCreation() {
           transform: translateY(-1px);
         }
         
-        /* search container */
         .search-container {
           position: relative;
           width: 100%;
@@ -978,7 +900,6 @@ export default function TransportCreation() {
           color: #374151;
         }
 
-        /* transports table */
         .transports-table-container {
           max-height: 400px;
           overflow-y: auto;
@@ -1022,54 +943,6 @@ export default function TransportCreation() {
           box-shadow: inset 2px 0 0 var(--accent);
         }
 
-        /* modal overlay (glass) */
-        .modal-overlay {
-          position:fixed; 
-          inset:0; 
-          display:flex; 
-          align-items:center; 
-          justify-content:center; 
-          background: rgba(2,6,23,0.46); 
-          z-index:1200; 
-          padding:20px;
-          backdrop-filter: blur(4px);
-        }
-        .modal {
-          width:100%; 
-          max-width:720px; 
-          max-height:80vh; 
-          overflow:auto; 
-          background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,248,255,0.8));
-          border-radius:12px; 
-          padding:14px;
-          border:1px solid rgba(255,255,255,0.5);
-          box-shadow: 0 18px 50px rgba(2,6,23,0.36);
-          backdrop-filter: blur(8px);
-        }
-
-        .dropdown-list { 
-          max-height:50vh; 
-          overflow:auto; 
-          border-top:1px solid rgba(12,18,35,0.03); 
-          border-bottom:1px solid rgba(12,18,35,0.03); 
-          padding:6px 0; 
-        }
-        .dropdown-item { 
-          padding:12px; 
-          border-bottom:1px solid rgba(12,18,35,0.03); 
-          cursor:pointer; 
-          display:flex; 
-          flex-direction:column; 
-          gap:4px; 
-          text-align: left;
-          transition: all 0.2s;
-        }
-        .dropdown-item:hover { 
-          background: linear-gradient(90deg, rgba(48,122,200,0.04), rgba(48,122,200,0.01)); 
-          transform: translateX(6px); 
-        }
-
-        /* Responsive styles */
         @media (max-width: 768px) {
           .uc-root {
             padding: 16px 12px;
@@ -1095,56 +968,6 @@ export default function TransportCreation() {
           }
         }
 
-        @media (max-width: 480px) {
-          .uc-root {
-            padding: 12px 8px;
-          }
-          .dashboard {
-            padding: 12px;
-            border-radius: 12px;
-          }
-          .title-block h2 {
-            font-size: 14px;
-          }
-          .input {
-            padding: 8px 10px;
-            font-size: 12px;
-          }
-          .submit-primary, .submit-clear {
-            flex: 1;
-            min-width: 0;
-          }
-          .transports-table th,
-          .transports-table td {
-            padding: 8px;
-            font-size: 12px;
-          }
-          .modal-overlay {
-            padding: 12px;
-          }
-          .modal {
-            padding: 12px;
-          }
-        }
-
-        @media (max-width: 360px) {
-          .uc-root {
-            padding: 8px 6px;
-          }
-          .dashboard {
-            padding: 10px;
-          }
-          .title-block {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-          }
-          .card {
-            padding: 12px;
-          }
-        }
-
-        /* Animations */
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
@@ -1182,9 +1005,8 @@ export default function TransportCreation() {
 
         <div className="grid" role="main">
           <div className="card" aria-live="polite">
-            {/* Row 1: Code and Transport Name (side by side) */}
+            {/* Row 1: Code and Transport Name */}
             <div className="two-column-row">
-              {/* Code field */}
               <div className="field">
                 <label className="field-label">
                   Code <span className="asterisk">*</span>
@@ -1192,9 +1014,8 @@ export default function TransportCreation() {
                 <input
                   ref={codeRef}
                   className="input"
-                  value={form.code}
-                  onChange={(e) => setForm(s => ({ ...s, code: e.target.value }))}
-                  placeholder="Transport code (auto-generated)"
+                  value={form.fCode}
+                  onChange={(e) => setForm(s => ({ ...s, fCode: e.target.value }))}
                   onKeyDown={onCodeKeyDown}
                   disabled={loading}
                   aria-label="Transport Code"
@@ -1202,7 +1023,6 @@ export default function TransportCreation() {
                 />
               </div>
 
-              {/* Transport Name field */}
               <div className="field">
                 <label className="field-label">
                   Transport Name <span className="asterisk">*</span>
@@ -1210,8 +1030,8 @@ export default function TransportCreation() {
                 <input 
                   ref={transportNameRef} 
                   className="input" 
-                  value={form.transportName} 
-                  onChange={(e) => setForm(s => ({ ...s, transportName: e.target.value }))} 
+                  value={form.fTransport} 
+                  onChange={(e) => setForm(s => ({ ...s, fTransport: e.target.value }))} 
                   onKeyDown={onTransportNameKeyDown}
                   disabled={loading || actionType === "Delete"}
                   aria-label="Transport Name"
@@ -1220,7 +1040,7 @@ export default function TransportCreation() {
               </div>
             </div>
 
-            {/* Row 2: Address (full width) */}
+            {/* Row 2: Address (fadD1) */}
             <div className="full-width-field">
               <div className="field">
                 <label className="field-label">
@@ -1229,9 +1049,8 @@ export default function TransportCreation() {
                 <input
                   ref={addressRef}
                   className="input"
-                  value={form.address}
-                  onChange={(e) => setForm(s => ({ ...s, address: e.target.value }))}
-                  placeholder="Enter full address"
+                  value={form.fadD1}
+                  onChange={(e) => setForm(s => ({ ...s, fadD1: e.target.value }))}
                   onKeyDown={onAddressKeyDown}
                   disabled={loading || actionType === "Delete"}
                   aria-label="Address"
@@ -1240,46 +1059,42 @@ export default function TransportCreation() {
               </div>
             </div>
 
-            {/* Row 3: Address1 and Address2 (side by side) */}
+            {/* Row 3: fadD2 and fadD3 */}
             <div className="address-two-column">
-              {/* Address1 field */}
               <div className="field">
                 <label className="field-label">
-                  Address1
+                  Address Line 2
                 </label>
                 <input
                   ref={address1Ref}
                   className="input"
-                  value={form.address1}
-                  onChange={(e) => setForm(s => ({ ...s, address1: e.target.value }))}
-                  placeholder="Address line 1"
+                  value={form.fadD2}
+                  onChange={(e) => setForm(s => ({ ...s, fadD2: e.target.value }))}
+                  // placeholder="Address line 2"
                   onKeyDown={onAddress1KeyDown}
                   disabled={loading || actionType === "Delete"}
-                  aria-label="Address 1"
                   maxLength={100}
                 />
               </div>
 
-              {/* Address2 field */}
               <div className="field">
                 <label className="field-label">
-                  Address2
+                  Address Line 3
                 </label>
                 <input
                   ref={address2Ref}
                   className="input"
-                  value={form.address2}
-                  onChange={(e) => setForm(s => ({ ...s, address2: e.target.value }))}
-                  placeholder="Address line 2"
+                  value={form.fadD3}
+                  onChange={(e) => setForm(s => ({ ...s, fadD3: e.target.value }))}
+                  // placeholder="Address line 3"
                   onKeyDown={onAddress2KeyDown}
                   disabled={loading || actionType === "Delete"}
-                  aria-label="Address 2"
                   maxLength={100}
                 />
               </div>
             </div>
 
-            {/* Row 4: GSTIN (full width) */}
+            {/* Row 4: GSTIN */}
             <div className="full-width-field">
               <div className="field">
                 <label className="field-label">
@@ -1288,9 +1103,8 @@ export default function TransportCreation() {
                 <input
                   ref={gstInRef}
                   className="input"
-                  value={form.gstIn}
-                  onChange={(e) => setForm(s => ({ ...s, gstIn: e.target.value }))}
-                  placeholder="Enter GSTIN number"
+                  value={form.fgstin}
+                  onChange={(e) => setForm(s => ({ ...s, fgstin: e.target.value }))}
                   onKeyDown={onGstInKeyDown}
                   disabled={loading || actionType === "Delete"}
                   aria-label="GSTIN"
@@ -1370,23 +1184,23 @@ export default function TransportCreation() {
                     <tbody>
                       {filteredExisting.map((t) => (
                         <tr 
-                          key={t.code}
-                          className={form.code === t.code ? "selected" : ""}
+                          key={t.fCode}
+                          className={form.fCode === t.fCode ? "selected" : ""}
                           onClick={() => {
                             setForm({ 
-                              code: t.code, 
-                              transportName: t.transportName,
-                              address: t.address || "",
-                              address1: t.address1 || "",
-                              address2: t.address2 || "",
-                              gstIn: t.gstIn || ""
+                              fCode: t.fCode, 
+                              fTransport: t.fTransport,
+                              fadD1: t.fadD1 || "",
+                              fadD2: t.fadD2 || "",
+                              fadD3: t.fadD3 || "",
+                              fgstin: t.fgstin || ""
                             });
                             setActionType("Edit");
                           }}
                         >
-                          <td>{t.code}</td>
-                          <td>{t.transportName}</td>
-                          <td>{t.gstIn || "-"}</td>
+                          <td>{t.fCode}</td>
+                          <td>{t.fTransport}</td>
+                          <td>{t.fgstin || "-"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1404,10 +1218,10 @@ export default function TransportCreation() {
         onSelect={(item) => { handleEditRowClick(item); setEditModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Transport to Edit"
-        displayFieldKeys={['transportName', 'gstIn']}
-        searchFields={['transportName', 'gstIn']}
+        displayFieldKeys={['fTransport', 'fgstin']}
+        searchFields={['fTransport', 'fgstin', 'fCode']}
         headerNames={['Transport Name', 'GSTIN']}
-        columnWidths={{ transportName: '70%', gstIn: '30%' }}
+        columnWidths={{ fTransport: '70%', fgstin: '30%' }}
         maxHeight="60vh"
       />
 
@@ -1417,14 +1231,14 @@ export default function TransportCreation() {
         onSelect={(item) => { handleDeleteRowClick(item); setDeleteModalOpen(false); }}
         fetchItems={fetchItemsForModal}
         title="Select Transport to Delete"
-        displayFieldKeys={['transportName', 'gstIn']}
-        searchFields={['transportName', 'gstIn']}
+        displayFieldKeys={['fTransport', 'fgstin']}
+        searchFields={['fTransport', 'fgstin', 'fCode']}
         headerNames={['Transport Name', 'GSTIN']}
-        columnWidths={{ transportName: '70%', gstIn: '30%' }}
+        columnWidths={{ fTransport: '70%', fgstin: '30%' }}
         maxHeight="60vh"
       />
 
-      {/* Save Confirmation Popup */}
+      {/* Confirmation Popups */}
       <ConfirmationPopup
         isOpen={confirmSaveOpen}
         onClose={() => setConfirmSaveOpen(false)}
@@ -1448,7 +1262,6 @@ export default function TransportCreation() {
         }}
       />
 
-      {/* Edit Confirmation Popup */}
       <ConfirmationPopup
         isOpen={confirmEditOpen}
         onClose={() => setConfirmEditOpen(false)}
@@ -1472,7 +1285,6 @@ export default function TransportCreation() {
         }}
       />
 
-      {/* Delete Confirmation Popup */}
       <ConfirmationPopup
         isOpen={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}

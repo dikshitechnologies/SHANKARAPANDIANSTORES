@@ -89,6 +89,9 @@ const SalesReturn = () => {
     newBillNo: ''
   });
 
+  // GST Mode state (default to Exclusive)
+  const [gstMode, setGstMode] = useState('Exclusive');
+
   // 2. Table Items State (WRate field removed)
   const [items, setItems] = useState([
     {
@@ -166,6 +169,9 @@ const [roundOffValue, setRoundOffValue] = useState(0);
   const [error, setError] = useState("");
   const [shouldFocusBillDate, setShouldFocusBillDate] = useState(false);
 
+  // Party balance state (shows current balance for selected customer)
+  const [partyBalance, setPartyBalance] = useState('0.00');
+
   // NEW STATE: For sales invoice bill list (pagination)
   const [salesInvoiceBills, setSalesInvoiceBills] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -193,6 +199,8 @@ const [roundOffValue, setRoundOffValue] = useState(0);
   const custNameRef = useRef(null);
   const returnReasonRef = useRef(null);
   const newBillNoRef = useRef(null);
+  const typeRef = useRef(null);
+  const gstModeRef = useRef(null);
 
 
   const [focusedField, setFocusedField] = useState('');
@@ -4514,30 +4522,20 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
 <div style={styles.headerSection}>
   {/* FIRST ROW with 4 fields - ALL SAME SIZE */}
   <div style={{
-    display: 'flex',
-    flexDirection: 'row',
-    flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
+    display: 'grid',
+    gridTemplateColumns: screenSize.isMobile 
+      ? 'repeat(2, 1fr)' 
+      : screenSize.isTablet
+        ? 'repeat(4, 1fr)'
+        : '0.4fr 0.4fr 0.5fr 0.5fr 0.5fr 0.2fr',
     gap: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '16px',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: '10px',
     width: '100%'
   }}>
     
     {/* Bill No */}
-    <div style={{
-      ...styles.formField,
-      flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-               'calc(25% - 12px)',
-      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                'calc(25% - 12px)',
-      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                 'calc(25% - 12px)'
-    }}>
+    <div style={styles.formField}>
       <label style={styles.inlineLabel}>Ref No:</label>
       <input
         type="text"
@@ -4565,171 +4563,177 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         onBlur={() => setFocusedField('')}
         readOnly
       />
-     
     </div>
 
     {/* Bill Date */}
-   <div style={{
-  ...styles.formField,
-  flex: '1 1 auto',
-  minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-           screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-           'calc(25% - 12px)',
-  maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-            screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-            'calc(25% - 12px)',
-  flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
-             screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-             'calc(25% - 12px)'
-}}>
-  <label style={styles.inlineLabel}>Entry Date:</label>
+    <div style={styles.formField}>
+      <label style={styles.inlineLabel}>Entry Date:</label>
+      <input
+        type="date"
+        style={{
+          ...(focusedField === 'billDate' ? styles.inlineInputFocused : styles.inlineInput),
+          padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
+                  screenSize.isTablet ? '8px 35px 8px 10px' : 
+                  '8px 35px 8px 10px',
+          fontSize: screenSize.isMobile ? '14px' : 'inherit'
+        }}
+        value={billDetails.billDate}
+        name="billDate"
+        onChange={handleInputChange}
+        ref={billDateRef}
+        onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
+        onFocus={() => {
+          setFocusedField('billDate');
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 1,
+            fieldName: 'billDate'
+          });
+        }}
+        onBlur={() => setFocusedField('')}
+      />
+    </div>
+
+    {/* Salesman */}
+    <div style={styles.formField}>
+      <label style={styles.inlineLabel}>Salesman:</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type="text"
+          style={{
+            ...(focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable),
+            padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
+                    screenSize.isTablet ? '8px 35px 8px 10px' : 
+                    '8px 35px 8px 10px',
+            fontSize: screenSize.isMobile ? '14px' : 'inherit',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}
+          value={billDetails.salesman}
+          name="salesman"
+          onChange={handleInputChange}
+          ref={salesmanRef}
+          onClick={() => openSalesmanPopup(billDetails.salesman)}
+          onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'salesman')}
+          onFocus={() => {
+            setFocusedField('salesman');
+            setFocusedElement({
+              type: 'header',
+              rowIndex: 0,
+              fieldIndex: 2,
+              fieldName: 'salesman'
+            });
+          }}
+          onBlur={() => setFocusedField('')}
+          readOnly
+        />
+        <span
+          onClick={() => openSalesmanPopup(billDetails.salesman)}
+          style={{
+            position: 'absolute',
+            right: '30px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            cursor: 'pointer',
+            color: '#666',
+          }}
+        >
+          <SearchIcon />
+        </span>
+        
+      </div>
+
+     
+    </div>
+
+    {/* NEW Bill No Field */}
+    <div style={styles.formField}>
+      <label style={styles.inlineLabel}>Bill No:</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type="text"
+          style={{
+            ...(focusedField === 'newBillNo' ? styles.inlineInputClickableFocused : styles.inlineInputClickable),
+            padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
+                    screenSize.isTablet ? '8px 35px 8px 10px' : 
+                    '8px 35px 8px 10px',
+            fontSize: screenSize.isMobile ? '14px' : 'inherit',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}
+          value={billDetails.newBillNo}
+          name="newBillNo"
+          onChange={handleInputChange}
+          ref={newBillNoRef}
+          onClick={openBillNumberPopup}
+          onKeyDown={(e) => handleKeyDown(e, gstModeRef, 'newBillNo')}
+          onFocus={() => {
+            setFocusedField('newBillNo');
+            setFocusedElement({
+              type: 'header',
+              rowIndex: 0,
+              fieldIndex: 3,
+              fieldName: 'newBillNo'
+            });
+          }}
+          onBlur={() => setFocusedField('')}
+          readOnly
+        />
+        <div 
+          style={{
+            position: 'absolute',
+            right: '10px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            cursor: 'pointer',
+            color: '#666',
+            fontSize: screenSize.isMobile ? '16px' : '18px'
+          }}
+          title="Click or press / to search"
+        >
+          <SearchIcon />
+        </div>
+      </div>
+    </div>
+
+  {/* GST Mode */}
+<div style={styles.formField}>
+  <label style={styles.inlineLabel}>GST Mode:</label>
   <input
-    type="date"
-    style={{
-      ...(focusedField === 'billDate' ? styles.inlineInputFocused : styles.inlineInput),
-      padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
-              screenSize.isTablet ? '8px 35px 8px 10px' : 
-              '8px 35px 8px 10px',
-      fontSize: screenSize.isMobile ? '14px' : 'inherit'
+    type="text"
+    data-header="gstMode"
+    value={gstMode}
+    ref={gstModeRef}
+    readOnly
+    onKeyDown={(e) => {
+      handleHeaderArrowNavigation(e, 'gstMode');
+
+      // ✅ SPACE → TOGGLE Inclusive / Exclusive
+      if (e.key === ' ') {
+        e.preventDefault();
+        setGstMode(prev =>
+          prev === 'Inclusive' ? 'Exclusive' : 'Inclusive'
+        );
+        return;
+      }
+
+      // ✅ ENTER → MOVE TO CUSTOMER
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        setTimeout(() => custNameRef.current?.focus(), 0);
+      }
     }}
-    value={billDetails.billDate}
-    name="billDate"
-    onChange={handleInputChange}
-    ref={billDateRef}
-    onKeyDown={(e) => handleKeyDown(e, salesmanRef)}
-    onFocus={() => {
-      setFocusedField('billDate');
-      setFocusedElement({
-        type: 'header',
-        rowIndex: 0,
-        fieldIndex: 1,
-        fieldName: 'billDate'
-      });
-    }}
+    style={
+      focusedField === 'gstMode'
+        ? { ...styles.inlineInputFocused, fontWeight: '600', cursor: 'pointer', width: '100%' }
+        : { ...styles.inlineInput, fontWeight: '600', cursor: 'pointer', width: '100%' }
+    }
+    onFocus={() => setFocusedField('gstMode')}
     onBlur={() => setFocusedField('')}
   />
 </div>
 
-    {/* Salesman */}
-    <div style={{
-      ...styles.formField,
-      flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-               'calc(25% - 12px)',
-      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                'calc(25% - 12px)',
-      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                 'calc(25% - 12px)'
-    }}>
-      <label style={styles.inlineLabel}>Salesman:</label>
-      <input
-        type="text"
-        style={{
-          ...(focusedField === 'salesman' ? styles.inlineInputClickableFocused : styles.inlineInputClickable),
-          padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
-                  screenSize.isTablet ? '8px 35px 8px 10px' : 
-                  '8px 35px 8px 10px',
-          fontSize: screenSize.isMobile ? '14px' : 'inherit'
-        }}
-        value={billDetails.salesman}
-        name="salesman"
-        onChange={handleInputChange}
-        ref={salesmanRef}
-        onClick={() => {
-          openSalesmanPopup(billDetails.salesman);
-        }}
-        onKeyDown={(e) => handleKeyDown(e, newBillNoRef, 'salesman')}
-        onFocus={() => {
-          setFocusedField('salesman');
-          setFocusedElement({
-            type: 'header',
-            rowIndex: 0,
-            fieldIndex: 2,
-            fieldName: 'salesman'
-          });
-        }}
-        onBlur={() => setFocusedField('')}
-        readOnly
-        right={true}
-      />
-     
-         <span
-    onClick={() => openSalesmanPopup(billDetails.salesman)}
-    style={{
-      position: 'absolute',
-      right: '30px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      cursor: 'pointer',
-      color: '#666',
-      
-    }}
-  >
-    <SearchIcon />
-  </span>
-      
-      
-       <div style={{marginLeft: '5px'}}> <PopupScreenModal screenIndex={7} /> </div> 
-    </div>
-   
-    
-
-    {/* NEW Bill No Field */}
-    <div style={{
-      ...styles.formField,
-      flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-               'calc(25% - 12px)',
-      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                'calc(25% - 12px)',
-      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                 'calc(25% - 12px)'
-    }}>
-      <label style={styles.inlineLabel}>Bill No:</label>
-      <input
-        type="text"
-        style={{
-          ...(focusedField === 'newBillNo' ? styles.inlineInputClickableFocused : styles.inlineInputClickable),
-          padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
-                  screenSize.isTablet ? '8px 35px 8px 10px' : 
-                  '8px 35px 8px 10px',
-          fontSize: screenSize.isMobile ? '14px' : 'inherit'
-        }}
-        value={billDetails.newBillNo}
-        name="newBillNo"
-        onChange={handleInputChange}
-        ref={newBillNoRef}
-        onClick={openBillNumberPopup}
-        onKeyDown={(e) => handleKeyDown(e, custNameRef, 'newBillNo')}
-        onFocus={() => {
-          setFocusedField('newBillNo');
-          setFocusedElement({
-            type: 'header',
-            rowIndex: 0,
-            fieldIndex: 3,
-            fieldName: 'newBillNo'
-          });
-        }}
-        onBlur={() => setFocusedField('')}
-        readOnly
-      />
-      <div 
-        style={{
-          ...styles.searchIconInside,
-          right: screenSize.isMobile ? '8px' : '10px',
-          fontSize: screenSize.isMobile ? '16px' : '18px'
-        }}
-        title="Click or press / to search"
-      >
-        <SearchIcon />
-      </div>
-    </div>
   </div>
 
   {/* SECOND ROW with 2 fields + 2 EMPTY DIVS like sales invoice */}
@@ -4885,38 +4889,28 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
   />
  
 </div>
- <div> <PopupScreenModal screenIndex={5} /> </div>
 
 
-    {/* EMPTY DIV 1 - to maintain 4-column grid structure like sales invoice */}
-    <div style={{
-      ...styles.formField,
-      flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-               'calc(25% - 12px)',
-      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                'calc(25% - 12px)',
-      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                 'calc(25% - 12px)'
-    }}></div>
+  {/* Party Balance */}
+    <div style={styles.formField}>
+      <label style={styles.inlineLabel}>Party Bal:</label>
+      <input
+        type="text"
+        value={partyBalance}
+        readOnly
+        tabIndex={-1}
+        style={{
+          ...styles.inlineInput,
+          fontWeight: '600',
+          
+          cursor: 'not-allowed'
+        }}
+      />
+    </div>
 
-    {/* EMPTY DIV 2 - to maintain 4-column grid structure like sales invoice */}
-    <div style={{
-      ...styles.formField,
-      flex: '1 1 auto',
-      minWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-               screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-               'calc(25% - 12px)',
-      maxWidth: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                'calc(25% - 12px)',
-      flexBasis: screenSize.isMobile ? 'calc(50% - 5px)' : 
-                 screenSize.isTablet ? 'calc(33.33% - 8px)' : 
-                 'calc(25% - 12px)'
-    }}></div>
+     <div> <PopupScreenModal screenIndex={5} /> </div>
+
+ 
   </div>
 </div>
 
@@ -4934,6 +4928,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
           <th style={{ ...styles.th, textAlign: 'right' }}>UOM</th>
           <th style={{ ...styles.th, textAlign: 'right' }}>HSN</th>
           <th style={{ ...styles.th, textAlign: 'right' }}>TAX (%)</th>
+          <th style={{ ...styles.th, textAlign: 'right' }}>Tax Amt</th> 
           <th style={{ ...styles.th, textAlign: 'right' }}>SRate</th>
           <th style={{ ...styles.th, textAlign: 'right' }}>Qty</th>
           <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th>
@@ -5168,6 +5163,33 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
                 step="0.01"
               />
             </td>
+
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+  <input
+    readOnly
+    style={{
+      ...styles.editableInput,
+      textAlign: 'right',
+      backgroundColor: '#f7fbff',
+      fontWeight: '600',
+      color: '#0d47a1'
+    }}
+    value={(() => {
+      const rate = parseFloat(item.sRate || 0);
+      const qty = parseFloat(item.qty || 0);
+      const tax = parseFloat(item.tax || 0);
+
+      if (!rate || !qty || !tax) return '0.00';
+
+      // 🔹 EXCLUSIVE tax calculation
+      const taxable = rate * qty;
+      const taxAmt = (taxable * tax) / 100;
+
+      return taxAmt.toFixed(2);
+    })()}
+  />
+</td>
+
             <td style={{ ...styles.td, textAlign: 'right' }}>
               <input
                 style={focusedField === `sRate-${item.id}` ? { ...styles.editableInputFocused, textAlign: 'right' } : { ...styles.editableInput, textAlign: 'right' }}
@@ -5320,7 +5342,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
             zIndex: 2
           }}
         >
-          <td colSpan={9} style={{ textAlign: 'right', padding: '10px' }}>
+          <td colSpan={10} style={{ textAlign: 'right', padding: '10px' }}>
             TOTAL
           </td>
           <td style={{ textAlign: 'right', padding: '10px' }}>
