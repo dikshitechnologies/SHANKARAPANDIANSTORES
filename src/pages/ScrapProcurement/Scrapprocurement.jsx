@@ -2406,281 +2406,269 @@ const clearFormData = async () => {
       </div>
 
       {/* --- TABLE SECTION --- */}
-      <div style={styles.tableSection}>
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>S.No</th>
-                {/* <th style={{ ...styles.th}}>Barcode</th> */}
-                <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Item Name</th>
-                <th style={styles.th}>UOM</th>
-                <th style={styles.th}>TAX (%)</th>
-                <th style={styles.th}>SRate</th>
-                <th style={styles.th}>Qty</th>
-                <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th>
-                <th style={styles.th}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
-                  <td style={styles.td}>{item.sNo}</td>
-                  {/* <td style={styles.td}>
-                    <input
-                      style={focusedField === `scrapProductName-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.scrapProductName}
-                      data-row={index}
-                      data-field="scrapProductName"
-                      // onChange={(e) => handleItemChange(item.id, 'scrapProductName', e.target.value)}
-                      // onChange={onCompanyChange}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'scrapProductName')}
-                      onFocus={() => {
-                        setFocusedField(`scrapProductName-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 0 });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td> */}
-                  <td style={{ ...styles.td, ...styles.itemNameContainer }}>
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    <input
-                      style={{ 
-                        ...(focusedField === `itemName-${item.id}` ? styles.editableInputClickableFocused : styles.editableInputClickable),
-                        textAlign: 'left',
-                        paddingRight: '32px',
-                      }}
-                      value={item.itemName}
-                      data-row={index}
-                      data-field="itemName"
-                      onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
-                      onFocus={() => {
-                        setFocusedField(`itemName-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 0 });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                    />
-                    <button
-                      type="button"
-                      aria-label="Search item details"
-                      title="Search item details"
-                      onClick={() => {
-                        setSelectedRowForItem(index);
-                        setItemSearchTerm('');
-                        setClosedItemByUser(false);
-                        setShowItemPopup(true);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        right: '8px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        border: 'none',
-                        background: 'transparent',
-                        color: '#1B91DA',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 0,
-                        zIndex: 1,
-                        height: '24px',
-                        width: '24px'
-                      }}
-                    >
-                      <Icon.Search size={18} />
-                    </button>
-                  </div>
-                </td>
-                  <td style={styles.td}>
-                    <input
-                      style={{ ...styles.editableInput, backgroundColor: '#f0f7ff', textAlign: 'center' }}
-                      value={item.uom || ''}
-                      readOnly
-                      data-row={index}
-                      data-field="uom"
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `tax-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.tax}
-                      data-row={index}
-                      data-field="tax"
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        // Allow only numbers and empty input
-                        if (value === '' || /^[0-9]*$/.test(value)) {
-                          // Validate as user types
-                          handleItemChange(item.id, 'tax', value);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        handleTableKeyDown(e, index, 'tax');
-                        
-                        // Clear on Escape key
-                        if (e.key === 'Escape') {
-                          handleItemChange(item.id, 'tax', '');
-                        }
-                      }}
-                      onFocus={(e) => {
-                        setFocusedField(`tax-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 1 });
-                        if (e.target.value) {
-                          setTimeout(() => {
-                            e.target.select();
-                          }, 0);
-                        }
-                      }}
-                      onBlur={(e) => {
-                        const value = e.target.value;
-                        const validTaxValues = allTax.map(t => String(t.tax));
-                        
-                        // Validate on blur
-                        if (value !== '' && !validTaxValues.includes(value)) {
-                          showConfirmation({
-                            title: 'Invalid Tax Rate',
-                            message: 'Not a valid tax rate. Please use one of: ' + validTaxValues.join(', '),
-                            type: 'warning',
-                            confirmText: 'OK',
-                            cancelText: '',
-                            showCancelButton: false,
-                            onConfirm: () => {
-                              setShowConfirmPopup(false);
-                              setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 2 });
-                              setTimeout(() => {
-                                const taxInput = document.querySelector(`input[data-row="${index}"][data-field="tax"]`);
-                                if (taxInput) taxInput.focus();
-                              }, 100);
-                            }
-                          });
-                        }                        
-                        setFocusedField('');
-                      }}
-                      // placeholder="3, 5, 12, 18, 40"
-                      // maxLength="2"
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `sRate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.sRate}
-                      data-row={index}
-                      data-field="sRate"
-                      // onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        // Allow only numbers and empty input
-                        if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value))  {
-                          // Validate as user types
-                          handleItemChange(item.id, 'sRate', value);
-                        }
-                      }}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
-                      onFocus={(e) => {
-                        setFocusedField(`sRate-${item.id}`);
+     <div style={styles.tableSection}>
+  <div style={styles.tableContainer}>
+    <table style={styles.table}>
+      <thead>
+        <tr>
+          <th style={styles.th}>S.No</th>
+          <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Item Name</th>
+          <th style={{ ...styles.th, textAlign: 'right' }}>UOM</th> {/* RIGHT ALIGN */}
+          <th style={{ ...styles.th, textAlign: 'right' }}>TAX (%)</th> {/* RIGHT ALIGN */}
+          <th style={{ ...styles.th, textAlign: 'right' }}>SRate</th> {/* RIGHT ALIGN */}
+          <th style={{ ...styles.th, textAlign: 'right' }}>Qty</th> {/* RIGHT ALIGN */}
+          <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th> {/* RIGHT ALIGN */}
+          <th style={styles.th}>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((item, index) => (
+          <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+            <td style={styles.td}>{item.sNo}</td>
+            <td style={{ ...styles.td, ...styles.itemNameContainer, textAlign: 'left' }}>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  style={{ 
+                    ...(focusedField === `itemName-${item.id}` ? styles.editableInputClickableFocused : styles.editableInputClickable),
+                    textAlign: 'left', // LEFT ALIGN
+                    paddingRight: '32px',
+                  }}
+                  value={item.itemName}
+                  data-row={index}
+                  data-field="itemName"
+                  onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
+                  onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
+                  onFocus={() => {
+                    setFocusedField(`itemName-${item.id}`);
+                    setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 0 });
+                  }}
+                  onBlur={() => setFocusedField('')}
+                />
+                <button
+                  type="button"
+                  aria-label="Search item details"
+                  title="Search item details"
+                  onClick={() => {
+                    setSelectedRowForItem(index);
+                    setItemSearchTerm('');
+                    setClosedItemByUser(false);
+                    setShowItemPopup(true);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#1B91DA',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                    zIndex: 1,
+                    height: '24px',
+                    width: '24px'
+                  }}
+                >
+                  <Icon.Search size={18} />
+                </button>
+              </div>
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}> {/* RIGHT ALIGN */}
+              <input
+                style={{ ...styles.editableInput, backgroundColor: '#f0f7ff', textAlign: 'right' }} // Changed from center to right
+                value={item.uom || ''}
+                readOnly
+                data-row={index}
+                data-field="uom"
+              />
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}> {/* RIGHT ALIGN */}
+              <input
+                style={focusedField === `tax-${item.id}` 
+                  ? { ...styles.editableInputFocused, textAlign: 'right' }
+                  : { ...styles.editableInput, textAlign: 'right' }}
+                value={item.tax}
+                data-row={index}
+                data-field="tax"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow only numbers and empty input
+                  if (value === '' || /^[0-9]*$/.test(value)) {
+                    // Validate as user types
+                    handleItemChange(item.id, 'tax', value);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  handleTableKeyDown(e, index, 'tax');
+                  
+                  // Clear on Escape key
+                  if (e.key === 'Escape') {
+                    handleItemChange(item.id, 'tax', '');
+                  }
+                }}
+                onFocus={(e) => {
+                  setFocusedField(`tax-${item.id}`);
+                  setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 1 });
+                  if (e.target.value) {
+                    setTimeout(() => {
+                      e.target.select();
+                    }, 0);
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value;
+                  const validTaxValues = allTax.map(t => String(t.tax));
+                  
+                  // Validate on blur
+                  if (value !== '' && !validTaxValues.includes(value)) {
+                    showConfirmation({
+                      title: 'Invalid Tax Rate',
+                      message: 'Not a valid tax rate. Please use one of: ' + validTaxValues.join(', '),
+                      type: 'warning',
+                      confirmText: 'OK',
+                      cancelText: '',
+                      showCancelButton: false,
+                      onConfirm: () => {
+                        setShowConfirmPopup(false);
                         setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 2 });
-                        if (e.target.value) {
-                          setTimeout(() => {
-                            e.target.select();
-                          }, 0);
-                        }
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      step="0.01"
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `qty-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.qty}
-                      data-row={index}
-                      data-field="qty"
-                      // onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        // Allow only numbers and empty input
-                        if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-                          // Validate as user types
-                          handleItemChange(item.id, 'qty', value);
-                        }
-                      }}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
-                      onFocus={(e) => {
-                        setFocusedField(`qty-${item.id}`);
-                        setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
-                        if (e.target.value) {
-                          setTimeout(() => {
-                            e.target.select();
-                          }, 0);
-                        }
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      step="0.01"
-                    />
-                  </td>
-                  <td style={{ ...styles.td, ...styles.amountContainer }}>
-                    <input
-                      style={{ ...styles.editableInput, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff' }}
-                      value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
-                      readOnly
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <button
-                      aria-label="Delete row"
-                      title="Delete row"
-                      style={{
-                        backgroundColor: 'transparent',
-                        color: '#dc3545',
-                        border: 'none',
-                        padding: 0,
-                        borderRadius: '2px',
-                        width: '100%',
-                        height: '100%',
-                        cursor: 'pointer',
-                        fontSize: screenSize.isMobile ? '12px' : '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'color 0.15s ease',
-                        minHeight: screenSize.isMobile ? '28px' : '32px',
-                      }}
-                      onClick={() => handleDeleteRow(item.id)}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width={screenSize.isMobile ? "16" : "18"}
-                        height={screenSize.isMobile ? "16" : "18"}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#dc3545"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        focusable="false"
-                        style={{ display: 'block', margin: 'auto' }}
-                      >
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                        <path d="M10 11v6"></path>
-                        <path d="M14 11v6"></path>
-                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
+                        setTimeout(() => {
+                          const taxInput = document.querySelector(`input[data-row="${index}"][data-field="tax"]`);
+                          if (taxInput) taxInput.focus();
+                        }, 100);
+                      }
+                    });
+                  }                        
+                  setFocusedField('');
+                }}
+                // placeholder="3, 5, 12, 18, 40"
+                // maxLength="2"
+              />
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}> {/* RIGHT ALIGN */}
+              <input
+                style={focusedField === `sRate-${item.id}` 
+                  ? { ...styles.editableInputFocused, textAlign: 'right' }
+                  : { ...styles.editableInput, textAlign: 'right' }}
+                value={item.sRate}
+                data-row={index}
+                data-field="sRate"
+                // onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow only numbers and empty input
+                  if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value))  {
+                    // Validate as user types
+                    handleItemChange(item.id, 'sRate', value);
+                  }
+                }}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
+                onFocus={(e) => {
+                  setFocusedField(`sRate-${item.id}`);
+                  setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 2 });
+                  if (e.target.value) {
+                    setTimeout(() => {
+                      e.target.select();
+                    }, 0);
+                  }
+                }}
+                onBlur={() => setFocusedField('')}
+                step="0.01"
+              />
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}> {/* RIGHT ALIGN */}
+              <input
+                style={focusedField === `qty-${item.id}` 
+                  ? { ...styles.editableInputFocused, textAlign: 'right' }
+                  : { ...styles.editableInput, textAlign: 'right' }}
+                value={item.qty}
+                data-row={index}
+                data-field="qty"
+                // onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow only numbers and empty input
+                  if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+                    // Validate as user types
+                    handleItemChange(item.id, 'qty', value);
+                  }
+                }}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
+                onFocus={(e) => {
+                  setFocusedField(`qty-${item.id}`);
+                  setCurrentFocus({ section: 'table', rowIndex: index, fieldIndex: 3 });
+                  if (e.target.value) {
+                    setTimeout(() => {
+                      e.target.select();
+                    }, 0);
+                  }
+                }}
+                onBlur={() => setFocusedField('')}
+                step="0.01"
+              />
+            </td>
+            <td style={{ ...styles.td, ...styles.amountContainer, textAlign: 'right' }}>
+              <input
+                style={{ ...styles.editableInput, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff' }}
+                value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })}
+                readOnly
+              />
+            </td>
+            <td style={styles.td}>
+              <button
+                aria-label="Delete row"
+                title="Delete row"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#dc3545',
+                  border: 'none',
+                  padding: 0,
+                  borderRadius: '2px',
+                  width: '100%',
+                  height: '100%',
+                  cursor: 'pointer',
+                  fontSize: screenSize.isMobile ? '12px' : '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 0.15s ease',
+                  minHeight: screenSize.isMobile ? '28px' : '32px',
+                }}
+                onClick={() => handleDeleteRow(item.id)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width={screenSize.isMobile ? "16" : "18"}
+                  height={screenSize.isMobile ? "16" : "18"}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#dc3545"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                  style={{ display: 'block', margin: 'auto' }}
+                >
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                  <path d="M10 11v6"></path>
+                  <path d="M14 11v6"></path>
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
       {/* Salesman Popup */}
       <PopupListSelector
         open={showSalesmanPopup}
