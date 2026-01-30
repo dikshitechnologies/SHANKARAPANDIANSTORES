@@ -2817,561 +2817,433 @@ if (e.key === 'Enter') {
       </div>
 
       {/* --- TABLE SECTION --- */}
-      <div style={styles.tableSection}>
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>S.NO</th>
-                <th style={styles.th}>Barcode</th>
-                <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Particulars</th>
-                <th style={styles.th}>UOM</th>
-                <th style={styles.th}>Stock</th>
-                <th style={styles.th}>HSN</th>
-                <th style={styles.th}>Qty</th>
-                <th style={styles.th}>OvrWt</th>
-                <th style={styles.th}>AvgWt</th>
-                <th style={styles.th}>PRate</th>
-                <th style={styles.th}>InTax</th>
-                <th style={styles.th}>OutTax</th>
-                <th style={styles.th}>ACost</th>
-                {/* <th style={styles.th}>Sudo</th>
-                <th style={styles.th}>Profit%</th>
-                <th style={styles.th}>PreRT</th>
-                <th style={styles.th}>SRate</th>
-                <th style={styles.th}>ASRate</th>
-                <th style={styles.th}>MRP</th>
-                <th style={styles.th}>PPer</th>
-                <th style={styles.th}>NTCost</th>
-                <th style={styles.th}>WS%</th>
-                <th style={styles.th}>WRate</th> */}
-                <th style={{...styles.th, width: '150px', maxWidth: '150px', minWidth: '150px'}}>Total</th>
-                <th style={styles.th}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
-                  <td style={styles.td}>{index + 1}</td>
-                  <td style={styles.td}>
-                    <input
-                      // style={styles.editableInput}
-                      style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.barcode}
-                      data-row={index}
-                      readOnly
-                      data-field="barcode"
-                      onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
-                      onFocus={() => setFocusedField(`barcode-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  
-                    <td style={{ ...styles.td, ...styles.itemNameContainer }}>
-                    <div style={{ 
-                      position: 'relative', 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      height: '100%',
-                      border: focusedField === `name-${item.id}` ? '2px solid #1B91DA' : 'none',
-                      backgroundColor: focusedField === `name-${item.id}` ? '#e6f7ff' : 'transparent',
-                      borderRadius: '4px',
-                      boxShadow: focusedField === `name-${item.id}` ? '0 0 0 2px rgba(27, 145, 218, 0.2)' : 'none',
-                      transition: 'all 0.2s ease'
-                    }}>
-                      <input                      
-                        style={{ 
-                          ...styles.editableInput, 
-                          textAlign: 'left',
-                          border: 'none',
-                          outline: 'none',
-                          background: 'transparent',
-                          paddingLeft: '8px',
-                          paddingRight: '32px',
-                          width: '100%',
-                          height: '100%',
-                          boxShadow: 'none'
-                        }}
-                        value={item.name}
-                        data-row={index}
-                        data-field="name"
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          handleItemChange(item.id, 'name', value);
-                          
-                          if (value.length > 0) {
-                            handleItemCodeSelect(item.id, value);
-                          }
-                        }}
-                        // onKeyDown={(e) => {
-                        //   if (e.key === '/') {
-                        //     e.preventDefault();
-                        //     handleItemCodeSelect(item.id, item.name);
-                        //   } else if (e.key === 'Enter') {
-                        //     handleTableKeyDown(e, index, 'name');
-                        //   }
-                        // }}
-                         onKeyDown={(e) => {
-                        // Handle Enter key to move to QTY field or Add/Less if row missed
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          
-                          // Check if row is missed (name field is empty)
-                          if (!item.name || item.name.trim() === '') {
-                            // Skip to Add/Less field
-                            if (addLessRef.current) {
-                              addLessRef.current.focus();
-                            }
-                          } else {
-                            // Find and focus on the QTY field
-                            const qtyInput = document.querySelector(
-                              `input[data-row="${index}"][data-field="qty"]`
-                            );
-                            if (qtyInput) {
-                              qtyInput.focus();
-                            }
-                          }
-                          return;
-                        }
-                        
-                        // Handle slash for search popup
-                        if (e.key === '/') {
-                          e.preventDefault();
-                          handleItemCodeSelect(item.id, item.name);
-                        }
-                      }}
-                        onFocus={() => setFocusedField(`name-${item.id}`)}
-                        onBlur={() => setFocusedField('')}
-                        title="Click to select item from list"
-                      />
-                      <button
-                        type="button"
-                        tabIndex="-1"
-                        aria-label="Search item details"
-                        title="Click to select item from list"
-                        onClick={() => {
-                          handleItemCodeSelect(item.id, item.name);
-                        }}
-                        onFocus={(e) => {
-                          // Skip focus on button, return to input field
-                          const nameInput = document.querySelector(
-                            `input[data-row="${index}"][data-field="name"]`
-                          );
-                          if (nameInput) {
-                            e.preventDefault();
-                            nameInput.focus();
-                          }
-                        }}
-                        style={{
-                          position: 'absolute',
-                          right: '8px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#1B91DA',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: 0,
-                          zIndex: 1,
-                          height: '24px',
-                          width: '24px'
-                        }}
-                      >
-                        <Icon.Search size={18} />
-                      </button>
-                    </div>
-                  </td>
-                    <td style={styles.td}>
-                    <div style={styles.uomContainer}>
-                      <div 
-                        style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
-                        title="UOM is read-only"
-                        data-row={index}
-                        data-field="uom"
-                      >
-                        {item.uom || ''}
-                      </div>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `stock-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.stock}
-                      data-row={index}
-                      data-field="stock"
-                      readOnly
-                      onChange={(e) => handleItemChange(item.id, 'stock', parseFloat(e.target.value) || 0)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
-                       onFocus={() => setFocusedField(`stock-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `hsn-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.hsn}
-                      data-row={index}
-                      data-field="hsn"
-                      onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
-                      onFocus={() => setFocusedField(`hsn-${item.id}`)}
-                      onBlur={() => setFocusedField('')}                      
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `qty-${item.id}` ? { ...styles.editableInputFocused, fontWeight: 'bold' } : { ...styles.editableInput, fontWeight: 'bold' }}
-                      value={item.qty}
-                      data-row={index}
-                      data-field="qty"
-                      onChange={(e) => handleItemChange(item.id, 'qty', parseFloat(e.target.value) || '')}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
-                      onFocus={() => setFocusedField(`qty-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `ovrwt-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.ovrwt || ''}
-                      data-row={index}
-                      data-field="ovrwt"
-                      
-                      onChange={(e) => handleItemChange(item.id, 'ovrwt', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'ovrwt')}
-                      onFocus={() => setFocusedField(`ovrwt-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `avgwt-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.avgwt || ''}
-                      data-row={index}
-                      data-field="avgwt"                      
-                      onChange={(e) => handleItemChange(item.id, 'avgwt', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'avgwt')}
-                      onFocus={() => setFocusedField(`avgwt-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `prate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.prate || ''}
-                      data-row={index}
-                      data-field="prate"
-                      onChange={(e) => handleItemChange(item.id, 'prate', parseFloat(e.target.value) )}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'prate')}
-                      onFocus={() => setFocusedField(`prate-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `intax-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.intax || ''}
-                      data-row={index}
-                      data-field="intax"
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        const validTaxValues = ['3', '5', '12', '18', '40'];
-                        if (value === '' || /^[0-9]*$/.test(value)) {
-                          handleItemChange(item.id, 'intax', value);
-                        }
-                      }}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'intax')}
-                      onBlur={(e) => {
-                        const value = e.target.value;
-                        const validTaxValues = allTax.map(t => t.displayName);
-                        if (value !== '' && !validTaxValues.includes(value)) {
-                          showAlertConfirmation(
-                            'Invalid tax value. Please enter ' + validTaxValues.join(', '),
-                            () => {
-                              handleItemChange(item.id, 'intax', '');
-                              // Focus back on the field after alert
-                              setTimeout(() => {
-                                const intaxInput = document.querySelector(
-                                  `input[data-row="${index}"][data-field="intax"]`
-                                );
-                                if (intaxInput) {
-                                  intaxInput.focus();
-                                }
-                              }, 100);
-                            },
-                            'warning'
-                          );
-                          
-                        }
-                      }}
-                      onFocus={() => setFocusedField(`intax-${item.id}`)}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `outtax-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.outtax || ''}
-                      data-row={index}
-                      data-field="outtax"
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        const validTaxValues = ['3', '5', '12', '18', '40'];
-                        if (value === '' || /^[0-9]*$/.test(value)) {
-                          handleItemChange(item.id, 'outtax', value);
-                        }
-                      }}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'outtax')}
-                      onBlur={(e) => {
-                        const value = e.target.value;
-                        const validTaxValues = allTax.map(t => t.displayName);
-                        if (value !== '' && !validTaxValues.includes(value)) {
-                          showAlertConfirmation(
-                            'Invalid tax value. Please enter ' + validTaxValues.join(', '),
-                            () => {
-                              handleItemChange(item.id, 'outtax', '');
-                              // Focus back on the field after alert
-                              setTimeout(() => {
-                                const outtaxInput = document.querySelector(
-                                  `input[data-row="${index}"][data-field="outtax"]`
-                                );
-                                if (outtaxInput) {
-                                  outtaxInput.focus();
-                                }
-                              }, 100);
-                            },
-                            'warning'
-                          );
-                          
-                        }
-                      }}
-                      onFocus={() => setFocusedField(`outtax-${item.id}`)}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `acost-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.acost || ''}
-                      data-row={index}
-                      data-field="acost"
-                      onChange={(e) => handleItemChange(item.id, 'acost', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'acost')}
-                      onFocus={() => setFocusedField(`acost-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  {/* <td style={styles.td}>
-                    <input
-                      style={focusedField === `sudo-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.sudo || ''}
-                      data-row={index}
-                      data-field="sudo"
-                      onChange={(e) => {
-                        const value = e.target.value.toUpperCase();
-                        // Allow only letters, any length
-                        if (/^[A-Z]*$/.test(value)) {
-                          handleItemChange(item.id, 'sudo', value);
-                        }
-                      }}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'sudo')}
-                      onBlur={(e) => {
-                        const value = e.target.value.toUpperCase();
-                        if (value !== '') {
-                          // Validate the sudo letters against fseudoMap
-                          if (!validateSudoLetters(value, index)) {
-                            // Clear both sudo and profitPercent on invalid entry
-                            handleItemChange(item.id, 'sudo', '');
-                            handleItemChange(item.id, 'profitPercent', '');
-                          }
-                        }
-                      }}
-                      onFocus={() => setFocusedField(`sudo-${item.id}`)}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `profitPercent-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.profitPercent || ''}
-                      data-row={index}
-                      data-field="profitPercent"
-                      onChange={(e) => handleItemChange(item.id, 'profitPercent', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'profitPercent')}
-                      onFocus={() => setFocusedField(`profitPercent-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                      readOnly
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `preRT-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.preRT || ''}
-                      data-row={index}
-                      data-field="preRT"
-                      onChange={(e) => handleItemChange(item.id, 'preRT', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'preRT')}
-                      onFocus={() => setFocusedField(`preRT-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `sRate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.sRate || ''}
-                      data-row={index}
-                      data-field="sRate"
-                      onChange={(e) => handleItemChange(item.id, 'sRate', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
-                      onFocus={() => setFocusedField(`sRate-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `asRate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.asRate || ''}
-                      data-row={index}
-                      data-field="asRate"
-                      onChange={(e) => handleItemChange(item.id, 'asRate', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'asRate')}
-                      onFocus={() => setFocusedField(`asRate-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.mrp}
-                      data-row={index}
-                      data-field="mrp"
-                      onChange={(e) => handleItemChange(item.id, 'mrp', parseFloat(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'mrp')}
-                      onFocus={() => setFocusedField(`mrp-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `letProfPer-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.letProfPer || ''}
-                      data-row={index}
-                      data-field="letProfPer"
-                      onChange={(e) => handleItemChange(item.id, 'letProfPer', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'letProfPer')}
-                      onFocus={() => setFocusedField(`letProfPer-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `ntCost-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.ntCost || ''}
-                      data-row={index}
-                      data-field="ntCost"
-                      onChange={(e) => handleItemChange(item.id, 'ntCost', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'ntCost')}
-                      onFocus={() => setFocusedField(`ntCost-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `wsPercent-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.wsPercent || ''}
-                      data-row={index}
-                      data-field="wsPercent"
-                      onChange={(e) => handleItemChange(item.id, 'wsPercent', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'wsPercent')}
-                      onFocus={() => setFocusedField(`wsPercent-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>                  
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `wsRate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.wsRate || ''}
-                      data-row={index}
-                      data-field="wsRate"
-                      onChange={(e) => handleItemChange(item.id, 'wsRate', handleNumericInput(e.target.value))}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
-                      onFocus={() => setFocusedField(`wsRate-${item.id}`)}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td> */}
-                  <td style={{ ...styles.td, width: '150px', maxWidth: '150px', minWidth: '150px' }}>
-                    <input
-                      style={{
-                        ...(focusedField === `amt-${item.id}`
-                          ? styles.editableInputFocused
-                          : styles.editableInput),
-                        width: '100%',
-                        textAlign: 'center',
-                        fontWeight: 'bold',
-                        paddingRight: '8px'
-                      }}
-                  value={item.amt || ''}
+   <div style={styles.tableSection}>
+  <div style={styles.tableContainer}>
+    <table style={styles.table}>
+      <thead>
+        <tr>
+          <th style={styles.th}>S.NO</th>
+          <th style={styles.th}>Barcode</th>
+          <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Particulars</th>
+          <th style={styles.th}>UOM</th>
+          <th style={styles.th}>Stock</th>
+          <th style={styles.th}>HSN</th>
+          <th style={styles.th}>Qty</th>
+          <th style={styles.th}>OvrWt</th>
+          <th style={styles.th}>AvgWt</th>
+          <th style={styles.th}>PRate</th>
+          <th style={styles.th}>InTax</th>
+          <th style={styles.th}>OutTax</th>
+          <th style={styles.th}>ACost</th>
+          <th style={{...styles.th, width: '150px', maxWidth: '150px', minWidth: '150px'}}>Total</th>
+          <th style={styles.th}>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((item, index) => (
+          <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+            <td style={styles.td}>{index + 1}</td>
+            <td style={styles.td}>
+              <input
+                style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
+                value={item.barcode}
+                data-row={index}
+                readOnly
+                data-field="barcode"
+                onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}
+                onFocus={() => setFocusedField(`barcode-${item.id}`)}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            
+            <td style={{ ...styles.td, ...styles.itemNameContainer }}>
+              <div style={{ 
+                position: 'relative', 
+                display: 'flex', 
+                alignItems: 'center',
+                height: '100%',
+                border: focusedField === `name-${item.id}` ? '2px solid #1B91DA' : 'none',
+                backgroundColor: focusedField === `name-${item.id}` ? '#e6f7ff' : 'transparent',
+                borderRadius: '4px',
+                boxShadow: focusedField === `name-${item.id}` ? '0 0 0 2px rgba(27, 145, 218, 0.2)' : 'none',
+                transition: 'all 0.2s ease'
+              }}>
+                <input                      
+                  style={{ 
+                    ...styles.editableInput, 
+                    textAlign: 'left', // Left aligned for Particulars
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    paddingLeft: '8px',
+                    paddingRight: '32px',
+                    width: '100%',
+                    height: '100%',
+                    boxShadow: 'none'
+                  }}
+                  value={item.name}
                   data-row={index}
-                  data-field="amt"
-                  readOnly
-                  onKeyDown={(e) => handleTableKeyDown(e, index, 'amt')}
-                  onFocus={() => setFocusedField(`amt-${item.id}`)}
+                  data-field="name"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleItemChange(item.id, 'name', value);
+                    
+                    if (value.length > 0) {
+                      handleItemCodeSelect(item.id, value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      
+                      if (!item.name || item.name.trim() === '') {
+                        if (addLessRef.current) {
+                          addLessRef.current.focus();
+                        }
+                      } else {
+                        const qtyInput = document.querySelector(
+                          `input[data-row="${index}"][data-field="qty"]`
+                        );
+                        if (qtyInput) {
+                          qtyInput.focus();
+                        }
+                      }
+                      return;
+                    }
+                    
+                    if (e.key === '/') {
+                      e.preventDefault();
+                      handleItemCodeSelect(item.id, item.name);
+                    }
+                  }}
+                  onFocus={() => setFocusedField(`name-${item.id}`)}
                   onBlur={() => setFocusedField('')}
+                  title="Click to select item from list"
                 />
-              </td>
+                <button
+                  type="button"
+                  tabIndex="-1"
+                  aria-label="Search item details"
+                  title="Click to select item from list"
+                  onClick={() => {
+                    handleItemCodeSelect(item.id, item.name);
+                  }}
+                  onFocus={(e) => {
+                    const nameInput = document.querySelector(
+                      `input[data-row="${index}"][data-field="name"]`
+                    );
+                    if (nameInput) {
+                      e.preventDefault();
+                      nameInput.focus();
+                    }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#1B91DA',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                    zIndex: 1,
+                    height: '24px',
+                    width: '24px'
+                  }}
+                >
+                  <Icon.Search size={18} />
+                </button>
+              </div>
+            </td>
+            
+            <td style={styles.td}>
+              <div style={styles.uomContainer}>
+                <div 
+                  style={focusedUomField === item.id || focusedField === `uom-${item.id}` ? styles.uomDisplayActive : styles.uomDisplay}
+                  title="UOM is read-only"
+                  data-row={index}
+                  data-field="uom"
+                >
+                  {item.uom || ''}
+                </div>
+              </div>
+            </td>
+            
+            {/* Stock - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                style={focusedField === `stock-${item.id}` ? 
+                  { ...styles.editableInputFocused, textAlign: 'right' } : 
+                  { ...styles.editableInput, textAlign: 'right' }}
+                value={item.stock}
+                data-row={index}
+                data-field="stock"
+                readOnly
+                onChange={(e) => handleItemChange(item.id, 'stock', parseFloat(e.target.value) || 0)}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
+                onFocus={() => setFocusedField(`stock-${item.id}`)}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            
+            {/* HSN - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                style={focusedField === `hsn-${item.id}` ? 
+                  { ...styles.editableInputFocused, textAlign: 'right' } : 
+                  { ...styles.editableInput, textAlign: 'right' }}
+                value={item.hsn}
+                data-row={index}
+                data-field="hsn"
+                onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
+                onFocus={() => setFocusedField(`hsn-${item.id}`)}
+                onBlur={() => setFocusedField('')}                      
+              />
+            </td>
+            
+            {/* Qty - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                style={focusedField === `qty-${item.id}` ? 
+                  { ...styles.editableInputFocused, fontWeight: 'bold', textAlign: 'right' } : 
+                  { ...styles.editableInput, fontWeight: 'bold', textAlign: 'right' }}
+                value={item.qty}
+                data-row={index}
+                data-field="qty"
+                onChange={(e) => handleItemChange(item.id, 'qty', parseFloat(e.target.value) || '')}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
+                onFocus={() => setFocusedField(`qty-${item.id}`)}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            
+            {/* OvrWt - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                style={focusedField === `ovrwt-${item.id}` ? 
+                  { ...styles.editableInputFocused, textAlign: 'right' } : 
+                  { ...styles.editableInput, textAlign: 'right' }}
+                value={item.ovrwt || ''}
+                data-row={index}
+                data-field="ovrwt"
+                onChange={(e) => handleItemChange(item.id, 'ovrwt', handleNumericInput(e.target.value))}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'ovrwt')}
+                onFocus={() => setFocusedField(`ovrwt-${item.id}`)}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            
+            {/* AvgWt - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                style={focusedField === `avgwt-${item.id}` ? 
+                  { ...styles.editableInputFocused, textAlign: 'right' } : 
+                  { ...styles.editableInput, textAlign: 'right' }}
+                value={item.avgwt || ''}
+                data-row={index}
+                data-field="avgwt"                      
+                onChange={(e) => handleItemChange(item.id, 'avgwt', handleNumericInput(e.target.value))}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'avgwt')}
+                onFocus={() => setFocusedField(`avgwt-${item.id}`)}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            
+            {/* PRate - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                style={focusedField === `prate-${item.id}` ? 
+                  { ...styles.editableInputFocused, textAlign: 'right' } : 
+                  { ...styles.editableInput, textAlign: 'right' }}
+                value={item.prate || ''}
+                data-row={index}
+                data-field="prate"
+                onChange={(e) => handleItemChange(item.id, 'prate', parseFloat(e.target.value))}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'prate')}
+                onFocus={() => setFocusedField(`prate-${item.id}`)}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            
+            {/* InTax - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                style={focusedField === `intax-${item.id}` ? 
+                  { ...styles.editableInputFocused, textAlign: 'right' } : 
+                  { ...styles.editableInput, textAlign: 'right' }}
+                value={item.intax || ''}
+                data-row={index}
+                data-field="intax"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const validTaxValues = ['3', '5', '12', '18', '40'];
+                  if (value === '' || /^[0-9]*$/.test(value)) {
+                    handleItemChange(item.id, 'intax', value);
+                  }
+                }}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'intax')}
+                onBlur={(e) => {
+                  const value = e.target.value;
+                  const validTaxValues = allTax.map(t => t.displayName);
+                  if (value !== '' && !validTaxValues.includes(value)) {
+                    showAlertConfirmation(
+                      'Invalid tax value. Please enter ' + validTaxValues.join(', '),
+                      () => {
+                        handleItemChange(item.id, 'intax', '');
+                        setTimeout(() => {
+                          const intaxInput = document.querySelector(
+                            `input[data-row="${index}"][data-field="intax"]`
+                          );
+                          if (intaxInput) {
+                            intaxInput.focus();
+                          }
+                        }, 100);
+                      },
+                      'warning'
+                    );
+                  }
+                }}
+                onFocus={() => setFocusedField(`intax-${item.id}`)}
+              />
+            </td>
+            
+            {/* OutTax - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                style={focusedField === `outtax-${item.id}` ? 
+                  { ...styles.editableInputFocused, textAlign: 'right' } : 
+                  { ...styles.editableInput, textAlign: 'right' }}
+                value={item.outtax || ''}
+                data-row={index}
+                data-field="outtax"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const validTaxValues = ['3', '5', '12', '18', '40'];
+                  if (value === '' || /^[0-9]*$/.test(value)) {
+                    handleItemChange(item.id, 'outtax', value);
+                  }
+                }}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'outtax')}
+                onBlur={(e) => {
+                  const value = e.target.value;
+                  const validTaxValues = allTax.map(t => t.displayName);
+                  if (value !== '' && !validTaxValues.includes(value)) {
+                    showAlertConfirmation(
+                      'Invalid tax value. Please enter ' + validTaxValues.join(', '),
+                      () => {
+                        handleItemChange(item.id, 'outtax', '');
+                        setTimeout(() => {
+                          const outtaxInput = document.querySelector(
+                            `input[data-row="${index}"][data-field="outtax"]`
+                          );
+                          if (outtaxInput) {
+                            outtaxInput.focus();
+                          }
+                        }, 100);
+                      },
+                      'warning'
+                    );
+                  }
+                }}
+                onFocus={() => setFocusedField(`outtax-${item.id}`)}
+              />
+            </td>
+            
+            {/* ACost - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                style={focusedField === `acost-${item.id}` ? 
+                  { ...styles.editableInputFocused, textAlign: 'right' } : 
+                  { ...styles.editableInput, textAlign: 'right' }}
+                value={item.acost || ''}
+                data-row={index}
+                data-field="acost"
+                onChange={(e) => handleItemChange(item.id, 'acost', handleNumericInput(e.target.value))}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'acost')}
+                onFocus={() => setFocusedField(`acost-${item.id}`)}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            
+            {/* Total - Right Aligned */}
+            <td style={{ ...styles.td, width: '150px', maxWidth: '150px', minWidth: '150px' }}>
+              <input
+                style={{
+                  ...(focusedField === `amt-${item.id}`
+                    ? styles.editableInputFocused
+                    : styles.editableInput),
+                  width: '100%',
+                  textAlign: 'right', // Changed from 'center' to 'right'
+                  fontWeight: 'bold',
+                  paddingRight: '8px'
+                }}
+                value={item.amt || ''}
+                data-row={index}
+                data-field="amt"
+                readOnly
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'amt')}
+                onFocus={() => setFocusedField(`amt-${item.id}`)}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
 
-                  <td style={styles.td}>
-                    <button
-                      aria-label="Delete row"
-                      title="Delete row"
-                      style={{
-                        backgroundColor: 'transparent',
-                        color: '#dc3545',
-                        border: 'none',
-                        padding: 0,
-                        borderRadius: '2px',
-                        width: '100%',
-                        height: '100%',
-                        cursor: 'pointer',
-                        fontSize: screenSize.isMobile ? '12px' : '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'color 0.15s ease',
-                        minHeight: screenSize.isMobile ? '28px' : '32px',
-                      }}
-                      onClick={() => handleDeleteRow(item.id)}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width={screenSize.isMobile ? "16" : "18"}
-                        height={screenSize.isMobile ? "16" : "18"}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#dc3545"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        focusable="false"
-                        style={{ display: 'block', margin: 'auto' }}
-                      >
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                        <path d="M10 11v6"></path>
-                        <path d="M14 11v6"></path>
-                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            <td style={styles.td}>
+              <button
+                aria-label="Delete row"
+                title="Delete row"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#dc3545',
+                  border: 'none',
+                  padding: 0,
+                  borderRadius: '2px',
+                  width: '100%',
+                  height: '100%',
+                  cursor: 'pointer',
+                  fontSize: screenSize.isMobile ? '12px' : '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 0.15s ease',
+                  minHeight: screenSize.isMobile ? '28px' : '32px',
+                }}
+                onClick={() => handleDeleteRow(item.id)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width={screenSize.isMobile ? "16" : "18"}
+                  height={screenSize.isMobile ? "16" : "18"}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#dc3545"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                  style={{ display: 'block', margin: 'auto' }}
+                >
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                  <path d="M10 11v6"></path>
+                  <path d="M14 11v6"></path>
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
       
       {/* Purchase Bill List Popup for Edit/Delete */}
       <PopupListSelector
