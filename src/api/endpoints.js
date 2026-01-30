@@ -112,7 +112,14 @@ export const API_ENDPOINTS = {
     GET_PERMISSIONS_BY_USER: (fUcode) => `Administartor/GetPermissionsByUserCode?fUcode=${fUcode}`,
     DELETE_PERMISSIONS: "Administartor/administration/delete"
   },
-
+ TRANSPORTCREATION: {
+    NEXT_TRANSPORT_CODE: '/transport/transmaxcode',
+    GET_TRANSPORT_ITEMS: '/transport/transport?page=1&pageSize=100', // Adjust pageSize as needed
+    GET_TRANSPORT_CODE: (code) => `/transport/transport/${code}`,
+    CREATE_TRANSPORT: '/transport/transport',
+    UPDATE_TRANSPORT: (code) => `/transport/transport/${code}`,
+    DELETE_TRANSPORT: (code) => `/transport/transport/${code}`
+  },
 
   STATECREATION: {
     GET_STATE_ITEMS: (page = 1, pageSize = 10) =>
@@ -324,6 +331,7 @@ PAYMENTVOUCHER: {
   GET_PARTY_BALANCE: (partyCode) => `PaymentVoucher/GetPartyBalance?partyCode=${partyCode}`,
   GET_CLOSING_BALANCE: `PaymentVoucher/GetClosingBalance`
 },
+
 
 
 
