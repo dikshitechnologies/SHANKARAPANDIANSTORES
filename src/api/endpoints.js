@@ -112,7 +112,14 @@ export const API_ENDPOINTS = {
     GET_PERMISSIONS_BY_USER: (fUcode) => `Administartor/GetPermissionsByUserCode?fUcode=${fUcode}`,
     DELETE_PERMISSIONS: "Administartor/administration/delete"
   },
-
+ TRANSPORTCREATION: {
+    NEXT_TRANSPORT_CODE: '/transport/transmaxcode',
+    GET_TRANSPORT_ITEMS: '/transport/transport?page=1&pageSize=100', // Adjust pageSize as needed
+    GET_TRANSPORT_CODE: (code) => `/transport/transport/${code}`,
+    CREATE_TRANSPORT: '/transport/transport',
+    UPDATE_TRANSPORT: (code) => `/transport/transport/${code}`,
+    DELETE_TRANSPORT: (code) => `/transport/transport/${code}`
+  },
 
   STATECREATION: {
     GET_STATE_ITEMS: (page = 1, pageSize = 10) =>
@@ -328,6 +335,7 @@ PAYMENTVOUCHER: {
 
 
 
+
   RECEIPTVOUCHER: {
     GETNEXTVNUMBER: (compCode) => `ReceiptVoucher/GetNextReceiptVoucher?compCode=${compCode}`,
     GETBILLNUMLIST: (compCode, pageNumber = 1, pageSize = 100) => `ReceiptVoucher/GetReceiptVoucherList?compCode=${compCode}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
@@ -388,6 +396,11 @@ PAYMENTVOUCHER: {
   DAYBOOK: {
     GET_DAY_BOOK: (compCode, fromDate, toDate) =>
       `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+  },
+
+  DAYCLOSE: {
+    GET: (compCode) => `DayClose/get-DayClose/${compCode}`,
+    UPDATE: 'DayClose/update-DayClose',
   },
 
   SALES_RETURN_REGISTER: {

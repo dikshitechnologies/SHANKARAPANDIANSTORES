@@ -141,6 +141,13 @@ const Navbar = () => {
       permission: "TRANSPORT_CREATION",
     },
     
+    {
+      name: "DayClose",
+      path: "/masters/DayClose",
+      icon: <BuildOutlined />,
+      permission: "DayClose",
+    },
+    
 
     {
       name: "Design Creation",
