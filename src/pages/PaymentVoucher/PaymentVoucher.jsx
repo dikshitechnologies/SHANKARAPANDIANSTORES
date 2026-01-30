@@ -2359,358 +2359,383 @@ const PaymentVoucher = () => {
       </div>
 
       {/* TABLE SECTION */}
-      <div style={styles.tableSection}>
-        {/* PAYMENT DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginBottom: isMobileView ? '4px' : '10px', marginTop: isMobileView ? '4px' : '10px'}}>
-          <h2 style={styles.mobileTableHeader}></h2>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '150px' : '200px'}}>Cash/Bank</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Cr/Dr</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Type</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '70px' : '90px'}}>Chq No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '90px'}}>Chq Dt</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '120px' : '150px'}}>Narration</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Amount</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '50px' : '60px'}}>Remove</th>
-              </tr>
-            </thead>
-            <tbody>
-              {console.log(`🔵 DEBUG - Rendering ${paymentItems.length} payment items:`, paymentItems)}
-              {paymentItems.map((item, index) => {
-                console.log(`🟢 DEBUG - Rendering row ${index}: id=${item.id}, type="${item.type}", cashBank="${item.cashBank}"`);
-                return (
-                <tr key={item.id}>
-                  <td style={styles.td}>{item.sNo}</td>
-                  <td style={styles.td}>
-                    <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
-                      <input
-                        ref={el => paymentCashBankRefs.current[index] = el}
-                        id={`payment_${item.id}_cashBank`}
-                        type="text"
-                        value={item.cashBank}
-                        onChange={(e) => handlePaymentItemChange(item.id, 'cashBank', e.target.value)}
-                        onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'cashBank')}
-                        onClick={() => openCashBankPopup(item.id, index)}
-                        onFocus={(e) => {
-                          e.target.style.border = '2px solid #1B91DA';
-                          setNavigationStep('paymentCashBank');
-                          setCurrentPaymentRowIndex(index);
-                        }}
-                        onBlur={(e) => (e.target.style.border = 'none')}
-                        style={{
-                          ...(navigationStep === 'paymentCashBank' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
-                          paddingRight: isMobileView ? '24px' : '28px',
-                          width: '100%'
-                        }}
-                        title="Click to select or type to search"
-                      />
-                      {/* 🔍 Search Icon */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          right: '6px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          pointerEvents: 'none',
-                          opacity: 0.65,
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <SearchIcon size={isMobileView ? 12 : 14} />
-                      </div>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <select
-                      ref={el => paymentCrDrRefs.current[index] = el}
-                      id={`payment_${item.id}_crDr`}
-                      value={item.crDr}
-                      onChange={(e) => handlePaymentItemChange(item.id, 'crDr', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                          return;
-                        }
-                        handlePaymentFieldKeyDown(e, index, 'crDr');
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                        setNavigationStep('paymentCrDr');
-                        setCurrentPaymentRowIndex(index);
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                      style={navigationStep === 'paymentCrDr' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
-                    >
-                      <option>CR</option>
-                      <option>DR</option>
-                    </select>
-                  </td>
-                  <td style={styles.td}>
-                    <select
-                      ref={el => paymentTypeRefs.current[index] = el}
-                      id={`payment_${item.id}_type`}
-                      value={item.type || 'CASH'}
-                      onChange={(e) => {
-                        console.log(`🟠 SELECT onChange fired: item.id=${item.id}, e.target.value="${e.target.value}"`);
-                        handlePaymentItemChange(item.id, 'type', e.target.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                          return;
-                        }
-                        handlePaymentFieldKeyDown(e, index, 'type');
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                        setNavigationStep('paymentType');
-                        setCurrentPaymentRowIndex(index);
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                      style={navigationStep === 'paymentType' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
-                    >
-                      <option value="CASH">CASH</option>
-                      <option value="CHQ">CHQ</option>
-                      <option value="RTGS">RTGS</option>
-                      <option value="NEFT">NEFT</option>
-                      <option value="UPI">UPI</option>
-                    </select>
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      ref={el => paymentChqNoRefs.current[index] = el}
-                      id={`payment_${item.id}_chqNo`}
-                      onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      type="text"
-                      value={item.chqNo}
-                      onChange={(e) => handlePaymentItemChange(item.id, 'chqNo', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqNo')}
-                      disabled={item.type !== 'CHQ'}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                        setNavigationStep('paymentChqNo');
-                        setCurrentPaymentRowIndex(index);
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                      style={{
-                        ...(navigationStep === 'paymentChqNo' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
-                        ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
-                      }}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      ref={el => paymentChqDtRefs.current[index] = el}
-                      id={`payment_${item.id}_chqDt`}
-                      type="date"
-                      placeholder=""
-                      value={item.chqDt}
-                      onChange={(e) => handlePaymentItemChange(item.id, 'chqDt', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqDt')}
-                      disabled={item.type !== 'CHQ'}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                        setNavigationStep('paymentChqDt');
-                        setCurrentPaymentRowIndex(index);
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                      style={{
-                        ...(navigationStep === 'paymentChqDt' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
-                        ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
-                      }}
-                    />
-                  </td>
-                  <td style={{...styles.td, minWidth: isMobileView ? '120px' : '150px'}}>
-                    <input
-                      ref={el => paymentNarrationRefs.current[index] = el}
-                      id={`payment_${item.id}_narration`}
-                      type="text"
-                      value={item.narration}
-                      onChange={(e) => handlePaymentItemChange(item.id, 'narration', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'narration')}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                        setNavigationStep('paymentNarration');
-                        setCurrentPaymentRowIndex(index);
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                      style={navigationStep === 'paymentNarration' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
-                    />
-                  </td>
-                  <td style={{...styles.td, minWidth: isMobileView ? '80px' : '100px'}}>
-                    <input
-                      ref={el => paymentAmountRefs.current[index] = el}
-                      id={`payment_${item.id}_amount`}
-                      value={item.amount === '' || item.amount === '0.00' || parseFloat(item.amount) === 0 ? '' : item.amount}
-                      onChange={(e) => handlePaymentItemChange(item.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'amount')}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                        setNavigationStep('paymentAmount');
-                        setCurrentPaymentRowIndex(index);
-                      }}
-                      onBlur={(e) => e.target.style.border = 'none'}
-                      style={navigationStep === 'paymentAmount' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <button
-                      onClick={() => handleDeletePaymentRow(item.id)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '2px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#e53935',
-                        marginLeft: isMobileView ? '10px' : '30px'
-                      }}
-                      title="Delete row"
-                      onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
-                      onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-                    >
-                      <svg width={isMobileView ? "16" : "20"} height={isMobileView ? "16" : "20"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              );
-              })}
-              {/* Spacing Row - Responsive height */}
-              <tr style={{ height: isMobileView ? '10vh' : '20vh', backgroundColor: 'transparent' }}>
-                <td colSpan="9" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
-              </tr>
-              {/* Total Row for Payment Details */}
-              <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}} colSpan={isMobileView ? 6 : 6}></td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff', color: '#1B91DA', fontWeight: 'bold', minWidth: isMobileView ? '80px' : '100px'}}>
-                  {paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
-                </td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+   <div style={styles.tableSection}>
+  {/* PAYMENT DETAILS TABLE */}
+  <div style={{...styles.tableContainer, marginBottom: isMobileView ? '4px' : '10px', marginTop: isMobileView ? '4px' : '10px'}}>
+    <h2 style={styles.mobileTableHeader}></h2>
+    <table style={styles.table}>
+      <thead>
+        <tr>
+          <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '150px' : '200px'}}>Cash/Bank</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Cr/Dr</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Type</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '70px' : '90px'}}>Chq No</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '80px' : '90px'}}>Chq Dt</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '120px' : '150px'}}>Narration</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Amount</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '50px' : '60px'}}>Remove</th>
+        </tr>
+      </thead>
+      <tbody>
+        {console.log(`🔵 DEBUG - Rendering ${paymentItems.length} payment items:`, paymentItems)}
+        {paymentItems.map((item, index) => {
+          console.log(`🟢 DEBUG - Rendering row ${index}: id=${item.id}, type="${item.type}", cashBank="${item.cashBank}"`);
+          return (
+          <tr key={item.id}>
+            <td style={styles.td}>{item.sNo}</td>
+            {/* Cash/Bank - Left Aligned */}
+            <td style={styles.td}>
+              <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+                <input
+                  ref={el => paymentCashBankRefs.current[index] = el}
+                  id={`payment_${item.id}_cashBank`}
+                  type="text"
+                  value={item.cashBank}
+                  onChange={(e) => handlePaymentItemChange(item.id, 'cashBank', e.target.value)}
+                  onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'cashBank')}
+                  onClick={() => openCashBankPopup(item.id, index)}
+                  onFocus={(e) => {
+                    e.target.style.border = '2px solid #1B91DA';
+                    setNavigationStep('paymentCashBank');
+                    setCurrentPaymentRowIndex(index);
+                  }}
+                  onBlur={(e) => (e.target.style.border = 'none')}
+                  style={{
+                    ...(navigationStep === 'paymentCashBank' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
+                    textAlign: 'left', // Left aligned for Cash/Bank
+                    paddingRight: isMobileView ? '24px' : '28px',
+                    width: '100%'
+                  }}
+                  title="Click to select or type to search"
+                />
+                {/* 🔍 Search Icon */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '6px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none',
+                    opacity: 0.65,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <SearchIcon size={isMobileView ? 12 : 14} />
+                </div>
+              </div>
+            </td>
+            
+            {/* Cr/Dr - No change (select dropdown) */}
+            <td style={styles.td}>
+              <select
+                ref={el => paymentCrDrRefs.current[index] = el}
+                id={`payment_${item.id}_crDr`}
+                value={item.crDr}
+                onChange={(e) => handlePaymentItemChange(item.id, 'crDr', e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    return;
+                  }
+                  handlePaymentFieldKeyDown(e, index, 'crDr');
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                  setNavigationStep('paymentCrDr');
+                  setCurrentPaymentRowIndex(index);
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+                style={navigationStep === 'paymentCrDr' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
+              >
+                <option>CR</option>
+                <option>DR</option>
+              </select>
+            </td>
+            
+            {/* Type - No change (select dropdown) */}
+            <td style={styles.td}>
+              <select
+                ref={el => paymentTypeRefs.current[index] = el}
+                id={`payment_${item.id}_type`}
+                value={item.type || 'CASH'}
+                onChange={(e) => {
+                  console.log(`🟠 SELECT onChange fired: item.id=${item.id}, e.target.value="${e.target.value}"`);
+                  handlePaymentItemChange(item.id, 'type', e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    return;
+                  }
+                  handlePaymentFieldKeyDown(e, index, 'type');
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                  setNavigationStep('paymentType');
+                  setCurrentPaymentRowIndex(index);
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+                style={navigationStep === 'paymentType' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput}
+              >
+                <option value="CASH">CASH</option>
+                <option value="CHQ">CHQ</option>
+                <option value="RTGS">RTGS</option>
+                <option value="NEFT">NEFT</option>
+                <option value="UPI">UPI</option>
+              </select>
+            </td>
+            
+            {/* Chq No - Left Aligned */}
+            <td style={styles.td}>
+              <input
+                ref={el => paymentChqNoRefs.current[index] = el}
+                id={`payment_${item.id}_chqNo`}
+                onKeyPress={(e) => {
+                  if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                type="text"
+                value={item.chqNo}
+                onChange={(e) => handlePaymentItemChange(item.id, 'chqNo', e.target.value)}
+                onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqNo')}
+                disabled={item.type !== 'CHQ'}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                  setNavigationStep('paymentChqNo');
+                  setCurrentPaymentRowIndex(index);
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+                style={{
+                  ...(navigationStep === 'paymentChqNo' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
+                  textAlign: 'right', // Left aligned for Chq No
+                  ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
+                }}
+              />
+            </td>
+            
+            {/* Chq Dt - No textAlign change for date input */}
+            <td style={styles.td}>
+              <input
+                ref={el => paymentChqDtRefs.current[index] = el}
+                id={`payment_${item.id}_chqDt`}
+                type="date"
+                placeholder=""
+                value={item.chqDt}
+                onChange={(e) => handlePaymentItemChange(item.id, 'chqDt', e.target.value)}
+                onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'chqDt')}
+                disabled={item.type !== 'CHQ'}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                  setNavigationStep('paymentChqDt');
+                  setCurrentPaymentRowIndex(index);
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+                style={{
+                  ...(navigationStep === 'paymentChqDt' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
+                  ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
+                }}
+              />
+            </td>
+            
+            {/* Narration - Right Aligned */}
+            <td style={{...styles.td, minWidth: isMobileView ? '120px' : '150px'}}>
+              <input
+                ref={el => paymentNarrationRefs.current[index] = el}
+                id={`payment_${item.id}_narration`}
+                type="text"
+                value={item.narration}
+                onChange={(e) => handlePaymentItemChange(item.id, 'narration', e.target.value)}
+                onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'narration')}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                  setNavigationStep('paymentNarration');
+                  setCurrentPaymentRowIndex(index);
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+                style={{
+                  ...(navigationStep === 'paymentNarration' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
+                  textAlign: 'left' // Right aligned for Narration
+                }}
+              />
+            </td>
+            
+            {/* Amount - Left Aligned */}
+            <td style={{...styles.td, minWidth: isMobileView ? '80px' : '100px'}}>
+              <input
+                ref={el => paymentAmountRefs.current[index] = el}
+                id={`payment_${item.id}_amount`}
+                value={item.amount === '' || item.amount === '0.00' || parseFloat(item.amount) === 0 ? '' : item.amount}
+                onChange={(e) => handlePaymentItemChange(item.id, 'amount', e.target.value)}
+                onKeyDown={(e) => handlePaymentFieldKeyDown(e, index, 'amount')}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                  setNavigationStep('paymentAmount');
+                  setCurrentPaymentRowIndex(index);
+                }}
+                onBlur={(e) => e.target.style.border = 'none'}
+                style={{
+                  ...(navigationStep === 'paymentAmount' && currentPaymentRowIndex === index ? styles.editableInputFocused : styles.editableInput),
+                  textAlign: 'right' // Left aligned for Amount
+                }}
+              />
+            </td>
+            
+            <td style={styles.td}>
+              <button
+                onClick={() => handleDeletePaymentRow(item.id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#e53935',
+                  marginLeft: isMobileView ? '10px' : '30px'
+                }}
+                title="Delete row"
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+              >
+                <svg width={isMobileView ? "16" : "20"} height={isMobileView ? "16" : "20"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        );
+        })}
+        {/* Spacing Row - Responsive height */}
+        <tr style={{ height: isMobileView ? '10vh' : '20vh', backgroundColor: 'transparent' }}>
+          <td colSpan="9" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
+        </tr>
+        {/* Total Row for Payment Details */}
+        <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
+          <td style={{...styles.td, backgroundColor: '#f0f8ff'}} colSpan={isMobileView ? 6 : 6}></td>
+          <td style={{...styles.td, backgroundColor: '#f0f8ff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
+          <td style={{...styles.td, backgroundColor: '#f0f8ff', color: '#1B91DA', fontWeight: 'bold', minWidth: isMobileView ? '80px' : '100px', textAlign: 'left'}}>
+            {paymentItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
+          </td>
+          <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-        {/* REFERENCE BILL DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginTop: '0', marginBottom: '0'}}>
-          <h2 style={styles.mobileTableHeader}></h2>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Ref No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Bill No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Date</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px'}}>Bill Amount</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px'}}>Paid Amount</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '100px' : '120px'}}>Balance Amount</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {billDetails.map((bill, index) => (
-                <tr key={bill.id}>
-                  <td style={styles.td}>{bill.sNo}</td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_refNo`}
-                      type="text"
-                      value={bill.refNo || ''}
-                      readOnly
-                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_billNo`}
-                      type="text"
-                      value={bill.billNo || ''}
-                      readOnly
-                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_date`}
-                      type="date"
-                      placeholder=""
-                      value={bill.date || ''}
-                      readOnly
-                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
-                    />
-                  </td>
-                  <td style={{...styles.td, minWidth: isMobileView ? '90px' : '100px'}}>
-                    <input
-                      id={`bill_${bill.id}_billAmount`}
-                      value={bill.billAmount || ''}
-                      readOnly
-                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
-                    />
-                  </td>
-                  <td style={{...styles.td, minWidth: isMobileView ? '90px' : '100px'}}>
-                    <input
-                      id={`bill_${bill.id}_paidAmount`}
-                      value={bill.paidAmount || ''}
-                      readOnly
-                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
-                    />
-                  </td>
-                  <td style={{...styles.td, minWidth: isMobileView ? '100px' : '120px'}}>
-                    <input
-                      id={`bill_${bill.id}_balanceAmount`}
-                      value={bill.balanceAmount || ''}
-                      readOnly
-                      style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
-                    />
-                  </td>
-                  <td style={{...styles.td, minWidth: isMobileView ? '80px' : '100px'}}>
-                    <input
-                      ref={el => billAmountRefs.current[index] = el}
-                      id={`bill_${bill.id}_amount`}
-                      value={bill.amount || ''}
-                      onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handleBillAmountKeyDown(e, index)}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                        setNavigationStep('billAmount');
-                        setCurrentBillRowIndex(index);
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                      style={navigationStep === 'billAmount' && currentBillRowIndex === index ? styles.editableInputFocused : styles.editableInput}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {/* Spacing Row - Responsive height */}
-              <tr style={{ height: isMobileView ? '5vh' : '10vh', backgroundColor: 'transparent' }}>
-                <td colSpan="8" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
-              </tr>
-              {/* Total Row for Bill Details */}
-              <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
-                <td style={{...styles.td, backgroundColor: '#fff'}} colSpan={isMobileView ? 6 : 6}></td>
-                <td style={{...styles.td, backgroundColor: '#fff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
-                <td style={{...styles.td, backgroundColor: '#fff', color: '#1B91DA', fontWeight: 'bold', minWidth: isMobileView ? '80px' : '100px'}}>
-                  {billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0).toFixed(2)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+  {/* REFERENCE BILL DETAILS TABLE */}
+  <div style={{...styles.tableContainer, marginTop: '0', marginBottom: '0'}}>
+  <h2 style={styles.mobileTableHeader}></h2>
+  <table style={styles.table}>
+    <thead>
+      <tr>
+        <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
+        <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Ref No</th>
+        <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Bill No</th>
+        <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Date</th>
+        <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px', textAlign: 'right'}}>Bill Amount</th>
+        <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px', textAlign: 'right'}}>Paid Amount</th>
+        <th style={{...styles.th, minWidth: isMobileView ? '100px' : '120px', textAlign: 'right'}}>Balance Amount</th>
+        <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px', textAlign: 'right'}}>Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {billDetails.map((bill, index) => (
+        <tr key={bill.id}>
+          <td style={styles.td}>{bill.sNo}</td>
+          <td style={styles.td}>
+            <input
+              id={`bill_${bill.id}_refNo`}
+              type="text"
+              value={bill.refNo || ''}
+              readOnly
+              style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed', textAlign: 'left'}}
+            />
+          </td>
+          <td style={styles.td}>
+            <input
+              id={`bill_${bill.id}_billNo`}
+              type="text"
+              value={bill.billNo || ''}
+              readOnly
+              style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed', textAlign: 'left'}}
+            />
+          </td>
+          <td style={styles.td}>
+            <input
+              id={`bill_${bill.id}_date`}
+              type="date"
+              placeholder=""
+              value={bill.date || ''}
+              readOnly
+              style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed'}}
+            />
+          </td>
+          <td style={{...styles.td, minWidth: isMobileView ? '90px' : '100px'}}>
+            <input
+              id={`bill_${bill.id}_billAmount`}
+              value={bill.billAmount || ''}
+              readOnly
+              style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed', textAlign: 'right'}}
+            />
+          </td>
+          <td style={{...styles.td, minWidth: isMobileView ? '90px' : '100px'}}>
+            <input
+              id={`bill_${bill.id}_paidAmount`}
+              value={bill.paidAmount || ''}
+              readOnly
+              style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed', textAlign: 'right'}}
+            />
+          </td>
+          <td style={{...styles.td, minWidth: isMobileView ? '100px' : '120px'}}>
+            <input
+              id={`bill_${bill.id}_balanceAmount`}
+              value={bill.balanceAmount || ''}
+              readOnly
+              style={{...styles.editableInput, backgroundColor: '#f5f5f5', color: '#666', cursor: 'not-allowed', textAlign: 'right'}}
+            />
+          </td>
+          <td style={{...styles.td, minWidth: isMobileView ? '80px' : '100px'}}>
+            <input
+              ref={el => billAmountRefs.current[index] = el}
+              id={`bill_${bill.id}_amount`}
+              value={bill.amount || ''}
+              onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
+              onKeyDown={(e) => handleBillAmountKeyDown(e, index)}
+              onFocus={(e) => {
+                e.target.style.border = '2px solid #1B91DA';
+                setNavigationStep('billAmount');
+                setCurrentBillRowIndex(index);
+              }}
+              onBlur={(e) => (e.target.style.border = 'none')}
+              style={{
+                ...(navigationStep === 'billAmount' && currentBillRowIndex === index ? styles.editableInputFocused : styles.editableInput),
+                textAlign: 'right' // Right aligned for Amount
+              }}
+            />
+          </td>
+        </tr>
+      ))}
+      {/* Spacing Row - Responsive height */}
+      <tr style={{ height: isMobileView ? '5vh' : '10vh', backgroundColor: 'transparent' }}>
+        <td colSpan="8" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
+      </tr>
+      {/* Total Row for Bill Details */}
+      <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
+        <td style={{...styles.td, backgroundColor: '#fff'}} colSpan={isMobileView ? 6 : 6}></td>
+        <td style={{...styles.td, backgroundColor: '#fff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
+        <td style={{...styles.td, backgroundColor: '#fff', color: '#1B91DA', fontWeight: 'bold', minWidth: isMobileView ? '80px' : '100px', textAlign: 'right'}}>
+          {billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0).toFixed(2)}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</div>
 
       {/* FOOTER SECTION */}
       <div style={styles.footerSection}>
