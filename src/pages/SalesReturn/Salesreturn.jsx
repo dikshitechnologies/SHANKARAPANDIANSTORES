@@ -4920,442 +4920,421 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
   </div>
 </div>
 
+{/* header */}
+     <div style={styles.tableSection} className="sales-return-scrollable">
+  <div style={styles.tableContainer} className="sales-return-scrollable">
+    <table style={styles.table}>
+      <thead>
+        <tr>
+          <th style={styles.th}>S.No</th>
+          <th style={{ ...styles.th, textAlign: 'left' }}>Barcode</th>
+          <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Item Name</th>
+          <th style={{ ...styles.th, textAlign: 'right' }}>Stock</th>
+          <th style={{ ...styles.th, textAlign: 'right' }}>MRP</th>
+          <th style={{ ...styles.th, textAlign: 'right' }}>UOM</th>
+          <th style={{ ...styles.th, textAlign: 'right' }}>HSN</th>
+          <th style={{ ...styles.th, textAlign: 'right' }}>TAX (%)</th>
+          <th style={{ ...styles.th, textAlign: 'right' }}>SRate</th>
+          <th style={{ ...styles.th, textAlign: 'right' }}>Qty</th>
+          <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th>
+          <th style={styles.th}>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((item, index) => (
+          <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
+            <td style={styles.td}>{item.sNo}</td>
+            <td style={{ ...styles.td, textAlign: 'left' }}>
+              <input
+                style={focusedField === `barcode-${item.id}` ? { ...styles.editableInputFocused, textAlign: 'left' } : { ...styles.editableInput, textAlign: 'left' }}
+                value={item.barcode}
+                data-row={index}
+                data-field="barcode"
+                onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
+                readOnly={item.isReadOnly || false}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
 
-      {/* --- TABLE SECTION --- */}
-      <div style={styles.tableSection} className="sales-return-scrollable">
-        <div style={styles.tableContainer} className="sales-return-scrollable">
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>S.No</th>
-                <th style={styles.th}>Barcode</th>
-                <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Item Name</th>
-                <th style={styles.th}>Stock</th>
-                <th style={styles.th}>MRP</th>
-                <th style={styles.th}>UOM</th>
-                <th style={styles.th}>HSN</th>
-                <th style={styles.th}>TAX (%)</th>
-                <th style={styles.th}>SRate</th>
-                <th style={styles.th}>Qty</th>
-                <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th>
-                <th style={styles.th}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
-                  <td style={styles.td}>{item.sNo}</td>
-                  <td style={styles.td}>
-                    <input
-  style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-  
-  value={item.barcode}
-  data-row={index}
-  data-field="barcode"
-  onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
-  readOnly={item.isReadOnly || false}
-  onKeyDown={async (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-
-    // ✅ IF ITEM IS READ-ONLY (from bill selection) → GO TO QTY
-    if (item.isReadOnly) {
-      setTimeout(() => {
-        const qtyInput = document.querySelector(
-          `input[data-row="${index}"][data-field="qty"]`
-        );
-        if (qtyInput) {
-          qtyInput.focus();
-          qtyInput.select();
-        }
-
-        setFocusedElement({
-          type: 'table',
-          rowIndex: index,
-          fieldIndex: 8,
-          fieldName: 'qty'
-        });
-      }, 10);
-      return;
-    }
-
-    // ✅ IF BARCODE EMPTY → GO TO ITEM NAME
-    if (!item.barcode || !item.barcode.trim()) {
-      setTimeout(() => {
-        const input = document.querySelector(
-          `input[data-row="${index}"][data-field="itemName"]`
-        );
-        input?.focus();
-
-        setFocusedElement({
-          type: 'table',
-          rowIndex: index,
-          fieldIndex: 1,
-          fieldName: 'itemName'
-        });
-      }, 10);
-      return;
-    }
-
-    // ✅ IF BARCODE HAS VALUE → FETCH ITEM
-    await handleBarcodeEnter(index, item.barcode);
-    return;
-  }
-
-  handleTableKeyDown(e, index, 'barcode');
-}}
-
-  onFocus={() => {
-    setFocusedField(`barcode-${item.id}`);
-    setFocusedElement({
-      type: 'table',
-      rowIndex: index,
-      fieldIndex: 0,
-      fieldName: 'barcode'
-    });
-  }}
-  onBlur={() => setFocusedField('')}
-/>
-
-                  </td>
-                  <td style={{ ...styles.td, ...styles.itemNameContainer, position: 'relative' }}>
-                    <input
-                      style={focusedField === `itemName-${item.id}` ? styles.editableInputClickableFocused : styles.editableInputClickable}
-                      value={item.itemName}
-                      data-row={index}
-                      data-field="itemName"
-                      onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
-                      readOnly={item.isReadOnly || false}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
-                      onClick={() => {
-                        if (!item.isReadOnly) {
-                          openItemPopup(index, item.itemName);
+                    // ✅ IF ITEM IS READ-ONLY (from bill selection) → GO TO QTY
+                    if (item.isReadOnly) {
+                      setTimeout(() => {
+                        const qtyInput = document.querySelector(
+                          `input[data-row="${index}"][data-field="qty"]`
+                        );
+                        if (qtyInput) {
+                          qtyInput.focus();
+                          qtyInput.select();
                         }
-                      }}
-                      onFocus={() => {
-                        setFocusedField(`itemName-${item.id}`);
+
+                        setFocusedElement({
+                          type: 'table',
+                          rowIndex: index,
+                          fieldIndex: 8,
+                          fieldName: 'qty'
+                        });
+                      }, 10);
+                      return;
+                    }
+
+                    // ✅ IF BARCODE EMPTY → GO TO ITEM NAME
+                    if (!item.barcode || !item.barcode.trim()) {
+                      setTimeout(() => {
+                        const input = document.querySelector(
+                          `input[data-row="${index}"][data-field="itemName"]`
+                        );
+                        input?.focus();
+
                         setFocusedElement({
                           type: 'table',
                           rowIndex: index,
                           fieldIndex: 1,
                           fieldName: 'itemName'
                         });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      //placeholder="Search item"
-                    />
-                    {/* SEARCH ICON IN ITEM NAME */}
-                    <div 
-                      style={{
-                        position: 'absolute',
-                        right: '6px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        pointerEvents: 'none',
-                        opacity: 0.6,
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                      onClick={() => {
-                        openItemPopup(index, items[index].itemName);
-                      }}
-                      title="Click or press / to search"
-                    >
-                      <SearchIcon size={14} />
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      readOnly
-                      style={
-                        focusedField === `stock-${item.id}`
-                          ? styles.editableInputFocused
-                          : styles.editableInput
-                      }
-                      value={item.stock}
-                      data-row={index}
-                      data-field="stock"
-                      onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
-                      onFocus={() => {
-                        setFocusedField(`stock-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 2,
-                          fieldName: 'stock'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      inputMode="numeric"
-                      
-                    />
-                  </td>
+                      }, 10);
+                      return;
+                    }
 
-                  <td style={styles.td}>
-                    <input
-                      readOnly
-                      style={focusedField === `mrp-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.mrp}
-                      data-row={index}
-                      data-field="mrp"
-                      onChange={(e) => handleItemChange(item.id, 'mrp', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'mrp')}
-                      onFocus={() => {
-                        setFocusedField(`mrp-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 3,
-                          fieldName: 'mrp'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      readOnly
-                      style={focusedField === `uom-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.uom}
-                      data-row={index}
-                      data-field="uom"
-                      onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
-                      onFocus={() => {
-                        setFocusedField(`uom-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 4,
-                          fieldName: 'uom'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      readOnly
-                      style={focusedField === `hsn-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.hsn}
-                      data-row={index}
-                      data-field="hsn"
-                      onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
-                      onFocus={() => {
-                        setFocusedField(`hsn-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 5,
-                          fieldName: 'hsn'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `tax-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.tax}
-                      data-row={index}
-                      data-field="tax"
-                      onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
-                      readOnly={item.isReadOnly || false}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'tax')}
-                      onFocus={() => {
-                        setFocusedField(`tax-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 6,
-                          fieldName: 'tax'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      step="0.01"
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      style={focusedField === `sRate-${item.id}` ? styles.editableInputFocused : styles.editableInput}
-                      value={item.sRate}
-                      data-row={index}
-                      data-field="sRate"
-                      onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
-                      readOnly={item.isReadOnly || false}
-                      onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
-                      onFocus={() => {
-                        setFocusedField(`sRate-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 7,
-                          fieldName: 'sRate'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      step="0.01"
-                    />
-                  </td>
-                  <td style={styles.td}>
-  <input
-    style={focusedField === `qty-${item.id}` ? { ...styles.editableInputFocused, fontWeight: 'bold' } : { ...styles.editableInput, fontWeight: 'bold' }}
-    value={item.qty}
-    data-row={index}
-    data-field="qty"
-    onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
-    onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
-    onFocus={() => {
-      setFocusedField(`qty-${item.id}`);
-      setFocusedElement({
-        type: 'table',
-        rowIndex: index,
-        fieldIndex: 8,
-        fieldName: 'qty'
-      });
-      
-      // Show max quantity in placeholder when focused
-      const originalQty = originalQuantities[item.barcode] || 
-                         originalQuantities[item.itemCode] || 
-                         originalQuantities[index];
-      // if (originalQty) {
-      //   e.target.placeholder = `Max: ${originalQty}`;
-      // }
-    }}
-    onBlur={(e) => {
-      setFocusedField('');
-      e.target.placeholder = '';
-    }}
-    step="0.01"
-    // Add title/tooltip for max quantity
-    title={(() => {
-      const originalQty = originalQuantities[item.barcode] || 
-                         originalQuantities[item.itemCode] || 
-                         originalQuantities[index];
-      return originalQty ? `Maximum return quantity: ${originalQty}` : '';
-    })()}
-  />
-</td>
-                  <td style={{ ...styles.td, ...styles.amountContainer }}>
-                    <input
-                      style={{ ...styles.editableInput, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff' }}
-                      value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
-                      data-row={index}
-                      data-field="amount"
-                      onFocus={() => {
-                        setFocusedField(`amount-${item.id}`);
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 9,
-                          fieldName: 'amount'
-                        });
-                      }}
-                      onBlur={() => setFocusedField('')}
-                      readOnly
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <button
-                      aria-label="Delete row"
-                      title="Delete row"
-                      style={{
-                        backgroundColor: 'transparent',
-                        color: '#dc3545',
-                        border: 'none',
-                        padding: 0,
-                        borderRadius: '2px',
-                        width: '100%',
-                        height: '100%',
-                        cursor: 'pointer',
-                        fontSize: screenSize.isMobile ? '12px' : '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'color 0.15s ease',
-                        minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
-                      }}
-                      onClick={() => handleDeleteRow(item.id)}
-                      onFocus={() => {
-                        setFocusedElement({
-                          type: 'table',
-                          rowIndex: index,
-                          fieldIndex: 10,
-                          fieldName: 'action'
-                        });
-                      }}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width={screenSize.isMobile ? "16" : "18"}
-                        height={screenSize.isMobile ? "16" : "18"}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#dc3545"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        focusable="false"
-                        style={{ display: 'block', margin: 'auto' }}
-                      >
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                        <path d="M10 11v6"></path>
-                        <path d="M14 11v6"></path>
-                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+                    // ✅ IF BARCODE HAS VALUE → FETCH ITEM
+                    await handleBarcodeEnter(index, item.barcode);
+                    return;
+                  }
 
-
-
-<tfoot>
-  {/* SPACER ROW - pushes totals to bottom */}
-  <tr style={{ height: '400px' }}>
-    <td colSpan={12}></td>
-  </tr>
-  
-  {/* TOTALS ROW - now positioned at bottom */}
-  <tr
-    style={{
-      backgroundColor: '#e3f2fd',
-      fontWeight: 'bold',
-      borderTop: '2px solid #1B91DA',
-      position: 'sticky',
-      bottom: 0,
-      zIndex: 2
-    }}
-  >
-    <td colSpan={9} style={{ textAlign: 'right', padding: '10px' }}>
-      TOTAL
-    </td>
-
-    <td style={{ textAlign: 'center', padding: '10px' }}>
-      {totalQty.toFixed(2)}
-    </td>
-
-    <td style={{ textAlign: 'right', padding: '10px', color: '#0d47a1' }}>
-      ₹{customRound(totalAmount).toLocaleString('en-IN')}
-
-    </td>
-
-    <td />
-  </tr>
-</tfoot>
-
-
-          </table>
-        </div>
-      </div>
+                  handleTableKeyDown(e, index, 'barcode');
+                }}
+                onFocus={() => {
+                  setFocusedField(`barcode-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 0,
+                    fieldName: 'barcode'
+                  });
+                }}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            <td style={{ ...styles.td, ...styles.itemNameContainer, position: 'relative', textAlign: 'left' }}>
+              <input
+                style={focusedField === `itemName-${item.id}` ? { ...styles.editableInputClickableFocused, textAlign: 'left' } : { ...styles.editableInputClickable, textAlign: 'left' }}
+                value={item.itemName}
+                data-row={index}
+                data-field="itemName"
+                onChange={(e) => handleItemChange(item.id, 'itemName', e.target.value)}
+                readOnly={item.isReadOnly || false}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'itemName')}
+                onClick={() => {
+                  if (!item.isReadOnly) {
+                    openItemPopup(index, item.itemName);
+                  }
+                }}
+                onFocus={() => {
+                  setFocusedField(`itemName-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 1,
+                    fieldName: 'itemName'
+                  });
+                }}
+                onBlur={() => setFocusedField('')}
+                //placeholder="Search item"
+              />
+              {/* SEARCH ICON IN ITEM NAME */}
+              <div 
+                style={{
+                  position: 'absolute',
+                  right: '6px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  opacity: 0.6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  
+                }}
+                onClick={() => {
+                  openItemPopup(index, items[index].itemName);
+                }}
+                title="Click or press / to search"
+              >
+                <SearchIcon size={14} />
+              </div>
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              <input
+                readOnly
+                style={focusedField === `stock-${item.id}` ? { ...styles.editableInputFocused, textAlign: 'right' } : { ...styles.editableInput, textAlign: 'right' }}
+                value={item.stock}
+                data-row={index}
+                data-field="stock"
+                onChange={(e) => handleItemChange(item.id, 'stock', e.target.value)}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
+                onFocus={() => {
+                  setFocusedField(`stock-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 2,
+                    fieldName: 'stock'
+                  });
+                }}
+                onBlur={() => setFocusedField('')}
+                inputMode="numeric"
+              />
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              <input
+                readOnly
+                style={focusedField === `mrp-${item.id}` ? { ...styles.editableInputFocused, textAlign: 'right' } : { ...styles.editableInput, textAlign: 'right' }}
+                value={item.mrp}
+                data-row={index}
+                data-field="mrp"
+                onChange={(e) => handleItemChange(item.id, 'mrp', e.target.value)}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'mrp')}
+                onFocus={() => {
+                  setFocusedField(`mrp-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 3,
+                    fieldName: 'mrp'
+                  });
+                }}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              <input
+                readOnly
+                style={focusedField === `uom-${item.id}` ? { ...styles.editableInputFocused, textAlign: 'right' } : { ...styles.editableInput, textAlign: 'right' }}
+                value={item.uom}
+                data-row={index}
+                data-field="uom"
+                onChange={(e) => handleItemChange(item.id, 'uom', e.target.value)}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'uom')}
+                onFocus={() => {
+                  setFocusedField(`uom-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 4,
+                    fieldName: 'uom'
+                  });
+                }}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              <input
+                readOnly
+                style={focusedField === `hsn-${item.id}` ? { ...styles.editableInputFocused, textAlign: 'right' } : { ...styles.editableInput, textAlign: 'right' }}
+                value={item.hsn}
+                data-row={index}
+                data-field="hsn"
+                onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'hsn')}
+                onFocus={() => {
+                  setFocusedField(`hsn-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 5,
+                    fieldName: 'hsn'
+                  });
+                }}
+                onBlur={() => setFocusedField('')}
+              />
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              <input
+                style={focusedField === `tax-${item.id}` ? { ...styles.editableInputFocused, textAlign: 'right' } : { ...styles.editableInput, textAlign: 'right' }}
+                value={item.tax}
+                data-row={index}
+                data-field="tax"
+                onChange={(e) => handleItemChange(item.id, 'tax', e.target.value)}
+                readOnly={item.isReadOnly || false}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'tax')}
+                onFocus={() => {
+                  setFocusedField(`tax-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 6,
+                    fieldName: 'tax'
+                  });
+                }}
+                onBlur={() => setFocusedField('')}
+                step="0.01"
+              />
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              <input
+                style={focusedField === `sRate-${item.id}` ? { ...styles.editableInputFocused, textAlign: 'right' } : { ...styles.editableInput, textAlign: 'right' }}
+                value={item.sRate}
+                data-row={index}
+                data-field="sRate"
+                onChange={(e) => handleItemChange(item.id, 'sRate', e.target.value)}
+                readOnly={item.isReadOnly || false}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'sRate')}
+                onFocus={() => {
+                  setFocusedField(`sRate-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 7,
+                    fieldName: 'sRate'
+                  });
+                }}
+                onBlur={() => setFocusedField('')}
+                step="0.01"
+              />
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              <input
+                style={focusedField === `qty-${item.id}` ? { ...styles.editableInputFocused, textAlign: 'right', fontWeight: 'bold' } : { ...styles.editableInput, textAlign: 'right', fontWeight: 'bold' }}
+                value={item.qty}
+                data-row={index}
+                data-field="qty"
+                onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
+                onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
+                onFocus={() => {
+                  setFocusedField(`qty-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 8,
+                    fieldName: 'qty'
+                  });
+                  
+                  // Show max quantity in placeholder when focused
+                  const originalQty = originalQuantities[item.barcode] || 
+                                    originalQuantities[item.itemCode] || 
+                                    originalQuantities[index];
+                }}
+                onBlur={(e) => {
+                  setFocusedField('');
+                  e.target.placeholder = '';
+                }}
+                step="0.01"
+                // Add title/tooltip for max quantity
+                title={(() => {
+                  const originalQty = originalQuantities[item.barcode] || 
+                                    originalQuantities[item.itemCode] || 
+                                    originalQuantities[index];
+                  return originalQty ? `Maximum return quantity: ${originalQty}` : '';
+                })()}
+              />
+            </td>
+            <td style={{ ...styles.td, ...styles.amountContainer, textAlign: 'right' }}>
+              <input
+                style={{ ...styles.editableInput, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff' }}
+                value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })}
+                data-row={index}
+                data-field="amount"
+                onFocus={() => {
+                  setFocusedField(`amount-${item.id}`);
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 9,
+                    fieldName: 'amount'
+                  });
+                }}
+                onBlur={() => setFocusedField('')}
+                readOnly
+              />
+            </td>
+            <td style={styles.td}>
+              <button
+                aria-label="Delete row"
+                title="Delete row"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#dc3545',
+                  border: 'none',
+                  padding: 0,
+                  borderRadius: '2px',
+                  width: '100%',
+                  height: '100%',
+                  cursor: 'pointer',
+                  fontSize: screenSize.isMobile ? '12px' : '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 0.15s ease',
+                  minHeight: screenSize.isMobile ? '28px' : screenSize.isTablet ? '32px' : '35px',
+                }}
+                onClick={() => handleDeleteRow(item.id)}
+                onFocus={() => {
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: index,
+                    fieldIndex: 10,
+                    fieldName: 'action'
+                  });
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width={screenSize.isMobile ? "16" : "18"}
+                  height={screenSize.isMobile ? "16" : "18"}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#dc3545"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                  style={{ display: 'block', margin: 'auto' }}
+                >
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                  <path d="M10 11v6"></path>
+                  <path d="M14 11v6"></path>
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        {/* SPACER ROW - pushes totals to bottom */}
+        <tr style={{ height: '400px' }}>
+          <td colSpan={12}></td>
+        </tr>
+        
+        {/* TOTALS ROW - now positioned at bottom */}
+        <tr
+          style={{
+            backgroundColor: '#e3f2fd',
+            fontWeight: 'bold',
+            borderTop: '2px solid #1B91DA',
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 2
+          }}
+        >
+          <td colSpan={9} style={{ textAlign: 'right', padding: '10px' }}>
+            TOTAL
+          </td>
+          <td style={{ textAlign: 'right', padding: '10px' }}>
+            {totalQty.toFixed(2)}
+          </td>
+          <td style={{ textAlign: 'right', padding: '10px', color: '#0d47a1' }}>
+            ₹{customRound(totalAmount).toLocaleString('en-IN')}
+          </td>
+          <td />
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
 
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
