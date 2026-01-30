@@ -133,6 +133,15 @@ const Navbar = () => {
       icon: <BuildOutlined />,
       permission: "CATEGORY_CREATION",
     },
+
+     {
+      name: "Transport Creation",
+      path: "/masters/Transport-creation",
+      icon: <BuildOutlined />,
+      permission: "TRANSPORT_CREATION",
+    },
+    
+
     {
       name: "Design Creation",
       path: "/design-creation",

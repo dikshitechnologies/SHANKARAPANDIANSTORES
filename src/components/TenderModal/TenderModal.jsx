@@ -23,9 +23,11 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     confirmText: 'OK',
     cancelText: null,
     action: null,
+    
     isLoading: false
   });
   
+
   // Refs for focus management
   const collectFieldRefs = useRef({});
   const saveButtonRef = useRef(null);
@@ -35,12 +37,17 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const salesReturnBillNoRef = useRef(null);
   const upiRef = useRef(null);
   const cardRef = useRef(null);
-  
+
   // NEW: Added refs for new focus flow
   const upiBankRef = useRef(null);
   const cardBankRef = useRef(null);
   const serviceChargeCheckboxRef = useRef(null);
   const serviceChargePercentRef = useRef(null);
+  // Transport charge refs
+  const transportChargeCheckboxRef = useRef(null);
+  const transportChargePercentRef = useRef(null);
+  const transportAmountRef = useRef(null);
+  const serviceChargeAmountRef = useRef(null);
 
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: '', issue: '', closing: 0 },
@@ -80,10 +87,70 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     serviceChargePercent: '',
     serviceChargeAmount: '',
     isServiceCharge: false,
+    // Transport charge fields
+    isTransportCharge: false,
+    transport: '', // text field for transport
+    transportAmount: '',
     isCreditBill: false,
     delivery: false,
     balance: '',
   });
+  // Handle Transport Charge Toggle
+  const handleTransportChargeToggle = (e) => {
+    const isChecked = e.target.checked;
+    setFormData(prev => {
+      const updated = { ...prev, isTransportCharge: isChecked };
+      if (!isChecked) {
+        updated.transport = '';
+        updated.transportAmount = '';
+      }
+      return updated;
+    });
+  };
+
+  // Handle Transport (text) Change
+  const handleTransportChange = (value) => {
+    setFormData(prev => ({ ...prev, transport: value }));
+  };
+
+  // Focus handlers for transport charge
+  const handleTransportChargeCheckboxKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (formData.isTransportCharge) {
+        if (transportChargePercentRef.current) {
+          transportChargePercentRef.current.focus();
+        }
+      } else {
+        if (saveButtonRef.current) {
+          saveButtonRef.current.focus();
+        }
+      }
+    }
+  };
+
+  // Handle Transport Amount Change
+const handleTransportAmountChange = (value) => {
+  setFormData(prev => ({ ...prev, transportAmount: value }));
+};
+
+  const handleTransportChargePercentKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (transportAmountRef.current) {
+        transportAmountRef.current.focus();
+      }
+    }
+  };
+
+const handleTransportAmountKeyDown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (saveButtonRef.current) {
+      saveButtonRef.current.focus();
+    }
+  }
+};
 
   // Update form data when billData changes
   useEffect(() => {
@@ -229,7 +296,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   // api/bankApi.js
 const fetchBankList = async (page, search) => {
   const res = await fetch(
-    `https://dikshi.ddns.net/spstorewebapi/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ''}`
+    `http://dikshiserver/spstorewebapi/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ''}`
   );
   const json = await res.json();
   return json?.data || [];
@@ -668,16 +735,15 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
   };
 
   // NEW: Handle keydown for Card Bank field - move to Card Amount
-  const handleCardBankKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (serviceChargeCheckboxRef.current) {
-        serviceChargeCheckboxRef.current.focus();
-      } else if (saveButtonRef.current) {
-        saveButtonRef.current.focus();
-      }
+const handleCardBankKeyDown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Focus on Is Card Charge checkbox
+    if (serviceChargeCheckboxRef.current) {
+      serviceChargeCheckboxRef.current.focus();
     }
-  };
+  }
+};
 
   // NEW: Handle keydown for Card Amount field - move to Service Charge or Save
   const handleCardKeyDown = (e) => {
@@ -690,33 +756,47 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
   };
 
   // NEW: Handle keydown for Service Charge Checkbox
-  const handleServiceChargeCheckboxKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      
-      // If service charge is checked and we need to enter percentage
-      if (formData.isServiceCharge) {
-        if (serviceChargePercentRef.current) {
-          serviceChargePercentRef.current.focus();
-        }
-      } else {
-        // If service charge is not checked, move to Save
-        if (saveButtonRef.current) {
-          saveButtonRef.current.focus();
-        }
+// NEW: Handle keydown for Service Charge Checkbox
+const handleServiceChargeCheckboxKeyDown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    
+    // If service charge is checked, move to percentage field
+    if (formData.isServiceCharge) {
+      if (serviceChargePercentRef.current) {
+        serviceChargePercentRef.current.focus();
+      }
+    } else {
+      // If service charge is NOT checked, move to Transport Charge checkbox
+      if (transportChargeCheckboxRef.current) {
+        transportChargeCheckboxRef.current.focus();
       }
     }
-  };
+  }
+};
 
-  // NEW: Handle keydown for Service Charge Percent field - move to Save
-  const handleServiceChargePercentKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (saveButtonRef.current) {
-        saveButtonRef.current.focus();
-      }
+const handleServiceChargeAmountKeyDown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Move to Transport Charge checkbox
+    if (transportChargeCheckboxRef.current) {
+      transportChargeCheckboxRef.current.focus();
     }
-  };
+  }
+};
+
+
+
+// NEW: Handle keydown for Service Charge Percent field - move to Amount field
+const handleServiceChargePercentKeyDown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Move to Service Charge Amount field
+    if (serviceChargeAmountRef.current) {
+      serviceChargeAmountRef.current.focus();
+    }
+  }
+};
 
   // Handle keydown for salesReturnBillNo field - move to collect 500 field
   const handleSalesReturnBillKeyDown = (e) => {
@@ -1470,30 +1550,76 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
                         type="checkbox"
                         checked={formData.isServiceCharge}
                         onChange={handleServiceChargeToggle}
-                        onKeyDown={handleServiceChargeCheckboxKeyDown}
+                     onKeyDown={handleServiceChargeCheckboxKeyDown}
                         className={styles.checkbox}
                       />
-                      <span>Is Service Charge</span>
+                      <span>Is Card Charge</span>
                     </label>
-                    {formData.isServiceCharge && (
+               {formData.isServiceCharge && (
+  <div className={styles.serviceChargeContainer}>
+    <input
+      ref={serviceChargePercentRef}
+      type="number"
+      value={formData.serviceChargePercent}
+      onChange={(e) => handleServiceChargePercentChange(e.target.value)}
+      onKeyDown={handleServiceChargePercentKeyDown}
+      placeholder=""
+      className={styles.serviceChargeInput}
+    />
+    <span>%</span>
+    <input
+      ref={serviceChargeAmountRef}  
+      type="number"
+      value={formData.serviceChargeAmount === '0.00' || formData.serviceChargeAmount === '0' ? '' : formData.serviceChargeAmount}
+      onChange={(e) => handleInputChange('serviceChargeAmount', e.target.value)} 
+      onKeyDown={handleServiceChargeAmountKeyDown}  
+      className={styles.serviceChargeInput} 
+      placeholder=""
+    />
+  </div>
+)}
+                  </div>
+                  {/* Transport Charge Checkbox and Fields */}
+                  <div className={styles.paymentGroup}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        ref={transportChargeCheckboxRef}
+                        type="checkbox"
+                        checked={formData.isTransportCharge}
+                        onChange={handleTransportChargeToggle}
+                        onKeyDown={handleTransportChargeCheckboxKeyDown}
+                        className={styles.checkbox}
+                      />
+                      <span>Is Transport Charge</span>
+                    </label>
+                    {formData.isTransportCharge && (
                       <div className={styles.serviceChargeContainer}>
-                        <input
-                          ref={serviceChargePercentRef}
-                          type="number"
-                          value={formData.serviceChargePercent}
-                          onChange={(e) => handleServiceChargePercentChange(e.target.value)}
-                          onKeyDown={handleServiceChargePercentKeyDown}
-                          placeholder=""
-                          className={styles.serviceChargeInput}
-                        />
-                        <span>%</span>
-                        <input
-                          type="number"
-                          value={formData.serviceChargeAmount === '0.00' || formData.serviceChargeAmount === '0' ? '' : formData.serviceChargeAmount}
-                          readOnly
-                          className={`${styles.serviceChargeInput} ${styles.readonlyPayment}`}
-                          placeholder=""
-                        />
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <label style={{ fontSize: '12px', marginBottom: '2px' }}>Transport</label>
+                            <input
+                              ref={transportChargePercentRef}
+                              type="text"
+                              value={formData.transport}
+                              onChange={(e) => handleTransportChange(e.target.value)}
+                              onKeyDown={handleTransportChargePercentKeyDown}
+                              placeholder=""
+                              className={styles.serviceChargeInput}
+                            />
+                          </div>
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+  <label style={{ fontSize: '12px', marginBottom: '2px' }}>TC Charge</label>
+  <input
+    ref={transportAmountRef}
+    type="number"
+    value={formData.transportAmount === '0.00' || formData.transportAmount === '0' ? '' : formData.transportAmount}
+    onChange={(e) => handleTransportAmountChange(e.target.value)}
+    onKeyDown={handleTransportAmountKeyDown}
+    placeholder=""
+    className={styles.serviceChargeInput}
+  />
+</div>
+                        </div>
                       </div>
                     )}
                   </div>

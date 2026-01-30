@@ -2667,365 +2667,414 @@ const ReceiptVoucher = () => {
       </div>
 
       {/* TABLE SECTION */}
-      <div style={styles.tableSection}>
-        {/* RECEIPT DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginBottom: isMobileView ? '4px' : '10px', marginTop: isMobileView ? '4px' : '10px'}}>
-          <h2 style={styles.mobileTableHeader}></h2>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '150px' : '200px'}}>Cash/Bank</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Cr/Dr</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Type</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '70px' : '90px'}}>Chq No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '90px'}}>Chq Dt</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '120px' : '150px'}}>Narration</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Amount</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '50px' : '60px'}}>Remove</th>
-              </tr>
-            </thead>
-            <tbody>
-              {receiptItems.map((item, index) => (
-                <tr key={item.id}>
-                  <td style={styles.td}>{item.sNo}</td>
-                  <td style={styles.td}>
-                    <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
-                      <input
-                        id={`receipt_${item.id}_cashBank`}
-                        type="text"
-                        value={item.cashBank}
-                        onChange={(e) => handleCashBankChange(item.id, e.target.value)}
-                        onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'cashBank')}
-                        onClick={() => openAccountPopup({ itemId: item.id }, item.cashBank)}
-                        style={{
-                          ...styles.editableInput,
-                          paddingRight: isMobileView ? '24px' : '28px',
-                          width: '100%'
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.border = '2px solid #1B91DA';
-                        }}
-                        onBlur={(e) => (e.target.style.border = 'none')}
-                      />
-                      {/* 🔍 Search Icon */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          right: '6px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          pointerEvents: 'none',
-                          opacity: 0.65,
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <SearchIcon size={isMobileView ? 12 : 14} />
-                      </div>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <select
-                      id={`receipt_${item.id}_crDr`}
-                      value={item.crDr}
-                      onChange={(e) => handleReceiptItemChange(item.id, 'crDr', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
-                          return;
-                        }
-                        handleReceiptFieldKeyDown(e, index, 'crDr');
-                      }}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    >
-                      <option value="CR">CR</option>
-                      <option value="DR">DR</option>
-                    </select>
-                  </td>
-                  <td style={styles.td}>
-                    <select
-                      id={`receipt_${item.id}_type`}
-                      value={item.type || 'CASH'}
-                      onChange={(e) => handleReceiptItemChange(item.id, 'type', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
-                          return;
-                        }
-                        handleReceiptFieldKeyDown(e, index, 'type');
-                      }}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    >
-                      <option value="CASH">CASH</option>
-                      <option value="CHQ">CHQ</option>
-                      <option value="RTGS">RTGS</option>
-                      <option value="NEFT">NEFT</option>
-                      <option value="UPI">UPI</option>
-                    </select>
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`receipt_${item.id}_chqNo`}
-                      type="text"
-                      value={item.chqNo}
-                      onChange={(e) => handleReceiptItemChange(item.id, 'chqNo', e.target.value)}
-                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqNo')}
-                      onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      disabled={item.type !== 'CHQ'}
-                      style={{
-                        ...styles.editableInput,
-                        ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
-                      }}
-                      onFocus={(e) => {
-                        if (item.type === 'CHQ') {
-                          e.target.style.border = '2px solid #1B91DA';
-                        }
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`receipt_${item.id}_chqDt`}
-                      type="date"
-                      placeholder=""
-                      value={item.chqDt}
-                      onChange={(e) => handleReceiptItemChange(item.id, 'chqDt', e.target.value)}
-                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqDt')}
-                      disabled={item.type !== 'CHQ'}
-                      style={{
-                        ...styles.editableInput,
-                        ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
-                      }}
-                      onFocus={(e) => {
-                        if (item.type === 'CHQ') {
-                          e.target.style.border = '2px solid #1B91DA';
-                        }
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`receipt_${item.id}_narration`}
-                      type="text"
-                      value={item.narration}
-                      onChange={(e) => handleReceiptItemChange(item.id, 'narration', e.target.value)}
-                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'narration')}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`receipt_${item.id}_amount`}
-                      type="number"
-                      value={item.amount}
-                      onChange={(e) => handleReceiptItemChange(item.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'amount')}
-                      onBlur={(e) => {
-                        e.target.style.border = 'none';
-                        handleAmountBlur(item.id, item.amount, index);
-                      }}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <button
-                      onClick={() => handleDeleteReceiptRow(item.id)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '2px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#e53935',
-                        marginLeft: isMobileView ? '10px' : '30px'
-                      }}
-                      title="Delete row"
-                      onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
-                      onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-                    >
-                      <svg width={isMobileView ? "16" : "20"} height={isMobileView ? "16" : "20"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {/* Spacing Row */}
-              <tr style={{ height: isMobileView ? '10vh' : '20vh', backgroundColor: 'transparent' }}>
-                <td colSpan="9" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
-              </tr>
-              {/* Total Row for Receipt Details */}
-              <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}} colSpan={isMobileView ? 6 : 6}></td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff', color: '#1B91DA', fontWeight: 'bold'}}>
-                  {receiptItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
-                </td>
-                <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+ <div style={styles.tableSection}>
+  {/* RECEIPT DETAILS TABLE */}
+  <div style={{...styles.tableContainer, marginBottom: isMobileView ? '4px' : '10px', marginTop: isMobileView ? '4px' : '10px'}}>
+    <h2 style={styles.mobileTableHeader}></h2>
+    <table style={styles.table}>
+      <thead>
+        <tr>
+          <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '150px' : '200px', textAlign: 'left'}}>Cash/Bank</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Cr/Dr</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '60px' : '80px'}}>Type</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '70px' : '90px', textAlign: 'right'}}>Chq No</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '80px' : '90px'}}>Chq Dt</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '120px' : '150px', textAlign: 'left'}}>Narration</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px', textAlign: 'right'}}>Amount</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '50px' : '60px'}}>Remove</th>
+        </tr>
+      </thead>
+      <tbody>
+        {receiptItems.map((item, index) => (
+          <tr key={item.id}>
+            <td style={styles.td}>{item.sNo}</td>
+            {/* Cash/Bank - Left Aligned */}
+            <td style={styles.td}>
+              <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+                <input
+                  id={`receipt_${item.id}_cashBank`}
+                  type="text"
+                  value={item.cashBank}
+                  onChange={(e) => handleCashBankChange(item.id, e.target.value)}
+                  onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'cashBank')}
+                  onClick={() => openAccountPopup({ itemId: item.id }, item.cashBank)}
+                  style={{
+                    ...styles.editableInput,
+                    textAlign: 'left', // Left aligned for Cash/Bank
+                    paddingRight: isMobileView ? '24px' : '28px',
+                    width: '100%'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.border = '2px solid #1B91DA';
+                  }}
+                  onBlur={(e) => (e.target.style.border = 'none')}
+                />
+                {/* 🔍 Search Icon */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '6px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none',
+                    opacity: 0.65,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <SearchIcon size={isMobileView ? 12 : 14} />
+                </div>
+              </div>
+            </td>
+            {/* Cr/Dr - Center aligned (dropdown) */}
+            <td style={styles.td}>
+              <select
+                id={`receipt_${item.id}_crDr`}
+                value={item.crDr}
+                onChange={(e) => handleReceiptItemChange(item.id, 'crDr', e.target.value)}
+                onKeyDown={(e) => {
+                  if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+                    return;
+                  }
+                  handleReceiptFieldKeyDown(e, index, 'crDr');
+                }}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'center' // Center aligned for Cr/Dr
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              >
+                <option value="CR">CR</option>
+                <option value="DR">DR</option>
+              </select>
+            </td>
+            {/* Type - Center aligned (dropdown) */}
+            <td style={styles.td}>
+              <select
+                id={`receipt_${item.id}_type`}
+                value={item.type || 'CASH'}
+                onChange={(e) => handleReceiptItemChange(item.id, 'type', e.target.value)}
+                onKeyDown={(e) => {
+                  if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+                    return;
+                  }
+                  handleReceiptFieldKeyDown(e, index, 'type');
+                }}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'center' // Center aligned for Type
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              >
+                <option value="CASH">CASH</option>
+                <option value="CHQ">CHQ</option>
+                <option value="RTGS">RTGS</option>
+                <option value="NEFT">NEFT</option>
+                <option value="UPI">UPI</option>
+              </select>
+            </td>
+            {/* Chq No - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                id={`receipt_${item.id}_chqNo`}
+                type="text"
+                value={item.chqNo}
+                onChange={(e) => handleReceiptItemChange(item.id, 'chqNo', e.target.value)}
+                onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqNo')}
+                onKeyPress={(e) => {
+                  if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                disabled={item.type !== 'CHQ'}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'right', // Right aligned for Chq No
+                  ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
+                }}
+                onFocus={(e) => {
+                  if (item.type === 'CHQ') {
+                    e.target.style.border = '2px solid #1B91DA';
+                  }
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+            {/* Chq Dt - Center aligned */}
+            <td style={styles.td}>
+              <input
+                id={`receipt_${item.id}_chqDt`}
+                type="date"
+                placeholder=""
+                value={item.chqDt}
+                onChange={(e) => handleReceiptItemChange(item.id, 'chqDt', e.target.value)}
+                onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'chqDt')}
+                disabled={item.type !== 'CHQ'}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'center', // Center aligned for Chq Dt
+                  ...(item.type !== 'CHQ' && { opacity: 0.5, cursor: 'not-allowed' })
+                }}
+                onFocus={(e) => {
+                  if (item.type === 'CHQ') {
+                    e.target.style.border = '2px solid #1B91DA';
+                  }
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+            {/* Narration - Left Aligned */}
+            <td style={styles.td}>
+              <input
+                id={`receipt_${item.id}_narration`}
+                type="text"
+                value={item.narration}
+                onChange={(e) => handleReceiptItemChange(item.id, 'narration', e.target.value)}
+                onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'narration')}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'left' // Left aligned for Narration
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+            {/* Amount - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                id={`receipt_${item.id}_amount`}
+                type="number"
+                value={item.amount}
+                onChange={(e) => handleReceiptItemChange(item.id, 'amount', e.target.value)}
+                onKeyDown={(e) => handleReceiptFieldKeyDown(e, index, 'amount')}
+                onBlur={(e) => {
+                  e.target.style.border = 'none';
+                  handleAmountBlur(item.id, item.amount, index);
+                }}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'right' // Right aligned for Amount
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+              />
+            </td>
+            <td style={styles.td}>
+              <button
+                onClick={() => handleDeleteReceiptRow(item.id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#e53935',
+                  marginLeft: isMobileView ? '10px' : '30px'
+                }}
+                title="Delete row"
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+              >
+                <svg width={isMobileView ? "16" : "20"} height={isMobileView ? "16" : "20"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        ))}
+        {/* Spacing Row */}
+        <tr style={{ height: isMobileView ? '10vh' : '20vh', backgroundColor: 'transparent' }}>
+          <td colSpan="9" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
+        </tr>
+        {/* Total Row for Receipt Details */}
+        <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
+          <td style={{...styles.td, backgroundColor: '#f0f8ff'}} colSpan={isMobileView ? 6 : 6}></td>
+          <td style={{...styles.td, backgroundColor: '#f0f8ff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
+          <td style={{...styles.td, backgroundColor: '#f0f8ff', color: '#1B91DA', fontWeight: 'bold', textAlign: 'right'}}>
+            {receiptItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
+          </td>
+          <td style={{...styles.td, backgroundColor: '#f0f8ff'}}></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-        {/* REFERENCE BILL DETAILS TABLE */}
-        <div style={{...styles.tableContainer, marginTop: '0', marginBottom: '0'}}>
-          <h2 style={styles.mobileTableHeader}></h2>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Ref No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Bill No</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Date</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px'}}>Bill Amount</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px'}}>Paid Amount</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '100px' : '120px'}}>Balance Amount</th>
-                <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {billDetails.map((bill, index) => (
-                <tr key={bill.id}>
-                  <td style={styles.td}>{bill.sNo}</td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_refNo`}
-                      type="text"
-                      value={bill.refNo}
-                      onChange={(e) => handleBillItemChange(bill.id, 'refNo', e.target.value)}
-                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'refNo')}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_billNo`}
-                      type="text"
-                      value={bill.billNo}
-                      onChange={(e) => handleBillItemChange(bill.id, 'billNo', e.target.value)}
-                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'billNo')}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_date`}
-                      type="date"
-                      placeholder=""
-                      value={bill.date}
-                      onChange={(e) => handleBillItemChange(bill.id, 'date', e.target.value)}
-                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'date')}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_billAmount`}
-                      value={bill.billAmount}
-                      onChange={(e) => handleBillItemChange(bill.id, 'billAmount', e.target.value)}
-                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'billAmount')}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_paidAmount`}
-                      value={bill.paidAmount}
-                      onChange={(e) => handleBillItemChange(bill.id, 'paidAmount', e.target.value)}
-                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'paidAmount')}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_balanceAmount`}
-                      value={bill.balanceAmount}
-                      onChange={(e) => handleBillItemChange(bill.id, 'balanceAmount', e.target.value)}
-                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'balanceAmount')}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <input
-                      id={`bill_${bill.id}_amount`}
-                      value={bill.amount}
-                      onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
-                      onKeyDown={(e) => handleBillTableKeyDown(e, index, 'amount')}
-                      style={styles.editableInput}
-                      onFocus={(e) => {
-                        e.target.style.border = '2px solid #1B91DA';
-                      }}
-                      onBlur={(e) => (e.target.style.border = 'none')}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {/* Spacing Row */}
-              <tr style={{ height: isMobileView ? '5vh' : '10vh', backgroundColor: 'transparent' }}>
-                <td colSpan="8" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
-              </tr>
-              {/* Total Row for Bill Details */}
-              <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
-                <td style={{...styles.td, backgroundColor: '#fff'}} colSpan={isMobileView ? 6 : 6}></td>
-                <td style={{...styles.td, backgroundColor: '#fff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
-                <td style={{...styles.td, backgroundColor: '#fff', color: '#1B91DA', fontWeight: 'bold'}}>
-                  {billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0).toFixed(2)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
+  {/* REFERENCE BILL DETAILS TABLE */}
+  <div style={{...styles.tableContainer, marginTop: '0', marginBottom: '0'}}>
+    <h2 style={styles.mobileTableHeader}></h2>
+    <table style={styles.table}>
+      <thead>
+        <tr>
+          <th style={{...styles.th, minWidth: isMobileView ? '40px' : '60px'}}>No</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px', textAlign: 'left'}}>Ref No</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px', textAlign: 'left'}}>Bill No</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px'}}>Date</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px', textAlign: 'right'}}>Bill Amount</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '90px' : '100px', textAlign: 'right'}}>Paid Amount</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '100px' : '120px', textAlign: 'right'}}>Balance Amount</th>
+          <th style={{...styles.th, minWidth: isMobileView ? '80px' : '100px', textAlign: 'right'}}>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {billDetails.map((bill, index) => (
+          <tr key={bill.id}>
+            <td style={styles.td}>{bill.sNo}</td>
+            {/* Ref No - Left Aligned */}
+            <td style={styles.td}>
+              <input
+                id={`bill_${bill.id}_refNo`}
+                type="text"
+                value={bill.refNo}
+                onChange={(e) => handleBillItemChange(bill.id, 'refNo', e.target.value)}
+                onKeyDown={(e) => handleBillTableKeyDown(e, index, 'refNo')}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'left' // Left aligned for Ref No
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+            {/* Bill No - Left Aligned */}
+            <td style={styles.td}>
+              <input
+                id={`bill_${bill.id}_billNo`}
+                type="text"
+                value={bill.billNo}
+                onChange={(e) => handleBillItemChange(bill.id, 'billNo', e.target.value)}
+                onKeyDown={(e) => handleBillTableKeyDown(e, index, 'billNo')}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'left' // Left aligned for Bill No
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+            {/* Date - Center aligned */}
+            <td style={styles.td}>
+              <input
+                id={`bill_${bill.id}_date`}
+                type="date"
+                placeholder=""
+                value={bill.date}
+                onChange={(e) => handleBillItemChange(bill.id, 'date', e.target.value)}
+                onKeyDown={(e) => handleBillTableKeyDown(e, index, 'date')}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'center' // Center aligned for Date
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+            {/* Bill Amount - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                id={`bill_${bill.id}_billAmount`}
+                value={bill.billAmount}
+                onChange={(e) => handleBillItemChange(bill.id, 'billAmount', e.target.value)}
+                onKeyDown={(e) => handleBillTableKeyDown(e, index, 'billAmount')}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'right' // Right aligned for Bill Amount
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+            {/* Paid Amount - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                id={`bill_${bill.id}_paidAmount`}
+                value={bill.paidAmount}
+                onChange={(e) => handleBillItemChange(bill.id, 'paidAmount', e.target.value)}
+                onKeyDown={(e) => handleBillTableKeyDown(e, index, 'paidAmount')}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'right' // Right aligned for Paid Amount
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+            {/* Balance Amount - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                id={`bill_${bill.id}_balanceAmount`}
+                value={bill.balanceAmount}
+                onChange={(e) => handleBillItemChange(bill.id, 'balanceAmount', e.target.value)}
+                onKeyDown={(e) => handleBillTableKeyDown(e, index, 'balanceAmount')}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'right' // Right aligned for Balance Amount
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+            {/* Amount - Right Aligned */}
+            <td style={styles.td}>
+              <input
+                id={`bill_${bill.id}_amount`}
+                value={bill.amount}
+                onChange={(e) => handleBillItemChange(bill.id, 'amount', e.target.value)}
+                onKeyDown={(e) => handleBillTableKeyDown(e, index, 'amount')}
+                style={{
+                  ...styles.editableInput,
+                  textAlign: 'right' // Right aligned for Amount
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #1B91DA';
+                }}
+                onBlur={(e) => (e.target.style.border = 'none')}
+              />
+            </td>
+          </tr>
+        ))}
+        {/* Spacing Row */}
+        <tr style={{ height: isMobileView ? '5vh' : '10vh', backgroundColor: 'transparent' }}>
+          <td colSpan="8" style={{ backgroundColor: 'transparent', border: 'none' }}></td>
+        </tr>
+        {/* Total Row for Bill Details */}
+        <tr style={{ backgroundColor: '#f0f8ff', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 9 }}>
+          <td style={{...styles.td, backgroundColor: '#fff'}} colSpan={isMobileView ? 6 : 6}></td>
+          <td style={{...styles.td, backgroundColor: '#fff', textAlign: 'right', paddingRight: '10px', color: '#1B91DA', fontWeight: 'bold'}}>TOTAL:</td>
+          <td style={{...styles.td, backgroundColor: '#fff', color: '#1B91DA', fontWeight: 'bold', textAlign: 'right'}}>
+            {billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0).toFixed(2)}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.leftColumn}>

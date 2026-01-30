@@ -18,6 +18,7 @@ import PurchaseInvoice from '../pages/PurchaseInvoice/PurchaseInvoice';
 import ScrapRateFix from '../pages/ScrapRateFix/scrapratefix';
 import { useAuth } from '../context/AuthContext';
 
+
 const AppRoutes = () => {
   return (
     <Router>
