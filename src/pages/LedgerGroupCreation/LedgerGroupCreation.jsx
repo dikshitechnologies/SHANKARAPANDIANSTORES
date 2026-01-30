@@ -220,6 +220,17 @@ export default function LedgerGroupCreation() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+
+  useEffect(() => {
+  if (isTreeOpen && isMobile) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+  return () => (document.body.style.overflow = "");
+}, [isTreeOpen, isMobile]);
+
+
   // Effect to focus sub group input when in edit mode and sub group is selected
   useEffect(() => {
     if (actionType === "Edit" && subGroup && fCode) {
@@ -1075,6 +1086,47 @@ export default function LedgerGroupCreation() {
           color: #374151;
         }
 
+        /* ===============================
+   MOBILE TREE HORIZONTAL SCROLL
+   =============================== */
+@media (max-width: 768px) {
+
+  /* Tree container */
+  #group-tree,
+  .panel {
+    overflow-x: auto;      /* horizontal scroll */
+    overflow-y: auto;      /* vertical scroll */
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  /* Tree scroll area */
+  .tree-scroll {
+    min-width: max-content; /* 🔥 forces horizontal expansion */
+    white-space: nowrap;
+  }
+
+  /* Each tree row must not wrap */
+  .tree-row {
+    white-space: nowrap;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  /* Node text must not wrap */
+  .node-text {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  /* Children indentation must expand horizontally */
+  .tree-node {
+    width: max-content;
+  }
+}
+
+
         /* dropdown modal (glass) */
         .modal-overlay {
           position:fixed; 
@@ -1157,11 +1209,14 @@ export default function LedgerGroupCreation() {
         /* Tablets */
         @media (max-width: 768px) {
           .lg-root {
-            padding: 16px 12px;
-          }
-          .dashboard {
-            padding: 16px;
-          }
+    align-items: flex-start;
+    justify-content: flex-start;
+    min-height: 100vh;
+  }
+
+  .dashboard {
+    margin-bottom: 0; /* 🔥 remove black space */
+  }
           .top-row {
             flex-direction: column;
             align-items: flex-start;
@@ -1353,27 +1408,30 @@ export default function LedgerGroupCreation() {
 
                   />
                   <button
-                    onClick={() => setIsTreeOpen(!isTreeOpen)}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "0 12px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--accent)"
-                    }}
-                    aria-label={isTreeOpen ? "Close tree" : "Open tree"}
-                  >
-                    <Icon.Chevron down={!isTreeOpen} />
-                  </button>
+  type="button"
+  onClick={() => setIsTreeOpen(prev => !prev)}
+  aria-label={isTreeOpen ? "Close tree" : "Open tree"}
+  style={{
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    padding: "0 12px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "var(--accent)"
+  }}
+>
+  <Icon.Chevron down={!isTreeOpen} />
+</button>
+
                 </div>
               </div>
-
+{/* 
               {isTreeOpen && (
                 isMobile ? (
-                  <div className="modal-overlay" onClick={() => setIsTreeOpen(true)}>
+                 <div className="modal-overlay" onClick={() => setIsTreeOpen(true)}>
+
                     <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                         <h3 style={{ margin: 0, fontSize: 18 }}>Groups</h3>
@@ -1443,7 +1501,8 @@ export default function LedgerGroupCreation() {
                       </div>
                     </div>
                   </div>
-                ) : (
+                ) : ( */}
+                  {isTreeOpen && (
                   <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
                     {/* Header with close button for desktop */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -1506,8 +1565,9 @@ export default function LedgerGroupCreation() {
                       )}
                     </div>
                   </div>
-                )
-              )}
+                  )}
+                {/* / ) */}
+              {/* )} */}
             </div>
 
             {/* Sub Group field */}

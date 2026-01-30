@@ -1575,99 +1575,358 @@ export default function LedgerCreation({ onCreated }) {
           transform: translateX(26px);
         }
 
-        /* Responsive styles */
-        /* Large tablets and small laptops */
+        /* ==================== RESPONSIVE STYLES ==================== */
+        
+        /* Large tablets and small laptops (1024px and below) */
         @media (max-width: 1024px) {
-          .form-container {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-        }
-
-        /* Tablets */
-        @media (max-width: 768px) {
           .lg-root {
             padding: 16px 12px;
+            align-items: flex-start;
+            min-height: auto;
           }
+          
+          .dashboard {
+            max-width: 100%;
+            padding: 20px;
+          }
+          
+          .form-container {
+            grid-template-columns: 1fr;
+            gap: 20px;
+          }
+          
+          .left-card, .right-card {
+            width: 100%;
+          }
+          
+          .panel {
+            max-width: 100%;
+          }
+        }
+        
+        /* Tablets (768px and below) */
+        @media (max-width: 768px) {
+          .lg-root {
+            padding: 12px 8px;
+            display: block;
+          }
+          
           .dashboard {
             padding: 16px;
-            max-width: 95%;
+            margin: 0;
+            width: 100%;
           }
+          
           .top-row {
             flex-direction: column;
             align-items: flex-start;
             gap: 16px;
+            margin-bottom: 20px;
           }
+          
+          .title-block {
+            width: 100%;
+          }
+          
+          .title-block h2 {
+            font-size: 18px;
+          }
+          
+          .subtitle {
+            font-size: 12px;
+          }
+          
           .actions {
             width: 100%;
             justify-content: space-between;
+            gap: 8px;
           }
+          
           .action-pill {
             flex: 1;
-            justify-content: center;
             min-width: 0;
+            padding: 8px 10px;
+            font-size: 12px;
+            justify-content: center;
+            text-align: center;
           }
+          
+          .form-container {
+            padding: 16px;
+            gap: 20px;
+          }
+          
           .right-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          
+          .field {
+            margin-bottom: 12px;
+          }
+          
+          label.field-label {
+            font-size: 14px;
+            margin-bottom: 4px;
+          }
+          
+          .input, .search, .select {
+            padding: 8px 10px;
+            font-size: 13px;
+          }
+          
+          .tree-row {
+            padding: 8px;
+          }
+          
+          .tree-scroll {
+            max-height: 300px;
+          }
+          
+          .switch-container {
+            padding: 10px;
+            margin-top: 12px;
+          }
+          
+          .submit-row {
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+            margin-top: 20px;
+          }
+          
+          .submit-primary, .submit-clear {
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+          }
+          
+          .submit-primary {
+            min-width: auto;
+          }
+          
+          .message {
+            font-size: 13px;
+            padding: 10px;
           }
         }
-
-        /* Mobile phones */
+        
+        /* Mobile phones (480px and below) */
         @media (max-width: 480px) {
           .lg-root {
-            padding: 12px 8px;
+            padding: 8px 4px;
           }
+          
           .dashboard {
             padding: 12px;
             border-radius: 12px;
           }
+          
           .title-block h2 {
-            font-size: 18px;
+            font-size: 16px;
           }
+          
+          .actions {
+            flex-direction: column;
+            width: 100%;
+          }
+          
           .action-pill {
-            padding: 8px 10px;
+            width: 100%;
+            padding: 10px;
+            font-size: 13px;
+          }
+          
+          .form-container {
+            padding: 12px;
+            border-radius: 10px;
+            gap: 16px;
+          }
+          
+          .field {
+            margin-bottom: 10px;
+          }
+          
+          label.field-label {
+            font-size: 13px;
+          }
+          
+          .input, .search, .select {
+            padding: 7px 9px;
+            font-size: 12px;
+            border-radius: 8px;
+          }
+          
+          .select {
+            padding-right: 28px;
+            background-size: 14px;
+            background-position: right 8px center;
+          }
+          
+          .right-grid {
+            gap: 10px;
+          }
+          
+          .tree-row {
+            padding: 6px 8px;
+          }
+          
+          .node-text {
+            font-size: 13px;
+          }
+          
+          .tree-scroll {
+            max-height: 250px;
+          }
+          
+          .panel {
+            padding: 8px;
+          }
+          
+          .switch-container {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px;
+          }
+          
+          .switch {
+            margin-left: 0;
+            align-self: flex-start;
+          }
+          
+          .submit-row {
+            gap: 8px;
+          }
+          
+          .submit-primary {
+            padding: 10px;
+            font-size: 14px;
+          }
+          
+          .submit-clear {
+            padding: 8px;
+            font-size: 13px;
+          }
+          
+          /* Adjust tree node indentation for mobile */
+          .tree-node {
+            padding-left: 8px !important;
+          }
+          
+          .chev, .chev-placeholder {
+            width: 22px;
+            height: 22px;
+          }
+          
+          .node-icon {
+            width: 18px;
+          }
+        }
+        
+        /* Very small screens (360px and below) */
+        @media (max-width: 360px) {
+          .lg-root {
+            padding: 6px 3px;
+          }
+          
+          .dashboard {
+            padding: 10px;
+          }
+          
+          .title-block h2 {
+            font-size: 15px;
+          }
+          
+          .action-pill {
+            padding: 8px;
             font-size: 12px;
           }
-          .left-card, .right-card {
-            padding: 12px;
+          
+          .form-container {
+            padding: 10px;
+            gap: 12px;
           }
-          .input, .search {
-            padding: 8px 10px;
-            font-size: 13px;
+          
+          .input, .search, .select {
+            padding: 6px 8px;
+            font-size: 11px;
           }
-          .btn {
-            padding: 8px 10px;
-            min-width: 70px;
-            font-size: 13px;
+          
+          label.field-label {
+            font-size: 12px;
           }
-          .submit-primary {
-            padding: 10px 14px;
-            min-width: 100px;
+          
+          .right-grid {
+            gap: 8px;
           }
+          
+          .field {
+            margin-bottom: 8px;
+          }
+          
+          .tree-scroll {
+            max-height: 200px;
+          }
+          
           .tree-row {
+            padding: 5px;
+          }
+          
+          .node-text {
+            font-size: 12px;
+          }
+          
+          .submit-primary, .submit-clear {
+            padding: 8px;
+            font-size: 13px;
+          }
+          
+          .message {
+            font-size: 12px;
             padding: 8px;
           }
         }
-
-        /* Very small screens */
-        @media (max-width: 360px) {
+        
+        /* Landscape mode for mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .lg-root {
+            align-items: flex-start;
+            padding-top: 10px;
+          }
+          
+          .tree-scroll {
+            max-height: 180px;
+          }
+          
+          .form-container {
+            max-height: 85vh;
+            overflow-y: auto;
+          }
+        }
+        
+        /* For foldable/small devices */
+        @media (max-width: 320px) {
           .actions {
-                flex-direction: column;
-                width: 100%;
-              }
+            gap: 6px;
+          }
+          
           .action-pill {
-            width: 100%;
+            padding: 7px;
+            font-size: 11px;
           }
-          .controls {
-            flex-direction: column;
+          
+          .form-container {
+            padding: 8px;
           }
-          .submit-row {
-            flex-direction: column;
-            align-items: stretch;
+          
+          .input, .search, .select {
+            padding: 5px 7px;
           }
+          
           .submit-primary, .submit-clear {
-            width: 100%;
-            text-align: center;
+            font-size: 12px;
+            padding: 7px;
           }
         }
 

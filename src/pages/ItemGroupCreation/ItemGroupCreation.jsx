@@ -745,6 +745,46 @@ export default function ItemGroupCreation() {
           color: var(--muted);
           font-size: 13px;
         }
+          /* ===============================
+   MOBILE TREE HORIZONTAL SCROLL
+   =============================== */
+@media (max-width: 768px) {
+
+  /* Tree container */
+  #group-tree,
+  .panel {
+    overflow-x: auto;      /* horizontal scroll */
+    overflow-y: auto;      /* vertical scroll */
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  /* Tree scroll area */
+  .tree-scroll {
+    min-width: max-content; /* 🔥 forces horizontal expansion */
+    white-space: nowrap;
+  }
+
+  /* Each tree row must not wrap */
+  .tree-row {
+    white-space: nowrap;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  /* Node text must not wrap */
+  .node-text {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  /* Children indentation must expand horizontally */
+  .tree-node {
+    width: max-content;
+  }
+}
+
 
         /* action pills - SAME as Item Creation */
         .actions {
@@ -1357,7 +1397,7 @@ export default function ItemGroupCreation() {
                 </div>
               </div>
 
-              {isTreeOpen && (
+              {/* {isTreeOpen && (
                 isMobile ? (
                   <div className="modal-overlay" onClick={() => setIsTreeOpen(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Groups tree modal">
@@ -1372,7 +1412,7 @@ export default function ItemGroupCreation() {
                         </button>
                       </div>
 
-                      <div className="row" style={{ marginBottom: 8 }}>
+                      <div className="row" style={{ marginBottom: 8 }}> */}
                         {/* <div className="search-container">
                           <input
                             className="search-with-clear"
@@ -1392,7 +1432,7 @@ export default function ItemGroupCreation() {
                             </button>
                           )}
                         </div> */}
-                      </div>
+                      {/* </div>
 
                       <div
                         className="tree-scroll"
@@ -1429,8 +1469,11 @@ export default function ItemGroupCreation() {
                       </div>
                     </div>
                   </div>
-                ) : (
+                ) : ( */}
+                  {isTreeOpen && (
                   <div id="group-tree" className="panel" role="region" aria-label="Groups tree">
+
+                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                     {/* Header with close button for desktop */}
                     {/* <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                       <div className="search-container">
@@ -1460,6 +1503,7 @@ export default function ItemGroupCreation() {
                         <Icon.Close size={18} />
                       </button>
                     </div> */}
+                    </div>
 
                     <div
                       className="tree-scroll"
@@ -1492,7 +1536,7 @@ export default function ItemGroupCreation() {
                       )}
                     </div>
                   </div>
-                )
+                
               )}
             </div>
 
