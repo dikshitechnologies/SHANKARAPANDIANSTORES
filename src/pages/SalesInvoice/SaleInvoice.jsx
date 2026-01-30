@@ -808,6 +808,7 @@ const formattedItems = itemsArray.map((item, index) => {
     qty: (item.qty || item.fTotQty || 0).toString(),
     amount: (item.amount || item.fAmount || 0).toFixed(2),
     fdesc: item.fdesc || "",
+    fserialno: item.fserialno || item.fslno || "",  // ✅ ADD SERIAL NUMBER MAPPING
     fromBarcode: false
   };
 });
@@ -2514,21 +2515,40 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
       };
 
      // Prepare items data
-const itemsData = validItems.map(item => ({
-  barcode: item.barcode || "", // Make sure barcode is included
-  itemName: item.itemName || "",
-  itemcode: item.itemCode || "",
-  mrp: (Number(item.mrp) || 0).toFixed(2),
-  stock: (item.stock ?? "0").toString(),
-  uom: item.uom || "pcs",
-  hsn: item.hsn || "",
-  tax: Number(item.tax) || 0,
-  rate: Number(item.sRate) || 0,
-  qty: Number(item.qty) || 0,
-  amount: Number(item.amount) || 0,
-  fdesc: item.fdesc || "" ,
-  fSlNo: item.fserialno || "" 
-}));
+const itemsData = validItems.map(item => {
+  // Calculate tax amount based on gstMode
+  let taxAmount = 0;
+  if (item.tax) {
+    const qty = Number(item.qty) || 0;
+    const rate = Number(item.sRate) || 0;
+    const tax = Number(item.tax) || 0;
+    
+    if (gstMode === 'Inclusive') {
+      const total = qty * rate;
+      taxAmount = tax === 0 ? 0 : (total * tax) / (100 + tax);
+    } else {
+      const base = qty * rate;
+      taxAmount = (base * tax) / 100;
+    }
+  }
+  
+  return {
+    barcode: item.barcode || "", // Make sure barcode is included
+    itemName: item.itemName || "",
+    itemcode: item.itemCode || "",
+    mrp: (Number(item.mrp) || 0).toFixed(2),
+    stock: (item.stock ?? "0").toString(),
+    uom: item.uom || "pcs",
+    hsn: item.hsn || "",
+    tax: Number(item.tax) || 0,
+    rate: Number(item.sRate) || 0,
+    qty: Number(item.qty) || 0,
+    amount: Number(item.amount) || 0,
+    fdesc: item.fdesc || "" ,
+    fSlNo: item.fserialno || "",
+    ftaxamt: taxAmount.toFixed(2)  // ✅ ADD TAX AMOUNT
+  };
+});
       
       const requestData = {
         header: headerData,
@@ -3877,6 +3897,7 @@ onKeyDown={(e) => {
 
 // ✅ PREFILL FROM ROW
 setDescValue(items[index]?.fdesc || '');
+setSerialNoValue(items[index]?.fserialno || '');
 
 setHuidValue('');
 setDescHuidPopupOpen(true);
@@ -4425,7 +4446,13 @@ setDescHuidPopupOpen(true);
             fontSize: '20px',
             lineHeight: 1
           }}
-          onClick={() => setDescHuidPopupOpen(false)}
+          onClick={() => {
+            setDescHuidPopupOpen(false);
+            setDescValue('');
+            setSerialNoValue('');
+            setHuidValue('');
+            setDescHuidRowIndex(null);
+          }}
         >
           ×
         </span>
@@ -4509,6 +4536,12 @@ setDescHuidPopupOpen(true);
       });
 
       setDescHuidPopupOpen(false);
+      
+      // ✅ CLEAR POPUP STATE FOR NEXT ROW
+      setDescValue('');
+      setSerialNoValue('');
+      setHuidValue('');
+      setDescHuidRowIndex(null);
 
       // ✅ MOVE TO HSN
       setTimeout(() => {
