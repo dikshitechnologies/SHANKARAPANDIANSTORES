@@ -3788,6 +3788,9 @@ const itemsData = validItems.map(item => {
   </div>
 </div>
 
+
+ <div style={{marginLeft: '80px'}}> <PopupScreenModal screenIndex={5} /> </div>
+
   </div>
 </div>
 
