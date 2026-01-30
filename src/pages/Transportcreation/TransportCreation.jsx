@@ -1194,7 +1194,7 @@ export default function TransportCreation() {
                   className="input"
                   value={form.code}
                   onChange={(e) => setForm(s => ({ ...s, code: e.target.value }))}
-                  placeholder="Transport code (auto-generated)"
+                  // placeholder="Transport code (auto-generated)"
                   onKeyDown={onCodeKeyDown}
                   disabled={loading}
                   aria-label="Transport Code"
@@ -1231,7 +1231,7 @@ export default function TransportCreation() {
                   className="input"
                   value={form.address}
                   onChange={(e) => setForm(s => ({ ...s, address: e.target.value }))}
-                  placeholder="Enter full address"
+                  // placeholder="Enter full address"
                   onKeyDown={onAddressKeyDown}
                   disabled={loading || actionType === "Delete"}
                   aria-label="Address"
@@ -1255,7 +1255,7 @@ export default function TransportCreation() {
                   placeholder="Address line 1"
                   onKeyDown={onAddress1KeyDown}
                   disabled={loading || actionType === "Delete"}
-                  aria-label="Address 1"
+                  // aria-label="Address 1"
                   maxLength={100}
                 />
               </div>
@@ -1273,7 +1273,7 @@ export default function TransportCreation() {
                   placeholder="Address line 2"
                   onKeyDown={onAddress2KeyDown}
                   disabled={loading || actionType === "Delete"}
-                  aria-label="Address 2"
+                  // aria-label="Address 2"
                   maxLength={100}
                 />
               </div>
@@ -1290,7 +1290,7 @@ export default function TransportCreation() {
                   className="input"
                   value={form.gstIn}
                   onChange={(e) => setForm(s => ({ ...s, gstIn: e.target.value }))}
-                  placeholder="Enter GSTIN number"
+                  // placeholder="Enter GSTIN number"
                   onKeyDown={onGstInKeyDown}
                   disabled={loading || actionType === "Delete"}
                   aria-label="GSTIN"
