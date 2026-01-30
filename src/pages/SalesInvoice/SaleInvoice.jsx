@@ -3,6 +3,7 @@ import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } fr
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import 'bootstrap/dist/css/bootstrap.min.css';
+
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
@@ -45,6 +46,27 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+const HistoryIcon = ({ size = 16, color = "#4d7cfe" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {/* Box */}
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+
+    {/* Arrow */}
+    <polyline points="12 8 12 12 15 14" />
+  </svg>
+);
+
+
 
 
 
@@ -63,14 +85,21 @@ const SaleInvoice = () => {
 
   // --- STATE MANAGEMENT ---
 
+  const [gstMode, setGstMode] = useState("Inclusive");
+  const [gstRate, setGstRate] = useState('18');  // ✅ ADD GST RATE STATE
+  const [lastBillAmount, setLastBillAmount] = useState('0.00');
 
+
+
+const [serialNoValue, setSerialNoValue] = useState('');
 const [descHuidPopupOpen, setDescHuidPopupOpen] = useState(false);
 const [descValue, setDescValue] = useState('');
 const [huidValue, setHuidValue] = useState('');
 const [descHuidRowIndex, setDescHuidRowIndex] = useState(null);
 
 const descRef = useRef(null);
-const huidRef = useRef(null);
+const serialRef = useRef(null);
+
 
 
 
@@ -164,6 +193,9 @@ const [taxList, setTaxList] = useState([]);
     transType: 'SALES INVOICE'
   });
 
+  // Party balance shown in header (read-only)
+  const [partyBalance, setPartyBalance] = useState('0.00');
+
   // 2. Table Items State
   const [items, setItems] = useState([
     { 
@@ -220,6 +252,7 @@ const roundOffValue = (roundedTotalAmount - totalAmount).toFixed(2);
   const billDateRef = useRef(null);
   const mobileRef = useRef(null);
   const typeRef = useRef(null);
+  const gstModeRef = useRef(null);
   const salesmanRef = useRef(null);
   const custNameRef = useRef(null);
   const barcodeRef = useRef(null);
@@ -484,6 +517,50 @@ const fetchTaxList = useCallback(async (page = 1, pageSize = 10) => {
     }
   }, []);
 
+  // Calculate amount - memoized with useCallback
+  const calculateAmount = useCallback((qty, sRate, taxPercent) => {
+    const qtyNum = parseFloat(qty || 0);
+    const sRateNum = parseFloat(sRate || 0);
+    const taxNum = parseFloat(taxPercent || 0);
+
+    // Backwards-compatible behavior: if taxPercent is not provided, behave as before
+    if (taxPercent === undefined) {
+      return (qtyNum * sRateNum).toFixed(2);
+    }
+
+    // Compute based on gstMode
+    if (gstMode === 'Inclusive') {
+      // sRate includes tax. total = qty * sRate. Extract tax portion.
+      const total = qtyNum * sRateNum;
+      const taxAmount = taxNum === 0 ? 0 : (total * taxNum) / (100 + taxNum);
+      return { amount: total.toFixed(2), taxAmount: taxAmount.toFixed(2) };
+    } else {
+      // Exclusive: tax calculated on top of sRate
+      const base = qtyNum * sRateNum;
+      const taxAmount = (base * taxNum) / 100;
+      const total = base + taxAmount;
+      return { amount: total.toFixed(2), taxAmount: taxAmount.toFixed(2) };
+    }
+  }, [gstMode]);
+
+  const totalTaxAmount = useMemo(() => {
+  return items.reduce((sum, item) => {
+    const qty = parseFloat(item.qty) || 0;
+    const rate = parseFloat(item.sRate) || 0;
+    const tax = parseFloat(item.tax) || 0;
+
+    if (qty === 0 || rate === 0 || tax === 0) return sum;
+
+    const calc = calculateAmount(qty, rate, tax);
+    const taxAmt = typeof calc === 'string'
+      ? 0
+      : parseFloat(calc.taxAmount || 0);
+
+    return sum + taxAmt;
+  }, 0);
+}, [items, gstMode, calculateAmount]);
+
+
 // Fetch items by type (FG for Finished Goods)
 const fetchItems = useCallback(async (type = 'FG') => {
   try {
@@ -731,6 +808,7 @@ const formattedItems = itemsArray.map((item, index) => {
     qty: (item.qty || item.fTotQty || 0).toString(),
     amount: (item.amount || item.fAmount || 0).toFixed(2),
     fdesc: item.fdesc || "",
+    fserialno: item.fserialno || item.fslno || "",  // ✅ ADD SERIAL NUMBER MAPPING
     fromBarcode: false
   };
 });
@@ -932,18 +1010,7 @@ useEffect(() => {
 
     setTotalQty(qtyTotal);
     setTotalAmount(amountTotal);
-  }, [items]);
-
-  // Calculate amount
-  const calculateAmount = (qty, sRate) => {
-    const qtyNum = parseFloat(qty || 0);
-    const sRateNum = parseFloat(sRate || 0);
-    return (qtyNum * sRateNum).toFixed(2);
-  };
-
-  useEffect(() => {
-   calculateAmount();
-  }, [items.qty, items.sRate]);
+  }, [items, gstMode]);
 
   // Reset form to empty state
   const resetForm = () => {
@@ -1245,6 +1312,27 @@ const handleCustomerSelect = (customer) => {
 
   setCustomerPopupOpen(false);
 
+  // Fetch and display party balance for selected customer
+  (async () => {
+    try {
+      const partyCode = customer.code || customer.code;
+      if (partyCode) {
+        const url = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
+        const resp = await axiosInstance.get(url);
+        // try common locations for balance
+        const data = resp?.data ?? resp;
+        const balance = (data && (data.balanceAmount || data.balance || data.BalanceAmount || data.Balance)) || 0;
+        // format to 2 decimals
+        setPartyBalance(Number(balance).toFixed(2));
+      } else {
+        setPartyBalance('0.00');
+      }
+    } catch (err) {
+      console.error('Error fetching party balance for sales invoice:', err);
+      setPartyBalance('0.00');
+    }
+  })();
+
   // ✅ FOCUS GOES TO BARCODE FIELD (FIRST ROW, BARCODE FIELD)
   setTimeout(() => {
     // Find and focus the barcode field in the first row
@@ -1324,10 +1412,14 @@ const handleItemSelect = async (item) => {
       tax: formatValue(item.tax || stockInfo.tax || 0),
       sRate: formatValue(item.preRate || item.sRate || stockInfo.rate || 0), // ✅ Use preRate
       qty: currentItem.qty || '',
-      amount: calculateAmount(
-        currentItem.qty || '',
-        item.preRate || item.sRate || stockInfo.rate || 0
-      )
+      amount: (() => {
+        const calc = calculateAmount(
+          currentItem.qty || '',
+          item.preRate || item.sRate || stockInfo.rate || 0,
+          item.tax || stockInfo.tax || 0
+        );
+        return typeof calc === 'string' ? calc : calc.amount;
+      })()
     };
 
     setItems(updatedItems);
@@ -1682,7 +1774,8 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
     const existingItem = updatedItems[existingIndex];
 
     const newQty = (Number(existingItem.qty) || 0) + 1;
-    const newAmount = calculateAmount(newQty, existingItem.sRate);
+    const calc = calculateAmount(newQty, existingItem.sRate, existingItem.tax);
+    const newAmount = (typeof calc === 'string') ? calc : calc.amount;
 
     updatedItems[existingIndex] = {
       ...existingItem,
@@ -1788,7 +1881,8 @@ const handleBarcodeKeyDown = async (e, currentRowIndex) => {
 // ✅ ALWAYS DEFAULT QTY = 1 (ignore API)
 const qty = DEFAULT_QTY;
 
-const amount = calculateAmount(qty, selectedRate);
+const calc = calculateAmount(qty, selectedRate, barcodeData.inTax || 0);
+const amount = (typeof calc === 'string') ? calc : calc.amount;
 
 
     updatedItems[currentRowIndex] = {
@@ -2155,7 +2249,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       const updatedItems = [...items];
       const existingItem = updatedItems[existingItemIndex];
       const newQty = (parseFloat(existingItem.qty) || 0) + 1;
-      const newAmount = calculateAmount(newQty, existingItem.sRate || existingItem.rate);
+      const calc = calculateAmount(newQty, existingItem.sRate || existingItem.rate, existingItem.tax);
+      const newAmount = (typeof calc === 'string') ? calc : calc.amount;
 
       updatedItems[existingItemIndex] = {
         ...existingItem,
@@ -2234,11 +2329,14 @@ const handleItemChange = (id, field, value) => {
     if (item.id === id) {
       const updatedItem = { ...item, [field]: value };
 
-      if (field === 'qty' || field === 'sRate') {
-        updatedItem.amount = calculateAmount(
-          field === 'qty' ? value : updatedItem.qty,
-          field === 'sRate' ? value : updatedItem.sRate
-        );
+      // Recalculate amount if qty, sRate, or tax changes
+      if (field === 'qty' || field === 'sRate' || field === 'tax') {
+        const qtyVal = field === 'qty' ? value : updatedItem.qty;
+        const sRateVal = field === 'sRate' ? value : updatedItem.sRate;
+        const taxVal = field === 'tax' ? value : (updatedItem.tax || 0);
+        const calc = calculateAmount(qtyVal, sRateVal, taxVal);
+        updatedItem.amount = typeof calc === 'string' ? calc : calc.amount;
+        updatedItem.taxAmount = typeof calc === 'string' ? '0.00' : calc.taxAmount;
       }
 
       return updatedItem;
@@ -2381,13 +2479,13 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
 
 
 
-       const hasValidtax = items.some(item =>         
-        item.tax && item.tax.trim() !== '' 
+       const hasValidtax = validItems.some(item =>         
+        item.tax && String(item.tax).trim() !== '' && String(item.tax) !== '0'
       );
 
 
       if (!hasValidtax) {
-        throw new Error("Please enter tax for all items before saving");    
+        throw new Error("Please enter tax for at least one item before saving");    
       }
 
 
@@ -2408,27 +2506,49 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
         customerName: billDetails.custName || "",
         customercode: billDetails.custCode || "",
         compCode: compCode,
-          billAmount: Number(roundedTotalAmount),
+        billAmount: Number(roundedTotalAmount) + Number(addLessAmount || 0),
         balanceAmount: 0,
         userCode: userCode,
-        barcode:"",
+        barcode: "",
+        fmode: gstMode === "Inclusive" ? "I" : "E",
+        ftaxrs: gstRate || "18"  // ✅ ADD GST RATE FIELD
       };
 
      // Prepare items data
-const itemsData = validItems.map(item => ({
-  barcode: item.barcode || "", // Make sure barcode is included
-  itemName: item.itemName || "",
-  itemcode: item.itemCode || "",
-  mrp: (Number(item.mrp) || 0).toFixed(2),
-  stock: (item.stock ?? "0").toString(),
-  uom: item.uom || "pcs",
-  hsn: item.hsn || "",
-  tax: Number(item.tax) || 0,
-  rate: Number(item.sRate) || 0,
-  qty: Number(item.qty) || 0,
-  amount: Number(item.amount) || 0,
-  fdesc: item.fdesc || "" 
-}));
+const itemsData = validItems.map(item => {
+  // Calculate tax amount based on gstMode
+  let taxAmount = 0;
+  if (item.tax) {
+    const qty = Number(item.qty) || 0;
+    const rate = Number(item.sRate) || 0;
+    const tax = Number(item.tax) || 0;
+    
+    if (gstMode === 'Inclusive') {
+      const total = qty * rate;
+      taxAmount = tax === 0 ? 0 : (total * tax) / (100 + tax);
+    } else {
+      const base = qty * rate;
+      taxAmount = (base * tax) / 100;
+    }
+  }
+  
+  return {
+    barcode: item.barcode || "", // Make sure barcode is included
+    itemName: item.itemName || "",
+    itemcode: item.itemCode || "",
+    mrp: (Number(item.mrp) || 0).toFixed(2),
+    stock: (item.stock ?? "0").toString(),
+    uom: item.uom || "pcs",
+    hsn: item.hsn || "",
+    tax: Number(item.tax) || 0,
+    rate: Number(item.sRate) || 0,
+    qty: Number(item.qty) || 0,
+    amount: Number(item.amount) || 0,
+    fdesc: item.fdesc || "" ,
+    fSlNo: item.fserialno || "",
+    ftaxamt: taxAmount.toFixed(2)  // ✅ ADD TAX AMOUNT
+  };
+});
       
       const requestData = {
         header: headerData,
@@ -3321,13 +3441,15 @@ const itemsData = validItems.map(item => ({
 
       {/* --- HEADER SECTION --- */}
 
-      {/* --- HEADER SECTION --- */}
+{/* --- HEADER SECTION --- */}
 <div style={styles.headerSection}>
+  {/* First Row */}
   <div style={{
     ...styles.gridRow,
-    gridTemplateColumns: getGridColumns(),
+   gridTemplateColumns: '0.5fr 0.5fr 0.7fr 0.5fr 0.5fr ',
+
   }}>
-    {/* Bill No */}
+    {/* Ref No */}
     <div style={styles.formField}>
       <label style={styles.inlineLabel}>Ref No:</label>
       <input
@@ -3346,7 +3468,7 @@ const itemsData = validItems.map(item => ({
       />
     </div>
 
-    {/* Bill Date */}
+    {/* Entry Date */}
     <div style={styles.formField}>
       <label style={styles.inlineLabel}>Entry Date:</label>
       <input
@@ -3363,14 +3485,14 @@ const itemsData = validItems.map(item => ({
         ref={billDateRef}
         onKeyDown={(e) => {
           handleHeaderArrowNavigation(e, 'billDate');
-          handleKeyDown(e,salesmanRef, 'billDate');
+          handleKeyDown(e, salesmanRef, 'billDate');
         }}
         onFocus={() => setFocusedField('billDate')}
         onBlur={() => setFocusedField('')}
       />
     </div>
 
-    {/* Salesman (replaced Mobile No) */}
+    {/* Salesman */}
     <div style={styles.formField}>
       <label style={styles.inlineLabel}>Salesman:</label>
       <div style={{ position: 'relative', width: '100%', flex: 1 }}>
@@ -3418,7 +3540,7 @@ const itemsData = validItems.map(item => ({
           <SearchIcon />
         </div>
       </div>
-       <PopupScreenModal screenIndex={7} />
+      <PopupScreenModal screenIndex={7} />
     </div>
 
     {/* Type */}
@@ -3442,8 +3564,7 @@ const itemsData = validItems.map(item => ({
           handleHeaderArrowNavigation(e, 'type');
           if (e.key === 'Enter') {
             e.preventDefault();
-            // Now go to Customer (replaced Mobile No's original ref)
-            custNameRef.current.focus();
+            gstModeRef.current.focus();
           }
         }}
         onFocus={() => setFocusedField('type')}
@@ -3453,164 +3574,223 @@ const itemsData = validItems.map(item => ({
         <option value="Wholesale">Wholesale</option>
       </select>
     </div>
+
+    {/* GST Mode */}
+    <div style={styles.formField}>
+      <label style={styles.inlineLabel}>GST Mode:</label>
+      <input
+        type="text"
+        data-header="gstMode"
+        value={gstMode}
+        ref={gstModeRef}
+        readOnly
+        onKeyDown={(e) => {
+          handleHeaderArrowNavigation(e, 'gstMode');
+          
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            setGstMode(prev =>
+              prev === 'Inclusive' ? 'Exclusive' : 'Inclusive'
+            );
+          }
+          
+          if (e.key === 'Enter') {
+            setTimeout(() => custNameRef.current?.focus(), 0);
+          }
+        }}
+        style={
+          focusedField === 'gstMode'
+            ? { ...styles.inlineInputFocused, fontWeight: '600', cursor: 'pointer' }
+            : { ...styles.inlineInput, fontWeight: '600', cursor: 'pointer' }
+        }
+        onFocus={() => setFocusedField('gstMode')}
+        onBlur={() => setFocusedField('')}
+      />
+    </div>
   </div>
 
+  {/* Second Row */}
   <div style={{
     ...styles.gridRow,
-    gridTemplateColumns: getGridColumns(),
+     gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
   }}>
-    {/* Customer (replaced Salesman) */}
-<div
-  style={{
-    ...styles.formField,
-    gridColumn: 'span 2' // ✅ CUSTOMER TAKES 2 COLUMNS
-  }}
->
-  <label style={styles.inlineLabel}>Customer:</label>
+    {/* Customer */}
+    <div style={styles.formField}>
+      <label style={styles.inlineLabel}>Customer:</label>
+      <div style={{ position: 'relative', width: '100%' }}>
+        <input
+          type="text"
+          data-header="custName"
+          style={{
+            ...(focusedField === 'custName'
+              ? styles.inlineInputClickableFocused
+              : styles.inlineInputClickable),
+            paddingRight: '34px'
+          }}
+          value={billDetails.custName}
+          name="custName"
+          onChange={handleInputChange}
+          ref={custNameRef}
+          onFocus={() => setFocusedField('custName')}
+          onKeyDown={(e) => {
+            handleHeaderArrowNavigation(e, 'custName');
+
+            if (e.key === '/') {
+              e.preventDefault();
+              setPopupSearchText('');
+              setCustomerPopupOpen(true);
+              return;
+            }
+
+            if (e.key === 'Enter') {
+              e.preventDefault();
+
+              if (!billDetails.custName || billDetails.custName.trim() === '') {
+                toast.warning('Please select Customer first', {
+                  autoClose: 1500,
+                });
+                setTimeout(() => custNameRef.current?.focus(), 0);
+                return;
+              }
+
+              mobileRef.current?.focus();
+            }
+
+            handleBackspace(e, 'custName');
+          }}
+        />
+
+        <div
+          onClick={openCustomerPopup}
+          style={{
+            position: 'absolute',
+            right: '10px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            opacity: 0.65,
+            cursor: 'pointer'
+          }}
+        >
+          <SearchIcon />
+        </div>
+      </div>
+      <PopupScreenModal screenIndex={6} />
+    </div>
+
+    {/* Mobile No */}
+    <div style={styles.formField}>
+      <label style={styles.inlineLabel}>Mobile No:</label>
+      <input
+        type="text"
+        data-header="mobileNo"
+        value={billDetails.mobileNo}
+        name="mobileNo"
+        ref={mobileRef}
+        onChange={handleMobileChange}
+        onKeyDown={(e) => {
+          handleHeaderArrowNavigation(e, 'mobileNo');
+
+          if (
+            ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)
+          ) return;
+
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            setTimeout(() => {
+              document
+                .querySelector('input[data-row="0"][data-field="barcode"]')
+                ?.focus();
+            }, 0);
+            return;
+          }
+
+          if (!/^\d$/.test(e.key) || billDetails.mobileNo.length >= 10) {
+            e.preventDefault();
+          }
+        }}
+        onPaste={(e) => {
+          e.preventDefault();
+          const pasted = e.clipboardData
+            .getData('text')
+            .replace(/\D/g, '')
+            .slice(0, 10);
+          setBillDetails(prev => ({ ...prev, mobileNo: pasted }));
+        }}
+        style={
+          focusedField === 'mobileNo'
+            ? styles.inlineInputFocused
+            : styles.inlineInput
+        }
+        onFocus={() => setFocusedField('mobileNo')}
+        onBlur={() => setFocusedField('')}
+      />
+    </div>
+
+    {/* Party Balance */}
+    <div style={styles.formField}>
+      <label style={styles.inlineLabel}>Party Bal:</label>
+      <input
+        type="text"
+        value={partyBalance}
+        readOnly
+        tabIndex={-1}
+        style={{
+          ...styles.inlineInput,
+          fontWeight: '600',
+          
+          cursor: 'not-allowed'
+        }}
+      />
+    </div>
+
+    {/* Last Bill Amount + History */}
+<div style={styles.formField}>
+  <label style={styles.inlineLabel}>Last Bill Amt:</label>
 
   <div style={{ position: 'relative', width: '100%' }}>
     <input
       type="text"
-      data-header="custName"
+      value={lastBillAmount || '0.00'}
+      readOnly
+      tabIndex={-1}
       style={{
-        ...(focusedField === 'custName'
-          ? styles.inlineInputClickableFocused
-          : styles.inlineInputClickable),
-        paddingRight: '34px'
+        ...styles.inlineInput,
+        fontWeight: '600',
+       
+        paddingRight: '36px', // space for icon
+        cursor: 'default'
       }}
-      value={billDetails.custName}
-      name="custName"
-      onChange={handleInputChange}
-      ref={custNameRef}
-      onFocus={() => setFocusedField('custName')}
-      onKeyDown={(e) => {
-  handleHeaderArrowNavigation(e, 'custName');
-
-  // "/" opens popup
-  if (e.key === '/') {
-    e.preventDefault();
-    setPopupSearchText('');
-    setCustomerPopupOpen(true);
-    return;
-  }
-
-  // ⛔ ENTER → BLOCK if customer empty
-  if (e.key === 'Enter') {
-    e.preventDefault();
-
-    if (!billDetails.custName || billDetails.custName.trim() === "") {
-      toast.warning("Please select Customer first", {
-        autoClose: 1500,
-      });
-
-      // 🔥 Keep focus on Customer
-      setTimeout(() => {
-        custNameRef.current?.focus();
-      }, 0);
-
-      return; // ⛔ STOP HERE
-    }
-
-    // ✅ Customer filled → go next
-    mobileRef.current?.focus();
-    return;
-  }
-
-  handleBackspace(e, 'custName');
-}}
-
     />
 
-    {/* 🔍 Search Icon */}
+    {/* 🔁 History Icon */}
     <div
-      onClick={openCustomerPopup}
+      onClick={() => {
+        if (billDetails.custName && billDetails.custName.trim() !== '') {
+          openCustomerHistory(billDetails.custName);
+        } else {
+          toast.warning('Please select a customer first', { autoClose: 1500 });
+        }
+      }}
+      title="View Customer History"
       style={{
         position: 'absolute',
-        right: '10px',
+        right: '8px',
         top: '50%',
         transform: 'translateY(-50%)',
-        pointerEvents: 'auto',
-        opacity: 0.65,
+        cursor: 'pointer',
+        color: '#4d7cfe',
         display: 'flex',
-        alignItems: 'center',
-        padding: '6px',
-        borderRadius: '4px',
-        transition: 'all 0.2s ease',
+        alignItems: 'center'
       }}
     >
-      <SearchIcon />
+      <HistoryIcon /> {/* or any icon you already use */}
     </div>
   </div>
-  <div><PopupScreenModal screenIndex={6} /></div>
 </div>
 
 
-    {/* Mobile No (moved to Customer's original position) */}
-    <div style={styles.formField}>
-      <label style={styles.inlineLabel}>Mobile No:</label>
-     <input
-  type="text"
-  data-header="mobileNo"
-  value={billDetails.mobileNo}
-  name="mobileNo"
-  ref={mobileRef}
+ <div style={{marginLeft: '80px'}}> <PopupScreenModal screenIndex={5} /> </div>
 
-  // ✅ NUMBER-ONLY + 10 DIGITS
-  onChange={handleMobileChange}
-
-  // ✅ BLOCK NON-NUMBER KEYS
-  onKeyDown={(e) => {
-    handleHeaderArrowNavigation(e, 'mobileNo');
-
-    // Allow control keys
-    if (
-      ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)
-    ) {
-      return;
-    }
-
-    // ENTER → Table Barcode
-    if (e.key === "Enter") {
-      e.preventDefault();
-      setTimeout(() => {
-        document
-          .querySelector('input[data-row="0"][data-field="barcode"]')
-          ?.focus();
-      }, 0);
-      return;
-    }
-
-    // ❌ BLOCK non-numeric input
-    if (!/^\d$/.test(e.key)) {
-      e.preventDefault();
-    }
-
-    // ❌ BLOCK if already 10 digits
-    if (billDetails.mobileNo.length >= 10) {
-      e.preventDefault();
-    }
-  }}
-
-  // ✅ BLOCK INVALID PASTE
-  onPaste={(e) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 10);
-    setBillDetails(prev => ({
-      ...prev,
-      mobileNo: pasted
-    }));
-  }}
-
-  style={focusedField === 'mobileNo' ? styles.inlineInputFocused : styles.inlineInput}
-  onFocus={() => setFocusedField('mobileNo')}
-  onBlur={() => setFocusedField('')}
-/>
-
-    </div>
-    
-    {/* Empty div to maintain grid structure */}
-    <div style={styles.formField}> <PopupScreenModal screenIndex={5} /></div>
-    <div style={styles.formField}></div>
   </div>
 </div>
 
@@ -3637,6 +3817,7 @@ const itemsData = validItems.map(item => ({
                 <th style={styles.th}>UOM</th>
                 <th style={styles.th}>HSN</th>
                 <th style={styles.th}>Tax (%)</th>
+                <th style={styles.th}>Tax Amt</th>
                 <th style={styles.th}>SRate</th>
                 <th style={styles.th}>Qty</th>
                 <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th>
@@ -3719,6 +3900,7 @@ onKeyDown={(e) => {
 
 // ✅ PREFILL FROM ROW
 setDescValue(items[index]?.fdesc || '');
+setSerialNoValue(items[index]?.fserialno || '');
 
 setHuidValue('');
 setDescHuidPopupOpen(true);
@@ -3944,6 +4126,32 @@ setDescHuidPopupOpen(true);
   </datalist>
 </td>
 
+<td style={styles.td}>
+  <input
+    readOnly
+    style={{
+      ...styles.editableInput,
+      textAlign: 'right',
+      fontWeight: '600',
+      backgroundColor: '#f0f7ff',
+      color: '#1565c0'
+    }}
+    value={(() => {
+      const rate = parseFloat(item.sRate) || 0;
+      const qty = parseFloat(item.qty) || 0;
+      const tax = parseFloat(item.tax) || 0;
+
+      const calc = calculateAmount(qty, rate, tax);
+      const taxAmount = (typeof calc === 'string') ? 0 : parseFloat(calc.taxAmount || 0);
+
+      return taxAmount.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    })()}
+    tabIndex={-1}
+  />
+</td>
 
 
                   <td style={styles.td}>
@@ -3986,10 +4194,14 @@ setDescHuidPopupOpen(true);
                   <td style={{ ...styles.td, ...styles.amountContainer }}>
                     <input
                       style={{ ...styles.editableInput, textAlign: 'right', fontWeight: 'bold', color: '#1565c0', backgroundColor: '#f0f7ff' }}
-                      value={parseFloat(item.amount || 0).toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
+                      value={(() => {
+                        const calc = calculateAmount(item.qty || 0, item.sRate || 0, item.tax || 0);
+                        const displayVal = (typeof calc === 'string') ? parseFloat(calc || 0) : parseFloat(calc.amount || 0);
+                        return displayVal.toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        });
+                      })()}
                       readOnly
                     />
                   </td>
@@ -4046,6 +4258,41 @@ setDescHuidPopupOpen(true);
                 </tr>
               ))}
             </tbody>
+
+
+<tfoot>
+  {/* SPACER ROW - pushes totals to bottom */}
+  <tr style={{ height: '400px' }}>
+    <td colSpan={12}></td>
+  </tr>
+  
+  {/* TOTALS ROW - now positioned at bottom */}
+  <tr
+    style={{
+      backgroundColor: '#e3f2fd',
+      fontWeight: 'bold',
+      borderTop: '2px solid #1B91DA',
+      position: 'sticky',
+      bottom: 0,
+      zIndex: 2
+    }}
+  >
+    <td colSpan={10} style={{ textAlign: 'right', padding: '10px' }}>
+      TOTAL
+    </td>
+
+    <td style={{ textAlign: 'center', padding: '10px' }}>
+      {totalQty.toFixed(2)}
+    </td>
+
+    <td style={{ textAlign: 'right', padding: '10px', color: '#0d47a1' }}>
+      ₹{roundedTotalAmount.toLocaleString('en-IN')}
+
+    </td>
+
+    <td />
+  </tr>
+</tfoot>
           </table>
         </div>
       </div>
@@ -4202,7 +4449,13 @@ setDescHuidPopupOpen(true);
             fontSize: '20px',
             lineHeight: 1
           }}
-          onClick={() => setDescHuidPopupOpen(false)}
+          onClick={() => {
+            setDescHuidPopupOpen(false);
+            setDescValue('');
+            setSerialNoValue('');
+            setHuidValue('');
+            setDescHuidRowIndex(null);
+          }}
         >
           ×
         </span>
@@ -4222,55 +4475,103 @@ setDescHuidPopupOpen(true);
           Description
         </label>
 
-        <input
-          ref={descRef}
-          type="text"
-          value={descValue}
-          onChange={(e) => setDescValue(e.target.value)}
-          onKeyDown={(e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
+       <input
+  ref={descRef}
+  type="text"
+  value={descValue}
+  onChange={(e) => setDescValue(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
 
-    // ✅ SAVE DESCRIPTION INTO ROW
-    setItems(prev => {
-      const updated = [...prev];
-      if (descHuidRowIndex !== null) {
-        updated[descHuidRowIndex] = {
-          ...updated[descHuidRowIndex],
-          fdesc: descValue || ''   // 🔥 STORE HERE
-        };
-      }
-      return updated;
-    });
+      // 👉 MOVE FOCUS TO SERIAL NUMBER INPUT
+      serialRef.current?.focus();
+    }
+  }}
+  style={{
+    width: '100%',
+    height: '42px',
+    borderRadius: '6px',
+    border: '1px solid #ccc',
+    padding: '0 12px',
+    fontSize: '14px',
+    outline: 'none',
+    transition: 'border 0.2s, box-shadow 0.2s'
+  }}
+/>
 
-    setDescHuidPopupOpen(false);
 
-    // ✅ MOVE TO HSN
-    setTimeout(() => {
-      if (descHuidRowIndex !== null) {
-        document
-          .querySelector(
-            `input[data-row="${descHuidRowIndex}"][data-field="hsn"]`
-          )
-          ?.focus();
-      }
-    }, 80);
-  }
-}}
 
-          style={{
-            width: '100%',
-            height: '42px',
-            borderRadius: '6px',
-            border: '1px solid #ccc',
-            padding: '0 12px',
-            fontSize: '14px',
-            outline: 'none',
-            transition: 'border 0.2s, box-shadow 0.2s'
-          }}
-          // placeholder="Enter item description and press Enter"
-        />
+        {/* 🔹 SERIAL NO */}
+<label
+  style={{
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#444',
+    marginTop: '14px',
+    marginBottom: '8px',
+    display: 'block'
+  }}
+>
+  Serial No
+</label>
+
+<input
+  type="text"
+  ref={serialRef}
+  value={serialNoValue}
+  onChange={(e) => setSerialNoValue(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+
+      // ✅ SAVE DESCRIPTION + SERIAL NO
+      setItems(prev => {
+        const updated = [...prev];
+        if (descHuidRowIndex !== null) {
+          updated[descHuidRowIndex] = {
+            ...updated[descHuidRowIndex],
+            fdesc: descValue || '',
+            fserialno: serialNoValue || ''   // 🔥 NEW FIELD
+          };
+        }
+        return updated;
+      });
+
+      setDescHuidPopupOpen(false);
+      
+      // ✅ CLEAR POPUP STATE FOR NEXT ROW
+      setDescValue('');
+      setSerialNoValue('');
+      setHuidValue('');
+      setDescHuidRowIndex(null);
+
+      // ✅ MOVE TO HSN
+      setTimeout(() => {
+        if (descHuidRowIndex !== null) {
+          document
+            .querySelector(
+              `input[data-row="${descHuidRowIndex}"][data-field="hsn"]`
+            )
+            ?.focus();
+        }
+      }, 80);
+    }
+  }}
+  style={{
+    width: '100%',
+    height: '42px',
+    borderRadius: '6px',
+    border: '1px solid #ccc',
+    padding: '0 12px',
+    fontSize: '14px',
+    outline: 'none'
+  }}
+/>
+
       </div>
+
+      
     </div>
   </div>
 )}
