@@ -160,7 +160,8 @@ export const API_ENDPOINTS = {
 
         // NEW: ADD THIS VOUCHER DETAILS ENDPOINT
     getVoucherDetails: (voucherNo) => `SalesReturn/GetVoucherDetails?voucherNo=${voucherNo}`,
-
+ getCustomerBalance: (customerCode, companyCode) =>
+    `CUSTOMERREPORT/customerbalance/${customerCode}/${companyCode}`,
   },
   //ScrapRateFixing/getFullScrapRateFixing
   SCRAP_RATE_FIXING: {
