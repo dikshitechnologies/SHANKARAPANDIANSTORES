@@ -871,10 +871,11 @@ export default function LedgerCreation({ onCreated }) {
   const fetchStatesWithSearch = useCallback(async (page = 1, search = '') => {
     try {
       const resp = await axiosInstance.get(
-        API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS(page, 20)
+        API_ENDPOINTS.STATECREATION.GET_STATE_ITEMS(page, 20, search)
       );
-      let items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || []);
-      
+    
+      let items = Array.isArray(resp) ? resp : (resp || []);
+      console.log('Fetched states:', resp);
       // Filter by search text if provided
       if (search) {
         items = items.filter(item => 
