@@ -324,6 +324,12 @@ const Navbar = () => {
       icon: <DatabaseOutlined />,
       permission: "BILL_COLLECTOR_REPORT",
     }, 
+    {
+      name: "Item Wise Stock",
+      path: "/reports/Itemwisestock",
+      icon: <DatabaseOutlined />,
+      permission: "ITEM_WISE_STOCK",
+    }, 
 
   ];
 

@@ -56,6 +56,7 @@ import TenderReport from './pages/Report/TenderReport/TenderReport';
 import AccountReceivables from './pages/Report/AccountReceivables/AccountReceivables';
 import AccountPayables from './pages/Report/AccountPayables/AccountPayables';
 import DaySales from './pages/Report/DaySales/DaySales'
+import Itemwisestock from './pages/Report/Itemwisestock/Itemwisestock';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -155,7 +156,8 @@ function App() {
           <Route path="/reports/account-payable" element={<ProtectedRoute><LayoutWithNavbar><AccountPayables /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/day-sales" element={<ProtectedRoute><LayoutWithNavbar><DaySales /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/Billcollectorreport" element={<ProtectedRoute><LayoutWithNavbar><TenderReport /></LayoutWithNavbar></ProtectedRoute>} />
-          
+          <Route path="/reports/Itemwisestock" element={<ProtectedRoute><LayoutWithNavbar><Itemwisestock /></LayoutWithNavbar></ProtectedRoute>} />
+
           <Route path="/embed/design" element={<Design />} />
           <Route path="/embed/scrap" element={<ScrapPage />} />
           <Route path="/embed/brand" element={<BrandPage />} />
