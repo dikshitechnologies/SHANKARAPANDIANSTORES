@@ -1055,22 +1055,24 @@ const handleServiceChargeFieldKeyDown = (e) => {
         fGrossAMT: Number(formData.grossAmt) || 0,
         fitemAMT: Number(formData.itemDAmt) || 0,
         fBilDIS: Number(formData.billDiscountPercent) || 0,
-        fdisAmt: Number(formData.billDiscAmt) || 0,
         froundoFf: Number(formData.roudOff) || 0,
         fScrapBillNo: formData.scrapAmountBillNo || '',
         fscrapAMT: Number(formData.scrapAmount) || 0,
         fsaleBillNO: formData.salesReturnBillNo || '',
         fSalesAMT: Number(formData.salesReturn) || 0,
-        fFreightCharge: Number(formData.freightCharge) || 0,
-        fServiceCharge: Number(formData.serviceCharge) || 0,
         fIssueCash: Number(formData.issuedCash) || 0,
         fupi: Number(formData.upi) || 0,
         fcard: Number(formData.card) || 0,
-        fcardcode: cardBank?.fCode || '',   // Card Bank
-        fupIcode: upiBank?.fCode || '',     // UPI Bank
-        balanceAmt: balanceAmt,
-        servicechrge: formData.serviceChargePercent || 0,
-        servicechrgeAmt: formData.serviceChargeAmount || 0,
+        fcardcode: cardBank?.fCode || '',
+        fupIcode: upiBank?.fCode || '',
+        balanceAmt: Number(formData.balance) || 0,
+        servicechrgeAmt: Number(formData.serviceChargeAmount) || 0,
+        fdisAmt: Number(formData.billDiscAmt) || 0,
+        fFreight: Number(formData.freightCharge) || 0,
+        fTRans: formData.isTransportCharge ? Number(formData.transport) || 0 : 0,
+        fCardchrg: formData.isServiceCharge ? Number(formData.serviceChargeAmount) : 0,
+        fCardPer: formData.isServiceCharge ? Number(formData.serviceChargePercent) : 0,
+        fLrNo: formData.transportAmount || '',
         collect: {
           r500: Number(denominations[500].collect) || 0,
           r200: Number(denominations[200].collect) || 0,
@@ -1781,7 +1783,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
                             />
                           </div>
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-  <label style={{ fontSize: '12px', marginBottom: '2px' }}>TC Charge</label>
+  <label style={{ fontSize: '12px', marginBottom: '2px' }}>Transport No</label>
   <input
     ref={transportAmountRef}
     type="text"
