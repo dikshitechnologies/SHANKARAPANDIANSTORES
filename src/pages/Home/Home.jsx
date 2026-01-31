@@ -1,15 +1,19 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-
+import { useAuth } from "../../context/AuthContext";
 const Home = () => {
   const navigate = useNavigate();
-  const currentDate = new Date().toLocaleDateString("en-US", {
+  const { userData } = useAuth();
+  console.log(userData.date);
+  const currentDate = new Date(userData.date).toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+
+
 
   const quickActions = [
     {
