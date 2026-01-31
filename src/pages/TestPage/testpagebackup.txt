@@ -1,109 +1,12 @@
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import logo from "../../assets/logo1.jpeg";
-
-
-
-// Dynamic content data
-const contentList = [
-  { name: "message", value: "Hello user" },
-  { name: "table", value: [["Name", "Age"], ["Alice", 25], ["Bob", 30]] },
-  // Add more content objects as needed
-];
-
-function renderDynamicContent(selectedName) {
-  const item = contentList.find((c) => c.name === selectedName);
-  if (!item) return null;
-  if (item.name === "message") {
-    return <div>{item.value}</div>;
-  }
-
-
-if (item.name === "table") {
-  const th = {
-    padding: 0,
-    fontSize: "10pt",
-    fontFamily: "monospace",
-    fontWeight: "normal",
-  };
-
-  const td = {
-    padding: 0,
-    fontSize: "10pt",
-    fontFamily: "monospace",
-  };
-
-  return (
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          <th style={{ ...th, textAlign: "left", width: "42%" }}>Particulars</th>
-          <th style={{ ...th, textAlign: "center", width: "10%" }}>HSN</th>
-          <th style={{ ...th, textAlign: "center", width: "8%" }}>Tax</th>
-          <th style={{ ...th, textAlign: "center", width: "8%" }}>Qty</th>
-          <th style={{ ...th, textAlign: "right", width: "16%" }}>Rate</th>
-          <th style={{ ...th, textAlign: "right", width: "16%" }}>Amount</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {/* ITEM 1 */}
-        <tr>
-          <td colSpan={6} style={{ ...td, fontWeight: "bold", paddingTop: 2 }}>
-            ROYAL BERO STAND
-          </td>
-        </tr>
-        <tr>
-          <td style={{ ...td, paddingLeft: 6 }}>PLASTIC</td>
-          <td style={{ ...td, textAlign: "center" }}>9403</td>
-          <td style={{ ...td, textAlign: "center" }}>18</td>
-          <td style={{ ...td, textAlign: "center" }}>1</td>
-          <td style={{ ...td, textAlign: "right" }}>160.00</td>
-          <td style={{ ...td, textAlign: "right" }}>160.00</td>
-        </tr>
-
-        {/* ITEM 2 */}
-        <tr>
-          <td colSpan={6} style={{ ...td, fontWeight: "bold", paddingTop: 2 }}>
-            LOCAL UMBRELLA
-          </td>
-        </tr>
-        <tr>
-          <td style={{ ...td, paddingLeft: 6 }}>PLASTIC RAINBOW</td>
-          <td style={{ ...td, textAlign: "center" }}>6601</td>
-          <td style={{ ...td, textAlign: "center" }}>5</td>
-          <td style={{ ...td, textAlign: "center" }}>1</td>
-          <td style={{ ...td, textAlign: "right" }}>190.00</td>
-          <td style={{ ...td, textAlign: "right" }}>190.00</td>
-        </tr>
-
-        {/* TOTAL */}
-        
-<tr>
-  <td colSpan={6} style={{ ...td, fontWeight: "bold", paddingTop: 4, padding: 0 }}>
-    <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-      <span>Grand Total</span>
-      <span>350.00</span>
-    </div>
-  </td>
-</tr>
-
-      </tbody>
-    </table>
-  );
-}
-
-
-  return null;
-}
-
 export default function TestPage() {
   const printRef = useRef(null);
-  const [selectedContent, setSelectedContent] = useState(contentList[0].name);
 
   const handlePrint = () => {
     const printContents = printRef.current.innerHTML;
 
-    const win = window.open("", "", "width=880,height=600");
+    const win = window.open("", "", "width=380,height=600");
 
     win.document.open();
     win.document.write(`
@@ -233,17 +136,7 @@ export default function TestPage() {
   return (
     <div style={{ padding: 20 }}>
       <h2>Test Printer Utility</h2>
-    <select
-        value={selectedContent}
-        onChange={(e) => setSelectedContent(e.target.value)}
-        style={{ marginBottom: 10 }}
-      >
-        {contentList.map((c) => (
-          <option key={c.name} value={c.name}>
-            {c.name}
-          </option>
-        ))}
-      </select>
+
       <button onClick={handlePrint}>Print 80mm Receipt</button>
 
       {/* HIDDEN PRINT CONTENT */}
@@ -283,7 +176,41 @@ export default function TestPage() {
             </div>
           </div>
 
-          {renderDynamicContent(selectedContent)}
+          {/* <div id="location">Vehicle Details</div>
+          <div id="location">AP 29 CH 7553</div>
+
+          <div id="date">
+            In Time: Saturday, Jun 13 2018 1:05:18
+          </div>
+
+          <svg id="barcode"></svg>
+
+          <hr />
+
+          <div className="flex">
+            <div id="qrcode"></div>
+          </div>
+
+          <hr />
+
+          <div className="totals">
+            <div className="row">
+              <span>Cost / Day</span>
+              <span>₹60</span>
+            </div>
+            <div className="row">
+              <span>Battery</span>
+              <span>Yes</span>
+            </div>
+            <div className="row">
+              <span>Toolkit</span>
+              <span>Yes</span>
+            </div>
+            <div className="row">
+              <span>Load</span>
+              <span>Empty</span>
+            </div>
+          </div> */}
 
           <div
             className="keepItBody"
