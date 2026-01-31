@@ -260,14 +260,18 @@ const handleTransportFieldKeyDown = (e) => {
     const netAmount = Number(formData.netAmount) || 0;
     
     // Calculate total payment received (cash + upi + card)
-    const totalPaymentReceived = totalCollectedCash + upiAmount + cardAmount;
-    
+    const cardTotal = formData.isServiceCharge
+      ? (Number(formData.card) || 0) + (Number(formData.serviceChargeAmount) || 0)
+      : (Number(formData.card) || 0);
+
+    const totalPaymentReceived = totalCollectedCash + upiAmount + cardTotal;
+        
     // Calculate balance: Net Amount - Total Payment Received
     const balance = netAmount - totalPaymentReceived;
     
     // If balance is negative, we need to issue cash (give change)
     const issuedCash = balance < 0 ? Math.abs(balance) : 0;
-
+    console.log(upiAmount,cardAmount);
     // Update form data
     setFormData(prev => ({
       ...prev,
@@ -688,7 +692,7 @@ useEffect(() => {
       
       const totalPayment = totalCollectedCash + upiAmt + cardAmt;
       const balance = netAmt - totalPayment;
-      
+      console.log('Balance after card change:', balance);
       updated.balance = balance.toString();
       updated.issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
       
@@ -976,7 +980,11 @@ const handleServiceChargeFieldKeyDown = (e) => {
     const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
       return sum + ((Number(data.issue) || 0) * Number(denom));
     }, 0);
-    const calculatedNetAmount = (receivedCash + upi + card) - totalIssuedCash;
+    const cardTotal = formData.isServiceCharge
+  ? (Number(formData.card) || 0) + (Number(formData.serviceChargeAmount) || 0)
+  : (Number(formData.card) || 0);
+
+    const calculatedNetAmount = (receivedCash + upi + cardTotal) - totalIssuedCash;
     const formNetAmount = Number(formData.netAmount) || 0;
     if (calculatedNetAmount !== formNetAmount) {
       setValidationPopup({
@@ -1000,12 +1008,14 @@ const handleServiceChargeFieldKeyDown = (e) => {
       const receivedCash = Number(formData.receivedCash) || 0;
       const upi = Number(formData.upi) || 0;
       const card = Number(formData.card) || 0;
-      
+       const cardTotal = formData.isServiceCharge
+  ? (Number(formData.card) || 0) + (Number(formData.serviceChargeAmount) || 0)
+  : (Number(formData.card) || 0);
       const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
         return sum + ((Number(data.issue) || 0) * Number(denom));
       }, 0);
       
-      const calculatedNetAmount = (receivedCash + upi + card) - totalIssuedCash;
+      const calculatedNetAmount = (receivedCash + upi + cardTotal) - totalIssuedCash;
       
       const formNetAmount = Number(formData.netAmount) || 0;
       
@@ -1045,22 +1055,24 @@ const handleServiceChargeFieldKeyDown = (e) => {
         fGrossAMT: Number(formData.grossAmt) || 0,
         fitemAMT: Number(formData.itemDAmt) || 0,
         fBilDIS: Number(formData.billDiscountPercent) || 0,
-        fdisAmt: Number(formData.billDiscAmt) || 0,
         froundoFf: Number(formData.roudOff) || 0,
         fScrapBillNo: formData.scrapAmountBillNo || '',
         fscrapAMT: Number(formData.scrapAmount) || 0,
         fsaleBillNO: formData.salesReturnBillNo || '',
         fSalesAMT: Number(formData.salesReturn) || 0,
-        fFreightCharge: Number(formData.freightCharge) || 0,
-        fServiceCharge: Number(formData.serviceCharge) || 0,
         fIssueCash: Number(formData.issuedCash) || 0,
         fupi: Number(formData.upi) || 0,
         fcard: Number(formData.card) || 0,
-        fcardcode: cardBank?.fCode || '',   // Card Bank
-        fupIcode: upiBank?.fCode || '',     // UPI Bank
-        balanceAmt: balanceAmt,
-        servicechrge: formData.serviceChargePercent || 0,
-        servicechrgeAmt: formData.serviceChargeAmount || 0,
+        fcardcode: cardBank?.fCode || '',
+        fupIcode: upiBank?.fCode || '',
+        balanceAmt: Number(formData.balance) || 0,
+        servicechrgeAmt: Number(formData.serviceChargeAmount) || 0,
+        fdisAmt: Number(formData.billDiscAmt) || 0,
+        fFreight: Number(formData.freightCharge) || 0,
+        fTRans: formData.isTransportCharge ? Number(formData.transport) || 0 : 0,
+        fCardchrg: formData.isServiceCharge ? Number(formData.serviceChargeAmount) : 0,
+        fCardPer: formData.isServiceCharge ? Number(formData.serviceChargePercent) : 0,
+        fLrNo: formData.transportAmount || '',
         collect: {
           r500: Number(denominations[500].collect) || 0,
           r200: Number(denominations[200].collect) || 0,
@@ -1664,7 +1676,14 @@ const handleServiceChargeFieldKeyDown = (e) => {
                       <input
                         ref={cardRef}
                         type="number"
-                        value={formData.card}
+                       value={
+                          formData.isServiceCharge
+                            ? (
+                                (parseFloat(formData.card) || 0) +
+                                (parseFloat(formData.serviceChargeAmount) || 0)
+                              ).toFixed(2)
+                            : formData.card
+                        }
                         onChange={(e) => handleCardAmountChange(e.target.value)}
                         onKeyDown={handleCardKeyDown}
                         className={styles.paymentInput}
@@ -1764,7 +1783,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
                             />
                           </div>
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-  <label style={{ fontSize: '12px', marginBottom: '2px' }}>TC Charge</label>
+  <label style={{ fontSize: '12px', marginBottom: '2px' }}>Transport No</label>
   <input
     ref={transportAmountRef}
     type="text"

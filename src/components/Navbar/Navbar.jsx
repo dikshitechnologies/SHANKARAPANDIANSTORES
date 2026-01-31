@@ -324,6 +324,25 @@ const Navbar = () => {
       icon: <DatabaseOutlined />,
       permission: "BILL_COLLECTOR_REPORT",
     }, 
+     {
+      name: "Prefix History",
+      path: "/reports/PrefixHistory",
+      icon: <DatabaseOutlined />,
+      permission: "PREFIX_HISTORY",
+    },
+
+      {
+      name: "Daily Report",
+      path: "/reports/DailyReport",
+      icon: <DatabaseOutlined />,
+      permission: "DAILY_REPORT",
+    },
+    {
+      name: "Item Wise Stock",
+      path: "/reports/Itemwisestock",
+      icon: <DatabaseOutlined />,
+      permission: "ITEM_WISE_STOCK",
+    }, 
 
   ];
 

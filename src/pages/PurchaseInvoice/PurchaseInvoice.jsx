@@ -6,7 +6,6 @@ import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
-import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
@@ -18,8 +17,599 @@ const Icon = {
       <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
     </svg>
   ),
+  Truck: ({ size = 16, onClick, style, ...props }) => (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      height={`${size}px`} 
+      viewBox="0 -960 960 960" 
+      width={`${size}px`} 
+      fill="#1B91DA"
+      onClick={onClick}
+      style={{ cursor: 'pointer', ...style }}
+      {...props}
+    >
+      <path d="M240-200q-50 0-85-35t-35-85H40v-360q0-33 23.5-56.5T120-760h560l240 240v200h-80q0 50-35 85t-85 35q-50 0-85-35t-35-85H360q0 50-35 85t-85 35Zm360-360h160L640-680h-40v120Zm-240 0h160v-120H360v120Zm-240 0h160v-120H120v120Zm120 290q21 0 35.5-14.5T290-320q0-21-14.5-35.5T240-370q-21 0-35.5 14.5T190-320q0 21 14.5 35.5T240-270Zm480 0q21 0 35.5-14.5T770-320q0-21-14.5-35.5T720-370q-21 0-35.5 14.5T670-320q0 21 14.5 35.5T720-270ZM120-400h32q17-18 39-29t49-11q27 0 49 11t39 29h304q17-18 39-29t49-11q27 0 49 11t39 29h32v-80H120v80Zm720-80H120h720Z"/>
+    </svg>
+  ),
 }
+// Updated TransportPopup component
+const TransportPopup = ({ isOpen, onClose, transportData, onTransportDataChange }) => {
+  const [localData, setLocalData] = useState({
+    transportName: transportData?.transportName || '', // New field for transport name
+    lrNo: transportData?.lrNo || '',
+    lrDate: transportData?.lrDate || new Date().toISOString().substring(0, 10),
+    amount: transportData?.amount || '',
+    gstPercent: transportData?.gstPercent || '',
+    total: transportData?.total || ''
+  });
+  const [showTransPopup, setShowTransPopup] = useState(false);
+  const [transportSearchTerm, setTransportSearchTerm] = useState('');
 
+  useEffect(() => {
+    setLocalData({
+      transportName: transportData?.transportName || '',
+      lrNo: transportData?.lrNo || '',
+      lrDate: transportData?.lrDate || new Date().toISOString().substring(0, 10),
+      amount: transportData?.amount || '',
+      gstPercent: transportData?.gstPercent || '',
+      total: transportData?.total || ''
+    });
+  }, [transportData]);
+
+  // Calculate total whenever amount or GST percent changes
+  useEffect(() => {
+    const amountNum = parseFloat(localData.amount) || 0;
+    const gstPercentNum = parseFloat(localData.gstPercent) || 0;
+    const calculatedTotal = amountNum * (gstPercentNum / 100);
+    setLocalData(prev => ({
+      ...prev,
+      total: calculatedTotal.toFixed(2)
+    }));
+  }, [localData.amount, localData.gstPercent]);
+
+const fetchTransportList = async (search = '', pageNum = 1) => {
+  try {
+    // Call the function with parameters
+    const endpoint = API_ENDPOINTS.PURCHASE_INVOICE.GET_TRANSPORT_LIST(pageNum, 20, search);
+    console.log('Fetching transport from:', endpoint);
+    
+    const response = await axiosInstance.get(endpoint);
+    const responseData = response?.data || {};
+    const data = responseData.data || [];
+    
+    console.log('Fetched transport data:', data);
+    
+    let items = Array.isArray(data) ? data.map((transport, index) => ({
+      id: transport.fCode || `transport-${index}`,
+      code: transport.fCode || '',
+      name: transport.fTransport || '',
+      displayName: `${transport.fTransport}`
+    })) : [];
+    
+    // Note: The API already filters by search, but we can do additional client-side filtering if needed
+    if (search && search.trim()) {
+      const searchLower = search.toLowerCase().trim();
+      items = items.filter(item => 
+        item.name?.toLowerCase().includes(searchLower) ||
+        item.displayName?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return items;
+  } catch (err) {
+    console.error('Error fetching transport list:', err);
+    return [];
+  }
+};
+
+  // Handle transport selection from popup
+  const handleTransportSelect = (selectedTransport) => {
+    if (!selectedTransport) return;
+    
+    setLocalData(prev => ({
+      ...prev,
+      transportName: selectedTransport.name || '',
+      transportCode: selectedTransport.code || ''
+    }));
+    
+    setShowTransPopup(false);
+    setTransportSearchTerm('');
+    
+    // Focus back to transport input after selection
+    setTimeout(() => {
+      const transportInput = document.querySelector('input[name="transportName"]');
+      if (transportInput) {
+        transportInput.focus();
+        transportInput.select();
+      }
+    }, 100);
+  };
+
+  if (!isOpen) return null;
+
+  const handleNumberInput = (value, field) => {
+    // Allow empty string
+    if (value === '') {
+      setLocalData(prev => ({ ...prev, [field]: '' }));
+      return '';
+    }
+    
+    // Remove any non-numeric characters except decimal point
+    const sanitizedValue = value
+      .replace(/[^\d.]/g, '') // Remove non-numeric except .
+      .replace(/(\..*)\./g, '$1'); // Allow only one decimal point
+    
+    // Allow any valid number format during typing
+    const isValidNumber = /^\d*\.?\d*$/.test(sanitizedValue);
+    
+    if (isValidNumber) {
+      setLocalData(prev => ({ ...prev, [field]: sanitizedValue }));
+    }
+    return sanitizedValue;
+  };
+
+  const handleBlur = (field) => {
+    const value = localData[field];
+    
+    if (value === '' || value === '-') {
+      return;
+    }
+    
+    try {
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        // Format to 2 decimal places if needed
+        // But don't add .00 if it's a whole number
+        if (num % 1 === 0) {
+          setLocalData(prev => ({ ...prev, [field]: num.toString() }));
+        } else {
+          setLocalData(prev => ({ ...prev, [field]: num.toFixed(2) }));
+        }
+      }
+    } catch (error) {
+      // Invalid number, clear it
+      setLocalData(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleSave = () => {
+    // Update all transport-related fields in the parent component
+    onTransportDataChange(localData);
+    onClose();
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '20px',
+        width: '90%',
+        maxWidth: '500px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px',
+          borderBottom: '1px solid #eee',
+          paddingBottom: '10px',
+        }}>
+          <h3 style={{
+            margin: 0,
+            color: '#1B91DA',
+            fontSize: '18px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+          }}>
+            <Icon.Truck size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+            Transport Details
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
+              cursor: 'pointer',
+              color: '#666',
+              padding: '5px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '15px',
+          marginBottom: '15px',
+        }}>
+          {/* Transport Field with Search */}
+          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              width: '80px',
+              minWidth: '80px',
+              color: '#333',
+            }}>
+              Transport:
+            </label>
+            <div style={{ position: 'relative', display: 'flex', flex: 1 }}>
+              <input
+                type="text"
+                name="transportName"
+                value={localData.transportName}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setLocalData(prev => ({ 
+                    ...prev, 
+                    transportName: value
+                  }));
+                  
+                  // Open popup when typing
+                  if (value.length > 0) {
+                    setTransportSearchTerm(value);
+                    setTimeout(() => setShowTransPopup(true), 300);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '5px 12px',
+                  border: '1px solid #1B91DA',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                  paddingRight: '40px',
+                }}
+                // placeholder="Search transport..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === '/' || e.key === 'F2') {
+                    e.preventDefault();
+                    setTransportSearchTerm(localData.transportName || '');
+                    setShowTransPopup(true);
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const lrNoInput = document.querySelector('input[name="lrNo"]');
+                    if (lrNoInput) lrNoInput.focus();
+                  }
+                }}
+                onFocus={(e) => {
+                  e.target.select();
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    if (!showTransPopup) {
+                      setTransportSearchTerm('');
+                    }
+                  }, 200);
+                }}
+              />
+              <button
+                type="button"
+                aria-label="Search transport"
+                title="Search transport"
+                onClick={() => {
+                  setTransportSearchTerm(localData.transportName || '');
+                  setShowTransPopup(true);
+                }}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  color: '#1B91DA',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  zIndex: 1,
+                  border: 'none',
+                  width: '24px',
+                  height: '24px',
+                }}
+              >
+                <Icon.Search size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* LR No */}
+          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              LR No:
+            </label>
+            <input
+              type="text"
+              name="lrNo"
+              value={localData.lrNo}
+              onChange={(e) => setLocalData(prev => ({ ...prev, lrNo: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              // placeholder="Enter LR No"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const lrDateInput = document.querySelector('input[name="lrDate"]');
+                  if (lrDateInput) lrDateInput.focus();
+                }
+              }}
+            />
+          </div>
+
+          {/* LR Date */}
+          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              LR Date
+            </label>
+            <input
+              type="date"
+              name="lrDate"
+              value={localData.lrDate}
+              onChange={(e) => setLocalData(prev => ({ ...prev, lrDate: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const amountInput = document.querySelector('input[name="amount"]');
+                  if (amountInput) amountInput.focus();
+                }
+              }}
+            />
+          </div>
+
+          {/* Amount */}
+          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              Amount
+            </label>
+            <input
+              type="text"
+              name="amount"
+              value={localData.amount}
+              onChange={(e) => {
+                handleNumberInput(e.target.value, 'amount');
+              }}
+              onBlur={() => handleBlur('amount')}
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              // placeholder="0.00"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const gstPercentInput = document.querySelector('input[name="gstPercent"]');
+                  if (gstPercentInput) gstPercentInput.focus();
+                }
+              }}
+            />
+          </div>
+
+          {/* GST % */}
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              GST %
+            </label>
+            <input
+              type="text"
+              name="gstPercent"
+              value={localData.gstPercent}
+              onChange={(e) => {
+                handleNumberInput(e.target.value, 'gstPercent');
+              }}
+              onBlur={() => handleBlur('gstPercent')}
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              // placeholder="0.00"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const totalInput = document.querySelector('input[name="total"]');
+                  if (totalInput) totalInput.focus();
+                }
+              }}
+            />
+          </div>
+
+          {/* Total */}
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              Total
+            </label>
+            <input
+              type="text"
+              name="total"
+              value={localData.total}
+              readOnly
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSave();
+                }
+              }}
+            />            
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          marginTop: '25px',
+          justifyContent: 'flex-end',
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                onClose();
+              }
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            style={{
+              padding: '8px 20px',
+              backgroundColor: '#1B91DA',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+      
+      {/* Transport List Popup */}
+      <PopupListSelector
+        open={showTransPopup}
+        onClose={() => {
+          setShowTransPopup(false);
+          setTransportSearchTerm('');
+        }}
+        title="Select Transport"
+        fetchItems={() => fetchTransportList(transportSearchTerm)}
+        displayFieldKeys={['displayName']}
+        headerNames={['Transport']}
+        searchFields={['name']}
+        columnWidths={{ displayName: '100%' }}
+        searchPlaceholder="Search by transport name or code..."
+        initialSearch={transportSearchTerm}
+        onSelect={handleTransportSelect}
+      />
+    </div>
+  );
+};
 // Calculation helpers
 const calculateTotals = (items = []) => {
   const subTotal = items.reduce((acc, it) => {
@@ -32,10 +622,45 @@ const calculateTotals = (items = []) => {
     const amt = parseFloat(it?.amt) || 0;
     return acc + amt;
   }, 0);
+
+  let gstTotals = 0;
+  let hasIntax = false;
+  let hasOuttax = false;
   
-  const total = subTotal;
-  const net = amtTotal || subTotal;
-  return { subTotal, total, net, amtTotal };
+  // Check which tax field is being used
+  items.forEach(item => {
+    const intax = parseFloat(item?.intax) || 0;
+    const outtax = parseFloat(item?.outtax) || 0;
+    
+    if (intax > 0) hasIntax = true;
+    if (outtax > 0) hasOuttax = true;
+  });
+  
+  if (hasIntax) {
+    // Calculate GST amount from intax percentage
+    gstTotals = items.reduce((acc, it) => {
+      const qty = parseFloat(it?.qty) || 0;
+      const rate = parseFloat(it?.prate) || 0;
+      const intax = parseFloat(it?.intax) || 0;
+      const itemSubtotal = qty * rate;
+      const itemGst = itemSubtotal * (intax / 100);
+      return acc + itemGst;
+    }, 0);
+  } else if (hasOuttax) {
+    // Calculate GST amount from outtax percentage
+    gstTotals = items.reduce((acc, it) => {
+      const qty = parseFloat(it?.qty) || 0;
+      const rate = parseFloat(it?.prate) || 0;
+      const outtax = parseFloat(it?.outtax) || 0;
+      const itemSubtotal = qty * rate;
+      const itemGst = itemSubtotal * (outtax / 100);
+      return acc + itemGst;
+    }, 0);
+  }
+
+  const total = subTotal + gstTotals;  // Should include GST
+  const net = amtTotal || total;
+  return { subTotal, total, net, amtTotal, gstTotals };
 };
 
 const PurchaseInvoice = () => {
@@ -68,7 +693,20 @@ const PurchaseInvoice = () => {
   
   // Loading state for async operations
   const [isLoading, setIsLoading] = useState(false);
+  
+  // New states for freight and charges
   const [addLessAmount, setAddLessAmount] = useState('');
+  const [freightAmount, setFreightAmount] = useState('');
+  const [transportData, setTransportData] = useState({
+    transportName: '',
+    lrNo: '',
+    lrDate: new Date().toISOString().substring(0, 10),
+    amount: '',
+    gstPercent: '',
+    total: ''
+  });
+  const [chargesPercent, setChargesPercent] = useState('');
+  const [chargesAmount, setChargesAmount] = useState('');
   
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
@@ -130,7 +768,7 @@ const PurchaseInvoice = () => {
 
   // 3. Totals State
   const [netTotal, setNetTotal] = useState(0);
-
+  const [gstTotal, setGstTotal] = useState(0);
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const billNoRef = useRef(null);
   const dateRef = useRef(null);
@@ -150,6 +788,10 @@ const PurchaseInvoice = () => {
   const gstNoRef = useRef(null);
   const firstRowNameRef = useRef(null);
   const addLessRef = useRef(null);
+  const transportRef = useRef(null);
+  const freightRef = useRef(null);
+  const chargesPercentRef = useRef(null);
+  const chargesAmountRef = useRef(null);
   const groupNameRef = useRef(null);
   
   // Track if we should ignore Enter key (for edit invoice loading)
@@ -159,13 +801,14 @@ const PurchaseInvoice = () => {
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
+  // const [showTransPopup, setShowTransPopup] = useState(false);
   const [showGroupNamePopup, setShowGroupNamePopup] = useState(false);
   const [showBillListPopup, setShowBillListPopup] = useState(false);
   const [showItemCodePopup, setShowItemCodePopup] = useState(false);
   const [popupMode, setPopupMode] = useState(''); // 'edit' or 'delete'
   const [selectedRowId, setSelectedRowId] = useState(null); // Track which row is being edited
   const [itemSearchTerm, setItemSearchTerm] = useState(''); // Track search term for item popup
-  
+  const [showTransportPopup, setShowTransportPopup] = useState(false);
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('null');
 
@@ -183,64 +826,112 @@ const PurchaseInvoice = () => {
   // Also get fseudo from context in case userData.fseudo is missing
   const { fseudo } = useAuth() || {};
 
-  const handleNumberInput = (e) => {
-  const input = e.target.value;
-  
-  // Allow empty string
-  if (input === '') {
-    setAddLessAmount('');
-    return;
-  }
-  
-  // Allow negative numbers
-  if (input === '-') {
-    setAddLessAmount('-');
-    return;
-  }
-  
-  // Remove any non-numeric characters except decimal point and minus sign at start
-  const sanitizedValue = input
-    .replace(/[^\d.-]/g, '') // Remove non-numeric except . and -
-    .replace(/(?!^)-/g, '') // Remove minus signs that aren't at the start
-    .replace(/(\..*)\./g, '$1'); // Allow only one decimal point
-  
-  // Allow any valid number format during typing
-  const isValidNumber = /^-?\d*\.?\d*$/.test(sanitizedValue);
-  
-  if (isValidNumber) {
-    setAddLessAmount(sanitizedValue);
-  } else {
-    // If invalid, revert to previous valid value
-    // Or you could set to empty
-    // setAddLessAmount('');
-  }
-};
+  // Helper function to calculate charges amount
+  const calculateChargesAmount = (freight, percent) => {
+    const freightNum = parseFloat(freight) || 0;
+    const percentNum = parseFloat(percent) || 0;
+    return (freightNum * percentNum / 100).toFixed(2);
+  };
 
-// Format on blur
-const handleBlur = () => {
-  if (addLessAmount === '' || addLessAmount === '-') {
-    setFocusedField('');
-    return;
-  }
-  
-  try {
-    const num = parseFloat(addLessAmount);
-    if (!isNaN(num)) {
-      // Format to 2 decimal places if needed
-      // But don't add .00 if it's a whole number
-      if (num % 1 === 0) {
-        setAddLessAmount(num.toString());
-      } else {
-        setAddLessAmount(num.toFixed(2));
+  // Handle number input for addLess, freight, and chargesPercent
+  const handleNumberInput = (e, type = 'addLess') => {
+    const input = e.target.value;
+    
+    // Allow empty string
+    if (input === '') {
+      if (type === 'addLess') setAddLessAmount('');
+      else if (type === 'freight') setFreightAmount('');
+      else if (type === 'chargesPercent') {
+        setChargesPercent('');
+        setChargesAmount('');
+      }
+      return;
+    }
+    
+    // Allow negative numbers only for addLess
+    if (input === '-') {
+      if (type === 'addLess') setAddLessAmount('-');
+      else if (type === 'freight') setFreightAmount('');
+      else if (type === 'chargesPercent') setChargesPercent('');
+      return;
+    }
+    
+    // Remove any non-numeric characters except decimal point and minus sign at start
+    const sanitizedValue = input
+      .replace(/[^\d.-]/g, '') // Remove non-numeric except . and -
+      .replace(/(?!^)-/g, '') // Remove minus signs that aren't at the start
+      .replace(/(\..*)\./g, '$1'); // Allow only one decimal point
+    
+    // Allow any valid number format during typing
+    const isValidNumber = /^-?\d*\.?\d*$/.test(sanitizedValue);
+    
+    if (isValidNumber) {
+      if (type === 'addLess') {
+        setAddLessAmount(sanitizedValue);
+      } else if (type === 'freight') {
+        setFreightAmount(sanitizedValue);
+        // Calculate charges amount when freight changes
+        const chargesAmt = calculateChargesAmount(sanitizedValue, chargesPercent);
+        setChargesAmount(chargesAmt);
+      } else if (type === 'chargesPercent') {
+        setChargesPercent(sanitizedValue);
+        // Calculate charges amount when charges percent changes
+        const chargesAmt = calculateChargesAmount(freightAmount, sanitizedValue);
+        setChargesAmount(chargesAmt);
       }
     }
-  } catch (error) {
-    // Invalid number, clear it
-    setAddLessAmount('');
-  }
-  
-  setFocusedField('');
-};
+  };
+
+  // Format on blur
+  const handleBlur = (type = 'addLess') => {
+    let value, setter;
+    
+    if (type === 'addLess') {
+      value = addLessAmount;
+      setter = setAddLessAmount;
+    } else if (type === 'freight') {
+      value = freightAmount;
+      setter = setFreightAmount;
+    } else if (type === 'chargesPercent') {
+      value = chargesPercent;
+      setter = setChargesPercent;
+    }
+    
+    if (value === '' || value === '-') {
+      setFocusedField('');
+      return;
+    }
+    
+    try {
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        // Format to 2 decimal places if needed
+        // But don't add .00 if it's a whole number
+        if (num % 1 === 0) {
+          setter(num.toString());
+        } else {
+          setter(num.toFixed(2));
+        }
+        
+        // Recalculate charges amount if freight or charges percent changed
+        if (type === 'freight') {
+          const chargesAmt = calculateChargesAmount(num.toString(), chargesPercent);
+          setChargesAmount(chargesAmt);
+        } else if (type === 'chargesPercent') {
+          const chargesAmt = calculateChargesAmount(freightAmount, num.toString());
+          setChargesAmount(chargesAmt);
+        }
+      }
+    } catch (error) {
+      // Invalid number, clear it
+      setter('');
+      if (type === 'freight' || type === 'chargesPercent') {
+        setChargesAmount('');
+      }
+    }
+    
+    setFocusedField('');
+  };
 
   // Helper function to show confirmation popup
   const showConfirmation = (config) => {
@@ -285,25 +976,22 @@ const handleBlur = () => {
     return '';
   };
 
-
   const validateCustomer = () => {
-  if (!billDetails.customerName || billDetails.customerName.trim() === "") {
+    if (!billDetails.customerName || billDetails.customerName.trim() === "") {
+      // ⛔ Stop everything immediately
+      setTimeout(() => {
+        showAlertConfirmation("Please select Customer first", () => {
+          setTimeout(() => {
+            nameRef.current?.focus();
+            nameRef.current?.select?.();
+          }, 50);
+        });
+      }, 0);
 
-    // ⛔ Stop everything immediately
-    setTimeout(() => {
-      showAlertConfirmation("Please select Customer first", () => {
-        setTimeout(() => {
-          nameRef.current?.focus();
-          nameRef.current?.select?.();
-        }, 50);
-      });
-    }, 0);
-
-    return false;
-  }
-  return true;
-};
-
+      return false;
+    }
+    return true;
+  };
 
   // Helper: Validate sudo letters against fseudoMap
   const validateSudoLetters = (sudoValue, rowIndex) => {
@@ -356,7 +1044,6 @@ const handleBlur = () => {
       const response = await axiosInstance.get(
         API_ENDPOINTS.PURCHASE_INVOICE.AUTO_GENERATE_BARCODE
       );
-      // console.log(response);
       if (response?.data?.barcode) {
         setAutoBarcode(response.data.barcode);
         console.log('Fetched auto barcode:', response.data.barcode);
@@ -408,7 +1095,19 @@ const handleBlur = () => {
       setPopupMode('');
       setSelectedRowId(null);
       setAddLessAmount('');
+      setFreightAmount('');
+      setChargesPercent('');
+      setChargesAmount('');
+      setTransportData({
+        transportName: '',
+        lrNo: '',
+        lrDate: new Date().toISOString().substring(0, 10),
+        amount: '',
+        gstPercent: '',
+        total: ''
+      });
       fetchAutoBarcode();
+      
       // Clear table items first
       setItems([{
         id: 1, 
@@ -486,6 +1185,7 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
+
   const clearForm = async () => {
     try {
       setIsLoading(true);
@@ -504,7 +1204,19 @@ const handleBlur = () => {
       setPopupMode('');
       setSelectedRowId(null);
       setAddLessAmount('');
+      setFreightAmount('');
+      setChargesPercent('');
+      setChargesAmount('');
+      setTransportData({
+        transportName: '',
+        lrNo: '',
+        lrDate: new Date().toISOString().substring(0, 10),
+        amount: '',
+        gstPercent: '',
+        total: ''
+      });
       fetchAutoBarcode();
+      
       // Clear table items first
       setItems([{
         id: 1, 
@@ -582,6 +1294,7 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
+
   // Fetch purchase bill list for popup
   const fetchBillList = async (pageNum = 1, search = '') => {
     // Only fetch data on first page - API returns all data at once (no server-side pagination)
@@ -663,65 +1376,6 @@ const handleBlur = () => {
     }
   };
 
-  // Fetch item details by item code
-  const fetchItemDetailsByCode = async (itemCode) => {
-    try {
-      console.log('Fetching item details for code:', itemCode);
-      
-      const response = await axiosInstance.get(API_ENDPOINTS.PURCHASE_INVOICE.GET_ITEM_CODE_LIST, {
-        params: {
-          type: 'FG',
-          search: itemCode,
-          page: 1,
-          pageSize: 10
-        }
-      });
-      
-      const responseData = response?.data || {};
-      const itemsData = responseData.data || [];
-      
-      console.log('All items from API:', itemsData);
-      
-      if (!Array.isArray(itemsData) || itemsData.length === 0) {
-        console.warn('No items returned from API');
-        return [];
-      }
-      
-      const matchedItem = itemsData.find(item => 
-        (item.itemCode || item.code) === itemCode
-      );
-      
-      console.log('Matched item:', matchedItem);
-      
-      if (!matchedItem) {
-        console.warn(`Item ${itemCode} not found in response`);
-        return [];
-      }
-      
-      return [{
-        barcode: matchedItem.finalPrefix || matchedItem.itemCode || itemCode,
-        itemcode: matchedItem.itemCode || '',
-        name: matchedItem.itemName || '',
-        stock: matchedItem.finalStock  || '0',
-        uom: matchedItem.units || '',
-        hsn: matchedItem.hsn || '',
-        preRT: matchedItem.preRate || '0',
-        brand: matchedItem.brand || '',
-        category: matchedItem.category || '',
-        model: matchedItem.model || '',
-        size: matchedItem.size || '',
-        max: matchedItem.maxQty || '',
-        min: matchedItem.minQty || '',
-        type: matchedItem.type || '',
-      }];
-      
-    } catch (err) {
-      console.error('Error fetching item details by code:', err);
-      console.error('Error response:', err.response);
-      return [];
-    }
-  };
-
   // Fetch purchase details for editing
   const fetchPurchaseDetails = async (voucherNo) => {
     try {
@@ -760,6 +1414,32 @@ const handleBlur = () => {
         setBillDetails(prev => ({ ...prev, ...headerDetails }));
 
         setAddLessAmount(iledger.less ?.toString() || '');
+        setFreightAmount(iledger.fFreight ?.toString() || '');
+        setChargesPercent(iledger.fExtPer ?.toString() || '');
+        setChargesAmount(iledger.fExtAmt ?.toString() || '');
+
+        // Set transport data from API
+        if (iledger) {
+          setTransportData({
+            transportName: iledger.fTRans || '',
+            lrNo: iledger.fLrNo || '',
+            lrDate: iledger.fLrDt ? (() => {
+              // API format: 'dd-mm-yyyy HH:MM:SS' or 'dd-mm-yyyy'
+              const dateTimeStr = iledger.fLrDt.split(' ')[0];
+              const [dd, mm, yyyy] = dateTimeStr.split('-');
+              if (dd && mm && yyyy) {
+                // For input type="date", use yyyy-MM-dd
+                const day = dd.padStart(2, '0');
+                const month = mm.padStart(2, '0');
+                return `${yyyy}-${month}-${day}`;
+              }
+              return '';
+            })() : '',
+            amount: iledger.fTrAmount || '',
+            gstPercent: iledger.fTrTax || '',
+            total: iledger.fTrTotal || ''
+          });
+        }
 
         let itemsData = [];
         
@@ -911,9 +1591,8 @@ const handleBlur = () => {
   };
 
   const handleItemCodeSelect = (itemId, searchTerm = '') => {
-    // console.log('Opening item code popup for row:', itemId, 'with search:', searchTerm);
     setSelectedRowId(itemId);
-    setItemSearchTerm(searchTerm || ''); // Ensure we set empty string if no search term
+    setItemSearchTerm(searchTerm || '');
     setShowItemCodePopup(true);
   };
 
@@ -1172,21 +1851,6 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
       groupName: selectedItem.fItemName || selectedItem.itemName || selectedItem.name || ''
     }));
     
-    // // Show appropriate message
-    // if (isEmptyTable) {
-    //   showAlertConfirmation(
-    //     `Loaded ${formattedItems.length} items from group`,
-    //     null,
-    //     'success'
-    //   );
-    // } else {
-    //   showAlertConfirmation(
-    //     `Added ${formattedItems.length} items from group (Total: ${mergedItems.length})`,
-    //     null,
-    //     'success'
-    //   );
-    // }
-    
     // Focus logic
     setTimeout(() => {
       if (isEmptyTable) {
@@ -1247,14 +1911,6 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
 
       if (response.status === 200 || response.status === 204) {
         createNewForm();
-      //   showAlertConfirmation(
-      //     `Purchase invoice ${voucherNo} deleted successfully`,
-      //     () => {
-      //       createNewForm();
-      //     },
-      //     'success'
-      //   );
-      //   // toast.error(`Purchase invoice ${voucherNo} deleted successfully.`);
       } else {
         throw new Error(`Delete failed with status: ${response.status}`);
       }
@@ -1273,7 +1929,6 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
                           'Failed to delete purchase invoice';
       
       showAlertConfirmation(`Delete failed: ${errorMessage}`, null, 'danger');
-      // toast.error(`Failed to delete purchase invoice: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -1282,7 +1937,6 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
   // Reset scroll position on component mount
   useEffect(() => {
     window.scrollTo(0, 0);
-    // console.log('PurchaseInvoice component mounted');
   }, []);
 
   // Fetch next invoice number and auto barcode on mount
@@ -1292,10 +1946,10 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
   }, [userData]);
 
   useEffect(() => {
-  if (dateRef.current && activeTopAction !== "delete") {
-    dateRef.current.focus();
-  }
-}, [activeTopAction]);
+    if (dateRef.current && activeTopAction !== "delete") {
+      dateRef.current.focus();
+    }
+  }, [activeTopAction]);
 
   // Update screen size on resize
   useEffect(() => {
@@ -1320,13 +1974,15 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Calculate Totals whenever items change
+  // Calculate Totals whenever items, addLessAmount, or chargesAmount change
   useEffect(() => {
-    const { net } = calculateTotals(items);
+    const { net, gstTotals } = calculateTotals(items);
     const addLessValue = parseFloat(addLessAmount) || 0;
-    const finalTotal = net + addLessValue;
+    const chargesAmt = parseFloat(chargesAmount) || 0;
+    const finalTotal = net + addLessValue + chargesAmt;
     setNetTotal(finalTotal);
-  }, [items, addLessAmount]);
+    setGstTotal(gstTotals);
+  }, [items, addLessAmount, chargesAmount]);
 
   // --- HANDLERS ---
 
@@ -1345,16 +2001,11 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
 const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   try {
     const url = API_ENDPOINTS.PURCHASE_INVOICE.GET_GROUP_LIST(search || '', pageNum, 20);
-    // console.log('Fetching group list from URL:', url);
     const res = await axiosInstance.get(url);
     const responseData = res?.data || {};
     
-    // console.log('Group list raw response:', responseData);
-    
-    // Extract data array from the response
     const data = responseData.data || [];
     
-    // Map to ensure we have the right field names
     const mappedData = Array.isArray(data) ? data.map(item => ({
       id: item.fItemcode || item.id,
       fItemcode: item.fItemcode || '',
@@ -1362,10 +2013,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       fparent: item.fparent || ''
     })) : [];
     
-    // console.log('Mapped group list:', mappedData);
     return mappedData;
   } catch (err) {
-    // console.error('Error fetching group list:', err);
     return [];
   }
 };
@@ -1381,7 +2030,6 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     
     if (e.key === 'Enter') {
       e.preventDefault();
-
 
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
@@ -1461,141 +2109,140 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   };
 
   const handleAddRow = (focusField = 'name') => {
-  setItems(prevItems => {
-     const lastRow = prevItems[prevItems.length - 1];
+    setItems(prevItems => {
+       const lastRow = prevItems[prevItems.length - 1];
 
-    // 🛑 Safety net
-    if (!lastRow?.name || lastRow.name.trim() === '') {
-      return prevItems;
-    }
-    const newRowIndex = prevItems.length;
-
-    const newRow = {
-      id: prevItems.length + 1,
-      barcode: '',
-      name: '',
-      sub: '',
-      stock: '',
-      mrp: '',
-      uom: '',
-      hsn: '',
-      tax: '',
-      rate: '',
-      qty: '',
-      ovrwt: '',
-      avgwt: '',
-      prate: '',
-      intax: '',
-      outtax: '',
-      acost: '',
-      sudo: '',
-      profitPercent: '',
-      preRT: '',
-      sRate: '',
-      asRate: '',
-      letProfPer: '',
-      ntCost: '',
-      wsPercent: '',
-      wsRate: '',
-      amt: '',
-      min: '',
-      max: ''
-    };
-
-    // 🔑 Focus AFTER state update
-    setTimeout(() => {
-      const input = document.querySelector(
-        `input[data-row="${newRowIndex}"][data-field="${focusField}"]`
-      );
-      if (input) input.focus();
-    }, 0);
-
-    return [...prevItems, newRow];
-  });
-};
-
-
-  
-
-const calculateItem = (item) => {
-  const qty       = Number(item.qty) || 0;
-  const ovrwt     = Number(item.ovrwt) || 0;
-  const prate     = Number(item.prate) || 0;
-  const asRate    = Number(item.asRate) || 0;
-  const intax     = Number(item.intax) || 0;
-  const wsPercent = Number(item.wsPercent) || 0;
-
-  let acost = 0;
-  let ntCost = 0;
-  let amt = 0;
-
-  /* ---------- PROFIT % ---------- */
-  const fseudoMap = userData?.fseudo || fseudo || {};
-  const letterToNum = Object.values(fseudoMap).reduce((a, l, i) => {
-    if (typeof l === "string") a[l.toLowerCase()] = i;
-    return a;
-  }, {});
-
-  const profitPercent = item.sudo?.trim()
-    ? Number(
-        item.sudo
-          .toLowerCase()
-          .split("")
-          .map(c => letterToNum[c] ?? "")
-          .join("")
-      ) || 0
-    : Number(item.profitPercent) || 0;
-
-  /* ---------- CORE ---------- */
-  let avgwt = 0;
-
-  if (ovrwt > 0) {
-    avgwt = qty ? ovrwt / qty : 0;
-    acost = avgwt * prate;
-    ntCost = acost;
-    amt = ovrwt * prate;
-  } else {
-    // 🔑 PRate-only calculation
-    acost = prate;
-    ntCost = prate;
-    amt = qty * prate;
-  }
-
-  // Tax
-  amt = amt + (amt * intax) / 100;
-
-  const sRate = acost + (acost * profitPercent) / 100;
-  const letProfPer = acost ? ((asRate - acost) / acost) * 100 : 0;
-  const wsRate = ntCost + (ntCost * wsPercent) / 100;
-
-  return {
-    ...item,
-    avgwt: avgwt ? avgwt.toFixed(2) : "",
-    acost: acost.toFixed(2),
-    ntCost: ntCost.toFixed(2),
-    sRate: sRate.toFixed(2),
-    letProfPer: letProfPer.toFixed(2),
-    wsRate: wsRate.toFixed(2),
-    amt: amt.toFixed(2),
-    profitPercent
-  };
-};
-
-
-const handleItemChange = (id, field, value) => {
-  setItems(prev =>
-    prev.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        return calculateItem(updatedItem);
+      // 🛑 Safety net
+      if (!lastRow?.name || lastRow.name.trim() === '') {
+        return prevItems;
       }
-      return item;
-    })
-  );
-};
+      const newRowIndex = prevItems.length;
 
+      const newRow = {
+        id: prevItems.length + 1,
+        barcode: '',
+        name: '',
+        sub: '',
+        stock: '',
+        mrp: '',
+        uom: '',
+        hsn: '',
+        tax: '',
+        rate: '',
+        qty: '',
+        ovrwt: '',
+        avgwt: '',
+        prate: '',
+        intax: '',
+        outtax: '',
+        acost: '',
+        sudo: '',
+        profitPercent: '',
+        preRT: '',
+        sRate: '',
+        asRate: '',
+        letProfPer: '',
+        ntCost: '',
+        wsPercent: '',
+        wsRate: '',
+        amt: '',
+        min: '',
+        max: ''
+      };
 
+      // 🔑 Focus AFTER state update
+      setTimeout(() => {
+        const input = document.querySelector(
+          `input[data-row="${newRowIndex}"][data-field="${focusField}"]`
+        );
+        if (input) input.focus();
+      }, 0);
 
+      return [...prevItems, newRow];
+    });
+  };
+
+  const calculateItem = (item) => {
+    const qty       = Number(item.qty) || 0;
+    const ovrwt     = Number(item.ovrwt) || 0;
+    const prate     = Number(item.prate) || 0;
+    const asRate    = Number(item.asRate) || 0;
+    const intax     = Number(item.intax) || 0;
+    const wsPercent = Number(item.wsPercent) || 0;
+    
+    console.log(chargesAmount)
+    let acost = 0;  
+    let ntCost = 0;
+    let amt = 0;
+
+    /* ---------- PROFIT % ---------- */
+    const fseudoMap = userData?.fseudo || fseudo || {};
+    const letterToNum = Object.values(fseudoMap).reduce((a, l, i) => {
+      if (typeof l === "string") a[l.toLowerCase()] = i;
+      return a;
+    }, {});
+
+    const profitPercent = item.sudo?.trim()
+      ? Number(
+          item.sudo
+            .toLowerCase()
+            .split("")
+            .map(c => letterToNum[c] ?? "")
+            .join("")
+        ) || 0
+      : Number(item.profitPercent) || 0;
+
+    /* ---------- CORE ---------- */
+    let avgwt = 0;
+
+    if (ovrwt > 0) {
+      avgwt = qty ? ovrwt / qty : 0;
+      acost = (avgwt * prate)+Number(chargesAmount || 0);
+      ntCost = acost;
+      amt = ovrwt * prate;
+    } else {
+      // 🔑 PRate-only calculation
+      acost = prate+Number(chargesAmount|| 0);
+      ntCost = prate;
+      amt = qty * prate;
+    }
+
+    // Tax
+    amt = amt + (amt * intax) / 100;
+
+    const sRate = acost + (acost * profitPercent) / 100;
+    const letProfPer = acost ? ((asRate - acost) / acost) * 100 : 0;
+    const wsRate = ntCost + (ntCost * wsPercent) / 100;
+
+    return {
+      ...item,
+      avgwt: avgwt ? avgwt.toFixed(2) : "",
+      acost: acost.toFixed(2),
+      ntCost: ntCost.toFixed(2),
+      sRate: sRate.toFixed(2),
+      letProfPer: letProfPer.toFixed(2),
+      wsRate: wsRate.toFixed(2),
+      amt: amt.toFixed(2),
+      profitPercent
+    };
+  };
+
+  useEffect(() => {
+    setItems(prevItems =>
+      prevItems.map(item => calculateItem(item))
+    );
+  }, [chargesAmount]);
+  const handleItemChange = (id, field, value) => {
+    setItems(prev =>
+      prev.map(item => {
+        if (item.id === id) {
+          const updatedItem = { ...item, [field]: value };
+          return calculateItem(updatedItem);
+        }
+        return item;
+      })
+    );
+  };
 
   // Handle UOM spacebar cycling (same as SalesInvoice)
   const handleUomSpacebar = (e, id, index) => {
@@ -1646,180 +2293,177 @@ const handleItemChange = (id, field, value) => {
       }
     }
   };
-   const fetchTax = async () => {
-        try {
-          const url = API_ENDPOINTS.Scrap_Procurement.GET_TAX_LIST;
-          const res = await axiosInstance.get(url);
-          // console.log("Tax fetch response:", res);
-        const data = res?.data?.data || [];
-        // console.log("Tax fetch data:", data);
-          const formatted = data
-            .map(t => ({
-              id: t.fcode,
-              tax: Number(t.ftaxName),   // e.g. 5, 12, 18
-              displayName: t.ftaxName
-            }))
-            .filter(t => !isNaN(t.tax));
-      // console.log("Formatted tax data:", formatted);
-          setAllTax(formatted);
-        } catch (error) {
-          console.error("Tax fetch failed:", error);
-          setAllTax([]);
-        }
-      };
 
-useEffect(() => {
-  fetchTax();
-}, []);
-
-// Update the handleTableKeyDown function
-const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-  // Handle / key for item code search popup
-  if (e.key === '/') {
-    e.preventDefault();
-    handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
-    return;
-  }
-
-  // Fields in the visual order
-  const fields = [
-    'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
-    'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
-    'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
-  ];
-
-  const currentFieldIndex = fields.indexOf(currentField);
-
-  // Handle Right arrow - move to next field in the same row
-  if (e.key === 'ArrowRight') {
-    e.preventDefault();
-    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
-      
-      const nextInput = document.querySelector(
-        `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
-         select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-      );
-      if (nextInput) {
-        nextInput.focus();
-        if (nextInput.tagName === 'INPUT') {
-          nextInput.select();
-        }
-      }
+  const fetchTax = async () => {
+    try {
+      const url = API_ENDPOINTS.Scrap_Procurement.GET_TAX_LIST;
+      const res = await axiosInstance.get(url);
+      const data = res?.data?.data || [];
+      const formatted = data
+        .map(t => ({
+          id: t.fcode,
+          tax: Number(t.ftaxName),
+          displayName: t.ftaxName
+        }))
+        .filter(t => !isNaN(t.tax));
+      setAllTax(formatted);
+    } catch (error) {
+      console.error("Tax fetch failed:", error);
+      setAllTax([]);
     }
-    return;
-  }
+  };
 
-  // Handle Left arrow - move to previous field in the same row
-  if (e.key === 'ArrowLeft') {
-    e.preventDefault();
-    if (currentFieldIndex > 0) {
-      const prevField = fields[currentFieldIndex - 1];
-      const prevInput = document.querySelector(
-        `input[data-row="${currentRowIndex}"][data-field="${prevField}"], 
-         select[data-row="${currentRowIndex}"][data-field="${prevField}"]`
-      );
-      if (prevInput) {
-        prevInput.focus();
-        if (prevInput.tagName === 'INPUT') {
-          prevInput.select();
+  useEffect(() => {
+    fetchTax();
+  }, []);
+
+  // Update the handleTableKeyDown function
+  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+    // Handle / key for item code search popup
+    if (e.key === '/') {
+      e.preventDefault();
+      handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+      return;
+    }
+
+    // Fields in the visual order
+    const fields = [
+      'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
+      'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
+      'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
+    ];
+
+    const currentFieldIndex = fields.indexOf(currentField);
+
+    // Handle Right arrow - move to next field in the same row
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+        const nextField = fields[currentFieldIndex + 1];
+        
+        const nextInput = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
+           select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+        );
+        if (nextInput) {
+          nextInput.focus();
+          if (nextInput.tagName === 'INPUT') {
+            nextInput.select();
+          }
         }
-      }
-    }
-    return;
-  }
-
-  // Handle Up arrow - move to the same field in the row above
-  if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (currentRowIndex > 0) {
-      const prevRowInput = document.querySelector(
-        `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"], 
-         select[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
-      );
-      if (prevRowInput) {
-        prevRowInput.focus();
-        if (prevRowInput.tagName === 'INPUT') {
-          prevRowInput.select();
-        }
-      }
-    }
-    return;
-  }
-
-  // Handle Down arrow - move to the same field in the row below
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (currentRowIndex < items.length - 1) {
-      const nextRowInput = document.querySelector(
-        `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"], 
-         select[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
-      );
-      if (nextRowInput) {
-        nextRowInput.focus();
-        if (nextRowInput.tagName === 'INPUT') {
-          nextRowInput.select();
-        }
-      }
-    }
-    return;
-  }
-
- if (e.key === 'Enter') {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const isLastRow = currentRowIndex === items.length - 1;
-  const isLastField = currentField === 'amt';
-
-  // 👉 CASE 1: AMT + NOT last row → go to next row NAME
-  if (isLastField && !isLastRow) {
-    const nextRowName = document.querySelector(
-      `input[data-row="${currentRowIndex + 1}"][data-field="name"]`
-    );
-    if (nextRowName) {
-      nextRowName.focus();
-      nextRowName.select();
-    }
-    return;
-  }
-
-  // 👉 CASE 2: LAST row + LAST field → add new row
-  if (isLastField && isLastRow) {
-    const currentRow = items[currentRowIndex];
-
-    // 🚫 Block empty name
-    if (!currentRow?.name || currentRow.name.trim() === '') {
-      const nameInput = document.querySelector(
-        `input[data-row="${currentRowIndex}"][data-field="name"]`
-      );
-      if (nameInput) {
-        nameInput.focus();
-        nameInput.select();
       }
       return;
     }
 
-    handleAddRow('name');
-    return;
-  }
+    // Handle Left arrow - move to previous field in the same row
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (currentFieldIndex > 0) {
+        const prevField = fields[currentFieldIndex - 1];
+        const prevInput = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="${prevField}"], 
+           select[data-row="${currentRowIndex}"][data-field="${prevField}"]`
+        );
+        if (prevInput) {
+          prevInput.focus();
+          if (prevInput.tagName === 'INPUT') {
+            prevInput.select();
+          }
+        }
+      }
+      return;
+    }
 
-  // 👉 CASE 3: Normal fields → move RIGHT
-  if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-    const nextField = fields[currentFieldIndex + 1];
-    const nextInput = document.querySelector(
-      `input[data-row="${currentRowIndex}"][data-field="${nextField}"],
-       select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-    );
+    // Handle Up arrow - move to the same field in the row above
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (currentRowIndex > 0) {
+        const prevRowInput = document.querySelector(
+          `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"], 
+           select[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
+        );
+        if (prevRowInput) {
+          prevRowInput.focus();
+          if (prevRowInput.tagName === 'INPUT') {
+            prevRowInput.select();
+          }
+        }
+      }
+      return;
+    }
 
-    if (nextInput) {
-      nextInput.focus();
-      if (nextInput.tagName === 'INPUT') nextInput.select();
+    // Handle Down arrow - move to the same field in the row below
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (currentRowIndex < items.length - 1) {
+        const nextRowInput = document.querySelector(
+          `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"], 
+           select[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
+        );
+        if (nextRowInput) {
+          nextRowInput.focus();
+          if (nextRowInput.tagName === 'INPUT') {
+            nextRowInput.select();
+          }
+        }
+      }
+      return;
+    }
+
+   if (e.key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const isLastRow = currentRowIndex === items.length - 1;
+    const isLastField = currentField === 'amt';
+
+    // 👉 CASE 1: AMT + NOT last row → go to next row NAME
+    if (isLastField && !isLastRow) {
+      const nextRowName = document.querySelector(
+        `input[data-row="${currentRowIndex + 1}"][data-field="name"]`
+      );
+      if (nextRowName) {
+        nextRowName.focus();
+        nextRowName.select();
+      }
+      return;
+    }
+
+    // 👉 CASE 2: LAST row + LAST field → add new row
+    if (isLastField && isLastRow) {
+      const currentRow = items[currentRowIndex];
+
+      // 🚫 Block empty name
+      if (!currentRow?.name || currentRow.name.trim() === '') {
+        const nameInput = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="name"]`
+        );
+        if (nameInput) {
+          nameInput.focus();
+          nameInput.select();
+        }
+        return;
+      }
+
+      handleAddRow('name');
+      return;
+    }
+
+    // 👉 CASE 3: Normal fields → move RIGHT
+    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+      const nextField = fields[currentFieldIndex + 1];
+      const nextInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${nextField}"],
+         select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+      );
+
+      if (nextInput) {
+        nextInput.focus();
+        if (nextInput.tagName === 'INPUT') nextInput.select();
+      }
     }
   }
-}
-
-};
+  };
 
   const handleClear = () => {
     showConfirmation({
@@ -1860,26 +2504,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         return;
       }
 
-      // Validation: Check required fields
-      // if (!billDetails.partyCode || billDetails.partyCode.trim() === '') {
-      //   showAlertConfirmation('Name is required', null, 'warning');
-      //   return;
-      // }
-
       if (!billDetails.customerName || billDetails.customerName.trim() === '') {
         showAlertConfirmation('Customer Name is required', null, 'warning');
         return;
       }
-
-      // if (!billDetails.mobileNo || billDetails.mobileNo.trim() === '') {
-      //   showAlertConfirmation('Mobile No is required', null, 'warning');
-      //   return;
-      // }
-
-      // if (!billDetails.gstno || billDetails.gstno.trim() === '') {
-      //   showAlertConfirmation('GST No is required', null, 'warning');
-      //   return;
-      // }
 
       // Validation: Check if at least one row has item data
       const hasValidItems = items.some(item =>         
@@ -1912,11 +2540,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         return;
       }
 
-
-
-      
       const voucherDateISO = toISODate(billDetails.billDate || billDetails.purDate);
-
       const totals = calculateTotals(items);
 
       // Prepare barcode generator for empty barcodes: returns current then increments
@@ -1947,8 +2571,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           customerCode: billDetails.partyCode || '',
           voucherNo: voucherNo,
           voucherDate: voucherDateISO,
-          billAmount: totals.net,
-          balanceAmount: totals.net,
+          billAmount: totals.net + (parseFloat(chargesAmount) || 0),
+          balanceAmount: totals.net + (parseFloat(chargesAmount) || 0),
           subTotal: totals.subTotal,
           refName: billDetails.customerName || '',
           compCode: compCode,
@@ -1958,6 +2582,15 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         iledger: {
           vrNo: billDetails.purNo,
           less: parseFloat(addLessAmount) || 0,
+          fFreight: (freightAmount ?? '0').toString(),
+          fExtPer: (chargesPercent ?? '0').toString(),
+          fExtAmt: (chargesAmount ?? '0').toString(),
+          fTRans: (transportData.transportCode ?? '').toString(),
+          fLrNo: transportData.lrNo || '',
+          fLrDt: toISODate(transportData.lrDate),
+          fTrAmount: (transportData.amount ?? '').toString(),
+          fTrTax: (transportData.gstPercent ?? '').toString(),
+          fTrTotal: (transportData.total ?? '').toString(),
           subTotal: totals.subTotal,
           total: totals.total,
           net: totals.net,
@@ -2022,7 +2655,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
               'warning'
             );
-            // toast.success(`Purchase invoice ${isEditMode ? 'updated' : 'saved'} successfully.`);
             
           } catch (err) {
             const status = err?.response?.status;
@@ -2035,7 +2667,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               null,
               'danger'
             );
-            // toast.error(`Failed to ${isEditMode ? 'update' : 'save'} purchase invoice.`);
           } finally {
             setIsLoading(false);
           }
@@ -2049,7 +2680,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     } catch (e) {
       console.warn('Save error:', e);
       showAlertConfirmation('Failed to save purchase', null, 'danger');
-      // toast.error('Failed to save purchase invoice.');
     }
   };
 
@@ -2058,174 +2688,110 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   };
 
   // Handle delete row
-  // const handleDeleteRow = (id) => {
-  //   if (items.length <= 1) {
-  //     // showAlertConfirmation("Cannot delete the last row", null, 'warning');
-  //     showConfirmation({
-  //     title: 'Clear First Row',
-  //     message: 'Do you want to clear?',
-  //     onConfirm: () => {
-  //       setItems([
-  //         {
-  //           id: 1, 
-  //     barcode: '', 
-  //     name: '', 
-  //     sub: '', 
-  //     stock: '', 
-  //     mrp: '', 
-  //     uom: '', 
-  //     hsn: '', 
-  //     tax: '', 
-  //     rate: '', 
-  //     qty: '',
-  //     ovrwt: '',
-  //     avgwt: '',
-  //     prate: '',
-  //     intax: '',
-  //     outtax: '',
-  //     acost: '',
-  //     sudo: '',
-  //     profitPercent: '',
-  //     preRT: '',
-  //     sRate: '',
-  //     asRate: '',
-  //     letProfPer: '',
-  //     ntCost: '',
-  //     wsPercent: '',
-  //     wsRate: '',
-  //     amt: '',
-  //     min: '',
-  //     max: ''
-    
-  //         }
-  //       ]);
-  //     },
-  //     type: 'danger',
-  //     confirmText: 'Yes',
-  //     cancelText: 'No'
-  //   });
-  //     // createNewForm();
-  //     // toast.warning("Cannot delete the last row");
-  //     return;
-
-  //   }
-    
-  //   showConfirmation({
-  //     title: 'Delete Row',
-  //     message: 'Are you sure you want to delete this row?',
-  //     onConfirm: () => {
-  //       setItems(items.filter(item => item.id !== id));
-  //     },
-  //     type: 'danger',
-  //     confirmText: 'Delete',
-  //     cancelText: 'Cancel'
-  //   });
-  // };
-
   const handleDeleteRow = (id) => {
-  if (items.length <= 1) {
+    if (items.length <= 1) {
+      showConfirmation({
+        title: 'Clear First Row',
+        message: 'Do you want to clear?',
+        onConfirm: () => {
+          setItems([
+            {
+              id: 1, 
+              barcode: '', 
+              name: '', 
+              sub: '', 
+              stock: '', 
+              mrp: '', 
+              uom: '', 
+              hsn: '', 
+              tax: '', 
+              rate: '', 
+              qty: '',
+              ovrwt: '',
+              avgwt: '',
+              prate: '',
+              intax: '',
+              outtax: '',
+              acost: '',
+              sudo: '',
+              profitPercent: '',
+              preRT: '',
+              sRate: '',
+              asRate: '',
+              letProfPer: '',
+              ntCost: '',
+              wsPercent: '',
+              wsRate: '',
+              amt: '',
+              min: '',
+              max: ''
+            }
+          ]);
+        },
+        type: 'danger',
+        confirmText: 'Yes',
+        cancelText: 'No'
+      });
+      return;
+    }
+    
+    // Find the index of the row being deleted
+    const deleteIndex = items.findIndex(item => item.id === id);
+    
     showConfirmation({
-      title: 'Clear First Row',
-      message: 'Do you want to clear?',
+      title: 'Delete Row',
+      message: 'Are you sure you want to delete this row?',
       onConfirm: () => {
-        setItems([
-          {
-            id: 1, 
-            barcode: '', 
-            name: '', 
-            sub: '', 
-            stock: '', 
-            mrp: '', 
-            uom: '', 
-            hsn: '', 
-            tax: '', 
-            rate: '', 
-            qty: '',
-            ovrwt: '',
-            avgwt: '',
-            prate: '',
-            intax: '',
-            outtax: '',
-            acost: '',
-            sudo: '',
-            profitPercent: '',
-            preRT: '',
-            sRate: '',
-            asRate: '',
-            letProfPer: '',
-            ntCost: '',
-            wsPercent: '',
-            wsRate: '',
-            amt: '',
-            min: '',
-            max: ''
+        // Filter out the deleted row
+        const newItems = items.filter(item => item.id !== id);
+        
+        // Reassign IDs sequentially starting from 1
+        const updatedItems = newItems.map((item, index) => ({
+          ...item,
+          id: index + 1
+        }));
+        
+        // Update the items state
+        setItems(updatedItems);
+        
+        // Focus logic based on which row was deleted
+        setTimeout(() => {
+          if (deleteIndex === 0) {
+            // If first row was deleted, focus on new first row's name field
+            const nameInput = document.querySelector(
+              `input[data-row="0"][data-field="name"]`
+            );
+            if (nameInput) {
+              nameInput.focus();
+              nameInput.select();
+            }
+          } else if (deleteIndex === items.length - 1) {
+            // If last row was deleted, focus on the new last row
+            const newLastIndex = updatedItems.length - 1;
+            const nameInput = document.querySelector(
+              `input[data-row="${newLastIndex}"][data-field="name"]`
+            );
+            if (nameInput) {
+              nameInput.focus();
+              nameInput.select();
+            }
+          } else {
+            // If a middle row was deleted, focus on the row at the same index
+            const nameInput = document.querySelector(
+              `input[data-row="${deleteIndex}"][data-field="name"]`
+            );
+            if (nameInput) {
+              nameInput.focus();
+              nameInput.select();
+            }
           }
-        ]);
+        }, 0);
       },
       type: 'danger',
-      confirmText: 'Yes',
-      cancelText: 'No'
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
     });
-    return;
-  }
-  
-  // Find the index of the row being deleted
-  const deleteIndex = items.findIndex(item => item.id === id);
-  
-  showConfirmation({
-    title: 'Delete Row',
-    message: 'Are you sure you want to delete this row?',
-    onConfirm: () => {
-      // Filter out the deleted row
-      const newItems = items.filter(item => item.id !== id);
-      
-      // Reassign IDs sequentially starting from 1
-      const updatedItems = newItems.map((item, index) => ({
-        ...item,
-        id: index + 1
-      }));
-      
-      // Update the items state
-      setItems(updatedItems);
-      
-      // Focus logic based on which row was deleted
-      setTimeout(() => {
-        if (deleteIndex === 0) {
-          // If first row was deleted, focus on new first row's name field
-          const nameInput = document.querySelector(
-            `input[data-row="0"][data-field="name"]`
-          );
-          if (nameInput) {
-            nameInput.focus();
-            nameInput.select();
-          }
-        } else if (deleteIndex === items.length - 1) {
-          // If last row was deleted, focus on the new last row
-          const newLastIndex = updatedItems.length - 1;
-          const nameInput = document.querySelector(
-            `input[data-row="${newLastIndex}"][data-field="name"]`
-          );
-          if (nameInput) {
-            nameInput.focus();
-            nameInput.select();
-          }
-        } else {
-          // If a middle row was deleted, focus on the row at the same index
-          const nameInput = document.querySelector(
-            `input[data-row="${deleteIndex}"][data-field="name"]`
-          );
-          if (nameInput) {
-            nameInput.focus();
-            nameInput.select();
-          }
-        }
-      }, 0);
-    },
-    type: 'danger',
-    confirmText: 'Delete',
-    cancelText: 'Cancel'
-  });
-};
+  };
 
   // --- RESPONSIVE STYLES ---
   const TYPOGRAPHY = {
@@ -2309,7 +2875,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       paddingTop: '2px',
     },
     focusedInput: {
-      // borderColor: '#1B91DA !important',
       boxShadow: '0 0 0 1px #1B91DA',
     },
     
@@ -2474,6 +3039,36 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       cursor: 'pointer',
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
+    tableFooterContainer: {
+    position: 'sticky',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#e8f4fc',
+    borderTop: '2px solid #1B91DA',
+    zIndex: 50,
+    marginTop: 'auto',
+    width: '100%',
+  },
+
+  tableFooter: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    backgroundColor: '#e8f4fc',
+  },
+
+  tableFooterCell: {
+    fontFamily: TYPOGRAPHY.fontFamily,
+    fontSize: TYPOGRAPHY.fontSize.base,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    lineHeight: TYPOGRAPHY.lineHeight.normal,
+    padding: screenSize.isMobile ? '8px 5px' : screenSize.isTablet ? '10px 8px' : '2px 10px',
+    textAlign: 'center',
+    border: '1px solid #ccc',
+    backgroundColor: '#e8f4fc',
+    color: '#333',
+  },
+
     itemNameContainer: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
@@ -2491,20 +3086,20 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       right: 0,
       flex: '0 0 auto',
       display: 'flex',
-      flexDirection: screenSize.isMobile ? 'column' : 'row',
-      justifyContent: 'space-between',
+      flexDirection: screenSize.isMobile ? 'row' : 'row',
       alignItems: 'center',
       padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
       backgroundColor: 'white',
       borderTop: '2px solid #e0e0e0',
       boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
       gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
-      flexWrap: 'wrap',
+      flexWrap: 'nowrap',
       flexShrink: 0,
       minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
       width: '100%',
       boxSizing: 'border-box',
       zIndex: 100,
+      justifyContent: 'space-between'
     },
     netBox: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -2512,11 +3107,12 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#1B91DA',
-      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '10px 20px' : '12px 32px',
+      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '10px 20px' : '5px 5px',
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '12px' : screenSize.isTablet ? '20px' : '32px',
-      minWidth: 'max-content',
+      gap: screenSize.isMobile ? '12px' : screenSize.isTablet ? '20px' : '22px',
+      minWidth: '350px',
+      flexShrink: 0,
       justifyContent: 'center',
       width: screenSize.isMobile ? '100%' : 'auto',
       order: screenSize.isMobile ? 1 : 0,
@@ -2529,7 +3125,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       flexWrap: 'wrap',
       justifyContent: screenSize.isMobile ? 'center' : 'flex-start',
       width: screenSize.isMobile ? '100%' : 'auto',
-      order: screenSize.isMobile ? 2 : 0,
+      order: screenSize.isMobile ? 2 : 0,minWidth: '200px',
+      flexShrink: 0,
     },
     footerButtons: {
       display: 'flex',
@@ -2538,6 +3135,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       justifyContent: screenSize.isMobile ? 'center' : 'flex-end',
       width: screenSize.isMobile ? '100%' : 'auto',
       order: screenSize.isMobile ? 3 : 0,
+      minWidth: '300px',
+      flexShrink: 0,
     },
     actionButtonsWrapper: {
       display: 'flex',
@@ -2570,7 +3169,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       whiteSpace: 'nowrap'
     },
     addLessInput: {
-      width: screenSize.isMobile ? '120px' : '150px',
+      width: screenSize.isMobile ? '120px' : '100px',
       border: '1px solid #1B91DA',
       borderRadius: '4px',
       padding: screenSize.isMobile ? '6px 10px' : '8px 12px',
@@ -2585,7 +3184,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       transition: 'border-color 0.2s, box-shadow 0.2s'
     },
     addLessInputFocused: {
-      width: screenSize.isMobile ? '120px' : '150px',
+      width: screenSize.isMobile ? '120px' : '100px',
       border: '2px solid #1B91DA',
       borderRadius: '4px',
       padding: screenSize.isMobile ? '6px 10px' : '8px 12px',
@@ -2599,7 +3198,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
       transition: 'border-color 0.2s, box-shadow 0.2s'
     },
-    // UOM specific styles (same as SalesInvoice)
     uomContainer: {
       position: 'relative',
       width: '100%',
@@ -2673,6 +3271,39 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       opacity: 1,
       transition: 'opacity 0.2s ease',
     },
+    chargesContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '5px',
+      marginRight: '10px'
+    },
+    chargesInput: {
+      width: '70px',
+      border: '1px solid #1B91DA',
+      borderRadius: '4px',
+      padding: '5px 8px',
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      outline: 'none',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      color: '#333'
+    },
+    chargesInputFocused: {
+      width: '70px',
+      border: '2px solid #1B91DA',
+      borderRadius: '4px',
+      padding: '5px 8px',
+      fontSize: TYPOGRAPHY.fontSize.xs,
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      outline: 'none',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      color: '#333',
+      boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)'
+    }
   };
 
   // Determine grid columns based on screen size
@@ -2683,6 +3314,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
       return 'repeat(4, 1fr)';
     } else {
       return 'repeat(6, 1fr)';
+      // return '2fr 1fr 1fr 2fr';
     }
   };
 
@@ -2735,25 +3367,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             />
           </div>
 
-          {/* Amount */}
-          {/* <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Amount:</label>
-            <input
-              type="text"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'amount' && styles.focusedInput)
-              }}
-              value={billDetails.amount}
-              name="amount"
-              onChange={handleInputChange}
-              ref={amountRef}
-              onKeyDown={(e) => handleKeyDown(e, purNoRef, 'amount')}
-              onFocus={() => setFocusedField('amount')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div> */}
-
           {/* Pur No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Bill No:</label>
@@ -2772,25 +3385,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onBlur={() => setFocusedField('')}
             />
           </div>
-
-          {/* Invoice No */}
-          {/* <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Invoice No:</label>
-            <input
-              type="text"
-              name="invoiceNo"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'invoiceNo' && styles.focusedInput)
-              }}
-              value={billDetails.invoiceNo}
-              onChange={handleInputChange}
-              ref={invoiceNoRef}
-              onKeyDown={(e) => handleKeyDown(e, purDateRef, 'invoiceNo')}
-              onFocus={() => setFocusedField('invoiceNo')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div> */}
 
           {/* Pur Date */}
           <div style={styles.formField}>
@@ -2812,7 +3406,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             />
           </div>
 
-
            <div style={styles.formField}>
             <label style={styles.inlineLabel}>GST Type:</label>
             <select
@@ -2832,7 +3425,50 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               <option value="I">IGST</option>
             </select>
           </div>
-          <div><PopupScreenModal screenIndex={5} /></div>
+          
+          {/* Charges Fields */}
+          <div style={styles.formField}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+              <label style={styles.inlineLabel}>Charges:</label>
+              <input
+                type="text"
+                style={{
+                  ...styles.chargesInput,
+                  ...(focusedField === 'chargesPercent' && styles.chargesInputFocused)
+                }}
+                value={chargesPercent}
+                onChange={(e) => handleNumberInput(e, 'chargesPercent')}
+                ref={chargesPercentRef}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (chargesAmountRef.current) {
+                      chargesAmountRef.current.focus();
+                    }
+                  }
+                }}
+                onFocus={() => setFocusedField('chargesPercent')}
+                onBlur={() => handleBlur('chargesPercent')}
+                // placeholder="%"
+              />
+              %
+              <input
+                type="text"
+                style={{
+                  ...styles.chargesInput,
+                  ...(focusedField === 'chargesAmount' && styles.chargesInputFocused)
+                }}
+                value={chargesAmount}
+                onChange={(e) => setChargesAmount(e.target.value)}
+                ref={chargesAmountRef}
+                // readOnly
+                onFocus={() => setFocusedField('chargesAmount')}
+                onBlur={() => setFocusedField('')}
+                // placeholder="Amt"
+              />
+            </div>
+          </div>
+          
         </div>
 
         {/* ROW 2 */}
@@ -2840,25 +3476,6 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           ...styles.gridRow,
           gridTemplateColumns: getGridColumns(),
         }}>
-          {/* Party Code */}
-          {/* <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Party Code:</label>
-            <input
-              type="text"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'partyCode' && styles.focusedInput)
-              }}
-              value={billDetails.partyCode}
-              name="partyCode"
-              onChange={handleInputChange}
-              ref={customerRef}
-              onKeyDown={(e) => handleKeyDown(e, nameRef, 'partyCode')}
-              onFocus={() => setFocusedField('partyCode')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div> */}
-
           {/* Customer Name */}
           <div style={{ ...styles.formField, gridColumn: 'span 2' }}>
             <label style={styles.inlineLabel}>Name:</label>
@@ -2890,8 +3507,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     setShowSupplierPopup(true);
                   } else if (e.key === 'Enter') {
                     e.preventDefault();
-                    // Navigate to group field
-                     if (!billDetails.customerName?.trim()) {
+                    if (!billDetails.customerName?.trim()) {
                       validateCustomer();
                     }
                     if(groupNameRef.current){
@@ -2899,13 +3515,11 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                     } 
                   }  else if (e.key === 'ArrowRight') {
                   e.preventDefault();
-                  // Navigate to group field
                   if (groupNameRef && groupNameRef.current) {
                     groupNameRef.current.focus();
                   }
                 } else if (e.key === 'ArrowLeft') {
                   e.preventDefault();
-                  // Navigate to GST No field (previous field)
                   if (gstTypeRef && gstTypeRef.current) {
                     gstTypeRef.current.focus();
                   }
@@ -2950,70 +3564,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             </div>
             <PopupScreenModal screenIndex={6} />
           </div>
-
-          {/* City */}
-          {/* <div style={styles.formField}>
-            <label style={styles.inlineLabel}>City:</label>
-            <input
-              type="text"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'city' && styles.focusedInput)
-              }}
-              value={billDetails.city}
-              name="city"
-              onChange={handleInputChange}
-              ref={cityRef}
-              onKeyDown={(e) => handleKeyDown(e, gstTypeRef, 'city')}
-              onFocus={() => setFocusedField('city')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div> */}
-
-          {/* GST Type */}
-           
-          {/* Trans Type */}
-          {/* <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Trans Type:</label>
-            <select
-              name="transType"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'transType' && styles.focusedInput)
-              }}
-              value={billDetails.transType}
-              onChange={handleInputChange}
-              ref={transtypeRef}
-              onKeyDown={(e) => handleKeyDown(e, invoiceAmountRef, 'transType')}
-              onFocus={() => setFocusedField('transType')}
-              onBlur={() => setFocusedField('')}
-            >
-              <option value="PURCHASE">PURCHASE</option>
-              <option value="SALE">SALE</option>
-              <option value="Cash">Cash</option>
-              <option value="Credit">Credit</option>
-            </select>
-          </div> */}
-
-          {/* Invoice Amt */}
-          {/* <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Invoice Amt:</label>
-            <input
-              type="text"
-              name="invoiceAmount"
-              style={{
-                ...styles.inlineInput,
-                ...(focusedField === 'invoiceAmount' && styles.focusedInput)
-              }}
-              value={billDetails.invoiceAmount}
-              onChange={handleInputChange}
-              ref={invoiceAmountRef}
-              onKeyDown={(e) => handleKeyDown(e, mobileRef, 'invoiceAmount')}
-              onFocus={() => setFocusedField('invoiceAmount')}
-              onBlur={() => setFocusedField('')}
-            />
-          </div> */}
-        
+          
           {/* Mobile No */}
           <div style={styles.formField}>
             <label style={styles.inlineLabel}>Mobile No:</label>
@@ -3035,7 +3586,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           
           {/* GST No */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>GST No:</label>
+            <label style={styles.inlineLabel}>GSTIN:</label>
             <input
               type="text"
               style={{
@@ -3073,6 +3624,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
               onBlur={() => setFocusedField('')}
             />
           </div>
+          
           {/* Group Name */}
           <div style={{ ...styles.formField, gridColumn: 'span 2' }}>
             <label style={styles.inlineLabel}>Group Name:</label>
@@ -3151,10 +3703,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 <Icon.Search size={16} />
               </button>
             </div>
+            <div><PopupScreenModal screenIndex={5} /></div>
           </div>
-
-
-         
 
         </div>
       </div>
@@ -3225,7 +3775,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
                 <input                      
                   style={{ 
                     ...styles.editableInput, 
-                    textAlign: 'left', // Left aligned for Particulars
+                    textAlign: 'left',
                     border: 'none',
                     outline: 'none',
                     background: 'transparent',
@@ -3746,8 +4296,34 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         ))}
       </tbody>
     </table>
+    <div style={styles.tableFooterContainer}>
+    <table style={styles.tableFooter}>
+      <tbody>
+        <tr style={styles.totalsRow}>
+          <td style={{ ...styles.tableFooterCell, width: '5%' }}></td>
+          <td style={{ ...styles.tableFooterCell, width: '30%', textAlign: 'left' }}>
+            <strong>Total:</strong>
+          </td>
+          <td style={{ ...styles.tableFooterCell, width: '10%', textAlign: 'right' }}>
+            <strong>{items.reduce((sum, item) => sum + (parseFloat(item.qty) || 0), 0).toFixed(2)}</strong>
+          </td>
+          <td style={{ ...styles.tableFooterCell, width: '12%' }}></td>
+          <td style={{ ...styles.tableFooterCell, width: '12%', textAlign: 'right' }}>
+            <strong>{items.reduce((sum, item) => sum + (parseFloat(item.amt) || 0), 0).toFixed(2)}</strong>
+          </td>
+          {/* <td style={{ ...styles.tableFooterCell, width: '12%' }}></td>
+          <td style={{ ...styles.tableFooterCell, width: '14%', textAlign: 'right' }}>
+            <strong>{netTotal.toFixed(2)}</strong>
+          </td> */}
+          <td style={{ ...styles.tableFooterCell, width: '5%' }}></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
+  </div>
+     
 </div>
+
       {/* Purchase Bill List Popup for Edit/Delete */}
       <PopupListSelector
         open={showBillListPopup}
@@ -3763,9 +4339,24 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         searchFields={['voucherNo']}
         columnWidths={{ voucherNo: '100%' }}
         searchPlaceholder="Search by bill no or customer..."
-        onSelect={handleBillSelect}
+        onSelect={(s) => {
+          setBillDetails(prev => ({
+            ...prev,
+            
+          }));
+
+          setShowSupplierPopup(false);
+          setItemSearchTerm('');
+
+          setTimeout(() => {
+            if (nameRef.current) {
+              nameRef.current.focus();
+              nameRef.current.select();
+            }
+          }, 500);
+        }}
       />
-      
+     
       {/* Supplier Popup */}
       <PopupListSelector
         open={showSupplierPopup}
@@ -3795,11 +4386,10 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           setShowSupplierPopup(false);
           setItemSearchTerm('');
 
-          // ✅ Focus back to Supplier Name input
           setTimeout(() => {
             if (nameRef.current) {
               nameRef.current.focus();
-              nameRef.current.select(); // optional: selects text
+              nameRef.current.select();
             }
           }, 500);
         }}
@@ -3826,7 +4416,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     setTimeout(() => {
             if (groupNameRef.current) {
               groupNameRef.current.focus();
-              groupNameRef.current.select(); // optional: selects text
+              groupNameRef.current.select();
             }
           }, 1000);
   }}
@@ -3837,8 +4427,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         open={showItemCodePopup}
         onClose={() => {
           setShowItemCodePopup(false);
-          // setItemSearchTerm(''); // Clear search term when closing
-          setSelectedRowId(null); // Clear selected row
+          setSelectedRowId(null);
         }}
         title="Select Item"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search)}
@@ -3869,6 +4458,16 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
         disableBackdropClose={isLoading}
       />
 
+      {/* Transport Popup */}
+      <TransportPopup
+        isOpen={showTransportPopup}
+        onClose={() => setShowTransportPopup(false)}
+        transportData={transportData}
+        onTransportDataChange={(data) => {
+          setTransportData(data);
+        }}
+      />
+      
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
@@ -3888,30 +4487,81 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
           </ActionButtons>
         </div>
         <div style={styles.addLessContainer}>
+          <span style={styles.addLessLabel}>Freight:</span>
+          <input
+            type="text"
+            style={focusedField === 'freight' ? styles.addLessInputFocused : styles.addLessInput}
+            value={freightAmount}
+            onChange={(e) => handleNumberInput(e, 'freight')}
+            ref={freightRef}
+            onFocus={() => setFocusedField('freight')}
+            onBlur={() => handleBlur('freight')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (addLessRef.current) {
+                  addLessRef.current.focus();
+                }
+              }
+            }}
+            inputMode="decimal"
+            // placeholder="0.00"
+          />
+        </div>
+        <div style={styles.addLessContainer}>
           <span style={styles.addLessLabel}>Add/Less:</span>
           <input
             type="text"
             style={focusedField === 'addLess' ? styles.addLessInputFocused : styles.addLessInput}
             value={addLessAmount}
-            onChange={(e) => handleNumberInput(e)}
+            onChange={(e) => handleNumberInput(e, 'addLess')}
             ref={addLessRef}
             onFocus={() => setFocusedField('addLess')}
-            onBlur={handleBlur}
+            onBlur={() => handleBlur('addLess')}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 e.stopPropagation();
                 console.log('Enter pressed in Add/Less, calling handleSave');
-                // Small delay to let popup render before calling handleSave
                 setTimeout(() => handleSave(), 100);
               }
             }}
             inputMode="decimal"
+            // placeholder="0.00"
           />
         </div>
+        
+<div style={{
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '24px',
+  height: '24px',
+  marginRight: '10px',
+  flexShrink: 0
+}}>
+  <Icon.Truck 
+    size={16}
+    style={{ 
+      cursor: 'pointer',
+      transition: 'transform 0.2s',
+      display: 'block'
+    }}
+    onClick={() => {
+      console.log('Truck icon clicked');
+      setShowTransportPopup(true);
+    }}
+    title="Click to edit transport details"
+    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+  />
+</div>
         <div style={styles.netBox}>
           <span>Total Amount:</span>
           <span>₹ {netTotal.toFixed(2)}</span>
+          <span>GST Amount:</span>
+          <span>₹ {gstTotal.toFixed(2)}</span>
         </div>
         <div style={styles.footerButtons}>
           <ActionButtons1
@@ -3921,9 +4571,8 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
-          
         </div>
-      </div>
+      </div>      
     </div>
   );
 };
