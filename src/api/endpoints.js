@@ -160,7 +160,8 @@ export const API_ENDPOINTS = {
 
         // NEW: ADD THIS VOUCHER DETAILS ENDPOINT
     getVoucherDetails: (voucherNo) => `SalesReturn/GetVoucherDetails?voucherNo=${voucherNo}`,
-
+ getCustomerBalance: (customerCode, companyCode) =>
+    `CUSTOMERREPORT/customerbalance/${customerCode}/${companyCode}`,
   },
   //ScrapRateFixing/getFullScrapRateFixing
   SCRAP_RATE_FIXING: {
@@ -181,6 +182,7 @@ export const API_ENDPOINTS = {
     AUTO_GENERATE_BARCODE: "barcodeGenerate/AutoGenerateBarcode",
     GET_GROUP_LIST: (search = '', page = 1, pageSize = 20) => `GroupSelection/item-GroupList?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
     GET_GROUPITEMS_BY_GROUP: (groupCode) => `GroupSelection/items/get-Group-Items?fparent=${groupCode}`,
+    GET_TRANSPORT_LIST: (page = 1, pageSize = 20,search='') => `transport/transport?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)  }`,
   },
 
 

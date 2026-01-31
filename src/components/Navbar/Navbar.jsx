@@ -337,6 +337,12 @@ const Navbar = () => {
       icon: <DatabaseOutlined />,
       permission: "DAILY_REPORT",
     },
+    {
+      name: "Item Wise Stock",
+      path: "/reports/Itemwisestock",
+      icon: <DatabaseOutlined />,
+      permission: "ITEM_WISE_STOCK",
+    }, 
 
   ];
 

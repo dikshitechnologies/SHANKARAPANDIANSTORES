@@ -1300,8 +1300,8 @@ useEffect(() => {
     setItemPopupOpen(true);
   };
 
-const handleCustomerSelect = (customer) => {
-  ignoreNextEnterRef.current = true; // block popup Enter
+const handleCustomerSelect = async (customer) => {
+  ignoreNextEnterRef.current = true;
 
   setBillDetails(prev => ({
     ...prev,
@@ -1312,39 +1312,43 @@ const handleCustomerSelect = (customer) => {
 
   setCustomerPopupOpen(false);
 
-  // Fetch and display party balance for selected customer
-  (async () => {
-    try {
-      const partyCode = customer.code || customer.code;
-      if (partyCode) {
-        const url = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
-        const resp = await axiosInstance.get(url);
-        // try common locations for balance
-        const data = resp?.data ?? resp;
-        const balance = (data && (data.balanceAmount || data.balance || data.BalanceAmount || data.Balance)) || 0;
-        // format to 2 decimals
-        setPartyBalance(Number(balance).toFixed(2));
-      } else {
-        setPartyBalance('0.00');
-      }
-    } catch (err) {
-      console.error('Error fetching party balance for sales invoice:', err);
-      setPartyBalance('0.00');
-    }
-  })();
+  // ✅ FETCH PARTY BALANCE (NEW API)
+  try {
+    const customerCode = customer.code;
+    const companyCode = compCode; // already from getCompCode()
 
-  // ✅ FOCUS GOES TO BARCODE FIELD (FIRST ROW, BARCODE FIELD)
-  setTimeout(() => {
-    // Find and focus the barcode field in the first row
-    const barcodeInput = document.querySelector(
-      'input[data-row="0"][data-field="barcode"]'
-    );
-    if (barcodeInput) {
-      barcodeInput.focus();
+    if (customerCode && companyCode) {
+      const resp = await axiosInstance.get(
+        API_ENDPOINTS.sales_return.getCustomerBalance(
+          customerCode,
+          companyCode
+        )
+      );
+
+      // API RESPONSE:
+      // { amount: "1300.00", amount1: "Cr" }
+      const amount = resp?.data?.amount || "0.00";
+      const type = resp?.data?.amount1 || "";
+
+      setPartyBalance(`${amount} ${type}`);
+    } else {
+      setPartyBalance("0.00");
     }
+  } catch (error) {
+    console.error("Failed to fetch party balance:", error);
+    setPartyBalance("0.00");
+  }
+
+  // ✅ FOCUS TO FIRST BARCODE
+  setTimeout(() => {
+    document
+      .querySelector('input[data-row="0"][data-field="barcode"]')
+      ?.focus();
+
     ignoreNextEnterRef.current = false;
-  }, 1050);
+  }, 300);
 };
+
 
 
 

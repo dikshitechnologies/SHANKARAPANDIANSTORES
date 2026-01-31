@@ -35,6 +35,8 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const roundOffRef = useRef(null);
   const scrapBillNoRef = useRef(null);
   const salesReturnBillNoRef = useRef(null);
+  const freightChargeRef = useRef(null);
+  const serviceChargeRef = useRef(null);
   const upiRef = useRef(null);
   const cardRef = useRef(null);
 
@@ -77,6 +79,8 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     scrapAmount: '',
     salesReturnBillNo: '',
     salesReturn: '',
+    freightCharge: '',    
+    serviceCharge: '', 
     netAmount: '',
     receivedCash: '',
     issuedCash: '',
@@ -109,10 +113,10 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   };
 
   // Handle Transport (text) Change
-  const handleTransportChange = (value) => {
-    setFormData(prev => ({ ...prev, transport: value }));
-  };
-
+// Allow both numbers and alphabets in TC Charge field
+const handleTransportChange = (value) => {
+  setFormData(prev => ({ ...prev, transport: value }));
+};
   // Focus handlers for transport charge
   const handleTransportChargeCheckboxKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -134,20 +138,38 @@ const handleTransportAmountChange = (value) => {
   setFormData(prev => ({ ...prev, transportAmount: value }));
 };
 
-  const handleTransportChargePercentKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (transportAmountRef.current) {
-        transportAmountRef.current.focus();
-      }
+const handleTransportChargePercentKeyDown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Focus on transport field (will open popup if typed)
+    if (transportChargePercentRef.current) {
+      transportChargePercentRef.current.focus();
     }
-  };
+  }
+};
 
 const handleTransportAmountKeyDown = (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     if (saveButtonRef.current) {
       saveButtonRef.current.focus();
+    }
+  }
+};
+
+// Handle keydown for Transport field - opens popup when typing
+const handleTransportFieldKeyDown = (e) => {
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    // User typed a character - open popup
+    e.preventDefault();
+    e.stopPropagation();
+    setTransportPopupInitialSearch(e.key);
+    setTransportPopupOpen(true);
+  } else if (e.key === 'Enter') {
+    // Move to TC Charge field on Enter
+    e.preventDefault();
+    if (transportAmountRef.current) {
+      transportAmountRef.current.focus();
     }
   }
 };
@@ -171,6 +193,8 @@ const handleTransportAmountKeyDown = (e) => {
         scrapAmount: '',
         salesReturnBillNo: '',
         salesReturn: '',
+         freightCharge: '',      // NEW FIELD
+         serviceCharge: '',      // NEW FIELD
         netAmount: billData.amount ? billData.amount.toString() : '',
         receivedCash: '',
         issuedCash: '',
@@ -236,14 +260,18 @@ const handleTransportAmountKeyDown = (e) => {
     const netAmount = Number(formData.netAmount) || 0;
     
     // Calculate total payment received (cash + upi + card)
-    const totalPaymentReceived = totalCollectedCash + upiAmount + cardAmount;
-    
+    const cardTotal = formData.isServiceCharge
+      ? (Number(formData.card) || 0) + (Number(formData.serviceChargeAmount) || 0)
+      : (Number(formData.card) || 0);
+
+    const totalPaymentReceived = totalCollectedCash + upiAmount + cardTotal;
+        
     // Calculate balance: Net Amount - Total Payment Received
     const balance = netAmount - totalPaymentReceived;
     
     // If balance is negative, we need to issue cash (give change)
     const issuedCash = balance < 0 ? Math.abs(balance) : 0;
-
+    console.log(upiAmount,cardAmount);
     // Update form data
     setFormData(prev => ({
       ...prev,
@@ -302,6 +330,15 @@ const fetchBankList = async (page, search) => {
   return json?.data || [];
 };
 
+// Fetch transport list from API
+const fetchTransportList = async (page, search) => {
+  const res = await fetch(
+    `http://dikshiserver/spstorewebapi/api/transport/transport?search=${search || ''}&page=${page}&pageSize=10`
+  );
+  const json = await res.json();
+  return json?.data || [];
+};
+
 
 const [upiPopupOpen, setUpiPopupOpen] = useState(false);
 const [cardPopupOpen, setCardPopupOpen] = useState(false);
@@ -316,6 +353,11 @@ const [cardBank, setCardBank] = useState(null);
 const [balanceAmt, setBalanceAmt] = useState(0);
 const [serviceChargePercent, setServiceChargePercent] = useState(0);
 const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
+
+// Transport popup states
+const [transportPopupOpen, setTransportPopupOpen] = useState(false);
+const [transportPopupInitialSearch, setTransportPopupInitialSearch] = useState('');
+const [selectedTransport, setSelectedTransport] = useState(null);
 
 
   // Fetch live drawer available from API
@@ -422,6 +464,9 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
   const handleInputChange = (field, value) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
+      const freightCharge = Number(prev.freightCharge) || 0;
+      const serviceCharge = Number(prev.serviceCharge) || 0;
+      console.log(freightCharge, serviceCharge);
 
       // Calculate Bill Discount Amount when discount % is entered
       if (field === 'billDiscountPercent') {
@@ -445,12 +490,16 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
         const discountPercent = Number(value) || 0;
         const discountAmount = (billAmount * discountPercent) / 100;
         const grandTotal = Math.round(billAmount - discountAmount);
+        const freightCharge = Number(prev.freightCharge) || 0;
+        const serviceCharge = Number(prev.serviceCharge) || 0;
         updated.granTotal = grandTotal.toFixed(2);
         
         const roundOff = Number(prev.roudOff) || 0;
         const scrapAmount = Number(prev.scrapAmount) || 0;
         const salesReturn = Number(prev.salesReturn) || 0;
-        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+         const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + 
+                   freightCharge + serviceCharge;
+        console.log('Net Amount calc on discount %:', netAmount);
         updated.netAmount = netAmount.toFixed(2);
       }
 
@@ -460,7 +509,10 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
         const roundOff = Number(value) || 0;
         const scrapAmount = Number(prev.scrapAmount) || 0;
         const salesReturn = Number(prev.salesReturn) || 0;
-        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+        const freightCharge = Number(prev.freightCharge) || 0;
+        const serviceCharge = Number(prev.serviceCharge) || 0;
+         const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + 
+                   freightCharge + serviceCharge;
         updated.netAmount = netAmount.toFixed(2);
       }
 
@@ -470,7 +522,9 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
         const roundOff = Number(prev.roudOff) || 0;
         const scrapAmount = Number(value) || 0;
         const salesReturn = Number(prev.salesReturn) || 0;
-        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+        const freightCharge = Number(prev.freightCharge) || 0;
+        const serviceCharge = Number(prev.serviceCharge) || 0;
+         const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + freightCharge + serviceCharge;
         updated.netAmount = netAmount.toFixed(2);
       }
 
@@ -480,7 +534,10 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
         const roundOff = Number(prev.roudOff) || 0;
         const scrapAmount = Number(prev.scrapAmount) || 0;
         const salesReturn = Number(value) || 0;
-        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+        const freightCharge = Number(prev.freightCharge) || 0;
+        const serviceCharge = Number(prev.serviceCharge) || 0;
+        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + 
+                   freightCharge + serviceCharge;
         updated.netAmount = netAmount.toFixed(2);
       }
 
@@ -549,6 +606,46 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
     });
   };
 
+  // ...existing code...
+
+useEffect(() => {
+  // List all fields that affect netAmount
+  const billAmount = Number(formData.billAmount) || 0;
+  const discountPercent = Number(formData.billDiscountPercent) || 0;
+  const discountAmount = (billAmount * discountPercent) / 100;
+  const grandTotal = Math.round(billAmount - discountAmount);
+
+  const roundOff = Number(formData.roudOff) || 0;
+  const scrapAmount = Number(formData.scrapAmount) || 0;
+  const salesReturn = Number(formData.salesReturn) || 0;
+  const freightCharge = Number(formData.freightCharge) || 0;
+  // Only add serviceCharge if serviceChargeAmount is present
+  const serviceCharge = formData.serviceChargeAmount ? (Number(formData.serviceChargeAmount) || 0) : 0;
+  const serviceChargeAmount = Number(formData.serviceCharge) || 0;
+  const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + freightCharge + serviceCharge + serviceChargeAmount;
+
+  // Only update if value actually changed (avoid infinite loop)
+  if (Number(formData.netAmount) !== Number(netAmount.toFixed(2))) {
+    setFormData(prev => ({
+      ...prev,
+      billDiscAmt: discountAmount.toFixed(2),
+      granTotal: grandTotal.toFixed(2),
+      netAmount: netAmount.toFixed(2)
+    }));
+  }
+}, [
+  formData.billAmount,
+  formData.billDiscountPercent,
+  formData.roudOff,
+  formData.scrapAmount,
+  formData.salesReturn,
+  formData.freightCharge,
+  formData.serviceCharge,
+  formData.serviceChargeAmount // <-- add this
+]);
+
+// ...existing code...
+
   // Handle Service Charge Toggle and Calculation
   const handleServiceChargeToggle = (e) => {
     const isChecked = e.target.checked;
@@ -595,7 +692,7 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
       
       const totalPayment = totalCollectedCash + upiAmt + cardAmt;
       const balance = netAmt - totalPayment;
-      
+      console.log('Balance after card change:', balance);
       updated.balance = balance.toString();
       updated.issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
       
@@ -694,11 +791,13 @@ const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
       const discountPercent = Number(formData.billDiscountPercent) || 0;
       const discountAmount = (billAmount * discountPercent) / 100;
       const grandTotal = Math.round(billAmount - discountAmount);
-      
+      const freightCharge = Number(formData.freightCharge) || 0;
+      const serviceCharge = Number(formData.serviceCharge) || 0;
       const roundOff = Number(formData.roudOff) || 0;
       const scrapAmount = Number(formData.scrapAmount) || 0;
       const salesReturn = Number(formData.salesReturn) || 0;
-      const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn;
+       const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + 
+                   freightCharge + serviceCharge;
       
       setFormData(prev => ({
         ...prev,
@@ -799,14 +898,36 @@ const handleServiceChargePercentKeyDown = (e) => {
 };
 
   // Handle keydown for salesReturnBillNo field - move to collect 500 field
-  const handleSalesReturnBillKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (collectFieldRefs.current[500]) {
-        collectFieldRefs.current[500].focus();
-      }
+ const handleSalesReturnBillKeyDown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Move to Freight Charge instead of collect field
+    if (freightChargeRef.current) {
+      freightChargeRef.current.focus();
     }
-  };
+  }
+};
+
+// Handle keydown for Freight Charge field
+const handleFreightChargeKeyDown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (serviceChargeRef.current) {
+      serviceChargeRef.current.focus();
+    }
+  }
+};
+
+// Handle keydown for Service Charge field
+const handleServiceChargeFieldKeyDown = (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Move to collect 500 field
+    if (collectFieldRefs.current[500]) {
+      collectFieldRefs.current[500].focus();
+    }
+  }
+};
 
   const fetchBillAmount = async (billNo, fieldType) => {
     if (!billNo.trim()) return;
@@ -859,7 +980,11 @@ const handleServiceChargePercentKeyDown = (e) => {
     const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
       return sum + ((Number(data.issue) || 0) * Number(denom));
     }, 0);
-    const calculatedNetAmount = (receivedCash + upi + card) - totalIssuedCash;
+    const cardTotal = formData.isServiceCharge
+  ? (Number(formData.card) || 0) + (Number(formData.serviceChargeAmount) || 0)
+  : (Number(formData.card) || 0);
+
+    const calculatedNetAmount = (receivedCash + upi + cardTotal) - totalIssuedCash;
     const formNetAmount = Number(formData.netAmount) || 0;
     if (calculatedNetAmount !== formNetAmount) {
       setValidationPopup({
@@ -883,12 +1008,14 @@ const handleServiceChargePercentKeyDown = (e) => {
       const receivedCash = Number(formData.receivedCash) || 0;
       const upi = Number(formData.upi) || 0;
       const card = Number(formData.card) || 0;
-      
+       const cardTotal = formData.isServiceCharge
+  ? (Number(formData.card) || 0) + (Number(formData.serviceChargeAmount) || 0)
+  : (Number(formData.card) || 0);
       const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
         return sum + ((Number(data.issue) || 0) * Number(denom));
       }, 0);
       
-      const calculatedNetAmount = (receivedCash + upi + card) - totalIssuedCash;
+      const calculatedNetAmount = (receivedCash + upi + cardTotal) - totalIssuedCash;
       
       const formNetAmount = Number(formData.netAmount) || 0;
       
@@ -928,7 +1055,6 @@ const handleServiceChargePercentKeyDown = (e) => {
         fGrossAMT: Number(formData.grossAmt) || 0,
         fitemAMT: Number(formData.itemDAmt) || 0,
         fBilDIS: Number(formData.billDiscountPercent) || 0,
-        fdisAmt: Number(formData.billDiscAmt) || 0,
         froundoFf: Number(formData.roudOff) || 0,
         fScrapBillNo: formData.scrapAmountBillNo || '',
         fscrapAMT: Number(formData.scrapAmount) || 0,
@@ -937,11 +1063,16 @@ const handleServiceChargePercentKeyDown = (e) => {
         fIssueCash: Number(formData.issuedCash) || 0,
         fupi: Number(formData.upi) || 0,
         fcard: Number(formData.card) || 0,
-        fcardcode: cardBank?.fCode || '',   // Card Bank
-        fupIcode: upiBank?.fCode || '',     // UPI Bank
-        balanceAmt: balanceAmt,
-        servicechrge: formData.serviceChargePercent || 0,
-        servicechrgeAmt: formData.serviceChargeAmount || 0,
+        fcardcode: cardBank?.fCode || '',
+        fupIcode: upiBank?.fCode || '',
+        balanceAmt: Number(formData.balance) || 0,
+        servicechrgeAmt: Number(formData.serviceChargeAmount) || 0,
+        fdisAmt: Number(formData.billDiscAmt) || 0,
+        fFreight: Number(formData.freightCharge) || 0,
+        fTRans: formData.isTransportCharge ? Number(formData.transport) || 0 : 0,
+        fCardchrg: formData.isServiceCharge ? Number(formData.serviceChargeAmount) : 0,
+        fCardPer: formData.isServiceCharge ? Number(formData.serviceChargePercent) : 0,
+        fLrNo: formData.transportAmount || '',
         collect: {
           r500: Number(denominations[500].collect) || 0,
           r200: Number(denominations[200].collect) || 0,
@@ -1073,6 +1204,8 @@ const handleServiceChargePercentKeyDown = (e) => {
       scrapAmount: '',
       salesReturnBillNo: '',
       salesReturn: '',
+      freightCharge: '',      
+      serviceCharge: '',      
       netAmount: '',
       receivedCash: '',
       issuedCash: '',
@@ -1110,7 +1243,7 @@ const handleServiceChargePercentKeyDown = (e) => {
       className={styles.modalOverlay}
       onClick={(e) => {
         // When either popup is open, avoid closing the Tender modal by outer overlay clicks
-        if (upiPopupOpen || cardPopupOpen) {
+        if (upiPopupOpen || cardPopupOpen || transportPopupOpen) {
           e.stopPropagation();
           return;
         }
@@ -1297,6 +1430,37 @@ const handleServiceChargePercentKeyDown = (e) => {
                   </div>
                 </div>
               </div>
+
+              {/* Freight Charge & Service Charge Row - ADD THIS AFTER SALES RETURN ROW */}
+<div className={styles.inputRow}>
+  <div className={styles.inputGroup}>
+    <label className={styles.label}>Freight Charge</label>
+    <div className={styles.inputContainer}>
+      <input
+        ref={freightChargeRef}
+        type="number"
+        value={formData.freightCharge}
+        onChange={(e) => handleInputChange('freightCharge', e.target.value)}
+        onKeyDown={handleFreightChargeKeyDown}
+        className={styles.inputField}
+      />
+    </div>
+  </div>
+  
+  <div className={styles.inputGroup}>
+    <label className={styles.label}>Service Charge</label>
+    <div className={styles.inputContainer}>
+      <input
+        ref={serviceChargeRef}
+        type="number"
+        value={formData.serviceCharge}
+        onChange={(e) => handleInputChange('serviceCharge', e.target.value)}
+        onKeyDown={handleServiceChargeFieldKeyDown}
+        className={styles.inputField}
+      />
+    </div>
+  </div>
+</div>
 
               {/* Net Amount Row */}
               <div className={styles.inputRow}>
@@ -1512,7 +1676,14 @@ const handleServiceChargePercentKeyDown = (e) => {
                       <input
                         ref={cardRef}
                         type="number"
-                        value={formData.card}
+                       value={
+                          formData.isServiceCharge
+                            ? (
+                                (parseFloat(formData.card) || 0) +
+                                (parseFloat(formData.serviceChargeAmount) || 0)
+                              ).toFixed(2)
+                            : formData.card
+                        }
                         onChange={(e) => handleCardAmountChange(e.target.value)}
                         onKeyDown={handleCardKeyDown}
                         className={styles.paymentInput}
@@ -1602,16 +1773,20 @@ const handleServiceChargePercentKeyDown = (e) => {
                               type="text"
                               value={formData.transport}
                               onChange={(e) => handleTransportChange(e.target.value)}
-                              onKeyDown={handleTransportChargePercentKeyDown}
+                              onKeyDown={handleTransportFieldKeyDown}  
+  onClick={() => { 
+    setTransportPopupInitialSearch(''); 
+    setTransportPopupOpen(true); 
+  }}
                               placeholder=""
                               className={styles.serviceChargeInput}
                             />
                           </div>
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-  <label style={{ fontSize: '12px', marginBottom: '2px' }}>TC Charge</label>
+  <label style={{ fontSize: '12px', marginBottom: '2px' }}>Transport No</label>
   <input
     ref={transportAmountRef}
-    type="number"
+    type="text"
     value={formData.transportAmount === '0.00' || formData.transportAmount === '0' ? '' : formData.transportAmount}
     onChange={(e) => handleTransportAmountChange(e.target.value)}
     onKeyDown={handleTransportAmountKeyDown}
@@ -1737,6 +1912,36 @@ const handleServiceChargePercentKeyDown = (e) => {
           setCardPopupOpen(false);
         }}
       />
+
+      {/* Transport Popup */}
+<PopupListSelector
+  open={transportPopupOpen}
+  onClose={() => { 
+    setTransportPopupOpen(false); 
+    setTransportPopupInitialSearch(''); 
+  }}
+  initialSearch={transportPopupInitialSearch}
+  title="Select Transport"
+  fetchItems={fetchTransportList}
+  displayFieldKeys={['fTransport']}
+  searchFields={['fTransport']}
+  headerNames={['Transport Name']}
+  onSelect={(item) => {
+    setSelectedTransport(item);
+    setFormData(prev => ({
+      ...prev,
+      transport: item.fTransport
+    }));
+    setTransportPopupInitialSearch('');
+    setTransportPopupOpen(false);
+    // After selecting transport, move focus to TC Charge field
+    if (transportAmountRef.current) {
+      setTimeout(() => {
+        transportAmountRef.current.focus();
+      }, 100);
+    }
+  }}
+/>
 
 
     </div>

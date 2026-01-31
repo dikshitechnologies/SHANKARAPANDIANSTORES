@@ -11,9 +11,10 @@ const Login = () => {
   
   const [formData, setFormData] = useState({
     username: '',
-    password: ''
-  });
-  
+    password: '',
+    date:new Date().toISOString().split('T')[0] 
+  });  
+    
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -173,7 +174,23 @@ const Login = () => {
               </button>
             </div>
           </div>
-
+          <div className={styles.formGroup}>
+            <label htmlFor="date" className={styles.label}>
+              Date
+            </label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date || ''}
+              onChange={e => setFormData(prev => ({
+                ...prev,
+                date: e.target.value
+              }))}
+              className={styles.input}
+              disabled={loading}
+            />
+          </div>
           <button
             type="submit"
             className={styles.submitButton}
