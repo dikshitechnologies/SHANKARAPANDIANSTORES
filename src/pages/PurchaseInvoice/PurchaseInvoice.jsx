@@ -1421,7 +1421,7 @@ const PurchaseInvoice = () => {
         // Set transport data from API
         if (iledger) {
           setTransportData({
-            transportName: iledger.fTRans || '',
+            transportName: iledger.transportName || '',
             lrNo: iledger.fLrNo || '',
             lrDate: iledger.fLrDt ? (() => {
               // API format: 'dd-mm-yyyy HH:MM:SS' or 'dd-mm-yyyy'
@@ -2819,7 +2819,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   const styles = {
     container: {
       fontFamily: TYPOGRAPHY.fontFamily,
-      position:"fixed",
+      position: screenSize.isMobile ? "" : "fixed",
       fontSize: TYPOGRAPHY.fontSize.base,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
@@ -2860,7 +2860,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     formField: {
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      gap: screenSize.isMobile ? '10px' : screenSize.isTablet ? '8px' : '10px',
+      marginBottom: screenSize.isMobile ? '4px' : '0',
       flexWrap: 'wrap',
     },
     inlineLabel: {
@@ -2869,7 +2870,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#333',
-      minWidth: screenSize.isMobile ? '65px' : screenSize.isTablet ? '75px' : '85px',
+      minWidth: screenSize.isMobile ? '70px' : screenSize.isTablet ? '75px' : '85px',
+      width: screenSize.isMobile ? '70px' : screenSize.isTablet ? '75px' : '85px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
       paddingTop: '2px',
@@ -2899,9 +2901,14 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     },
     
     gridRow: {
-      display: 'grid',
+      display: screenSize.isMobile ? 'block' : 'grid',
       gap: '5px',
       marginBottom: 5,
+      gridTemplateColumns: screenSize.isMobile
+        ? '1fr'
+        : screenSize.isTablet
+        ? 'repeat(4, 1fr)'
+        : 'repeat(6, 1fr)',
     },
     tableContainer: {
       backgroundColor: 'white',
@@ -3040,12 +3047,12 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
     },
     tableFooterContainer: {
-    position: 'sticky',
+    position: 'relative',
     bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: '#e8f4fc',
-    borderTop: '2px solid #1B91DA',
+    borderTop: '0px solid #1B91DA',
     zIndex: 50,
     marginTop: 'auto',
     width: '100%',
@@ -3055,6 +3062,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     width: '100%',
     borderCollapse: 'collapse',
     backgroundColor: '#e8f4fc',
+    tableLayout: 'fixed',
   },
 
   tableFooterCell: {
@@ -3067,6 +3075,11 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     border: '1px solid #ccc',
     backgroundColor: '#e8f4fc',
     color: '#333',
+    minWidth: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px',
+    width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px',
+    maxWidth: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px',
+    height: screenSize.isMobile ? '20px' : screenSize.isTablet ? '25px' : '20px',
+    boxSizing: 'border-box',
   },
 
     itemNameContainer: {
@@ -3088,14 +3101,14 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       display: 'flex',
       flexDirection: screenSize.isMobile ? 'row' : 'row',
       alignItems: 'center',
-      padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
+      padding: screenSize.isMobile ? '3px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
       backgroundColor: 'white',
       borderTop: '2px solid #e0e0e0',
       boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
-      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '10px',
-      flexWrap: 'nowrap',
+      gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '10px',
+      flexWrap: screenSize.isDesktop ? 'nowrap' : 'wrap',
       flexShrink: 0,
-      minHeight: screenSize.isMobile ? 'auto' : screenSize.isTablet ? '48px' : '55px',
+      minHeight: screenSize.isMobile ? '40px' : screenSize.isTablet ? '48px' : '55px',
       width: '100%',
       boxSizing: 'border-box',
       zIndex: 100,
@@ -3107,24 +3120,27 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#1B91DA',
-      padding: screenSize.isMobile ? '6px 12px' : screenSize.isTablet ? '10px 20px' : '5px 5px',
+      padding: screenSize.isMobile ? '3px 4px' : screenSize.isTablet ? '5px 5px' : '4px',
       display: 'flex',
       alignItems: 'center',
-      gap: screenSize.isMobile ? '12px' : screenSize.isTablet ? '20px' : '22px',
+      gap: screenSize.isMobile ? '12px' : screenSize.isTablet ? '20px' : '8px',
       minWidth: '350px',
       flexShrink: 0,
       justifyContent: 'center',
-      width: screenSize.isMobile ? '100%' : 'auto',
+      width: screenSize.isMobile ? 'auto' : 'auto',
       order: screenSize.isMobile ? 1 : 0,
       borderRadius: screenSize.isMobile ? '4px' : '6px',
       backgroundColor: '#f0f8ff',
+      display: 'flex',
+      gap: '10px',
+      // flexDirection: 'column',
     },
     rightColumn: {
       display: 'flex',
       gap: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '12px',
       flexWrap: 'wrap',
       justifyContent: screenSize.isMobile ? 'center' : 'flex-start',
-      width: screenSize.isMobile ? '100%' : 'auto',
+      width: screenSize.isMobile ? 'auto' : 'auto',
       order: screenSize.isMobile ? 2 : 0,minWidth: '200px',
       flexShrink: 0,
     },
@@ -3133,8 +3149,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '12px',
       flexWrap: 'wrap',
       justifyContent: screenSize.isMobile ? 'center' : 'flex-end',
-      width: screenSize.isMobile ? '100%' : 'auto',
-      order: screenSize.isMobile ? 3 : 0,
+      width: screenSize.isMobile ? 'auto' : 'auto',
+      order: screenSize.isMobile ? 2 : 0,
       minWidth: '300px',
       flexShrink: 0,
     },
@@ -3142,7 +3158,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       display: 'flex',
       gap: '8px',
       justifyContent: screenSize.isMobile ? 'center' : 'flex-start',
-      marginTop: screenSize.isMobile ? '12px' : '0',
+      marginTop: screenSize.isMobile ? '0' : '0',
     },
     totalsRow: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -3151,28 +3167,39 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       backgroundColor: '#e8f4fc',
       borderTop: '2px solid #1B91DA',
     },
+    addLessSection: {
+      display: 'flex',
+      flexDirection: screenSize.isMobile ? 'row' : 'row',
+      alignItems: 'center',
+      gap: screenSize.isMobile ? '5px' : '12px',
+      justifyContent: screenSize.isMobile ? 'center' : 'flex-start',
+      width: screenSize.isMobile ? 'auto' : 'auto',
+      order: screenSize.isMobile ? 0 : 0,
+      marginTop: screenSize.isMobile ? '0' : '0',
+    },
     addLessContainer: {
       display: 'flex',
       alignItems: 'center',
       gap: screenSize.isMobile ? '6px' : '8px',
       marginRight: screenSize.isMobile ? '0' : '15px',
-      order: screenSize.isMobile ? 2 : 0,
-      marginTop: screenSize.isMobile ? '5px' : '0',
-      width: screenSize.isMobile ? '100%' : 'auto',
-      justifyContent: screenSize.isMobile ? 'center' : 'flex-start'
+      order: screenSize.isMobile ? 0 : 0,
+      marginTop: screenSize.isMobile ? '0' : '0',
+      width: screenSize.isMobile ? 'auto' : 'auto',
+      justifyContent: screenSize.isMobile ? 'flex-start' : 'flex-start'
     },
     addLessLabel: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       color: '#333',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+
     },
     addLessInput: {
-      width: screenSize.isMobile ? '120px' : '100px',
+      width: screenSize.isMobile ? '80px' : '100px',
       border: '1px solid #1B91DA',
       borderRadius: '4px',
-      padding: screenSize.isMobile ? '6px 10px' : '8px 12px',
+      padding: screenSize.isMobile ? '3px 5px' : '8px 12px',
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontFamily: TYPOGRAPHY.fontFamily,
       fontWeight: TYPOGRAPHY.fontWeight.medium,
@@ -3237,46 +3264,46 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
       minHeight: screenSize.isMobile ? '26px' : screenSize.isTablet ? '30px' : '32px',
     },
-    uomHint: {
-      position: 'absolute',
-      top: '-25px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      backgroundColor: '#1B91DA',
-      color: 'white',
-      padding: '3px 8px',
-      borderRadius: '3px',
-      fontSize: '10px',
-      fontWeight: 'bold',
-      whiteSpace: 'nowrap',
-      zIndex: 100,
-      pointerEvents: 'none',
-      opacity: 0,
-      transition: 'opacity 0.2s ease',
-    },
-    uomHintVisible: {
-      position: 'absolute',
-      top: '-25px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      backgroundColor: '#1B91DA',
-      color: 'white',
-      padding: '3px 8px',
-      borderRadius: '3px',
-      fontSize: '10px',
-      fontWeight: 'bold',
-      whiteSpace: 'nowrap',
-      zIndex: 100,
-      pointerEvents: 'none',
-      opacity: 1,
-      transition: 'opacity 0.2s ease',
-    },
-    chargesContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '5px',
-      marginRight: '10px'
-    },
+    // uomHint: {
+    //   position: 'absolute',
+    //   top: '-25px',
+    //   left: '50%',
+    //   transform: 'translateX(-50%)',
+    //   backgroundColor: '#1B91DA',
+    //   color: 'white',
+    //   padding: '3px 8px',
+    //   borderRadius: '3px',
+    //   fontSize: '10px',
+    //   fontWeight: 'bold',
+    //   whiteSpace: 'nowrap',
+    //   zIndex: 100,
+    //   pointerEvents: 'none',
+    //   opacity: 0,
+    //   transition: 'opacity 0.2s ease',
+    // },
+    // uomHintVisible: {
+    //   position: 'absolute',
+    //   top: '-25px',
+    //   left: '50%',
+    //   transform: 'translateX(-50%)',
+    //   backgroundColor: '#1B91DA',
+    //   color: 'white',
+    //   padding: '3px 8px',
+    //   borderRadius: '3px',
+    //   fontSize: '10px',
+    //   fontWeight: 'bold',
+    //   whiteSpace: 'nowrap',
+    //   zIndex: 100,
+    //   pointerEvents: 'none',
+    //   opacity: 1,
+    //   transition: 'opacity 0.2s ease',
+    // },
+    // chargesContainer: {
+    //   display: 'flex',
+    //   alignItems: 'center',
+    //   gap: '5px',
+    //   marginRight: '10px'
+    // },
     chargesInput: {
       width: '70px',
       border: '1px solid #1B91DA',
@@ -3309,9 +3336,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   // Determine grid columns based on screen size
   const getGridColumns = () => {
     if (screenSize.isMobile) {
-      return 'repeat(2, 1fr)';
+      return '';
     } else if (screenSize.isTablet) {
-      return 'repeat(4, 1fr)';
+      return 'repeat(6, 1fr)';
     } else {
       return 'repeat(6, 1fr)';
       // return '2fr 1fr 1fr 2fr';
@@ -3429,7 +3456,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           {/* Charges Fields */}
           <div style={styles.formField}>
             <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-              <label style={styles.inlineLabel}>Charges:</label>
+              <label style={styles.inlineLabel}>Chrg:</label>
               <input
                 type="text"
                 style={{
@@ -3567,11 +3594,11 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           
           {/* Mobile No */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>Mobile No:</label>
+            <label style={{...styles.inlineLabel,marginLeft: '-3px'}}>Mobile No:</label>
             <input
               type="text"
               style={{
-                ...styles.inlineInput,
+                ...styles.inlineInput, marginRight: '5px',
                 ...(focusedField === 'mobileNo' && styles.focusedInput)
               }}
               value={billDetails.mobileNo}
@@ -3586,11 +3613,11 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           
           {/* GST No */}
           <div style={styles.formField}>
-            <label style={styles.inlineLabel}>GSTIN:</label>
+            <label style={{...styles.inlineLabel,marginLeft: '-5px'}}>GSTIN:</label>
             <input
               type="text"
               style={{
-                ...styles.inlineInput,
+                ...styles.inlineInput, marginRight: '5px',
                 ...(focusedField === 'gstno' && styles.focusedInput)
               }}
               value={billDetails.gstno}
@@ -3627,7 +3654,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           
           {/* Group Name */}
           <div style={{ ...styles.formField, gridColumn: 'span 2' }}>
-            <label style={styles.inlineLabel}>Group Name:</label>
+            <label style={{...styles.inlineLabel,marginLeft: '-5px'}}>Group Name:</label>
             <div style={{ position: 'relative', display: 'flex', flex: 1 }}>
               <input
                 type="text"
@@ -4297,29 +4324,46 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       </tbody>
     </table>
     <div style={styles.tableFooterContainer}>
-    <table style={styles.tableFooter}>
-      <tbody>
-        <tr style={styles.totalsRow}>
-          <td style={{ ...styles.tableFooterCell, width: '5%' }}></td>
-          <td style={{ ...styles.tableFooterCell, width: '30%', textAlign: 'left' }}>
-            <strong>Total:</strong>
-          </td>
-          <td style={{ ...styles.tableFooterCell, width: '10%', textAlign: 'right' }}>
-            <strong>{items.reduce((sum, item) => sum + (parseFloat(item.qty) || 0), 0).toFixed(2)}</strong>
-          </td>
-          <td style={{ ...styles.tableFooterCell, width: '12%' }}></td>
-          <td style={{ ...styles.tableFooterCell, width: '12%', textAlign: 'right' }}>
-            <strong>{items.reduce((sum, item) => sum + (parseFloat(item.amt) || 0), 0).toFixed(2)}</strong>
-          </td>
-          {/* <td style={{ ...styles.tableFooterCell, width: '12%' }}></td>
-          <td style={{ ...styles.tableFooterCell, width: '14%', textAlign: 'right' }}>
-            <strong>{netTotal.toFixed(2)}</strong>
-          </td> */}
-          <td style={{ ...styles.tableFooterCell, width: '5%' }}></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <table style={styles.tableFooter}>
+    <tbody>
+      <tr style={styles.totalsRow}>
+        {/* Match ALL columns exactly as in the table header */}
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, ...styles.itemNameContainer, textAlign: 'left', width: screenSize.isMobile ? '100px' : screenSize.isTablet ? '150px' : '200px' }}>
+          <strong>Total:</strong>
+        </td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '150px', textAlign: 'right' }}>
+          <strong>{items.reduce((sum, item) => sum + (parseFloat(item.qty) || 0), 0).toFixed(2)}</strong>
+        </td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px', textAlign: 'right' }}>
+          <strong>{items.reduce((sum, item) => sum + (parseFloat(item.amt) || 0), 0).toFixed(2)}</strong>
+        </td>
+        <td style={{ ...styles.tableFooterCell, width: screenSize.isMobile ? '45px' : screenSize.isTablet ? '55px' : '60px' }}></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
   </div>
      
 </div>
@@ -4339,22 +4383,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         searchFields={['voucherNo']}
         columnWidths={{ voucherNo: '100%' }}
         searchPlaceholder="Search by bill no or customer..."
-        onSelect={(s) => {
-          setBillDetails(prev => ({
-            ...prev,
-            
-          }));
-
-          setShowSupplierPopup(false);
-          setItemSearchTerm('');
-
-          setTimeout(() => {
-            if (nameRef.current) {
-              nameRef.current.focus();
-              nameRef.current.select();
-            }
-          }, 500);
-        }}
+        onSelect={handleBillSelect}
       />
      
       {/* Supplier Popup */}
@@ -4486,6 +4515,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
             <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
+        <div style={styles.addLessSection}>
         <div style={styles.addLessContainer}>
           <span style={styles.addLessLabel}>Freight:</span>
           <input
@@ -4542,7 +4572,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   flexShrink: 0
 }}>
   <Icon.Truck 
-    size={16}
+    size={30}
     style={{ 
       cursor: 'pointer',
       transition: 'transform 0.2s',
@@ -4557,11 +4587,16 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
   />
 </div>
+</div>
         <div style={styles.netBox}>
-          <span>Total Amount:</span>
+          <div>
+          <span>Total Amt:</span>
           <span>₹ {netTotal.toFixed(2)}</span>
-          <span>GST Amount:</span>
+          </div>
+          <div>
+          <span>GST Amt:</span>
           <span>₹ {gstTotal.toFixed(2)}</span>
+          </div>
         </div>
         <div style={styles.footerButtons}>
           <ActionButtons1

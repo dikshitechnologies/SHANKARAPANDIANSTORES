@@ -3,11 +3,11 @@ import logo from "../../assets/logo1.jpeg";
 
 
 
-// Dynamic content data
+
 const contentList = [
-  { name: "message", value: "Hello user" },
-  { name: "table", value: [["Name", "Age"], ["Alice", 25], ["Bob", 30]] },
-  // Add more content objects as needed
+  { name: "scrap", value: "Hello user" },
+  { name: "salesreturn", value: [["Name", "Age"], ["Alice", 25], ["Bob", 30]] },
+
 ];
 
 function renderDynamicContent(selectedName) {
@@ -18,7 +18,7 @@ function renderDynamicContent(selectedName) {
   }
 
 
-if (item.name === "table") {
+if (item.name === "scrap") {
   const th = {
     padding: 0,
     fontSize: "10pt",
@@ -93,10 +93,15 @@ if (item.name === "table") {
 }
 
 
+
+
+
+
+
   return null;
 }
 
-export default function TestPage() {
+export default function TestPage2() {
   const printRef = useRef(null);
   const [selectedContent, setSelectedContent] = useState(contentList[0].name);
 
