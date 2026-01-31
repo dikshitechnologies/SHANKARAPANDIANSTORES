@@ -234,8 +234,13 @@ const [taxList, setTaxList] = useState([]);
   const [editInvoicePopupOpen, setEditInvoicePopupOpen] = useState(false);
   const [deleteInvoicePopupOpen, setDeleteInvoicePopupOpen] = useState(false);
   const [currentItemRowIndex, setCurrentItemRowIndex] = useState(0);
-  const roundedTotalAmount = Math.round(totalAmount);
-const roundOffValue = (roundedTotalAmount - totalAmount).toFixed(2);
+  
+  // ✅ Total Amount - keep full decimals for table
+  const roundedTotalAmount = totalAmount; // Keep full decimal value
+  
+  // ✅ Net Amount - rounded off for final display
+  const netAmountRounded = Math.round(totalAmount); // Round off for net amount
+  const roundOffValue = (netAmountRounded - totalAmount).toFixed(2); // Round-off value
 
   // 5. Data state
   const [salesmanList, setSalesmanList] = useState([]);
@@ -262,6 +267,7 @@ const roundOffValue = (roundedTotalAmount - totalAmount).toFixed(2);
   'billDate',
   'salesman',
   'type',
+  'gstMode',
   'custName',
   'mobileNo'
 ];
@@ -1012,6 +1018,27 @@ useEffect(() => {
     setTotalAmount(amountTotal);
   }, [items, gstMode]);
 
+  // ✅ Recalculate all item amounts when GST mode changes
+  useEffect(() => {
+    if (items.length > 0) {
+      const updatedItems = items.map(item => {
+        const qty = parseFloat(item.qty) || 0;
+        const sRate = parseFloat(item.sRate) || 0;
+        const tax = parseFloat(item.tax) || 0;
+        
+        // Recalculate amount using the updated calculateAmount function
+        const newAmount = calculateAmount(qty, sRate, tax);
+        
+        return {
+          ...item,
+          amount: typeof newAmount === 'string' ? newAmount : (newAmount.amount || '0.00')
+        };
+      });
+      
+      setItems(updatedItems);
+    }
+  }, [gstMode]); // Only depend on gstMode, not items to avoid infinite loops
+
   // Reset form to empty state
   const resetForm = () => {
     setBillDetails({
@@ -1649,6 +1676,7 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
     const prev = HEADER_FIELDS[index - 1];
     if (prev) {
       document.querySelector(`[data-header="${prev}"]`)?.focus();
+      setFocusedField(prev);
     }
   }
 
@@ -1657,6 +1685,7 @@ const fetchItemsForPopup = async (pageNum, search, type) => {
     const next = HEADER_FIELDS[index + 1];
     if (next) {
       document.querySelector(`[data-header="${next}"]`)?.focus();
+      setFocusedField(next);
     }
   }
 };
@@ -3450,11 +3479,16 @@ const itemsData = validItems.map(item => {
   {/* First Row */}
   <div style={{
     ...styles.gridRow,
-   gridTemplateColumns: '0.5fr 0.5fr 0.7fr 0.5fr 0.5fr ',
-
+    gridTemplateColumns: screenSize.isMobile ? 
+      '1fr 1fr' : 
+      '0.5fr 0.5fr 0.7fr 0.5fr 0.5fr',
+    gap: screenSize.isMobile ? '12px' : ''
   }}>
     {/* Ref No */}
-    <div style={styles.formField}>
+    <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 1' : ''
+    }}>
       <label style={styles.inlineLabel}>Ref No:</label>
       <input
         type="text"
@@ -3466,22 +3500,34 @@ const itemsData = validItems.map(item => {
         style={{
           ...styles.inlineInput,
           cursor: "not-allowed",
-          fontWeight: "600"
+          fontWeight: "600",
+          fontSize: screenSize.isMobile ? '13px' : ''
         }}
         title="Auto-generated invoice number"
       />
     </div>
 
     {/* Entry Date */}
-    <div style={styles.formField}>
+    <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 1' : ''
+    }}>
       <label style={styles.inlineLabel}>Entry Date:</label>
       <input
         type="date"
         data-header="billDate"
         style={
           focusedField === 'billDate'
-            ? { ...styles.inlineInputFocused, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
-            : { ...styles.inlineInput, padding: screenSize.isMobile ? '6px 8px' : '8px 10px' }
+            ? { 
+                ...styles.inlineInputFocused, 
+                padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
+                fontSize: screenSize.isMobile ? '13px' : ''
+              }
+            : { 
+                ...styles.inlineInput, 
+                padding: screenSize.isMobile ? '6px 8px' : '8px 10px',
+                fontSize: screenSize.isMobile ? '13px' : ''
+              }
         }
         value={billDetails.billDate}
         name="billDate"
@@ -3497,7 +3543,10 @@ const itemsData = validItems.map(item => {
     </div>
 
     {/* Salesman */}
-    <div style={styles.formField}>
+    <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 2' : ''
+    }}>
       <label style={styles.inlineLabel}>Salesman:</label>
       <div style={{ position: 'relative', width: '100%', flex: 1 }}>
         <input
@@ -3508,6 +3557,7 @@ const itemsData = validItems.map(item => {
               ? styles.inlineInputClickableFocused
               : styles.inlineInputClickable),
             paddingRight: '34px',
+            fontSize: screenSize.isMobile ? '13px' : ''
           }}
           value={billDetails.salesman}
           name="salesman"
@@ -3548,11 +3598,15 @@ const itemsData = validItems.map(item => {
     </div>
 
     {/* Type */}
-    <div style={{ ...styles.formField, gap: '4px' }}>
+    <div style={{ 
+      ...styles.formField, 
+      gap: '4px',
+      gridColumn: screenSize.isMobile ? 'span 1' : ''
+    }}>
       <label
         style={{
           ...styles.inlineLabel,
-          minWidth: '50px'
+          minWidth: screenSize.isMobile ? '40px' : '50px'
         }}
       >
         Type:
@@ -3560,15 +3614,19 @@ const itemsData = validItems.map(item => {
       <select
         name="type"
         data-header="type"
-        style={focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput}
+        style={{
+          ...(focusedField === 'type' ? styles.inlineInputFocused : styles.inlineInput),
+          fontSize: screenSize.isMobile ? '13px' : ''
+        }}
         value={billDetails.type}
         onChange={handleInputChange}
         ref={typeRef}
         onKeyDown={(e) => {
           handleHeaderArrowNavigation(e, 'type');
           if (e.key === 'Enter') {
-            e.preventDefault();
-            gstModeRef.current.focus();
+              e.preventDefault();
+              ignoreNextEnterRef.current = true;
+              gstModeRef.current.focus();
           }
         }}
         onFocus={() => setFocusedField('type')}
@@ -3580,7 +3638,10 @@ const itemsData = validItems.map(item => {
     </div>
 
     {/* GST Mode */}
-    <div style={styles.formField}>
+    <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 1' : ''
+    }}>
       <label style={styles.inlineLabel}>GST Mode:</label>
       <input
         type="text"
@@ -3591,21 +3652,37 @@ const itemsData = validItems.map(item => {
         onKeyDown={(e) => {
           handleHeaderArrowNavigation(e, 'gstMode');
           
-          if (e.key === ' ' || e.key === 'Enter') {
+          if (e.key === ' ') {
             e.preventDefault();
             setGstMode(prev =>
               prev === 'Inclusive' ? 'Exclusive' : 'Inclusive'
             );
           }
-          
+
           if (e.key === 'Enter') {
+            if (ignoreNextEnterRef.current) {
+              e.preventDefault();
+              ignoreNextEnterRef.current = false;
+              return;
+            }
+            e.preventDefault();
             setTimeout(() => custNameRef.current?.focus(), 0);
           }
         }}
         style={
           focusedField === 'gstMode'
-            ? { ...styles.inlineInputFocused, fontWeight: '600', cursor: 'pointer' }
-            : { ...styles.inlineInput, fontWeight: '600', cursor: 'pointer' }
+            ? { 
+                ...styles.inlineInputFocused, 
+                fontWeight: '600', 
+                cursor: 'pointer',
+                fontSize: screenSize.isMobile ? '13px' : ''
+              }
+            : { 
+                ...styles.inlineInput, 
+                fontWeight: '600', 
+                cursor: 'pointer',
+                fontSize: screenSize.isMobile ? '13px' : ''
+              }
         }
         onFocus={() => setFocusedField('gstMode')}
         onBlur={() => setFocusedField('')}
@@ -3616,10 +3693,16 @@ const itemsData = validItems.map(item => {
   {/* Second Row */}
   <div style={{
     ...styles.gridRow,
-     gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+    gridTemplateColumns: screenSize.isMobile ? 
+      '1fr 1fr' : 
+      '2fr 1fr 1fr 1fr 1fr',
+    gap: screenSize.isMobile ? '12px' : ''
   }}>
     {/* Customer */}
-    <div style={styles.formField}>
+    <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 2' : ''
+    }}>
       <label style={styles.inlineLabel}>Customer:</label>
       <div style={{ position: 'relative', width: '100%' }}>
         <input
@@ -3629,7 +3712,8 @@ const itemsData = validItems.map(item => {
             ...(focusedField === 'custName'
               ? styles.inlineInputClickableFocused
               : styles.inlineInputClickable),
-            paddingRight: '34px'
+            paddingRight: '34px',
+            fontSize: screenSize.isMobile ? '13px' : ''
           }}
           value={billDetails.custName}
           name="custName"
@@ -3682,7 +3766,10 @@ const itemsData = validItems.map(item => {
     </div>
 
     {/* Mobile No */}
-    <div style={styles.formField}>
+    <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 1' : ''
+    }}>
       <label style={styles.inlineLabel}>Mobile No:</label>
       <input
         type="text"
@@ -3722,8 +3809,14 @@ const itemsData = validItems.map(item => {
         }}
         style={
           focusedField === 'mobileNo'
-            ? styles.inlineInputFocused
-            : styles.inlineInput
+            ? {
+                ...styles.inlineInputFocused,
+                fontSize: screenSize.isMobile ? '13px' : ''
+              }
+            : {
+                ...styles.inlineInput,
+                fontSize: screenSize.isMobile ? '13px' : ''
+              }
         }
         onFocus={() => setFocusedField('mobileNo')}
         onBlur={() => setFocusedField('')}
@@ -3731,7 +3824,10 @@ const itemsData = validItems.map(item => {
     </div>
 
     {/* Party Balance */}
-    <div style={styles.formField}>
+    <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 1' : ''
+    }}>
       <label style={styles.inlineLabel}>Party Bal:</label>
       <input
         type="text"
@@ -3741,60 +3837,69 @@ const itemsData = validItems.map(item => {
         style={{
           ...styles.inlineInput,
           fontWeight: '600',
-          
+          fontSize: screenSize.isMobile ? '13px' : '',
           cursor: 'not-allowed'
         }}
       />
     </div>
 
     {/* Last Bill Amount + History */}
-<div style={styles.formField}>
-  <label style={styles.inlineLabel}>Last Bill Amt:</label>
+    <div style={{
+      ...styles.formField,
+      gridColumn: screenSize.isMobile ? 'span 1' : ''
+    }}>
+      <label style={{
+        ...styles.inlineLabel,
+        fontSize: screenSize.isMobile ? '12px' : ''
+      }}>Last Bill Amt:</label>
 
-  <div style={{ position: 'relative', width: '100%' }}>
-    <input
-      type="text"
-      value={lastBillAmount || '0.00'}
-      readOnly
-      tabIndex={-1}
-      style={{
-        ...styles.inlineInput,
-        fontWeight: '600',
-       
-        paddingRight: '36px', // space for icon
-        cursor: 'default'
-      }}
-    />
+      <div style={{ position: 'relative', width: '100%' }}>
+        <input
+          type="text"
+          value={lastBillAmount || '0.00'}
+          readOnly
+          tabIndex={-1}
+          style={{
+            ...styles.inlineInput,
+            fontWeight: '600',
+            paddingRight: screenSize.isMobile ? '30px' : '36px',
+            fontSize: screenSize.isMobile ? '13px' : '',
+            cursor: 'default'
+          }}
+        />
 
-    {/* 🔁 History Icon */}
-    <div
-      onClick={() => {
-        if (billDetails.custName && billDetails.custName.trim() !== '') {
-          openCustomerHistory(billDetails.custName);
-        } else {
-          toast.warning('Please select a customer first', { autoClose: 1500 });
-        }
-      }}
-      title="View Customer History"
-      style={{
-        position: 'absolute',
-        right: '8px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        cursor: 'pointer',
-        color: '#4d7cfe',
-        display: 'flex',
-        alignItems: 'center'
-      }}
-    >
-      <HistoryIcon /> {/* or any icon you already use */}
+        {/* 🔁 History Icon */}
+        <div
+          onClick={() => {
+            if (billDetails.custName && billDetails.custName.trim() !== '') {
+              openCustomerHistory(billDetails.custName);
+            } else {
+              toast.warning('Please select a customer first', { autoClose: 1500 });
+            }
+          }}
+          title="View Customer History"
+          style={{
+            position: 'absolute',
+            right: screenSize.isMobile ? '6px' : '8px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            cursor: 'pointer',
+            color: '#4d7cfe',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          <HistoryIcon />
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-
- <div style={{marginLeft: '80px'}}> <PopupScreenModal screenIndex={5} /> </div>
-
+    <div style={{
+      marginLeft: screenSize.isMobile ? '0' : '80px',
+      gridColumn: screenSize.isMobile ? 'span 2' : ''
+    }}>
+      <PopupScreenModal screenIndex={5} />
+    </div>
   </div>
 </div>
 
@@ -4273,7 +4378,10 @@ const itemsData = validItems.map(item => {
           </td>
 
           <td style={{ textAlign: 'right', padding: '10px', color: '#0d47a1' }}>
-            ₹{roundedTotalAmount.toLocaleString('en-IN')}
+            ₹{totalAmount.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}
           </td>
 
           <td />
@@ -4307,9 +4415,9 @@ const itemsData = validItems.map(item => {
             <span style={styles.totalValue}>{totalQty.toFixed(2)}</span>
           </div>
           <div style={styles.totalItem}>
-            <span style={styles.totalLabel}>Total Amount</span>
+            <span style={styles.totalLabel}>Net Amount</span>
             <span style={styles.totalValue}>
-  ₹{roundedTotalAmount.toLocaleString('en-IN', {
+  ₹{netAmountRounded.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })}
