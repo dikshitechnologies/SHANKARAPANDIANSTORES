@@ -162,6 +162,9 @@ export const API_ENDPOINTS = {
     getVoucherDetails: (voucherNo) => `SalesReturn/GetVoucherDetails?voucherNo=${voucherNo}`,
  getCustomerBalance: (customerCode, companyCode) =>
     `CUSTOMERREPORT/customerbalance/${customerCode}/${companyCode}`,
+
+  getCustomer: (pageNumber = 1, pageSize = 10) =>
+    `Salesinvoices/GetPartyByParent?pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
   //ScrapRateFixing/getFullScrapRateFixing
   SCRAP_RATE_FIXING: {

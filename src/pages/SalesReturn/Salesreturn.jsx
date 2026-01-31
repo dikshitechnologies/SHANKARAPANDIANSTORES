@@ -60,6 +60,27 @@ const SalesReturn = () => {
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   const { userData } = useAuth();
+
+
+
+
+const [descHuidPopupOpen, setDescHuidPopupOpen] = useState(false);
+const [descValue, setDescValue] = useState('');
+const [serialNoValue, setSerialNoValue] = useState('');
+const [huidValue, setHuidValue] = useState('');
+const [descHuidRowIndex, setDescHuidRowIndex] = useState(null);
+
+
+const descRef = useRef(null);
+const serialRef = useRef(null);
+
+
+
+
+
+
+
+
   
   const formPermissions = useMemo(() => ({
     add: hasAddPermission(PERMISSION_CODES.SALES_RETURN),
@@ -109,6 +130,11 @@ const SalesReturn = () => {
       itemCode: ''
     }
   ]);
+
+
+
+
+  
 
   // 3. Totals State
   const [totalQty, setTotalQty] = useState(0);
@@ -201,6 +227,9 @@ const [roundOffValue, setRoundOffValue] = useState(0);
   const newBillNoRef = useRef(null);
   const typeRef = useRef(null);
   const gstModeRef = useRef(null);
+  // When focusing programmatically from another header field, sometimes the same Enter
+  // key can propagate to the newly-focused input. Use this ref to ignore that single Enter.
+  const ignoreNextEnterRef = useRef(false);
 
 
   const [focusedField, setFocusedField] = useState('');
@@ -215,11 +244,17 @@ const [roundOffValue, setRoundOffValue] = useState(0);
     fieldName: 'billDate'
   });
 
-// Use rounded total amount instead of calculated net amount
-const netAmount = Math.max(
-  roundedTotalAmount || Math.max(totalAmount - (discountAmount || 0), 0),
-  0
-);
+// Net Amount - rounded off to nearest rupee (like SaleInvoice)
+const netAmountRounded = Math.round(totalAmount);
+const netAmount = Math.max(netAmountRounded, 0);
+
+useEffect(() => {
+  if (descHuidPopupOpen) {
+    setTimeout(() => {
+      descRef.current?.focus();
+    }, 50);
+  }
+}, [descHuidPopupOpen]);
 
   useEffect(() => {
   const total = parseFloat(totalAmount || 0);
@@ -415,6 +450,34 @@ useEffect(() => {
   checkedBills
 ]);
 
+
+useEffect(() => {
+  const handleGlobalKeyDown = (e) => {
+    // ✅ SKIP IF DESCRIPTION POPUP IS OPEN
+    if (descHuidPopupOpen) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      return;
+    }
+    
+    // Skip if bill details popup is open
+    if (billDetailsPopupOpen) {
+      // Allow arrow keys, enter, and spacebar to work in the bill details popup
+      if (['ArrowUp', 'ArrowDown', 'Enter', ' ', 'Spacebar'].includes(e.key)) {
+        return;
+      }
+    }
+    
+    // ... rest of your existing global keyboard handler
+  };
+
+  window.addEventListener('keydown', handleGlobalKeyDown);
+  return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+}, [focusedElement, popupOpen, billDetailsPopupOpen, showConfirmPopup, descHuidPopupOpen]); // ✅ Added descHuidPopupOpen dependency
+
 // Also, update the global keyboard handler to skip arrow keys when bill details popup is open
 useEffect(() => {
   const handleGlobalKeyDown = (e) => {
@@ -533,7 +596,7 @@ useEffect(() => {
           } else {
             // Header field
          const headerFields = [
-  ['billNo', 'billDate', 'salesman', 'newBillNo'],
+  ['billNo', 'billDate', 'salesman', 'newBillNo','gstMode'],
   ['custName', 'mobileNo']
 ];
 
@@ -982,6 +1045,9 @@ const handleApplyBillNumber = async () => {
       const itemsArray = voucherDetails.items || voucherDetails.details || [];
       
       if (header) {
+        // Map GST mode: fmode 'I' = Inclusive, 'E' = Exclusive
+        const gstModeValue = (header.fmode || header.fMode || header.mode || 'E').toString().trim().toUpperCase() === 'I' ? 'Inclusive' : 'Exclusive';
+        
         setBillDetails(prev => ({
           ...prev,
           custName: header.customerName || header.customer || "",
@@ -990,8 +1056,12 @@ const handleApplyBillNumber = async () => {
           mobileNo: header.mobileNO || header.mobileNo || header.mobile || header.phone || "",
           gstno: header.gstNo || header.gstNumber || header.gst || "",
           salesman: header.sManName || header.salesMansName || "",
-          salesmanCode: header.sManCode || header.salesMansCode || "002"
+          salesmanCode: header.sManCode || header.salesMansCode || "002",
+          billAMT: (header.billAmt || header.billAMT || header.totalAmount || 0).toString()
         }));
+        
+        // Set GST mode separately
+        setGstMode(gstModeValue);
       }
       
       if (itemsArray && itemsArray.length > 0) {
@@ -1004,24 +1074,38 @@ const handleApplyBillNumber = async () => {
         if (filteredItems.length > 0) {
           const transformedItems = filteredItems.map((item, index) => {
             const itemCode = item.fItemcode || item.itemCode || item.productCode || "";
-            const itemName = item.fitemNme || item.itemName || item.barcode || item.productName || "";
+            const itemName = item.fitemNme || item.fItemName || item.itemName || item.productName || "";
             const originalQty = parseFloat(item.fTotQty || item.qty || item.quantity || 0);
+            const returnQty = Math.abs(originalQty) || 0;
             
-            const returnQty = Math.abs(originalQty);
+            const taxPercent = parseFloat(item.fTax || item.tax || item.taxRate || 0);
+            const sRateVal = parseFloat(item.fRate || item.rate || item.sellingRate || 0);
+            
+            // Use server-provided amount if available, otherwise compute
+            const serverAmount = item.fAmount || item.amount;
+            const calc = calculateAmount(returnQty, sRateVal, taxPercent);
+            const computedAmount = typeof calc === 'string' ? calc : (parseFloat(calc.amount) || 0).toFixed(2);
+            const finalAmount = (serverAmount !== undefined && serverAmount !== null && serverAmount !== "") ? parseFloat(serverAmount).toFixed(2) : computedAmount;
+            
+            // Tax amount from server or computed
+            const taxAmount = item.ftaxrs1 !== undefined && item.ftaxrs1 !== null ? parseFloat(item.ftaxrs1) : (typeof calc === 'string' ? 0 : parseFloat(calc.taxAmount || 0));
             
             return {
               id: index + 1,
               sNo: index + 1,
               barcode: item.barcode || "",
               itemName: itemName,
-              stock: item.fstock || item.stock || "0",
+              stock: (item.fstock || item.stock || 0).toString(),
               mrp: item.mrp || item.maxRetailPrice || "0.00",
               uom: item.fUnit || item.uom || item.unit || "",
               hsn: item.fHSN || item.hsn || item.hsnCode || "",
-              tax: item.fTax || item.tax || item.taxRate || "0",
-              sRate: item.fRate || item.sellingRate || item.rate || "0",
+              tax: taxPercent.toString(),
+              taxAmount: taxAmount.toFixed(2),
+              sRate: sRateVal.toString(),
               qty: returnQty.toString(),
-              amount: (returnQty * parseFloat(item.fRate || item.rate || item.sellingRate || 0)).toFixed(2),
+              amount: finalAmount,
+              fdesc: item.fdesc || item.description || "",
+              fserialno: item.fslno || item.serialNo || item.serNo || "",
               itemCode: itemCode || `0000${index + 1}`,
               isReadOnly: true // Mark items from bill selection as read-only except qty
             };
@@ -1151,12 +1235,46 @@ const handleApplyBillNumber = async () => {
     }
   };
 
+  // Fetch party balance for selected customer
+  const fetchPartyBalance = async (customerCode) => {
+    if (!customerCode) {
+      setPartyBalance('0.00');
+      return;
+    }
+
+    try {
+      // Fetch party balance using CUSTOMERREPORT endpoint with customer code and company code
+      const companyCode = userData?.companyCode || '001';
+      const endpoint = `CUSTOMERREPORT/customerbalance/${customerCode}/${companyCode}`;
+      const response = await apiService.get(endpoint);
+      
+      if (response) {
+        // Response format: { "amount": "1300.00", "amount1": "Cr" }
+        const amount = response.amount || '0.00';
+        const amountType = response.amount1 || ''; // 'Cr' or 'Dr'
+        
+        // Display balance with Cr/Dr indicator if available
+        if (amountType) {
+          setPartyBalance(`${amount} ${amountType}`);
+        } else {
+          setPartyBalance(parseFloat(amount || 0).toFixed(2));
+        }
+      } else {
+        setPartyBalance('0.00');
+      }
+    } catch (err) {
+      console.error("Error fetching party balance:", err);
+      setPartyBalance('0.00');
+    }
+  };
+
   const fetchCustomers = async () => {
     try {
       setLoading(true);
       setError("");
       
-      const endpoint = API_ENDPOINTS.sales_return?.getCustomers || "Salesinvoices/GetPartyByParent";
+      // Use pagination format: Salesinvoices/GetPartyByParent?pageNumber=1&pageSize=100
+      const endpoint = "Salesinvoices/GetPartyByParent?pageNumber=1&pageSize=100";
       const response = await apiService.get(endpoint);
       
       if (response && Array.isArray(response)) {
@@ -1434,7 +1552,8 @@ const handleBarcodeEnter = async (rowIndex, barcode) => {
         // amount should depend on qty entered by user
         amount: calculateAmount(
           updated[rowIndex].qty || 0,
-          item[0].rate || 0
+          item[0].rate || 0,
+          item[0].inTax || item[0].tax || 0
         )
       };
 
@@ -1494,12 +1613,13 @@ setTimeout(() => {
         salesMansName: (billDetails.salesman || "").toString(),
         salesMansCode: (billDetails.salesmanCode || "").toString(),
         compCode: userData?.companyCode || "",
-        userCode: userData?.userCode || "",
+        userCode: userData?.userCode || "001",
         billAMT: totalAmount.toFixed(2).toString(),
-        RefNo: (billDetails.newBillNo || "").toString(),
+        refNo: (billDetails.newBillNo || "").toString(), 
         discount: discountPercent.toString(), // Add discount percentage
         discountAMT: discountAmount.toString(), // Add discount amount
-        netAmount: netAmount.toFixed(2).toString(), // Add total net amount to header
+      
+        gstRrate: gstMode === 'Inclusive' ? 'I' : 'E' // Map gstMode to gstRrate (I for Inclusive, E for Exclusive)
       },
       items: validItems.map((item, index) => {
         const itemNetAmount = Math.max(parseFloat(item.amount || 0) - (itemDiscounts[index] || 0), 0);
@@ -1516,7 +1636,10 @@ setTimeout(() => {
           srate: (item.sRate || "0").toString(),
           qty: (parseFloat(item.qty || 0)).toFixed(2).toString(),
           amount: (item.amount || "0").toString(),
-          netAmount: itemNetAmount.toFixed(2).toString() // Send actual net amount per item
+          taxamt: (item.taxAmountValue || "0").toString(), // Map taxAmount to taxamt
+          fSlNo: (item.fserialno || "").toString(), // Map fserialno to fSlNo
+          desc: (item.fdesc || "").toString(), // Map fdesc to desc
+         // Send actual net amount per item
         };
       })
     };
@@ -1601,6 +1724,7 @@ setTimeout(() => {
         discount: discountPercent.toString(), // Add discount percentage
         discountAMT: discountAmount.toString(), // Add discount amount
         netAmount: netAmountValue.toFixed(2).toString(), // Add net amount
+        gstRrate: gstMode === 'Inclusive' ? 'I' : 'E' // Map gstMode to gstRrate (I for Inclusive, E for Exclusive)
       },
       items: validItems.map((item) => {
         const itemAmount = parseFloat(item.amount || 0);
@@ -1620,6 +1744,9 @@ setTimeout(() => {
           srate: (item.sRate || "0").toString(),
           qty: (parseFloat(item.qty || 0)).toFixed(2).toString(),
           amount: item.amount.toString(),
+          taxamt: (item.taxAmount || "0").toString(), // Map taxAmount to taxamt
+          fSlNo: (item.fserialno || "").toString(), // Map fserialno to fSlNo
+          desc: (item.fdesc || "").toString(), // Map fdesc to desc
           netAmount: itemNetAmount.toFixed(2).toString()
         };
       })
@@ -2130,15 +2257,59 @@ useEffect(() => {
     setTotalAmount(amountTotal);
     
     setBillDetails(prev => ({ ...prev, billAMT: amountTotal.toString() }));
-  }, [items]);
+  }, [items]); // Corrected the closing bracket
 
-  // Calculate amount when qty or sRate changes
-  const calculateAmount = (qty, sRate) => {
+  // ✅ Recalculate all item amounts when GST mode changes
+  useEffect(() => {
+    if (items.length > 0) {
+      const updatedItems = items.map(item => {
+        const qty = parseFloat(item.qty) || 0;
+        const sRate = parseFloat(item.sRate) || 0;
+        const tax = parseFloat(item.tax) || 0;
+      
+        // Recalculate amount using the updated calculateAmount function
+        const newAmount = calculateAmount(qty, sRate, tax);
+      
+        return {
+          ...item,
+          amount: typeof newAmount === 'string' ? newAmount : (newAmount.amount || '0.00')
+        };
+      });
+    
+      setItems(updatedItems);
+    }
+  }, [gstMode]); // Only depend on gstMode, not items to avoid infinite loops
+
+  // Add this useEffect for arrow navigation in bill details popup
+  useEffect(() => {
+    if (!billDetailsPopupOpen) return;
+    // Additional logic for handling key events
+  }, [billDetailsPopupOpen]); // Added dependency for billDetailsPopupOpen
+  // Calculate amount with tax support for Inclusive/Exclusive GST modes
+  const calculateAmount = (qty, sRate, taxPercent) => {
     const qtyNum = parseFloat(qty || 0);
     const sRateNum = parseFloat(sRate || 0);
-    return (qtyNum * sRateNum).toFixed(2);
-  };
+    const taxNum = parseFloat(taxPercent || 0);
 
+    // Backwards-compatible behavior: if taxPercent is not provided, behave as before
+    if (taxPercent === undefined) {
+      return (qtyNum * sRateNum).toFixed(2);
+    }
+
+    // Compute based on gstMode
+    if (gstMode === 'Inclusive') {
+      // sRate includes tax. total = qty * sRate. Extract tax portion.
+      const total = qtyNum * sRateNum;
+      const taxAmount = taxNum === 0 ? 0 : (total * taxNum) / (100 + taxNum);
+      return { amount: total.toFixed(2), taxAmount: taxAmount.toFixed(2) };
+    } else {
+      // Exclusive: tax calculated on top of sRate
+      const base = qtyNum * sRateNum;
+      const taxAmount = (base * taxNum) / 100;
+      const total = base + taxAmount;
+      return { amount: total.toFixed(2), taxAmount: taxAmount.toFixed(2) };
+    }
+  };
   // --- POPUP HANDLERS ---
   const openCustomerPopup = (searchText = '') => {
     if (customers.length === 0) {
@@ -2149,14 +2320,23 @@ useEffect(() => {
     // Set search term for PopupListSelector pre-fill
     setCustomerSearchTerm(searchText);
     
-    let customerData = customers.map(customer => ({
-      id: customer.code || customer.id,
-      name: customer.name,
-      displayName: `${customer.name}`,
-      customerCode: customer.code,
-      customerName: customer.name,
-      mobileNo: customer.mobile || customer.phone || ""
-    }));
+    // Map API response to popup format - API returns partyName, phone, etc.
+    let customerData = customers.map(customer => {
+      const partyName = customer.partyName || customer.name || customer.fPartyName || '';
+      const partyCode = customer.partyCode || customer.code || customer.fPartyCode || '';
+      const phoneNo = customer.phone || customer.phoneNumber || customer.mobileNo || '';
+      
+      return {
+        id: partyCode,
+        code: partyCode,
+        name: partyName,
+        displayName: partyName,
+        customerCode: partyCode,
+        customerName: partyName,
+        partyName: partyName,
+        mobileNo: phoneNo
+      };
+    });
     
     // Filter by search text if provided - INCLUDES search
     if (searchText) {
@@ -2358,14 +2538,18 @@ useEffect(() => {
         );
         
         if (selectedCustomer) {
+          const customerCode = selectedCustomer.code || selectedCustomer.custCode;
+          
           setBillDetails(prev => ({
             ...prev,
             custName: selectedCustomer.name || selectedCustomer.custName,
-            partyCode: selectedCustomer.code || selectedCustomer.custCode,
-            
-            customerCode: selectedCustomer.code || selectedCustomer.custCode,
-              mobileNo: selectedCustomer.phonenumber || selectedCustomer.phone || selectedCustomer.mobile || "" 
+            partyCode: customerCode,
+            customerCode: customerCode,
+            mobileNo: selectedCustomer.phonenumber || selectedCustomer.phone || selectedCustomer.mobile || "" 
           }));
+          
+          // ✅ Fetch party balance for selected customer
+          await fetchPartyBalance(customerCode);
           
           // Focus on next field
           setTimeout(() => {
@@ -2440,7 +2624,7 @@ useEffect(() => {
               tax: finalTax,
               sRate: finalPreRate,
               qty: currentItem.qty || '',
-              amount: calculateAmount(currentItem.qty || '', finalPreRate)
+              amount: calculateAmount(currentItem.qty || '', finalPreRate, finalTax)
             };
 
             setItems(updatedItems);
@@ -2459,19 +2643,7 @@ useEffect(() => {
             console.error("Item select failed:", err);
           }
 
-          // ✅ Move cursor to QTY of SAME ROW
-          setTimeout(() => {
-            const qtyInput = document.querySelector(
-              `input[data-row="${selectedRowIndex}"][data-field="qty"]`
-            );
-            qtyInput?.focus();
-            setFocusedElement({
-              type: 'table',
-              rowIndex: selectedRowIndex,
-              fieldIndex: 8,
-              fieldName: 'qty'
-            });
-          }, 120);
+        
         }
       } else if (popupType === "billNumber") {
         // For bill number popup, open second popup with details
@@ -2829,7 +3001,7 @@ const fetchItemsForPopup = async (pageNum, search) => {
 
   const handleHeaderArrowNavigation = (key, rowIndex, fieldIndex) => {
     const headerFields = [
-    ['billNo', 'billDate', 'salesman', 'newBillNo'],
+    ['billNo', 'billDate', 'salesman', 'newBillNo','gstMode'],
     ['custName', 'mobileNo']
   ];
 
@@ -3151,15 +3323,58 @@ const fetchItemsForPopup = async (pageNum, search) => {
           }, 200);
         });
       }
-    } else if (e.key === '/') {
+      return;
+    }
+
+    if (e.key === '/') {
       e.preventDefault();
-      
+
       if (fieldName === 'salesman') {
         openSalesmanPopup();
       } else if (fieldName === 'custName') {
         openCustomerPopup();
       } else if (fieldName === 'newBillNo') {
         openBillNumberPopup();
+      }
+      return;
+    }
+
+    // ENTER → move focus to nextRef if provided
+    if (e.key === 'Enter') {
+      // If letter-mode blocked previously, we already returned above
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (nextRef && nextRef.current) {
+        // If we're about to focus GST Mode, ignore the next Enter key in that input
+        if (nextRef === gstModeRef) {
+          ignoreNextEnterRef.current = true;
+        }
+        // Focus next element (use timeout to avoid event ordering issues)
+        setTimeout(() => nextRef.current.focus(), 0);
+
+        // Update focusedField / focusedElement for header navigation where possible
+        let targetName = '';
+        let fe = null;
+        if (nextRef === billDateRef) {
+          targetName = 'billDate';
+          fe = { type: 'header', rowIndex: 0, fieldIndex: 1, fieldName: 'billDate' };
+        } else if (nextRef === salesmanRef) {
+          targetName = 'salesman';
+          fe = { type: 'header', rowIndex: 0, fieldIndex: 2, fieldName: 'salesman' };
+        } else if (nextRef === newBillNoRef) {
+          targetName = 'newBillNo';
+          fe = { type: 'header', rowIndex: 0, fieldIndex: 3, fieldName: 'newBillNo' };
+        } else if (nextRef === gstModeRef) {
+          targetName = 'gstMode';
+          fe = { type: 'header', rowIndex: 0, fieldIndex: 4, fieldName: 'gstMode' };
+        } else if (nextRef === custNameRef) {
+          targetName = 'custName';
+          fe = { type: 'header', rowIndex: 1, fieldIndex: 0, fieldName: 'custName' };
+        }
+
+        if (targetName) setFocusedField(targetName);
+        if (fe) setFocusedElement(fe);
       }
     }
   };
@@ -3192,7 +3407,6 @@ const handleTableKeyDown = (e, rowIndex, field) => {
     }
   }
   
-  // const currentItem = items[rowIndex];
   const isLastRow = rowIndex === items.length - 1;
 
   // 🔹 LETTER → ITEM POPUP
@@ -3253,7 +3467,28 @@ const handleTableKeyDown = (e, rowIndex, field) => {
   }
 
   // =====================================================
-  // 🚨 RULE 2: QTY FIELD LOGIC
+  // 🚨 RULE 2: ITEM NAME FIELD → OPEN DESCRIPTION POPUP
+  // =====================================================
+if (field === 'itemName') {
+    // ✅ ITEM SELECTED → OPEN DESC/HUID POPUP
+    if (currentItem.itemName && currentItem.itemName.trim()) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // 🔴 BLOCK GLOBAL ENTER HANDLER
+      blockGlobalEnterRef.current = true;
+      
+      setDescHuidRowIndex(rowIndex);
+      setDescValue(items[rowIndex]?.fdesc || '');
+      setSerialNoValue(items[rowIndex]?.fserialno || '');
+      setHuidValue('');
+      setDescHuidPopupOpen(true);
+      
+      return;
+    }
+  }
+  // =====================================================
+  // 🚨 RULE 3: QTY FIELD LOGIC
   // =====================================================
   if (field === 'qty') {
     // If qty is empty or zero, do not move to next row — require user to enter a qty first
@@ -3380,7 +3615,9 @@ const handleTableKeyDown = (e, rowIndex, field) => {
       sRate: '',
       qty: '',
       amount: '0.00',
-      itemCode: ''
+      itemCode: '',
+        fdesc: '',        // ADD THIS
+  fserialno: ''
     };
     setItems([...items, newRow]);
   };
@@ -3407,7 +3644,7 @@ const handleTableKeyDown = (e, rowIndex, field) => {
       setItems(items.map(it => {
         if (it.id === id) {
           const updatedItem = { ...it, [field]: resetValue };
-          updatedItem.amount = calculateAmount(resetValue, updatedItem.sRate);
+          updatedItem.amount = calculateAmount(resetValue, updatedItem.sRate, updatedItem.tax);
           return updatedItem;
         }
         return it;
@@ -3421,10 +3658,13 @@ const handleTableKeyDown = (e, rowIndex, field) => {
     if (item.id === id) {
       const updatedItem = { ...item, [field]: value };
 
-      if (field === 'qty' || field === 'sRate') {
+      if (field === 'qty' || field === 'sRate' || field === 'tax') {
         const qty = field === 'qty' ? value : updatedItem.qty;
         const rate = field === 'sRate' ? value : updatedItem.sRate;
-        updatedItem.amount = calculateAmount(qty, rate);
+        const tax = field === 'tax' ? value : updatedItem.tax;
+
+        const calc = calculateAmount(qty, rate, tax);
+        updatedItem.amount = typeof calc === 'string' ? calc : (calc.amount || '0.00');
       }
 
       return updatedItem;
@@ -4681,6 +4921,15 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
           readOnly
         />
         <div 
+          role="button"
+          tabIndex={0}
+          onClick={openBillNumberPopup}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+              e.preventDefault();
+              openBillNumberPopup();
+            }
+          }}
           style={{
             position: 'absolute',
             right: '10px',
@@ -4690,50 +4939,119 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
             color: '#666',
             fontSize: screenSize.isMobile ? '16px' : '18px'
           }}
-          title="Click or press / to search"
+          title="Click or press Enter/Space to search"
         >
           <SearchIcon />
         </div>
       </div>
     </div>
 
-  {/* GST Mode */}
+{/* GST Mode */}
 <div style={styles.formField}>
   <label style={styles.inlineLabel}>GST Mode:</label>
   <input
     type="text"
-    data-header="gstMode"
     value={gstMode}
     ref={gstModeRef}
     readOnly
     onKeyDown={(e) => {
-      handleHeaderArrowNavigation(e, 'gstMode');
+      // If we programmatically focused this field due to Enter on previous field,
+      // ignore the immediate Enter to avoid double-jumping to customer.
+      if (e.key === 'Enter' && ignoreNextEnterRef.current) {
+        ignoreNextEnterRef.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
 
       // ✅ SPACE → TOGGLE Inclusive / Exclusive
       if (e.key === ' ') {
         e.preventDefault();
+        e.stopPropagation();
         setGstMode(prev =>
           prev === 'Inclusive' ? 'Exclusive' : 'Inclusive'
         );
         return;
       }
 
-      // ✅ ENTER → MOVE TO CUSTOMER
-      if (e.key === 'Enter') {
+      // ✅ Arrow navigation
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
         e.preventDefault();
-        setTimeout(() => custNameRef.current?.focus(), 0);
+        
+        // Handle arrow navigation manually for this field
+        if (e.key === 'ArrowRight' || e.key === 'Enter') {
+          // Move to Customer field
+          setTimeout(() => custNameRef.current?.focus(), 0);
+          setFocusedField('custName');
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 1,
+            fieldIndex: 0,
+            fieldName: 'custName'
+          });
+        } else if (e.key === 'ArrowLeft') {
+          // Move to newBillNo field
+          setTimeout(() => newBillNoRef.current?.focus(), 0);
+          setFocusedField('newBillNo');
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 3,
+            fieldName: 'newBillNo'
+          });
+        } else if (e.key === 'ArrowDown') {
+          // Move to table barcode
+          setFocusedElement({
+            type: 'table',
+            rowIndex: 0,
+            fieldIndex: 0,
+            fieldName: 'barcode'
+          });
+          setTimeout(() => {
+            document.querySelector(`input[data-row="0"][data-field="barcode"]`)?.focus();
+          }, 10);
+        } else if (e.key === 'ArrowUp') {
+          // Move to newBillNo field
+          setTimeout(() => newBillNoRef.current?.focus(), 0);
+          setFocusedElement({
+            type: 'header',
+            rowIndex: 0,
+            fieldIndex: 3,
+            fieldName: 'newBillNo'
+          });
+        }
       }
     }}
+    onFocus={() => {
+      setFocusedField('gstMode');
+      // Update focused element to include gstMode
+      setFocusedElement({
+        type: 'header',
+        rowIndex: 0,  // First row
+        fieldIndex: 4, // 5th field in first row
+        fieldName: 'gstMode'
+      });
+    }}
+    onBlur={() => setFocusedField('')}
     style={
       focusedField === 'gstMode'
-        ? { ...styles.inlineInputFocused, fontWeight: '600', cursor: 'pointer', width: '100%' }
-        : { ...styles.inlineInput, fontWeight: '600', cursor: 'pointer', width: '100%' }
+        ? { 
+            ...styles.inlineInputFocused, 
+            fontWeight: '600', 
+            cursor: 'pointer', 
+            width: '100%',
+            backgroundColor: '#f0f8ff'
+          }
+        : { 
+            ...styles.inlineInput, 
+            fontWeight: '600', 
+            cursor: 'pointer', 
+            width: '100%',
+            backgroundColor: '#f8fafc'
+          }
     }
-    onFocus={() => setFocusedField('gstMode')}
-    onBlur={() => setFocusedField('')}
   />
 </div>
-
   </div>
 
   {/* SECOND ROW with 2 fields + 2 EMPTY DIVS like sales invoice */}
@@ -4785,9 +5103,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         name="custName"
         onChange={handleInputChange}
         ref={custNameRef}
-        onClick={() => {
-          openCustomerPopup(billDetails.custName);
-        }}
+        
         onKeyDown={(e) => handleKeyDown(e, mobileRef, 'custName')}
         onFocus={() => {
           setFocusedField('custName');
@@ -5175,17 +5491,29 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
       color: '#0d47a1'
     }}
     value={(() => {
+      // Use fetched tax amount if available (from server like ftaxrs1)
+      if (item.taxAmount !== undefined && item.taxAmount !== null && item.taxAmount !== '') {
+        return parseFloat(item.taxAmount).toFixed(2);
+      }
+      
+      // Fallback: calculate tax based on gstMode
       const rate = parseFloat(item.sRate || 0);
       const qty = parseFloat(item.qty || 0);
       const tax = parseFloat(item.tax || 0);
 
       if (!rate || !qty || !tax) return '0.00';
 
-      // 🔹 EXCLUSIVE tax calculation
-      const taxable = rate * qty;
-      const taxAmt = (taxable * tax) / 100;
-
-      return taxAmt.toFixed(2);
+      // Calculate tax respecting inclusive/exclusive mode
+      const total = qty * rate;
+      if (gstMode === 'Inclusive') {
+        // Extract tax from inclusive price
+        const taxAmt = tax === 0 ? 0 : (total * tax) / (100 + tax);
+        return taxAmt.toFixed(2);
+      } else {
+        // Exclusive: tax on top of rate
+        const taxAmt = (total * tax) / 100;
+        return taxAmt.toFixed(2);
+      }
     })()}
   />
 </td>
@@ -5349,7 +5677,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
             {totalQty.toFixed(2)}
           </td>
           <td style={{ textAlign: 'right', padding: '10px', color: '#0d47a1' }}>
-            ₹{customRound(totalAmount).toLocaleString('en-IN')}
+            ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </td>
           <td />
         </tr>
@@ -5577,6 +5905,189 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         </div>
       )}
 
+
+{descHuidPopupOpen && (
+  <div
+    style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}
+  >
+    <div
+      style={{
+        width: '420px',
+        background: '#fff',
+        borderRadius: '10px',
+        boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
+        overflow: 'hidden',
+        fontFamily: 'Inter, sans-serif',
+        animation: 'popupFade 0.15s ease-out'
+      }}
+    >
+      {/* 🔵 HEADER */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #1B91DA, #1976d2)',
+          color: '#fff',
+          padding: '14px 18px',
+          fontSize: '16px',
+          fontWeight: 600,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        Item Description
+        <span
+          style={{
+            cursor: 'pointer',
+            fontSize: '20px',
+            lineHeight: 1
+          }}
+          onClick={() => {
+            setDescHuidPopupOpen(false);
+            setDescValue('');
+            setSerialNoValue('');
+            setHuidValue('');
+            setDescHuidRowIndex(null);
+          }}
+        >
+          ×
+        </span>
+      </div>
+
+      {/* 🔹 BODY */}
+      <div style={{ padding: '20px' }}>
+        <label
+          style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#444',
+            marginBottom: '8px',
+            display: 'block'
+          }}
+        >
+          Description
+        </label>
+
+        <input
+          ref={descRef}
+          type="text"
+          value={descValue}
+          onChange={(e) => setDescValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.stopPropagation(); // ✅ STOP PROPAGATION
+              
+              // 👉 MOVE FOCUS TO SERIAL NUMBER INPUT
+              setTimeout(() => {
+                serialRef.current?.focus();
+                serialRef.current?.select();
+              }, 50);
+            }
+          }}
+          style={{
+            width: '100%',
+            height: '42px',
+            borderRadius: '6px',
+            border: '2px solid #1B91DA', // Make it look focused
+            padding: '0 12px',
+            fontSize: '14px',
+            outline: 'none',
+            boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)'
+          }}
+        />
+
+        {/* 🔹 SERIAL NO */}
+        <label
+          style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#444',
+            marginTop: '14px',
+            marginBottom: '8px',
+            display: 'block'
+          }}
+        >
+          Serial No
+        </label>
+
+        <input
+          type="text"
+          ref={serialRef}
+          value={serialNoValue}
+          onChange={(e) => setSerialNoValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.stopPropagation(); // ✅ STOP PROPAGATION
+
+              // ✅ SAVE DESCRIPTION + SERIAL NO
+              setItems(prev => {
+                const updated = [...prev];
+                if (descHuidRowIndex !== null) {
+                  updated[descHuidRowIndex] = {
+                    ...updated[descHuidRowIndex],
+                    fdesc: descValue || '',
+                    fserialno: serialNoValue || ''
+                  };
+                }
+                return updated;
+              });
+
+              setDescHuidPopupOpen(false);
+              
+              // ✅ CLEAR POPUP STATE FOR NEXT ROW
+              setDescValue('');
+              setSerialNoValue('');
+              setHuidValue('');
+              setDescHuidRowIndex(null);
+
+              // ✅ MOVE TO SRate FIELD (skip stock)
+              setTimeout(() => {
+                if (descHuidRowIndex !== null) {
+                  const sRateInput = document.querySelector(
+                    `input[data-row="${descHuidRowIndex}"][data-field="sRate"]`
+                  );
+                  
+                  if (sRateInput) {
+                    sRateInput.focus();
+                    sRateInput.select();
+                  }
+
+                  setFocusedElement({
+                    type: 'table',
+                    rowIndex: descHuidRowIndex,
+                    fieldIndex: 7, // index for sRate
+                    fieldName: 'sRate'
+                  });
+                }
+              }, 80);
+            }
+          }}
+          style={{
+            width: '100%',
+            height: '42px',
+            borderRadius: '6px',
+            border: '1px solid #ccc',
+            padding: '0 12px',
+            fontSize: '14px',
+            outline: 'none'
+          }}
+        />
+      </div>
+    </div>
+  </div>
+)}
+
+      
+
       {/* Common PopupListSelector for ALL popups including bill number */}
       {/* Common PopupListSelector for ALL popups including bill number */}
 {popupOpen && (
@@ -5616,10 +6127,30 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
             });
           }
         } else {
-          // ALL OTHER POPUPS (salesman, item, billNumber, etc.) → GO TO NEW BILL NO FIELD
+          // If item popup closed without selection → return focus to itemName of selected row
+          if (closingPopupType === 'item') {
+            const row = selectedRowIndex !== null && selectedRowIndex !== undefined ? selectedRowIndex : 0;
+            const itemInput = document.querySelector(`input[data-row="${row}"][data-field="itemName"]`);
+            if (itemInput) {
+              itemInput.focus();
+              if (itemInput.tagName === 'INPUT' && itemInput.type === 'text' && !itemInput.readOnly) {
+                itemInput.select();
+              }
+
+              setFocusedElement({
+                type: 'table',
+                rowIndex: row,
+                fieldIndex: getTableFieldIndex('itemName'),
+                fieldName: 'itemName'
+              });
+              return;
+            }
+          }
+
+          // ALL OTHER POPUPS (salesman, billNumber, etc.) → GO TO NEW BILL NO FIELD
           newBillNoRef.current?.focus();
           newBillNoRef.current?.select();
-          
+
           setFocusedElement({
             type: 'header',
             rowIndex: 0,
