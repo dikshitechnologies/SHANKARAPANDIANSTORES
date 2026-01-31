@@ -331,6 +331,13 @@ const Navbar = () => {
       permission: "PREFIX_HISTORY",
     },
 
+      {
+      name: "Daily Report",
+      path: "/reports/DailyReport",
+      icon: <DatabaseOutlined />,
+      permission: "DAILY_REPORT",
+    },
+
   ];
 
   // Filter items based on permissions
