@@ -133,6 +133,22 @@ const Navbar = () => {
       icon: <BuildOutlined />,
       permission: "CATEGORY_CREATION",
     },
+
+     {
+      name: "Transport Creation",
+      path: "/masters/Transport-creation",
+      icon: <BuildOutlined />,
+      permission: "TRANSPORT_CREATION",
+    },
+    
+    {
+      name: "DayClose",
+      path: "/masters/DayClose",
+      icon: <BuildOutlined />,
+      permission: "DayClose",
+    },
+    
+
     {
       name: "Design Creation",
       path: "/design-creation",
@@ -307,6 +323,12 @@ const Navbar = () => {
       path: "/reports/Billcollectorreport",
       icon: <DatabaseOutlined />,
       permission: "BILL_COLLECTOR_REPORT",
+    }, 
+    {
+      name: "Item Wise Stock",
+      path: "/reports/Itemwisestock",
+      icon: <DatabaseOutlined />,
+      permission: "ITEM_WISE_STOCK",
     }, 
 
   ];

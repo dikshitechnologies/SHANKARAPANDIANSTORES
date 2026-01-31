@@ -42,6 +42,8 @@ import PaymentVoucher from './pages/PaymentVoucher/PaymentVoucher'
 import RouteCreationPage from './pages/Route/Routecreation';
 import SalesRegister from './pages/SalesRegister/SalesRegister';
 import TaxCreation from './pages/TaxCreation/TaxCreation';
+import TransportCreation from './pages/Transportcreation/TransportCreation';
+import DayClose from './pages/Dayclose/DayClose';
 import DayBook from './pages/Report/DayBokk/Daybook';
 import Ledger from './pages/Report/Ledger/Ledger';
 import SalesReturnregister from './pages/Report/SalesReturnregister/SalesReturnregister';
@@ -54,6 +56,8 @@ import TenderReport from './pages/Report/TenderReport/TenderReport';
 import AccountReceivables from './pages/Report/AccountReceivables/AccountReceivables';
 import AccountPayables from './pages/Report/AccountPayables/AccountPayables';
 import DaySales from './pages/Report/DaySales/DaySales'
+import Itemwisestock from './pages/Report/Itemwisestock/Itemwisestock';
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { userData } = useAuth();
@@ -138,6 +142,8 @@ function App() {
           <Route path="/reports/sales-register" element={<ProtectedRoute><LayoutWithNavbar><SalesRegister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
+           <Route path="/masters/Transport-Creation" element={<ProtectedRoute><LayoutWithNavbar><TransportCreation /></LayoutWithNavbar></ProtectedRoute>} />
+            <Route path="/masters/DayClose" element={<ProtectedRoute><LayoutWithNavbar><DayClose /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/day-book" element={<ProtectedRoute><LayoutWithNavbar><DayBook /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/ledger" element={<ProtectedRoute><LayoutWithNavbar><Ledger /></LayoutWithNavbar></ProtectedRoute>} />
           {/* <Route path="/reports/ledger" element={<ProtectedRoute><LayoutWithNavbar><Ledger /></LayoutWithNavbar></ProtectedRoute>} /> */}
@@ -150,7 +156,8 @@ function App() {
           <Route path="/reports/account-payable" element={<ProtectedRoute><LayoutWithNavbar><AccountPayables /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/day-sales" element={<ProtectedRoute><LayoutWithNavbar><DaySales /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/Billcollectorreport" element={<ProtectedRoute><LayoutWithNavbar><TenderReport /></LayoutWithNavbar></ProtectedRoute>} />
-          
+          <Route path="/reports/Itemwisestock" element={<ProtectedRoute><LayoutWithNavbar><Itemwisestock /></LayoutWithNavbar></ProtectedRoute>} />
+
           <Route path="/embed/design" element={<Design />} />
           <Route path="/embed/scrap" element={<ScrapPage />} />
           <Route path="/embed/brand" element={<BrandPage />} />
