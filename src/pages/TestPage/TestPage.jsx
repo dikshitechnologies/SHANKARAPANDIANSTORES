@@ -156,7 +156,7 @@ export default function TestPage() {
             width: 80mm;
             font-family: Arial, Helvetica, sans-serif;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 900;
             letter-spacing: 0.3px;
             text-shadow: 0.3px 0 #000;
           }
