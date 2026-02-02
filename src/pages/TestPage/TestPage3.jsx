@@ -237,7 +237,7 @@ export default function TestPage3() {
             font-size: 10pt;
             width: 80mm;
             font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             letter-spacing: 0.3px;
             text-shadow: 0.3px 0 #000;
@@ -262,26 +262,26 @@ export default function TestPage3() {
           }
 
           .company-name {
-            font-size: 12pt;
+            font-size: 13pt;
             font-weight: bold;
             letter-spacing: 0.5pt;
             margin: 1mm 0;
           }
 
           .company-address {
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.2;
             margin-bottom: 1mm;
           }
 
           .gst-number {
-            font-size: 8pt;
+            font-size: 9pt;
             font-weight: bold;
             margin-bottom: 1mm;
           }
 
           .contact {
-            font-size: 7pt;
+            font-size: 8pt;
             margin-bottom: 1mm;
           }
 
@@ -294,14 +294,14 @@ export default function TestPage3() {
           .scrap-title {
             text-align: center;
             font-weight: bold;
-            font-size: 10pt;
+            font-size: 11pt;
             margin: 2mm 0;
             background-color: #0a0a0a;
             color: #ffffff;
           }
           .cust-name {
             text-align: right;
-            font-size: 12pt;
+            font-size: 13pt;
             margin-bottom: 1mm;
           }
           .bill {
@@ -312,19 +312,19 @@ export default function TestPage3() {
           .bill-info {
             display: flex;
             justify-content: space-between;
-            font-size: 8pt;
+            font-size: 9pt;
             margin-bottom: 1mm;
           }
 
           .customer-info {
-            font-size: 8pt;
+            font-size: 9pt;
             margin-bottom: 2mm;
           }
 
           table.items {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8pt;
+            font-size: 9pt;
           }
 
           table.items th {
@@ -339,6 +339,7 @@ export default function TestPage3() {
 
           table.items td {
             padding: 1mm 0;
+            font-size: 9pt;
           }
 
           table.items td:first-child {
@@ -353,12 +354,12 @@ export default function TestPage3() {
 
           .total-row {
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 10pt;
             padding-top: 2mm;
           }
           .total-info {
             margin-top: 2mm;
-            font-size: 8pt;
+            font-size: 9pt;
             display: flex;
             flex-direction: row;
             gap: 5mm;
@@ -369,7 +370,7 @@ export default function TestPage3() {
           }
           .terms {
             text-align: center;
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.3;
             margin-top: 2mm;
           }
@@ -377,7 +378,7 @@ export default function TestPage3() {
           .thank-you {
             text-align: center;
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 10pt;
             margin-top: 3mm;
           }
         </style>
