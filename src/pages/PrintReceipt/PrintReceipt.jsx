@@ -145,7 +145,8 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
           .customer-info {
             font-size: 9pt;
-            margin-bottom: 2mm;
+            margin-bottom: 1mm;
+            margin-top: 1mm;
           }
 
           table.items {
@@ -238,11 +239,26 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
         {/* Bill number and date */}
         <div className="bill">
-          <div className="bill-info">
-            <div>
-              <div>Bill No. {billData.voucherNo || 'N/A'}</div>
-              <div>Date: {billData.voucherDate || 'N/A'}</div>
-              <div>Time: {new Date().toLocaleTimeString()}</div>
+          <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
+            <div style={{ fontSize: "9pt" }}>
+              <span>Bill No:&nbsp;</span>
+              <span>{billData.voucherNo || 'N/A'}</span>
+            </div>
+            <div style={{ fontSize: "9pt" }}>
+              <span>Date:&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span>
+                {billData.voucherDate ? (() => {
+                  const date = new Date(billData.voucherDate);
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
+                  const year = date.getFullYear();
+                  return `${day}-${month}-${year}`;
+                })() : 'N/A'}
+              </span>
+            </div>
+            <div style={{ fontSize: "9pt" }}>
+              <span>Time:&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span>{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
             </div>
           </div>
           <div ref={qrcodeRef} style={{ display: "flex", justifyContent: "center", width: "50px", height: "50px" }}></div>
@@ -252,7 +268,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
         {/* Customer Info */}
         <div className="customer-info">
-          Customer: {billData.customercode || 'N/A'} - {billData.customerName || 'N/A'}
+          Customer: {billData.customerName || 'N/A'}
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
@@ -274,12 +290,17 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
               </td>
             </tr>
             {billData.items && billData.items.map((item, index) => (
-              <tr key={index}>
-                <td style={{ textAlign: "left" }}>{item.itemName || 'N/A'}</td>
-                <td style={{ textAlign: "right" }}>{(item.rate || 0).toFixed(2)}</td>
-                <td style={{ textAlign: "right" }}>{(item.qty || 0).toFixed(3)}</td>
-                <td style={{ textAlign: "right" }}>{(item.amount || 0).toFixed(2)}</td>
-              </tr>
+              <React.Fragment key={index}>
+                <tr>
+                  <td colSpan="4" style={{ textAlign: "left", paddingTop: "0.8mm", paddingBottom: "0.2mm" }}>{item.itemName || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td style={{ textAlign: "left" }}></td>
+                  <td style={{ textAlign: "right" }}>{(item.rate || 0).toFixed(2)}</td>
+                  <td style={{ textAlign: "right" }}>{(item.qty || 0).toFixed(3)}</td>
+                  <td style={{ textAlign: "right" }}>{(item.amount || 0).toFixed(2)}</td>
+                </tr>
+              </React.Fragment>
             ))}
 
             <tr>
@@ -299,12 +320,8 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
         <hr className="dashed" />
 
-        {/* Terms and Conditions */}
-        <div className="terms">
-          <div>( Incl. of all Taxes )</div>
-          <div>-E & O E. No Exchange No Refund-</div>
-          <div>-No Return for CHINA and WOODEN PRODUCTS-</div>
-        </div>
+        
+       
 
         {/* Thank You Message */}
         <div className="thank-you">*** Thank You Visit Again! ***</div>
